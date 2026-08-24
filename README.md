@@ -2,12 +2,22 @@
 
 Modern control panel for Dragon Realms (Genie + Lich). Demo mode works without the game.
 
-## Windows setup
+## Goal: double-click executable (no terminal)
 
-1. Install **Node.js LTS** from https://nodejs.org (includes npm).
-2. Unzip `dr-companion.zip` somewhere simple, e.g.:
-   - `C:\Users\Admin\Desktop\dr-companion`
-3. Open **Command Prompt** and run:
+Production builds use **Tauri 2** to ship a normal Windows app:
+
+- `DR Companion.exe` (portable / installed)
+- Optional NSIS installer (Start Menu + shortcut)
+
+### For users (later)
+
+1. Download the installer or zip from a release.
+2. Double-click **DR Companion**.
+3. A small window opens beside Genie — no Command Prompt.
+
+### For developers (now)
+
+**Dev (browser):**
 
 ```bat
 cd C:\Users\Admin\Desktop\dr-companion
@@ -15,15 +25,40 @@ npm install
 npm run dev
 ```
 
-4. When Vite prints a URL (usually `http://localhost:1420`), open it in your browser.
-5. Click **Skip to demo** to try the dashboard without installing Ruby/Lich.
+Open http://localhost:1420 → **Skip to demo**.
 
-## Notes
+**Desktop window (requires Rust + WebView2 on Windows):**
 
-- `/path/to/dr-companion` was only a placeholder — use your real folder path.
-- Windows paths use backslashes: `cd C:\Users\Admin\Desktop\dr-companion`
-- Demo mode does not need Genie or Lich. Live control comes later.
+```bat
+npm install
+npm run tauri:dev
+```
 
-## Design
+**Build standalone .exe (Windows build machine):**
 
-See `../DR_Companion_Design_Document.md` in the artifacts folder if present.
+```bat
+npm install
+npm run tauri:build
+```
+
+Outputs under `src-tauri\target\release\bundle\` (NSIS/MSI + exe).
+
+Requirements to *build* the .exe (not needed by end users):
+
+- Node.js LTS
+- Rust (rustup)
+- Visual Studio Build Tools (C++ workload)
+- WebView2 (usually already on Windows 10/11)
+
+End users only need the built installer — no npm, no terminal.
+
+## Demo vs live
+
+| Mode | Needs |
+|------|--------|
+| Skip to demo | Browser or Tauri window only |
+| Live automation | Genie + Lich + bridge (coming next) |
+
+## Design notes
+
+See `docs/` and the design document shipped with the project.

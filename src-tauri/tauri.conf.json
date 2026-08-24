@@ -20,7 +20,9 @@
         "resizable": true,
         "fullscreen": false,
         "decorations": true,
-        "alwaysOnTop": false
+        "alwaysOnTop": false,
+        "visible": true,
+        "center": true
       }
     ],
     "security": {
@@ -29,9 +31,21 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "nsis",
+      "msi"
+    ],
     "icon": [
       "icons/icon.png"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    },
+    "shortDescription": "Dragon Realms Companion control panel",
+    "longDescription": "Attended control panel for Genie + Lich automation. Runs as a small window beside the game.",
+    "category": "Game"
   }
 }

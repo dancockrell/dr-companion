@@ -1,0 +1,197 @@
+/**
+ * Hunting ground recommendations (stub data).
+ * Real system must use researched Elanthipedia + map room IDs per instance.
+ */
+
+import type { AccountTier, GameInstance } from '../types'
+import { capabilitiesFor } from '../lib/accountCapabilities'
+
+export interface HuntingGround {
+  id: string
+  name: string
+  instance: GameInstance
+  /** Province / area label */
+  area: string
+  inZoluren: boolean
+  requiresPremium: boolean
+  /** Which train focus ids this supports well */
+  focus: string[]
+  /** 1 easy – 5 hard */
+  difficulty: number
+  notes?: string
+}
+
+export const HUNTING_GROUNDS: HuntingGround[] = [
+  // Prime — Zoluren novice/mid
+  {
+    id: 'crossing-rats',
+    name: 'Crossing sewers / rats',
+    instance: 'Prime',
+    area: 'Crossing',
+    inZoluren: true,
+    requiresPremium: false,
+    focus: ['weapons', 'armor', 'survival'],
+    difficulty: 1,
+    notes: 'Starter combat',
+  },
+  {
+    id: 'rock-trolls',
+    name: 'Rock trolls',
+    instance: 'Prime',
+    area: 'Near Crossing',
+    inZoluren: true,
+    requiresPremium: false,
+    focus: ['weapons', 'armor'],
+    difficulty: 2,
+  },
+  {
+    id: 'goblin-corps',
+    name: 'Goblin corps',
+    instance: 'Prime',
+    area: 'Zoluren wilds',
+    inZoluren: true,
+    requiresPremium: false,
+    focus: ['weapons', 'armor', 'survival'],
+    difficulty: 2,
+  },
+  {
+    id: 'kepagen-swamp',
+    name: 'Kephagen swamp / woods',
+    instance: 'Prime',
+    area: 'Zoluren',
+    inZoluren: true,
+    requiresPremium: false,
+    focus: ['survival', 'lore', 'magic'],
+    difficulty: 2,
+  },
+  {
+    id: 'fang-cove-practice',
+    name: 'Fang Cove practice grounds',
+    instance: 'Prime',
+    area: 'Fang Cove',
+    inZoluren: true,
+    requiresPremium: true,
+    focus: ['weapons', 'armor', 'magic'],
+    difficulty: 2,
+    notes: 'Premium+',
+  },
+  {
+    id: 'shard-outskirts',
+    name: 'Shard outskirts',
+    instance: 'Prime',
+    area: 'Ilithi',
+    inZoluren: false,
+    requiresPremium: false,
+    focus: ['weapons', 'armor', 'advanced_hunt'],
+    difficulty: 3,
+  },
+  {
+    id: 'steel-drakes',
+    name: 'Steel drakes / hard hunt',
+    instance: 'Prime',
+    area: 'Varies',
+    inZoluren: false,
+    requiresPremium: false,
+    focus: ['advanced_hunt', 'weapons', 'armor'],
+    difficulty: 5,
+  },
+  // Fallen
+  {
+    id: 'fallen-shard-rats',
+    name: 'Fallen — Shard local pests',
+    instance: 'Fallen',
+    area: 'Shard',
+    inZoluren: false,
+    requiresPremium: false,
+    focus: ['weapons', 'armor', 'survival'],
+    difficulty: 1,
+  },
+  {
+    id: 'fallen-mid',
+    name: 'Fallen — mid wilds',
+    instance: 'Fallen',
+    area: 'Ilithi',
+    inZoluren: false,
+    requiresPremium: false,
+    focus: ['weapons', 'armor', 'magic', 'advanced_hunt'],
+    difficulty: 3,
+  },
+]
+
+export interface RankedHunt {
+  ground: HuntingGround
+  score: number
+  rejected: boolean
+  reasons: string[]
+}
+
+export function rankHuntingGrounds(opts: {
+  instance: GameInstance
+  accountTier: AccountTier
+  focus: string[]
+}): RankedHunt[] {
+  const cap = capabilitiesFor(opts.accountTier, opts.instance)
+  const focus = opts.focus
+
+  return HUNTING_GROUNDS.map((ground) => {
+    const reasons: string[] = []
+    let rejected = false
+    let score = 50
+
+    if (ground.instance !== opts.instance) {
+      rejected = true
+      reasons.push(`Wrong instance`)
+    }
+    if (!rejected && !cap.canTravelOutsideZoluren && !ground.inZoluren) {
+      rejected = true
+      reasons.push('Outside Zoluren (tier locked)')
+    }
+    if (
+      !rejected &&
+      ground.requiresPremium &&
+      opts.accountTier !== 'premium' &&
+      opts.accountTier !== 'platinum'
+    ) {
+      rejected = true
+      reasons.push('Requires Premium/Platinum')
+    }
+
+    if (rejected) {
+      return { ground, score: -1, rejected: true, reasons }
+    }
+
+    if (focus.length === 0) {
+      score += 5
+      reasons.push('Balanced default')
+    } else {
+      const hits = ground.focus.filter((f) => focus.includes(f)).length
+      if (hits === 0) {
+        score -= 20
+        reasons.push('Weak match to focus')
+      } else {
+        score += hits * 15
+        reasons.push(`Matches ${hits} focus skill(s)`)
+      }
+    }
+
+    // Prefer easier grounds slightly unless advanced_hunt selected
+    if (focus.includes('advanced_hunt')) {
+      score += ground.difficulty * 4
+    } else {
+      score += (6 - ground.difficulty) * 3
+    }
+
+    return { ground, score: Math.round(score), rejected: false, reasons }
+  }).sort((a, b) => {
+    if (a.rejected !== b.rejected) return a.rejected ? 1 : -1
+    return b.score - a.score
+  })
+}
+
+export function pickBestHunt(opts: {
+  instance: GameInstance
+  accountTier: AccountTier
+  focus: string[]
+}): RankedHunt | null {
+  return rankHuntingGrounds(opts).find((r) => !r.rejected) ?? null
+}
