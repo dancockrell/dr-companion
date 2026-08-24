@@ -1,0 +1,2 @@
+# localStorage key name, not a credential. Verified by filename and shape.
+src/lib/persistence.ts:generic-api-key:8

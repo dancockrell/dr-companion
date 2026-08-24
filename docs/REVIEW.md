@@ -1,0 +1,337 @@
+# Code review: DR Companion, builds A and B
+
+Reviewed 25 Aug 2026 against the two packaged zips as shipped, before any
+cleanup. Commit `build-b` is the tree this describes. Findings are ordered by
+what would hurt a real user first.
+
+---
+
+## 1. Build B does not build
+
+`src/lib/accountCapabilities.ts` is zero bytes. It is the only source of
+`capabilitiesFor`, `capabilitiesForCharacter` and `intentBlockReason`, which are
+imported by eight modules: `mockBridge`, `hunting`, `townRun`, `travelPath`,
+`PowerDashboard`, `InventoryPanel`, `PresetBar`, `ScriptLauncher`.
+
+`npm run build` fails. `npm run dev` serves a white screen with a missing-export
+error in the console. The file survived intact in Build A and was restored from
+there.
+
+`src/data/hunting.ts.bak` also shipped, an editor backup of the older stub
+version of the hunting data.
+
+**Fix:** done, in the commit after `build-b`.
+
+---
+
+## 2. The setup wizard tells the user it installed things it did not install
+
+`SetupWizard.tsx` reports "Genie: Detected (mock)" and then "Ruby: not found",
+"Lich: not installed". Pressing **Confirm and Install** runs two `setTimeout`
+calls and lands on a green check reading **"Installed successfully"**. Nothing
+was downloaded. Nothing was configured. `handleFinish` then enters the dashboard
+as though the toolchain is ready.
+
+There is a disclaimer in 11px grey text at the bottom of the screen. It does not
+undo a green checkmark that says installed.
+
+This is the one finding that is a problem of honesty rather than of
+incompleteness, and it is the piece most likely to burn goodwill on a community
+release. A first-time player will believe they now have Lich.
+
+**Fix:** the wizard should either detect for real (Tauri can shell out and look
+for `ruby -v` and a Lich directory) or say plainly that it cannot check yet. Any
+button that does not install must not be labelled Install. Until detection
+exists, the demo path should be the only path.
+
+---
+
+## 3. Stop is gated behind the connection it is meant to interrupt
+
+`useAppStore.requestIntent` refuses every intent, `stop_all` included, unless
+`bridgeConnected && character.connected`:
+
+```ts
+if (!bridgeConnected || !character?.connected) {
+  addLog('Not connected — cannot run intent: ' + intent)
+  return
+}
+```
+
+The bridge contract states Stop is always available, and `SafetyFooter` is built
+around that promise. But `character.connected` is a flag the *game* side sets. A
+live socket with a stale or false `connected` flag produces a Stop button that
+logs a line and does nothing, at exactly the moment a player is mashing it.
+
+**Fix:** exempt `stop_all`, `pause` and `escape` from the gate. Send them
+whenever the socket is open, and when it is not, say so on the button rather than
+in the log.
+
+---
+
+## 4. Tier gating is documented as mandatory and implemented as `return null`
+
+```ts
+export function intentBlockReason(_intent: string, _c: CharacterStatus): string | null {
+  return null
+}
+```
+
+`BRIDGE_CONTRACT.md` carries a table of F2P restrictions (reject travel outside
+Zoluren, skip vault, never offer Fang Cove) under the heading "Capability-aware
+rule (mandatory)". `mockBridge.handleIntent` calls `intentBlockReason` first, so
+the entire gate is one function returning null. Every intent passes.
+
+The scoring modules do enforce tier, separately and correctly, inside
+`scoreHealers` and `rankHuntingGrounds`. So the gate is not needed for those
+paths, which makes the empty function worse rather than better: it looks like
+enforcement and is not.
+
+**Fix:** implement it from the doc's own table, or delete it and move the
+statement to where the enforcement actually lives.
+
+---
+
+## 5. Healer selection ignores where the character is
+
+The contract says never pick by room distance alone. The code went past that to
+using no distance at all.
+
+`HealerOption.pathDifficulty` is a fixed integer per healer, not a distance from
+anywhere. `mobilityScore` is hardcoded to `55` in both `mockBridge` and
+`PowerDashboard`. `character.location` is never read by `scoreHealers`. A
+character bleeding out in Ratha and one standing in Crossing get the same
+ranking, and Crossing Empath Guild wins both.
+
+**Fix:** pass current location into `HealerScoreContext` and make
+`pathDifficulty` relative to it. Proximity should be one weighted factor, which
+is what the contract was asking for.
+
+---
+
+## 6. `instance: 'Unknown'` produces zero healers and zero hunting grounds
+
+Both scorers reject on exact instance mismatch:
+
+```ts
+if (option.instance !== ctx.instance) { rejected = true }
+```
+
+`GameInstance` includes `'Test'` and `'Unknown'`, and `'Unknown'` is what a real
+bridge will send whenever Lich cannot identify the instance. Every option is
+rejected, `pickBestHealer` returns `null`, and the UI shows "No healer route".
+
+The account-tier code treats `'unknown'` conservatively as F2P, which is the
+right instinct. The instance code has no equivalent.
+
+**Fix:** treat `'Unknown'` as Prime with a visible caveat, or refuse the intent
+with a message that names the real problem.
+
+---
+
+## 7. Prime geography runs against Fallen sessions
+
+`BRIDGE_CONTRACT.md`: "Never run Prime navigation data against a Fallen
+session."
+
+`planTravel` does exactly that. Every entry in `TRAVEL_DESTINATIONS` is Prime
+geography with no `instance` field. On a Fallen character the planner builds a
+Prime route and appends a note:
+
+```ts
+reasons.push('Fallen geography may differ from Prime labels')
+```
+
+A soft note is not the rule the document states.
+
+**Fix:** give destinations an `instance` field and filter, the way healers and
+hunting grounds already do.
+
+---
+
+## 8. Live-mode status listener leaks on every connect
+
+`connectBridge` subscribes and throws away the unsubscribe:
+
+```ts
+bridge.onLiveStatus((status, detail) => { ... })   // return value discarded
+```
+
+`RealBridge.statusListeners` is a `Set` that is never pruned. `RealBridge`
+reconnects every 3s forever with no backoff and no attempt cap, and each
+reconnect cycle plus each Mock/Live toggle adds another listener. Log lines
+duplicate, then quadruple. `unsubBridge` is handled properly a few lines above,
+so the omission looks like an oversight rather than a decision.
+
+**Fix:** store and call it in `disconnectBridge`, alongside `unsubBridge`. Add
+exponential backoff to the reconnect while you are in there.
+
+---
+
+## 9. Buttons that do not do what they say
+
+- `SimpleDashboard`: `primaryIntent = inCombat ? 'start_training' : 'start_training'`.
+  Both branches are identical. The button reads **Combat Assist** in combat and
+  sends `start_training`.
+- **Safe** (both dashboards) sends `stop_all`. The `escape` intent exists in
+  `IntentName`, is described in the contract as "emergency exit to safety", and
+  is never dispatched from anywhere in the UI.
+- **Stow all** in `InventoryPanel` sends `stow_all`, which falls through
+  `mockBridge`'s switch to `default` and logs "Intent received: stow_all".
+- Demo buttons (Low health, In combat, Safe again) are hardcoded into all three
+  dashboards and stay visible in Live mode, where `bridge.simulateLowHealth()`
+  no-ops silently. Click, nothing, no feedback.
+
+---
+
+## 10. The Tauri build cannot produce the executable Build B is about
+
+Build B exists to ship a double-clickable `.exe`, and the packaging is not there
+yet:
+
+- `src-tauri/icons/` contains one file: a 99-byte 32x32 PNG with no alpha
+  channel. Tauri's icon pipeline requires RGBA, and the Windows NSIS and MSI
+  bundlers require an `.ico`. There is no `.ico`.
+- There is no `src-tauri/capabilities/` directory. `tauri-plugin-shell` is a
+  dependency and is initialised in `lib.rs`, but with no capability file none of
+  its commands are reachable. It is dead weight in the binary, and shell
+  execution is not weight you want to carry for nothing.
+- `"csp": null` disables the content security policy outright. Low severity for a
+  localhost app, but it is an explicit security-off setting in something headed
+  for public release.
+- The bundle identifier is `online.elanthia.dr-companion`. **elanthia.online is
+  someone else's**, the org behind Lich 5 and dr-scripts. Shipping under their
+  reverse-DNS namespace, into their community, will read as impersonation
+  whether or not it is meant that way. Change it before anything is published.
+- `greet` in `lib.rs` is leftover Tauri scaffolding.
+
+---
+
+## 11. TypeScript strict mode is off
+
+`strict` appears in none of `tsconfig.json`, `tsconfig.app.json`,
+`tsconfig.node.json`. No `strictNullChecks` in a codebase whose central type is
+`character: CharacterStatus | null`, threaded through every component and guarded
+by hand each time.
+
+`noUnusedLocals` and `noUnusedParameters` are on, so the intent was there. Turn
+`strict` on now while the tree is 5,500 lines and the fixes are cheap.
+
+Related: `guild: (character.guild as any)` in `PowerDashboard` casts a
+free-string to `GuildId`. `character.guild` is `string | undefined` and nothing
+validates it against the twelve guilds, so a typo silently becomes an unknown
+profile.
+
+---
+
+## 12. Duplication that will drift
+
+- The three dashboards are roughly 90% identical markup. Header, vitals, quick
+  actions and log are copy-pasted three times. The `primaryIntent` bug in
+  finding 9 exists in `SimpleDashboard` and is fixed in `StandardDashboard`,
+  which is exactly how this goes.
+- `SettingsSheet` reimplements the tier filter inline instead of calling
+  `filterTrainFocusForTier`, which is exported from `training.ts` and unused.
+- `ScriptLauncher` renders an Activities list underneath a Quick Actions grid
+  that triggers the same intents.
+- Every component reads the store with bare `useAppStore()` destructuring rather
+  than selectors, so each of the 120 log lines re-renders the whole dashboard.
+
+Dead exports: `ENTRY_ROOMS`, `formatRankBand`, `listReachable`,
+`describeTrainingPlan`, `filterTrainFocusForTier`, `getBridgeDefaultUrl`.
+
+---
+
+## 13. Smaller things
+
+- `tools/mock-lich-server.mjs` imports `ws`, which is not in `package.json`.
+  `npm run mock-lich` fails on a clean clone with a module-not-found error. The
+  file comments tell you to `npm install ws --no-save`; the script itself does
+  not degrade or explain.
+- `bridge.setLiveUrl` and `getBridgeDefaultUrl` are never called. The bridge
+  contract says the port is configurable. It is hardcoded.
+- `SafetyFooter` computes busy state by matching activity strings against a
+  whitelist `['Ready', 'Stopped', 'Paused', 'Healed — Ready']`. Any new activity
+  string reads as Active forever, and the last entry is matched by literal em
+  dash.
+- Fang Cove is `province: 'Ilithi'` in `travelDestinations.ts`,
+  `province: 'Zoluren'` in the `premium_prime` preset, and `inZoluren: true` in
+  `healers.ts`. Three answers, and it is really its own premium area.
+- `capabilitiesFor` gives `hasVault: !f2p`, so Basic accounts get a vault. Worth
+  checking against current rules, since `canUsePremiumAreas` is correctly
+  Premium-and-above in the same function.
+- `bankDepositCap: 100000` and `bankCapPlatinum: 10` are bare numbers with no
+  unit anywhere near them.
+- `estimatedHops: steps.length` counts narrative steps, not rooms.
+- `combatMachine` transitions `retreating -> safe -> escaping -> safe ->
+  stopped`. Retreating into escaping reads backwards, and the machine is only
+  ever run as a one-shot log dump in `mockBridge`, never driven by real events.
+- `guildAdjust` overwrites `note` on each matching branch, so only the last
+  reason survives.
+- `mockBridge` `escape_heal` sets `scripts = ['uber-heal']` and emits a script
+  named `uber`. Given `GAME_KNOWLEDGE.md` explicitly rules out shipping Uber
+  Combat, borrowing its name in the mock is worth renaming.
+- `noobChecklist.ts` references `NOOB.ARMOR`, a third-party Genie script, in
+  user-facing copy.
+- Indentation is visibly broken around the `PresetBar` call in both
+  `SimpleDashboard` and `StandardDashboard`, and around `ScriptLauncher` in
+  `PowerDashboard`. Cosmetic, but it is the tell of hand-patching.
+
+---
+
+## 14. One thing to decide before release, which is not a bug
+
+The house-entry feature automates the in-game burgle system: entry method, room
+search loop, guard checks, leave-on-footsteps, guild-specific stealth prep. The
+mechanics are public and the implementation here is original.
+
+But a polished burglary tool, released into official community channels under a
+friendly name, is the feature that will attract attention regardless of how the
+rest of the project is framed. It is worth deciding on purpose whether it ships
+in v1, ships behind a flag, or waits. That is a positioning call, not a technical
+one, and it is better made now than in a forum thread.
+
+---
+
+## What is genuinely good here
+
+Worth saying, because the list above is long.
+
+The bridge split is the right architecture. Keeping the Companion out of the
+game stream, and pushing all game logic behind high-level intents over a
+localhost socket, means the UI can be thrown away and rewritten without touching
+anything that matters. That decision will still be paying off in a year.
+
+The scoring modules are the real work. `scoreHealers` and `rankHuntingGrounds`
+return their reasons alongside their scores, and Power mode renders those
+reasons in the UI, rejected candidates included. A tool that shows why it chose
+something is a tool players will trust and correct, which is the difference
+between a script people run and a script people adopt.
+
+`GAME_KNOWLEDGE.md` draws the line between public mechanics and other people's
+script code before any of it was needed. That does not usually get written down
+until after someone complains.
+
+And the three density modes are a real insight about the audience rather than a
+UI flourish. Simple mode exists because a player who is bleeding does not want a
+ranking table.
+
+---
+
+## Suggested order
+
+1. Restore the truncated file. (done)
+2. Make the setup wizard stop claiming installs.
+3. Ungate Stop.
+4. Fix the listener leak and add reconnect backoff.
+5. Turn on `strict`.
+6. Change the bundle identifier off the elanthia.online namespace.
+7. Implement `intentBlockReason`, or remove it and correct the doc.
+8. Location-aware healer scoring.
+9. Instance-scoped travel data.
+10. Real icons, then a build that actually produces an installer.
+11. Collapse the three dashboards onto shared components.
+12. Write the Ruby bridge.
+
+Nothing above item 12 needs the game running. All of it can be done against the
+mock.
