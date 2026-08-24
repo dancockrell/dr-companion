@@ -58,7 +58,7 @@ and the Lich side stays inspectable Ruby that any player can read.
 | `tools/mock-lich-server.mjs` | Works, but needs `npm install ws` first |
 | `lich-scripts/companion_bridge.rb` | Two `echo` lines. Not implemented. |
 | Tier gating (`intentBlockReason`) | Returns `null` for everything |
-| Setup wizard install steps | Simulated. Installs nothing. |
+| Setup wizard detect + install | Simulated. Detects and installs nothing yet. |
 | Tauri `.exe` build | Not yet buildable, see the review |
 
 A fuller account is in [docs/REVIEW.md](docs/REVIEW.md), a code review of this

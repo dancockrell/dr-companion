@@ -4,6 +4,12 @@ Reviewed 25 Aug 2026 against the two packaged zips as shipped, before any
 cleanup. Commit `build-b` is the tree this describes. Findings are ordered by
 what would hurt a real user first.
 
+The premise throughout: the intent is sound and the execution is what is under
+review. Nearly every finding below is a case of the right idea written down
+correctly in a doc or a type, then implemented as a stub, a hardcoded constant
+or an empty return. The fix is almost never to remove the feature. It is to
+finish it.
+
 ---
 
 ## 1. Build B does not build
@@ -24,7 +30,7 @@ version of the hunting data.
 
 ---
 
-## 2. The setup wizard tells the user it installed things it did not install
+## 2. The setup wizard is supposed to install Ruby and Lich. It fakes it.
 
 `SetupWizard.tsx` reports "Genie: Detected (mock)" and then "Ruby: not found",
 "Lich: not installed". Pressing **Confirm and Install** runs two `setTimeout`
@@ -35,14 +41,47 @@ as though the toolchain is ready.
 There is a disclaimer in 11px grey text at the bottom of the screen. It does not
 undo a green checkmark that says installed.
 
-This is the one finding that is a problem of honesty rather than of
-incompleteness, and it is the piece most likely to burn goodwill on a community
-release. A first-time player will believe they now have Lich.
+The feature is the right one. Getting Ruby and Lich installed is the single
+biggest barrier between a curious player and a working setup, and a wizard that
+handles it is most of this project's value to a newcomer. Nothing is wrong with
+the idea. What shipped is a green checkmark reading "Installed successfully"
+over an empty function, and a first-time player will believe they now have Lich.
 
-**Fix:** the wizard should either detect for real (Tauri can shell out and look
-for `ruby -v` and a Lich directory) or say plainly that it cannot check yet. Any
-button that does not install must not be labelled Install. Until detection
-exists, the demo path should be the only path.
+**Fix:** build the real thing. It divides cleanly:
+
+*Detection* is the easy half and unblocks everything else. Tauri can run a
+command and read its output, so:
+
+- Ruby: run `ruby -v`, parse the version, check it meets Lich's minimum
+- Lich: look for `lich.rbw` in the usual locations, and check the version
+- Genie: look for the installed client and its config directory
+- Bridge: check whether `companion_bridge.rb` is in Lich's scripts directory
+- Maps: check for the map database Lich uses for pathing
+
+Each detection result feeds the `SetupComponent` status that already exists.
+That alone turns the wizard truthful without installing anything.
+
+*Installation* is the half that needs care, because it downloads and executes
+code on someone's machine:
+
+- Ruby: hand it to `winget install RubyInstallerTeam.Ruby` rather than
+  fetching an installer yourself. Winget handles the signature checking, and
+  the user can audit the command.
+- Lich: fetch from the official source over HTTPS, show the URL and the
+  resolved version in the UI before downloading, and verify a checksum.
+- Never install silently, never elevate, and never proceed past a failed
+  verification. Show the actual command being run and its actual output. A
+  player who can see `winget install RubyInstallerTeam.Ruby` scroll past will
+  trust the tool more than one who sees a spinner.
+- Every step needs a real failure state. Right now there is a `SetupStatus` of
+  `'error'` in the type union that nothing ever sets.
+
+Until the install half exists, detection plus a link and a copyable command is
+already a good wizard, and it is honest. The mock timers should go either way:
+they are the part that makes a claim the program cannot back.
+
+Note this needs `src-tauri/capabilities/` and the shell or process plugin
+properly permissioned, which finding 10 covers.
 
 ---
 
@@ -321,7 +360,7 @@ ranking table.
 ## Suggested order
 
 1. Restore the truncated file. (done)
-2. Make the setup wizard stop claiming installs.
+2. Real detection in the setup wizard, then real installs.
 3. Ungate Stop.
 4. Fix the listener leak and add reconnect backoff.
 5. Turn on `strict`.
