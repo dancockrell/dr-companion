@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #0c0e12;
+  --color-surface-raised: #141820;
+  --color-surface-overlay: #1a1f2a;
+  --color-border: #2a3142;
+  --color-ink: #e8eaef;
+  --color-ink-muted: #9aa3b5;
+  --color-ink-faint: #6b7385;
+  --color-accent: #d4a84b;
+  --color-accent-soft: #b8923f;
+  --color-good: #3ecf8e;
+  --color-warn: #e6b84d;
+  --color-danger: #e85d5d;
+  --color-info: #5b9fd4;
+  --font-sans: "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/* Subtle scrollbar for dark UI */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3142;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4255;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
