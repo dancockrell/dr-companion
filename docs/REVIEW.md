@@ -19,14 +19,60 @@ finish it.
 imported by eight modules: `mockBridge`, `hunting`, `townRun`, `travelPath`,
 `PowerDashboard`, `InventoryPanel`, `PresetBar`, `ScriptLauncher`.
 
-`npm run build` fails. `npm run dev` serves a white screen with a missing-export
-error in the console. The file survived intact in Build A and was restored from
-there.
+`npm run build` fails with ten errors. Verified against the tree, with the file
+restored to its zero-byte state:
+
+```
+src/bridge/mockBridge.ts(8,10): error TS2305: Module '"../lib/accountCapabilities"'
+  has no exported member 'capabilitiesForCharacter'.
+src/data/hunting.ts(8,10): error TS2305: ... has no exported member 'capabilitiesFor'.
+src/data/townRun.ts(7,10): error TS2305: ... has no exported member 'capabilitiesFor'.
+src/data/travelPath.ts(13,10): error TS2305: ... has no exported member 'capabilitiesFor'.
+[6 more]
+```
+
+`npm run dev` serves a white screen with a missing-export error in the console.
+The file survived intact in Build A and was restored from there. With it back,
+`tsc -b && vite build` completes clean in 3.6s.
 
 `src/data/hunting.ts.bak` also shipped, an editor backup of the older stub
 version of the hunting data.
 
 **Fix:** done, in the commit after `build-b`.
+
+---
+
+## 1b. The lockfile points every dependency at a build-box IP
+
+All 111 `resolved` URLs in the shipped `package-lock.json` read like this:
+
+```json
+"resolved": "http://35.245.43.102/npm/%40jridgewell%2Fgen-mapping/-/gen-mapping-0.3.13.tgz"
+```
+
+A bare IP address, over plain HTTP, on a host nobody outside whatever machine
+built the zip can reach. `npm config get registry` on a normal machine returns
+`https://registry.npmjs.org/` and `npm ping` succeeds, but `npm install` still
+fails, because the lockfile overrides the registry per package:
+
+```
+npm error network request to http://35.245.43.102/npm/zustand/-/zustand-5.0.15.tgz
+npm error network failed, reason: connect ETIMEDOUT 35.245.43.102:80
+```
+
+Every person who clones this repo hits that, and the error blames their network
+rather than the lockfile, so they will spend a while looking in the wrong place.
+For a project whose whole pitch is that it is easy to get running, this is the
+first thing a new contributor would have met.
+
+Plain HTTP is the second half of the problem. Tarball integrity hashes in the
+lockfile do protect against tampering, but shipping a dependency graph that
+resolves over unencrypted HTTP to an unnamed IP is not something to publish.
+
+**Fix:** done. Deleted and regenerated against `https://registry.npmjs.org/`.
+All 124 entries now resolve there, and the tree installs and builds from a clean
+clone. Worth checking any future zip for the same thing, since it comes from the
+build environment rather than from anything in the source.
 
 ---
 
