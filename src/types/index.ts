@@ -13,7 +13,15 @@ export type GameInstance = 'Prime' | 'Platinum' | 'Fallen' | 'Test' | 'Unknown'
 /** Simutronics account / subscription tier — drives travel, inventory, bank, guild, hunting */
 export type AccountTier = 'f2p' | 'basic' | 'premium' | 'platinum' | 'fallen' | 'unknown'
 
-export type UiMode = 'simple' | 'standard' | 'power'
+/**
+ * Two, not three.
+ *
+ * There were Simple, Standard and Power. Simple was too thin to play from and
+ * Standard was what everyone would actually pick, so the choice was really
+ * between one usable layout and a dense one. Panels move and resize now, which
+ * is a better answer to "I want it arranged differently" than a third preset.
+ */
+export type UiMode = 'basic' | 'power'
 
 export type SetupComponentId =
   | 'genie'

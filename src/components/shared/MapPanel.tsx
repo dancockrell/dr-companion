@@ -1,16 +1,18 @@
 /**
- * The map.
+ * The map, inline in the panel.
  *
  * Drawn from Lich's own room graph, which carries the layout the community's
  * cartographers built: `genie_pos` gives each room an x/y/z, `wayto` gives the
  * links, and it is all keyed to Lich room ids. So this is their map work,
- * reached through the data Lich already holds on the player's machine — not a
- * copy of anyone's files, and not a second geography of our own that could
- * disagree with the one `#goto` actually uses.
+ * reached through data Lich already holds on the player's machine — not a copy
+ * of anyone's files, and not a second geography of our own free to disagree
+ * with the one `#goto` actually uses.
  *
- * Deliberately not an interactive travel control. Clicking a room asks for a
- * route and shows it; it does not walk anywhere. Moving stays a decision the
- * player makes with the route in front of them.
+ * The drawing lives in MapCanvas, shared with the popped-out window, so the
+ * glance and the watch cannot drift into two different maps.
+ *
+ * Not a travel control. Clicking a room asks for a route and shows it; it does
+ * not walk anywhere. Moving stays a decision made with the route in view.
  */
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -19,37 +21,35 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
+  PanelRightClose,
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
 import type { IntentName } from '../../bridge/types'
-
-/** Room box size and spacing, in SVG units. */
-const BOX = 14
-const PAD = 26
-
-/**
- * Two heights, because this sits near the top of a 780px window.
- *
- * A map belongs with the location it describes — it is orientation, not a
- * feature to scroll to — but at full size near the top it would push the
- * vitals and the primary action off screen, which is a worse trade. So it
- * opens small enough to see where you are and expands when you want to read
- * it.
- */
-const HEIGHT_COMPACT = 'max-h-40'
-const HEIGHT_TALL = 'max-h-80'
+import { isTauri, invokeTauri } from '../../lib/tauri'
+import { MapCanvas, MapLegend } from './MapCanvas'
 
 export function MapPanel() {
   const zone = useAppStore((s) => s.mapZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
+  const hereId = useAppStore((s) => s.mapHere?.id ?? null)
+
   const [level, setLevel] = useState<number | null>(null)
   const [tall, setTall] = useState(false)
+  const [poppedOut, setPoppedOut] = useState(false)
 
-  // Ask once when the panel appears with a live bridge, and whenever the
-  // character changes room enough for the zone to have changed.
-  const hereId = useAppStore((s) => s.mapHere?.id ?? null)
+  // Asked, not remembered. The map window is a separate webview with its own
+  // state, so this panel cannot know from its own memory whether a window it
+  // opened is still there or the user closed it by hand.
+  useEffect(() => {
+    if (!isTauri()) return
+    void invokeTauri('map_window_open')
+      .then((open) => setPoppedOut(open === true))
+      .catch(() => setPoppedOut(false))
+  }, [])
+
   useEffect(() => {
     if (connected) bridge.requestIntent('map_zone' as IntentName)
   }, [connected, hereId])
@@ -59,33 +59,33 @@ export function MapPanel() {
     return [...new Set(zone.rooms.map((r) => r.z ?? 0))].sort((a, b) => a - b)
   }, [zone])
 
-  // Rooms on the level being shown. Elanthia is not flat: towers, cellars and
-  // bridges share x/y with whatever is above or below them, and drawing every
-  // level at once produces a knot rather than a map.
-  const shown = useMemo(() => {
-    if (!zone?.rooms) return []
-    const z = level ?? levels[0] ?? 0
-    return zone.rooms.filter((r) => (r.z ?? 0) === z && r.x !== null && r.y !== null)
-  }, [zone, level, levels])
-
-  const view = useMemo(() => {
-    if (!shown.length) return null
-    const xs = shown.map((r) => r.x as number)
-    const ys = shown.map((r) => r.y as number)
-    const minX = Math.min(...xs)
-    const minY = Math.min(...ys)
-    return {
-      minX,
-      minY,
-      w: Math.max(...xs) - minX + PAD * 2,
-      h: Math.max(...ys) - minY + PAD * 2,
-    }
-  }, [shown])
-
-  const onPath = useMemo(
-    () => new Set((path?.ok ? path.rooms ?? [] : []).map((r) => r.id)),
+  const onRoute = useMemo(
+    () => new Set((path?.ok ? (path.rooms ?? []) : []).map((r) => r.id)),
     [path]
   )
+
+  async function popOut() {
+    try {
+      await invokeTauri('open_map_window')
+      setPoppedOut(true)
+    } catch {
+      // Leave the inline map showing rather than hiding it behind a window
+      // that never opened.
+      setPoppedOut(false)
+    }
+  }
+
+  async function popBack() {
+    try {
+      await invokeTauri('close_map_window')
+    } finally {
+      // In the `finally`, so a close that errored still returns the inline map
+      // rather than leaving the panel pointing at a window that is not there.
+      setPoppedOut(false)
+    }
+  }
+
+  const refresh = () => bridge.requestIntent('map_zone' as IntentName)
 
   if (!connected) {
     return (
@@ -98,10 +98,34 @@ export function MapPanel() {
     )
   }
 
-  // "No map" and "an empty map" are different answers and must not look alike.
+  // The map is in its own window. Say where it went and offer it back, rather
+  // than leaving a mystery gap under the location line.
+  if (poppedOut) {
+    return (
+      <Shell
+        title="Map"
+        right={
+          <button
+            type="button"
+            className="flex items-center gap-1 text-[11px] rounded border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
+            onClick={popBack}
+          >
+            <PanelRightClose className="w-3 h-3" />
+            Bring it back
+          </button>
+        }
+      >
+        <p className="text-xs text-ink-faint leading-relaxed">
+          Open in its own window, where it is big enough to watch.
+        </p>
+      </Shell>
+    )
+  }
+
+  // "No map" and "an empty map" are different answers, and must not look alike.
   if (!zone) {
     return (
-      <Shell onRefresh={() => bridge.requestIntent('map_zone' as IntentName)}>
+      <Shell onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
         <p className="text-xs text-ink-faint leading-relaxed">
           Nothing asked for yet. Press refresh, or move a room and it will
           arrive on its own.
@@ -112,7 +136,7 @@ export function MapPanel() {
 
   if (!zone.ok) {
     return (
-      <Shell onRefresh={() => bridge.requestIntent('map_zone' as IntentName)}>
+      <Shell onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
         <p className="text-xs text-warn leading-relaxed">
           {zone.reason ?? 'Lich has no map for where you are.'}
         </p>
@@ -120,27 +144,30 @@ export function MapPanel() {
     )
   }
 
+  const z = level ?? levels[0] ?? 0
+
   return (
     <Shell
       title={zone.name ?? `Zone ${zone.zone}`}
-      onRefresh={() => bridge.requestIntent('map_zone' as IntentName)}
+      onRefresh={refresh}
+      onPopOut={isTauri() ? popOut : undefined}
       right={
         <div className="flex items-center gap-2">
           {levels.length > 1 && (
             <div className="flex items-center gap-1">
               <Layers className="w-3 h-3 text-ink-faint" />
-              {levels.map((z) => (
+              {levels.map((lv) => (
                 <button
-                  key={z}
+                  key={lv}
                   type="button"
                   className={`text-[10px] rounded px-1.5 py-0.5 border ${
-                    (level ?? levels[0]) === z
+                    z === lv
                       ? 'border-accent text-accent bg-accent/10'
                       : 'border-border text-ink-faint'
                   }`}
-                  onClick={() => setLevel(z)}
+                  onClick={() => setLevel(lv)}
                 >
-                  {z}
+                  {lv}
                 </button>
               ))}
             </div>
@@ -160,97 +187,34 @@ export function MapPanel() {
         </div>
       }
     >
-      {view && (
-        <div
-          className={`overflow-auto rounded-lg border border-border bg-surface ${
-            tall ? HEIGHT_TALL : HEIGHT_COMPACT
-          }`}
-        >
-          <svg
-            viewBox={`0 0 ${view.w} ${view.h}`}
-            className="w-full"
-            style={{ minWidth: Math.min(view.w * 2, 1400) }}
-          >
-            {/* Links first, so rooms sit on top of them. */}
-            {shown.map((r) =>
-              (r.to ?? []).map((t) => {
-                const other = shown.find((o) => o.id === t)
-                // Only draw an edge when both ends are on this level. A link
-                // that leaves the zone or changes floor is real, but drawing
-                // it to nowhere would invent a corridor.
-                if (!other || (other.id ?? 0) <= (r.id ?? 0)) return null
-                return (
-                  <line
-                    key={`${r.id}-${t}`}
-                    x1={(r.x as number) - view.minX + PAD}
-                    y1={(r.y as number) - view.minY + PAD}
-                    x2={(other.x as number) - view.minX + PAD}
-                    y2={(other.y as number) - view.minY + PAD}
-                    stroke="var(--color-border)"
-                    strokeWidth={1.5}
-                  />
-                )
-              })
-            )}
+      {/* A real height, not a max. `fit` scales the zone into whatever box it
+          is given, and a max-height box collapses to the content's own size —
+          which for a small zone is a stamp in the corner. */}
+      <div
+        className="rounded-lg border border-border bg-surface overflow-hidden"
+        style={{ height: tall ? 320 : 168 }}
+      >
+        <MapCanvas
+          zone={zone}
+          level={z}
+          onRoute={onRoute}
+          fit
+          onPick={(id) => bridge.requestIntent('map_path' as IntentName, { to: id })}
+        />
+      </div>
 
-            {shown.map((r) => {
-              const here = r.id === zone.here
-              const routed = onPath.has(r.id)
-              return (
-                <g key={r.id}>
-                  <title>
-                    {`${r.title ?? 'Unknown'}\nLich room ${r.id}` +
-                      (r.uid ? `\ngame uid ${r.uid}` : '') +
-                      (r.tags?.length ? `\n${r.tags.join(', ')}` : '')}
-                  </title>
-                  <rect
-                    x={(r.x as number) - view.minX + PAD - BOX / 2}
-                    y={(r.y as number) - view.minY + PAD - BOX / 2}
-                    width={BOX}
-                    height={BOX}
-                    rx={3}
-                    className="cursor-pointer"
-                    fill={
-                      here
-                        ? 'var(--color-accent)'
-                        : routed
-                          ? 'var(--color-good)'
-                          : r.tags?.length
-                            ? 'var(--color-surface-overlay)'
-                            : 'var(--color-surface-raised)'
-                    }
-                    stroke={
-                      here
-                        ? 'var(--color-accent)'
-                        : r.tags?.length
-                          ? 'var(--color-info)'
-                          : 'var(--color-border)'
-                    }
-                    strokeWidth={here ? 2 : 1}
-                    onClick={() =>
-                      bridge.requestIntent('map_path' as IntentName, { to: r.id })
-                    }
-                  />
-                </g>
-              )
-            })}
-          </svg>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between gap-2 text-[10px] text-ink-faint">
-        <span>
+      <div className="flex items-center justify-between gap-2">
+        <MapLegend />
+        <span className="text-[10px] text-ink-faint shrink-0">
           {zone.rooms?.length ?? 0}
-          {zone.truncated ? ` of ${zone.total} rooms (capped)` : ' rooms'}
-          {levels.length > 1 ? `, level ${level ?? levels[0]}` : ''}
+          {zone.truncated ? ` of ${zone.total} (capped)` : ''}
         </span>
-        <span>Click a room for the route. Nothing moves.</span>
       </div>
 
       {path?.ok && (
         <p className="text-[11px] text-good leading-snug">
-          {path.steps} rooms to {path.rooms?.[path.rooms.length - 1]?.title ?? path.to}.
-          Not moving — this is the route only.
+          {path.steps} rooms to{' '}
+          {path.rooms?.[path.rooms.length - 1]?.title ?? path.to}
         </p>
       )}
       {path && !path.ok && (
@@ -264,22 +228,34 @@ function Shell({
   children,
   title,
   onRefresh,
+  onPopOut,
   right,
 }: {
   children: React.ReactNode
   title?: string
   onRefresh?: () => void
+  onPopOut?: () => void
   right?: React.ReactNode
 }) {
   return (
     <section className="space-y-2 rounded-xl border border-border bg-surface-raised p-3">
       <header className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider">
-          <MapIcon className="w-3.5 h-3.5" />
-          {title ?? 'Map'}
+        <h3 className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider min-w-0">
+          <MapIcon className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">{title ?? 'Map'}</span>
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {right}
+          {onPopOut && (
+            <button
+              type="button"
+              className="p-1 rounded text-ink-faint hover:text-ink"
+              title="Open the map in its own window"
+              onClick={onPopOut}
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onRefresh && (
             <button
               type="button"

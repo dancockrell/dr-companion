@@ -88,10 +88,6 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-ink-faint mt-1.5 leading-snug">
-        Companion-owned activities. Game knowledge from public sources; our
-        implementation. Stop is always on the footer.
-      </p>
     </section>
   )
 }

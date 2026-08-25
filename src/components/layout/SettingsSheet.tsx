@@ -53,8 +53,8 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
               Interface mode
             </h3>
-            <div className="grid grid-cols-3 gap-2">
-              {(['simple', 'standard', 'power'] as const).map((m) => (
+            <div className="grid grid-cols-2 gap-2">
+              {(['basic', 'power'] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
@@ -70,7 +70,8 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               ))}
             </div>
             <p className="text-[11px] text-ink-faint leading-snug">
-              Simple = big buttons. Power = rankings and dense controls.
+              Power adds rankings and denser controls. Either way the panels
+              move and resize.
             </p>
           </section>
 

@@ -28,7 +28,7 @@ export interface PersistedPrefs {
 }
 
 const defaults: PersistedPrefs = {
-  uiMode: 'simple',
+  uiMode: 'basic',
   alwaysOnTop: false,
   bridgeMode: 'mock',
   trainFocus: [],
@@ -48,10 +48,19 @@ export function loadPrefs(): PersistedPrefs {
     const raw = localStorage.getItem(KEY)
     if (!raw) return { ...defaults }
     const parsed = JSON.parse(raw) as Partial<PersistedPrefs>
-    return { ...defaults, ...parsed }
+    return { ...defaults, ...parsed, uiMode: migrateMode(parsed.uiMode) }
   } catch {
     return { ...defaults }
   }
+}
+
+/**
+ * There used to be three modes. Anyone who ran an earlier build has 'simple'
+ * or 'standard' stored, and reading one of those back would leave the app
+ * matching neither branch and rendering an empty window.
+ */
+function migrateMode(stored: unknown): UiMode {
+  return stored === 'power' ? 'power' : 'basic'
 }
 
 export function savePrefs(partial: Partial<PersistedPrefs>): PersistedPrefs {

@@ -91,17 +91,25 @@ export function StandardDashboard() {
               {character.location.isSafe && <Badge tone="good">Safe</Badge>}
             </div>
           </div>
-          <select
-            className="text-xs bg-surface-overlay border border-border rounded-lg px-2 py-1 text-ink-muted"
-            value={uiMode}
-            onChange={(e) =>
-              setUiMode(e.target.value as 'simple' | 'standard' | 'power')
-            }
-          >
-            <option value="simple">Simple</option>
-            <option value="standard">Standard</option>
-            <option value="power">Power</option>
-          </select>
+          
+          {/* Two buttons, not a dropdown. A menu to change between two things
+              costs a click to find out what the two things are. */}
+          <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
+            {(['basic', 'power'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`text-xs px-2.5 py-1 capitalize ${
+                  uiMode === m
+                    ? 'bg-accent/15 text-accent'
+                    : 'text-ink-faint hover:text-ink'
+                }`}
+                onClick={() => setUiMode(m)}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-1.5 text-sm text-ink-muted">
