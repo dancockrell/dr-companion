@@ -133,6 +133,71 @@ So: **scan the character, propose a YAML, let them correct it in a form, write
 it, then run `;validate` and show the result.** Never a blank file and a wiki
 link. The novel work is the proposal and the form; the checking already exists.
 
+What we cannot read, we default. `gear_sets` gets a shipped `swimming` set
+meaning no armour and nothing heavy, because that is right for almost everyone
+and wrong harmlessly. What we can neither read nor sensibly default is left
+empty and editable rather than guessed at.
+
+---
+
+## 2.4 Nothing starts blank, and nothing is fixed
+
+Every character's gear is different, new items arrive constantly, and the nouns
+are strange. We cannot ship a table that stays right. So every value in the app
+has a **provenance** and is **editable**, and the two are separate concerns.
+
+| Source | Example | Shown as |
+|---|---|---|
+| **Read** from the game | containers, worn items, hands, skills, spells, hometown | a value |
+| **Derived** from what we read | "these three are probably your armour" | a value, marked derived |
+| **Looked up** on Elanthipedia | an unknown noun classified as chain armour | a value, marked looked-up |
+| **Default** we ship | swimming means no armour, no burden | a value, marked default |
+| **Player** set it | anything they touched | a value, marked theirs |
+
+The rule is that **a player edit always wins and is never overwritten**, and
+that nothing is ever presented as certain when it was guessed. Provenance is not
+a warning — it is a small mark, and the detail is on hover.
+
+### Elanthipedia is queryable, which solves the noun problem
+
+Verified against the live site:
+
+- MediaWiki 1.39.12 with a working `api.php`
+- **Semantic MediaWiki** is installed, so `action=ask` returns *structured*
+  records, not just page text
+- `[[Category:Armor]]|?Armor type|?Protection` returns real rows
+
+So when a character is wearing `a rugged brigandine hauberk` and we do not know
+what that is, we can ask, get "brigandine, chain armour", and pre-fill
+`default_armor_type` and the gear set correctly.
+
+Constraints that come with that, and they are not optional:
+
+- **Cache locally and permanently.** A noun's classification does not change.
+- **Batch and rate-limit.** This is a community wiki run for players, not an
+  endpoint to hammer on every inventory refresh.
+- **Never required.** No network, no lookup, no problem — the field just falls
+  back to derived or blank and stays editable.
+- **Always overridable.** The wiki can be wrong or the item unique.
+
+## 2.5 Where information goes
+
+The app currently has explanatory sentences baked under half its panels. That is
+the wrong place for them: on a 520×780 window, prose is paid for in the space
+the actual thing needed.
+
+- **The panel shows values.** Not sentences about values.
+- **Hover carries the detail** — where a number came from, what the threshold
+  is, what the noun resolved to, why something is marked derived.
+- **No scolding, no warnings** for ordinary states. A field we could not fill is
+  empty and editable, not an alert.
+- **Errors are different** and still earn their line, because "I could not look"
+  has to be distinguishable from "there is nothing there".
+
+Concretely, the copy to remove is the kind I have been writing: "Nothing asked
+for yet. Press refresh, or move a room and it will arrive on its own." That is
+three lines of chat where an empty state and a hover would do.
+
 ---
 
 ## 3. What the app is
@@ -272,6 +337,12 @@ Each step is one bridge topic plus one panel, shippable alone.
 6. **Gear panel and profiles.** *Done when:* a profile can be defined, applied
    and verified — drowning and box-popping both work with no bespoke button.
 7. **YAML assistant.** Scan character → propose → form → write → `;validate`.
+   *Done when:* a new character reaches a valid profile without opening a text
+   editor, every proposed value shows where it came from, and every one of them
+   can be changed.
+7a. **Noun lookup.** Elanthipedia SMW, cached locally, batched, never required.
+   *Done when:* an unknown worn item resolves to an armour type without the
+   player being asked what it is.
 8. **Workflow editor** over `coordinator_*` keys. Ships with a few prebuilt
    workflows; building your own is the same editor, not a lesser path.
 9. **Map to a side dock**, following the character, `go2` as the action.
