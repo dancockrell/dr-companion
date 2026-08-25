@@ -49,6 +49,40 @@ The Ruby bridge script is where anything that touches the game goes. Rust is
 the installer and the window shell, and it is essentially finished. **If a
 feature needs new Rust, that is a signal it is the wrong feature.**
 
+### And most of it should not be ours at all
+
+Lich is not just an API, it is a script platform with a maintained script
+library, and the first question for any behaviour is **"which existing script
+already does this?"** `Script` gives us the whole lifecycle:
+
+```
+Script.list        Script.running      Script.running?(name)
+Script.start(name, *args)              Script.run(name)        # blocking
+Script.run_child(name, timeout:)       Script.pause/unpause
+Script.kill(name)  Script.exists?      Script.version(name)
+```
+
+Which means the honest shape of a feature is usually: read state, show it,
+start somebody else's script, watch it, report what happened.
+
+**Travel is the clearest case.** `go2` is version 2.3.3, actively maintained,
+by Tillmen with eight named contributors. It resolves **any map tag** as a
+destination — `Map.list.find_all { |r| r.tags.include?(target) }` — plus
+profession-aware targets like `;go2 guild`, `;go2 guild shop` and `;go2 locker`,
+and it confirms trips over 20 rooms before walking them.
+
+So the map's tag vocabulary *is* the destination menu, and go2 does the moving.
+Writing our own walker would be worse on day one and worse every day after.
+
+Our `map_path` stays, because showing a route before committing to it is a real
+thing the panel adds. What follows the preview is `Script.start('go2', id)`.
+
+**This also corrects something I got wrong earlier.** Lich does not fetch its
+map database on first connect. It comes from `;repository download-mapdb`, and
+`repository.lic` is the script that installs anything else from the community
+library too. Setup should offer that, and the map panel's empty state should
+name the command rather than shrugging.
+
 ---
 
 ## 2. The model
@@ -131,10 +165,17 @@ doing, not from what is easy to draw.
 **Tier 2 — one glance, resizable, dockable**
 
 - **Map**, sized to follow movement, hazards coloured. Not a thumbnail.
+  Clicking a room previews the route; going hands off to `go2`.
 - **Hands and worn**, with gear profiles. `GameObj.right_hand`/`left_hand`,
   `GameObj.inv`, `DRCI`, `EquipmentManager`.
-- **Watchdog**: is the automation alive? Game clock advancing, `$scriptlist`,
-  last command and its reply. Modelled directly on `uberwatch.cmd`.
+- **Scripts**: what is running, paused, or dead, with versions, and start /
+  pause / stop for each. This is the same panel as the watchdog — knowing uber
+  has stopped and being able to restart it are one problem, and `uberwatch.cmd`
+  exists because nothing offered either. `Script.list` / `running` / `version`
+  give us all of it, including the version numbers that dominate support
+  traffic.
+- **Watchdog signals** inside that panel: game clock advancing, last command and
+  its reply. Modelled directly on what `uberwatch.cmd` watches.
 
 **Tier 3 — on demand**
 
@@ -199,23 +240,55 @@ Each step is one bridge topic plus one panel, and each is shippable alone.
 4. **Gear panel and profiles.** Hands, worn, named sets, weapon swap by skill.
    *Done when:* a profile can be defined, applied, and verified from the panel —
    the drowning and box-popping cases both work without a bespoke button.
-5. **Map to a side dock**, following the character.
-6. **Watchdog panel**, modelled on `uberwatch.cmd`.
+5. **Scripts panel.** `Script.list` / `running` / `version`, with start, pause,
+   stop. Plus the watchdog signals.
+   *Done when:* a player can see uber is dead and restart it without typing,
+   and can see every script's version.
+6. **Map to a side dock**, following the character, with `go2` as the action.
+   *Done when:* clicking a room previews the route and a second, separate press
+   hands it to `go2`.
 7. **Situation read-out** — the model in §2, starting with route crossings,
    where `travel.cmd` has already published the thresholds.
 
 Steps 1–3 need no new game knowledge and no new Rust. Step 4 is where this
-becomes a tool people would choose over typing.
+becomes a tool people would choose over typing. Step 5 is the one an existing
+uber user would install this for.
 
 ---
 
-## 8. Open questions
+## 8. What we write, and what we call
+
+The test for any proposed feature, in order:
+
+1. **Does a Lich script already do this?** Then start it and report on it.
+   Travel, mapping, selling, alias handling, waggle sets — all of it exists.
+2. **Does Lich have the primitive?** Then call it. Gear sets, wounds, room
+   contents, pathing.
+3. **Is it genuinely absent?** Then it belongs in `companion_bridge.lic`, and
+   the bar for that is high.
+
+By that test the bridge should stay small. What it legitimately owns:
+
+- reading state into one shape the panel can render
+- the runaway detector, because nothing else stops a loop the player cannot see
+- roundtime, stun and refusal handling around any command we do send
+- reading dr-scripts YAML so we can report on config rather than replace it
+
+Everything else is somebody else's script, and they have been at it longer.
+
+## 9. Open questions
 
 1. **Should the app read the player's dr-scripts / Genie settings** to learn
    their existing gear sets and containers, rather than asking them to define
    everything again?
+
 2. **How much should it try to see uber?** Reporting on a running script is
    useful and cheap. Driving one is a different product.
 3. **Whose thresholds?** `travel.cmd` ships conservative numbers and lets you
    lower them. Do we ship the same numbers, read theirs, or ask?
 4. **Where does risk appetite live** — one global setting, or per situation?
+5. **Should we offer to install community scripts** through `repository.lic`?
+   It is the same consent question the dependency installer already answers,
+   and it would make the app a way into the script library rather than a thing
+   sitting beside it. `;repository download-mapdb` is the minimum, since the
+   map is useless without it.
