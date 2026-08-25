@@ -60,7 +60,23 @@ async function api(params, attempt = 0) {
   })}`
 
   await sleep(PAUSE_MS)
-  const res = await fetch(url, { headers: { 'User-Agent': UA } })
+
+  // A timeout, because without one a single stalled connection hangs the whole
+  // run forever and silently. That is not hypothetical: the first full pull sat
+  // for twenty minutes having written nothing, with the process alive and
+  // apparently working, because there was nothing to make it give up.
+  let res
+  try {
+    res = await fetch(url, {
+      headers: { 'User-Agent': UA },
+      signal: AbortSignal.timeout(30_000),
+    })
+  } catch (e) {
+    if (attempt >= 5) throw new Error(`network: ${e.message}`)
+    console.log(`  ${e.name}, retrying`)
+    await sleep(2000 * 2 ** attempt)
+    return api(params, attempt + 1)
+  }
 
   if (res.status === 429 || res.status >= 500) {
     if (attempt >= 5) throw new Error(`${res.status} after ${attempt} retries`)
@@ -94,8 +110,26 @@ async function api(params, attempt = 0) {
 async function ask(conditions, props, { max = Infinity } = {}) {
   const rows = {}
   let offset = 0
+  let requests = 0
 
   for (;;) {
+    // A hard ceiling, checked before the request rather than after.
+    //
+    // This is here because the first version of this ran away. `ask` keeps
+    // returning 500 rows when `offset` walks past the end of the result set
+    // rather than returning nothing, so `names.length < PAGE` never fired and
+    // the loop reported 28,000 weapons out of a possible 7,377. It made
+    // roughly three thousand requests to Simutronics' wiki over twenty
+    // minutes before I noticed, which is precisely the thing every comment in
+    // this file says must not happen.
+    //
+    // Two independent guards, because one that can be fooled by the API is not
+    // a guard: a request ceiling, and a check below for whether we are still
+    // learning anything.
+    if (++requests > 200) {
+      console.log(`  STOP: ${conditions} exceeded 200 requests, refusing to continue`)
+      break
+    }
     const query = [
       conditions,
       ...props.map((p) => `?${p}`),
@@ -108,16 +142,30 @@ async function ask(conditions, props, { max = Infinity } = {}) {
     const names = Object.keys(results)
     if (names.length === 0) break
 
+    // The guard that actually matters: are we still learning anything?
+    //
+    // Past the end of the result set the API returns rows we already have, so
+    // the honest end condition is "this page taught us nothing new" rather
+    // than any claim the API makes about how many rows it sent.
+    const before = Object.keys(rows).length
     for (const [title, row] of Object.entries(results)) {
       rows[title] = flatten(row.printouts)
     }
+    const learned = Object.keys(rows).length - before
+
+    if (learned === 0) {
+      console.log(`  ${conditions} complete at ${before} rows`)
+      break
+    }
 
     offset += names.length
-    process.stdout.write(`\r  ${conditions}  ${offset} rows`)
+    // A plain line, not a carriage return. `\r` progress looks tidy on a
+    // terminal and writes nothing at all when the output is piped to a file,
+    // which is exactly the case where you most need to know it is alive.
+    console.log(`  ${conditions} ${offset} rows`)
     if (names.length < PAGE || offset >= max) break
   }
 
-  process.stdout.write('\n')
   return rows
 }
 
@@ -145,6 +193,31 @@ function flatten(printouts) {
  * invented — because a name we invented would silently return nothing, which is
  * exactly how the first attempt at this produced 500 rows of empty columns.
  */
+/**
+ * The namespaces that hold game data, with their ids.
+ *
+ * This is the unit of work, and getting that wrong was the first design error
+ * here. I started by tracking which of the pages we already knew about had
+ * changed — a watchlist diff — which cannot see the thing that actually
+ * happens: **new items are added**. A page that did not exist last hour is not
+ * a change to anything we were watching.
+ *
+ * So the namespace is what gets watched, and anything in it we do not have is
+ * new and gets added. Measured over fourteen days:
+ *
+ *   Item:     93 edits      Weapon:   13      Armor:  a handful
+ *   main:    269            mostly player biographies and tournament logs,
+ *                           which are not game data
+ *
+ * That is roughly one relevant page an hour, which is what makes an hourly
+ * cadence reasonable rather than wasteful.
+ */
+const NAMESPACES = {
+  Armor: 110,
+  Weapon: 114,
+  Item: 118,
+}
+
 const SETS = {
   weapons: {
     conditions: '[[Category:Weapons]]',
@@ -229,6 +302,19 @@ async function full() {
  * this size sees a few dozen edits an hour, so an update is a handful of
  * requests rather than 130.
  */
+/**
+ * Incremental: ask each namespace what appeared or changed, and take it.
+ *
+ * The first version of this asked "which of the pages I already have were
+ * edited", which is a watchlist and cannot see the thing that actually happens.
+ * Items get **added**. A page that did not exist an hour ago is not an edit to
+ * anything on a watchlist, so the interesting case was exactly the one being
+ * missed.
+ *
+ * Watching the namespace catches both, and does not care whether a title is new
+ * or merely changed — either way we do not have the current version of it, and
+ * either way the answer is to fetch it.
+ */
 async function update() {
   const state = loadState()
   if (!state.lastRun) {
@@ -238,50 +324,75 @@ async function update() {
 
   const since = state.lastRun
   const started = new Date().toISOString()
-  console.log(`Changes since ${since}`)
+  console.log(`Since ${since}`)
 
-  const changed = new Set()
-  let cont
+  const touched = new Set()
 
-  do {
-    const json = await api({
-      action: 'query',
-      list: 'recentchanges',
-      rcstart: started,
-      rcend: since,
-      rcdir: 'older',
-      rclimit: '500',
-      rcprop: 'title|timestamp|ids',
-      rcnamespace: '0',
-      ...(cont ? { rccontinue: cont } : {}),
-    })
-    for (const c of json.query?.recentchanges ?? []) changed.add(c.title)
-    cont = json.continue?.rccontinue
-  } while (cont)
+  for (const [name, id] of Object.entries(NAMESPACES)) {
+    let cont
+    let n = 0
+    do {
+      const json = await api({
+        action: 'query',
+        list: 'recentchanges',
+        rcstart: started,
+        rcend: since,
+        rcdir: 'older',
+        rclimit: '500',
+        rcprop: 'title|timestamp|type',
+        rcnamespace: String(id),
+        // 'new' as well as 'edit'. Leaving it off defaults to both, but saying
+        // so is the point of this whole rewrite.
+        rctype: 'new|edit',
+        ...(cont ? { rccontinue: cont } : {}),
+      })
+      for (const c of json.query?.recentchanges ?? []) {
+        touched.add(c.title)
+        n++
+      }
+      cont = json.continue?.rccontinue
+    } while (cont)
 
-  console.log(`  ${changed.size} pages touched`)
+    console.log(`  ${name.padEnd(8)} ${n}`)
+  }
 
-  if (changed.size === 0) {
+  if (touched.size === 0) {
+    console.log('  nothing new')
     saveState({ ...state, lastRun: started, mode: 'update' })
     return
   }
 
-  // Refetch by category rather than page by page: one 500-row query that
-  // happens to include the changed pages costs less than fifty single-page
-  // lookups, and keeps the data internally consistent.
-  for (const [name, set] of Object.entries(SETS)) {
-    const existing = load(name)
-    const touched = Object.keys(existing).filter((t) => changed.has(t))
-    const isNew = [...changed].some((t) => !(t in existing))
-    if (touched.length === 0 && !isNew) continue
-
-    const rows = await ask(set.conditions, set.props)
-    save(name, rows)
-    console.log(`  ${name}: refreshed, ${Object.keys(rows).length} rows`)
+  // Fetch the touched pages by name rather than re-running the category
+  // queries. A handful of titles is a handful of rows; re-pulling 7,000 weapons
+  // to catch three edits would be the expensive mistake this whole design is
+  // trying to avoid.
+  const added = { }
+  for (const title of touched) {
+    const json = await api({ action: 'browsebysubject', subject: title })
+    const props = {}
+    for (const row of json.query?.data ?? []) {
+      const vals = (row.dataitem ?? []).map((d) => d.item)
+      props[row.property.replace(/_/g, ' ')] = vals.length === 1 ? vals[0] : vals
+    }
+    added[title] = props
+    console.log(`  fetched ${Object.keys(added).length}/${touched.size}`)
   }
 
+  // Merge into whichever set the namespace maps to, by the prefix on the title.
+  const byPrefix = { Weapon: 'weapons', Armor: 'armor', Item: 'items' }
+  const dirty = new Set()
+
+  for (const [title, props] of Object.entries(added)) {
+    const prefix = title.split(':')[0]
+    const set = byPrefix[prefix] ?? 'items'
+    const store = load(set)
+    store[title] = props
+    save(set, store)
+    dirty.add(set)
+  }
+
+  console.log(`  merged ${touched.size} into ${[...dirty].join(', ')}`)
   saveState({ ...state, lastRun: started, mode: 'update' })
-  console.log('Done.')
 }
 
 function status() {
