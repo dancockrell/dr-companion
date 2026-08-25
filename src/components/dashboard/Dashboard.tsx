@@ -1,22 +1,22 @@
 /**
- * One dashboard, composed from the player's arrangement.
+ * One dashboard: a map plane, and a plane of panels beside it.
  *
- * There used to be three hand-written dashboards whose panel order was whatever
- * order the panels had been written in. Two players will not agree on what
- * deserves their pixels — a crafter wants inventory open and the map small,
- * someone hunting wants the map large and watched — so the app should not have
- * an opinion. It ships defaults and gets out of the way.
+ * The map is not a widget you consult, it is a surface you watch — players know
+ * which rooms break scripts and keep it in view while doing something else. As
+ * a panel in a scrolling column it could never do that, because it was always
+ * competing for vertical space with whatever sat above it, and it always lost.
+ * So it gets a plane of its own and a divider the player drags.
  *
- * Basic and Power differ in density and in default arrangement, not in which
- * panels exist. Anything hidden in one mode would be a feature most people
- * never find.
+ * Everything else is arranged by the player. There used to be three
+ * hand-written dashboards whose panel order was whatever order the panels had
+ * been written in. Two players will not agree on what deserves their pixels — a
+ * crafter wants inventory open and the map small, someone hunting wants the map
+ * large and watched — so the app ships defaults and gets out of the way.
  *
- * Width is not assumed anywhere. The window is only as wide as the player has
- * given us, taken from the game window next to it, and the better we are the
- * more we are worth — so the same panels have to work in a narrow strip and in
- * half a screen. See docs/DESIGN.md §2.115.
+ * No width is assumed anywhere. The window is only as wide as the player has
+ * decided we are worth against the game window next to it. See §2.115.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   Map as MapIcon,
   Zap,
@@ -27,7 +27,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { useLayout } from '../../lib/useLayout'
-import type { PanelId } from '../../lib/layout'
+import { MAP_PLANE_AT, clampSplit, type PanelId } from '../../lib/layout'
 import { Panel } from '../shared/Panel'
 import { CharacterHeader } from './CharacterHeader'
 import { ActionsPanel } from '../shared/ActionsPanel'
@@ -74,38 +74,60 @@ const PANELS: Record<PanelId, PanelDef> = {
     icon: <ListChecks className="w-3.5 h-3.5" />,
     render: (dense) => <ScriptLauncher compact={dense} />,
   },
-  // Vitals live in the fixed header, not as a movable panel — identity and
-  // health are the two things that must never be closed by accident.
-  vitals: {
-    title: 'Vitals',
-    icon: <Zap className="w-3.5 h-3.5" />,
-    render: () => null,
-  },
+  // In the fixed header, not a movable panel: identity and health are the two
+  // things that must never be closed by accident.
+  vitals: { title: 'Vitals', icon: <Zap className="w-3.5 h-3.5" />, render: () => null },
 }
-
-/** Below this the layout is one column; above it, two. */
-const TWO_COLUMN_AT = 720
 
 export function Dashboard() {
   const character = useAppStore((s) => s.character)
   const uiMode = useAppStore((s) => s.uiMode)
-  const { layout, move, update } = useLayout(uiMode)
+  const { layout, move, update, setSplit } = useLayout(uiMode)
 
-  // Measured, not guessed from the viewport: this panel can be docked beside
-  // other things, and a media query would describe the screen rather than the
-  // space we were actually given.
+  // Measured, not read off the viewport. This app can be docked beside other
+  // things, and a media query would describe the screen rather than the space
+  // we were actually handed.
   const hostRef = useRef<HTMLDivElement | null>(null)
-  const [wide, setWide] = useState(false)
+  const [width, setWidth] = useState(0)
 
   useEffect(() => {
     const el = hostRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(([entry]) => {
-      setWide(entry.contentRect.width >= TWO_COLUMN_AT)
-    })
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+
+  // Live during a drag, so the divider tracks the cursor without writing
+  // localStorage on every mouse move.
+  const [dragSplit, setDragSplit] = useState<number | null>(null)
+  const dragging = useRef(false)
+
+  const onMove = useCallback((e: MouseEvent) => {
+    if (!dragging.current || !hostRef.current) return
+    const box = hostRef.current.getBoundingClientRect()
+    setDragSplit(clampSplit((e.clientX - box.left) / box.width))
+  }, [])
+
+  const onUp = useCallback(() => {
+    if (!dragging.current) return
+    dragging.current = false
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    setDragSplit((v) => {
+      if (v !== null) setSplit(v)
+      return null
+    })
+  }, [setSplit])
+
+  useEffect(() => {
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [onMove, onUp])
 
   if (!character) {
     return (
@@ -116,39 +138,78 @@ export function Dashboard() {
   }
 
   const dense = uiMode === 'power'
-  const visible = layout.order.filter((id) => id !== 'vitals')
+  const split = dragSplit ?? layout.mapSplit
+
+  // Two planes only when there is room for two. Below that the map returns to
+  // the stack rather than being hidden, which is why it stays in `order`.
+  const planed = layout.mapPlane && width >= MAP_PLANE_AT
+
+  const stack = layout.order.filter(
+    (id) => id !== 'vitals' && !(planed && id === 'map')
+  )
+
+  const panels = (
+    <div className="flex flex-col gap-3 p-3">
+      {stack.map((id, i) => {
+        const def = PANELS[id]
+        if (!def) return null
+        const state = layout.panels[id] ?? {}
+        return (
+          <Panel
+            key={id}
+            title={def.title}
+            icon={def.icon}
+            closed={state.closed}
+            height={state.height}
+            canMoveUp={i > 0}
+            canMoveDown={i < stack.length - 1}
+            onMove={(d) => move(id, d)}
+            onToggle={() => update(id, { closed: !state.closed })}
+            onResize={(h) => update(id, { height: h || undefined })}
+          >
+            {def.render(dense)}
+          </Panel>
+        )
+      })}
+    </div>
+  )
 
   return (
     <div ref={hostRef} className="flex flex-col h-full min-h-0">
       <CharacterHeader character={character} />
 
-      <div
-        className={`px-3 py-3 gap-3 ${
-          wide ? 'grid grid-cols-2 items-start' : 'flex flex-col'
-        }`}
-      >
-        {visible.map((id, i) => {
-          const def = PANELS[id]
-          if (!def) return null
-          const state = layout.panels[id] ?? {}
-          return (
-            <Panel
-              key={id}
-              title={def.title}
-              icon={def.icon}
-              closed={state.closed}
-              height={state.height}
-              canMoveUp={i > 0}
-              canMoveDown={i < visible.length - 1}
-              onMove={(d) => move(id, d)}
-              onToggle={() => update(id, { closed: !state.closed })}
-              onResize={(h) => update(id, { height: h || undefined })}
-            >
-              {def.render(dense)}
-            </Panel>
-          )
-        })}
-      </div>
+      {planed ? (
+        <div className="flex-1 min-h-0 flex">
+          {/* The map plane. Fills its column rather than sitting in a box
+              inside it, which is the whole point of giving it one. */}
+          <div
+            className="min-w-0 min-h-0 p-3"
+            style={{ width: `${split * 100}%` }}
+          >
+            <MapPanel plane />
+          </div>
+
+          {/* Drag to reapportion. Wide enough to hit, narrow enough not to be
+              furniture; double-click returns to an even split. */}
+          <div
+            className="w-1.5 shrink-0 cursor-col-resize group flex items-center justify-center"
+            title="Drag to resize, double-click to even it up"
+            onMouseDown={(e) => {
+              e.preventDefault()
+              dragging.current = true
+              document.body.style.cursor = 'col-resize'
+              document.body.style.userSelect = 'none'
+            }}
+            onDoubleClick={() => setSplit(0.5)}
+          >
+            <div className="w-0.5 h-10 rounded-full bg-border group-hover:bg-ink-faint" />
+          </div>
+
+          <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">{panels}</div>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto">{panels}</div>
+      )}
     </div>
   )
 }

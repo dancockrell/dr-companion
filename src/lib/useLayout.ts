@@ -14,6 +14,8 @@ import {
   movePanel,
   setPanel,
   defaultLayout,
+  setMapPlane,
+  setMapSplit,
   type Layout,
   type PanelId,
   type PanelState,
@@ -49,5 +51,18 @@ export function useLayout(mode: UiMode) {
 
   const reset = useCallback(() => commit(defaultLayout(mode)), [commit, mode])
 
-  return { layout, move, update, reset }
+  const setPlane = useCallback(
+    (on: boolean) => commit(setMapPlane(layout, on)),
+    [commit, layout]
+  )
+
+  // Not committed on every mouse move: a drag fires continuously, and writing
+  // localStorage per pixel is both wasteful and enough to make the drag stutter.
+  // The caller keeps the live value and calls this once on release.
+  const setSplit = useCallback(
+    (split: number) => commit(setMapSplit(layout, split)),
+    [commit, layout]
+  )
+
+  return { layout, move, update, reset, setPlane, setSplit }
 }

@@ -30,31 +30,64 @@ export interface PanelState {
 export interface Layout {
   order: PanelId[]
   panels: Partial<Record<PanelId, PanelState>>
+  /**
+   * The map gets its own plane rather than a slot in the panel stack.
+   *
+   * It is not a widget you consult, it is a surface you watch — players know
+   * which rooms break scripts and keep it in view while doing something else.
+   * A panel in a scrolling column cannot do that: it is always competing for
+   * vertical space with whatever is above it, and it loses.
+   *
+   * So above `MAP_PLANE_AT` the map takes a column of its own and the panels
+   * stack beside it. Below that width there is not room for two planes and it
+   * falls back to being a panel, which is why it stays in `order`.
+   */
+  mapPlane: boolean
+  /** Fraction of the width the map plane takes, 0.25 to 0.75. */
+  mapSplit: number
 }
 
 /**
  * Defaults per mode.
  *
- * Basic leads with the map because orientation is what a returning player
- * needs first, then the thing they came to press. Power puts vitals and
- * actions up top and leaves the map open underneath to watch.
+ * Both lead with the map, because orientation is the thing you look at first
+ * and keep looking at. They differ in what comes next: Basic puts the thing you
+ * came to press second, Power puts the numbers there.
  */
 const DEFAULTS: Record<UiMode, Layout> = {
   basic: {
     order: ['vitals', 'map', 'actions', 'training', 'inventory', 'launcher', 'risk'],
     panels: { map: { height: 200 } },
+    mapPlane: true,
+    mapSplit: 0.5,
   },
   power: {
     order: ['vitals', 'actions', 'map', 'risk', 'training', 'inventory', 'launcher'],
     panels: { map: { height: 260 } },
+    mapPlane: true,
+    mapSplit: 0.55,
   },
 }
+
+/** Below this there is not room for two planes side by side. */
+export const MAP_PLANE_AT = 680
 
 const KEY = 'drc.layout.v1'
 
 export function defaultLayout(mode: UiMode): Layout {
   const d = DEFAULTS[mode] ?? DEFAULTS.basic
-  return { order: [...d.order], panels: { ...d.panels } }
+  return {
+    order: [...d.order],
+    panels: { ...d.panels },
+    mapPlane: d.mapPlane,
+    mapSplit: d.mapSplit,
+  }
+}
+
+/** Keeps either plane from being dragged down to nothing. */
+export function clampSplit(v: unknown): number {
+  const n = typeof v === 'number' && Number.isFinite(v) ? v : 0.5
+  return Math.min(0.75, Math.max(0.25, n))
 }
 
 export function loadLayout(mode: UiMode): Layout {
@@ -70,13 +103,24 @@ export function loadLayout(mode: UiMode): Layout {
     const kept = (parsed.order ?? []).filter((id) => known.has(id))
     const missing = defaultLayout(mode).order.filter((id) => !kept.includes(id))
 
+    const d = defaultLayout(mode)
     return {
       order: [...kept, ...missing],
-      panels: { ...defaultLayout(mode).panels, ...(parsed.panels ?? {}) },
+      panels: { ...d.panels, ...(parsed.panels ?? {}) },
+      mapPlane: parsed.mapPlane ?? d.mapPlane,
+      mapSplit: clampSplit(parsed.mapSplit ?? d.mapSplit),
     }
   } catch {
     return defaultLayout(mode)
   }
+}
+
+export function setMapPlane(layout: Layout, on: boolean): Layout {
+  return { ...layout, mapPlane: on }
+}
+
+export function setMapSplit(layout: Layout, split: number): Layout {
+  return { ...layout, mapSplit: clampSplit(split) }
 }
 
 export function saveLayout(mode: UiMode, layout: Layout): void {

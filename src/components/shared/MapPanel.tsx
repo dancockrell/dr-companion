@@ -30,7 +30,12 @@ import type { IntentName } from '../../bridge/types'
 import { isTauri, invokeTauri } from '../../lib/tauri'
 import { MapCanvas, MapLegend } from './MapCanvas'
 
-export function MapPanel() {
+/**
+ * @param plane Fill the height given rather than a fixed box. Set when the map
+ *   has a column of its own, where the point is that it is big enough to watch
+ *   and a fixed height would waste the space it was given.
+ */
+export function MapPanel({ plane = false }: { plane?: boolean }) {
   const zone = useAppStore((s) => s.mapZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
@@ -89,7 +94,7 @@ export function MapPanel() {
 
   if (!connected) {
     return (
-      <Shell>
+      <Shell plane={plane}>
         <p className="text-xs text-ink-faint leading-relaxed">
           No bridge. In Mock this shows a small invented town; on Live Lich it
           shows the zone you are standing in.
@@ -103,6 +108,7 @@ export function MapPanel() {
   if (poppedOut) {
     return (
       <Shell
+        plane={plane}
         title="Map"
         right={
           <button
@@ -125,7 +131,7 @@ export function MapPanel() {
   // "No map" and "an empty map" are different answers, and must not look alike.
   if (!zone) {
     return (
-      <Shell onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
+      <Shell plane={plane} onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
         <p className="text-xs text-ink-faint leading-relaxed">
           Nothing asked for yet. Press refresh, or move a room and it will
           arrive on its own.
@@ -136,7 +142,7 @@ export function MapPanel() {
 
   if (!zone.ok) {
     return (
-      <Shell onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
+      <Shell plane={plane} onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
         <p className="text-xs text-warn leading-relaxed">
           {zone.reason ?? 'Lich has no map for where you are.'}
         </p>
@@ -148,6 +154,7 @@ export function MapPanel() {
 
   return (
     <Shell
+      plane={plane}
       title={zone.name ?? `Zone ${zone.zone}`}
       onRefresh={refresh}
       onPopOut={isTauri() ? popOut : undefined}
@@ -172,27 +179,35 @@ export function MapPanel() {
               ))}
             </div>
           )}
-          <button
-            type="button"
-            className="p-1 rounded text-ink-faint hover:text-ink"
-            title={tall ? 'Shrink the map' : 'Give the map more room'}
-            onClick={() => setTall((v) => !v)}
-          >
-            {tall ? (
-              <ChevronUp className="w-3.5 h-3.5" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5" />
-            )}
-          </button>
+          {/* Only meaningful in the stack. In a plane the height comes from
+              the column and the divider, so a grow/shrink toggle would be a
+              second control fighting the first. */}
+          {!plane && (
+            <button
+              type="button"
+              className="p-1 rounded text-ink-faint hover:text-ink"
+              title={tall ? 'Shrink the map' : 'Give the map more room'}
+              onClick={() => setTall((v) => !v)}
+            >
+              {tall ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
+          )}
         </div>
       }
     >
       {/* A real height, not a max. `fit` scales the zone into whatever box it
           is given, and a max-height box collapses to the content's own size —
-          which for a small zone is a stamp in the corner. */}
+          which for a small zone is a stamp in the corner.
+          In plane mode the height comes from the column instead. */}
       <div
-        className="rounded-lg border border-border bg-surface overflow-hidden"
-        style={{ height: tall ? 320 : 168 }}
+        className={`rounded-lg border border-border bg-surface overflow-hidden ${
+          plane ? 'flex-1 min-h-0' : ''
+        }`}
+        style={plane ? undefined : { height: tall ? 320 : 168 }}
       >
         <MapCanvas
           zone={zone}
@@ -230,15 +245,24 @@ function Shell({
   onRefresh,
   onPopOut,
   right,
+  plane = false,
 }: {
   children: React.ReactNode
   title?: string
   onRefresh?: () => void
   onPopOut?: () => void
   right?: React.ReactNode
+  plane?: boolean
 }) {
   return (
-    <section className="space-y-2 rounded-xl border border-border bg-surface-raised p-3">
+    <section
+      className={`space-y-2 rounded-xl border border-border bg-surface-raised p-3 ${
+        // In a plane the section owns the column, so it becomes the flex
+        // container the map body stretches inside. Otherwise it sizes to its
+        // own content like any other panel.
+        plane ? 'flex flex-col h-full min-h-0' : ''
+      }`}
+    >
       <header className="flex items-center justify-between gap-2">
         <h3 className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider min-w-0">
           <MapIcon className="w-3.5 h-3.5 shrink-0" />
