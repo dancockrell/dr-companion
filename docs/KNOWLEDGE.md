@@ -72,8 +72,14 @@ now, capped per file so one 77,000-line script cannot dominate.
 
 ## Keeping it current
 
-`tools/elanthipedia.mjs` pulls the wiki. It is built to be a good guest,
-because it is a community wiki running on somebody's budget:
+`tools/elanthipedia.mjs` pulls the wiki. It is built to be a good guest, and the
+reason is sharper than general politeness: **Elanthipedia runs on Simutronics'
+infrastructure** — `elanthipedia.play.net` is their domain and their bill.
+
+It is community-*written*, which is easy to mistake for community-hosted. It is
+not. So this is not a stranger's server we should be careful with; it is the
+server belonging to the company this project is meant to be handed to. Turning
+up in their logs as a traffic spike is the worst possible introduction.
 
 - one request at a time, never parallel
 - 350 ms between requests

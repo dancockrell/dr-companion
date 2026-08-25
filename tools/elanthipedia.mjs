@@ -11,8 +11,14 @@
  * MediaWiki, so the data is *structured* rather than prose to be parsed.
  * See docs/DESIGN.md §2.4 and §S5.
  *
- * Being a good guest is a hard requirement, not a nicety. This is a community
- * wiki run for players, on somebody's budget:
+ * Being a good guest is a hard requirement, not a nicety — and the reason is
+ * sharper than politeness. Elanthipedia is community-*written*, which is easy
+ * to mistake for community-hosted. It is not: `elanthipedia.play.net` is
+ * Simutronics' domain, their infrastructure and their bill.
+ *
+ * So this is the server belonging to the company this project is meant to be
+ * given to. Appearing in their logs as a traffic spike would be the worst
+ * possible introduction.
  *
  *   - one request at a time, never parallel
  *   - a deliberate pause between requests
