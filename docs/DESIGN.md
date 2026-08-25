@@ -715,10 +715,72 @@ what would move the number, and what being wrong costs.
 2. **Lich has the primitive** → call it.
 3. **Genuinely absent** → `companion_bridge.lic`, and the bar is high.
 
+Note this is now a three-way test, with §7.5: a script if it stands alone, the
+bridge if it is only plumbing for our UI, and neither if somebody has already
+written it.
+
 By that test the bridge legitimately owns: reading state into one shape;
 the runaway detector, because nothing else stops a loop the player cannot see;
 roundtime, stun and refusal handling on anything we do send; reading dr-scripts
 YAML; and writing YAML the player approved in a form.
+
+---
+
+## 7.5 What we write, we write as scripts, and publish
+
+`companion_bridge.lic` must not grow into a second monolith. Anything with a
+life of its own becomes its own script, called by the bridge and published
+separately.
+
+**The test:** *would this be worth installing if the panel did not exist?*
+If yes, it is a script. If it only makes sense as plumbing for our UI, it stays
+in the bridge.
+
+By that test, three things are scripts rather than bridge code:
+
+| Script | Why it stands alone | Status in the ecosystem |
+|---|---|---|
+| **exp / throughput tracker** | measured ranks per hour per skill, §2.35 | nothing does this; `expreset` only resets a baseline |
+| **safe AFK / snooze** | leave the keyboard without dying, §2.10 | pieces exist (`gosafe`, `healme`, `tendme`); the sequencing does not |
+| **YAML generator** | scan a character, propose a profile, §2.3 | `validate` checks and `edityaml` edits; nothing *writes* one for you |
+
+Each is useful to a Lich player who never installs our panel. That is the
+point. It keeps the work maintainable, it puts each piece in front of people who
+know more about this game than we do, and it means the useful parts survive even
+if the panel does not.
+
+### How they ship: reach decides, not licence
+
+Lich installs from arbitrary repositories. `add_custom_repo('owner/repo')`
+fetches from GitHub and installs into `scripts/custom/owner-repo/`, through the
+same update path players already use.
+
+Two routes, and the licence follows from whichever puts the script in front of
+more players:
+
+- **Upstream into `elanthia-online/dr-scripts`** — GPL-2.0, their repo and their
+  terms. 58 stars, **193 forks**, and already installed on every machine running
+  the DR suite. Far the widest reach.
+- **Our own repo as a custom repo** — MIT, installs the same way, but the player
+  has to hear about it first.
+
+**Default: offer it upstream, and their licence is fine.** MIT is used elsewhere
+in this project to maximise freedom to adopt, not out of attachment to it — and
+that same reasoning says a GPL-2.0 script sitting in the suite everyone already
+has beats an MIT script nobody finds.
+
+Our own repo is the fallback for anything that does not fit their suite or that
+they would rather not carry.
+
+### Why this is worth the extra work
+
+Lich was chosen because it has the best community support in this game. Taking
+from that and giving nothing back would be a poor trade and a worse look.
+Publishing small, genuinely useful scripts is how anyone earns standing here,
+and it happens to be the same act as making the codebase maintainable.
+
+It also sets the quality bar. These will be read by people who have maintained
+DR scripts for years. That is the audience to write for.
 
 ---
 
