@@ -251,6 +251,63 @@ observation, since we can watch which pools move while a script runs.
 Observation is the honest source: it needs no maintenance and it is right for
 *this* character. Ship a starting map, learn the rest, let it be edited.
 
+## 2.36 The curve, and why breadth beats depth
+
+Reaching level 150 is roughly **a year of constant scripting**. The experience
+curve hardens as you climb, and drain slows with rank — and slows further for
+skills that are secondary or tertiary for your guild.
+
+Which produces the strategy the whole game is played around:
+
+> **Raise every skill your guild can raise, and keep them all in mind.** You
+> need them all to survive, and slow movement across forty skills beats fast
+> movement across five.
+
+Two consequences for the app.
+
+**The drain rate is a function of rank and of guild tier**, not a constant.
+`DRSkill.getskillset` gives the category — Weapon, Armor, Magic, Survival,
+Lore — but the primary/secondary/tertiary tier is a property of the *guild*,
+and it is what governs how fast a pool empties. We do not have to model it, per
+§2.35, but we do have to stop presenting all pools as comparable. A tertiary
+skill sitting at 20 is not underperforming; that is what tertiary looks like.
+
+**Crafting is the deliberate exception.** It absorbs so much time that it
+suppresses overall skill growth, and the game pushes specialisation there
+anyway. So a rotation that trains crafting is making a real trade, and the app
+should show that trade rather than treat crafting like any other skillset.
+
+There is a wrinkle worth surfacing rather than hiding: **items exist that keep
+crafting moving cheaply, and people pay a great deal for them.** A character who
+has one is playing a different optimisation to a character who does not. That is
+exactly the kind of thing the player knows and we cannot, which is why §2.35
+ends with measurement and suggestion rather than a plan.
+
+## 2.37 What the community knows about items, and where to get it legitimately
+
+Shroom's scripts are where a lot of hard-won item and creature knowledge lives.
+It is encoded as recognition vocabulary rather than as tables. From `uber.cmd`:
+
+- a **1,569-character** armour regex that knows bare `plate` is armour while
+  `plate gauntlets`, `greaves`, `helm`, `mask` and `balaclava` are separate
+  pieces, and lists the adjectives that qualify — `fluted`, `lamellar`,
+  `Imperial`, `kiralan`, `jousting`, `icesteel`, `goffered`
+- **2,550 characters** of ritual-eligible creatures
+- **2,141 characters** of creatures that cannot be skinned
+- **1,656 characters** of living versus non-living creatures
+
+That last distinction is not trivia — it decides whether a skinning step or a
+ritual step is worth attempting at all.
+
+**We do not copy any of it.** It is not community-licensed. What it gives us for
+free is the *shape of the problem*: which categories a player actually needs an
+item classified into. Armour piece and type. Skinnable or not. Living or not.
+Ritual-eligible or not.
+
+Then we build our own data against a source we may use — Elanthipedia's Semantic
+MediaWiki, per §2.4 — and cross-check the two. Where they disagree, the player
+decides, and their answer is remembered.
+
 ## 2.4 Nothing starts blank, and nothing is fixed
 
 Every character's gear is different, new items arrive constantly, and the nouns
@@ -308,6 +365,70 @@ the actual thing needed.
 Concretely, the copy to remove is the kind I have been writing: "Nothing asked
 for yet. Press refresh, or move a room and it will arrive on its own." That is
 three lines of chat where an empty state and a hover would do.
+
+### Tooltips must be dynamic, or they are noise
+
+A tooltip that says the same thing forever is telling the player something they
+learned the first time and will now read past every time. It has become
+decoration that costs a hover.
+
+So a tooltip earns its place only by saying something about **now**:
+
+| Static, therefore useless | Dynamic, therefore worth reading |
+|---|---|
+| "Mindstate is 0–34." | "Locked for 6 minutes. That is about 40 ranks of nothing." |
+| "Athletics affects swimming." | "565 needed here. You have 540, or 580 without the hauberk." |
+| "This is a hazard room." | "Two scripts have died here this week." |
+| "Shows worn items." | "Brigandine — chain, per Elanthipedia. You have not corrected this." |
+
+The three tiers, then:
+
+- **Status bar** — small, always true, glanceable. Identity, connection, the
+  one or two numbers that matter continuously.
+- **Panel** — values you are working with right now.
+- **Tooltip** — the reasoning, the provenance, the threshold, the history. Only
+  if it changes.
+
+And the rule underneath all three: **do not spend space on what we already
+know.** If a value never changes and the player has seen it once, it is not
+worth a line.
+
+### Suggestions are offered, never enforced
+
+**The player is always right.** They know about the legendary weapon, the guild,
+the crafting item they paid a fortune for, and what they feel like doing
+tonight. We may suggest, in a tooltip, with the arithmetic visible. We may not
+nag, block, or re-suggest something they declined.
+
+---
+
+## 2.6 One player, several characters, several accounts
+
+People run multiple accounts at once — commonly several free ones, so they have
+their own healer bot or a mule. That is normal practice, not an edge case, and
+it has consequences the app has to answer for.
+
+**Character identity is load-bearing.** It belongs in the status bar, always
+visible, because the first question in front of four windows is *which one is
+this*. Getting that wrong means sending a command to the wrong character.
+
+What follows:
+
+- **One bridge per Lich instance, on its own port.** The bridge already accepts
+  a port argument (`;companion_bridge 7500`), so this works today — but the app
+  currently assumes one connection on 7415 and needs to stop.
+- **Settings are per character, keyed by name and instance.** Already true of
+  profiles; needs to be true of everything, since a healer bot and a hunter
+  share almost no configuration.
+- **The window should be identifiable at a glance** — character name in the
+  title bar, so the taskbar is usable when four are open.
+- **A free-account bot is a different shape of player.** It is not levelling; it
+  is waiting to be useful. A mindstate board is close to meaningless for it,
+  while connection health and "did it die" are everything.
+
+The last point is worth taking seriously rather than dismissing: the person
+running four F2P healers is exactly the person for whom the scripts + watchdog
+panel is the entire product.
 
 ---
 
