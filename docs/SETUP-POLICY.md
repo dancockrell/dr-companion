@@ -102,7 +102,8 @@ hash in the UI before agreeing.
 
 | Bundle | Goes to | Size |
 |---|---|---|
-| Genie plugins (EXPTracker, SpellTimer, CircleCalc and the rest) | Genie's `Plugins | about 12 MB |
+| Genie plugins: EXPTracker, SpellTimer, CircleCalc and the rest | Genie's `Plugins\` folder | about 0.4 MB |
+| The community map set, 90 files | Genie's `Maps\` folder | about 12 MB |
 
 Genie 4 also ships `Lamp.exe`, its own updater, which does the same job. The
 app says so on the maps card rather than pretending it is the only route.
@@ -129,12 +130,16 @@ download it, verify it, and hand it to you. It asks its own questions.
 
 - Install or modify Ruby system-wide
 - Change your PATH or any environment variable
-- Write outside its own folder, except the one bridge script into Lich's
-  scripts folder
 - Request administrator rights
 - Run an installer you did not separately approve
-- Download from anywhere other than the Lich and Genie projects' own GitHub releases
+- Fetch from anywhere other than the Lich and Genie projects' own GitHub
+  releases and repositories
 - Send anything anywhere. There is no telemetry, no analytics, no account.
+
+Outside its own folder it writes in exactly three places, all of them things
+you asked for: the bridge script into Lich's `scripts\`, plugins into Genie's
+`Plugins\`, and maps into Genie's `Maps\`. Every one of those paths is shown on
+the card before you agree, and nothing outside them is ever touched.
 
 ## If you would rather do it yourself
 
