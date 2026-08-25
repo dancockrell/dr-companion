@@ -1,35 +1,14 @@
-# Hourly Elanthipedia refresh.
-#
-# The question this answers is "who runs the scraper, forever, without anybody
-# paying for a server". The answer is: this repository does.
-#
-# Why this shape rather than the alternatives:
-#
-#   * One scraper, not one per client. Sixty players running their own scraper
-#     is sixty times the load on Simutronics' wiki for identical data. Clients
-#     fetch the published result and never touch elanthipedia.play.net.
-#   * No host to maintain. Scheduled workflows are free and unlimited on public
-#     repositories, so there is no bill and nothing to keep alive.
-#   * No single person to depend on. If this project is abandoned, anyone can
-#     fork it and the schedule keeps running from their copy. That is the
-#     open-source answer to "I do not want to host this forever", and it is the
-#     same reasoning as giving the software away.
-#   * The data is versioned. Every refresh is a commit, so a bad change is
-#     visible, diffable and revertable — which matters because this data will
-#     drive automation decisions.
+# Scrapes Elanthipedia hourly and commits the result to data/elanthipedia/.
+# Clients read the committed files; they never hit the wiki themselves.
 name: elanthipedia
 
 on:
   schedule:
-    # Hourly. Measured churn is roughly one relevant page an hour across the
-    # Item, Weapon and Armor namespaces, so this is a handful of requests and
-    # usually none at all.
+    # Churn is about one page an hour, so this is a few requests or none.
     - cron: '17 * * * *'
   workflow_dispatch:
 
-# Only one refresh at a time. Two overlapping runs would double the request
-# rate against the wiki for no benefit, which is the whole thing we are
-# avoiding.
+# One refresh at a time.
 concurrency:
   group: elanthipedia
   cancel-in-progress: false
@@ -64,14 +43,9 @@ jobs:
           git config user.email '173971169+dancockrell@users.noreply.github.com'
           git add data/elanthipedia
 
-          # state.json is only a cursor. It moves on every run whether or not
-          # the wiki changed, so committing on "something is staged" would
-          # produce twenty-four empty commits a day and bury the real ones.
-          #
-          # When nothing but the cursor moved, the cursor is deliberately left
-          # where it was. The next run then asks from the older timestamp, which
-          # costs a few extra requests and cannot miss an edit. That is the safe
-          # direction to be wrong in.
+          # state.json is a cursor and moves every run. Commit only when the
+          # data changed; leaving the cursor behind means the next run asks
+          # from the older timestamp, which costs a request and misses nothing.
           if git diff --staged --quiet -- data/elanthipedia ':!data/elanthipedia/state.json'; then
             echo 'nothing new on the wiki'
             exit 0

@@ -1,13 +1,6 @@
-# The reason this file exists, stated plainly so it does not get deleted later
-# as ceremony:
-#
-# A build shipped in which every native command failed. The cause was a dynamic
-# import written to hide a module specifier from the bundler, which worked in
-# development and could not resolve in a packaged build. Two layers of caught
-# exceptions turned a total failure into a cheerful "Ready, 0 of 0".
-#
-# `test:bundle` now builds and inspects the built output for exactly that shape.
-# It is worth nothing if it only runs when somebody remembers, so it runs here.
+# Types, lint, tests, and a Windows Tauri build on every push and PR.
+# test:bundle checks the built output still resolves the Tauri API, which is
+# the failure that shipped once and reported itself as "Ready, 0 of 0".
 name: ci
 
 on:
@@ -21,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Everything that does not need Rust. Fast, and covers the failure above.
+  # Everything that does not need Rust.
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -41,8 +34,7 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Named individually rather than via `npm test` so a failure names itself
-      # in the job list instead of arriving as one opaque red cross.
+      # Listed individually so a failure names itself in the job list.
       - name: Contrast (WCAG AA)
         run: npm run test:contrast
       - name: Log scrubbing
@@ -52,8 +44,7 @@ jobs:
       - name: Bundle integrity
         run: npm run test:bundle
 
-  # The Rust half. Slower, so it is a separate job and does not hold up the
-  # feedback above.
+  # The Rust half. Separate so it does not hold up the fast feedback.
   tauri:
     runs-on: windows-latest
     timeout-minutes: 45
@@ -90,9 +81,7 @@ jobs:
       - name: Build installer
         run: npm run tauri:build
 
-  # The bridge is a Lich script, so it runs under whatever Ruby the player
-  # already has. Lich 5 supports a range of them and installs vary widely, so
-  # testing one version would only prove it works on the one nobody has.
+  # The bridge runs under whatever Ruby the player has, so test the range.
   bridge:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -113,7 +102,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      # `ws`, for the round-trip test below.
+      # ws, for the round-trip test below.
       - run: npm ci
 
       - name: Commands

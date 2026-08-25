@@ -1,8 +1,4 @@
-# Grouped and monthly, deliberately.
-#
-# Ungrouped weekly updates on a project with npm, cargo and actions all in play
-# produce a stream of individual pull requests that nobody reads, and an ignored
-# security tool is worse than none because it looks like coverage.
+# Grouped and monthly: one PR per ecosystem, not one per package.
 version: 2
 updates:
   - package-ecosystem: npm

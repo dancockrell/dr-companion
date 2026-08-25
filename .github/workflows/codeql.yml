@@ -1,8 +1,4 @@
-# Static analysis, on the repository that is also a job application.
-#
-# The practical value is small on a codebase this size and the signalling value
-# is not: a reviewer who opens the Security tab and finds it configured and
-# clean learns something about how the project is run.
+# CodeQL on push, PR, and weekly.
 name: codeql
 
 on:
@@ -26,7 +22,5 @@ jobs:
       - uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
-          # Includes the query packs beyond the default set. Slower; this is not
-          # a repository where twenty minutes a week matters.
           queries: security-and-quality
       - uses: github/codeql-action/analyze@v3

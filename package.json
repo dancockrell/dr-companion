@@ -2,6 +2,12 @@
   "name": "dr-companion",
   "private": true,
   "version": "0.1.1",
+  "license": "MIT",
+  "author": "Dan Cockrell",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dancockrell/dr-companion.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
