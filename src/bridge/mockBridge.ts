@@ -23,6 +23,7 @@ import { planTravel } from '../data/travelPath'
 import type { GuildId } from '../data/hunting'
 import { ranksOf, type SkillState } from '../data/skills'
 import { effectiveAthletics } from '../data/obstacles'
+import { DEMO_ZONE, demoPath } from '../data/demoMap'
 
 type Listener = (msg: BridgeServerMessage) => void
 
@@ -442,6 +443,93 @@ export class MockBridge {
     const cap = capabilitiesForCharacter(this.character)
 
     switch (intent) {
+      // Map queries, answered from an invented zone. data/demoMap.ts explains
+      // why it is invented rather than a copy of real geography.
+      case 'map_zone':
+        this.emit({ type: 'map_zone', payload: DEMO_ZONE })
+        break
+
+      case 'map_here': {
+        const here = DEMO_ZONE.rooms?.find((r) => r.id === DEMO_ZONE.here)
+        this.emit({
+          type: 'map_here',
+          payload: {
+            available: true,
+            id: here?.id ?? null,
+            uid: here?.uid ?? null,
+            title: here?.title ?? null,
+            location: DEMO_ZONE.name ?? null,
+            tags: here?.tags ?? [],
+            exits: (here?.to ?? []).map(String),
+          },
+        })
+        break
+      }
+
+      case 'map_tags':
+        this.emit({
+          type: 'map_tags',
+          payload: [...new Set(DEMO_ZONE.rooms!.flatMap((r) => r.tags ?? []))].sort(),
+        })
+        break
+
+      case 'map_nearest': {
+        const tag = String(_args?.tag ?? '')
+        const hit = DEMO_ZONE.rooms?.find((r) => r.tags?.includes(tag))
+        if (!hit) {
+          this.emit({
+            type: 'map_nearest',
+            payload: {
+              ok: false,
+              id: null,
+              uid: null,
+              title: null,
+              location: null,
+              reason: `nothing tagged ${tag} is reachable`,
+            },
+          })
+          break
+        }
+        this.emit({
+          type: 'map_nearest',
+          payload: {
+            ok: true,
+            tag,
+            id: hit.id,
+            uid: hit.uid,
+            title: hit.title,
+            location: DEMO_ZONE.name ?? null,
+            steps: demoPath(DEMO_ZONE.here as number, hit.id as number)?.length ?? null,
+          },
+        })
+        break
+      }
+
+      case 'map_path': {
+        const to = Number(_args?.to ?? 0)
+        const route = demoPath(DEMO_ZONE.here as number, to)
+        this.emit({
+          type: 'map_path',
+          payload: route
+            ? {
+                ok: true,
+                from: DEMO_ZONE.here,
+                to,
+                steps: route.length,
+                rooms: route.map((id) => {
+                  const r = DEMO_ZONE.rooms!.find((x) => x.id === id)!
+                  return {
+                    id: r.id,
+                    uid: r.uid,
+                    title: r.title,
+                    location: DEMO_ZONE.name ?? null,
+                  }
+                }),
+              }
+            : { ok: false, reason: `no route from ${DEMO_ZONE.here} to ${to}` },
+        })
+        break
+      }
 
       case 'start_combat': {
         this.scripts = ['combat-loop']

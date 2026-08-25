@@ -1,3 +1,4 @@
+import { MapPanel } from '../shared/MapPanel'
 import { ScriptLauncher } from '../shared/ScriptLauncher'
 import {
   Play,
@@ -258,6 +259,10 @@ export function SimpleDashboard() {
       <RiskBar />
 
       <TrainingPanel />
+
+      <div className="px-4 pb-1 shrink-0">
+        <MapPanel />
+      </div>
 
       <PresetBar />
 

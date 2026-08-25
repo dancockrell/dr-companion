@@ -128,6 +128,12 @@ export function intentBlockReason(
   // 1. Never gate the way out.
   if (['stop_all', 'pause', 'resume', 'escape'].includes(intent)) return null
 
+  // 2. Never gate a question. The map intents read Lich's room graph and move
+  // nothing, so no account tier or game state makes them unsafe to answer —
+  // and the moment they matter most is the one the rule below would refuse:
+  // lying dead, wanting to know where the nearest healer is.
+  if (intent.startsWith('map_')) return null
+
   const tier = c.accountTier
   const f2p = tier === 'f2p'
   const caps = capabilitiesFor(tier, c.instance)

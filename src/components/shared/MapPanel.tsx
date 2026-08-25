@@ -72,8 +72,8 @@ export function MapPanel() {
     return (
       <Shell>
         <p className="text-xs text-ink-faint leading-relaxed">
-          The map comes from Lich, so it needs a live bridge. Start it in game
-          and switch to Live Lich in Settings.
+          No bridge. In Mock this shows a small invented town; on Live Lich it
+          shows the zone you are standing in.
         </p>
       </Shell>
     )
