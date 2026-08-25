@@ -5,6 +5,7 @@
 //!   cargo run --example install -- maps         Genie map bundle
 //!   cargo run --example install -- run          execute what was downloaded
 //!   cargo run --example install -- guards       just the run_installer checks
+//!   cargo run --example install -- bridge       our script into Lich
 //!
 //! Everything here goes through `plan_setup`, `download_verified` and
 //! `install_bundle_inner`, so a bug in the setup flow shows up here rather
@@ -19,7 +20,7 @@ use std::path::PathBuf;
 
 fn main() {
     let which = std::env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("usage: cargo run --example install -- <ruby4lich5|plugins|maps|run|guards>");
+        eprintln!("usage: cargo run --example install -- <ruby4lich5|plugins|maps|run|guards|bridge>");
         std::process::exit(2);
     });
 
@@ -35,6 +36,7 @@ fn main() {
             "maps" => bundle("maps").await,
             "run" => { run_downloaded_installer(); check_guards() }
             "guards" => check_guards(),
+            "bridge" => install_bridge(),
             other => {
                 eprintln!("unknown target: {other}");
                 std::process::exit(2);
@@ -188,6 +190,45 @@ fn check_guards() {
         }
     }
     let _ = std::fs::remove_file(&decoy);
+}
+
+/// Put the bridge script into Lich, and check it landed where the plan said.
+///
+/// The check is the point. A copy that succeeds into the wrong Lich looks
+/// identical to one that succeeds into the right one, right up until someone
+/// types the start command and nothing at all happens.
+fn install_bridge() {
+    // Outside the app there is no bundled resource, so use the repo copy.
+    let src = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("repo root")
+        .join("lich-scripts")
+        .join("companion_bridge.lic");
+
+    if !src.exists() {
+        die(&format!("no bridge script at {}", src.to_string_lossy()));
+    }
+
+    let Some(target) = bridge_target_dir() else {
+        die("no Lich scripts folder found");
+    };
+    println!("target: {}", target.to_string_lossy());
+
+    match copy_bridge_to_lich(&src) {
+        Ok(dest) => {
+            println!("copied: {dest}");
+            if !PathBuf::from(&dest).exists() {
+                die("reported success but the file is not there");
+            }
+            let want = std::fs::metadata(&src).map(|m| m.len()).unwrap_or(0);
+            let got = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0);
+            if want != got {
+                die(&format!("size mismatch: source {want}, copy {got}"));
+            }
+            println!("verified: {got} bytes on disk");
+        }
+        Err(e) => die(&e),
+    }
 }
 
 fn die(msg: &str) -> ! {

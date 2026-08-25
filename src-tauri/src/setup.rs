@@ -1499,18 +1499,35 @@ pub fn install_bridge_script(app: AppHandle) -> Result<String, String> {
         ));
     }
 
-    // Same ranking the setup screen shows, from the same function. If these
-    // two ever disagree the app reports one Lich and writes to another, and
-    // the only symptom is that the start command silently does nothing.
+    copy_bridge_to_lich(&src)
+}
+
+/// The `scripts` folder of the Lich the setup screen says it is using.
+///
+/// Public so a test can ask the same question the app asks. The bug this
+/// guards against is not a crash: if the screen names one Lich and the copy
+/// lands in another, everything reads as installed and the start command does
+/// nothing, with no error anywhere.
+pub fn bridge_target_dir() -> Option<PathBuf> {
     let (_, ruby_path) = detect_ruby();
-    let target_dir = rank_lich_installs(ruby_path.as_deref())
+    rank_lich_installs(ruby_path.as_deref())
         .iter()
         .map(|d| d.join("scripts"))
         .find(|d| d.exists())
+}
+
+/// Copy the bridge script into that folder.
+///
+/// Split from the Tauri command so it can be run outside a Tauri app, where
+/// the bundled-resource lookup is unavailable. The source path stays the
+/// caller's problem; in the app it is resolved in Rust rather than passed from
+/// the web view, so the UI cannot ask us to copy an arbitrary file somewhere.
+pub fn copy_bridge_to_lich(src: &Path) -> Result<String, String> {
+    let target_dir = bridge_target_dir()
         .ok_or_else(|| "Could not find Lich's scripts folder. Install Lich first.".to_string())?;
 
     let dest = target_dir.join("companion_bridge.lic");
-    std::fs::copy(&src, &dest).map_err(|e| e.to_string())?;
+    std::fs::copy(src, &dest).map_err(|e| e.to_string())?;
     Ok(pretty_path(&dest))
 }
 
