@@ -521,8 +521,88 @@ function status() {
   }
 }
 
+/**
+ * Pull the {{Critter}} infobox and the prose Description for every bestiary
+ * page. The structured `ask` query carries neither, and the description is the
+ * only source for what a creature looks like.
+ *
+ * Batched 50 titles per request: 919 creatures cost 19 requests, not 919.
+ */
+function parseCritter(wikitext) {
+  const out = {}
+  const start = wikitext.indexOf('{{Critter')
+  if (start >= 0) {
+    // Walk to the matching close rather than matching with a regex: field
+    // values contain templates and links carrying their own braces.
+    let depth = 0
+    let i = start
+    for (; i < wikitext.length; i++) {
+      if (wikitext.startsWith('{{', i)) {
+        depth++
+        i++
+      } else if (wikitext.startsWith('}}', i)) {
+        depth--
+        i++
+        if (depth === 0) break
+      }
+    }
+    for (const line of wikitext.slice(start, i).split('\n')) {
+      const m = /^\|\s*([^=]+?)\s*=\s*(.*)$/.exec(line)
+      if (m && m[2]) out[m[1]] = m[2].trim()
+    }
+  }
+
+  const d = /==\s*Description\s*==\s*\n([\s\S]*?)(?=\n==|$)/i.exec(wikitext)
+  if (d) {
+    out.description = d[1]
+      .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')
+      .replace(/'''?/g, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\{\{[^}]*\}\}/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+  return out
+}
+
+async function bestiary() {
+  const names = Object.keys(load('creatures'))
+  if (!names.length) {
+    console.log('no creature list yet; run full first')
+    return
+  }
+  const batches = Math.ceil(names.length / 50)
+  console.log(`${names.length} creatures, ${batches} requests`)
+
+  const out = {}
+  let described = 0
+  for (let i = 0; i < names.length; i += 50) {
+    const json = await api({
+      action: 'query',
+      prop: 'revisions',
+      rvprop: 'content',
+      rvslots: 'main',
+      titles: names.slice(i, i + 50).join('|'),
+    })
+    for (const page of json.query?.pages ?? []) {
+      const text = page.revisions?.[0]?.slots?.main?.content
+      if (!text) continue
+      const c = parseCritter(text)
+      if (Object.keys(c).length) {
+        out[page.title] = c
+        if (c.description) described++
+      }
+    }
+    console.log(`  ${Object.keys(out).length}/${names.length}, ${described} described`)
+  }
+
+  save('bestiary', out)
+  console.log(`saved ${Object.keys(out).length}, ${described} with a description`)
+}
+
 const cmd = process.argv[2] ?? 'status'
 if (cmd === 'index') await index()
 else if (cmd === 'full') await full()
 else if (cmd === 'update') await update()
+else if (cmd === 'bestiary') await bestiary()
 else status()
