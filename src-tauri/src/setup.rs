@@ -110,6 +110,17 @@ fn first_existing(dirs: &[PathBuf], leaf: &str) -> Option<PathBuf> {
 
 fn lich_dirs() -> Vec<PathBuf> {
     let mut d = candidate_dirs(&["lich", "Lich", "lich5", "Lich5", "Ruby4Lich5", "ruby4lich5"]);
+
+    // Ruby4Lich5 lays itself out as C:\Ruby4Lich5\Lich5\lich.rbw, with its own
+    // Ruby beside it, so the nested folder needs looking at as well as the
+    // root. Confirmed from the Genie wiki's default Lich path.
+    for root in ["Ruby4Lich5", "ruby4lich5"] {
+        let p = PathBuf::from("C:\\").join(root).join("Lich5");
+        if p.exists() {
+            d.push(p);
+        }
+    }
+
     d.push(app_data_dir().join("lich"));
     d.retain(|p| p.exists());
     d
@@ -328,10 +339,15 @@ pub fn genie_options(
                 rel,
                 a,
                 "extract",
-                "No installer. Unpacks into this app's folder and deletes cleanly.",
-                "The current line of development, .NET 8, and it runs Genie 4 .cmd \
-                 scripts. Still a beta, so expect rough edges.",
-                true,
+                "The newer line, if you would rather be on it",
+                "Their own README says Beta, in active development, expect rough \
+                 edges. It is a clean rewrite on .NET 10 and Avalonia that runs on \
+                 Windows, macOS and Linux, and it runs Genie 4 .cmd scripts. The \
+                 catch for us is that the Lich connection commands the guides \
+                 describe are Genie 4 ones and may not exist here yet, which is \
+                 where people get stuck. Unpacks into this app's folder and deletes \
+                 cleanly.",
+                false,
             ));
         }
         if let Some(a) = asset(rel, "01-Windows-Genie5-Setup.exe") {
@@ -359,14 +375,16 @@ pub fn genie_options(
                 rel,
                 a,
                 "extract",
-                "The stable client most scripts were written against",
+                "Stable, free, and what the Lich connection guides describe",
                 &format!(
-                    "Release {tag}, from December 2023. The project publishes no \
-                     checksum for this file, so we can confirm it came from the \
-                     GenieClient releases over HTTPS but cannot check it against a \
-                     published hash the way we can for the others."
+                    "Release {tag}, from December 2023, and what the help channels \
+                     steer returning players to: the documented steps for connecting \
+                     to Lich are written for it and work. Note the project publishes \
+                     no checksum for this file, so we can confirm it came from the \
+                     GenieClient releases over HTTPS but cannot check the contents \
+                     against a published hash the way we can for the others."
                 ),
-                false,
+                true,
             ));
         }
     }

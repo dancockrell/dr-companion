@@ -865,3 +865,109 @@ described as "pretty slick but super expensive". A free, open, well-documented
 tool is landing in a space where free alternatives are already the default
 recommendation, which is a good position to be in and an argument for keeping
 the licence permissive.
+
+---
+
+## 22. Connecting Genie to Lich, and why people lose days to it
+
+More community traffic, from the Lich help channel. The single clearest
+finding: installing both pieces is not the hard part. Making them talk is.
+
+> "Is there anyone that can walk me through installing lich for genie? Im
+> seeing everything pointing to wrayth and stormfront but when I try following
+> that install instructions I only got it to login with stormfront not genie.
+> **Ive been at this for 2 days** and I really want to come back to play again"
+
+> "You can't launch genie with the lich launcher"
+
+> "Lich is installed separately, and then Genie connects to it through the port
+> Lich opens."
+
+A setup screen that detects Lich, detects Genie, ticks both, and says nothing
+leaves someone at exactly that cliff. So the app now shows the procedure, with
+the values filled in for the instance they pick.
+
+From the Genie 4 wiki, "Connecting and Profiles":
+
+| Instance | Lich port | Launch arguments | Profile suffix |
+|---|---|---|---|
+| Prime | 11024 | `--genie --dragonrealms` | `DR` |
+| Platinum | 11124 | `--genie --platinum --dragonrealms` | `DRX` |
+| The Fallen | 11324 | `--genie --fallen` | `DRF` |
+| Test | 11624 | `--genie --test --dragonrealms` | `DRT` |
+
+The commands, typed into Genie: `#lichsettings` (or `#ls`) to see the current
+values, `#config lichport N` and `#config licharguments ...` to change them,
+`#config save`, then `#lichconnect CharacterNameDR` (or `#lc`).
+
+Prime is the default, so Prime users usually change nothing. Everyone else has
+to, and getting the port or the arguments wrong is exactly the sort of failure
+that produces no useful error.
+
+Default paths from the same page, which also improved detection:
+`C:\Ruby4Lich5\Lich5\lich.rbw` with Ruby at `C:\Ruby4Lich5\X.X.X\bin\rubyw.exe`.
+
+### Genie 5 is too new to recommend to a newcomer
+
+An earlier pass marked Genie 5 portable as the suggested download, on the
+grounds that it is actively developed, checksummed, and unpacks cleanly. Both
+the project and the help channel say otherwise. Genie 5's own README opens
+with a warning:
+
+> **Beta** — Genie 5 is in active development ... Expect rough edges.
+
+and in the channel:
+
+> "5 5.0.0-alpha.7.11" … "It tells me Unknown Command: ls"
+>
+> "Ah gotcha, yeah Genie5 is like brand spanking new." … "its baaaaby."
+
+The `#lichsettings` command the connection guide depends on does not exist in
+their build. A returning player was steered to Genie 4 and got working. So the
+suggestion is now Genie 4, with Genie 5 offered beside it and labelled for what
+it is. Genie 4 went free and open source, so this costs nothing.
+
+### Lich does not always notice it has been disconnected
+
+> "It would appear that lich is none the wiser that I was disconnected from the
+> game."
+
+> "Anyone else having their connection crap out? It doesn't give an error
+> message of any sort; the output from the game just dies, and I have to
+> reconnect. Seems to happen 2-4 times a day, minimum."
+
+This is the exact failure the game-clock liveness check in `RealBridge` was
+built for, and it is more common than assumed: an open socket, a live-looking
+Lich, and no game behind it. Worth keeping, and worth surfacing clearly rather
+than as a footnote.
+
+### Config-shaped failures dominate support, everywhere
+
+Three in one afternoon, all in YAML, all presenting as script bugs:
+
+- `loot_delay` left with no value → `can't convert NilClass into an exact number`
+- `guilty_plea` nested under another key instead of at the root, so it never applied
+- an optional argument accepted at the front of a command list but not the back
+
+None of these are logic errors. They are what happens when configuration is
+hand-edited text with no validation, which is the same finding as section 18
+from a different direction. Companion's settings being UI-driven and typed
+removes this whole category rather than documenting it better.
+
+### Genie scripts and Lich scripts are not interchangeable
+
+> "how likely do genie commands work on a script in lich?"
+> "They don't. Lich is written in ruby"
+
+Both true and compatible with section 21: installing Lich does not break the
+`.cmd` scripts a Genie user has, because Genie keeps running them. What a user
+cannot do is port one to the other. Nobody has to.
+
+### Multi-character players lose their logs
+
+> "with the number of people who multi-character + login rewards, we should
+> probably look at sorting debug logs out by character name. Right now they get
+> overwritten FAST"
+
+Worth doing here before it bites: the trace and any saved report should carry
+the character name, and a saved report filename should include it.

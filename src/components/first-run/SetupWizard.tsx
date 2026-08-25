@@ -20,6 +20,7 @@ import { Button } from '../shared/Button'
 import { NoobChecklist } from './NoobChecklist'
 import { Preflight } from './Preflight'
 import { ComponentCard, type CardState } from './ComponentCard'
+import { ConnectGuide } from './ConnectGuide'
 import { isTauri } from '../../lib/tauri'
 import {
   planSetup,
@@ -225,6 +226,8 @@ export function SetupWizard() {
   const required = plan?.components.filter((c) => c.required) ?? []
   const lichPresent =
     plan?.components.find((c) => c.id === 'lich')?.presence === 'present'
+  const geniePresent =
+    plan?.components.find((c) => c.id === 'genie')?.presence === 'present'
   const missing = required.filter((c) => c.presence !== 'present')
 
   return (
@@ -299,6 +302,9 @@ export function SetupWizard() {
           ))}
         </section>
       )}
+
+      {/* Both installed is not the same as both talking to each other. */}
+      {phase !== 'browser' && lichPresent && geniePresent && <ConnectGuide />}
 
       <div className="mt-auto pt-2 space-y-2">
         <Button
