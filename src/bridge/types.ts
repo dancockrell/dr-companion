@@ -9,7 +9,7 @@
  * (port configurable; always localhost-only)
  */
 
-import type { CharacterStatus, InventorySummary } from '../types'
+import type { CharacterStatus, InventorySummary, TraceRow } from '../types'
 
 /** Messages Lich → Companion */
 export type BridgeServerMessage =
@@ -18,6 +18,7 @@ export type BridgeServerMessage =
   | { type: 'inventory'; payload: InventorySummary }
   | { type: 'scripts'; payload: { name: string; status: string }[] }
   | { type: 'log'; line: string; level?: 'info' | 'warn' | 'error' }
+  | { type: 'trace'; row: TraceRow }
   | { type: 'intent_ack'; intent: string; ok: boolean; detail?: string }
   | { type: 'error'; message: string }
 

@@ -406,11 +406,13 @@ export class MockBridge {
   private handleIntent(intent: IntentName, _args?: Record<string, unknown>) {
     const block = intentBlockReason(intent, this.character)
     if (block) {
+      this.trace('refused', `: `)
       this.emit({ type: 'intent_ack', intent, ok: false, detail: block })
       this.emit({ type: 'log', line: `Blocked: ${block}`, level: 'warn' })
       return
     }
 
+    this.trace('send', `intent ${intent}`)
     this.emit({ type: 'intent_ack', intent, ok: true })
 
     // Things worth knowing that are not reasons to refuse.
@@ -765,6 +767,19 @@ export class MockBridge {
     this.emit({
       type: 'status',
       payload: { ...this.character, connected: this.connected },
+    })
+  }
+
+  /**
+   * Emit a trace row, so the console can be exercised in demo mode.
+   *
+   * The real diagnostic value is against a live game, but a tester should be
+   * able to see what the console does before they get there.
+   */
+  private trace(kind: string, detail: string) {
+    this.emit({
+      type: 'trace',
+      row: { at: new Date().toLocaleTimeString(), kind, detail },
     })
   }
 

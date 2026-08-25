@@ -26,8 +26,6 @@ import { InventoryPanel } from '../shared/InventoryPanel'
 export function StandardDashboard() {
   const {
     character,
-    logLines,
-    runningScripts,
     requestIntent,
     uiMode,
     setUiMode,
@@ -276,24 +274,6 @@ export function StandardDashboard() {
         </div>
       </section>
 
-      <section className="flex-1 min-h-0 px-4 pb-4 flex flex-col">
-        <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-2 shrink-0">
-          What’s happening
-        </h2>
-        <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-raised p-3 space-y-1.5 text-xs font-mono text-ink-muted">
-          {runningScripts.length > 0 && (
-            <div className="text-accent mb-2">
-              Running: {runningScripts.join(', ')}
-            </div>
-          )}
-          {logLines.length === 0 && <div>Quiet…</div>}
-          {logLines.map((line, i) => (
-            <div key={i} className="leading-snug">
-              {line}
-            </div>
-          ))}
-        </div>
-      </section>
       <ScriptLauncher />
     </div>
   )

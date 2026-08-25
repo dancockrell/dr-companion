@@ -19,6 +19,7 @@ export interface PersistedPrefs {
   huntMode: 'suggest' | 'favorites_only' | 'manual'
   /** Town the player wants to heal in, overriding the scorer. */
   preferredHealCity?: string | null
+  consoleOpen?: boolean
   houseEntryMethod?: 'rope' | 'lockpick' | 'lockpick_ring'
   houseEntryMaxSearches?: number
   houseEntryHide?: boolean
@@ -33,6 +34,7 @@ const defaults: PersistedPrefs = {
   huntFavorites: [],
   huntMode: 'suggest',
   preferredHealCity: null,
+  consoleOpen: false,
   houseEntryMethod: 'lockpick_ring',
   houseEntryMaxSearches: 3,
   houseEntryHide: true,

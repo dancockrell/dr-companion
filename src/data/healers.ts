@@ -374,7 +374,7 @@ export function chooseHealer(
       source: scored ? 'scored' : 'none',
       reasons: [
         `Your heal city (${cityLabel(ctx.preferredCity)}) is not reachable on this account or instance.`,
-        ...(scored?.reasons ?? ['No healer available at all.']),
+        scored ? `Falling back to ${scored.option.name}: ${scored.reasons.join(", ")}` : "No healer available at all.",
       ],
     }
   }
@@ -383,6 +383,8 @@ export function chooseHealer(
   return {
     option: scored?.option ?? null,
     source: scored ? 'scored' : 'none',
-    reasons: scored?.reasons ?? ['No healer available for this tier and instance.'],
+    reasons: scored
+      ? [`Picked ${scored.option.name}: ${scored.reasons.join(", ")}`]
+      : ["No healer available for this tier and instance."],
   }
 }

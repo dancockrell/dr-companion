@@ -5,6 +5,7 @@ import { PowerDashboard } from './components/dashboard/PowerDashboard'
 import { AppHeader } from './components/layout/AppHeader'
 import { SafetyFooter } from './components/layout/SafetyFooter'
 import { SituationBanner } from './components/layout/SituationBanner'
+import { Console } from './components/layout/Console'
 import { useAppStore } from './store/useAppStore'
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
       <main className="flex-1 min-h-0 overflow-y-auto">
         {setupComplete ? dashboard : <SetupWizard />}
       </main>
+      {setupComplete && <Console />}
       {setupComplete && <SafetyFooter />}
     </div>
   )

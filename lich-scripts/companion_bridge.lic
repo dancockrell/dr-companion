@@ -284,6 +284,88 @@ module Companion
     end
   end
 
+  # ------------------------------------------------------------------ trace --
+
+  # In-game testing is going to find that some of the patterns in Patterns are
+  # wrong. The difference between that being an afternoon and being a month is
+  # whether a tester can see what the game actually said.
+  #
+  # Trace records every command sent, every reply, and every failed match, and
+  # pushes them over the bridge so the panel can show them. A failed match
+  # keeps the raw lines, which is the thing you need in order to fix a pattern
+  # and the thing that is impossible to recover after the fact.
+  module Trace
+    @enabled = false
+    @sink = nil
+    @recent = []
+
+    class << self
+      attr_accessor :sink
+
+      def enabled?
+        @enabled
+      end
+
+      def enable(on = true)
+        @enabled = on
+      end
+
+      def recent
+        @recent
+      end
+
+      def event(kind, detail)
+        row = {
+          'at'     => Time.now.strftime('%H:%M:%S'),
+          'kind'   => kind.to_s,
+          'detail' => detail.to_s[0, 500]
+        }
+        # Keep a short tail even when tracing is off, so a tester who turns it
+        # on after something went wrong still has the last few lines.
+        @recent << row
+        @recent.shift while @recent.size > 200
+
+        return unless @enabled
+        @sink&.call(row)
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------- patterns --
+
+  # Every string this bridge matches against the game stream, in one place.
+  #
+  # These come from reading community scripts, not from a live account, so some
+  # of them are certainly wrong or incomplete. That is the main thing in-game
+  # testing will find, and it is why they live here as data rather than being
+  # scattered through the intent handlers: a tester who finds a mismatch should
+  # be able to see the pattern, see what the game actually said, and fix one
+  # line.
+  #
+  # `;companion_bridge trace` turns on a mode that reports every send, every
+  # reply and every failed match over the bridge, so the panel can show a
+  # tester exactly what to change.
+  module Patterns
+    # The three ways DragonRealms says "not now". A refusal is not a result.
+    # See docs/DOMAIN.md section 9.
+    REFUSALS = /\.\.\.wait|still stunned|^Sorry, you may only|^\[Please wait/i.freeze
+
+    # Roundtime is printed differently by frontend and situation.
+    ROUNDTIME = /^\[?\(?Roundtime:?/i.freeze
+
+    # Per-intent expectations. Keys are stable; values are what we hope to see.
+    EXPECT = {
+      health: [/You have|You feel|You are in good/i],
+      stow:   [/You put|You (?:can't|cannot)|is too/i],
+      # Filled in as intents land. Unknown keys fall through to no expectation,
+      # which sends the command and does not pretend to have read the answer.
+    }.freeze
+
+    def self.expect(key)
+      EXPECT[key] || []
+    end
+  end
+
   # ---------------------------------------------------------------- commands --
 
   # Sending a command to DragonRealms is not fire-and-forget. The game refuses
@@ -302,8 +384,8 @@ module Companion
   module Cmd
     module_function
 
-    REFUSALS = /\.\.\.wait|still stunned|^Sorry, you may only|^\[Please wait/i.freeze
-    ROUNDTIME = /^\[?\(?Roundtime:?/i.freeze
+    REFUSALS  = Patterns::REFUSALS
+    ROUNDTIME = Patterns::ROUNDTIME
 
     # Wait out any roundtime Lich knows about, bounded so a bad read cannot
     # hang the bridge forever.
@@ -326,10 +408,13 @@ module Companion
     # Returns the matched line, or nil on timeout. Never raises: a bridge that
     # dies because the game said something unexpected is worse than one that
     # reports it could not tell.
-    def exec(command, expect: [], timeout: 10, attempts: 3)
+    def exec(command, expect: [], timeout: 10, attempts: 3, label: nil)
       patterns = Array(expect)
+      tag = label ? "#{label}: " : ''
+
       attempts.times do |try|
         wait_rt
+        Trace.event(:send, "#{tag}#{command}#{try.positive? ? " (retry #{try})" : ''}")
 
         line = begin
           if patterns.empty?
@@ -339,18 +424,33 @@ module Companion
             dothistimeout(command, timeout, Regexp.union(patterns + [REFUSALS]))
           end
         rescue StandardError => e
+          Trace.event(:error, "#{tag}#{command} raised: #{e.message}")
           return nil.tap { Companion.log_error("#{command}: #{e.message}") }
         end
 
-        return nil if line.nil?
+        if line.nil?
+          # Nothing matched inside the timeout. This is the case a tester needs
+          # to see: the pattern is probably wrong, and the raw game text is the
+          # only thing that can say what to change it to.
+          Trace.event(
+            :no_match,
+            "#{tag}#{command} — nothing matched /#{patterns.map(&:source).join('/ or /')}/ in #{timeout}s"
+          )
+          return nil
+        end
+
+        Trace.event(:reply, "#{tag}#{line.to_s.strip}")
 
         # A refusal is not a result. Wait and try again.
         if line =~ REFUSALS
+          Trace.event(:refused, "#{tag}#{line.to_s.strip}")
           sleep(1 + try)
           next
         end
         return line
       end
+
+      Trace.event(:gave_up, "#{tag}#{command} — refused #{attempts} times")
       nil
     end
 
@@ -387,6 +487,21 @@ module Companion
       when 'resume'   then resume_all(server)
       when 'check_health' then check_health(server)
       when 'stow_all'     then stow_all(server)
+      when 'trace_on'
+        Trace.enable(true)
+        server.log('Trace on. Every command, reply and failed match will appear here.')
+        [true, 'trace on']
+      when 'trace_off'
+        Trace.enable(false)
+        server.log('Trace off.')
+        [true, 'trace off']
+      when 'trace_dump'
+        # The tail is kept even when tracing is off, so someone who turns it on
+        # after something went wrong still has the last few lines.
+        rows = Trace.recent
+        server.log("Replaying the last #{rows.size} trace rows.")
+        rows.each { |r| server.trace(r) }
+        [true, "#{rows.size} rows"]
       when 'get_favors'
         [true, "favors: #{State.safe(0) { DRStats.favors.to_i }}"]
       else
@@ -546,6 +661,8 @@ module Companion
       end
       @running = true
       respond "[companion] bridge v#{BRIDGE_VERSION} listening on ws://127.0.0.1:#{@port}#{PATH}"
+
+      Trace.sink = ->(row) { trace(row) }
 
       @accept_thread = Thread.new { accept_loop }
       @push_thread   = Thread.new { push_loop }
@@ -725,6 +842,11 @@ module Companion
 
     def log(line, level = 'info')
       broadcast(type: 'log', line: line, level: level)
+    end
+
+    # Push a trace row to every connected panel.
+    def trace(row)
+      broadcast(type: 'trace', row: row)
     end
 
     # Push status on a slow tick, and immediately when something changed.

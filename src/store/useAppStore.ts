@@ -50,6 +50,17 @@ const defaultSetup: SetupComponent[] = [
   },
 ]
 
+/**
+ * One counter for log lines and trace rows alike.
+ *
+ * The console interleaves both, and second-resolution timestamps cannot order
+ * them: a command and its reply routinely land in the same second, and getting
+ * that backwards is exactly the kind of thing that misleads someone reading a
+ * trace to work out what broke.
+ */
+let seqCounter = 0
+const nextSeq = () => ++seqCounter
+
 let unsubBridge: (() => void) | null = null
 let unsubLiveStatus: (() => void) | null = null
 
@@ -85,6 +96,9 @@ function handleBridgeMessage(
     case 'log':
       get().addLog(msg.line)
       break
+    case 'trace':
+      get().addTrace(msg.row)
+      break
     case 'intent_ack':
       if (!msg.ok)
         get().addLog(`Intent failed: ${msg.intent} — ${msg.detail ?? ''}`)
@@ -103,7 +117,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   character: null,
   inventory: null,
   runningScripts: [],
-  logLines: ['Companion started. Waiting for setup…'],
+  logLines: [
+    { at: new Date().toLocaleTimeString(), text: 'Companion started.', seq: nextSeq() },
+  ],
+  trace: [],
+  traceEnabled: false,
+  consoleOpen: prefs.consoleOpen ?? false,
   bridgeConnected: false,
   bridgeMode: prefs.bridgeMode,
   trainFocus: prefs.trainFocus,
@@ -141,12 +160,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   addLog: (line) =>
     set((state) => ({
       logLines: [
-        `${new Date().toLocaleTimeString()}  ${line}`,
         ...state.logLines,
-      ].slice(0, 120),
+        { at: new Date().toLocaleTimeString(), text: line, seq: nextSeq() },
+      ].slice(-200),
     })),
 
-  clearLog: () => set({ logLines: [] }),
+  clearLog: () => set({ logLines: [], trace: [] }),
+
+  addTrace: (row) =>
+    // Cap it. A trace running all session should not become the reason the
+    // app slows down while someone is trying to reproduce a bug.
+    set((state) => ({
+      trace: [...state.trace, { ...row, seq: nextSeq() }].slice(-400),
+    })),
+
+  setTraceEnabled: (v: boolean) => {
+    set({ traceEnabled: v })
+    bridge.requestIntent((v ? 'trace_on' : 'trace_off') as IntentName)
+    if (v) bridge.requestIntent('trace_dump' as IntentName)
+  },
+
+  setConsoleOpen: (v: boolean) => {
+    savePrefs({ consoleOpen: v })
+    set({ consoleOpen: v })
+  },
 
   setBridgeMode: (m: 'mock' | 'live') => {
     bridge.disconnect()

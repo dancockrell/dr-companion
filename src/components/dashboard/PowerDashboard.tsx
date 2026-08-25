@@ -26,8 +26,6 @@ import { capabilitiesForCharacter } from '../../lib/accountCapabilities'
 export function PowerDashboard() {
   const {
     character,
-    logLines,
-    runningScripts,
     requestIntent,
     uiMode,
     setUiMode,
@@ -343,19 +341,6 @@ export function PowerDashboard() {
         </div>
       </section>
 
-      <section className="flex-1 min-h-0 px-4 pb-3 flex flex-col">
-        <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1 shrink-0">
-          Log
-        </h2>
-        <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-raised p-2 space-y-1 text-[11px] font-mono text-ink-muted">
-          {runningScripts.length > 0 && (
-            <div className="text-accent">Running: {runningScripts.join(', ')}</div>
-          )}
-          {logLines.map((line, i) => (
-            <div key={i}>{line}</div>
-          ))}
-        </div>
-      </section>
     </div>
   )
 }

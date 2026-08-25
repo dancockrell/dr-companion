@@ -105,6 +105,25 @@ export interface CharacterStatus {
   gameTime?: number
 }
 
+/** One row from the bridge's command trace. */
+export interface TraceRow {
+  at: string
+  kind: string
+  detail: string
+  /**
+   * Assigned on arrival so trace and log rows can be interleaved in the order
+   * they actually happened. Timestamps alone are second-resolution, which is
+   * too coarse: a command and its reply routinely land in the same second.
+   */
+  seq?: number
+}
+
+export interface LogRow {
+  at: string
+  text: string
+  seq: number
+}
+
 export interface InventorySummary {
   containers: { name: string; used: number; capacity: number }[]
   wornCount: number
@@ -122,7 +141,11 @@ export interface AppState {
   character: CharacterStatus | null
   inventory: InventorySummary | null
   runningScripts: string[]
-  logLines: string[]
+  logLines: LogRow[]
+  /** Command trace from the bridge, for diagnosing broken patterns. */
+  trace: TraceRow[]
+  traceEnabled: boolean
+  consoleOpen: boolean
   bridgeConnected: boolean
   bridgeMode: 'mock' | 'live'
   trainFocus: string[]
@@ -146,6 +169,9 @@ export interface AppState {
   setInventory: (i: InventorySummary | null) => void
   addLog: (line: string) => void
   clearLog: () => void
+  addTrace: (row: TraceRow) => void
+  setTraceEnabled: (v: boolean) => void
+  setConsoleOpen: (v: boolean) => void
   simulateConnect: () => void
   connectBridge: () => void
   disconnectBridge: () => void
