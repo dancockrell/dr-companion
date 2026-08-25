@@ -1,7 +1,8 @@
 /**
  * Elanthipedia scraper.
  *
- *   node tools/elanthipedia.mjs full        one-time full pull
+ *   node tools/elanthipedia.mjs index       list every title, per namespace
+ *   node tools/elanthipedia.mjs full        one-time full pull of properties
  *   node tools/elanthipedia.mjs update      only what changed since last run
  *   node tools/elanthipedia.mjs status      what we have
  *
@@ -218,9 +219,32 @@ const NAMESPACES = {
   Item: 118,
 }
 
+/**
+ * Weapon types, used to partition a query that cannot be paged past ~5,400.
+ *
+ * SMW's `ask` has an offset ceiling. Beyond roughly 5,400 it stops advancing
+ * and wraps to the start of the result set — verified: offset 5400, 5500 and
+ * 6000 all return the same first row that offset 0 does. So a single query over
+ * 7,377 weapons is not merely slow, it is *incapable* of reaching the end, and
+ * the first clean run silently returned 5,499 of them while reporting success.
+ *
+ * Partitioning is the fix: every subset here is comfortably under the ceiling,
+ * and the union is the whole category. Read off the wiki rather than invented.
+ */
+const WEAPON_TYPES = [
+  'Arrow', 'Bolt', 'Composite Bow', 'Dart', 'Elbows', 'Hands',
+  'Heavy Blunt', 'Heavy Crossbow', 'Heavy Edged', 'Heavy Thrown',
+  'Light Blunt', 'Light Crossbow', 'Light Edged', 'Light Thrown',
+  'Long Bow', 'Medium Blunt', 'Medium Edged', 'Parry', 'Polearms',
+  'Quarter Staff', 'Rock', 'Short Bow', 'Short Staff', 'Slings',
+  'Twohanded Blunt', 'Twohanded Edged',
+]
+
 const SETS = {
   weapons: {
     conditions: '[[Category:Weapons]]',
+    // Partitioned, per the ceiling above.
+    partitionBy: WEAPON_TYPES.map((t) => `[[Is combat type::${t}]]`),
     props: [
       'Noun is', 'Item type is', 'Is combat type', 'Appraised cost is',
       'Weight is', 'Puncture damage is number', 'Slice damage is number',
@@ -245,13 +269,81 @@ const SETS = {
     ],
   },
   creatures: {
-    conditions: '[[Category:Creatures]]',
+    // Not `Category:Creatures`, which does not exist. I guessed that name and
+    // the run reported "creatures: 0 saved" as though it were a result rather
+    // than a typo. The category is Bestiary, 790 pages.
+    conditions: '[[Category:Bestiary]]',
     props: ['Noun is', 'Body type is', 'Body size is', 'Page type is'],
   },
   npcs: {
     conditions: '[[Category:NPCs]]',
     props: ['Noun is', 'Page type is'],
   },
+}
+
+/**
+ * Everything in a namespace, by title.
+ *
+ * This is the index, and it took three wrong attempts to get here.
+ *
+ *   1. Category queries. `[[Category:Armor]]` returns **486** rows for a
+ *      category MediaWiki reports as holding **3,910** pages. Categories are
+ *      not a reliable index into this wiki's semantic data.
+ *   2. Paged `ask`. Cannot reach past an offset of ~5,400 — it wraps to the
+ *      start — so it silently returned 5,499 of 7,377 weapons and called it
+ *      done.
+ *   3. Partitioned `ask`. Better, 6,987 weapons, still short and still
+ *      dependent on every page having the property being partitioned on.
+ *
+ * `allpages` has none of those problems. It is the wiki's own list of what
+ * exists, it pages with `apcontinue` rather than a numeric offset so there is
+ * no ceiling, and it is exhaustive:
+ *
+ *   Armor  (110)   4,083 pages in   9 requests
+ *   Weapon (114)   7,384 pages in  15 requests
+ *   Item   (118)  65,600 pages in 132 requests
+ *
+ * It also answers the question that actually matters hourly — *what is here
+ * that we do not have* — because new items appear as new titles.
+ */
+async function allPages(namespaceId, label) {
+  const titles = []
+  let cont
+  let requests = 0
+
+  do {
+    if (++requests > 300) {
+      console.log(`  STOP: ${label} exceeded 300 requests`)
+      break
+    }
+    const json = await api({
+      action: 'query',
+      list: 'allpages',
+      apnamespace: String(namespaceId),
+      aplimit: '500',
+      apfilterredir: 'nonredirects',
+      ...(cont ? { apcontinue: cont } : {}),
+    })
+    for (const p of json.query?.allpages ?? []) titles.push(p.title)
+    cont = json.continue?.apcontinue
+    if (requests % 20 === 0) console.log(`  ${label} ${titles.length}`)
+  } while (cont)
+
+  console.log(`  ${label} ${titles.length} titles`)
+  return titles
+}
+
+/** Snapshot every namespace's title list. Cheap, exhaustive, and the basis for
+ *  noticing new items later. */
+async function index() {
+  const out = {}
+  for (const [name, id] of Object.entries(NAMESPACES)) {
+    out[name] = await allPages(id, name)
+  }
+  save('index', out)
+  const total = Object.values(out).reduce((s, a) => s + a.length, 0)
+  console.log(`  ${total} titles indexed`)
+  return out
 }
 
 function outPath(name) {
@@ -283,9 +375,32 @@ async function full() {
   const started = new Date().toISOString()
 
   for (const [name, set] of Object.entries(SETS)) {
-    const rows = await ask(set.conditions, set.props)
+    let rows = {}
+
+    if (set.partitionBy) {
+      // Each partition is its own query, all merged. Union rather than
+      // concatenation, because an item can legitimately match two partitions
+      // and should be stored once.
+      for (const part of set.partitionBy) {
+        const sub = await ask(`${set.conditions}${part}`, set.props)
+        Object.assign(rows, sub)
+      }
+    } else {
+      rows = await ask(set.conditions, set.props)
+    }
+
+    const n = Object.keys(rows).length
+
+    // An empty set is a bug in this file, not a fact about the wiki. It is how
+    // `Category:Creatures` — a category that does not exist — was reported as
+    // "0 saved" and read as a result rather than a typo.
+    if (n === 0) {
+      console.log(`  ${name}: EMPTY — check the category name in SETS`)
+      continue
+    }
+
     save(name, rows)
-    console.log(`  ${name}: ${Object.keys(rows).length} saved`)
+    console.log(`  ${name}: ${n} saved`)
   }
 
   // The timestamp is taken *before* the pull, not after. Anything edited while
@@ -405,6 +520,7 @@ function status() {
 }
 
 const cmd = process.argv[2] ?? 'status'
-if (cmd === 'full') await full()
+if (cmd === 'index') await index()
+else if (cmd === 'full') await full()
 else if (cmd === 'update') await update()
 else status()
