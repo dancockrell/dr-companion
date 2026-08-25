@@ -432,6 +432,140 @@ panel is the entire product.
 
 ---
 
+## 2.7 The battle view
+
+A combat screen, kept simple, built from data we already have.
+
+- **Enemy cards**, one per creature, beside the character. `GameObj.npcs` with
+  `npc_status` gives name and state; `DRRoom.dead_npcs` gives the corpses.
+  Eventually a picture per creature type, keyed on the noun.
+- **The character**, as a picture the player supplies. Their own art, their own
+  character. Cheap to build and it is theirs.
+- **Wounds as a separate paperdoll**, not painted on that picture. Sixteen
+  locations at severity 0–3 from `XMLData.injuries`, laid out as a body. Keeping
+  them separate is the better call: the portrait can be anything, and the wound
+  display has to stay readable at a glance.
+
+This is not decoration. Reading "a wolf, a wolf, a badly wounded wolf" out of a
+scrolling text feed is the thing players actually struggle with, and three cards
+answer it instantly.
+
+## 2.8 Loops: a library, not one big loop
+
+Shroom's model is one enormous loop that does everything. It works, and it is
+not the most fun arrangement.
+
+> **One big loop, plus a set of smaller loops you can choose from.**
+
+A survival loop, a lore loop, a gathering loop. And the good part: while running
+a lore loop, opportunistically fit in survival — pick up coins, rocks, grass;
+branches when grass is unavailable. Small, level-appropriate, and it keeps
+another pool absorbing while you are doing something else. That is §2.35's
+objective made concrete and playable.
+
+**The starter loops matter most.** Two worth shipping:
+
+- **Branches to Mags**, for a level 0 character. Collect branches, hand them in.
+  It is small, it works from nothing, and it teaches the shape of a loop.
+- **Donation-shelf gear run**, for under level 20. Visit donation shelves and
+  chests, rummage, and assemble a light but decent kit that trains every skill.
+  The inverse — a donation loop that gives back — is the same machinery.
+
+Much of this exists already, which is the point of §2.1:
+
+| Loop piece | Script |
+|---|---|
+| Scavenge a starter kit | **`newbie-gear.lic`**, 167 lines |
+| New character setup | `new-character.lic` |
+| Foraging | `task-forage.lic` |
+| Wood, mining, rummaging | `chop-wood`, `mine`, `mining-buddy`, `rummage` |
+| Town skill cycling | `crossing-training.lic` |
+| Combat | `combat-trainer.lic` |
+| Scheduling | `coordinator`, `taskmaster`, `schedule`, `multi`, `t2` |
+
+So a loop is **a named, ordered set of script calls with conditions** — which
+is exactly the `coordinator` task schema from §2.2. The library is a set of
+those, shipped, editable, and shareable. Building your own is the same editor.
+
+## 2.9 Direct manipulation
+
+Inventory is a list of things you should be able to click.
+
+- **Ready a weapon** with one click. Swap to the offhand, or put it away.
+  `EquipmentManager#wield_weapon?`, `swap_to_skill?`, `stow_weapon`.
+- **Shield on, shield off.**
+- **Armour pieces on and off, on the fly, from the front page.** Not buried in
+  settings — the front page, because this is the thing someone opens the app for
+  mid-fight and mid-box.
+
+`weararmor.lic` is **fifteen lines** and takes a gear set name. So the whole
+feature is `Script.start('weararmor', set)` plus a list of the sets, and the
+per-piece work is `DRCI.wear_item?` / `remove_item?`.
+
+That is worth saying plainly: **the armour panel is nearly free and it might be
+the reason people keep the app open.** It is the shortest path from nothing to
+something nobody else offers.
+
+## 2.10 The controls
+
+One control to start, one to stop. Everything else is a modifier.
+
+- **Start main loop** / **Stop all.** One button each. Not a menu of eleven
+  scripts.
+- **Pause.** Keeps position and state; resumes where it was.
+- **Snooze** — the one worth designing carefully. It means *I am leaving the
+  keyboard*. It is not pause; it is "stay alive without me".
+
+**Snooze has to try to keep you safe**, because that is the entire point:
+
+- watch for danger arriving and leave rather than fight
+- retreat to `safe_room` — `gosafe.lic` is fifteen lines and already does this
+- heal or tend if hurt — `healme`, `tendme`
+- disconnect as the last resort, if it is taking damage and cannot get out
+
+Every one of those is somebody else's script. We sequence them.
+
+**And every part of it gets a toggle**, because "disconnect me automatically" is
+a kindness to one player and an outrage to another. The rule: anything the app
+does *on the player's behalf without asking* must be switchable off in settings,
+and default to the kinder option.
+
+## 2.11 Setup should be a pleasure, not a form
+
+The out-of-box experience is where this is won or lost.
+
+The principle from §2.4 applies hardest here: **we know what is in their
+inventory, so never ask them to type it.** When someone fills in their armour
+pieces, the field is a dropdown of the armour they are actually wearing and
+carrying. When they set a weapon, the list is their weapons. When they pick a
+container, it is their containers.
+
+That turns the worst part of dr-scripts — a 625-key YAML and a wiki tab — into
+picking from lists of things they recognise, because they own them.
+
+## 2.12 The map has to beat Genie's
+
+Genie's automapper is fifteen years old and it is the incumbent. If ours is
+merely present, nobody switches — they already have one that works.
+
+What we have to beat it with:
+
+- **Live position**, following the character without being asked.
+- **Hazards visible** — the rooms that break scripts, coloured, because that is
+  what a player is watching for.
+- **Route preview before committing**, then `go2` to walk it.
+- **Tag-based destinations** — every tag in the map is a place you can go, which
+  is the vocabulary `go2` already accepts.
+- **Sized to be watched**, docked, not a thumbnail and not a window you lose
+  behind the game.
+- **Both room ids**, labelled, because that is the thing people paste at each
+  other in help channels.
+
+That is a beatable target. A fifteen-year-old system is a high bar for polish
+and a low one for ideas.
+
+---
+
 ## 3. What the app is
 
 **A face for the Lich script ecosystem.** Find, install, configure, launch,
@@ -497,6 +631,11 @@ draw.
 - **Gear** — hands, worn, gear sets, weapon swap by skill.
 
 **Tier 3 — on demand**
+
+Note the console is deliberately not demoted. It is the best thing in the app
+already: it shows what was sent and what came back, which is the only honest
+answer to "why did it stop". Lean on it rather than inventing status prose.
+
 
 - Workflow editor, YAML assistant, skills, healer scoring, hunt ranking.
 
@@ -586,6 +725,10 @@ Each step is one bridge topic plus one panel, shippable alone.
 9. **Map to a side dock**, following the character, `go2` as the action.
 10. **Situation read-out**, starting with route crossings where `travel.cmd`
     has already published the thresholds.
+11. **Battle view** — enemy cards beside the wound doll, player portrait.
+12. **Loop library** — starter loops shipped, including branches-to-Mags and
+    the donation-shelf gear run, all editable in the same editor as step 8.
+13. **Snooze**, sequencing gosafe, healme and tendme, every part toggleable.
 
 Steps 1–5 need no new game knowledge. 6–8 are where this becomes a tool people
 would choose over typing.
