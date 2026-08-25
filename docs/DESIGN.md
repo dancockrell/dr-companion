@@ -662,6 +662,125 @@ and a low one for ideas.
 
 ---
 
+## 2.13 Make it look like a game
+
+The strongest idea in this design and the one most likely to get it installed.
+
+### Every room description is already a prompt
+
+They were written to put a picture in your head — that is their entire job in a
+text game. From `Map1_Crossing.xml`, untouched:
+
+> The whitewashed building before you is stark and functional. A sign mounted on
+> it is hand painted and carved with cunning skill. White-robed figures and all
+> manner of injured and infirm people stream in and out of a double door,
+> leaving thin trails of blood on the spotless pavement.
+
+That needs no rewriting to be fed to an image model. Measured across the map
+set:
+
+| | |
+|---|---|
+| Rooms | **18,490** |
+| Descriptions | **23,335** |
+| Distinct room names | 8,053 |
+
+The name is a label — "The Crossing, Magen Road" repeats down a whole street.
+**The description is the scene**, and every one of the 23,335 is different. So
+the art is keyed to descriptions, not names.
+
+The gap between 18,490 and 23,335 is day and night variants, already in the map
+data. Roughly 4,800 rooms come with two descriptions, which means **the art can
+change with time of day for free.**
+
+### Three tiers of image, in order of cost
+
+1. **Enemy cards.** A few hundred creature types — one of Shroom's three tables
+   alone holds 166. Bounded, reusable, and the highest value per image, because
+   "what is in this room" is the question being asked constantly.
+2. **Character portrait.** Supplied by the player. Zero generation, entirely
+   theirs, and people care more about their own character than about anything we
+   could draw.
+3. **Room art.** 23,335 images. The big one, and the one nobody has done.
+
+### Why this is not decoration
+
+The argument is not that graphics are nice. It is:
+
+> There is a great deal of text flying past, and keeping aware of it is hard
+> work. Images make awareness cheap. Cheap awareness frees attention. Freed
+> attention gets spent on talking to people — and talking to people is what
+> keeps anyone in a MUD for thirty years.
+
+That is a retention argument, and it is the one that matters. It also happens to
+be the honest answer to the demographic problem: this game has never had
+anything close to it for depth, and its audience is ageing. Something that feels
+like a minimally graphical game — not a picture window, but close — is how the
+depth reaches people who will not start with a wall of prose.
+
+### What has to be got right
+
+**Consistency.** The same room must look the same for everyone, or two players
+comparing screenshots see different worlds. That means a fixed seed derived from
+the room, and ideally a shared pack rather than everyone generating their own.
+
+**Quality.** Bad generated art is worse than none. It needs curation, a way to
+regenerate a room you dislike, and a switch that turns the whole thing off.
+
+**Scale.** 23,335 images is a real job even on good hardware. It runs once,
+offline, and ships as a downloadable pack like the map database — which is
+already the pattern players know from `;repository download-mapdb`.
+
+### The permission question, which is worth asking rather than assuming
+
+Room descriptions are Simutronics' copyrighted text. Generating an image
+**locally**, on the player's machine, from text their client legitimately
+received, is defensible. **Distributing a pack** of 23,335 images derived from
+that text is a different act and I am not going to pretend otherwise.
+
+The right move is to ask them, and asking is strictly better than not asking
+here:
+
+- It is a conversation with the company about a project that demonstrably helps
+  their game, opened by someone who has played it for thirty years.
+- If they say yes, the pack ships and everyone benefits.
+- If they say no, local generation still works and nothing is lost but the
+  convenience.
+- If nobody asks and it ships anyway, the first anyone hears of it is a
+  complaint, and that forecloses everything.
+
+Local-first is therefore the design regardless: generate on the player's
+machine, cache permanently, and treat a shared pack as an optimisation that
+requires a yes.
+
+## 2.14 Help that fades
+
+Two audiences at once: people who have played for thirty years, and people we
+want to bring in who have never seen a MUD. The current answer — the same
+explanatory sentence under every panel, forever — serves neither.
+
+**People learn.** Guidance that was welcome on day one is clutter on day thirty,
+and it is still occupying the space §2.115 says we have to earn.
+
+So help decays:
+
+- **Basic and Power** is the coarse control, and it is genuinely useful for
+  onboarding rather than being a density preference. Basic explains; Power
+  assumes.
+- **Within Basic, hints retire themselves.** A hint attached to a control the
+  player has used a dozen times has done its job. Stop showing it.
+- **Anything retired stays available on hover**, per §2.5, so nothing is lost —
+  it just stops taking vertical space from someone who no longer needs it.
+- **Nothing important is only a hint.** If it matters, it is a value or a
+  control, not a sentence that will one day disappear.
+
+The new-to-DragonRealms case deserves its own path rather than a longer version
+of the same screen: the first hour is about not being lost, and §2.8's starter
+loops — branches to Mags, the donation-shelf gear run — are a better tutorial
+than any text, because they are the game.
+
+---
+
 ## 3. What the app is
 
 **A face for the Lich script ecosystem.** Find, install, configure, launch,
@@ -890,6 +1009,11 @@ Each step is one bridge topic plus one panel, shippable alone.
 10. **Situation read-out**, starting with route crossings where `travel.cmd`
     has already published the thresholds.
 11. **Battle view** — enemy cards beside the wound doll, player portrait.
+11a. **Creature art** for the enemy cards. A few hundred images, bounded, the
+    highest value per image because "what is in this room" is asked constantly.
+11b. **Room art** from descriptions, generated locally and cached. 23,335
+    prompts already written, day and night variants included.
+    *Blocked on:* asking Simutronics before any shared pack ships.
 12. **Loop library** — starter loops shipped, including branches-to-Mags and
     the donation-shelf gear run, all editable in the same editor as step 8.
 13. **Snooze**, sequencing gosafe, healme and tendme, every part toggleable.
