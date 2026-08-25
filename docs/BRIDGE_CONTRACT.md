@@ -95,13 +95,37 @@ Never implement “closest healer by room distance only” as the final decision
 - No authentication required for local v0.1 (single-user machine assumption)
 - Future: optional token file if multi-user or remote is ever considered (not planned)
 
+## The Lich API this reads
+
+An earlier draft of this document said to push status from "Infomon". That is
+GemStone. DragonRealms exposes a different set, and the bridge uses these:
+
+| Source | Provides |
+|---|---|
+| `DRStats` | health, spirit, fatigue, concentration, mana, guild, race, circle, **favors**, encumbrance |
+| `DRSkill` | `getrank(skill)`, **`getxp(skill)` for the 0-34 mindstate**, `list`, `getskillset` |
+| `DRRoom` | title, description, npcs, pcs, group_members, room_objs, exits |
+| `DRSpells` | active spells |
+| `XMLData` | raw parsed state, indicators, roundtime |
+| `Room`, `Map` | room id, location, the map graph for travel |
+| `GameObj`, `EquipmentManager` | inventory and containers |
+| `DRC`, `DRCI`, `DRCM`, `DRCT`, `DRCC` | commons helpers (general, inventory, money, travel, crafting) |
+
+`DRSkill.getxp` is the one that matters most. Mindstate is what makes "what
+should I train" answerable, and no other field substitutes for it.
+
+Note that `check_health` in `common-healing.rb` works by *sending* the HEALTH
+command and parsing the reply, so wound detail is a poll rather than a passive
+read. Do not put it on the status tick.
+
 ## Implementation order
 
 1. ✅ TypeScript contract + mock bridge (this repo)
-2. ⬜ Lich Ruby script: WebSocket server + status push from Infomon / Room / XMLData
-3. ⬜ Intent handlers calling existing or new Lich scripts (dr-scripts patterns)
-4. ⬜ Real `go_healer` capability scoring
-5. ⬜ Tauri side: spawn/monitor Lich, detect ports, reconnect
+2. ✅ Lich Ruby script: WebSocket server + status push from DRStats / DRSkill / DRRoom
+3. ✅ Intent handlers for `stop_all`, `pause`, `resume`; everything else refused explicitly
+4. ⬜ Travel, healer and training intents that actually drive the game
+5. ⬜ Real `go_healer` capability scoring, with a preferred-heal-city override
+6. ⬜ Tauri side: spawn/monitor Lich, detect ports, reconnect
 
 ## Account tier (required on status)
 

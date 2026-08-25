@@ -66,16 +66,19 @@ export function TrainingPanel({ dense = false }: { dense?: boolean }) {
   const character = useAppStore((s) => s.character)
   const trainFocus = useAppStore((s) => s.trainFocus)
 
-  const skills = character?.skills ?? []
+  // Depend on the array from the store, not on a fresh `?? []` each render,
+  // which would give the memo a new reference every time and never cache.
+  const rawSkills = character?.skills
 
   const ranked = useMemo(
-    () => suggestTraining(skills, { preferred: trainFocus }),
-    [skills, trainFocus]
+    () => suggestTraining(rawSkills ?? [], { preferred: trainFocus }),
+    [rawSkills, trainFocus]
   )
   const target = useMemo(
-    () => nextTrainingTarget(skills, { preferred: trainFocus }),
-    [skills, trainFocus]
+    () => nextTrainingTarget(rawSkills ?? [], { preferred: trainFocus }),
+    [rawSkills, trainFocus]
   )
+  const skills = rawSkills ?? []
 
   if (!character) return null
 
