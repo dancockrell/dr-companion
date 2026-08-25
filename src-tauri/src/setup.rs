@@ -4,9 +4,15 @@
 //!
 //! 1. **Install the current version, and leave unrelated things alone.** If a
 //!    usable Ruby is already here we use it. If it is too old we offer the
-//!    current one, installed in its own folder without touching PATH. Not
+//!    current one, in its own folder rather than over the top of anything. Not
 //!    clobbering someone's other software during a game setup is ordinary good
 //!    manners; keeping a deprecated runtime alive is not a goal.
+//!
+//!    Note the limit of that promise. Ruby4Lich5 is the Lich project's
+//!    installer, not ours, and a real install showed it putting its own `bin`
+//!    at the front of the user PATH. We hand it over verified and it then does
+//!    what it does. Claiming otherwise, which this file did, is speaking for
+//!    software we do not control.
 //! 2. **Nothing downloads without a yes.** `plan_setup` only looks and reports.
 //!    Every byte that crosses the network comes from an explicit call the user
 //!    triggered, after seeing the URL, the size and the version.
@@ -837,10 +843,11 @@ pub async fn plan_setup() -> SetupPlan {
             options: vec![option],
             note: if ruby_presence == Presence::Outdated {
                 "Lich 5 needs Ruby 4.0 or newer and refuses to start on anything older, so \
-                 the Ruby on this machine will not run it. This installs the current one, \
-                 in its own folder, without changing your PATH — so if something else here \
-                 still depends on the old one, it carries on working. Prefer to upgrade \
-                 Ruby yourself? Do that and press Check again."
+                 the Ruby on this machine will not run it. This installs the current one \
+                 in its own folder, leaving your old one in place. It does put itself \
+                 first on your PATH, so `ruby` at a prompt will mean the new one \
+                 afterwards. Prefer to install Ruby 4 yourself? Do that and press Check \
+                 again."
                     .into()
             } else {
                 "Lich is written in Ruby, so Ruby comes along. This is the Lich project's \

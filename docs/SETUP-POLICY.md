@@ -15,11 +15,16 @@ comes along, and the job is to get a working one in place and get out of the
 way.
 
 If you already have a Ruby that Lich can use, the app uses it and installs
-nothing. If it is too old, the app offers the current release, installed in its
-own folder without changing your PATH. Anything else on your machine that
-depended on the old one keeps working, which is ordinary good manners rather
-than a feature: this app has no business deciding what else on your machine
-needs Ruby, and no business keeping a deprecated runtime alive either.
+nothing. If it is too old, the app offers the current release, in its own
+folder rather than over the top of anything. Your old Ruby is not deleted or
+overwritten, which is ordinary good manners rather than a feature: this app has
+no business deciding what else on your machine needs Ruby, and no business
+keeping a deprecated runtime alive either.
+
+One caveat, because it is someone else's installer and it does what it likes:
+Ruby4Lich5 adds its own `bin` to the front of your user PATH. So `ruby` at a
+prompt will mean the new one afterwards. If that matters to you, install Ruby 4
+yourself instead and the app will use it.
 
 Detection looks on PATH first and then on disk, because a Ruby installed while
 the app was running will not be on PATH yet. Being told to install Ruby you
@@ -162,6 +167,13 @@ download it, verify it, and hand it to you. It asks its own questions.
 - Change your PATH or any environment variable
 - Request administrator rights
 - Run an installer you did not separately approve
+
+That list covers **this app**, and the distinction matters on one point.
+Ruby4Lich5 is not us: it is the Lich project's own installer, we hand it to you
+after checking it, and it then does what it does. Observed on a real install,
+it puts `C:\Ruby4Lich5\<version>\bin` at the front of your user PATH. That is
+reasonable of it, it is not something we do or can prevent, and the app used to
+tell you it would not happen. It now says who is doing what.
 - Fetch from anywhere other than the Lich and Genie projects' own GitHub
   releases and repositories
 - Send anything anywhere. There is no telemetry, no analytics, no account.
