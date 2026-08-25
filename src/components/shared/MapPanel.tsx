@@ -13,7 +13,13 @@
  * player makes with the route in front of them.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { Map as MapIcon, RefreshCw, Layers } from 'lucide-react'
+import {
+  Map as MapIcon,
+  RefreshCw,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
 import type { IntentName } from '../../bridge/types'
@@ -22,11 +28,24 @@ import type { IntentName } from '../../bridge/types'
 const BOX = 14
 const PAD = 26
 
+/**
+ * Two heights, because this sits near the top of a 780px window.
+ *
+ * A map belongs with the location it describes — it is orientation, not a
+ * feature to scroll to — but at full size near the top it would push the
+ * vitals and the primary action off screen, which is a worse trade. So it
+ * opens small enough to see where you are and expands when you want to read
+ * it.
+ */
+const HEIGHT_COMPACT = 'max-h-40'
+const HEIGHT_TALL = 'max-h-80'
+
 export function MapPanel() {
   const zone = useAppStore((s) => s.mapZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const [level, setLevel] = useState<number | null>(null)
+  const [tall, setTall] = useState(false)
 
   // Ask once when the panel appears with a live bridge, and whenever the
   // character changes room enough for the zone to have changed.
@@ -106,29 +125,47 @@ export function MapPanel() {
       title={zone.name ?? `Zone ${zone.zone}`}
       onRefresh={() => bridge.requestIntent('map_zone' as IntentName)}
       right={
-        levels.length > 1 && (
-          <div className="flex items-center gap-1">
-            <Layers className="w-3 h-3 text-ink-faint" />
-            {levels.map((z) => (
-              <button
-                key={z}
-                type="button"
-                className={`text-[10px] rounded px-1.5 py-0.5 border ${
-                  (level ?? levels[0]) === z
-                    ? 'border-accent text-accent bg-accent/10'
-                    : 'border-border text-ink-faint'
-                }`}
-                onClick={() => setLevel(z)}
-              >
-                {z}
-              </button>
-            ))}
-          </div>
-        )
+        <div className="flex items-center gap-2">
+          {levels.length > 1 && (
+            <div className="flex items-center gap-1">
+              <Layers className="w-3 h-3 text-ink-faint" />
+              {levels.map((z) => (
+                <button
+                  key={z}
+                  type="button"
+                  className={`text-[10px] rounded px-1.5 py-0.5 border ${
+                    (level ?? levels[0]) === z
+                      ? 'border-accent text-accent bg-accent/10'
+                      : 'border-border text-ink-faint'
+                  }`}
+                  onClick={() => setLevel(z)}
+                >
+                  {z}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            className="p-1 rounded text-ink-faint hover:text-ink"
+            title={tall ? 'Shrink the map' : 'Give the map more room'}
+            onClick={() => setTall((v) => !v)}
+          >
+            {tall ? (
+              <ChevronUp className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </div>
       }
     >
       {view && (
-        <div className="overflow-auto rounded-lg border border-border bg-surface max-h-72">
+        <div
+          className={`overflow-auto rounded-lg border border-border bg-surface ${
+            tall ? HEIGHT_TALL : HEIGHT_COMPACT
+          }`}
+        >
           <svg
             viewBox={`0 0 ${view.w} ${view.h}`}
             className="w-full"

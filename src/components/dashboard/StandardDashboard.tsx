@@ -161,6 +161,12 @@ export function StandardDashboard() {
         </div>
       </header>
 
+      {/* Orientation belongs with the location it describes, not at the
+          bottom of a scroll. Opens compact; the chevron gives it room. */}
+      <div className="px-4 pb-3 shrink-0">
+        <MapPanel />
+      </div>
+
       <section className="px-4 py-4 space-y-3 shrink-0">
         <Button
           size="xl"
@@ -278,8 +284,6 @@ export function StandardDashboard() {
           </Button>
         </div>
       </section>
-
-      <MapPanel />
 
       <ScriptLauncher />
     </div>

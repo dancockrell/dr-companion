@@ -136,6 +136,11 @@ export function PowerDashboard() {
         </div>
       </header>
 
+      {/* Orientation belongs with the location it describes. */}
+      <div className="px-4 pb-3 shrink-0">
+        <MapPanel />
+      </div>
+
       <section className="px-4 py-3 space-y-2 shrink-0">
         <div className="grid grid-cols-2 gap-2">
           <Button
@@ -323,8 +328,6 @@ export function PowerDashboard() {
         <InventoryPanel dense />
       </section>
       <RiskBar />
-
-      <MapPanel />
 
       <TrainingPanel dense />
 

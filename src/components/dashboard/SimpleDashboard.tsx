@@ -144,6 +144,11 @@ export function SimpleDashboard() {
         </div>
       </header>
 
+      {/* Orientation belongs with the location it describes. */}
+      <div className="px-4 pb-3 shrink-0">
+        <MapPanel />
+      </div>
+
       {/* Primary actions */}
       <section className="px-4 py-4 space-y-3 shrink-0">
         <Button
@@ -259,10 +264,6 @@ export function SimpleDashboard() {
       <RiskBar />
 
       <TrainingPanel />
-
-      <div className="px-4 pb-1 shrink-0">
-        <MapPanel />
-      </div>
 
       <PresetBar />
 
