@@ -939,6 +939,7 @@ module Companion
       when 'map_nearest' then map_nearest(args, server)
       when 'map_path' then map_path(args, server)
       when 'map_zone' then map_zone(args, server)
+      when 'install_mapdb' then install_mapdb(server)
 
       else
         [false, "'#{intent}' is not implemented in bridge v#{BRIDGE_VERSION} yet. " \
@@ -1001,6 +1002,42 @@ module Companion
       # Says "not moving" out loud. A route appearing on screen looks like the
       # start of a journey, and this one is not.
       [true, "#{result['steps']} rooms from #{result['from']} to #{result['to']}. Not moving."]
+    end
+
+    # Fetch Lich's map database by running the script that already does it.
+    #
+    # Worth being explicit about why this is not a download in our Rust side,
+    # where every other dependency is handled. The map database does not come
+    # from GitHub. `download-prime-map.lic` opens a TLS connection to
+    # repo.lichproject.org on port 7157, verifies it against a CA certificate
+    # embedded in the script, speaks the Lich project's own protocol, and
+    # gunzips what comes back. Reimplementing that would be fragile — we would
+    # be tracking somebody else's wire format and shipping a copy of their
+    # pinned certificate — and it would be presumptuous, because their script
+    # is right there and is maintained.
+    #
+    # So this is the §7 rule in its purest form: a script already does it, so
+    # start it and report what happened.
+    def install_mapdb(server)
+      script = %w[download-prime-map repository].find do |name|
+        State.safe(false) { Script.exists?(name) }
+      end
+
+      unless script
+        return [false, 'Neither download-prime-map nor repository is installed. ' \
+                       'Install the script suite first.']
+      end
+
+      args = script == 'repository' ? ['download-mapdb'] : []
+      server.log("Running #{script} to fetch the map database. This takes a moment.")
+
+      started = State.safe(false) { Script.start(script, *args) }
+      return [false, "could not start #{script}"] unless started
+
+      # Deliberately not waiting for it. It is a network fetch of a large file
+      # and blocking the bridge thread on it would freeze every other panel.
+      # The map panel notices the database the next time it asks for a zone.
+      [true, "#{script} started. The map will fill in once it finishes."]
     end
 
     def map_zone(args, server)

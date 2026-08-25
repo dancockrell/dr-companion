@@ -47,6 +47,23 @@ pub const GENIE4_REPO: &str = "GenieClient/Genie4";
 pub const GENIE5_REPO: &str = "GenieClient/Genie5";
 pub const GENIE_PLUGINS_REPO: &str = "GenieClient/Plugins";
 pub const GENIE_MAPS_REPO: &str = "GenieClient/Maps";
+/// The DragonRealms script suite: 222 scripts and about 2.75 MB of them.
+///
+/// Not a dependency so much as the product surface. Almost everything a player
+/// wants already exists here, written by people who play more than we do, so
+/// the app's job is to make them installable and startable rather than to
+/// reimplement any of it. See docs/DESIGN.md §2.1.
+pub const DR_SCRIPTS_REPO: &str = "elanthia-online/dr-scripts";
+
+/// Scripts worth naming when they are missing, because a great deal of the
+/// suite assumes them. Everything else is fetched with the rest.
+const DR_SCRIPTS_CORE: &[&str] = &[
+    "combat-trainer.lic",
+    "crossing-training.lic",
+    "coordinator.lic",
+    "validate.lic",
+    "inventory-manager.lic",
+];
 
 // ---------------------------------------------------------------- detection --
 
@@ -1054,6 +1071,124 @@ pub async fn plan_setup() -> SetupPlan {
         required: true,
         remedy: Remedy::None,
     });
+
+    // ---- The dr-scripts suite ----
+    //
+    // 222 scripts. This is the reason to install Lich at all, and until now
+    // nothing checked whether the player had any of it. Almost every feature
+    // anyone wants is already in here.
+    if let Some(lich_dir) = lich_found.as_ref().and_then(|p| p.parent()) {
+        let scripts_dir = lich_dir.join("scripts");
+        let have: Vec<String> = std::fs::read_dir(&scripts_dir)
+            .map(|rd| {
+                rd.filter_map(|e| e.ok())
+                    .map(|e| e.file_name().to_string_lossy().to_lowercase())
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let missing_core: Vec<&str> = DR_SCRIPTS_CORE
+            .iter()
+            .copied()
+            .filter(|s| !have.iter().any(|h| h == s))
+            .collect();
+
+        // Only ask GitHub for the listing when we might act on it. Enumerating
+        // 222 files on every check would be rude for no benefit.
+        let files = if missing_core.is_empty() {
+            Vec::new()
+        } else {
+            list_repo_files(DR_SCRIPTS_REPO, "", &[".lic"]).await
+        };
+        let bytes: u64 = files.iter().map(|f| f.bytes).sum();
+
+        components.push(ComponentPlan {
+            id: "dr_scripts".into(),
+            label: "DragonRealms script suite".into(),
+            presence: if missing_core.is_empty() {
+                Presence::Present
+            } else {
+                Presence::Missing
+            },
+            detail: if missing_core.is_empty() {
+                format!("{} scripts in Lich's scripts folder", have.len())
+            } else {
+                format!(
+                    "Missing {}. This is the community's script suite — most of what \
+                     people use Lich for lives here.",
+                    missing_core.join(", ")
+                )
+            },
+            path: Some(pretty_path(&scripts_dir)),
+            required: false,
+            remedy: if files.is_empty() {
+                Remedy::None
+            } else {
+                Remedy::Bundle {
+                    label: format!("{} scripts", files.len()),
+                    files,
+                    bytes,
+                    target: scripts_dir.to_string_lossy().into_owned(),
+                    note: "Maintained by elanthia-online. Each file is checked \
+                           against the git blob hash GitHub publishes before \
+                           anything is written, and one mismatch aborts the whole \
+                           install."
+                        .into(),
+                }
+            },
+        });
+
+        // ---- The map database ----
+        //
+        // Not something we can fetch. It comes from repo.lichproject.org over
+        // TLS on port 7157, with a pinned certificate and their own protocol,
+        // and reimplementing that would be fragile and presumptuous. Their
+        // script already does it correctly.
+        //
+        // So: detect it here, and let the bridge run their script. Which is the
+        // rule from docs/DESIGN.md §7 — if a script already does it, start it.
+        let data_dir = lich_dir.join("data");
+        let map_db = ["DR", "DRF", "DRX", "DRT"].iter().find_map(|game| {
+            let d = data_dir.join(game);
+            std::fs::read_dir(&d).ok().and_then(|rd| {
+                rd.filter_map(|e| e.ok())
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .find(|n| n.starts_with("map-") && n.ends_with(".json"))
+                    .map(|n| d.join(n))
+            })
+        });
+
+        components.push(ComponentPlan {
+            id: "mapdb".into(),
+            label: "Map database".into(),
+            presence: if map_db.is_some() {
+                Presence::Present
+            } else {
+                Presence::Missing
+            },
+            detail: match &map_db {
+                Some(_) => "Lich has room data, so the map and travel work".into(),
+                None => "Not downloaded. Without it Lich cannot route, so the map \
+                         has nothing to draw and #goto does not work."
+                    .into(),
+            },
+            path: map_db.as_ref().map(|p| pretty_path(p)),
+            required: false,
+            remedy: if map_db.is_some() {
+                Remedy::None
+            } else {
+                Remedy::Manual {
+                    instructions:
+                        "This one comes from the Lich project's own server, not from \
+                         GitHub, so their script fetches it. Connect a character and \
+                         run ;repository download-mapdb — the panel offers a button \
+                         for it once the bridge is up."
+                            .into(),
+                    link: "https://github.com/elanthia-online/lich-5/wiki".into(),
+                }
+            },
+        });
+    }
 
     // ---- Frontend ----
     // Genie is the window you actually read the game in. It is optional in the

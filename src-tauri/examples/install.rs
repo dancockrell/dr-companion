@@ -34,6 +34,7 @@ fn main() {
             "ruby4lich5" => download_from_plan("ruby", "ruby4lich5").await,
             "plugins" => bundle("plugins").await,
             "maps" => bundle("maps").await,
+            "dr_scripts" => bundle("dr_scripts").await,
             "run" => { run_downloaded_installer(); check_guards() }
             "guards" => check_guards(),
             "bridge" => install_bridge(),

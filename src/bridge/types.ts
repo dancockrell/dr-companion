@@ -137,6 +137,7 @@ export type IntentName =
   | 'map_nearest'
   | 'map_path'
   | 'map_zone'
+  | 'install_mapdb'
 
 export interface BridgeConnectionState {
   connected: boolean
