@@ -140,24 +140,76 @@ empty and editable rather than guessed at.
 
 ---
 
-## 2.35 The objective function: keep every pool absorbing
+## 2.35 The objective function, and what the app is actually for
 
-This is the point of the whole product and it was missing from the last draft.
+DragonRealms rewards *absorption*, not time. Every skill has a mindstate pool,
+0–34. Experience lands there and drains into ranks. A pool at 0 is idle
+capacity. A pool at 34 is mind locked and the effort is being discarded. So
+growth over weeks is the area under the curve of how many pools are absorbing at
+once, not the intensity of any one activity.
 
-DragonRealms does not reward time spent, it rewards *absorption*. Every skill
-has a mindstate pool, 0–34. Experience lands in the pool and drains into ranks
-over time. A pool at 0 is idle capacity: you are gaining nothing there. A pool
-at 34 is mind locked: further work on that skill is thrown away.
+**Scripting is not a shortcut around this, it is the only way to play at the
+modern scale**, and building good rotations is itself part of the game and part
+of the fun. That fact sets the app's posture: it is an instrument for people
+whose hobby is tuning their scripts, not a replacement for scripting.
 
-So the actual goal is not "run a script well". It is:
+### Correcting my own framing
 
-> **Do as many different activities per hour as possible, so as many pools as
-> possible are holding experience at once.** Total growth over weeks is the area
-> under that curve, not the intensity of any one activity.
+A first draft of this section said the job was to find dark pools and light
+them. That is wrong, and the correction matters:
 
-Which means the interesting question a player asks, constantly, is *"what
-should I be doing right now"* — and the answer depends on the whole field of 30+
-pools, not on one skill.
+> A moderately good script already keeps **40-plus skills in mind at once**,
+> once it has filled the basic pools over the first hour.
+
+If forty pools are already lit, "which pool is empty" is not the interesting
+question — a competent rotation has already solved it. The interesting questions
+are the ones nobody can currently see an answer to:
+
+- Is this rotation actually earning more than the one I ran last week?
+- Which skills is it *starving* — lit, but barely moving?
+- Which are locking, so that portion of the hour is wasted?
+- Did that change I made help, or did it just feel better?
+
+That is a measurement problem, and it is unowned. Nothing in the 222-script
+suite shows the field or reports throughput. `expreset.lic` resets the baseline
+and that is the whole of it.
+
+### Measure, do not model
+
+Drain rates differ by guild. Different guilds need different skills. One player
+has a legendary weapon and another does not. Any table of expected rates we
+shipped would be wrong for most characters and unmaintainable for the rest.
+
+We do not have to model it, because Lich already measures it:
+
+| What | Call |
+|---|---|
+| Current pool, 0–34 | `DRSkill.getxp(name)` |
+| Ranks, and buffed ranks | `DRSkill.getrank` / `getmodrank` |
+| Progress within the rank | `DRSkill.getpercent(name)` |
+| **Ranks gained this session** | `DRSkill.gained_exp(name)` |
+| Which skills just moved | `DRSkill.gained_skills` |
+| Session baseline | `DRSkill.start_time` |
+| Rested experience, and whether it is live | `rested_exp_usable`, `rested_active?` |
+
+`gained_exp` against `start_time` is **measured ranks per hour, per skill, for
+this character, with this guild and this gear.** No theory required, and it is
+automatically right about the legendary weapon.
+
+Rested experience deserves its own line: it is a multiplier with a finite pool,
+and spending it on the wrong rotation is a real and invisible loss.
+
+### So the app's contribution is instrumentation, then tuning
+
+1. **The board** — every pool, and for each one whether it is locked, starving
+   or healthy. The picture the schedulers already decide over and nobody can
+   see.
+2. **Throughput** — measured ranks/hour per skill, per rotation, per session.
+3. **Comparison** — this rotation against that one, on the same character.
+   This is the feature a script-builder would install the app for.
+4. **Suggestion, last and optional** — with its arithmetic visible, never an
+   automatic decision. The player knows about the legendary weapon, the guild,
+   and what they feel like doing tonight.
 
 ### The pieces already exist, unassembled
 
@@ -184,23 +236,9 @@ invisible: the player cannot see the field it is deciding over, cannot see which
 pools are locked and wasting effort, and cannot see which are empty and idle.
 The scheduling lives in YAML predicates nobody can read at a glance.
 
-### So the app's core contribution is a mindstate board
-
-Not another trainer. **The picture the schedulers are already deciding over.**
-
-- Every skill, its pool, and which way it is moving.
-- **Locked** pools called out — that is effort being discarded right now.
-- **Empty** pools called out — that is capacity earning nothing.
-- Which activity, meaning which script, feeds which skills.
-- Therefore: what to run next to light up the most dark pools.
-
-That last line is the recommendation, and it should be a *suggestion with its
-reasoning visible*, not an automatic decision. The player knows what gear and
-spells they have and what they feel like doing; the app knows the arithmetic.
-
 It also gives the workflow editor (§2.2) something worth editing. A coordinator
-task list stops being an abstract YAML array and becomes "this rotation keeps
-these eleven pools full, and leaves these four dark."
+task list stops being an abstract YAML array and becomes a rotation you can
+measure, change, and measure again.
 
 ### Mapping activity to skills
 
@@ -402,9 +440,12 @@ Each step is one bridge topic plus one panel, shippable alone.
 2. **Dependency page extended to scripts and the map database.**
    *Done when:* a fresh machine reaches a working dr-scripts install without
    the player typing a `;` command.
-2a. **Mindstate board.** Every pool, locked and empty called out, and which
-   script feeds which skills. This is the reason to install the app.
-   *Done when:* a player can see at a glance where growth is being wasted.
+2a. **Mindstate board and throughput.** Every pool with locked and starving
+   called out, plus measured ranks/hour per skill from gained_exp against
+   start_time. Rotation-to-rotation comparison on the same character. This is
+   the reason a script-builder installs the app.
+   *Done when:* a player can change their rotation and see whether it earned
+   more, rather than whether it felt better.
 3. **Room panel.** *Done when:* what is in the room is visible without
    scrolling and matches `look`.
 4. **Body panel.** Paperdoll from `injuries`.
