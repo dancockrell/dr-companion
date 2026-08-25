@@ -20,6 +20,7 @@ import { VitalBar } from '../shared/VitalBar'
 import { Badge } from '../shared/Badge'
 import { PresetBar } from '../shared/PresetBar'
 import { TrainingPanel } from '../shared/TrainingPanel'
+import { RiskBar } from '../shared/RiskBar'
 import { InventoryPanel } from '../shared/InventoryPanel'
 
 export function StandardDashboard() {
@@ -252,6 +253,8 @@ export function StandardDashboard() {
           </Button>
         </div>
       </section>
+      <RiskBar />
+
       <TrainingPanel />
 
       <PresetBar />

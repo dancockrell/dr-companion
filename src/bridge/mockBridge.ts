@@ -258,7 +258,8 @@ for (const p of Object.values(presets)) {
   p.character.skills = demoSkills(level)
   p.character.favors = Math.max(0, Math.round(level / 8))
   p.character.circle = Math.max(1, Math.round(level / 3))
-  p.character.roomPlayers = []
+  p.character.roomPlayers = level > 80 ? ['Someguy'] : []
+  p.character.encumbrance = level > 100 ? 'Somewhat Burdened' : 'Light'
 }
 
 export const DEMO_PRESET_LIST = Object.values(presets).map((p) => ({

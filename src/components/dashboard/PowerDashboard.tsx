@@ -17,6 +17,7 @@ import { VitalBar } from '../shared/VitalBar'
 import { Badge } from '../shared/Badge'
 import { PresetBar } from '../shared/PresetBar'
 import { TrainingPanel } from '../shared/TrainingPanel'
+import { RiskBar } from '../shared/RiskBar'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { scoreHealers } from '../../data/healers'
 import { rankHuntingGrounds } from '../../data/hunting'
@@ -322,6 +323,8 @@ export function PowerDashboard() {
       <section className="px-4 pb-2 shrink-0">
         <InventoryPanel dense />
       </section>
+      <RiskBar />
+
       <TrainingPanel dense />
 
       <PresetBar />

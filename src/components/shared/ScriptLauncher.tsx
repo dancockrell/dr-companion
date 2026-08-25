@@ -2,9 +2,8 @@
  * Activity launcher — Companion-owned intents only.
  */
 import { ACTIVITIES, activityToIntent } from '../../data/activities'
-import { destinationsForTier } from '../../data/travelDestinations'
+import { listReachable } from '../../data/travelPath'
 import { describeEntryPlan, DEFAULT_HOUSE_ENTRY } from '../../data/houseEntry'
-import { capabilitiesForCharacter } from '../../lib/accountCapabilities'
 import { useAppStore } from '../../store/useAppStore'
 
 export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
@@ -18,10 +17,11 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
       )
     : ACTIVITIES.filter((a) => a.id !== 'stop')
 
-  const caps = character ? capabilitiesForCharacter(character) : null
-  const premium =
-    character?.accountTier === 'premium' || character?.accountTier === 'platinum'
-  const dests = destinationsForTier(caps?.canTravelOutsideZoluren ?? false, !!premium)
+  // Passport-aware, and instance-scoped: a Fallen character is not offered
+  // Prime geography at all.
+  const dests = character
+    ? listReachable(character.accountTier, character.instance)
+    : []
 
   return (
     <section className="px-4 pb-3">
@@ -59,18 +59,28 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
               </button>
             </div>
             {a.id === 'travel' && !compact && (
-              <div className="flex flex-wrap gap-1">
-                {dests.slice(0, 12).map((d) => (
-                  <button
-                    key={d.id}
-                    type="button"
-                    className="text-[10px] rounded-md border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
-                    onClick={() => requestIntent(`travel:${d.id}`)}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
+              dests.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {dests.slice(0, 12).map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      className="text-[10px] rounded-md border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
+                      onClick={() => requestIntent(`travel:${d.id}`)}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                // An empty list needs a reason. The two ways to get here are
+                // very different problems.
+                <p className="text-[10px] text-warn leading-snug">
+                  {character?.instance === 'Fallen'
+                    ? 'No destinations: this is a Fallen character and only Prime routes are mapped so far. Prime directions do not work on The Fallen, so none are offered.'
+                    : 'No destinations reachable. Free accounts need a province passport, from the Citizenship Office in Crossing Town Hall.'}
+                </p>
+              )
             )}
             {!compact && (
               <p className="text-[10px] text-ink-faint leading-snug">{a.ourPlan}</p>

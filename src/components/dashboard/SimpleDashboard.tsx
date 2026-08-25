@@ -16,6 +16,7 @@ import { VitalBar } from '../shared/VitalBar'
 import { Badge } from '../shared/Badge'
 import { PresetBar } from '../shared/PresetBar'
 import { TrainingPanel } from '../shared/TrainingPanel'
+import { RiskBar } from '../shared/RiskBar'
 
 export function SimpleDashboard() {
   const {
@@ -255,6 +256,8 @@ export function SimpleDashboard() {
       )}
 
       {/* Demo situation controls (Phase 0 — shows adaptive primary action) */}
+      <RiskBar />
+
       <TrainingPanel />
 
       <PresetBar />
