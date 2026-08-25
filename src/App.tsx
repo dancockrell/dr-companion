@@ -5,6 +5,8 @@ import { SafetyFooter } from './components/layout/SafetyFooter'
 import { SituationBanner } from './components/layout/SituationBanner'
 import { Console } from './components/layout/Console'
 import { MapWindow } from './components/MapWindow'
+import { PanelWindow } from './components/PanelWindow'
+import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 
 /**
@@ -15,19 +17,26 @@ import { useAppStore } from './store/useAppStore'
  * the bundled app is served from a file, where a path would 404 while working
  * fine under the dev server.
  */
-function view(): 'map' | 'app' {
-  if (typeof window === 'undefined') return 'app'
-  return new URLSearchParams(window.location.search).get('view') === 'map'
-    ? 'map'
-    : 'app'
+function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app' } {
+  if (typeof window === 'undefined') return { kind: 'app' }
+  const q = new URLSearchParams(window.location.search)
+  if (q.get('view') === 'map') return { kind: 'map' }
+  if (q.get('view') === 'panel') {
+    const id = q.get('id')
+    if (id) return { kind: 'panel', id: id as PanelId }
+  }
+  return { kind: 'app' }
 }
 
 export default function App() {
   const setupComplete = useAppStore((s) => s.setupComplete)
 
-  // The popped-out map is the whole window: no header, no console, no setup
-  // wizard. It is one thing, sized to be watched.
-  if (view() === 'map') return <MapWindow />
+  // A popped-out panel is the whole window: no header, no console, no setup
+  // wizard. The window *is* the panel, and chrome here would be space charged
+  // twice.
+  const v = view()
+  if (v.kind === 'map') return <MapWindow />
+  if (v.kind === 'panel') return <PanelWindow id={v.id} />
 
   // No max-width. The window is only as wide as the player has decided we are
   // worth against the game window next to it, and capping it at 560px would

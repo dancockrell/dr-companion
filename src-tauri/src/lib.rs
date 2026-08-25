@@ -19,35 +19,55 @@ fn app_data_path() -> String {
     setup::app_data_dir().to_string_lossy().into_owned()
 }
 
-/// The map, in a window of its own.
+/// Any panel, in a window of its own.
 ///
-/// The panel is only as wide as the player has given us, which is usually right
-/// for vitals and buttons and wrong for a map you are meant to *watch*.
-/// Players know where the hazards are —
-/// the rooms that break scripts — and watching for them means keeping the map
-/// visible while doing something else. That wants a second window, not a
-/// taller panel.
+/// This was three map-specific commands until it became clear the map is not a
+/// special case, just the first one anybody wanted. Two people will not agree
+/// on what belongs on the main window: somebody watching for hazards wants the
+/// map parked on a second monitor, somebody crafting wants inventory there, and
+/// somebody running four accounts wants the script watchdog and nothing else.
 ///
+/// Window labels are `panel-<id>`, which keeps them distinct per panel and lets
+/// a lookup answer "is this one already out" without any bookkeeping on our
+/// side.
+fn panel_label(id: &str) -> String {
+    format!("panel-{id}")
+}
+
+/// Reject anything that is not a plain panel id before it reaches a URL.
+///
+/// The id arrives from the web view and is interpolated into a query string, so
+/// it does not get to contain punctuation. Nothing legitimate needs to.
+fn valid_panel_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 32
+        && id.chars().all(|c| c.is_ascii_lowercase() || c == '_')
+}
+
 /// Focused rather than duplicated when it already exists, so pressing the
-/// button twice does not leave two maps open.
+/// button twice does not leave two of the same window open.
 #[tauri::command]
-fn open_map_window(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(existing) = app.get_webview_window("map") {
+fn open_panel_window(app: tauri::AppHandle, id: String, title: String) -> Result<(), String> {
+    if !valid_panel_id(&id) {
+        return Err(format!("not a panel id: {id}"));
+    }
+
+    if let Some(existing) = app.get_webview_window(&panel_label(&id)) {
         let _ = existing.unminimize();
         let _ = existing.show();
         return existing.set_focus().map_err(|e| e.to_string());
     }
 
-    // `?view=map` rather than a route path, so it behaves the same under the
-    // dev server and from the bundled index.html, where a path would 404.
+    // A query parameter rather than a route path, so it behaves the same under
+    // the dev server and from the bundled index.html, where a path would 404.
     tauri::WebviewWindowBuilder::new(
         &app,
-        "map",
-        tauri::WebviewUrl::App("index.html?view=map".into()),
+        panel_label(&id),
+        tauri::WebviewUrl::App(format!("index.html?view=panel&id={id}").into()),
     )
-    .title("DR Companion — Map")
-    .inner_size(900.0, 760.0)
-    .min_inner_size(420.0, 360.0)
+    .title(format!("DR Companion — {title}"))
+    .inner_size(760.0, 640.0)
+    .min_inner_size(320.0, 240.0)
     .resizable(true)
     .build()
     .map_err(|e| e.to_string())?;
@@ -56,23 +76,26 @@ fn open_map_window(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 /// Put it back. Closing the window by hand is the same decision, so the panel
-/// shows the map inline again either way.
+/// returns to the stack either way.
 #[tauri::command]
-fn close_map_window(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(w) = app.get_webview_window("map") {
+fn close_panel_window(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    if let Some(w) = app.get_webview_window(&panel_label(&id)) {
         w.close().map_err(|e| e.to_string())?;
     }
     Ok(())
 }
 
-/// Whether the map is currently popped out.
+/// Which panels are currently in windows of their own.
 ///
-/// Asked rather than remembered: the panel and the map window are separate
-/// webviews with separate state, so the panel cannot know from its own memory
-/// whether a window it opened is still there or the user closed it by hand.
+/// Asked rather than remembered: each window is a separate webview with its own
+/// state, so the dashboard cannot know from its own memory whether a window it
+/// opened is still there or the player closed it by hand.
 #[tauri::command]
-fn map_window_open(app: tauri::AppHandle) -> bool {
-    app.get_webview_window("map").is_some()
+fn panel_windows(app: tauri::AppHandle) -> Vec<String> {
+    app.webview_windows()
+        .keys()
+        .filter_map(|label| label.strip_prefix("panel-").map(str::to_string))
+        .collect()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -90,9 +113,9 @@ pub fn run() {
             app_data_path,
             bridge_default_url,
             set_always_on_top,
-            open_map_window,
-            close_map_window,
-            map_window_open
+            open_panel_window,
+            close_panel_window,
+            panel_windows
         ])
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {

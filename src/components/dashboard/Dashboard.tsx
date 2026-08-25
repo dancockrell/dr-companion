@@ -16,68 +16,15 @@
  * No width is assumed anywhere. The window is only as wide as the player has
  * decided we are worth against the game window next to it. See §2.115.
  */
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import {
-  Map as MapIcon,
-  Zap,
-  Brain,
-  Package,
-  ShieldAlert,
-  ListChecks,
-} from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { useLayout } from '../../lib/useLayout'
 import { MAP_PLANE_AT, clampSplit, type PanelId } from '../../lib/layout'
+import { isTauri, invokeTauri } from '../../lib/tauri'
 import { Panel } from '../shared/Panel'
 import { CharacterHeader } from './CharacterHeader'
-import { ActionsPanel } from '../shared/ActionsPanel'
 import { MapPanel } from '../shared/MapPanel'
-import { TrainingPanel } from '../shared/TrainingPanel'
-import { InventoryPanel } from '../shared/InventoryPanel'
-import { RiskBar } from '../shared/RiskBar'
-import { ScriptLauncher } from '../shared/ScriptLauncher'
-
-interface PanelDef {
-  title: string
-  icon: ReactNode
-  render: (dense: boolean) => ReactNode
-}
-
-const PANELS: Record<PanelId, PanelDef> = {
-  actions: {
-    title: 'Actions',
-    icon: <Zap className="w-3.5 h-3.5" />,
-    render: (dense) => <ActionsPanel dense={dense} />,
-  },
-  map: {
-    title: 'Map',
-    icon: <MapIcon className="w-3.5 h-3.5" />,
-    render: () => <MapPanel />,
-  },
-  training: {
-    title: 'Training',
-    icon: <Brain className="w-3.5 h-3.5" />,
-    render: (dense) => <TrainingPanel dense={dense} />,
-  },
-  inventory: {
-    title: 'Inventory',
-    icon: <Package className="w-3.5 h-3.5" />,
-    render: () => <InventoryPanel />,
-  },
-  risk: {
-    title: 'Risk',
-    icon: <ShieldAlert className="w-3.5 h-3.5" />,
-    render: () => <RiskBar />,
-  },
-  launcher: {
-    title: 'Activities',
-    icon: <ListChecks className="w-3.5 h-3.5" />,
-    render: (dense) => <ScriptLauncher compact={dense} />,
-  },
-  // In the fixed header, not a movable panel: identity and health are the two
-  // things that must never be closed by accident.
-  vitals: { title: 'Vitals', icon: <Zap className="w-3.5 h-3.5" />, render: () => null },
-}
+import { PANEL_CONTENT, PANEL_ICONS, PANEL_TITLES } from './panels'
 
 export function Dashboard() {
   const character = useAppStore((s) => s.character)
@@ -89,6 +36,43 @@ export function Dashboard() {
   // the one being dragged.
   const [held, setHeld] = useState<PanelId | null>(null)
   const [drop, setDrop] = useState<{ id: PanelId; before: boolean } | null>(null)
+
+  // Which panels are in windows of their own. Asked rather than remembered:
+  // each is a separate webview, and the player can close one by hand without
+  // this window hearing about it.
+  const [out, setOut] = useState<PanelId[]>([])
+  const refreshOut = useCallback(() => {
+    if (!isTauri()) return
+    void invokeTauri('panel_windows')
+      .then((ids) => setOut(Array.isArray(ids) ? (ids as PanelId[]) : []))
+      .catch(() => setOut([]))
+  }, [])
+
+  useEffect(() => {
+    refreshOut()
+    // Cheap poll rather than an event, because the interesting change happens
+    // in another window and closing one by hand emits nothing here.
+    const t = setInterval(refreshOut, 2000)
+    return () => clearInterval(t)
+  }, [refreshOut])
+
+  const popOut = useCallback(
+    (id: PanelId) => {
+      void invokeTauri('open_panel_window', { id, title: PANEL_TITLES[id] })
+        .then(refreshOut)
+        .catch(refreshOut)
+    },
+    [refreshOut]
+  )
+
+  const popBack = useCallback(
+    (id: PanelId) => {
+      void invokeTauri('close_panel_window', { id })
+        .then(refreshOut)
+        .catch(refreshOut)
+    },
+    [refreshOut]
+  )
 
   // Measured, not read off the viewport. This app can be docked beside other
   // things, and a media query would describe the screen rather than the space
@@ -151,21 +135,44 @@ export function Dashboard() {
   const planed = layout.mapPlane && width >= MAP_PLANE_AT
 
   const stack = layout.order.filter(
-    (id) => id !== 'vitals' && !(planed && id === 'map')
+    (id) =>
+      id !== 'vitals' &&
+      !(planed && id === 'map') &&
+      // A panel in its own window is not also in the stack. Showing it twice
+      // would mean two live copies of the same thing.
+      !out.includes(id)
   )
 
   const panels = (
     <div className="flex flex-col gap-2 p-2">
+      {out.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 px-0.5">
+          <span className="text-xs text-ink-faint">In their own windows:</span>
+          {out.map((id) => (
+            <button
+              key={id}
+              type="button"
+              className="text-xs rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink"
+              title="Bring it back into this window"
+              onClick={() => popBack(id)}
+            >
+              {PANEL_TITLES[id] ?? id}
+            </button>
+          ))}
+        </div>
+      )}
+
       {stack.map((id) => {
-        const def = PANELS[id]
-        if (!def) return null
+        const render = PANEL_CONTENT[id]
+        if (!render) return null
         const state = layout.panels[id] ?? {}
         const isTarget = drop?.id === id
         return (
           <Panel
             key={id}
-            title={def.title}
-            icon={def.icon}
+            title={PANEL_TITLES[id]}
+            icon={PANEL_ICONS[id]}
+            onPopOut={isTauri() ? () => popOut(id) : undefined}
             closed={state.closed}
             height={state.height}
             dragging={held === id}
@@ -190,7 +197,7 @@ export function Dashboard() {
             onToggle={() => update(id, { closed: !state.closed })}
             onResize={(h) => update(id, { height: h || undefined })}
           >
-            {def.render(dense)}
+            {render(dense, false)}
           </Panel>
         )
       })}

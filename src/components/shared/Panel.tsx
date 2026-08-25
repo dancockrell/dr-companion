@@ -10,7 +10,12 @@
  * No menus: every control is visible and does one thing.
  */
 import { useCallback, useEffect, useRef, type ReactNode } from 'react'
-import { ChevronUp, ChevronDown, GripVertical } from 'lucide-react'
+import {
+  ChevronUp,
+  ChevronDown,
+  GripVertical,
+  ExternalLink,
+} from 'lucide-react'
 
 export function Panel({
   title,
@@ -28,11 +33,14 @@ export function Panel({
   onDropPanel,
   onToggle,
   onResize,
+  onPopOut,
 }: {
   title: string
   icon?: ReactNode
   /** Panel-specific controls, shown before the grip. */
   actions?: ReactNode
+  /** Absent in the browser, where there are no windows to pop into. */
+  onPopOut?: () => void
   children: ReactNode
   closed?: boolean
   height?: number
@@ -129,6 +137,16 @@ export function Panel({
 
         <div className="flex items-center gap-1 shrink-0">
           {actions}
+          {onPopOut && (
+            <button
+              type="button"
+              className="p-0.5 rounded text-ink-faint hover:text-ink"
+              title="Open in its own window"
+              onClick={onPopOut}
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          )}
           {/* Only the grip is draggable, not the whole panel, so selecting text
               or pressing a button inside does not start a drag. */}
           <span
