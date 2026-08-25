@@ -15,8 +15,9 @@
     "test:scrub": "node tools/scrub-test.mjs",
     "test:bridge": "ruby lich-scripts/test/cmd_test.rb lich-scripts/companion_bridge.lic",
     "test:runaway": "ruby lich-scripts/test/runaway_test.rb lich-scripts/companion_bridge.lic",
-    "test": "npm run test:scrub && npm run test:frontend && npm run test:bridge && npm run test:runaway",
-    "test:frontend": "node tools/frontend-test.mjs"
+    "test": "npm run test:scrub && npm run test:frontend && npm run test:bridge && npm run test:runaway && npm run test:yaml",
+    "test:frontend": "node tools/frontend-test.mjs",
+    "test:yaml": "ruby lich-scripts/test/yaml_test.rb lich-scripts/companion_bridge.lic"
   },
   "dependencies": {
     "clsx": "^2.1.1",

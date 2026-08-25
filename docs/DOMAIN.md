@@ -1073,3 +1073,89 @@ source disagree, and nobody notices for a while.
 People run development branches from forks. Our version reporting should not
 assume a release number, and `;lich5-update --status` is worth suggesting in a
 bug report rather than asking someone to remember.
+
+---
+
+## 25. The YAML wall, which is the thing worth removing
+
+Reading the documentation rather than the chat logs, as Dan pointed out, puts
+the central problem in sharper focus than any bug report did.
+
+To use `dr-scripts`, the main free Lich script suite, their own
+"Getting Help With Lich" page asks a newcomer to:
+
+- read the YAML guides: Intro, Part 1, Part 2, Part 3, and Part 4 on anchors
+- install **Visual Studio Code with the Red Hat YAML Plugin**
+- hand-write a character setup file
+- override the right keys without editing `base.yaml`
+- run `;validate` and read its output
+- "Validate your YAML through an online parser tool"
+
+The sizes are the part that lands:
+
+| File | Size | Who writes it |
+|---|---|---|
+| `base.yaml` | **94 KB** | the project, and you must not edit it |
+| `SampleBard-setup.yaml` | **21 KB** | you |
+| `SampleBarbarian-setup.yaml` | **16 KB** | you |
+
+And the syntax is not the easy half of YAML:
+
+```yaml
+safe_room: &my_safe_room 1234
+crossing_training_sorcery_room: *my_safe_room
+outfitting_room: *my_safe_room
+```
+
+Anchors, aliases and merge keys (`<<: *`), with the documented caveat that
+anchors do not cross files. Files load in a fixed order — `base.yaml`, then
+`<Character>-setup.yaml`, then `<Character>-<Arg>.yaml` — and **the last one
+wins**, which is exactly the mechanism behind the config-shaped failures in
+sections 21 and 22: a setting silently overridden by a later file, presenting
+as a script bug.
+
+None of this is unreasonable for the people who wrote it. All of it is a wall
+for someone who wants to come back to a game and click things.
+
+**And the settings are structured, typed data.** A herb entry is a record with
+`name`, `size`, `stackable`, `room`, `price`, `quantity`. A form produces that
+correctly every time; a person counting spaces does not.
+
+So the highest-value thing this project can do is not to build another
+automation suite. It is to be the interface to the one that already exists and
+works. That reframes the roadmap, and it is worth deciding deliberately:
+
+- **As it stands**, Companion has its own settings and its own intents, and
+  every game behaviour is ours to write and own.
+- **The alternative** is that Companion is a GUI over dr-scripts: settings are
+  edited in forms and written as valid YAML, and the playing is done by a
+  mature, maintained suite that we drive rather than duplicate.
+
+The second is far more value per unit of work, matches the interop principle
+that made Ruby4Lich5 the right install route, and is a much better answer to
+"let people have fun without a CS degree". They are not exclusive: the panel,
+the console, the safety layer and the setup flow serve either.
+
+### What is built so far
+
+`Companion::Yaml` reads the profiles a character actually loads, in load order,
+and parses each one. A syntax error is reported with its **line number**, which
+is the thing people are currently pasting into an online parser to discover.
+It never writes anything.
+
+Tested (`lich-scripts/test/yaml_test.rb`) against realistic profile content:
+anchors resolve to values rather than text, a mis-indented file reports the
+right line, an undefined alias is caught, and load order comes back
+base-first.
+
+### Documentation worth having read
+
+- `;validate` checks a YAML profile in game
+- `;<script> help` works on dr-scripts scripts, e.g. `;alchemy help`
+- `;script-watch` lists running scripts
+- `;display lichid` controls room-id display
+- The settings vocabulary is catalogued on Elanthipedia's
+  [Lich script repository](https://elanthipedia.play.net/Lich_script_repository),
+  which is the reference a settings GUI would be built from
+- Lich itself: scripts live in `Lich/scripts`, are invoked with `;name`, and
+  `go2` is described as working "just like Genie's goto"

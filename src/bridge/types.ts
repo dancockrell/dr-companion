@@ -53,6 +53,7 @@ export type IntentName =
   | 'check_health'
   | 'check_toggles'
   | 'reset_runaway'
+  | 'read_settings'
 
 export interface BridgeConnectionState {
   connected: boolean

@@ -450,6 +450,107 @@ module Companion
     end
   end
 
+  # -------------------------------------------------------------------- yaml --
+
+  # Reading the dr-scripts settings a player already has.
+  #
+  # This is the barrier the whole project is aimed at. To use the main free
+  # script suite, a newcomer is asked to:
+  #
+  #   * read four YAML guides, including anchors and merge keys (&, *, <<: *)
+  #   * install VS Code and a YAML plugin
+  #   * hand-write a character setup file — the shipped samples run 16 to 21 KB
+  #   * override the right keys out of a 94 KB base.yaml without editing it
+  #   * debug the result in an online parser, and run ;validate
+  #
+  # Their own help page says as much: read the guides, use the plugin, "start
+  # with small YAML configurations rather than complex ones from other users",
+  # run `;validate` and check the output.
+  #
+  # None of that is unreasonable for the people who wrote it. All of it is a
+  # wall for someone who wants to come back to a game and click things. The
+  # settings themselves are structured and typed — lists of records with known
+  # fields — which is exactly the shape a form handles better than a person
+  # counting spaces.
+  #
+  # So: read what they have, report it, and never write without being asked.
+  module Yaml
+    module_function
+
+    # Where dr-scripts keeps character settings, relative to Lich's script dir.
+    PROFILE_DIRS = [
+      %w[dr-scripts profiles],
+      %w[profiles],
+    ].freeze
+
+    def script_dir
+      d = State.safe(nil) { "#{$lich_dir}scripts" }
+      return d if d && File.directory?(d)
+
+      # Fall back to walking up from this script's own location.
+      here = State.safe(nil) { File.dirname(Script.current.path.to_s) }
+      here if here && File.directory?(here)
+    end
+
+    def profile_dirs
+      base = script_dir
+      return [] unless base
+      PROFILE_DIRS
+        .map { |parts| File.join(base, *parts) }
+        .select { |p| File.directory?(p) }
+    end
+
+    # Files that apply to this character, in the order dr-scripts loads them:
+    # base.yaml, then <Character>-setup.yaml, then <Character>-<Arg>.yaml.
+    # Later files win, which is worth showing because it is where surprises
+    # come from.
+    def files_for(character)
+      name = character.to_s.strip
+      out = []
+      profile_dirs.each do |dir|
+        base = File.join(dir, 'base.yaml')
+        out << base if File.file?(base)
+        next if name.empty?
+
+        Dir.glob(File.join(dir, "#{name}-*.yaml")).sort.each do |f|
+          out << f
+        end
+      end
+      out.uniq
+    end
+
+    def describe(path)
+      {
+        'path'  => path,
+        'name'  => File.basename(path),
+        'bytes' => State.safe(0) { File.size(path) },
+        'kind'  => File.basename(path).downcase == 'base.yaml' ? 'defaults' : 'yours'
+      }
+    end
+
+    # Parse one file and report whether it is valid, with the error if not.
+    #
+    # A YAML error names a line and column, which is the single most useful
+    # thing a person editing one by hand can be told, and the thing an online
+    # parser is currently being used for.
+    def check(path)
+      require 'yaml'
+      begin
+        data = YAML.unsafe_load_file(path)
+        keys = data.is_a?(Hash) ? data.keys.map(&:to_s) : []
+        { 'ok' => true, 'keys' => keys.sort, 'count' => keys.size }
+      rescue Psych::SyntaxError => e
+        {
+          'ok'     => false,
+          'error'  => e.message.to_s,
+          'line'   => e.line,
+          'column' => e.column
+        }
+      rescue StandardError => e
+        { 'ok' => false, 'error' => e.message.to_s }
+      end
+    end
+  end
   # ---------------------------------------------------------------- commands --
 
   # Sending a command to DragonRealms is not fire-and-forget. The game refuses
@@ -622,6 +723,7 @@ module Companion
         server.log("Replaying the last #{rows.size} trace rows.")
         rows.each { |r| server.trace(r) }
         [true, "#{rows.size} rows"]
+      when 'read_settings' then read_settings(server)
       when 'check_toggles' then check_toggles(server)
       when 'get_favors'
         [true, "favors: #{State.safe(0) { DRStats.favors.to_i }}"]
@@ -635,6 +737,70 @@ module Companion
     #
     # A player in the community help channel spent a week on a crafting script
     # that insisted they had no materials. The cause was INVBRIEF, a setting
+
+    # Report the dr-scripts YAML this character actually loads.
+    #
+    # Read-only. It never writes, and it says which files apply and in what
+    # order, because "the last file wins" is where the surprises live: a
+    # setting in one file quietly overridden by another is the config-shaped
+    # failure that shows up in the help channel as a script bug.
+    #
+    # It also parses each file and reports syntax errors with a line and
+    # column, which is what people currently paste into an online parser to
+    # find out.
+    def read_settings(server)
+      character = State.char_name
+      files = Yaml.files_for(character)
+
+      if files.empty?
+        server.log(
+          'No dr-scripts profiles found. That is fine if you do not use them; ' \
+          'this app does not require them.'
+        )
+        return [true, 'no profiles found']
+      end
+
+      server.log(
+        "dr-scripts settings for #{character}, loaded in this order (later " \
+        'files override earlier ones):'
+      )
+
+      bad = 0
+      files.each do |path|
+        info = Yaml.describe(path)
+        result = Yaml.check(path)
+
+        if result['ok']
+          server.log(
+            "  #{info['name']} — #{result['count']} settings, " \
+            "#{(info['bytes'] / 1024.0).round(1)} KB"
+          )
+        else
+          bad += 1
+          where = result['line'] ? " at line #{result['line']}" : ''
+          server.log(
+            "  #{info['name']} — will not parse#{where}: #{result['error']}",
+            'error'
+          )
+        end
+      end
+
+      server.broadcast(
+        type: 'settings',
+        character: character,
+        files: files.map { |p| Yaml.describe(p).merge(Yaml.check(p)) }
+      )
+
+      if bad.positive?
+        server.log(
+          "#{bad} file(s) will not parse, so dr-scripts is not reading what " \
+          'you think it is. The line number above is where to look.',
+          'error'
+        )
+      end
+
+      [true, "#{files.size} file(s), #{bad} broken"]
+    end
     # that shortens inventory output: the script was parsing text the game had
     # stopped printing. BRIEF does the same to room descriptions.
     #
