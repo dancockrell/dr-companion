@@ -144,7 +144,11 @@ fn stranded_data_warning() -> Option<String> {
          program folder. {} still there ({}), and uninstalling would delete \
          them along with any scripts inside. Move them to {} before \
          uninstalling.",
-        if stranded.len() == 1 { "One is" } else { "Some are" },
+        if stranded.len() == 1 {
+            "One is"
+        } else {
+            "Some are"
+        },
         stranded.join(", "),
         app_data_dir().to_string_lossy()
     ))
@@ -231,7 +235,11 @@ fn candidate_dirs(names: &[&str]) -> Vec<PathBuf> {
     let mut roots: Vec<PathBuf> = Vec::new();
     if let Some(h) = home_dir() {
         for sub in ["", "Documents", "Desktop", "Downloads"] {
-            roots.push(if sub.is_empty() { h.clone() } else { h.join(sub) });
+            roots.push(if sub.is_empty() {
+                h.clone()
+            } else {
+                h.join(sub)
+            });
         }
         roots.push(h.join("AppData").join("Local"));
         roots.push(h.join("AppData").join("Roaming"));
@@ -386,8 +394,15 @@ fn detect_ruby() -> (Option<String>, Option<String>) {
 
     // Newest first, so a good Ruby beats an old one sitting beside it.
     let names = [
-        "Ruby44-x64", "Ruby43-x64", "Ruby42-x64", "Ruby41-x64", "Ruby40-x64",
-        "Ruby34-x64", "Ruby33-x64", "Ruby32-x64", "Ruby31-x64",
+        "Ruby44-x64",
+        "Ruby43-x64",
+        "Ruby42-x64",
+        "Ruby41-x64",
+        "Ruby40-x64",
+        "Ruby34-x64",
+        "Ruby33-x64",
+        "Ruby32-x64",
+        "Ruby31-x64",
     ];
     let mut dirs = candidate_dirs(&names);
 
@@ -552,7 +567,9 @@ pub async fn latest_release(repo: &str) -> Option<GhRelease> {
         .build()
         .ok()?;
     let res = client
-        .get(format!("https://api.github.com/repos/{repo}/releases/latest"))
+        .get(format!(
+            "https://api.github.com/repos/{repo}/releases/latest"
+        ))
         .send()
         .await
         .ok()?;
@@ -715,6 +732,9 @@ fn asset<'a>(rel: &'a GhRelease, name: &str) -> Option<&'a GhAsset> {
     rel.assets.iter().find(|a| a.name == name)
 }
 
+// Eight fields describing one download option. Threading them through a
+// builder would be more code and no clearer.
+#[allow(clippy::too_many_arguments)]
 fn option_from(
     id: &str,
     label: &str,
@@ -802,7 +822,10 @@ pub async fn plan_setup() -> SetupPlan {
                 Presence::Outdated,
                 format!("{v} — Lich needs Ruby {REQUIRED_RUBY_MAJOR}.x, you have {major}.x"),
             ),
-            None => (Presence::Unknown, format!("{v} — could not read the version")),
+            None => (
+                Presence::Unknown,
+                format!("{v} — could not read the version"),
+            ),
         },
         None => (
             Presence::Missing,
@@ -875,11 +898,10 @@ pub async fn plan_setup() -> SetupPlan {
         // No release info, so we cannot price or verify a download. Say what
         // to do rather than showing a button that cannot work.
         _ => Remedy::Manual {
-            instructions:
-                "Lich 5 needs Ruby 4.0 or newer. Could not reach GitHub to offer the \
+            instructions: "Lich 5 needs Ruby 4.0 or newer. Could not reach GitHub to offer the \
                  download, so either check your connection and press Check again, or \
                  install Ruby yourself and do the same."
-                    .into(),
+                .into(),
             link: "https://rubyinstaller.org/downloads/".into(),
         },
     };
@@ -972,8 +994,7 @@ pub async fn plan_setup() -> SetupPlan {
                 Remedy::Choose {
                     options,
                     note: if has_ruby {
-                        "You already have a Ruby that works, so the small one is enough."
-                            .into()
+                        "You already have a Ruby that works, so the small one is enough.".into()
                     } else if ruby_offers_bundle {
                         "Ruby4Lich5, offered on the Ruby row above, already includes Lich. \
                          Take that one and this row takes care of itself. The zip here is \
@@ -1178,12 +1199,11 @@ pub async fn plan_setup() -> SetupPlan {
                 Remedy::None
             } else {
                 Remedy::Manual {
-                    instructions:
-                        "This one comes from the Lich project's own server, not from \
+                    instructions: "This one comes from the Lich project's own server, not from \
                          GitHub, so their script fetches it. Connect a character and \
                          run ;repository download-mapdb — the panel offers a button \
                          for it once the bridge is up."
-                            .into(),
+                        .into(),
                     link: "https://github.com/elanthia-online/lich-5/wiki".into(),
                 }
             },
@@ -1203,8 +1223,7 @@ pub async fn plan_setup() -> SetupPlan {
 
         if options.is_empty() {
             Remedy::Manual {
-                instructions: "Could not reach GitHub to look up a Genie release."
-                    .into(),
+                instructions: "Could not reach GitHub to look up a Genie release.".into(),
                 link: format!("https://github.com/{GENIE5_REPO}/releases"),
             }
         } else {
@@ -1307,7 +1326,10 @@ pub async fn plan_setup() -> SetupPlan {
                 .map(|rd| {
                     rd.filter_map(|e| e.ok())
                         .filter(|e| {
-                            e.file_name().to_string_lossy().to_lowercase().ends_with(".xml")
+                            e.file_name()
+                                .to_string_lossy()
+                                .to_lowercase()
+                                .ends_with(".xml")
                         })
                         .count()
                 })
@@ -1357,7 +1379,6 @@ pub async fn plan_setup() -> SetupPlan {
             });
         }
     }
-
 
     let ready = components
         .iter()
@@ -1409,7 +1430,9 @@ pub async fn download_verified(
         "https://objects.githubusercontent.com/",
     ];
     if !ALLOWED.iter().any(|p| url.starts_with(p)) {
-        return Err(format!("refusing to download from an unexpected host: {url}"));
+        return Err(format!(
+            "refusing to download from an unexpected host: {url}"
+        ));
     }
 
     let dest_path = PathBuf::from(dest);
@@ -1543,7 +1566,11 @@ pub fn extract_archive(
             }
         }
     }
-    let strip = if roots.len() == 1 { Some(roots[0].clone()) } else { None };
+    let strip = if roots.len() == 1 {
+        Some(roots[0].clone())
+    } else {
+        None
+    };
 
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i).map_err(|e| e.to_string())?;
@@ -1780,7 +1807,9 @@ pub async fn install_bundle_inner(
     let mut written = 0usize;
 
     for f in files {
-        if !f.url.starts_with("https://raw.githubusercontent.com/GenieClient/")
+        if !f
+            .url
+            .starts_with("https://raw.githubusercontent.com/GenieClient/")
             && !f
                 .url
                 .starts_with("https://raw.githubusercontent.com/elanthia-online/")
@@ -1796,10 +1825,7 @@ pub async fn install_bundle_inner(
         if !res.status().is_success() {
             return Err(format!("{}: HTTP {}", f.name, res.status()));
         }
-        let body = res
-            .bytes()
-            .await
-            .map_err(|e| format!("{}: {e}", f.name))?;
+        let body = res.bytes().await.map_err(|e| format!("{}: {e}", f.name))?;
 
         let got = git_blob_sha(&body);
         if !got.eq_ignore_ascii_case(&f.sha) {
@@ -1818,7 +1844,9 @@ pub async fn install_bundle_inner(
         on_progress(done, total);
     }
 
-    Ok(format!("{written} files verified and installed to {target}"))
+    Ok(format!(
+        "{written} files verified and installed to {target}"
+    ))
 }
 
 #[tauri::command]

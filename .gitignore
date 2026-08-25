@@ -13,7 +13,10 @@
 .DS_Store
 .idea
 .vscode/*
-data/elanthipedia/
+# The scraped wiki data is published, not local scratch: the hourly workflow
+# commits it here and clients fetch it from the repo. Ignoring it would mean
+# that workflow ran every hour forever and committed nothing.
+#   data/elanthipedia/  <- deliberately not ignored
 data/kb/
 dist
 dist-ssr

@@ -1,0 +1,69 @@
+# Hourly Elanthipedia refresh.
+#
+# The question this answers is "who runs the scraper, forever, without anybody
+# paying for a server". The answer is: this repository does.
+#
+# Why this shape rather than the alternatives:
+#
+#   * One scraper, not one per client. Sixty players running their own scraper
+#     is sixty times the load on Simutronics' wiki for identical data. Clients
+#     fetch the published result and never touch elanthipedia.play.net.
+#   * No host to maintain. Scheduled workflows are free and unlimited on public
+#     repositories, so there is no bill and nothing to keep alive.
+#   * No single person to depend on. If this project is abandoned, anyone can
+#     fork it and the schedule keeps running from their copy. That is the
+#     open-source answer to "I do not want to host this forever", and it is the
+#     same reasoning as giving the software away.
+#   * The data is versioned. Every refresh is a commit, so a bad change is
+#     visible, diffable and revertable — which matters because this data will
+#     drive automation decisions.
+name: elanthipedia
+
+on:
+  schedule:
+    # Hourly. Measured churn is roughly one relevant page an hour across the
+    # Item, Weapon and Armor namespaces, so this is a handful of requests and
+    # usually none at all.
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+# Only one refresh at a time. Two overlapping runs would double the request
+# rate against the wiki for no benefit, which is the whole thing we are
+# avoiding.
+concurrency:
+  group: elanthipedia
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Refresh from Elanthipedia
+        run: |
+          if [ -f data/elanthipedia/state.json ]; then
+            node tools/elanthipedia.mjs update
+          else
+            node tools/elanthipedia.mjs index
+            node tools/elanthipedia.mjs full
+          fi
+
+      - name: Publish if anything changed
+        run: |
+          git config user.name  'dr-companion bot'
+          git config user.email '173971169+dancockrell@users.noreply.github.com'
+          git add data/elanthipedia
+          # Nothing changed is the normal outcome, not a failure.
+          git diff --staged --quiet && echo 'no changes' && exit 0
+          git commit -m "Elanthipedia refresh $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push

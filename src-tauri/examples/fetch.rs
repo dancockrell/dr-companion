@@ -21,24 +21,53 @@ fn main() {
         println!("-- happy path --");
         let mut last = 0u64;
         match dr_companion_lib::setup::download_verified(url, good, &dest_s, |r, t| {
-            if r - last > 400_000 { last = r; println!("   {r}/{t}"); }
-        }).await {
-            Ok(res) => println!("OK  {} bytes, sha256 {}, verified={}", res.bytes, res.sha256, res.verified),
-            Err(e) => { println!("FAIL {e}"); std::process::exit(1); }
+            if r - last > 400_000 {
+                last = r;
+                println!("   {r}/{t}");
+            }
+        })
+        .await
+        {
+            Ok(res) => println!(
+                "OK  {} bytes, sha256 {}, verified={}",
+                res.bytes, res.sha256, res.verified
+            ),
+            Err(e) => {
+                println!("FAIL {e}");
+                std::process::exit(1);
+            }
         }
 
         println!("-- bad checksum is rejected --");
         let bad_dest = std::env::temp_dir().join("drc-test-bad.zip");
         let bad_s = bad_dest.to_string_lossy().to_string();
-        match dr_companion_lib::setup::download_verified(url, &"0".repeat(64), &bad_s, |_, _| {}).await {
-            Ok(_) => { println!("FAIL: accepted a bad checksum"); std::process::exit(1); }
+        match dr_companion_lib::setup::download_verified(url, &"0".repeat(64), &bad_s, |_, _| {})
+            .await
+        {
+            Ok(_) => {
+                println!("FAIL: accepted a bad checksum");
+                std::process::exit(1);
+            }
             Err(e) => println!("OK  rejected: {}", e.lines().next().unwrap_or("")),
         }
-        println!("    file left behind? {}", bad_dest.exists() || bad_dest.with_extension("part").exists());
+        println!(
+            "    file left behind? {}",
+            bad_dest.exists() || bad_dest.with_extension("part").exists()
+        );
 
         println!("-- unexpected host is refused --");
-        match dr_companion_lib::setup::download_verified("https://example.com/evil.exe", "", &bad_s, |_,_| {}).await {
-            Ok(_) => { println!("FAIL: fetched from an unexpected host"); std::process::exit(1); }
+        match dr_companion_lib::setup::download_verified(
+            "https://example.com/evil.exe",
+            "",
+            &bad_s,
+            |_, _| {},
+        )
+        .await
+        {
+            Ok(_) => {
+                println!("FAIL: fetched from an unexpected host");
+                std::process::exit(1);
+            }
             Err(e) => println!("OK  {e}"),
         }
 
@@ -50,7 +79,10 @@ fn main() {
                 let lich = std::path::Path::new(&dir).join("lich.rbw");
                 println!("    lich.rbw present: {}", lich.exists());
             }
-            Err(e) => { println!("FAIL {e}"); std::process::exit(1); }
+            Err(e) => {
+                println!("FAIL {e}");
+                std::process::exit(1);
+            }
         }
         let _ = std::fs::remove_file(&dest);
     });

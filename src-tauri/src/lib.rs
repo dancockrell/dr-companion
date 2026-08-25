@@ -39,9 +39,7 @@ fn panel_label(id: &str) -> String {
 /// The id arrives from the web view and is interpolated into a query string, so
 /// it does not get to contain punctuation. Nothing legitimate needs to.
 fn valid_panel_id(id: &str) -> bool {
-    !id.is_empty()
-        && id.len() <= 32
-        && id.chars().all(|c| c.is_ascii_lowercase() || c == '_')
+    !id.is_empty() && id.len() <= 32 && id.chars().all(|c| c.is_ascii_lowercase() || c == '_')
 }
 
 /// Focused rather than duplicated when it already exists, so pressing the

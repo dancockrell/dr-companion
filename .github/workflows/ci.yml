@@ -1,0 +1,130 @@
+# The reason this file exists, stated plainly so it does not get deleted later
+# as ceremony:
+#
+# A build shipped in which every native command failed. The cause was a dynamic
+# import written to hide a module specifier from the bundler, which worked in
+# development and could not resolve in a packaged build. Two layers of caught
+# exceptions turned a total failure into a cheerful "Ready, 0 of 0".
+#
+# `test:bundle` now builds and inspects the built output for exactly that shape.
+# It is worth nothing if it only runs when somebody remembers, so it runs here.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Everything that does not need Rust. Fast, and covers the failure above.
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Types
+        run: npx tsc -b --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # Named individually rather than via `npm test` so a failure names itself
+      # in the job list instead of arriving as one opaque red cross.
+      - name: Contrast (WCAG AA)
+        run: npm run test:contrast
+      - name: Log scrubbing
+        run: npm run test:scrub
+      - name: Frontend
+        run: npm run test:frontend
+      - name: Bundle integrity
+        run: npm run test:bundle
+
+  # The Rust half. Slower, so it is a separate job and does not hold up the
+  # feedback above.
+  tauri:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Rust format
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Build installer
+        run: npm run tauri:build
+
+  # The bridge is a Lich script, so it runs under whatever Ruby the player
+  # already has. Lich 5 supports a range of them and installs vary widely, so
+  # testing one version would only prove it works on the one nobody has.
+  bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [3.2, 3.3, 3.4]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `ws`, for the round-trip test below.
+      - run: npm ci
+
+      - name: Commands
+        run: ruby lich-scripts/test/cmd_test.rb lich-scripts/companion_bridge.lic
+      - name: Runaway guard
+        run: ruby lich-scripts/test/runaway_test.rb lich-scripts/companion_bridge.lic
+      - name: YAML
+        run: ruby lich-scripts/test/yaml_test.rb lich-scripts/companion_bridge.lic
+      - name: Server
+        run: ruby lich-scripts/test/server_test.rb lich-scripts/companion_bridge.lic
+      - name: Map
+        run: ruby lich-scripts/test/map_test.rb lich-scripts/companion_bridge.lic
+      - name: Live round-trip
+        run: npm run test:live

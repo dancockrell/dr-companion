@@ -20,7 +20,9 @@ use std::path::PathBuf;
 
 fn main() {
     let which = std::env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("usage: cargo run --example install -- <ruby4lich5|plugins|maps|run|guards|bridge>");
+        eprintln!(
+            "usage: cargo run --example install -- <ruby4lich5|plugins|maps|run|guards|bridge>"
+        );
         std::process::exit(2);
     });
 
@@ -35,7 +37,10 @@ fn main() {
             "plugins" => bundle("plugins").await,
             "maps" => bundle("maps").await,
             "dr_scripts" => bundle("dr_scripts").await,
-            "run" => { run_downloaded_installer(); check_guards() }
+            "run" => {
+                run_downloaded_installer();
+                check_guards()
+            }
             "guards" => check_guards(),
             "bridge" => install_bridge(),
             other => {
@@ -76,7 +81,7 @@ async fn download_from_plan(component_id: &str, option_id: &str) {
     match download_verified(&o.url, &o.sha256, &o.dest, |got, total| {
         if got - last > 8_000_000 || got == total {
             last = got;
-            let pct = if total > 0 { got * 100 / total } else { 0 };
+            let pct = (got * 100).checked_div(total).unwrap_or(0);
             println!("  {pct:>3}%  {got}/{total}");
         }
     })
@@ -124,7 +129,7 @@ async fn bundle(component_id: &str) {
     match install_bundle_inner(files, target, |got, total| {
         if got - last > 2_000_000 || got == total {
             last = got;
-            let pct = if total > 0 { got * 100 / total } else { 0 };
+            let pct = (got * 100).checked_div(total).unwrap_or(0);
             println!("  {pct:>3}%  {got}/{total}");
         }
     })
