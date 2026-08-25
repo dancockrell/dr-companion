@@ -134,10 +134,31 @@ function handleBridgeMessage(
     case 'error':
       get().addLog(`Bridge error: ${msg.message}`)
       break
+
+    // Geography, answered by Lich's own map rather than by a list we ship.
+    case 'map_here':
+      set({ mapHere: msg.payload.available ? msg.payload : null })
+      break
+    case 'map_tags':
+      set({ mapTags: msg.payload })
+      break
+    case 'map_nearest':
+      set({ mapNearest: msg.payload })
+      if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'not found'}`)
+      break
+    case 'map_path':
+      set({ mapPath: msg.payload })
+      if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'no route'}`)
+      break
   }
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
+  mapHere: null,
+  mapTags: [],
+  mapNearest: null,
+  mapPath: null,
+
   setupComplete: false,
   setupReopened: false,
   setupComponents: defaultSetup,

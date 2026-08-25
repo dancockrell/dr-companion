@@ -22,6 +22,47 @@ export type BridgeServerMessage =
   | { type: 'runaway'; reason: string }
   | { type: 'intent_ack'; intent: string; ok: boolean; detail?: string }
   | { type: 'error'; message: string }
+  | { type: 'map_here'; payload: MapRoom & { available: boolean } }
+  | { type: 'map_tags'; payload: string[] }
+  | { type: 'map_nearest'; payload: MapNearest }
+  | { type: 'map_path'; payload: MapPath }
+
+/**
+ * A room, as Lich knows it.
+ *
+ * Two id systems, and both are carried on purpose. `id` is Lich's room number,
+ * the one `#goto` takes. `uid` is the game's own room id, the number a player
+ * sees with ShowRoomID on. They are different numbers for the same room, and
+ * quoting one when you mean the other is a documented way to lose an afternoon
+ * in a help channel — so neither is dropped and neither goes unlabelled.
+ */
+export interface MapRoom {
+  id: number | null
+  uid: number | null
+  title: string | null
+  location: string | null
+  climate?: string | null
+  terrain?: string | null
+  tags?: string[]
+  exits?: string[]
+}
+
+export interface MapNearest extends MapRoom {
+  ok: boolean
+  tag?: string
+  steps?: number | null
+  reason?: string
+}
+
+/** A route, returned rather than walked. Nothing has moved. */
+export interface MapPath {
+  ok: boolean
+  from?: number | null
+  to?: number
+  steps?: number
+  rooms?: MapRoom[]
+  reason?: string
+}
 
 /** Messages Companion → Lich */
 export type BridgeClientMessage =
@@ -54,6 +95,13 @@ export type IntentName =
   | 'check_toggles'
   | 'reset_runaway'
   | 'read_settings'
+  // Map queries. All read-only: they answer questions about geography and
+  // never move the character. 'map_path' returns a route rather than walking
+  // it, so deciding to go stays a separate decision.
+  | 'map_here'
+  | 'map_tags'
+  | 'map_nearest'
+  | 'map_path'
 
 export interface BridgeConnectionState {
   connected: boolean

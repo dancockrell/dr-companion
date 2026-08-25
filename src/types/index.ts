@@ -3,6 +3,7 @@
 import type { SkillState } from '../data/skills'
 import type { CharacterProfile } from '../lib/profiles'
 import type { VersionState } from '../lib/versions'
+import type { MapRoom, MapNearest, MapPath } from '../bridge/types'
 
 export type { SkillState }
 export type { CharacterProfile }
@@ -133,6 +134,17 @@ export interface InventorySummary {
 }
 
 export interface AppState {
+  /**
+   * Geography as Lich reports it, not as we guessed it.
+   *
+   * null until asked, and null again if no map is loaded — which is not the
+   * same as an empty result and must not render as one.
+   */
+  mapHere: MapRoom | null
+  mapTags: string[]
+  mapNearest: MapNearest | null
+  mapPath: MapPath | null
+
   setupComplete: boolean
   /**
    * Setup opened deliberately from Settings, rather than because something is

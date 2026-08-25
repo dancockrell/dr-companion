@@ -1,6 +1,22 @@
 /**
  * Major travel destinations — public geography.
- * Used by Travel activity UI; pathing implemented later via Lich maps.
+ *
+ * **This list is a menu, not a map.** It exists so the Travel view has
+ * something to offer before a bridge is connected, and so the demo works with
+ * no Lich at all. It carries no room ids and cannot route anywhere.
+ *
+ * Routing comes from Lich, through the bridge's `map_*` intents. Lich holds a
+ * room graph with Dijkstra pathing, a tag index and uid translation, already
+ * loaded and already matching the player's own map database. Anything here
+ * that disagrees with Lich is wrong by definition, so nothing here should ever
+ * grow a room number.
+ *
+ * The tempting alternative was to mine the Genie map files, since most players
+ * have them installed. Twice wrong: they are keyed by Genie's zone-local node
+ * ids rather than Lich's room ids — Lich's Map carries `genie_id`/`genie_zone`,
+ * so the translation only runs in that direction — and the map repository
+ * publishes no licence, which makes copying its contents into an MIT project
+ * not ours to do.
  */
 
 import type { GameInstance } from '../types'

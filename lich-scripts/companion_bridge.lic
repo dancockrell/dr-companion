@@ -29,7 +29,7 @@ require 'base64'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.3.0'
+  BRIDGE_VERSION = '0.4.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -551,6 +551,133 @@ module Companion
       end
     end
   end
+
+  # --------------------------------------------------------------------- map --
+
+  # Geography, asked of Lich rather than shipped by us.
+  #
+  # The panel carries a hand-written list of two dozen town names with no room
+  # ids attached, which is enough to fill a dropdown and not enough to go
+  # anywhere. The obvious-looking fix is to read the Genie map files, since
+  # most players have them installed. That is wrong twice over:
+  #
+  #   * Genie maps are keyed by Genie's own zone-local node ids. Lich has its
+  #     own room ids, and those are what `#goto` and every Lich script use.
+  #     Lich's Map carries `genie_id`/`genie_zone` per room, which is the only
+  #     direction the translation exists in: Lich's map knows about Genie's,
+  #     not the reverse.
+  #   * The map repository publishes no licence, so copying its contents into
+  #     an MIT project is not ours to do.
+  #
+  # Lich already holds a loaded room graph with Dijkstra pathing, a tag index
+  # and uid translation. Asking it is correct by construction and stays current
+  # with the player's own map database rather than a snapshot frozen into one
+  # of our releases.
+  #
+  # Everything here is read-only. Nothing in this module moves the character:
+  # `preview_path` returns the route instead of walking it, so the panel can
+  # show where it is about to go before anyone commits to going.
+  module MapInfo
+    module_function
+
+    # Lich's Map class, or nil outside Lich. Resolved indirectly because this
+    # file is also loaded by the test suite, where no such constant exists.
+    def klass
+      State.safe(nil) { Lich::Common::Map } || State.safe(nil) { Map }
+    end
+
+    def available?
+      !klass.nil?
+    end
+
+    def current
+      State.safe(nil) { klass&.current }
+    end
+
+    # Where we are, in both id systems.
+    #
+    # `id` is Lich's room number, the one `#goto` takes. `uid` is the game's
+    # own room id, the number a player sees with ShowRoomID on. They are
+    # different numbers for the same room, and confusing them is a documented
+    # source of "goto does not work" reports, so both are labelled and sent.
+    def here
+      room = current
+      return { 'available' => false } unless room
+
+      {
+        'available' => true,
+        'id'        => State.safe(nil) { room.id },
+        'uid'       => State.safe(nil) { Array(room.uid).last },
+        'title'     => State.safe(nil) { Array(room.title).last.to_s.gsub(/^\[|\]$/, '') },
+        'location'  => State.safe(nil) { room.location },
+        'climate'   => State.safe(nil) { room.climate },
+        'terrain'   => State.safe(nil) { room.terrain },
+        'tags'      => State.safe([]) { room.tags.to_a.map(&:to_s) },
+        'exits'     => State.safe([]) { room.wayto.keys.map(&:to_s) }
+      }
+    end
+
+    # The tag vocabulary this player's map actually uses.
+    #
+    # Not a list we curated. Different map databases carry different tags, and
+    # a menu offering "bank" on a map with no bank tagged is worse than one
+    # that offers only what is really there.
+    def tags
+      State.safe([]) { klass&.tags&.map(&:to_s)&.sort } || []
+    end
+
+    # Nearest room carrying a tag, and how far away it is in rooms.
+    #
+    # Returns the room rather than walking to it. The distance is what someone
+    # deciding whether to bother actually wants to know.
+    def nearest(tag)
+      room = current
+      return { 'ok' => false, 'reason' => 'no current room' } unless room
+
+      id = State.safe(nil) { room.find_nearest_by_tag(tag.to_s) }
+      return { 'ok' => false, 'reason' => "nothing tagged #{tag} is reachable" } unless id
+
+      { 'ok' => true, 'tag' => tag.to_s }
+        .merge(describe(id))
+        .merge('steps' => path_length(room, id))
+    end
+
+    # The route to a room, as ids and titles. Does not move.
+    def preview_path(destination)
+      room = current
+      return { 'ok' => false, 'reason' => 'no current room' } unless room
+
+      dest = destination.to_i
+      return { 'ok' => false, 'reason' => 'no destination given' } if dest.zero?
+
+      path = State.safe(nil) { room.path_to(dest) }
+      return { 'ok' => false, 'reason' => "no route from #{room.id} to #{dest}" } unless path
+
+      {
+        'ok'    => true,
+        'from'  => State.safe(nil) { room.id },
+        'to'    => dest,
+        'steps' => path.length,
+        'rooms' => path.map { |rid| describe(rid) }
+      }
+    end
+
+    def describe(room_id)
+      r = State.safe(nil) { klass&.[](room_id) }
+      {
+        'id'       => room_id,
+        'uid'      => State.safe(nil) { Array(r&.uid).last },
+        'title'    => State.safe(nil) { Array(r&.title).last.to_s.gsub(/^\[|\]$/, '') },
+        'location' => State.safe(nil) { r&.location }
+      }
+    end
+
+    def path_length(room, id)
+      p = State.safe(nil) { room.path_to(id) }
+      p ? p.length : nil
+    end
+  end
+
   # ---------------------------------------------------------------- commands --
 
   # Sending a command to DragonRealms is not fire-and-forget. The game refuses
@@ -727,10 +854,78 @@ module Companion
       when 'check_toggles' then check_toggles(server)
       when 'get_favors'
         [true, "favors: #{State.safe(0) { DRStats.favors.to_i }}"]
+
+      # --- map queries, all read-only -------------------------------------
+      #
+      # These answer questions rather than taking the character anywhere. A
+      # route is shown, never walked; deciding to move stays a separate
+      # decision the player makes with the route in front of them.
+      when 'map_here' then map_here(server)
+      when 'map_tags' then map_tags(server)
+      when 'map_nearest' then map_nearest(args, server)
+      when 'map_path' then map_path(args, server)
+
       else
         [false, "'#{intent}' is not implemented in bridge v#{BRIDGE_VERSION} yet. " \
                 'The panel can read state and stop scripts; it cannot run this activity.']
       end
+    end
+
+    # ------------------------------------------------------------------ map --
+
+    # Every one of these refuses the same way when there is no map, rather than
+    # returning an empty result. "No banks nearby" and "I cannot see a map" are
+    # different answers, and a panel that shows the first when it means the
+    # second sends someone looking for a bank that is on their map already.
+    def no_map
+      [false, 'No Lich map is loaded. Lich downloads its map database on first ' \
+              'connect; if this persists, run ;map in Lich.']
+    end
+
+    def map_here(server)
+      return no_map unless MapInfo.available?
+
+      here = MapInfo.here
+      return [false, 'Lich does not know which room you are in yet.'] unless here['available']
+
+      server.broadcast(type: 'map_here', payload: here)
+      # Both numbers, always. They differ, and quoting the wrong one at someone
+      # in a help channel wastes an afternoon.
+      [true, "room #{here['id']} (game uid #{here['uid']}) — #{here['title']}"]
+    end
+
+    def map_tags(server)
+      return no_map unless MapInfo.available?
+
+      tags = MapInfo.tags
+      server.broadcast(type: 'map_tags', payload: tags)
+      [true, tags.empty? ? 'this map carries no tags' : "#{tags.size} tags"]
+    end
+
+    def map_nearest(args, server)
+      return no_map unless MapInfo.available?
+
+      tag = args.is_a?(Hash) ? args['tag'].to_s : args.to_s
+      return [false, 'no tag given'] if tag.empty?
+
+      result = MapInfo.nearest(tag)
+      server.broadcast(type: 'map_nearest', payload: result)
+      return [false, result['reason']] unless result['ok']
+
+      [true, "#{result['title']} — room #{result['id']}, #{result['steps']} rooms away"]
+    end
+
+    def map_path(args, server)
+      return no_map unless MapInfo.available?
+
+      dest = args.is_a?(Hash) ? args['to'] : args
+      result = MapInfo.preview_path(dest)
+      server.broadcast(type: 'map_path', payload: result)
+      return [false, result['reason']] unless result['ok']
+
+      # Says "not moving" out loud. A route appearing on screen looks like the
+      # start of a journey, and this one is not.
+      [true, "#{result['steps']} rooms from #{result['from']} to #{result['to']}. Not moving."]
     end
 
     # Report the game display settings that change what a parser sees.

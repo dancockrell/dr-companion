@@ -32,7 +32,32 @@ A small **Lich script** exposes a **localhost-only** WebSocket so the Companion 
 { type: 'log', line: string, level?: 'info' | 'warn' | 'error' }
 { type: 'intent_ack', intent: string, ok: boolean, detail?: string }
 { type: 'error', message: string }
+
+// Map replies (bridge 0.4.0+). All read-only; none of them move anything.
+{ type: 'map_here',    payload: MapRoom & { available: boolean } }
+{ type: 'map_tags',    payload: string[] }
+{ type: 'map_nearest', payload: MapRoom & { ok, tag?, steps?, reason? } }
+{ type: 'map_path',    payload: { ok, from?, to?, steps?, rooms?, reason? } }
 ```
+
+### Rooms carry two ids, and both matter
+
+```ts
+MapRoom = { id, uid, title, location, climate?, terrain?, tags?, exits? }
+```
+
+`id` is **Lich's** room number — the one `#goto` takes, and what every Lich
+script means by "room". `uid` is the **game's** own room id, the number a
+player sees with `FLAGS ShowRoomID ON`.
+
+They are different numbers for the same room. Quoting one when you mean the
+other is a documented way to lose an afternoon in a help channel, so the bridge
+sends both, always labelled, and never collapses them into one "room number".
+
+Geography comes from Lich, not from anything this project ships. Lich holds the
+room graph, the pathing, the tag index and the uid translation; it is already
+loaded and already matches the player's own map database. A list frozen into
+one of our releases would be a second, worse, staler answer.
 
 `CharacterStatus` includes:
 
