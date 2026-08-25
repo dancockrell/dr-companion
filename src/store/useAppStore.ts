@@ -4,6 +4,7 @@ import { bridge } from '../bridge'
 import type { IntentName, BridgeServerMessage } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
 import { loadPrefs, savePrefs } from '../lib/persistence'
+import { combatRanks } from '../data/skills'
 
 const prefs = loadPrefs()
 
@@ -41,6 +42,10 @@ const defaultSetup: SetupComponent[] = [
 ]
 
 let unsubBridge: (() => void) | null = null
+let unsubLiveStatus: (() => void) | null = null
+
+/** Intents that must never be blocked by game state. See docs/DOMAIN.md. */
+const SAFETY_INTENTS = ['stop_all', 'pause', 'resume', 'escape']
 
 function handleBridgeMessage(
   msg: BridgeServerMessage,
@@ -148,7 +153,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     bridge.connect()
     set({ bridgeConnected: true })
     if (bridge.getMode() === 'live') {
-      bridge.onLiveStatus((status, detail) => {
+      // Keep the unsubscribe. Dropping it leaked a listener per connect and
+      // per reconnect, which multiplied every log line.
+      if (unsubLiveStatus) unsubLiveStatus()
+      unsubLiveStatus = bridge.onLiveStatus((status, detail) => {
         get().addLog(`Live bridge: ${status}${detail ? ' — ' + detail : ''}`)
         if (status === 'connected') set({ bridgeConnected: true })
         if (status === 'disconnected' || status === 'error')
@@ -163,6 +171,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       unsubBridge()
       unsubBridge = null
     }
+    if (unsubLiveStatus) {
+      unsubLiveStatus()
+      unsubLiveStatus = null
+    }
     set({ bridgeConnected: false, character: null })
   },
 
@@ -172,10 +184,26 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   requestIntent: (intent: string) => {
     const { character, addLog, bridgeConnected } = get()
-    if (!bridgeConnected || !character?.connected) {
-      addLog('Not connected — cannot run intent: ' + intent)
+
+    // Stop, pause and escape are never gated. `character.connected` is a flag
+    // the *game* side sets, so a stale or false value used to disable the Stop
+    // button at exactly the moment someone is hammering it. If the transport
+    // is up, these go out.
+    const isSafetyIntent = SAFETY_INTENTS.includes(intent)
+
+    if (!bridgeConnected) {
+      addLog(
+        isSafetyIntent
+          ? `Bridge is down — cannot send ${intent}. Stop scripts in Lich directly.`
+          : 'Not connected — cannot run intent: ' + intent
+      )
       return
     }
+    if (!isSafetyIntent && !character?.connected) {
+      addLog('Character is not connected — cannot run intent: ' + intent)
+      return
+    }
+
     let args: Record<string, unknown> | undefined
     if (intent === 'start_training') {
       const { trainFocus, huntFavorites, huntMode, selectedHuntId } = get()
@@ -185,7 +213,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         huntMode,
         selectedHuntId,
         guild: character?.guild ?? 'unknown',
-        skillRanks: character?.skillRanks ?? 50,
+        skills: character?.skills ?? [],
+        skillRanks: character?.skills?.length
+          ? combatRanks(character.skills)
+          : character?.skillRanks ?? 50,
       }
     }
     if (intent.startsWith('travel:')) {

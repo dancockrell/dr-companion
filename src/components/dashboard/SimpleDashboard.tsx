@@ -15,6 +15,7 @@ import { Button } from '../shared/Button'
 import { VitalBar } from '../shared/VitalBar'
 import { Badge } from '../shared/Badge'
 import { PresetBar } from '../shared/PresetBar'
+import { TrainingPanel } from '../shared/TrainingPanel'
 
 export function SimpleDashboard() {
   const {
@@ -45,10 +46,12 @@ export function SimpleDashboard() {
     : inCombat
       ? 'Combat Assist'
       : 'Start Training'
+  // Both branches used to send start_training, so "Combat Assist" started a
+  // hunting run while something was already hitting you.
   const primaryIntent = lowHealth
     ? 'go_healer'
     : inCombat
-      ? 'start_training'
+      ? 'start_combat'
       : 'start_training'
   const primaryVariant = lowHealth ? 'danger' : 'primary'
 
@@ -217,7 +220,7 @@ export function SimpleDashboard() {
             variant="ghost"
             className="flex-col h-auto py-2"
             icon={<ShieldAlert className="w-4 h-4" />}
-            onClick={() => requestIntent('stop_all')}
+            onClick={() => requestIntent('escape')}
           >
             Safe
           </Button>
@@ -252,7 +255,9 @@ export function SimpleDashboard() {
       )}
 
       {/* Demo situation controls (Phase 0 — shows adaptive primary action) */}
-            <PresetBar />
+      <TrainingPanel />
+
+      <PresetBar />
 
 <section className="px-4 pb-2 shrink-0">
         <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-2">

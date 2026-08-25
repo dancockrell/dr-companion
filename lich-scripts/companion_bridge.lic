@@ -1,0 +1,616 @@
+=begin
+  companion_bridge.lic — DR Companion protocol v1
+
+  Exposes a localhost-only WebSocket so the DR Companion desktop panel can read
+  character state and send high-level intents.
+
+    ;companion_bridge            start on 127.0.0.1:7415
+    ;companion_bridge 7500       start on a different port
+    ;companion_bridge stop       stop a running bridge
+
+  Contract: docs/BRIDGE_CONTRACT.md
+
+  Design notes
+  ------------
+  * Pure stdlib. No gems. Lich users should not have to `gem install` anything
+    to run a UI, so the WebSocket handshake and framing (RFC 6455) are
+    implemented here in about 120 lines rather than pulled from websocket-driver.
+  * Binds 127.0.0.1 only. Never 0.0.0.0.
+  * Reads state, and only sends game commands for intents the player asked for.
+  * Stop is never gated on anything. If the socket is open, stop works.
+  * Unimplemented intents are acked with ok:false and a reason. They do not
+    silently no-op, and they do not pretend to have worked.
+=end
+
+require 'socket'
+require 'json'
+require 'digest/sha1'
+require 'base64'
+
+module Companion
+  PROTOCOL      = 1
+  BRIDGE_VERSION = '0.2.0'
+  DEFAULT_PORT  = 7415
+  PATH          = '/companion'
+  WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+
+  # ---------------------------------------------------------------- framing --
+
+  module WS
+    module_function
+
+    def accept_key(client_key)
+      Base64.strict_encode64(Digest::SHA1.digest(client_key.to_s + WS_GUID))
+    end
+
+    # Server-to-client frames are never masked.
+    def encode(payload, opcode = 0x1)
+      bytes = payload.to_s.dup.force_encoding('BINARY')
+      out = [0x80 | opcode].pack('C')
+      len = bytes.bytesize
+      out << if len < 126
+               [len].pack('C')
+             elsif len < 65_536
+               [126, len].pack('Cn')
+             else
+               [127, len].pack('CQ>')
+             end
+      out << bytes
+      out
+    end
+
+    def close_frame(code = 1000, reason = '')
+      encode([code].pack('n') + reason.to_s, 0x8)
+    end
+
+    # Reads exactly one frame. Returns [opcode, payload] or nil on EOF/error.
+    def read_frame(sock)
+      head = read_exactly(sock, 2)
+      return nil unless head
+
+      b0, b1 = head.unpack('CC')
+      opcode = b0 & 0x0f
+      masked = (b1 & 0x80) != 0
+      len    = b1 & 0x7f
+
+      if len == 126
+        ext = read_exactly(sock, 2)
+        return nil unless ext
+        len = ext.unpack1('n')
+      elsif len == 127
+        ext = read_exactly(sock, 8)
+        return nil unless ext
+        len = ext.unpack1('Q>')
+      end
+
+      # A client sending us 8MB of anything is a bug or an attack.
+      return nil if len > 8 * 1024 * 1024
+
+      mask = nil
+      if masked
+        mask = read_exactly(sock, 4)
+        return nil unless mask
+        mask = mask.bytes
+      end
+
+      payload = len.zero? ? '' : read_exactly(sock, len)
+      return nil if payload.nil?
+
+      if mask
+        bytes = payload.bytes
+        bytes.each_with_index { |b, i| bytes[i] = b ^ mask[i % 4] }
+        payload = bytes.pack('C*')
+      end
+
+      [opcode, payload]
+    rescue StandardError
+      nil
+    end
+
+    def read_exactly(sock, n)
+      buf = +''
+      while buf.bytesize < n
+        chunk = begin
+          sock.readpartial(n - buf.bytesize)
+        rescue EOFError, IOError, Errno::ECONNRESET
+          return nil
+        end
+        return nil if chunk.nil? || chunk.empty?
+        buf << chunk
+      end
+      buf
+    end
+  end
+
+  # ------------------------------------------------------------------ state --
+
+  # Every reader is defensive. Lich's DR objects are populated by parsing the
+  # game stream, so any of them can be missing or stale right after login, and
+  # a bridge that raises on a nil is worse than one that reports "unknown".
+  module State
+    module_function
+
+    def safe(default = nil)
+      yield
+    rescue StandardError
+      default
+    end
+
+    def char_name
+      safe('') { DRStats.name.to_s }
+    end
+
+    def guild
+      safe('unknown') { DRStats.guild.to_s.downcase.gsub(/\s+/, '_') }
+    end
+
+    def instance
+      # Lich knows the game it connected to. DR instances differ in what is
+      # navigable, so getting this wrong is worse than admitting we do not know.
+      raw = safe('') { XMLData.game.to_s }
+      case raw.upcase
+      when 'DR'    then 'Prime'
+      when 'DRX'   then 'Platinum'
+      when 'DRF'   then 'Fallen'
+      when 'DRT'   then 'Test'
+      else 'Unknown'
+      end
+    end
+
+    # There is no reliable in-game read for subscription tier, so it is a user
+    # setting. Conservative default: unknown, which the UI treats as restricted.
+    def account_tier
+      t = safe(nil) { CharSettings['companion_account_tier'] }
+      t.nil? || t.to_s.empty? ? 'unknown' : t.to_s
+    end
+
+    def vitals
+      {
+        'health'           => safe(0) { DRStats.health.to_i },
+        'healthMax'        => 100,
+        'spirit'           => safe(0) { DRStats.spirit.to_i },
+        'spiritMax'        => 100,
+        'fatigue'          => safe(0) { DRStats.fatigue.to_i },
+        'fatigueMax'       => 100,
+        'concentration'    => safe(0) { DRStats.concentration.to_i },
+        'concentrationMax' => 100,
+        'mana'             => safe(0) { DRStats.mana.to_i },
+        'manaMax'          => 100
+      }
+    end
+
+    def location
+      {
+        'roomId'   => safe(nil) { Room.current.id&.to_s },
+        'title'    => safe('Unknown') { DRRoom.title.to_s.gsub(/^\[|\]$/, '') },
+        'zone'     => safe(nil) { Room.current.location },
+        'province' => safe(nil) { CharSettings['companion_province'] },
+        'isTown'   => safe(false) { !Room.current.location.nil? },
+        'isSafe'   => safe(false) { DRRoom.npcs.empty? }
+      }
+    end
+
+    # Indicator flags come from the shared Simutronics XML stream. Names differ
+    # between games and versions, so probe rather than assume.
+    def indicator?(*names)
+      ind = safe(nil) { XMLData.indicator }
+      return false unless ind.is_a?(Hash)
+      names.any? { |n| ind[n].to_s == 'y' }
+    end
+
+    def situation
+      flags = []
+      flags << 'dead'       if indicator?('IconDEAD')
+      flags << 'stunned'    if indicator?('IconSTUNNED')
+      flags << 'webbed'     if indicator?('IconWEBBED')
+      flags << 'prone'      if indicator?('IconPRONE')
+      flags << 'bleeding'   if indicator?('IconBLEEDING')
+      flags << 'in_combat'  unless safe([]) { DRRoom.npcs }.empty?
+      flags << 'roundtime'  if safe(0) { XMLData.roundtime_end.to_f - Time.now.to_f }.positive?
+
+      hp = safe(100) { DRStats.health.to_i }
+      flags << 'low_health' if hp.positive? && hp < 35
+      flags.uniq
+    end
+
+    # Skills with their mindstate. This is the payload the training view needs:
+    # ranks alone cannot answer "what should I train", mindstate can.
+    def skills
+      list = safe([]) { DRSkill.list } || []
+      list.map do |s|
+        name = safe(nil) { s.name } or next nil
+        {
+          'name'      => name,
+          'ranks'     => safe(0) { DRSkill.getrank(name).to_i },
+          'mindstate' => safe(0) { DRSkill.getxp(name).to_i },
+          'skillset'  => safe('Lore') { DRSkill.getskillset(name).to_s }
+        }
+      end.compact
+    end
+
+    def status
+      {
+        'name'        => char_name,
+        'instance'    => instance,
+        'accountTier' => account_tier,
+        'guild'       => guild,
+        'race'        => safe(nil) { DRStats.race.to_s },
+        'circle'      => safe(0) { DRStats.circle.to_i },
+        'favors'      => safe(0) { DRStats.favors.to_i },
+        'encumbrance' => safe(nil) { DRStats.encumbrance.to_s },
+        'location'    => location,
+        'vitals'      => vitals,
+        'situation'   => situation,
+        'skills'      => skills,
+        'activity'    => activity,
+        'connected'   => true,
+        # Liveness. A live socket does not mean a live game: if this clock
+        # stops advancing the game has hung even though the socket is fine.
+        # See docs/DOMAIN.md section 13.
+        'gameTime'    => safe(0) { Time.now.to_i },
+        'roomPlayers' => safe([]) { DRRoom.pcs } || [],
+        'groupMembers' => safe([]) { DRRoom.group_members } || []
+      }
+    end
+
+    def activity
+      running = other_scripts.reject { |s| s['status'] == 'paused' }
+      return 'Paused' if other_scripts.any? && running.empty?
+      return 'Ready' if running.empty?
+      running.map { |s| s['name'] }.join(', ')
+    end
+
+    def other_scripts
+      me = safe(nil) { Script.current.name }
+      safe([]) { Script.running }.map do |s|
+        n = safe(nil) { s.name }
+        next nil if n.nil? || n == me
+        { 'name' => n, 'status' => (safe(false) { s.paused? } ? 'paused' : 'running') }
+      end.compact
+    end
+
+    def inventory
+      containers = safe([]) do
+        DRCI.get_worn_containers.map { |c| { 'name' => c, 'used' => 0, 'capacity' => 0 } }
+      end
+      containers = [] unless containers.is_a?(Array)
+      {
+        'containers' => containers,
+        'wornCount'  => safe(0) { GameObj.inv.to_a.size },
+        'looseCount' => safe(0) { GameObj.right_hand.id ? 1 : 0 } +
+                        safe(0) { GameObj.left_hand.id ? 1 : 0 },
+        'pressure'   => 'ok'
+      }
+    end
+  end
+
+  # ---------------------------------------------------------------- intents --
+
+  module Intents
+    module_function
+
+    # Intents that must work whenever the socket is open, no matter what the
+    # game state looks like. A Stop button that checks preconditions is not a
+    # Stop button.
+    ALWAYS = %w[stop_all pause resume].freeze
+
+    def handle(intent, args, server)
+      case intent
+      when 'stop_all' then stop_all(server)
+      when 'pause'    then pause_all(server)
+      when 'resume'   then resume_all(server)
+      when 'get_favors'
+        [true, "favors: #{State.safe(0) { DRStats.favors.to_i }}"]
+      else
+        [false, "'#{intent}' is not implemented in bridge v#{BRIDGE_VERSION} yet. " \
+                'The panel can read state and stop scripts; it cannot run this activity.']
+      end
+    end
+
+    def stop_all(server)
+      killed = []
+      me = State.safe(nil) { Script.current.name }
+      State.safe([]) { Script.running }.each do |s|
+        n = State.safe(nil) { s.name }
+        next if n.nil? || n == me
+        State.safe(nil) { Script.kill(n) }
+        killed << n
+      end
+      server.log("Stopped: #{killed.empty? ? 'nothing was running' : killed.join(', ')}", 'warn')
+      [true, killed.empty? ? 'nothing was running' : "stopped #{killed.size}"]
+    end
+
+    def pause_all(server)
+      paused = []
+      me = State.safe(nil) { Script.current.name }
+      State.safe([]) { Script.running }.each do |s|
+        n = State.safe(nil) { s.name }
+        next if n.nil? || n == me
+        next if State.safe(false) { s.paused? }
+        State.safe(nil) { Script.pause(n) }
+        paused << n
+      end
+      server.log("Paused: #{paused.join(', ')}") unless paused.empty?
+      [true, "paused #{paused.size}"]
+    end
+
+    def resume_all(server)
+      resumed = []
+      me = State.safe(nil) { Script.current.name }
+      State.safe([]) { Script.running }.each do |s|
+        n = State.safe(nil) { s.name }
+        next if n.nil? || n == me
+        next unless State.safe(false) { s.paused? }
+        State.safe(nil) { Script.unpause(n) }
+        resumed << n
+      end
+      server.log("Resumed: #{resumed.join(', ')}") unless resumed.empty?
+      [true, "resumed #{resumed.size}"]
+    end
+  end
+
+  # ----------------------------------------------------------------- server --
+
+  class Server
+    def initialize(port = DEFAULT_PORT)
+      @port    = port
+      @clients = []
+      @lock    = Mutex.new
+      @running = false
+      @last_status = nil
+    end
+
+    def start
+      begin
+        @server = TCPServer.new('127.0.0.1', @port)
+      rescue Errno::EADDRINUSE
+        respond "[companion] port #{@port} is already in use. Another bridge may be running."
+        return false
+      end
+      @running = true
+      respond "[companion] bridge v#{BRIDGE_VERSION} listening on ws://127.0.0.1:#{@port}#{PATH}"
+
+      @accept_thread = Thread.new { accept_loop }
+      @push_thread   = Thread.new { push_loop }
+      true
+    end
+
+    def stop
+      @running = false
+      @lock.synchronize do
+        @clients.each do |c|
+          begin
+            c.write(WS.close_frame(1001, 'bridge stopping'))
+            c.close
+          rescue StandardError
+            nil
+          end
+        end
+        @clients.clear
+      end
+      begin
+        @server&.close
+      rescue StandardError
+        nil
+      end
+      respond '[companion] bridge stopped.'
+    end
+
+    def running?
+      @running
+    end
+
+    # ------------------------------------------------------------- plumbing --
+
+    def accept_loop
+      while @running
+        ready = IO.select([@server], nil, nil, 0.5)
+        next unless ready
+        begin
+          sock = @server.accept_nonblock
+        rescue IO::WaitReadable, Errno::EINTR
+          next
+        rescue StandardError
+          next
+        end
+        Thread.new(sock) { |s| serve(s) }
+      end
+    rescue StandardError => e
+      respond "[companion] accept loop ended: #{e.message}"
+    end
+
+    def serve(sock)
+      return unless handshake(sock)
+
+      @lock.synchronize { @clients << sock }
+      send_to(sock, type: 'hello', protocol: PROTOCOL,
+                    lichVersion: (defined?(LICH_VERSION) ? LICH_VERSION.to_s : 'unknown'),
+                    bridgeVersion: BRIDGE_VERSION)
+      send_to(sock, type: 'status', payload: State.status)
+      send_to(sock, type: 'inventory', payload: State.inventory)
+      send_to(sock, type: 'scripts', payload: State.other_scripts)
+
+      while @running
+        frame = WS.read_frame(sock)
+        break if frame.nil?
+        opcode, payload = frame
+
+        case opcode
+        when 0x8 # close
+          break
+        when 0x9 # ping
+          @lock.synchronize { sock.write(WS.encode(payload, 0xA)) rescue nil }
+        when 0x1, 0x2
+          handle_message(sock, payload)
+        end
+      end
+    rescue StandardError
+      nil
+    ensure
+      @lock.synchronize { @clients.delete(sock) }
+      begin
+        sock.close
+      rescue StandardError
+        nil
+      end
+    end
+
+    def handshake(sock)
+      request = +''
+      # Read headers, bounded so a non-WebSocket client cannot hang a thread.
+      deadline = Time.now + 5
+      while Time.now < deadline
+        break if request.include?("\r\n\r\n")
+        ready = IO.select([sock], nil, nil, 0.5)
+        next unless ready
+        begin
+          request << sock.readpartial(4096)
+        rescue EOFError, IOError
+          return false
+        end
+        return false if request.bytesize > 16_384
+      end
+      return false unless request.include?("\r\n\r\n")
+
+      request_line = request.lines.first.to_s
+      unless request_line.include?(PATH)
+        sock.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n")
+        return false
+      end
+
+      key = request[/Sec-WebSocket-Key:\s*(\S+)/i, 1]
+      unless key
+        sock.write("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n")
+        return false
+      end
+
+      sock.write(
+        "HTTP/1.1 101 Switching Protocols\r\n" \
+        "Upgrade: websocket\r\n" \
+        "Connection: Upgrade\r\n" \
+        "Sec-WebSocket-Accept: #{WS.accept_key(key)}\r\n\r\n"
+      )
+      true
+    rescue StandardError
+      false
+    end
+
+    def handle_message(sock, raw)
+      msg = begin
+        JSON.parse(raw)
+      rescue StandardError
+        send_to(sock, type: 'error', message: 'invalid JSON')
+        return
+      end
+      return unless msg.is_a?(Hash)
+
+      case msg['type']
+      when 'ping'
+        send_to(sock, type: 'log', line: 'pong')
+      when 'subscribe', 'get_status'
+        send_to(sock, type: 'status', payload: State.status)
+      when 'get_inventory'
+        send_to(sock, type: 'inventory', payload: State.inventory)
+      when 'intent'
+        intent = msg['intent'].to_s
+        ok, detail = Intents.handle(intent, msg['args'], self)
+        send_to(sock, type: 'intent_ack', intent: intent, ok: ok, detail: detail)
+        broadcast(type: 'status', payload: State.status)
+        broadcast(type: 'scripts', payload: State.other_scripts)
+      else
+        send_to(sock, type: 'error', message: "unknown message type: #{msg['type']}")
+      end
+    end
+
+    def send_to(sock, hash)
+      frame = WS.encode(JSON.generate(hash))
+      @lock.synchronize do
+        begin
+          sock.write(frame)
+        rescue StandardError
+          @clients.delete(sock)
+        end
+      end
+    end
+
+    def broadcast(hash)
+      frame = WS.encode(JSON.generate(hash))
+      @lock.synchronize do
+        @clients.dup.each do |c|
+          begin
+            c.write(frame)
+          rescue StandardError
+            @clients.delete(c)
+          end
+        end
+      end
+    end
+
+    def log(line, level = 'info')
+      broadcast(type: 'log', line: line, level: level)
+    end
+
+    # Push status on a slow tick, and immediately when something changed.
+    # Skills are large, so compare a cheap digest rather than the whole payload.
+    def push_loop
+      last_scripts = nil
+      while @running
+        sleep 1
+        next if @clients.empty?
+
+        begin
+          status = State.status
+          digest = [
+            status['vitals'], status['situation'], status['location'],
+            status['activity'], status['favors']
+          ].to_s
+
+          if digest != @last_status
+            @last_status = digest
+            broadcast(type: 'status', payload: status)
+          end
+
+          scripts = State.other_scripts
+          if scripts != last_scripts
+            last_scripts = scripts
+            broadcast(type: 'scripts', payload: scripts)
+          end
+        rescue StandardError
+          nil
+        end
+      end
+    end
+  end
+end
+
+# -------------------------------------------------------------------- entry --
+
+arg = Script.current.vars[1].to_s.strip.downcase
+
+if arg == 'stop'
+  if $companion_bridge&.running?
+    $companion_bridge.stop
+    $companion_bridge = nil
+  else
+    respond '[companion] no bridge is running.'
+  end
+  exit
+end
+
+if $companion_bridge&.running?
+  respond '[companion] bridge is already running. Use ";companion_bridge stop" first.'
+  exit
+end
+
+port = arg =~ /^\d+$/ ? arg.to_i : Companion::DEFAULT_PORT
+
+$companion_bridge = Companion::Server.new(port)
+exit unless $companion_bridge.start
+
+Script.at_exit do
+  $companion_bridge&.stop
+  $companion_bridge = nil
+end
+
+# Keep the script alive so Lich does not reap it while the sockets are open.
+sleep 1 while $companion_bridge&.running?

@@ -1,5 +1,9 @@
 /** Core domain types for DR Companion — mirrors design document awareness model */
 
+import type { SkillState } from '../data/skills'
+
+export type { SkillState }
+
 export type GameInstance = 'Prime' | 'Platinum' | 'Fallen' | 'Test' | 'Unknown'
 
 /** Simutronics account / subscription tier — drives travel, inventory, bank, guild, hunting */
@@ -62,12 +66,41 @@ export interface CharacterStatus {
   /** Subscription tier — critical for travel, inventory, bank, guild, hunting options */
   accountTier: AccountTier
   guild?: string
+  race?: string
+  circle?: number
+  /**
+   * Favors held with the gods. Consumed on death to reduce the penalty, so
+   * this is the number that answers "can I afford to die right now".
+   * See docs/DOMAIN.md section 17.
+   */
+  favors?: number
+  encumbrance?: string
+  /**
+   * Per-skill ranks and mindstate. This is what drives training decisions:
+   * a skill at mind lock earns nothing, so the answer to "what should I
+   * train" is computed from here, not chosen from a checkbox.
+   * See docs/DOMAIN.md section 1.
+   */
+  skills?: SkillState[]
+  /**
+   * @deprecated A single number cannot represent a character, because the
+   * whole mechanic is that skills differ. Derived from `skills` when present.
+   * Kept so older mock payloads still render.
+   */
   skillRanks?: number
   location: LocationInfo
   vitals: Vitals
   situation: SituationFlag[]
   activity: string
   connected: boolean
+  /** Other players in the room. Hunting grounds are contested. */
+  roomPlayers?: string[]
+  groupMembers?: string[]
+  /**
+   * Bridge-side clock, seconds. An open socket does not mean a live game; if
+   * this stops advancing the game has hung. See docs/DOMAIN.md section 13.
+   */
+  gameTime?: number
 }
 
 export interface InventorySummary {

@@ -12,8 +12,40 @@ import { pickSuggestedHunt, rankHuntingGrounds, HUNTING_GROUNDS } from '../data/
 import { simulateCombatLoop, describeCombatState } from '../data/combatMachine'
 import { planTravel } from '../data/travelPath'
 import type { GuildId } from '../data/hunting'
+import type { SkillState } from '../data/skills'
 
 type Listener = (msg: BridgeServerMessage) => void
+
+/**
+ * Build a plausible skill spread for a demo character.
+ *
+ * Deliberately uneven: a couple of skills near mind lock, a couple with room.
+ * A flat spread would make the training panel look pointless, and the whole
+ * point of the mechanic is that skills diverge.
+ */
+function demoSkills(level: number): SkillState[] {
+  const spread: [string, SkillState['skillset'], number, number][] = [
+    ['Small Edged', 'Weapon', 1.0, 33],
+    ['Large Edged', 'Weapon', 0.7, 8],
+    ['Parry Ability', 'Weapon', 0.9, 21],
+    ['Light Armor', 'Armor', 0.95, 34],
+    ['Shield Usage', 'Armor', 0.8, 14],
+    ['Evasion', 'Survival', 1.0, 29],
+    ['Athletics', 'Survival', 0.6, 4],
+    ['Perception', 'Survival', 0.7, 11],
+    ['Stealth', 'Survival', 0.5, 2],
+    ['Locksmithing', 'Survival', 0.4, 30],
+    ['Primary Magic', 'Magic', 0.85, 17],
+    ['Appraisal', 'Lore', 0.3, 0],
+    ['Scholarship', 'Lore', 0.35, 6],
+  ]
+  return spread.map(([name, skillset, factor, mindstate]) => ({
+    name,
+    skillset,
+    ranks: Math.max(1, Math.round(level * factor)),
+    mindstate,
+  }))
+}
 
 export type DemoPresetId = 'basic_prime' | 'f2p_prime' | 'fallen_sub' | 'premium_prime' | 'platinum_fallen'
 
@@ -217,6 +249,16 @@ const presets: Record<DemoPresetId, DemoPreset> = {
       pressure: 'ok',
     },
   },
+}
+
+// Give every preset a skill spread and a favor count, derived from its level,
+// so the demo exercises the same code paths the live bridge will.
+for (const p of Object.values(presets)) {
+  const level = p.character.skillRanks ?? 50
+  p.character.skills = demoSkills(level)
+  p.character.favors = Math.max(0, Math.round(level / 8))
+  p.character.circle = Math.max(1, Math.round(level / 3))
+  p.character.roomPlayers = []
 }
 
 export const DEMO_PRESET_LIST = Object.values(presets).map((p) => ({

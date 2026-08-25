@@ -17,12 +17,29 @@ type StatusListener = (status: RealBridgeStatus, detail?: string) => void
 
 const DEFAULT_URL = 'ws://127.0.0.1:7415/companion'
 
+const BASE_RECONNECT_MS = 1000
+const MAX_RECONNECT_MS = 30_000
+
+/**
+ * How long the game clock may stand still before we call the game hung.
+ *
+ * An open socket says nothing about whether the game is alive. Community
+ * tooling detects this by checking whether the in-game clock advanced, and we
+ * do the same with the `gameTime` field on every status payload.
+ * See docs/DOMAIN.md section 13.
+ */
+const STALE_AFTER_MS = 90_000
+
 export class RealBridge {
   private ws: WebSocket | null = null
   private listeners = new Set<Listener>()
   private statusListeners = new Set<StatusListener>()
   private url: string
   private status: RealBridgeStatus = 'disconnected'
+  private reconnectAttempts = 0
+  private lastGameTime: number | null = null
+  private lastGameTimeAt = 0
+  private staleTimer: number | null = null
   private reconnectTimer: number | null = null
   private shouldReconnect = false
 
@@ -59,17 +76,20 @@ export class RealBridge {
       this.ws = ws
 
       ws.onopen = () => {
+        this.reconnectAttempts = 0
         this.setStatus('connected')
         this.send({
           type: 'subscribe',
           channels: ['status', 'inventory', 'scripts', 'log'],
         })
         this.send({ type: 'get_status' })
+        this.startStaleWatch()
       }
 
       ws.onmessage = (ev) => {
         try {
           const msg = JSON.parse(String(ev.data)) as BridgeServerMessage
+          if (msg.type === 'status') this.noteGameTime(msg.payload.gameTime)
           this.listeners.forEach((fn) => fn(msg))
         } catch {
           this.listeners.forEach((fn) =>
@@ -84,9 +104,20 @@ export class RealBridge {
 
       ws.onclose = () => {
         this.ws = null
+        this.stopStaleWatch()
         if (this.shouldReconnect) {
-          this.setStatus('disconnected', 'Connection closed — retrying in 3s')
-          this.reconnectTimer = window.setTimeout(() => this.connect(), 3000)
+          // Exponential backoff, capped. Retrying every 3s forever floods the
+          // console and hammers a port that is usually just not there yet.
+          const delay = Math.min(
+            MAX_RECONNECT_MS,
+            BASE_RECONNECT_MS * 2 ** this.reconnectAttempts
+          )
+          this.reconnectAttempts += 1
+          this.setStatus(
+            'disconnected',
+            `Connection closed — retrying in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts})`
+          )
+          this.reconnectTimer = window.setTimeout(() => this.connect(), delay)
         } else {
           this.setStatus('disconnected')
         }
@@ -101,6 +132,8 @@ export class RealBridge {
 
   disconnect() {
     this.shouldReconnect = false
+    this.reconnectAttempts = 0
+    this.stopStaleWatch()
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
@@ -125,6 +158,41 @@ export class RealBridge {
   private setStatus(s: RealBridgeStatus, detail?: string) {
     this.status = s
     this.statusListeners.forEach((fn) => fn(s, detail))
+  }
+
+  /** Record the bridge clock so we can tell a live game from a live socket. */
+  private noteGameTime(t?: number) {
+    if (typeof t !== 'number') return
+    if (t !== this.lastGameTime) {
+      this.lastGameTime = t
+      this.lastGameTimeAt = Date.now()
+    }
+  }
+
+  private startStaleWatch() {
+    this.stopStaleWatch()
+    this.lastGameTimeAt = Date.now()
+    this.staleTimer = window.setInterval(() => {
+      if (this.status !== 'connected') return
+      if (this.lastGameTime === null) return
+      const since = Date.now() - this.lastGameTimeAt
+      if (since > STALE_AFTER_MS) {
+        this.setStatus(
+          'error',
+          `Bridge is connected but the game clock has not moved for ${Math.round(
+            since / 1000
+          )}s. The game may have hung or disconnected.`
+        )
+      }
+    }, 15_000)
+  }
+
+  private stopStaleWatch() {
+    if (this.staleTimer) {
+      clearInterval(this.staleTimer)
+      this.staleTimer = null
+    }
+    this.lastGameTime = null
   }
 }
 

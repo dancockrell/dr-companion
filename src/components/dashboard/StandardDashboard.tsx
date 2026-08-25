@@ -19,6 +19,7 @@ import { Button } from '../shared/Button'
 import { VitalBar } from '../shared/VitalBar'
 import { Badge } from '../shared/Badge'
 import { PresetBar } from '../shared/PresetBar'
+import { TrainingPanel } from '../shared/TrainingPanel'
 import { InventoryPanel } from '../shared/InventoryPanel'
 
 export function StandardDashboard() {
@@ -245,14 +246,15 @@ export function StandardDashboard() {
             variant="ghost"
             className="flex-col h-auto py-2"
             icon={<ShieldAlert className="w-4 h-4" />}
-            onClick={() => requestIntent('stop_all')}
+            onClick={() => requestIntent('escape')}
           >
             Safe
           </Button>
         </div>
       </section>
+      <TrainingPanel />
 
-            <PresetBar />
+      <PresetBar />
 
 <section className="px-4 pb-2 shrink-0">
         <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-2">
