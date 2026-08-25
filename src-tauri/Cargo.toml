@@ -1,9 +1,10 @@
 [package]
 name = "dr-companion"
 version = "0.1.0"
-description = "DR Companion — Genie + Lich control panel"
-authors = ["DR Companion"]
+description = "DR Companion — a DragonRealms control panel for Lich"
+authors = ["Dan Cockrell"]
 edition = "2021"
+license = "MIT"
 
 [lib]
 name = "dr_companion_lib"
@@ -17,7 +18,22 @@ tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# Setup: fetching release metadata and verified downloads.
+# rustls rather than native-tls so a build machine needs no OpenSSL, and
+# default-features off to keep the dependency surface small.
+reqwest = { version = "0.12", default-features = false, features = [
+  "rustls-tls",
+  "json",
+  "charset",
+  "http2",
+] }
+sha2 = "0.10"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
 [profile.release]
 panic = "abort"
 codegen-units = 1
 lto = true
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread"] }

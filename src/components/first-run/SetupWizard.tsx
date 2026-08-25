@@ -1,259 +1,260 @@
-import { NoobChecklist } from './NoobChecklist'
-import { useCallback, useEffect, useState } from 'react'
-import {
-  CheckCircle2,
-  Circle,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  Copy,
-  ExternalLink,
-} from 'lucide-react'
+/**
+ * First run.
+ *
+ * Lich has a reputation for being hard to get started with, and the reason is
+ * usually that a new player is handed a dependency problem before they have
+ * seen anything working. This screen tries to take that on:
+ *
+ * - Check first, silently, behind a title screen.
+ * - If everything is there, do not make them read anything. Go.
+ * - If something is missing, say exactly what, offer to fetch it, and show
+ *   where it comes from and what will happen to it.
+ * - Never touch a Ruby they already have.
+ * - Never run anything without a separate, explicit yes.
+ * - Always leave the demo open, so nobody is stuck behind a download.
+ */
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { RefreshCw, FolderOpen } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { Button } from '../shared/Button'
-import { isTauri, detectComponents, rubyInstallCommand } from '../../lib/tauri'
-import type { SetupComponent, SetupComponentId } from '../../types'
+import { NoobChecklist } from './NoobChecklist'
+import { Preflight } from './Preflight'
+import { ComponentCard, type CardState } from './ComponentCard'
+import { isTauri } from '../../lib/tauri'
+import {
+  planSetup,
+  downloadComponent,
+  extractLich,
+  installBridgeScript,
+  runInstaller,
+  revealFile,
+  onSetupProgress,
+  appDataPath,
+  type SetupPlan,
+} from '../../lib/setup'
 
-function StatusIcon({ status }: { status: SetupComponent['status'] }) {
-  if (status === 'ready') return <CheckCircle2 className="w-5 h-5 text-good" />
-  if (status === 'installing' || status === 'checking')
-    return <Loader2 className="w-5 h-5 text-info animate-spin" />
-  if (status === 'error') return <AlertCircle className="w-5 h-5 text-danger" />
-  return <Circle className="w-5 h-5 text-ink-faint" />
-}
-
-/**
- * What to do about each missing piece.
- *
- * Ruby and Lich are handed over as a command or a link, not installed
- * silently. The user sees exactly what would run before it runs, which is the
- * difference between a setup tool and something that just downloads things.
- */
-const REMEDY: Record<
-  SetupComponentId,
-  { how: string; command?: string; link?: string; linkLabel?: string }
-> = {
-  genie: {
-    how: 'Any Simutronics frontend works. Genie is the common one for DragonRealms.',
-    link: 'https://genie.gs4dragon.com/',
-    linkLabel: 'Genie downloads',
-  },
-  ruby: {
-    how: 'Lich runs on Ruby. Install it with winget, then reopen this app so the new PATH is picked up.',
-    command:
-      'winget install --id RubyInstallerTeam.RubyWithDevKit.3.3 --source winget',
-  },
-  lich: {
-    how: 'Lich 5 is the automation engine. Download it from the elanthia-online project and unzip it somewhere stable.',
-    link: 'https://github.com/elanthia-online/lich-5',
-    linkLabel: 'elanthia-online/lich-5',
-  },
-  bridge: {
-    how: 'Copy lich-scripts/companion_bridge.lic into Lich’s scripts folder, then run ;companion_bridge in game.',
-  },
-  maps: {
-    how: 'Lich downloads its map database on first run. Optional, but travel needs it.',
-    link: 'https://github.com/elanthia-online/mapdb-backup-dr',
-    linkLabel: 'DR map database',
-  },
-}
+type Phase = 'checking' | 'plan' | 'browser'
 
 export function SetupWizard() {
-  const setupComponents = useAppStore((s) => s.setupComponents)
-  const updateSetupComponent = useAppStore((s) => s.updateSetupComponent)
   const setSetupComplete = useAppStore((s) => s.setSetupComplete)
   const simulateConnect = useAppStore((s) => s.simulateConnect)
   const addLog = useAppStore((s) => s.addLog)
 
-  const [scanning, setScanning] = useState(false)
-  const [canDetect] = useState(() => isTauri())
-  const [copied, setCopied] = useState<string | null>(null)
+  const [phase, setPhase] = useState<Phase>(isTauri() ? 'checking' : 'browser')
+  const [plan, setPlan] = useState<SetupPlan | null>(null)
+  const [cards, setCards] = useState<Record<string, CardState>>({})
+  const [dataDir, setDataDir] = useState('')
+  // Stamped when the check starts, not during render.
+  const startedAt = useRef(0)
 
-  const scan = useCallback(async () => {
-    const ids = useAppStore.getState().setupComponents.map((c) => c.id)
-
-    if (!canDetect) {
-      // In the browser we genuinely cannot look at the filesystem. Say that,
-      // rather than reporting a state we did not check.
-      ids.forEach((id) =>
-        updateSetupComponent(id, {
-          status: 'missing',
-          detail: 'Cannot check from the browser. Run the desktop app to detect.',
-        })
-      )
-      return
-    }
-
-    setScanning(true)
-    ids.forEach((id) => updateSetupComponent(id, { status: 'checking' }))
-    try {
-      const found = await detectComponents()
-      if (!found) {
-        ids.forEach((id) =>
-          updateSetupComponent(id, {
-            status: 'error',
-            detail: 'Detection failed',
-          })
-        )
-        return
-      }
-      found.forEach((f) => {
-        updateSetupComponent(f.id as SetupComponentId, {
-          status: f.status,
-          detail: f.path ? `${f.detail} — ${f.path}` : f.detail,
-        })
-      })
-      const ready = found.filter((f) => f.status === 'ready').length
-      addLog(`Detected ${ready} of ${found.length} components.`)
-    } catch (e) {
-      addLog(`Detection error: ${e instanceof Error ? e.message : String(e)}`)
-    } finally {
-      setScanning(false)
-    }
-  }, [canDetect, updateSetupComponent, addLog])
-
-  useEffect(() => {
-    void scan()
-  }, [scan])
-
-  async function copyCommand(id: SetupComponentId) {
-    const cmd =
-      id === 'ruby' ? await rubyInstallCommand() : (REMEDY[id].command ?? '')
-    if (!cmd) return
-    try {
-      await navigator.clipboard.writeText(cmd)
-      setCopied(id)
-      window.setTimeout(() => setCopied(null), 1800)
-    } catch {
-      addLog(`Copy failed. Command: ${cmd}`)
-    }
-  }
-
-  function handleFinish() {
+  const enter = useCallback(() => {
     setSetupComplete(true)
     simulateConnect()
-    addLog('Entering dashboard.')
+  }, [setSetupComplete, simulateConnect])
+
+  const check = useCallback(async () => {
+    if (!isTauri()) {
+      setPhase('browser')
+      return
+    }
+    setPhase('checking')
+    startedAt.current = Date.now()
+    try {
+      const p = await planSetup()
+      setPlan(p)
+      setDataDir(await appDataPath())
+
+      // Do not flash the title screen. If the check was instant, let it be
+      // seen for a beat rather than blinking past.
+      const elapsed = Date.now() - startedAt.current
+      const wait = Math.max(0, 900 - elapsed)
+      window.setTimeout(() => {
+        if (p?.ready) {
+          addLog('All dependencies found. Connecting.')
+          enter()
+        } else {
+          setPhase('plan')
+        }
+      }, wait)
+    } catch (e) {
+      addLog(`Setup check failed: ${e instanceof Error ? e.message : String(e)}`)
+      setPhase('plan')
+    }
+  }, [addLog, enter])
+
+  useEffect(() => {
+    void check()
+  }, [check])
+
+  // Progress events from the native downloader.
+  useEffect(() => {
+    return onSetupProgress((p) => {
+      setCards((c) => ({ ...c, [p.id]: { ...c[p.id], progress: p } }))
+    })
+  }, [])
+
+  async function handleDownload(id: string) {
+    const comp = plan?.components.find((c) => c.id === id)
+    if (!comp || comp.remedy.kind !== 'download') return
+    const r = comp.remedy
+
+    setCards((c) => ({ ...c, [id]: { ...c[id], busy: true, error: undefined } }))
+    addLog(`Downloading ${r.label} (${r.version}) from ${r.url}`)
+
+    try {
+      const res = await downloadComponent(id, r.url, r.sha256, r.dest)
+      addLog(`Verified ${r.label}: sha256 ${res.sha256.slice(0, 16)}…`)
+
+      if (r.after === 'extract') {
+        const dir = await extractLich(res.path)
+        setCards((c) => ({
+          ...c,
+          [id]: { ...c[id], busy: false, done: `Installed to ${dir}` },
+        }))
+        addLog(`Extracted Lich to ${dir}`)
+        await check()
+      } else {
+        setCards((c) => ({
+          ...c,
+          [id]: {
+            ...c[id],
+            busy: false,
+            downloadedPath: res.path,
+            done: `Verified and saved to ${res.path}`,
+          },
+        }))
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setCards((c) => ({ ...c, [id]: { ...c[id], busy: false, error: msg } }))
+      addLog(`Download failed: ${msg}`)
+    }
   }
 
-  const missing = setupComponents.filter((c) => c.status !== 'ready')
-  const allReady = missing.length === 0
+  async function handleInstallBridge() {
+    setCards((c) => ({
+      ...c,
+      bridge: { ...c.bridge, busy: true, error: undefined },
+    }))
+    try {
+      const dest = await installBridgeScript()
+      setCards((c) => ({
+        ...c,
+        bridge: { ...c.bridge, busy: false, done: `Installed to ${dest}` },
+      }))
+      addLog(`Bridge script installed to ${dest}`)
+      await check()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setCards((c) => ({ ...c, bridge: { ...c.bridge, busy: false, error: msg } }))
+      addLog(`Bridge install failed: ${msg}`)
+    }
+  }
+
+  async function handleRunInstaller(path: string) {
+    try {
+      await runInstaller(path)
+      addLog(`Started ${path}. Press Check again when it finishes.`)
+    } catch (e) {
+      addLog(`Could not start installer: ${e instanceof Error ? e.message : e}`)
+    }
+  }
+
+  if (phase === 'checking') {
+    return <Preflight onSkip={enter} />
+  }
+
+  const required = plan?.components.filter((c) => c.required) ?? []
+  const lichPresent =
+    plan?.components.find((c) => c.id === 'lich')?.presence === 'present'
+  const missing = required.filter((c) => c.presence !== 'present')
 
   return (
-    <div className="min-h-full flex flex-col p-5 gap-5 max-w-lg mx-auto">
-      <header className="space-y-2 pt-2">
+    <div className="min-h-full flex flex-col p-5 gap-4 max-w-lg mx-auto">
+      <header className="space-y-2 pt-1">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          Welcome to DR Companion
+          {phase === 'browser'
+            ? 'Welcome to DR Companion'
+            : missing.length === 0
+              ? 'Ready'
+              : 'A couple of things are missing'}
         </h1>
         <p className="text-ink-muted text-sm leading-relaxed">
-          This checks what you already have. It does not install Ruby or Lich
-          for you: it shows you the command and you run it. You can also skip
-          all of this and try the demo.
+          {phase === 'browser'
+            ? 'Running in a browser, so there is no way to check your machine or install anything. The demo works fully here. For live play, use the desktop app.'
+            : 'Nothing is downloaded until you ask. Anything we do fetch is checked against the checksum GitHub publishes, and goes in this app’s own folder, not over anything you already have.'}
         </p>
       </header>
 
-      <NoobChecklist />
+      {plan?.offlineNote && (
+        <p className="text-[11px] text-warn leading-snug rounded-lg border border-warn/30 bg-warn/10 px-3 py-2">
+          {plan.offlineNote}
+        </p>
+      )}
 
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-ink-faint">
-          {canDetect
-            ? scanning
-              ? 'Looking…'
-              : `${setupComponents.length - missing.length} of ${setupComponents.length} found`
-            : 'Browser mode — cannot check your filesystem'}
-        </span>
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : ''}`}
-            />
-          }
-          onClick={() => void scan()}
-          disabled={scanning || !canDetect}
-        >
-          Check again
-        </Button>
-      </div>
-
-      <section className="space-y-3">
-        {setupComponents.map((c) => {
-          const remedy = REMEDY[c.id]
-          return (
-            <div
-              key={c.id}
-              className="rounded-2xl border border-border bg-surface-raised p-4 flex gap-3 items-start"
+      {phase !== 'browser' && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-ink-faint">
+            {required.length - missing.length} of {required.length} ready
+          </span>
+          <div className="flex gap-1.5">
+            {dataDir && (
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<FolderOpen className="w-3.5 h-3.5" />}
+                onClick={() => void revealFile(dataDir)}
+                title={dataDir}
+              >
+                App folder
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<RefreshCw className="w-3.5 h-3.5" />}
+              onClick={() => void check()}
             >
-              <div className="pt-0.5">
-                <StatusIcon status={c.status} />
-              </div>
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="font-medium text-ink">{c.label}</h2>
-                  {c.status === 'ready' && (
-                    <span className="text-xs text-good font-medium">Found</span>
-                  )}
-                </div>
-                <p className="text-xs text-ink-muted leading-snug">
-                  {c.description}
-                </p>
-                {c.detail && (
-                  <p className="text-xs text-ink-faint break-all">{c.detail}</p>
-                )}
+              Check again
+            </Button>
+          </div>
+        </div>
+      )}
 
-                {c.status !== 'ready' && (
-                  <div className="pt-2 space-y-2">
-                    <p className="text-[11px] text-ink-muted leading-snug">
-                      {remedy.how}
-                    </p>
-                    {remedy.command && (
-                      <div className="flex items-center gap-1.5">
-                        <code className="flex-1 text-[10px] font-mono bg-surface border border-border rounded-md px-2 py-1.5 text-ink-muted overflow-x-auto whitespace-nowrap">
-                          {remedy.command}
-                        </code>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          icon={<Copy className="w-3 h-3" />}
-                          onClick={() => void copyCommand(c.id)}
-                        >
-                          {copied === c.id ? 'Copied' : 'Copy'}
-                        </Button>
-                      </div>
-                    )}
-                    {remedy.link && (
-                      <a
-                        href={remedy.link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] text-info hover:underline"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        {remedy.linkLabel ?? remedy.link}
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </section>
+      {phase === 'browser' ? (
+        <NoobChecklist />
+      ) : (
+        <section className="space-y-3">
+          {plan?.components.map((c) => (
+            <ComponentCard
+              key={c.id}
+              plan={c}
+              state={cards[c.id] ?? {}}
+              onDownload={() => void handleDownload(c.id)}
+              onRunInstaller={(p) => void handleRunInstaller(p)}
+              onReveal={(p) => void revealFile(p)}
+              onInstallBridge={() => void handleInstallBridge()}
+              canInstallBridge={lichPresent}
+            />
+          ))}
+        </section>
+      )}
 
-      <div className="mt-auto pt-2 space-y-3">
+      <div className="mt-auto pt-2 space-y-2">
         <Button
           size="xl"
-          variant={allReady ? 'good' : 'primary'}
-          onClick={handleFinish}
+          variant={missing.length === 0 && phase !== 'browser' ? 'good' : 'primary'}
+          onClick={enter}
         >
-          {allReady ? 'Everything is ready — Continue' : 'Open the demo dashboard'}
+          {missing.length === 0 && phase !== 'browser'
+            ? 'Continue'
+            : 'Open the demo dashboard'}
         </Button>
-        {!allReady && (
-          <p className="text-[11px] text-ink-faint text-center leading-relaxed">
-            The demo runs a simulated character. Nothing connects to the game
-            until Lich and the bridge are in place.
-          </p>
-        )}
+        <p className="text-[11px] text-ink-faint text-center leading-relaxed">
+          {missing.length === 0 && phase !== 'browser'
+            ? 'Start the bridge in game with ;companion_bridge, then switch to Live Lich in Settings.'
+            : 'The demo runs a simulated character and needs none of the above. You can set the rest up whenever.'}
+        </p>
       </div>
     </div>
   )

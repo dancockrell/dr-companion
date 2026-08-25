@@ -50,6 +50,9 @@
     },
     "shortDescription": "Dragon Realms Companion control panel",
     "longDescription": "Attended control panel for Genie + Lich automation. Runs as a small window beside the game.",
-    "category": "Game"
+    "category": "Game",
+    "resources": {
+      "../lich-scripts/companion_bridge.lic": "lich-scripts/companion_bridge.lic"
+    }
   }
 }
