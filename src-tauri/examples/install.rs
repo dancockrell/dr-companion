@@ -1,22 +1,25 @@
 //! Runs a real setup against this machine, using the app's own code.
 //!
-//!   cargo run --example install -- ruby4lich5
-//!   cargo run --example install -- plugins
-//!   cargo run --example install -- maps
+//!   cargo run --example install -- ruby4lich5   download and verify
+//!   cargo run --example install -- plugins      Genie plugin bundle
+//!   cargo run --example install -- maps         Genie map bundle
+//!   cargo run --example install -- run          execute what was downloaded
+//!   cargo run --example install -- guards       just the run_installer checks
 //!
 //! Everything here goes through `plan_setup`, `download_verified` and
 //! `install_bundle_inner`, so a bug in the setup flow shows up here rather
 //! than in a hand-written curl that proves nothing about the app.
 //!
-//! Deliberately does not run installers. Fetching is one decision and
-//! executing a 65 MB installer is a separate one, which is the rule the app
-//! itself follows; this prints the path and stops.
+//! Downloading and running are separate subcommands on purpose, because they
+//! are separate decisions in the app: fetching a 65 MB installer is one, and
+//! executing it is another. `ruby4lich5` prints the verified path and stops.
 
 use dr_companion_lib::setup::*;
+use std::path::PathBuf;
 
 fn main() {
     let which = std::env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("usage: cargo run --example install -- <ruby4lich5|plugins|maps>");
+        eprintln!("usage: cargo run --example install -- <ruby4lich5|plugins|maps|run|guards>");
         std::process::exit(2);
     });
 
@@ -30,7 +33,8 @@ fn main() {
             "ruby4lich5" => download_from_plan("ruby", "ruby4lich5").await,
             "plugins" => bundle("plugins").await,
             "maps" => bundle("maps").await,
-            "run" => run_downloaded_installer(),
+            "run" => { run_downloaded_installer(); check_guards() }
+            "guards" => check_guards(),
             other => {
                 eprintln!("unknown target: {other}");
                 std::process::exit(2);
@@ -130,10 +134,8 @@ async fn bundle(component_id: &str) {
 
 /// The second decision: actually execute what was downloaded.
 ///
-/// Goes through `run_installer` rather than spawning it directly, so the
-/// guards get exercised too — it refuses anything outside the app's own
-/// download folder and anything that is not an `.exe` we wrote there. Those
-/// are the checks worth having actually run at least once.
+/// Goes through `run_installer` rather than spawning it directly, so the real
+/// entry point is what gets exercised.
 ///
 /// Launched interactively on purpose. NSIS takes `/S`, and using it would mean
 /// installing something on someone's machine without them seeing a single one
@@ -148,21 +150,44 @@ fn run_downloaded_installer() {
         Ok(()) => println!("launched — it asks its own questions from here"),
         Err(e) => die(&e),
     }
-
     println!();
-    println!("-- the guards, since they are only worth having if they run --");
-    for (label, bad) in [
-        ("outside the download folder", "C:\\Windows\\System32\\cmd.exe"),
-        ("not an installer", "C:\\Lich5\\lich.rbw"),
+}
+
+/// `run_installer` refuses anything outside the app's own download folder and
+/// anything that is not an `.exe`. Guards are only worth having if they have
+/// been run, and this is separate from `run` so re-checking them does not mean
+/// launching a 65 MB installer again.
+fn check_guards() {
+    println!("-- run_installer guards --");
+
+    // The extension guard needs a file *inside* the download folder, or the
+    // path guard catches it first and the check never runs. The first version
+    // of this test used C:\Lich5\lich.rbw and reported the wrong refusal
+    // reason while looking like it passed.
+    let decoy = downloads_dir().join("not-an-installer.txt");
+    let _ = std::fs::write(&decoy, b"not an installer");
+
+    for (label, bad, want) in [
+        (
+            "outside the download folder",
+            PathBuf::from("C:\\Windows\\System32\\cmd.exe"),
+            "outside the app's own download folder",
+        ),
+        ("not an .exe", decoy.clone(), "not an installer"),
     ] {
-        match run_installer(bad.into()) {
+        match run_installer(bad.to_string_lossy().into_owned()) {
             Ok(()) => {
                 eprintln!("FAILED: ran {label}");
                 std::process::exit(1);
             }
-            Err(e) => println!("  refused {label}: {e}"),
+            Err(e) if e.contains(want) => println!("  refused {label}: {e}"),
+            Err(e) => {
+                eprintln!("FAILED: refused {label} for the wrong reason: {e}");
+                std::process::exit(1);
+            }
         }
     }
+    let _ = std::fs::remove_file(&decoy);
 }
 
 fn die(msg: &str) -> ! {

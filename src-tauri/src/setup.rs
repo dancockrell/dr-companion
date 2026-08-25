@@ -255,6 +255,36 @@ fn first_existing(dirs: &[PathBuf], leaf: &str) -> Option<PathBuf> {
     dirs.iter().map(|p| p.join(leaf)).find(|p| p.exists())
 }
 
+/// Drop paths that are the same folder reached by different spellings.
+///
+/// Candidates are built by joining a list of names onto a list of roots, so
+/// `C:\Lich5` arrives once as "lich5" and again as "Lich5", and once more from
+/// `lich_install_dir()`. `PathBuf` equality is textual and keeps all three.
+/// The first run against a machine with two real Lich installs reported five,
+/// which is worse than saying nothing: it makes a correct warning look like a
+/// bug and teaches people to ignore it.
+///
+/// Order is preserved, because the first entry is the one we use.
+fn dedupe_paths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
+    let mut seen: Vec<String> = Vec::new();
+    let mut out = Vec::new();
+
+    for p in paths {
+        // Compare on the canonical form, which resolves casing and any
+        // symlink or junction. Falling back to the lowercased text is enough
+        // for the case this exists to catch.
+        let key = std::fs::canonicalize(&p)
+            .map(|c| c.to_string_lossy().to_lowercase())
+            .unwrap_or_else(|_| p.to_string_lossy().to_lowercase());
+
+        if !seen.contains(&key) {
+            seen.push(key);
+            out.push(p);
+        }
+    }
+    out
+}
+
 fn lich_dirs() -> Vec<PathBuf> {
     let mut d = candidate_dirs(&["lich", "Lich", "lich5", "Lich5", "Ruby4Lich5", "ruby4lich5"]);
 
@@ -273,7 +303,44 @@ fn lich_dirs() -> Vec<PathBuf> {
     d.push(lich_install_dir());
     d.push(app_data_dir().join("lich"));
     d.retain(|p| p.exists());
-    d
+    dedupe_paths(d)
+}
+
+/// Every Lich install on the machine, best first.
+///
+/// One function because there must be exactly one answer. The setup screen
+/// used to rank them one way and `install_bridge_script` another — it took the
+/// first directory that happened to contain a `scripts` folder — so the app
+/// could tell you it was using one Lich and copy the bridge into a different
+/// one. Nothing errors. The screen reads as installed, the script is on disk,
+/// and typing the start command does nothing at all, which is unreportable.
+///
+/// The ranking rule: prefer the Lich sitting beside the Ruby that will run it.
+/// Ruby4Lich5 installs a matched pair, `C:\Ruby4Lich5\4.0.5\bin\ruby.exe` and
+/// `C:\Ruby4Lich5\Lich5`, versioned and tested together. Anything else is a
+/// Lich of unknown vintage that happens to sort earlier in a list, which is no
+/// basis for a decision. Seen here: with both present the app picked `C:\Lich5`
+/// over the install the bundle had just laid down beside its own Ruby.
+fn rank_lich_installs(ruby_path: Option<&str>) -> Vec<PathBuf> {
+    let mut installs: Vec<PathBuf> = lich_dirs()
+        .into_iter()
+        .filter(|d| d.join("lich.rbw").exists() || d.join("lich.rb").exists())
+        .collect();
+
+    if let Some(ruby) = ruby_path {
+        // ...\Ruby4Lich5\4.0.5\bin\ruby.exe -> ...\Ruby4Lich5
+        let home = PathBuf::from(ruby)
+            .parent()
+            .and_then(|p| p.parent())
+            .and_then(|p| p.parent())
+            .map(|p| p.to_path_buf());
+
+        if let Some(home) = home {
+            // Stable, so anything not beside that Ruby keeps its existing order.
+            installs.sort_by_key(|p| !p.starts_with(&home));
+        }
+    }
+    installs
 }
 
 fn parse_ruby_major(version_text: &str) -> Option<u32> {
@@ -300,29 +367,59 @@ fn detect_ruby() -> (Option<String>, Option<String>) {
         "Ruby34-x64", "Ruby33-x64", "Ruby32-x64", "Ruby31-x64",
     ];
     let mut dirs = candidate_dirs(&names);
-    // Ruby4Lich5 puts its own Ruby beside Lich.
+
+    // Ruby4Lich5 puts its own Ruby beside Lich, in a folder named after the
+    // version: C:\Ruby4Lich5\4.0.5\bin\ruby.exe, with C:\Ruby4Lich5\Lich5 as
+    // its sibling. Guessing that name is hopeless, so read the directory.
+    //
+    // Worth being exact about: this failure was live. After a clean install of
+    // Ruby4Lich5 the app still reported Ruby 3.3 as outdated and offered to
+    // download the same 65 MB installer again, because the search looked for
+    // a subfolder literally named "ruby". Being told to install what you just
+    // installed is the worst answer this screen can give.
     for d in lich_dirs() {
-        for sub in ["ruby", "Ruby"] {
-            let p = d.join(sub);
-            if p.exists() {
-                dirs.push(p);
+        for base in [d.as_path(), d.parent().unwrap_or(&d)] {
+            for sub in ["ruby", "Ruby"] {
+                let p = base.join(sub);
+                if p.exists() {
+                    dirs.push(p);
+                }
+            }
+            // Any sibling directory holding a bin\ruby.exe, which covers the
+            // version-named layout without hardcoding a version.
+            if let Ok(entries) = std::fs::read_dir(base) {
+                for e in entries.flatten() {
+                    let p = e.path();
+                    if p.join("bin").join("ruby.exe").exists() {
+                        dirs.push(p);
+                    }
+                }
             }
         }
     }
 
-    for d in dirs {
+    // Report the newest, not the first found. With Ruby4Lich5 installed beside
+    // an old system Ruby, order of discovery decides whether the app says
+    // "ready" or "too old", and it should not.
+    let mut best: Option<(u32, String, String)> = None;
+    for d in dedupe_paths(dirs) {
         let exe = d.join("bin").join("ruby.exe");
         if !exe.exists() {
             continue;
         }
-        let v = run_capture(&exe.to_string_lossy(), &["--version"])
-            .unwrap_or_else(|| "ruby (version unreadable)".into());
-        return (
-            Some(format!("{v} (installed, not on PATH)")),
-            Some(exe.to_string_lossy().into_owned()),
-        );
+        let Some(v) = run_capture(&exe.to_string_lossy(), &["--version"]) else {
+            continue;
+        };
+        let major = parse_ruby_major(&v).unwrap_or(0);
+        if best.as_ref().is_none_or(|(m, _, _)| major > *m) {
+            best = Some((major, v, pretty_path(&exe)));
+        }
     }
-    (None, None)
+
+    match best {
+        Some((_, v, path)) => (Some(format!("{v} (installed, not on PATH)")), Some(path)),
+        None => (None, None),
+    }
 }
 
 // -------------------------------------------------------------------- plan --
@@ -768,7 +865,9 @@ pub async fn plan_setup() -> SetupPlan {
         label: "Ruby runtime".into(),
         presence: ruby_presence.clone(),
         detail: ruby_detail,
-        path: ruby_path,
+        // Cloned because the Lich row needs it too: which Lich we pick depends
+        // on which Ruby will run it.
+        path: ruby_path.clone(),
         required: true,
         remedy: ruby_remedy,
     });
@@ -783,13 +882,14 @@ pub async fn plan_setup() -> SetupPlan {
     // `C:\Ruby4Lich5\Lich5`. Picking one silently is how someone ends up
     // dropping scripts into the copy that is not running and concluding the
     // app is broken. Say which one we mean and that there is another.
-    let lich_installs: Vec<PathBuf> = dirs
-        .iter()
-        .filter(|d| d.join("lich.rbw").exists() || d.join("lich.rb").exists())
-        .cloned()
-        .collect();
+    let lich_installs = rank_lich_installs(ruby_path.as_deref());
 
-    let lich_found = first_existing(&dirs, "lich.rbw").or_else(|| first_existing(&dirs, "lich.rb"));
+    let lich_found = lich_installs
+        .first()
+        .map(|d| d.join("lich.rbw"))
+        .filter(|p| p.exists())
+        .or_else(|| lich_installs.first().map(|d| d.join("lich.rb")))
+        .filter(|p| p.exists());
 
     let lich_remedy = match &release {
         Some(rel) => {
@@ -887,10 +987,15 @@ pub async fn plan_setup() -> SetupPlan {
             // one the frontend launches, everything looks installed and
             // nothing happens.
             Some(_) if lich_installs.len() > 1 => format!(
-                "Found {} installs. Using the first; the others are {}. \
-                 Make sure your frontend points at the same one, or the bridge \
-                 will be sitting in a Lich that never runs.",
-                lich_installs.len(),
+                "Found {} on this machine. Using the one above, because it sits \
+                 with the Ruby that will run it. Also here: {}. Point your \
+                 frontend at the one above — the bridge script goes there, and \
+                 launching a different Lich just means nothing happens.",
+                if lich_installs.len() == 2 {
+                    "two".into()
+                } else {
+                    format!("{}", lich_installs.len())
+                },
                 lich_installs
                     .iter()
                     .skip(1)
@@ -1394,7 +1499,11 @@ pub fn install_bridge_script(app: AppHandle) -> Result<String, String> {
         ));
     }
 
-    let target_dir = lich_dirs()
+    // Same ranking the setup screen shows, from the same function. If these
+    // two ever disagree the app reports one Lich and writes to another, and
+    // the only symptom is that the start command silently does nothing.
+    let (_, ruby_path) = detect_ruby();
+    let target_dir = rank_lich_installs(ruby_path.as_deref())
         .iter()
         .map(|d| d.join("scripts"))
         .find(|d| d.exists())
@@ -1402,7 +1511,7 @@ pub fn install_bridge_script(app: AppHandle) -> Result<String, String> {
 
     let dest = target_dir.join("companion_bridge.lic");
     std::fs::copy(&src, &dest).map_err(|e| e.to_string())?;
-    Ok(dest.to_string_lossy().into_owned())
+    Ok(pretty_path(&dest))
 }
 
 // ------------------------------------------------------------- repo bundles --
