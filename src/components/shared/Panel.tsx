@@ -1,12 +1,16 @@
 /**
- * A panel you can move, resize and close.
+ * A panel you can drag, resize and collapse.
  *
- * The controls live on the title bar and are all one click: up, down, collapse.
- * Resizing is a drag on the bottom edge. No menus — everything is where you can
- * see it, and nothing needs opening first to find out what it does.
+ * Reordering is drag and drop, because that is the obvious gesture — pick the
+ * panel up, put it where you want it. It used to be a pair of step arrows,
+ * which is what you build when you have not built dragging yet: moving a panel
+ * four places meant pressing an arrow four times and watching the layout hop.
+ *
+ * Resizing is a drag on the bottom edge. Collapsing is a click on the title.
+ * No menus: every control is visible and does one thing.
  */
 import { useCallback, useEffect, useRef, type ReactNode } from 'react'
-import { ChevronUp, ChevronDown, ChevronsUp, ChevronsDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, GripVertical } from 'lucide-react'
 
 export function Panel({
   title,
@@ -15,71 +19,99 @@ export function Panel({
   children,
   closed,
   height,
-  canMoveUp,
-  canMoveDown,
-  onMove,
+  dragging,
+  dropBefore,
+  dropAfter,
+  onDragStart,
+  onDragEnd,
+  onDragOverPanel,
+  onDropPanel,
   onToggle,
   onResize,
 }: {
   title: string
   icon?: ReactNode
-  /** Panel-specific controls, shown before the layout controls. */
+  /** Panel-specific controls, shown before the grip. */
   actions?: ReactNode
   children: ReactNode
   closed?: boolean
   height?: number
-  canMoveUp: boolean
-  canMoveDown: boolean
-  onMove: (delta: number) => void
+  /** This panel is the one being dragged. */
+  dragging?: boolean
+  /** Show an insertion line above or below, as the drop target. */
+  dropBefore?: boolean
+  dropAfter?: boolean
+  onDragStart: () => void
+  onDragEnd: () => void
+  onDragOverPanel: (before: boolean) => void
+  onDropPanel: () => void
   onToggle: () => void
   onResize: (height: number) => void
 }) {
   const bodyRef = useRef<HTMLDivElement | null>(null)
 
-  // Drag state lives in a ref, not React state: a resize fires on every mouse
-  // move, and re-rendering the whole panel per pixel makes the drag feel like
-  // it is catching on something.
-  const drag = useRef<{ startY: number; startH: number } | null>(null)
+  // Resize state lives in a ref, not React state: a drag fires on every mouse
+  // move, and re-rendering the whole panel per pixel makes it feel like it is
+  // catching on something.
+  const resize = useRef<{ startY: number; startH: number } | null>(null)
 
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!drag.current) return
-      const next = drag.current.startH + (e.clientY - drag.current.startY)
+      if (!resize.current) return
+      const next = resize.current.startH + (e.clientY - resize.current.startY)
       onResize(Math.max(64, Math.min(1200, next)))
     },
     [onResize]
   )
 
-  const endDrag = useCallback(() => {
-    drag.current = null
+  const endResize = useCallback(() => {
+    resize.current = null
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
   }, [])
 
   useEffect(() => {
     window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', endDrag)
+    window.addEventListener('mouseup', endResize)
     return () => {
       window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', endDrag)
+      window.removeEventListener('mouseup', endResize)
     }
-  }, [onMouseMove, endDrag])
+  }, [onMouseMove, endResize])
 
-  function startDrag(e: React.MouseEvent) {
+  function startResize(e: React.MouseEvent) {
     e.preventDefault()
-    drag.current = {
+    resize.current = {
       startY: e.clientY,
       startH: height ?? bodyRef.current?.offsetHeight ?? 200,
     }
-    // Set on the body, so the cursor stays a resize cursor even when the
+    // Set on the body so the cursor stays a resize cursor even when the
     // pointer runs off the panel mid-drag.
     document.body.style.cursor = 'ns-resize'
     document.body.style.userSelect = 'none'
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface-raised">
-      <header className="flex items-center justify-between gap-2 px-3 py-1.5">
+    <section
+      className={`relative rounded-xl border bg-surface-raised transition-opacity ${
+        dragging ? 'opacity-40 border-accent' : 'border-border'
+      }`}
+      onDragOver={(e) => {
+        e.preventDefault()
+        // Which half the cursor is in decides whether the panel lands above or
+        // below this one, so a drop is never ambiguous.
+        const box = e.currentTarget.getBoundingClientRect()
+        onDragOverPanel(e.clientY < box.top + box.height / 2)
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        onDropPanel()
+      }}
+    >
+      {dropBefore && <Insertion position="top" />}
+      {dropAfter && <Insertion position="bottom" />}
+
+      <header className="flex items-center justify-between gap-2 px-2.5 py-1">
         <button
           type="button"
           className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider min-w-0 hover:text-ink"
@@ -97,24 +129,17 @@ export function Panel({
 
         <div className="flex items-center gap-1 shrink-0">
           {actions}
-          <button
-            type="button"
-            className="p-0.5 rounded text-ink-faint hover:text-ink disabled:opacity-25"
-            title="Move up"
-            disabled={!canMoveUp}
-            onClick={() => onMove(-1)}
+          {/* Only the grip is draggable, not the whole panel, so selecting text
+              or pressing a button inside does not start a drag. */}
+          <span
+            draggable
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            className="p-0.5 rounded text-ink-faint hover:text-ink cursor-grab active:cursor-grabbing"
+            title="Drag to reorder"
           >
-            <ChevronsUp className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            className="p-0.5 rounded text-ink-faint hover:text-ink disabled:opacity-25"
-            title="Move down"
-            disabled={!canMoveDown}
-            onClick={() => onMove(1)}
-          >
-            <ChevronsDown className="w-3.5 h-3.5" />
-          </button>
+            <GripVertical className="w-3.5 h-3.5" />
+          </span>
         </div>
       </header>
 
@@ -122,16 +147,16 @@ export function Panel({
         <>
           <div
             ref={bodyRef}
-            className="px-3 pb-2 overflow-auto"
+            className="px-2.5 pb-1.5 overflow-auto"
             style={height ? { height } : undefined}
           >
             {children}
           </div>
 
-          {/* Grab strip. Tall enough to hit without being a visible bar. */}
+          {/* Grab strip. Tall enough to hit, quiet enough not to be furniture. */}
           <div
             className="h-1.5 cursor-ns-resize group flex items-center justify-center"
-            onMouseDown={startDrag}
+            onMouseDown={startResize}
             onDoubleClick={() => onResize(0)}
             title="Drag to resize, double-click to fit"
           >
@@ -140,5 +165,15 @@ export function Panel({
         </>
       )}
     </section>
+  )
+}
+
+function Insertion({ position }: { position: 'top' | 'bottom' }) {
+  return (
+    <div
+      className={`absolute left-0 right-0 h-0.5 bg-accent rounded-full pointer-events-none ${
+        position === 'top' ? '-top-1.5' : '-bottom-1.5'
+      }`}
+    />
   )
 }

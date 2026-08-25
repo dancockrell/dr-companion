@@ -82,7 +82,13 @@ const PANELS: Record<PanelId, PanelDef> = {
 export function Dashboard() {
   const character = useAppStore((s) => s.character)
   const uiMode = useAppStore((s) => s.uiMode)
-  const { layout, move, update, setSplit } = useLayout(uiMode)
+  const { layout, reorder, update, setSplit } = useLayout(uiMode)
+
+  // Which panel is in the hand, and where it would land. Held here rather than
+  // in each Panel so the insertion line can be drawn on a different panel from
+  // the one being dragged.
+  const [held, setHeld] = useState<PanelId | null>(null)
+  const [drop, setDrop] = useState<{ id: PanelId; before: boolean } | null>(null)
 
   // Measured, not read off the viewport. This app can be docked beside other
   // things, and a media query would describe the screen rather than the space
@@ -149,11 +155,12 @@ export function Dashboard() {
   )
 
   const panels = (
-    <div className="flex flex-col gap-3 p-3">
-      {stack.map((id, i) => {
+    <div className="flex flex-col gap-2 p-2">
+      {stack.map((id) => {
         const def = PANELS[id]
         if (!def) return null
         const state = layout.panels[id] ?? {}
+        const isTarget = drop?.id === id
         return (
           <Panel
             key={id}
@@ -161,9 +168,25 @@ export function Dashboard() {
             icon={def.icon}
             closed={state.closed}
             height={state.height}
-            canMoveUp={i > 0}
-            canMoveDown={i < stack.length - 1}
-            onMove={(d) => move(id, d)}
+            dragging={held === id}
+            dropBefore={isTarget && drop.before && held !== id}
+            dropAfter={isTarget && !drop.before && held !== id}
+            onDragStart={() => setHeld(id)}
+            onDragEnd={() => {
+              setHeld(null)
+              setDrop(null)
+            }}
+            onDragOverPanel={(before) => setDrop({ id, before })}
+            onDropPanel={() => {
+              if (held && held !== id) {
+                // Index in the full order, not the visible stack, because the
+                // map may be living in its own plane and absent from it.
+                const target = layout.order.indexOf(id)
+                reorder(held, drop?.before ? target : target + 1)
+              }
+              setHeld(null)
+              setDrop(null)
+            }}
             onToggle={() => update(id, { closed: !state.closed })}
             onResize={(h) => update(id, { height: h || undefined })}
           >
@@ -183,7 +206,7 @@ export function Dashboard() {
           {/* The map plane. Fills its column rather than sitting in a box
               inside it, which is the whole point of giving it one. */}
           <div
-            className="min-w-0 min-h-0 p-3"
+            className="min-w-0 min-h-0 p-2"
             style={{ width: `${split * 100}%` }}
           >
             <MapPanel plane />

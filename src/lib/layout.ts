@@ -132,6 +132,26 @@ export function saveLayout(mode: UiMode, layout: Layout): void {
   }
 }
 
+/**
+ * Move `id` so it lands at `index` in the current order.
+ *
+ * Drag and drop rather than step buttons, because dragging a panel where you
+ * want it is the obvious gesture and pressing an arrow four times is a
+ * workaround for not having built it.
+ */
+export function reorderPanel(layout: Layout, id: PanelId, index: number): Layout {
+  const order = [...layout.order]
+  const from = order.indexOf(id)
+  if (from < 0) return layout
+
+  order.splice(from, 1)
+  // Clamped after the removal, so dropping past the end lands at the end
+  // rather than silently doing nothing.
+  const to = Math.min(order.length, Math.max(0, index))
+  order.splice(to, 0, id)
+  return { ...layout, order }
+}
+
 export function movePanel(layout: Layout, id: PanelId, delta: number): Layout {
   const order = [...layout.order]
   const from = order.indexOf(id)

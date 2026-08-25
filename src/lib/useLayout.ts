@@ -12,6 +12,7 @@ import {
   loadLayout,
   saveLayout,
   movePanel,
+  reorderPanel,
   setPanel,
   defaultLayout,
   setMapPlane,
@@ -44,6 +45,11 @@ export function useLayout(mode: UiMode) {
     [commit, layout]
   )
 
+  const reorder = useCallback(
+    (id: PanelId, index: number) => commit(reorderPanel(layout, id, index)),
+    [commit, layout]
+  )
+
   const update = useCallback(
     (id: PanelId, patch: PanelState) => commit(setPanel(layout, id, patch)),
     [commit, layout]
@@ -64,5 +70,5 @@ export function useLayout(mode: UiMode) {
     [commit, layout]
   )
 
-  return { layout, move, update, reset, setPlane, setSplit }
+  return { layout, move, reorder, update, reset, setPlane, setSplit }
 }

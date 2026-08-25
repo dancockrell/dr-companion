@@ -34,7 +34,10 @@ export function CharacterHeader({ character }: { character: CharacterStatus }) {
   const lowHealth = character.vitals.health / character.vitals.healthMax < 0.35
 
   return (
-    <header className="px-4 pt-4 pb-3 border-b border-border space-y-3 shrink-0">
+    /* Tight. Identity has to be visible, not spacious — space is spent on the
+       map, the experience board and the pictures, and everything else takes
+       the minimum it needs to be read. See docs/DESIGN.md §2.115. */
+    <header className="px-3 pt-2.5 pb-2 border-b border-border space-y-2 shrink-0">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h1 className="text-lg font-semibold text-ink leading-tight truncate">
