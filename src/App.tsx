@@ -1,6 +1,5 @@
 import { SetupWizard } from './components/first-run/SetupWizard'
-import { StandardDashboard } from './components/dashboard/StandardDashboard'
-import { PowerDashboard } from './components/dashboard/PowerDashboard'
+import { Dashboard } from './components/dashboard/Dashboard'
 import { AppHeader } from './components/layout/AppHeader'
 import { SafetyFooter } from './components/layout/SafetyFooter'
 import { SituationBanner } from './components/layout/SituationBanner'
@@ -25,22 +24,20 @@ function view(): 'map' | 'app' {
 
 export default function App() {
   const setupComplete = useAppStore((s) => s.setupComplete)
-  const uiMode = useAppStore((s) => s.uiMode)
 
   // The popped-out map is the whole window: no header, no console, no setup
   // wizard. It is one thing, sized to be watched.
   if (view() === 'map') return <MapWindow />
 
-  // Basic is the old Standard, which is what everyone would have picked.
-  let dashboard = <StandardDashboard />
-  if (uiMode === 'power') dashboard = <PowerDashboard />
-
+  // No max-width. The window is only as wide as the player has decided we are
+  // worth against the game window next to it, and capping it at 560px would
+  // throw away space they deliberately gave us. See docs/DESIGN.md §2.115.
   return (
-    <div className="h-full w-full max-w-[560px] mx-auto bg-surface flex flex-col border-x border-border/50 shadow-2xl shadow-black/40">
+    <div className="h-full w-full bg-surface flex flex-col">
       <AppHeader />
       {setupComplete && <SituationBanner />}
       <main className="flex-1 min-h-0 overflow-y-auto">
-        {setupComplete ? dashboard : <SetupWizard />}
+        {setupComplete ? <Dashboard /> : <SetupWizard />}
       </main>
       {setupComplete && <Console />}
       {setupComplete && <SafetyFooter />}
