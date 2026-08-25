@@ -26,8 +26,24 @@ export interface DownloadOption {
   recommended: boolean
 }
 
+/** One file inside a bundle, pinned by its git blob hash. */
+export interface BundleFile {
+  name: string
+  bytes: number
+  sha: string
+  url: string
+}
+
 export type Remedy =
   | { kind: 'choose'; options: DownloadOption[]; note: string }
+  | {
+      kind: 'bundle'
+      label: string
+      files: BundleFile[]
+      bytes: number
+      target: string
+      note: string
+    }
   | { kind: 'manual'; instructions: string; link: string }
   | { kind: 'none' }
 
@@ -128,4 +144,18 @@ export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`
   if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
   return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
+
+/**
+ * Install a set of repo files, each verified against its git blob hash.
+ *
+ * Used for Genie's plugins and maps, which ship as files in a repo rather than
+ * as release assets, so there is no release checksum to check them against.
+ */
+export async function installBundle(
+  id: string,
+  files: BundleFile[],
+  target: string
+): Promise<string> {
+  return (await invokeTauri('install_bundle', { id, files, target })) as string
 }

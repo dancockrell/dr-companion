@@ -37,6 +37,8 @@ const REQUIRED_RUBY_MAJOR: u32 = 4;
 const LICH_REPO: &str = "elanthia-online/lich-5";
 pub const GENIE4_REPO: &str = "GenieClient/Genie4";
 pub const GENIE5_REPO: &str = "GenieClient/Genie5";
+pub const GENIE_PLUGINS_REPO: &str = "GenieClient/Plugins";
+pub const GENIE_MAPS_REPO: &str = "GenieClient/Maps";
 
 // ---------------------------------------------------------------- detection --
 
@@ -205,6 +207,14 @@ pub enum Remedy {
     /// on their behalf beyond marking one as recommended.
     Choose {
         options: Vec<DownloadOption>,
+        note: String,
+    },
+    /// A set of files from a repo, each verified by its git blob hash.
+    Bundle {
+        label: String,
+        files: Vec<BundleFile>,
+        bytes: u64,
+        target: String,
         note: String,
     },
     /// We will not do this for you, and here is why plus where to go.
@@ -667,10 +677,136 @@ pub async fn plan_setup() -> SetupPlan {
             Presence::Missing
         },
         detail: genie_detail,
-        path: genie_path,
+        path: genie_path.clone(),
         required: false,
         remedy: genie_remedy,
     });
+
+    // ---- Genie plugins and maps ----
+    //
+    // A fresh Genie has an empty Maps folder and none of the plugins the
+    // community scripts assume. travel.cmd opens with "REQUIRES EXPTRACKER
+    // PLUGIN! MANDATORY!", so this is not a nicety.
+    if let Some(gp) = genie_path.clone() {
+        let genie_root = Path::new(&gp).parent().map(|p| p.to_path_buf());
+
+        if let Some(root) = genie_root {
+            // Plugins
+            let plugins_dir = root.join("Plugins");
+            let have: Vec<String> = std::fs::read_dir(&plugins_dir)
+                .map(|rd| {
+                    rd.filter_map(|e| e.ok())
+                        .map(|e| e.file_name().to_string_lossy().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            let key_plugins = ["exptracker.dll", "spelltimer.dll", "circlecalc.dll"];
+            let missing: Vec<&str> = key_plugins
+                .iter()
+                .copied()
+                .filter(|p| !have.iter().any(|h| h == p))
+                .collect();
+
+            let plugin_files = if missing.is_empty() {
+                Vec::new()
+            } else {
+                list_repo_files(GENIE_PLUGINS_REPO, "", &[".dll", ".xml"]).await
+            };
+            let plugin_bytes: u64 = plugin_files.iter().map(|f| f.bytes).sum();
+
+            components.push(ComponentPlan {
+                id: "plugins".into(),
+                label: "Genie plugins".into(),
+                presence: if missing.is_empty() {
+                    Presence::Present
+                } else {
+                    Presence::Missing
+                },
+                detail: if missing.is_empty() {
+                    "EXPTracker, SpellTimer and CircleCalc are installed".into()
+                } else {
+                    format!(
+                        "Missing {}. Community scripts assume these: the travel script \
+                         will not run without EXPTracker.",
+                        missing.join(", ")
+                    )
+                },
+                path: Some(plugins_dir.to_string_lossy().into_owned()),
+                required: false,
+                remedy: if missing.is_empty() || plugin_files.is_empty() {
+                    Remedy::None
+                } else {
+                    Remedy::Bundle {
+                        label: format!("{} plugin files", plugin_files.len()),
+                        files: plugin_files,
+                        bytes: plugin_bytes,
+                        target: plugins_dir.to_string_lossy().into_owned(),
+                        note: "These ship as files in the GenieClient/Plugins repo \
+                               rather than as a release, so there is no release \
+                               checksum. Each one is verified against the git blob \
+                               hash GitHub publishes for it, which pins exact \
+                               content. Anything that does not match is not written."
+                            .into(),
+                    }
+                },
+            });
+
+            // Maps
+            let maps_dir = root.join("Maps");
+            let map_count = std::fs::read_dir(&maps_dir)
+                .map(|rd| {
+                    rd.filter_map(|e| e.ok())
+                        .filter(|e| {
+                            e.file_name().to_string_lossy().to_lowercase().ends_with(".xml")
+                        })
+                        .count()
+                })
+                .unwrap_or(0);
+
+            let map_files = if map_count > 0 {
+                Vec::new()
+            } else {
+                list_repo_files(GENIE_MAPS_REPO, "", &[".xml"]).await
+            };
+            let map_bytes: u64 = map_files.iter().map(|f| f.bytes).sum();
+
+            components.push(ComponentPlan {
+                id: "maps".into(),
+                label: "Genie maps".into(),
+                presence: if map_count > 0 {
+                    Presence::Present
+                } else {
+                    Presence::Missing
+                },
+                detail: if map_count > 0 {
+                    format!("{map_count} map files")
+                } else {
+                    "Empty. Without maps the automapper cannot route, so travel and \
+                     hunting-ground scripts have nothing to walk."
+                        .into()
+                },
+                path: Some(maps_dir.to_string_lossy().into_owned()),
+                required: false,
+                remedy: if map_count > 0 || map_files.is_empty() {
+                    Remedy::None
+                } else {
+                    Remedy::Bundle {
+                        label: format!("{} map files", map_files.len()),
+                        files: map_files,
+                        bytes: map_bytes,
+                        target: maps_dir.to_string_lossy().into_owned(),
+                        note: "The community map set, verified file by file against \
+                               the git blob hashes GitHub publishes. Genie 4 also \
+                               ships Lamp.exe, its own updater, which does the same \
+                               job if you would rather use it."
+                            .into(),
+                    }
+                },
+            });
+        }
+    }
+
 
     let ready = components
         .iter()
@@ -962,4 +1098,187 @@ pub fn install_bridge_script(app: AppHandle) -> Result<String, String> {
     let dest = target_dir.join("companion_bridge.lic");
     std::fs::copy(&src, &dest).map_err(|e| e.to_string())?;
     Ok(dest.to_string_lossy().into_owned())
+}
+
+// ------------------------------------------------------------- repo bundles --
+//
+// Genie's plugins and maps ship as files committed to a repo, not as release
+// assets, so there is no release checksum to check them against. GitHub's
+// contents API does give the git blob SHA for every file, and that is
+// verifiable: sha1("blob <len>\0" + content). Same authenticated source as the
+// download URL, and it pins exact content.
+//
+// This matters more than it sounds. The travel script every DragonRealms
+// player uses opens with "REQUIRES EXPTRACKER PLUGIN! MANDATORY!", and a fresh
+// Genie has neither that plugin nor any maps.
+
+#[derive(Deserialize)]
+struct GhContent {
+    name: String,
+    #[serde(default)]
+    size: u64,
+    sha: String,
+    #[serde(rename = "type")]
+    kind: String,
+    download_url: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct BundleFile {
+    pub name: String,
+    pub bytes: u64,
+    /// git blob SHA-1, from the contents API.
+    pub sha: String,
+    pub url: String,
+}
+
+/// List the files we would install for a bundle, with their blob hashes.
+pub async fn list_repo_files(repo: &str, path: &str, exts: &[&str]) -> Vec<BundleFile> {
+    let client = match reqwest::Client::builder()
+        .user_agent("dr-companion-setup")
+        .build()
+    {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+    let url = if path.is_empty() {
+        format!("https://api.github.com/repos/{repo}/contents")
+    } else {
+        format!("https://api.github.com/repos/{repo}/contents/{path}")
+    };
+    let Ok(res) = client.get(&url).send().await else {
+        return Vec::new();
+    };
+    if !res.status().is_success() {
+        return Vec::new();
+    }
+    let Ok(items) = res.json::<Vec<GhContent>>().await else {
+        return Vec::new();
+    };
+
+    items
+        .into_iter()
+        .filter(|i| i.kind == "file")
+        .filter(|i| {
+            exts.is_empty()
+                || exts
+                    .iter()
+                    .any(|e| i.name.to_lowercase().ends_with(&e.to_lowercase()))
+        })
+        .filter_map(|i| {
+            i.download_url.map(|u| BundleFile {
+                name: i.name,
+                bytes: i.size,
+                sha: i.sha,
+                url: u,
+            })
+        })
+        .collect()
+}
+
+fn git_blob_sha(bytes: &[u8]) -> String {
+    use sha1::{Digest as _, Sha1};
+    let mut h = Sha1::new();
+    h.update(format!("blob {}\0", bytes.len()).as_bytes());
+    h.update(bytes);
+    format!("{:x}", h.finalize())
+}
+
+/// Fetch a set of repo files into `target`, verifying each against its blob SHA.
+///
+/// A file that does not match is not written. The whole install fails rather
+/// than leaving a half-verified plugin folder behind.
+/// Core of the bundle install, split out so it can be tested without an app.
+pub async fn install_bundle_inner(
+    files: &[BundleFile],
+    target: &str,
+    mut on_progress: impl FnMut(u64, u64),
+) -> Result<String, String> {
+    let dir = PathBuf::from(target);
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    let client = reqwest::Client::builder()
+        .user_agent("dr-companion-setup")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let total: u64 = files.iter().map(|f| f.bytes).sum();
+    let mut done: u64 = 0;
+    let mut written = 0usize;
+
+    for f in files {
+        if !f.url.starts_with("https://raw.githubusercontent.com/GenieClient/")
+            && !f
+                .url
+                .starts_with("https://raw.githubusercontent.com/elanthia-online/")
+        {
+            return Err(format!("refusing an unexpected file host: {}", f.url));
+        }
+
+        let res = client
+            .get(&f.url)
+            .send()
+            .await
+            .map_err(|e| format!("{}: {e}", f.name))?;
+        if !res.status().is_success() {
+            return Err(format!("{}: HTTP {}", f.name, res.status()));
+        }
+        let body = res
+            .bytes()
+            .await
+            .map_err(|e| format!("{}: {e}", f.name))?;
+
+        let got = git_blob_sha(&body);
+        if !got.eq_ignore_ascii_case(&f.sha) {
+            return Err(format!(
+                "{} failed verification. Expected git blob {}, got {}. \
+                 Nothing further was installed.",
+                f.name, f.sha, got
+            ));
+        }
+
+        // Only touch the disk once the bytes are known-good.
+        std::fs::write(dir.join(&f.name), &body).map_err(|e| e.to_string())?;
+        written += 1;
+        done += f.bytes;
+
+        on_progress(done, total);
+    }
+
+    Ok(format!("{written} files verified and installed to {target}"))
+}
+
+#[tauri::command]
+pub async fn install_bundle(
+    app: AppHandle,
+    id: String,
+    files: Vec<BundleFile>,
+    target: String,
+) -> Result<String, String> {
+    let emit_id = id.clone();
+    let app2 = app.clone();
+    let res = install_bundle_inner(&files, &target, move |received, total| {
+        let _ = app2.emit(
+            "setup://progress",
+            Progress {
+                id: emit_id.clone(),
+                received,
+                total,
+                phase: "downloading".into(),
+            },
+        );
+    })
+    .await?;
+
+    let total: u64 = files.iter().map(|f| f.bytes).sum();
+    let _ = app.emit(
+        "setup://progress",
+        Progress {
+            id,
+            received: total,
+            total,
+            phase: "verified".into(),
+        },
+    );
+    Ok(res)
 }

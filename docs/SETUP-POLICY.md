@@ -84,6 +84,29 @@ native side to copy an arbitrary file somewhere.
 
 Both Lich routes are always offered; the table says which one is suggested.
 
+## Plugins and maps
+
+A fresh Genie has an empty Maps folder and none of the plugins the community
+scripts assume. The travel script every DragonRealms player uses opens with
+"REQUIRES EXPTRACKER PLUGIN! MANDATORY!", and without maps the automapper has
+nothing to route over. The app offers both.
+
+These ship as files committed to a repo, not as release assets, so there is no
+release checksum. GitHub's contents API does publish the **git blob hash** for
+every file, and that is verifiable: `sha1("blob " + length + NUL + content)`.
+Same authenticated source as the download URL, and it pins exact content.
+
+Every file is hashed before anything is written. One mismatch aborts the whole
+install, and nothing partial is left behind. You can list every file and its
+hash in the UI before agreeing.
+
+| Bundle | Goes to | Size |
+|---|---|---|
+| Genie plugins (EXPTracker, SpellTimer, CircleCalc and the rest) | Genie's `Plugins | about 12 MB |
+
+Genie 4 also ships `Lamp.exe`, its own updater, which does the same job. The
+app says so on the maps card rather than pretending it is the only route.
+
 ## The frontend
 
 Genie is the window you read the game in. If none is found, the app offers:

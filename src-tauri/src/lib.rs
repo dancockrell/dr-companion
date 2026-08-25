@@ -27,6 +27,7 @@ pub fn run() {
             setup::download_component,
             setup::extract_lich,
             setup::extract_archive,
+            setup::install_bundle,
             setup::install_bridge_script,
             setup::reveal_file,
             setup::run_installer,

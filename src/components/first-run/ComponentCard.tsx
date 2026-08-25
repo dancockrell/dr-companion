@@ -59,6 +59,7 @@ export function ComponentCard({
   onRunInstaller,
   onReveal,
   onInstallBridge,
+  onInstallBundle,
   canInstallBridge,
 }: {
   plan: ComponentPlan
@@ -68,6 +69,7 @@ export function ComponentCard({
   onRunInstaller: (path: string) => void
   onReveal: (path: string) => void
   onInstallBridge?: () => void
+  onInstallBundle?: () => void
   canInstallBridge?: boolean
 }) {
   const [showDetail, setShowDetail] = useState<string | null>(null)
@@ -130,6 +132,86 @@ export function ComponentCard({
                 Install Lich first, then this becomes a one-click step.
               </p>
             )}
+          </div>
+        )}
+
+        {r.kind === 'bundle' && (
+          <div className="pt-1 space-y-2">
+            <p className="text-[11px] text-ink-muted leading-snug">{r.note}</p>
+
+            <div className="rounded-lg border border-border bg-surface px-2.5 py-2 space-y-1">
+              <div className="flex items-center justify-between gap-2 text-[11px]">
+                <span className="text-ink">{r.label}</span>
+                <span className="text-ink-faint shrink-0">
+                  {formatBytes(r.bytes)}
+                </span>
+              </div>
+              <p className="text-[10px] text-ink-faint break-all font-mono">
+                → {r.target}
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowDetail((v) => (v === 'bundle' ? null : 'bundle'))
+                }
+                className="flex items-center gap-1 text-[10px] text-ink-faint hover:text-ink-muted"
+              >
+                <ChevronDown
+                  className={`w-3 h-3 transition-transform ${
+                    showDetail === 'bundle' ? 'rotate-180' : ''
+                  }`}
+                />
+                {showDetail === 'bundle'
+                  ? 'Hide the list'
+                  : `List all ${r.files.length} files`}
+              </button>
+
+              {showDetail === 'bundle' && (
+                <div className="max-h-40 overflow-y-auto space-y-0.5 text-[10px] font-mono">
+                  {r.files.map((f) => (
+                    <div
+                      key={f.name}
+                      className="flex justify-between gap-2 text-ink-faint"
+                    >
+                      <span className="truncate">{f.name}</span>
+                      <span className="shrink-0">{f.sha.slice(0, 8)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {state.progress?.id === plan.id &&
+              state.progress.phase === 'downloading' &&
+              state.progress.total > 0 && (
+                <div className="space-y-1">
+                  <div className="h-1.5 rounded-full bg-surface overflow-hidden border border-border/40">
+                    <div
+                      className="h-full rounded-full bg-info transition-all"
+                      style={{
+                        width: `${Math.round(
+                          (state.progress.received / state.progress.total) * 100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-ink-faint tabular-nums">
+                    {formatBytes(state.progress.received)} of{' '}
+                    {formatBytes(state.progress.total)}
+                  </p>
+                </div>
+              )}
+
+            <Button
+              size="sm"
+              variant="primary"
+              icon={<Download className="w-3.5 h-3.5" />}
+              onClick={onInstallBundle}
+              disabled={state.busy}
+            >
+              {state.busy ? 'Verifying…' : 'Download and install'}
+            </Button>
           </div>
         )}
 

@@ -26,6 +26,7 @@ import {
   downloadComponent,
   extractArchive,
   installBridgeScript,
+  installBundle,
   runInstaller,
   revealFile,
   onSetupProgress,
@@ -159,6 +160,35 @@ export function SetupWizard() {
   }
 
 
+  async function handleInstallBundle(componentId: string) {
+    const comp = plan?.components.find((c) => c.id === componentId)
+    if (!comp || comp.remedy.kind !== 'bundle') return
+    const r = comp.remedy
+
+    setCards((c) => ({
+      ...c,
+      [componentId]: { ...c[componentId], busy: true, error: undefined },
+    }))
+    addLog(`Installing ${r.label} to ${r.target}, verifying each file`)
+
+    try {
+      const msg = await installBundle(componentId, r.files, r.target)
+      setCards((c) => ({
+        ...c,
+        [componentId]: { ...c[componentId], busy: false, done: msg },
+      }))
+      addLog(msg)
+      await check()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setCards((c) => ({
+        ...c,
+        [componentId]: { ...c[componentId], busy: false, error: msg },
+      }))
+      addLog(`Install failed: ${msg}`)
+    }
+  }
+
   async function handleInstallBridge() {
     setCards((c) => ({
       ...c,
@@ -263,6 +293,7 @@ export function SetupWizard() {
               onRunInstaller={(p) => void handleRunInstaller(p)}
               onReveal={(p) => void revealFile(p)}
               onInstallBridge={() => void handleInstallBridge()}
+              onInstallBundle={() => void handleInstallBundle(c.id)}
               canInstallBridge={lichPresent}
             />
           ))}
