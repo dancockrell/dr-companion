@@ -94,26 +94,26 @@ export function ComponentCard({
 
         <p className="text-xs text-ink-muted leading-snug">{plan.detail}</p>
         {plan.path && (
-          <p className="text-[10px] text-ink-faint break-all font-mono">
+          <p className="text-xs text-ink-faint break-all font-mono">
             {plan.path}
           </p>
         )}
 
         {state.done && (
-          <p className="text-[11px] text-good leading-snug flex items-start gap-1">
+          <p className="text-xs text-good leading-snug flex items-start gap-1">
             <ShieldCheck className="w-3 h-3 mt-0.5 shrink-0" />
             <span className="break-all">{state.done}</span>
           </p>
         )}
         {state.error && (
-          <p className="text-[11px] text-danger leading-snug">{state.error}</p>
+          <p className="text-xs text-danger leading-snug">{state.error}</p>
         )}
 
         {plan.id === 'bridge' && plan.presence !== 'present' && (
           <div className="pt-1 space-y-1.5">
             {canInstallBridge ? (
               <>
-                <p className="text-[11px] text-ink-muted leading-snug">
+                <p className="text-xs text-ink-muted leading-snug">
                   This one is ours: a single Ruby file copied into Lich’s
                   scripts folder. Nothing is downloaded, and it is the only
                   thing this app installs for you.
@@ -128,7 +128,7 @@ export function ComponentCard({
                 </Button>
               </>
             ) : (
-              <p className="text-[11px] text-ink-faint leading-snug">
+              <p className="text-xs text-ink-faint leading-snug">
                 Install Lich first, then this becomes a one-click step.
               </p>
             )}
@@ -137,16 +137,16 @@ export function ComponentCard({
 
         {r.kind === 'bundle' && (
           <div className="pt-1 space-y-2">
-            <p className="text-[11px] text-ink-muted leading-snug">{r.note}</p>
+            <p className="text-xs text-ink-muted leading-snug">{r.note}</p>
 
             <div className="rounded-lg border border-border bg-surface px-2.5 py-2 space-y-1">
-              <div className="flex items-center justify-between gap-2 text-[11px]">
+              <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-ink">{r.label}</span>
                 <span className="text-ink-faint shrink-0">
                   {formatBytes(r.bytes)}
                 </span>
               </div>
-              <p className="text-[10px] text-ink-faint break-all font-mono">
+              <p className="text-xs text-ink-faint break-all font-mono">
                 → {r.target}
               </p>
 
@@ -155,7 +155,7 @@ export function ComponentCard({
                 onClick={() =>
                   setShowDetail((v) => (v === 'bundle' ? null : 'bundle'))
                 }
-                className="flex items-center gap-1 text-[10px] text-ink-faint hover:text-ink-muted"
+                className="flex items-center gap-1 text-xs text-ink-faint hover:text-ink-muted"
               >
                 <ChevronDown
                   className={`w-3 h-3 transition-transform ${
@@ -168,7 +168,7 @@ export function ComponentCard({
               </button>
 
               {showDetail === 'bundle' && (
-                <div className="max-h-40 overflow-y-auto space-y-0.5 text-[10px] font-mono">
+                <div className="max-h-40 overflow-y-auto space-y-0.5 text-xs font-mono">
                   {r.files.map((f) => (
                     <div
                       key={f.name}
@@ -196,7 +196,7 @@ export function ComponentCard({
                       }}
                     />
                   </div>
-                  <p className="text-[10px] text-ink-faint tabular-nums">
+                  <p className="text-xs text-ink-faint tabular-nums">
                     {formatBytes(state.progress.received)} of{' '}
                     {formatBytes(state.progress.total)}
                   </p>
@@ -217,14 +217,14 @@ export function ComponentCard({
 
         {r.kind === 'manual' && plan.presence !== 'present' && (
           <div className="pt-1 space-y-1.5">
-            <p className="text-[11px] text-ink-muted leading-snug">
+            <p className="text-xs text-ink-muted leading-snug">
               {r.instructions}
             </p>
             <a
               href={r.link}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] text-info hover:underline"
+              className="inline-flex items-center gap-1 text-xs text-info hover:underline"
             >
               <ExternalLink className="w-3 h-3" />
               {r.link.replace(/^https?:\/\//, '')}
@@ -234,7 +234,7 @@ export function ComponentCard({
 
         {r.kind === 'choose' && (
           <div className="pt-1 space-y-2">
-            <p className="text-[11px] text-ink-muted leading-snug">{r.note}</p>
+            <p className="text-xs text-ink-muted leading-snug">{r.note}</p>
 
             {r.options.map((o) => {
               const active =
@@ -263,7 +263,7 @@ export function ComponentCard({
                     className="w-full text-left"
                     onClick={() => onChoose(o.id)}
                   >
-                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                    <div className="flex items-center justify-between gap-2 text-xs">
                       <span className="text-ink truncate flex items-center gap-1.5">
                         <span
                           className={`w-2 h-2 rounded-full shrink-0 ${
@@ -272,24 +272,24 @@ export function ComponentCard({
                         />
                         {o.label}
                         {o.prerelease && (
-                          <span className="text-warn text-[10px]">beta</span>
+                          <span className="text-warn text-xs">beta</span>
                         )}
                         {o.recommended && (
-                          <span className="text-good text-[10px]">suggested</span>
+                          <span className="text-good text-xs">suggested</span>
                         )}
                       </span>
                       <span className="text-ink-faint shrink-0">
                         {o.version} · {formatBytes(o.bytes)}
                       </span>
                     </div>
-                    <p className="text-[10px] text-ink-faint leading-snug pl-3.5 pt-0.5">
+                    <p className="text-xs text-ink-faint leading-snug pl-3.5 pt-0.5">
                       {o.why}
                     </p>
                   </button>
 
                   {active && (
                     <>
-                      <p className="text-[10px] text-ink-muted leading-snug pl-3.5">
+                      <p className="text-xs text-ink-muted leading-snug pl-3.5">
                         {o.note}
                       </p>
 
@@ -298,7 +298,7 @@ export function ComponentCard({
                         onClick={() =>
                           setShowDetail((v) => (v === o.id ? null : o.id))
                         }
-                        className="flex items-center gap-1 text-[10px] text-ink-faint hover:text-ink-muted pl-3.5"
+                        className="flex items-center gap-1 text-xs text-ink-faint hover:text-ink-muted pl-3.5"
                       >
                         <ChevronDown
                           className={`w-3 h-3 transition-transform ${
@@ -309,7 +309,7 @@ export function ComponentCard({
                       </button>
 
                       {showDetail === o.id && (
-                        <div className="space-y-1 pl-3.5 text-[10px] font-mono break-all">
+                        <div className="space-y-1 pl-3.5 text-xs font-mono break-all">
                           <div>
                             <span className="text-ink-faint">from </span>
                             <span className="text-info">{o.url}</span>
@@ -344,7 +344,7 @@ export function ComponentCard({
                               style={{ width: `${pct}%` }}
                             />
                           </div>
-                          <p className="text-[10px] text-ink-faint tabular-nums">
+                          <p className="text-xs text-ink-faint tabular-nums">
                             {formatBytes(prog.received)} of{' '}
                             {formatBytes(prog.total)} · {pct}%
                           </p>
@@ -389,7 +389,7 @@ export function ComponentCard({
                       </div>
 
                       {done && o.after === 'installer' && (
-                        <p className="text-[10px] text-ink-faint leading-snug pl-3.5">
+                        <p className="text-xs text-ink-faint leading-snug pl-3.5">
                           Verified and saved. It has not been run. Opening it
                           starts that project’s own installer, which asks its own
                           questions.

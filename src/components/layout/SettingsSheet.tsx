@@ -2,6 +2,7 @@
  * Lightweight settings sheet — mode, bridge, pin, about.
  * Opened from AppHeader gear.
  */
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
@@ -9,8 +10,12 @@ import { TRAIN_FOCUS_OPTIONS } from '../../data/training'
 import { HEAL_CITIES } from '../../data/healers'
 import { ProfilesPanel } from './ProfilesPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
+import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
+  // Read from the same place that applied it at startup, so the highlighted
+  // button always matches what is actually rendering.
+  const [scale, setScale] = useState(() => initTypeScale())
   const uiMode = useAppStore((s) => s.uiMode)
   const setUiMode = useAppStore((s) => s.setUiMode)
   const alwaysOnTop = useAppStore((s) => s.alwaysOnTop)
@@ -69,7 +74,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-ink-faint leading-snug">
+            <p className="text-xs text-ink-faint leading-snug">
               Power adds rankings and denser controls. Either way the panels
               move and resize.
             </p>
@@ -111,9 +116,34 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 Live Lich
               </button>
             </div>
-            <p className="text-[11px] text-ink-faint">
+            <p className="text-xs text-ink-faint">
               Live uses ws://127.0.0.1:7415/companion
             </p>
+          </section>
+
+          {/* Applied to the root font size, so every rem-based size in the app
+              scales together and the layout keeps its proportions. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
+              Text size
+            </h3>
+            <div className="grid grid-cols-4 gap-2">
+              {TYPE_SCALES.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  className={`rounded-lg border px-2 py-2 ${
+                    Math.abs(scale - s.value) < 0.001
+                      ? 'border-accent text-accent bg-accent/10'
+                      : 'border-border text-ink-muted'
+                  }`}
+                  style={{ fontSize: `${0.75 * s.value}rem` }}
+                  onClick={() => setScale(setTypeScale(s.value))}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </section>
 
           <section className="space-y-2">
@@ -133,7 +163,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               />
             </label>
             {!isTauri() && (
-              <p className="text-[11px] text-ink-faint">
+              <p className="text-xs text-ink-faint">
                 Pin works fully inside the Tauri desktop app.
               </p>
             )}
@@ -172,7 +202,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 )
               })}
             </div>
-            <p className="text-[11px] text-ink-faint">
+            <p className="text-xs text-ink-faint">
               Used when you press Start Training. F2P hides non-Zoluren options.
             </p>
             <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
@@ -202,7 +232,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-ink-faint leading-snug">
+            <p className="text-xs text-ink-faint leading-snug">
               Pick one and healing goes there regardless of where you are, which
               is what most players want once they know a route. Leave it unset
               and the Companion scores the options by instance, tier, path and
@@ -259,7 +289,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setHouseEntryHide(e.target.checked)}
               />
             </label>
-            <p className="text-[11px] text-ink-faint leading-snug">
+            <p className="text-xs text-ink-faint leading-snug">
               Ring/Pick train locksmithing; Rope trains athletics. Abort on
               guards; leave on footsteps; respect cooldown.
             </p>
@@ -283,7 +313,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               >
                 Check what is installed
               </button>
-              <p className="text-[11px] text-ink-faint leading-snug">
+              <p className="text-xs text-ink-faint leading-snug">
                 Shows each piece and the folder it is in. Also where to go after
                 updating Lich, or if the bridge script needs reinstalling.
               </p>
@@ -306,7 +336,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           {/* Version numbers. Not a lecture: players know the rules of their
               own game, and being told them by a tool they installed is both
               patronising and useless. */}
-          <section className="text-[11px] text-ink-faint space-y-1 pt-1 border-t border-border">
+          <section className="text-xs text-ink-faint space-y-1 pt-1 border-t border-border">
             <p>DR Companion 0.1.1</p>
             <p>Bridge script {EXPECTED_BRIDGE_VERSION}</p>
           </section>

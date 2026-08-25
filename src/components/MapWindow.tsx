@@ -59,7 +59,7 @@ export function MapWindow() {
           <h1 className="text-sm font-semibold truncate">
             {zone?.ok ? (zone.name ?? `Zone ${zone.zone}`) : 'Map'}
           </h1>
-          <p className="text-[11px] text-ink-faint truncate">
+          <p className="text-xs text-ink-faint truncate">
             {zone?.ok
               ? `${zone.rooms?.length ?? 0}${
                   zone.truncated ? ` of ${zone.total} rooms (capped)` : ' rooms'
@@ -78,7 +78,7 @@ export function MapWindow() {
                 <button
                   key={lv}
                   type="button"
-                  className={`text-[11px] rounded px-1.5 py-0.5 border ${
+                  className={`text-xs rounded px-1.5 py-0.5 border ${
                     z === lv
                       ? 'border-accent text-accent bg-accent/10'
                       : 'border-border text-ink-faint'
@@ -157,7 +157,7 @@ export function MapWindow() {
 
       <footer className="shrink-0 flex items-center justify-between gap-3 border-t border-border px-3 py-2">
         <MapLegend />
-        <span className="text-[10px] text-ink-faint">
+        <span className="text-xs text-ink-faint">
           {path?.ok
             ? `${path.steps} rooms to ${
                 path.rooms?.[path.rooms.length - 1]?.title ?? path.to

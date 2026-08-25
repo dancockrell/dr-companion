@@ -53,7 +53,7 @@ function SkillRow({ skill, dense }: { skill: SkillState; dense?: boolean }) {
           />
         </div>
         <span
-          className={`text-[10px] shrink-0 w-24 text-right ${URGENCY_TEXT[urgency]}`}
+          className={`text-xs shrink-0 w-24 text-right ${URGENCY_TEXT[urgency]}`}
         >
           {mindstateLabel(skill.mindstate)}
         </span>
@@ -88,7 +88,7 @@ export function TrainingPanel({ dense = false }: { dense?: boolean }) {
         <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5">
           Training
         </h2>
-        <p className="text-[11px] text-ink-faint leading-snug rounded-xl border border-border bg-surface-raised px-3 py-2">
+        <p className="text-xs text-ink-faint leading-snug rounded-xl border border-border bg-surface-raised px-3 py-2">
           No skill data. The Lich bridge reports ranks and mindstate; the mock
           bridge and older payloads do not carry it.
         </p>
@@ -105,7 +105,7 @@ export function TrainingPanel({ dense = false }: { dense?: boolean }) {
           Training
         </h2>
         {locked > 0 && (
-          <span className="text-[10px] text-danger">
+          <span className="text-xs text-danger">
             {locked} at mind lock
           </span>
         )}
@@ -118,13 +118,13 @@ export function TrainingPanel({ dense = false }: { dense?: boolean }) {
             <div className="text-sm text-ink font-medium leading-tight">
               Train {target.skill.name}
             </div>
-            <div className="text-[11px] text-ink-muted leading-snug">
+            <div className="text-xs text-ink-muted leading-snug">
               {target.reason}
             </div>
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 mb-2 text-[11px] text-danger leading-snug">
+        <div className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 mb-2 text-xs text-danger leading-snug">
           Every tracked skill is at or near mind lock. Training now earns
           nothing. Rest, run town chores, or wait for the pools to drain.
         </div>

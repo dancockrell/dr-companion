@@ -118,7 +118,7 @@ export function Console() {
       <div className="flex items-center gap-2 px-3 py-1.5">
         <button
           type="button"
-          className="flex items-center gap-1.5 text-[11px] text-ink-muted hover:text-ink"
+          className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
           onClick={() => setConsoleOpen(!consoleOpen)}
         >
           <Terminal className="w-3.5 h-3.5" />
@@ -131,7 +131,7 @@ export function Console() {
         </button>
 
         {runningScripts.length > 0 && (
-          <span className="text-[10px] text-accent truncate max-w-[40%]">
+          <span className="text-xs text-accent truncate max-w-[40%]">
             running: {runningScripts.join(', ')}
           </span>
         )}
@@ -141,7 +141,7 @@ export function Console() {
           // be the nearest thing to hand rather than a menu away.
           <button
             type="button"
-            className="text-[10px] text-danger hover:underline flex items-center gap-1"
+            className="text-xs text-danger hover:underline flex items-center gap-1"
             onClick={() => setReporting(true)}
             title="Report this"
           >
@@ -159,7 +159,7 @@ export function Console() {
                 <button
                   key={f}
                   type="button"
-                  className={`text-[10px] rounded px-1.5 py-0.5 ${
+                  className={`text-xs rounded px-1.5 py-0.5 ${
                     filter === f
                       ? 'bg-accent/15 text-accent'
                       : 'text-ink-faint hover:text-ink-muted'
@@ -173,7 +173,7 @@ export function Console() {
 
             <button
               type="button"
-              className={`text-[10px] flex items-center gap-1 rounded px-1.5 py-0.5 ${
+              className={`text-xs flex items-center gap-1 rounded px-1.5 py-0.5 ${
                 traceEnabled
                   ? 'bg-good/15 text-good'
                   : 'text-ink-faint hover:text-ink-muted'
@@ -187,7 +187,7 @@ export function Console() {
 
             <button
               type="button"
-              className="text-[10px] flex items-center gap-1 text-ink-faint hover:text-ink"
+              className="text-xs flex items-center gap-1 text-ink-faint hover:text-ink"
               onClick={() => void copyAll()}
               title="Copy everything here, for pasting into a bug report"
             >
@@ -201,7 +201,7 @@ export function Console() {
 
             <button
               type="button"
-              className="text-[10px] flex items-center gap-1 text-ink-faint hover:text-ink"
+              className="text-xs flex items-center gap-1 text-ink-faint hover:text-ink"
               onClick={() => setReporting(true)}
               title="Turn the last few minutes into a bug report"
             >
@@ -211,7 +211,7 @@ export function Console() {
 
             <button
               type="button"
-              className="text-[10px] text-ink-faint hover:text-danger"
+              className="text-xs text-ink-faint hover:text-danger"
               onClick={clearLog}
               title="Clear"
             >
@@ -224,7 +224,7 @@ export function Console() {
       {consoleOpen && (
         <div
           ref={bodyRef}
-          className="h-44 overflow-y-auto px-3 pb-2 space-y-0.5 text-[11px] font-mono border-t border-border/50"
+          className="h-44 overflow-y-auto px-3 pb-2 space-y-0.5 text-xs font-mono border-t border-border/50"
         >
           {ordered.length === 0 && (
             <div className="text-ink-faint pt-2">

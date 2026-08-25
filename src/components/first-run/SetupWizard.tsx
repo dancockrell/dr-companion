@@ -286,19 +286,19 @@ export function SetupWizard() {
       </header>
 
       {checkError && (
-        <p className="text-[11px] text-danger leading-snug rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 font-mono">
+        <p className="text-xs text-danger leading-snug rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 font-mono">
           {checkError}
         </p>
       )}
 
       {plan?.dataWarning && (
-        <p className="text-[11px] text-danger leading-snug rounded-lg border border-danger/40 bg-danger/10 px-3 py-2">
+        <p className="text-xs text-danger leading-snug rounded-lg border border-danger/40 bg-danger/10 px-3 py-2">
           {plan.dataWarning}
         </p>
       )}
 
       {plan?.offlineNote && (
-        <p className="text-[11px] text-warn leading-snug rounded-lg border border-warn/30 bg-warn/10 px-3 py-2">
+        <p className="text-xs text-warn leading-snug rounded-lg border border-warn/30 bg-warn/10 px-3 py-2">
           {plan.offlineNote}
         </p>
       )}
@@ -376,7 +376,7 @@ export function SetupWizard() {
               ? 'Continue'
               : 'Open the demo dashboard'}
         </Button>
-        <p className="text-[11px] text-ink-faint text-center leading-relaxed">
+        <p className="text-xs text-ink-faint text-center leading-relaxed">
           {ready && phase !== 'browser'
             ? `Start the bridge in game with ${bridgeCommand(frontend)}, then switch to Live Lich in Settings.`
             : 'The demo runs a simulated character and needs none of the above. You can set the rest up whenever.'}

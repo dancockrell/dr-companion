@@ -128,7 +128,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="rounded-lg border border-good/30 bg-good/5 px-2.5 py-2 space-y-1">
-            <p className="text-[11px] text-good flex items-start gap-1.5">
+            <p className="text-xs text-good flex items-start gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 mt-0.5 shrink-0" />
               <span>
                 Nothing is sent from here. This opens a GitHub issue with the
@@ -137,7 +137,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
               </span>
             </p>
             {report.removed.length > 0 && (
-              <p className="text-[10px] text-ink-muted pl-5">
+              <p className="text-xs text-ink-muted pl-5">
                 Redacted automatically: {report.removed.join(', ')}. Tells, ESP
                 thoughts and channel chatter never go in.
               </p>
@@ -150,7 +150,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
             is a timestamped record of what your character was doing. That is
             worth one sentence before someone posts one, not a footnote after.
           */}
-          <p className="text-[11px] text-warn leading-snug rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-2">
+          <p className="text-xs text-warn leading-snug rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-2">
             A GitHub issue is public and permanent. Read the preview and cut
             anything you would rather not have on the internet under your name.
             Save the file instead if you would rather send it privately.
@@ -161,23 +161,23 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
               <span className="text-xs text-ink-muted">
                 Exactly what will be posted
               </span>
-              <span className="text-[10px] text-ink-faint">
+              <span className="text-xs text-ink-faint">
                 {report.problems.length} failure
                 {report.problems.length === 1 ? '' : 's'} ·{' '}
                 {Math.round(report.full.length / 1024)} KB
               </span>
             </div>
-            <pre className="max-h-48 overflow-auto rounded-lg border border-border bg-surface-raised p-2 text-[10px] font-mono text-ink-muted whitespace-pre-wrap break-words">
+            <pre className="max-h-48 overflow-auto rounded-lg border border-border bg-surface-raised p-2 text-xs font-mono text-ink-muted whitespace-pre-wrap break-words">
               {report.body}
             </pre>
             {trimmed && (
-              <p className="text-[10px] text-warn leading-snug">
+              <p className="text-xs text-warn leading-snug">
                 Too long for a prefilled issue, so the middle was trimmed. Save
                 the file as well and attach it: it has everything.
               </p>
             )}
             {saved && (
-              <p className="text-[10px] text-good">Saved {saved}</p>
+              <p className="text-xs text-good">Saved {saved}</p>
             )}
           </div>
         </div>
@@ -213,7 +213,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
               Save file
             </Button>
           </div>
-          <p className="text-[10px] text-ink-faint text-center leading-snug">
+          <p className="text-xs text-ink-faint text-center leading-snug">
             No GitHub account? Save the file and post it wherever suits.
           </p>
         </div>

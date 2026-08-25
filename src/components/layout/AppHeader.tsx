@@ -24,7 +24,7 @@ export function AppHeader() {
             DR Companion
           </span>
           {setupComplete && (
-            <span className="flex items-center gap-1 text-[10px] text-ink-faint truncate">
+            <span className="flex items-center gap-1 text-xs text-ink-faint truncate">
               <Circle
                 className={`w-2 h-2 fill-current ${
                   live

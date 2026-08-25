@@ -38,7 +38,7 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
               <div className="min-w-0">
                 <div className="text-sm font-medium text-ink">{a.title}</div>
                 {!compact && (
-                  <p className="text-[11px] text-ink-faint leading-snug">
+                  <p className="text-xs text-ink-faint leading-snug">
                     {a.summary}
                   </p>
                 )}
@@ -65,7 +65,7 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
                     <button
                       key={d.id}
                       type="button"
-                      className="text-[10px] rounded-md border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
+                      className="text-xs rounded-md border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
                       onClick={() => requestIntent(`travel:${d.id}`)}
                     >
                       {d.label}
@@ -75,7 +75,7 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
               ) : (
                 // An empty list needs a reason. The two ways to get here are
                 // very different problems.
-                <p className="text-[10px] text-warn leading-snug">
+                <p className="text-xs text-warn leading-snug">
                   {character?.instance === 'Fallen'
                     ? 'No destinations: this is a Fallen character and only Prime routes are mapped so far. Prime directions do not work on The Fallen, so none are offered.'
                     : 'No destinations reachable. Free accounts need a province passport, from the Citizenship Office in Crossing Town Hall.'}
@@ -83,7 +83,7 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
               )
             )}
             {!compact && (
-              <p className="text-[10px] text-ink-faint leading-snug">{a.detail}</p>
+              <p className="text-xs text-ink-faint leading-snug">{a.detail}</p>
             )}
           </div>
         ))}

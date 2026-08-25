@@ -36,7 +36,7 @@ export function ProfilesPanel() {
         <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
           Characters
         </h3>
-        <p className="text-[11px] text-ink-faint leading-snug">
+        <p className="text-xs text-ink-faint leading-snug">
           No characters yet. One appears here the first time the bridge reports
           who you are, and its settings follow it from then on. You never have
           to declare a character before playing it.
@@ -51,7 +51,7 @@ export function ProfilesPanel() {
         <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
           Characters
         </h3>
-        <span className="text-[10px] text-ink-faint flex items-center gap-1">
+        <span className="text-xs text-ink-faint flex items-center gap-1">
           <Users className="w-3 h-3" />
           {list.length}
         </span>
@@ -73,12 +73,12 @@ export function ProfilesPanel() {
                   )}
                   {p.name}
                 </span>
-                <span className="text-[10px] text-ink-faint shrink-0">
+                <span className="text-xs text-ink-faint shrink-0">
                   {p.instance} · {when(p.lastSeen)}
                 </span>
               </div>
 
-              <div className="text-[10px] text-ink-faint leading-snug">
+              <div className="text-xs text-ink-faint leading-snug">
                 {p.guild ?? 'guild unknown'} · {p.accountTier}
                 {p.preferredHealCity
                   ? ` · heals in ${cityLabel(p.preferredHealCity as HealCityId)}`
@@ -92,7 +92,7 @@ export function ProfilesPanel() {
                 <div className="flex gap-1.5 pt-0.5">
                   <button
                     type="button"
-                    className="text-[10px] flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink"
+                    className="text-xs flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink"
                     onClick={() => copySettingsFrom(key)}
                     title="Copy this character's settings onto the one you are playing"
                   >
@@ -101,7 +101,7 @@ export function ProfilesPanel() {
                   </button>
                   <button
                     type="button"
-                    className="text-[10px] flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-ink-faint hover:text-danger"
+                    className="text-xs flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-ink-faint hover:text-danger"
                     onClick={() => deleteProfileByKey(key)}
                     title="Forget this character"
                   >
@@ -114,7 +114,7 @@ export function ProfilesPanel() {
         })}
       </div>
 
-      <p className="text-[11px] text-ink-faint leading-snug">
+      <p className="text-xs text-ink-faint leading-snug">
         Settings on this screen belong to the character you are playing and
         switch with them. Interface mode and the bridge apply to the app.
       </p>

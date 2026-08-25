@@ -21,9 +21,9 @@ fn app_data_path() -> String {
 
 /// The map, in a window of its own.
 ///
-/// The panel is as wide as the player has given us, which is usually right for
-vitals and buttons and wrong
-/// for a map you are meant to *watch*. Players know where the hazards are —
+/// The panel is only as wide as the player has given us, which is usually right
+/// for vitals and buttons and wrong for a map you are meant to *watch*.
+/// Players know where the hazards are —
 /// the rooms that break scripts — and watching for them means keeping the map
 /// visible while doing something else. That wants a second window, not a
 /// taller panel.

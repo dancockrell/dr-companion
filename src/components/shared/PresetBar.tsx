@@ -59,7 +59,7 @@ export function PresetBar() {
         ))}
       </select>
       {notes.length > 0 && (
-        <ul className="text-[11px] text-ink-faint space-y-0.5 leading-snug">
+        <ul className="text-xs text-ink-faint space-y-0.5 leading-snug">
           {notes.map((n) => (
             <li key={n}>• {n}</li>
           ))}

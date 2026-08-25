@@ -22,7 +22,7 @@ export function SituationBanner() {
           <div className="font-semibold leading-tight">
             Stopped itself: it was going in circles
           </div>
-          <div className="text-[11px] opacity-80 leading-snug">
+          <div className="text-xs opacity-80 leading-snug">
             {runawayReason}. Nothing was being achieved, so it stopped rather
             than keep going. Check the console before restarting.
           </div>
@@ -83,7 +83,7 @@ export function SituationBanner() {
       <div className="flex-1 min-w-0">
         <div className="font-semibold leading-tight">{title}</div>
         {flags.length > 0 && (
-          <div className="text-[11px] opacity-80 truncate">
+          <div className="text-xs opacity-80 truncate">
             {flags.map((f) => f.replace(/_/g, ' ')).join(' · ')}
           </div>
         )}

@@ -244,7 +244,7 @@ export function PowerDashboard() {
               <button
                 key={m}
                 type="button"
-                className={`text-[10px] flex-1 rounded px-1 py-1 ${
+                className={`text-xs flex-1 rounded px-1 py-1 ${
                   huntMode === m
                     ? 'bg-accent/15 text-accent'
                     : 'text-ink-faint'

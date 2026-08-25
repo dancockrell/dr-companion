@@ -80,7 +80,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
       </div>
 
       {caps?.inventoryPressureTight && (
-        <p className="text-[11px] text-warn leading-snug">
+        <p className="text-xs text-warn leading-snug">
           Tight inventory tier — loot stays selective.
         </p>
       )}

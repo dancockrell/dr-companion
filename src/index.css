@@ -7,7 +7,12 @@
   --color-border: #2a3142;
   --color-ink: #e8eaef;
   --color-ink-muted: #9aa3b5;
-  --color-ink-faint: #6b7385;
+  /* Was #6b7385, which measured 4.06 / 3.74 / 3.47 against the three surfaces
+     and failed WCAG AA at all of them. It was also the colour used for almost
+     every small label in the app, so the least readable size and the least
+     readable colour were the same text. #7f8799 clears 4.5 on the worst case.
+     Checked by tools/contrast-test.mjs rather than by eye. */
+  --color-ink-faint: #7f8799;
   --color-accent: #d4a84b;
   --color-accent-soft: #b8923f;
   --color-good: #3ecf8e;

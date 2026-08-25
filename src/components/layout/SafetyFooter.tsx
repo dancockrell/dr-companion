@@ -43,7 +43,7 @@ export function SafetyFooter() {
         <Play className="w-4 h-4" />
       </button>
       <span
-        className={`text-[10px] w-14 text-right ${
+        className={`text-xs w-14 text-right ${
           busy ? 'text-accent animate-pulse-soft' : 'text-ink-faint'
         }`}
       >

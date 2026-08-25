@@ -107,7 +107,7 @@ export function MapPanel() {
         right={
           <button
             type="button"
-            className="flex items-center gap-1 text-[11px] rounded border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
+            className="flex items-center gap-1 text-xs rounded border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
             onClick={popBack}
           >
             <PanelRightClose className="w-3 h-3" />
@@ -160,7 +160,7 @@ export function MapPanel() {
                 <button
                   key={lv}
                   type="button"
-                  className={`text-[10px] rounded px-1.5 py-0.5 border ${
+                  className={`text-xs rounded px-1.5 py-0.5 border ${
                     z === lv
                       ? 'border-accent text-accent bg-accent/10'
                       : 'border-border text-ink-faint'
@@ -205,20 +205,20 @@ export function MapPanel() {
 
       <div className="flex items-center justify-between gap-2">
         <MapLegend />
-        <span className="text-[10px] text-ink-faint shrink-0">
+        <span className="text-xs text-ink-faint shrink-0">
           {zone.rooms?.length ?? 0}
           {zone.truncated ? ` of ${zone.total} (capped)` : ''}
         </span>
       </div>
 
       {path?.ok && (
-        <p className="text-[11px] text-good leading-snug">
+        <p className="text-xs text-good leading-snug">
           {path.steps} rooms to{' '}
           {path.rooms?.[path.rooms.length - 1]?.title ?? path.to}
         </p>
       )}
       {path && !path.ok && (
-        <p className="text-[11px] text-warn leading-snug">{path.reason}</p>
+        <p className="text-xs text-warn leading-snug">{path.reason}</p>
       )}
     </Shell>
   )

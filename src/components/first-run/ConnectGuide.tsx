@@ -73,12 +73,12 @@ function Line({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
   return (
     <div className="flex items-center gap-1.5">
-      <code className="flex-1 text-[10px] font-mono bg-surface border border-border rounded-md px-2 py-1.5 text-ink-muted overflow-x-auto whitespace-nowrap">
+      <code className="flex-1 text-xs font-mono bg-surface border border-border rounded-md px-2 py-1.5 text-ink-muted overflow-x-auto whitespace-nowrap">
         {text}
       </code>
       <button
         type="button"
-        className="shrink-0 text-[10px] flex items-center gap-1 rounded-md border border-border px-1.5 py-1 text-ink-faint hover:text-ink"
+        className="shrink-0 text-xs flex items-center gap-1 rounded-md border border-border px-1.5 py-1 text-ink-faint hover:text-ink"
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(text)
@@ -147,21 +147,21 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
 
       {isGenie ? (
         <div className="space-y-2">
-          <p className="text-[11px] text-ink-muted leading-snug">
+          <p className="text-xs text-ink-muted leading-snug">
             Genie is the exception: the Lich launcher will not start it. Instead
             Genie connects to a port Lich opens, and you set that up inside
             Genie.
           </p>
 
           <div className="space-y-1">
-            <p className="text-[11px] text-ink-muted">
+            <p className="text-xs text-ink-muted">
               1. See what Genie currently thinks:
             </p>
             <Line text="#lichsettings" />
           </div>
 
           <div className="space-y-1">
-            <p className="text-[11px] text-ink-muted">
+            <p className="text-xs text-ink-muted">
               2. Point it at your actual lich.rbw. A wrong path here is a
               common cause of the connect-retry loop, and the error does not
               say so:
@@ -170,21 +170,21 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
               text={`#config lichpath ${lichPath ?? 'C:\\Ruby4Lich5\\Lich5\\lich.rbw'}`}
             />
             {lichPath && (
-              <p className="text-[10px] text-good leading-snug">
+              <p className="text-xs text-good leading-snug">
                 That is where this app found Lich on your machine.
               </p>
             )}
           </div>
 
           {instance === 'Prime' ? (
-            <p className="text-[11px] text-ink-faint leading-snug">
+            <p className="text-xs text-ink-faint leading-snug">
               3. Prime is the default, so port {cfg.port} and{' '}
               <code className="text-ink-muted">{cfg.genieArgs}</code> should
               already be set. Only change them if the above disagrees.
             </p>
           ) : (
             <div className="space-y-1">
-              <p className="text-[11px] text-ink-muted">
+              <p className="text-xs text-ink-muted">
                 3. {cfg.label} needs a different port and different arguments.
                 This is the part that is easy to get wrong and gives no useful
                 error:
@@ -196,7 +196,7 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
           )}
 
           <div className="space-y-1">
-            <p className="text-[11px] text-ink-muted">
+            <p className="text-xs text-ink-muted">
               4. Connect, using a profile you have already saved:
             </p>
             <Line text={`#lichconnect YourCharacter${cfg.suffix}`} />
@@ -204,7 +204,7 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
         </div>
       ) : (
         <div className="space-y-2">
-          <p className="text-[11px] text-ink-muted leading-snug">
+          <p className="text-xs text-ink-muted leading-snug">
             For {fe.label} it works the other way round from Genie: you start
             Lich and it brings the frontend up for you.
           </p>
@@ -212,7 +212,7 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
             text={`ruby lich.rbw ${cfg.lichArgs}${fe.lichFlag ? ` ${fe.lichFlag}` : ''}`}
           />
           {!fe.lichFlag && (
-            <p className="text-[11px] text-ink-faint leading-snug">
+            <p className="text-xs text-ink-faint leading-snug">
               We do not have a confirmed Lich flag for {fe.label}. Check its own
               documentation for the flag, or connect it to port {cfg.port} the
               way Genie does.
@@ -222,7 +222,7 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
       )}
 
       <div className="rounded-lg border border-accent/30 bg-accent/5 px-2.5 py-2">
-        <p className="text-[11px] text-ink-muted leading-snug">
+        <p className="text-xs text-ink-muted leading-snug">
           Then start the bridge in game with{' '}
           <code className="text-accent">{bridgeCommand(frontend)}</code>
           {isGenie ? (
@@ -238,7 +238,7 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
       </div>
 
       {isGenie && (
-        <p className="text-[11px] text-warn leading-snug">
+        <p className="text-xs text-warn leading-snug">
           On Genie 5 these commands may not exist yet: it is still in beta and
           the guides describe Genie 4. If <code>#lichsettings</code> comes back
           as an unknown command, that is why.
@@ -253,7 +253,7 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
         }
         target="_blank"
         rel="noreferrer"
-        className="inline-flex items-center gap-1 text-[11px] text-info hover:underline"
+        className="inline-flex items-center gap-1 text-xs text-info hover:underline"
       >
         <ExternalLink className="w-3 h-3" />
         {isGenie ? 'The Genie wiki page this comes from' : 'Lich on Elanthipedia'}

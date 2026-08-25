@@ -198,7 +198,7 @@ export function MapLegend() {
     ['service', 'service'],
   ]
   return (
-    <div className="flex flex-wrap items-center gap-3 text-[10px] text-ink-faint">
+    <div className="flex flex-wrap items-center gap-3 text-xs text-ink-faint">
       {items.map(([kind, label]) => (
         <span key={kind} className="flex items-center gap-1">
           <span

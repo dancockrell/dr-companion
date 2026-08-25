@@ -8,7 +8,7 @@ export function NoobChecklist() {
       </h3>
       <ul className="space-y-1.5 max-h-40 overflow-y-auto">
         {NOOB_CHECKLIST.map((item) => (
-          <li key={item.id} className="text-[11px] leading-snug">
+          <li key={item.id} className="text-xs leading-snug">
             <span
               className={
                 item.priority === 'required' ? 'text-warn font-medium' : 'text-ink-muted'
@@ -20,7 +20,7 @@ export function NoobChecklist() {
           </li>
         ))}
       </ul>
-      <p className="text-[10px] text-ink-faint">
+      <p className="text-xs text-ink-faint">
         STR/STAM first, multi-skill weapons, distinct bags, bank plats at major hubs.
       </p>
     </div>

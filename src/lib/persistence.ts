@@ -20,6 +20,16 @@ export interface PersistedPrefs {
   /** Town the player wants to heal in, overriding the scorer. */
   preferredHealCity?: string | null
   consoleOpen?: boolean
+  /**
+   * Global type scale, as a multiplier on the root font size.
+   *
+   * A setting rather than a fixed size because this audience is squarely in the
+   * band where presbyopia is near-universal, and because eyes differ enough
+   * that any single number would be wrong for a lot of people. Tailwind's sizes
+   * are rem-based, so scaling the root scales everything together and keeps the
+   * proportions the layout was built with.
+   */
+  typeScale?: number
   /** Frontend id, which decides the Lich script prefix. */
   frontend?: string
   houseEntryMethod?: 'rope' | 'lockpick' | 'lockpick_ring'
@@ -37,6 +47,7 @@ const defaults: PersistedPrefs = {
   huntMode: 'suggest',
   preferredHealCity: null,
   consoleOpen: false,
+  typeScale: 1,
   frontend: 'genie',
   houseEntryMethod: 'lockpick_ring',
   houseEntryMaxSearches: 3,
