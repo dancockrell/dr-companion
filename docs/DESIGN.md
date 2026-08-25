@@ -1409,3 +1409,132 @@ couple of online generators rather than shipping a generator.
 Nothing large gets generated before step 2 is signed off, because the failure
 mode is 7,000 images in an inconsistent style and no way to tell which are
 wrong.
+
+---
+
+## S5. Distribution: who scrapes the wiki, and who pays for it
+
+The requirement is blunt and it is a constraint, not a preference: **nobody is
+hosting a server forever.** Any design here that ends in "and then someone keeps
+a box alive" has failed, however elegant it looks in the meantime.
+
+There are two separate problems hiding under "data sharing", and they have
+different answers because they differ by three orders of magnitude in size.
+
+### Problem one: the item and creature data
+
+Measured, not estimated, from the current pull:
+
+| File | Raw | |
+|---|---|---|
+| `index.json` | 4.04 MB | 77,067 titles across Item, Weapon and Armor |
+| `weapons.json` | 2.29 MB | properties |
+| `armor.json` | 0.12 MB | |
+| `materials.json` | 0.07 MB | |
+| `npcs.json` | 0.08 MB | |
+| `creatures.json` | 0.07 MB | |
+| **total** | **6.36 MB** | **1.21 MB gzipped** |
+
+The whole of Elanthia's item knowledge is smaller than one photograph off a
+modern phone, and the hourly delta is roughly a single page.
+
+**Decision: one scheduled scrape, committed to the repository, fetched over
+plain HTTPS.** `.github/workflows/elanthipedia.yml`.
+
+Why this and not the alternatives:
+
+- **Not one scraper per client.** Sixty players independently scraping produces
+  sixty times the load for byte-identical results. Elanthipedia runs on
+  `elanthipedia.play.net` — Simutronics' domain, Simutronics' bill. It is
+  community-*written*, which is easy to misread as community-hosted. Appearing
+  in their logs as a traffic spike is the worst possible introduction for a
+  project intended as a gift to them.
+- **Not a rented host.** Scheduled workflows are free and unlimited on public
+  repositories. There is no bill, no renewal, and nothing to keep alive.
+- **Not peer to peer.** Considered and rejected below.
+
+The part that actually satisfies "forever":
+
+1. **No server exists to die.** The schedule is GitHub's problem.
+2. **No person is required.** The repository is public and MIT. If this project
+   is abandoned, a fork keeps scraping on the same schedule with no
+   coordination, no handover and no permission needed. That is the same
+   reasoning as giving the software away in the first place.
+3. **The data survives the scraper.** Every refresh is a commit, so the last
+   good dataset is permanently in the repository. If the workflow stops forever,
+   the failure mode is *item data gradually goes stale* — not a broken client.
+   Nothing in the app blocks on the feed being current.
+4. **The handoff is already built.** If Simutronics takes this on, they fork it
+   and it becomes theirs, running against their own wiki, with no migration.
+
+Committing the data rather than publishing a build artifact is deliberate: it
+makes every change to the game's item set a **diff**. A bad scrape is visible,
+attributable and revertable, which matters a great deal for data that will drive
+automation decisions.
+
+**A trap worth recording, because it nearly shipped:** `data/elanthipedia/` was
+in `.gitignore` as local scratch. The workflow would have run every hour
+forever, committed nothing, and gone green every single time. A scheduled job
+whose success condition is "the command exited 0" is not verified; the check
+must be that the state changed.
+
+**One documented limitation, not designed around:** GitHub disables scheduled
+workflows in repositories with no activity for 60 days. For a project under
+development this never triggers, and if it ever does the recovery is one click.
+Worth knowing rather than being surprised by.
+
+### Problem two: the art pack
+
+This is where the P2P instinct is genuinely pointed at something real. The pack
+is **1.3 GB** for the top ten zones and **3.2 GB** for everything (§S4), and
+that multiplied by every player is real bandwidth in a way that 1.2 MB is not.
+
+But it is also, precisely, **a large static blob that changes rarely** — the one
+distribution problem with a mature off-the-shelf answer. Ranked:
+
+1. **GitHub Releases.** Free bandwidth, 2 GB per file, so the top-zone starter
+   pack fits as-is and the full pack splits by zone — which it should anyway,
+   because zone-by-zone download is the better experience regardless.
+2. **A torrent**, if volume ever makes that insufficient. We publish a
+   `.torrent` and build nothing; the swarm is the distribution. This is P2P, but
+   it is P2P we do not implement, maintain or support.
+3. **Simutronics' own CDN**, if they take the pack. Then it stops being our
+   problem entirely, which is the intended endgame.
+
+### Why not peer to peer for the data
+
+The idea is reasonable and the reasons against it are specific:
+
+- **The size does not justify it.** 1.2 MB gzipped, delta of about one page an
+  hour. This is a distribution mechanism for gigabytes being aimed at kilobytes.
+- **Trust inverts.** P2P means accepting game data from strangers. This data
+  feeds automation: which rooms are hazards, what a creature is, what an item
+  does. A poisoned dataset that marks a lethal room safe is a real attack with a
+  real victim, and defending against it means content addressing, signatures and
+  a revocation story — all of which is *more* machinery than the signed static
+  file it was meant to replace. Central publishing is both safer and simpler,
+  which is rare enough to take when offered.
+- **The audience is behind home routers.** NAT traversal, port forwarding and
+  firewall prompts land as support burden on people who installed a GUI
+  specifically to avoid that class of problem.
+- **It does not reduce load on Elanthipedia at all.** That was already solved by
+  scraping once centrally. P2P would only change how the published result
+  reaches clients, which was never the expensive part.
+
+The general principle it violates is the one running through this whole
+document: **do not build what already exists.** An HTTPS GET of a versioned file
+exists, works offline-tolerantly, and has no moving parts.
+
+### What the client actually does
+
+```
+on launch, and hourly while running:
+  GET the published dataset, conditional on ETag
+  304  -> nothing to do, which is the usual answer
+  200  -> verify, swap in, rebuild the local index
+  fail -> keep using what is on disk, say nothing
+```
+
+The last line is load-bearing. The feed is an enhancement, never a dependency:
+the app must be fully usable with no network beyond the game itself, because a
+tool that breaks when a third party is down is a tool nobody trusts.

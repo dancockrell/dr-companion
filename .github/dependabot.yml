@@ -1,0 +1,24 @@
+# Grouped and monthly, deliberately.
+#
+# Ungrouped weekly updates on a project with npm, cargo and actions all in play
+# produce a stream of individual pull requests that nobody reads, and an ignored
+# security tool is worse than none because it looks like coverage.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: monthly }
+    groups:
+      npm: { patterns: ['*'] }
+
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule: { interval: monthly }
+    groups:
+      cargo: { patterns: ['*'] }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    groups:
+      actions: { patterns: ['*'] }
