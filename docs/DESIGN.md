@@ -48,6 +48,71 @@ Rust, that is a signal it is the wrong feature.**
 
 ---
 
+## 1.5 Who this is for
+
+Mid-forties to sixty. Highly educated. At least moderately technical and
+usually very. They are here for the depth — there has still never been anything
+close — or for the reading, or for the scripting itself. And it is an open
+source community: they will read the source, and some of them wrote the scripts
+we are calling.
+
+That is an unusually specific audience and it settles several arguments.
+
+### They will read the code, so the code is the pitch
+
+No marketing voice anywhere. No "seamlessly", no "powerful", no exclamation
+marks. Say what a thing does and what it costs. This document is written that
+way on purpose and the codebase should match: comments that explain the decision
+rather than restate the line, commit messages that give the reasoning.
+
+The corollary is that **the repository is the work sample**, and a good one in
+this community is worth more than any description of it.
+
+### Do not hide the knobs
+
+This is not an audience that needs a wizard standing between them and a
+setting. They are the people who hand-write 625-key YAML today. Defaults and
+autofill are welcome because typing item nouns is tedious, not because the
+detail is beyond them.
+
+So: sensible defaults, everything visible, everything editable, nothing locked
+behind "advanced". And when we make a choice for them, show the arithmetic.
+
+### Type size is an accessibility requirement here, not a preference
+
+Presbyopia starts around forty and is near-universal by the mid-fifties. This
+audience is squarely in that band, and they are reading at desk distance on
+high-resolution monitors, next to a game window they have already had to size up.
+
+Measured across the current UI:
+
+| Size | Declarations |
+|---|---|
+| 10px | 47 |
+| 11px | 53 |
+| 12px (`text-xs`) | 73 |
+| 14px (`text-sm`) | 19 |
+| 16px+ | 4 |
+
+**173 of 196 are 12px or smaller.** That is not dense, it is unreadable for a
+large share of the people it is aimed at, and it is the kind of thing that gets
+an app closed and never reopened without the reason ever being stated.
+
+Rules from here:
+
+- **12px is the floor**, not the default. Anything below that is a bug.
+- **14px for anything read continuously** — values, names, numbers that matter.
+- **Type scale is a setting**, because eyes differ and this audience knows it.
+  One control, applied globally, remembered.
+- **Contrast is checked, not eyeballed.** The palette already runs muted greys
+  on near-black; `--color-ink-faint` on `--color-surface` needs measuring
+  against WCAG AA and fixing where it fails.
+
+This costs screen space, which §2.115 says is competitive. That tension is real
+and resolves in favour of legibility: space we cannot read is not worth having.
+
+---
+
 ## 2. The three things I found that change the design
 
 ### 2.1 The script library *is* the feature list
@@ -788,6 +853,9 @@ DR scripts for years. That is the audience to write for.
 
 Each step is one bridge topic plus one panel, shippable alone.
 
+0. **Type and contrast pass.** 12px floor, 14px for anything read continuously,
+   a global type-scale setting, and a contrast audit against WCAG AA.
+   *Done when:* nothing renders below 12px and the scale control works.
 1. **Panels move and resize, at any window width.** `Panel.tsx` and
    `lib/layout.ts` exist and almost nothing uses them.
    *Done when:* every panel moves, resizes, collapses, the arrangement survives
