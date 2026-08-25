@@ -8,6 +8,7 @@ import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
 import { TRAIN_FOCUS_OPTIONS } from '../../data/training'
 import { HEAL_CITIES } from '../../data/healers'
 import { ProfilesPanel } from './ProfilesPanel'
+import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const uiMode = useAppStore((s) => s.uiMode)
@@ -275,12 +276,12 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             </button>
           </section>
 
+          {/* Version numbers. Not a lecture: players know the rules of their
+              own game, and being told them by a tool they installed is both
+              patronising and useless. */}
           <section className="text-[11px] text-ink-faint space-y-1 pt-1 border-t border-border">
-            <p>DR Companion v0.1 — attended use only.</p>
-            <p>
-              Stay at the keyboard where TOS requires it. Stop is always on the
-              footer.
-            </p>
+            <p>DR Companion 0.1.1</p>
+            <p>Bridge script {EXPECTED_BRIDGE_VERSION}</p>
           </section>
         </div>
       </div>

@@ -1,6 +1,9 @@
 /**
- * Always-visible safety controls — TOS-friendly attended use.
- * One-click stop must never be buried.
+ * Stop, pause, resume. Always visible, never buried.
+ *
+ * Here because when something goes wrong you want it under the cursor, not two
+ * menus deep. That is a usability argument and the whole of the argument; the
+ * app has no business editorialising about how anyone plays.
  */
 import { Square, Pause, Play } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'

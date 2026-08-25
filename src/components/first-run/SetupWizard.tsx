@@ -49,6 +49,9 @@ export function SetupWizard() {
   const [plan, setPlan] = useState<SetupPlan | null>(null)
   const [cards, setCards] = useState<Record<string, CardState>>({})
   const [dataDir, setDataDir] = useState('')
+  // Why the check failed, when it did. An empty plan and a clean bill of
+  // health are not the same thing and must never render the same.
+  const [checkError, setCheckError] = useState<string | null>(null)
   // Stamped when the check starts, not during render.
   const startedAt = useRef(0)
 
@@ -63,6 +66,7 @@ export function SetupWizard() {
       return
     }
     setPhase('checking')
+    setCheckError(null)
     startedAt.current = Date.now()
     try {
       const p = await planSetup()
@@ -82,7 +86,12 @@ export function SetupWizard() {
         }
       }, wait)
     } catch (e) {
-      addLog(`Setup check failed: ${e instanceof Error ? e.message : String(e)}`)
+      // Keep the reason. Without it this screen has nothing to say beyond a
+      // count of zero, which is what it used to show.
+      const msg = e instanceof Error ? e.message : String(e)
+      addLog(`Setup check failed: ${msg}`)
+      setPlan(null)
+      setCheckError(msg)
       setPhase('plan')
     }
   }, [addLog, enter])
@@ -236,22 +245,42 @@ export function SetupWizard() {
 
   const missing = required.filter((c) => c.presence !== 'present')
 
+  // Three different states, and they used to collapse into two.
+  //
+  // A check that failed produces no components, so `missing.length === 0` was
+  // true and the screen said "Ready" over a machine it had never managed to
+  // look at. "I found nothing" and "you need nothing" are opposite answers.
+  const checked = plan !== null && required.length > 0
+  const ready = checked && missing.length === 0
+
   return (
     <div className="min-h-full flex flex-col p-5 gap-4 max-w-lg mx-auto">
       <header className="space-y-2 pt-1">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
           {phase === 'browser'
             ? 'Welcome to DR Companion'
-            : missing.length === 0
-              ? 'Ready'
-              : 'A couple of things are missing'}
+            : !checked
+              ? 'Could not check this machine'
+              : ready
+                ? 'Ready'
+                : 'A couple of things are missing'}
         </h1>
         <p className="text-ink-muted text-sm leading-relaxed">
           {phase === 'browser'
             ? 'Running in a browser, so there is no way to check your machine or install anything. The demo works fully here. For live play, use the desktop app.'
-            : 'Nothing is downloaded until you ask. Anything we do fetch is checked against the checksum GitHub publishes, and goes in this app’s own folder, not over anything you already have.'}
+            : !checked
+              ? 'The check did not complete, so nothing below is a statement about your machine. The demo still works. Press Check again, or send us the reason above.'
+              : ready
+                ? 'Everything Lich needs is here. Where each piece lives is listed below.'
+                : 'Nothing is downloaded until you ask. Anything we fetch is checked against the checksum GitHub publishes and installed where that software normally lives, so the usual guides and paths still apply.'}
         </p>
       </header>
+
+      {checkError && (
+        <p className="text-[11px] text-danger leading-snug rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 font-mono">
+          {checkError}
+        </p>
+      )}
 
       {plan?.dataWarning && (
         <p className="text-[11px] text-danger leading-snug rounded-lg border border-danger/40 bg-danger/10 px-3 py-2">
@@ -267,8 +296,12 @@ export function SetupWizard() {
 
       {phase !== 'browser' && (
         <div className="flex items-center justify-between gap-2">
+          {/* "0 of 0 ready" was the old output of a failed check: technically
+              true, informative to nobody, and sitting under the word Ready. */}
           <span className="text-xs text-ink-faint">
-            {required.length - missing.length} of {required.length} ready
+            {checked
+              ? `${required.length - missing.length} of ${required.length} ready`
+              : 'Nothing checked'}
           </span>
           <div className="flex gap-1.5">
             {dataDir && (
@@ -325,15 +358,13 @@ export function SetupWizard() {
       <div className="mt-auto pt-2 space-y-2">
         <Button
           size="xl"
-          variant={missing.length === 0 && phase !== 'browser' ? 'good' : 'primary'}
+          variant={ready && phase !== 'browser' ? 'good' : 'primary'}
           onClick={enter}
         >
-          {missing.length === 0 && phase !== 'browser'
-            ? 'Continue'
-            : 'Open the demo dashboard'}
+          {ready && phase !== 'browser' ? 'Continue' : 'Open the demo dashboard'}
         </Button>
         <p className="text-[11px] text-ink-faint text-center leading-relaxed">
-          {missing.length === 0 && phase !== 'browser'
+          {ready && phase !== 'browser'
             ? `Start the bridge in game with ${bridgeCommand(frontend)}, then switch to Live Lich in Settings.`
             : 'The demo runs a simulated character and needs none of the above. You can set the rest up whenever.'}
         </p>

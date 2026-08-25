@@ -2,9 +2,7 @@
  * Companion-owned activity model.
  *
  * Built from public game knowledge (Elanthipedia, general DR play patterns).
- * Does NOT incorporate, redistribute, or launch third-party paid scripts.
- * Implementation will be Lich scripts + our bridge — or user-owned Genie
- * scripts they choose to wire themselves.
+ * No third-party script is bundled, redistributed or launched.
  */
 
 export type ActivityId =
@@ -20,9 +18,17 @@ export interface ActivityDef {
   id: ActivityId
   title: string
   summary: string
-  /** What the Companion will implement itself */
-  ourPlan: string
-  attendedNote: string
+  /**
+   * The line under the button, and it is shown to a player.
+   *
+   * So it says what pressing this does — what it will use, what it will ask,
+   * where it will stop. It used to be called `ourPlan` and held development
+   * notes ("already started", "not a third-party combat product"), which is
+   * roadmap talk rendered as an interface. There was an `attendedNote` beside
+   * it too, reminding people of their own game's rules; nothing rendered it,
+   * and nothing should have.
+   */
+  detail: string
 }
 
 export const ACTIVITIES: ActivityDef[] = [
@@ -30,47 +36,38 @@ export const ACTIVITIES: ActivityDef[] = [
     id: 'train',
     title: 'Train',
     summary: 'Hunt / skill training at a suitable ground for your ranks and guild.',
-    ourPlan:
-      'Rank-band grounds + guild risk + favorites/manual pick (our hunting module).',
-    attendedNote: 'You watch combat. Stop is always available.',
+    detail: 'Picks a ground for your ranks and guild. You can override it.',
   },
   {
     id: 'combat',
     title: 'Combat loop',
     summary: 'Stay in a training area: fight, loot selectively, retreat when hurt.',
-    ourPlan:
-      'Our own combat state machine via Lich — not a third-party combat product.',
-    attendedNote: 'Attended use where TOS requires presence.',
+    detail: "Fights, loots what you allow, and withdraws when your health drops.",
   },
   {
     id: 'heal',
     title: 'Go heal',
     summary: 'Leave danger and reach an appropriate healer for this instance/tier.',
-    ourPlan: 'Multi-factor healer scoring (already in companion).',
-    attendedNote: 'Confirms path; you can Stop mid-travel.',
+    detail: "Picks a healer for your instance and tier, and shows the route first.",
   },
   {
     id: 'town',
     title: 'Town chores',
     summary: 'Sell, bank, vault (if any), repair — gated by account tier.',
-    ourPlan: 'Town-run planner with F2P vault/bank rules (already started).',
-    attendedNote: 'Step list is visible before/while running.',
+    detail: "Plans the stops, gated by what your account can actually use.",
   },
   {
     id: 'travel',
     title: 'Travel',
     summary: 'Move to a city or landmark using maps and safe pathing.',
-    ourPlan: 'Map/room graph via Lich maps — athletics checks when we add them.',
-    attendedNote: 'Long trips still attended on restricted instances.',
+    detail: "Routes over Lich's maps and shows the path before moving.",
   },
   {
     id: 'burgle',
     title: 'House entry training',
     summary:
       'Practice entry methods and room search on a timer — high justice risk.',
-    ourPlan:
-      'Our module: method (rope/lockpick), guard awareness, leave on footsteps, guild prep buffs as data — implemented by us, not by copying another script.',
-    attendedNote: 'High attention. Justice and fines are real.',
+    detail: "Entry method, guard checks, and leaves on footsteps. Justice risk is real.",
   },
 ]
 

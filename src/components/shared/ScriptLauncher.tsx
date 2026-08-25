@@ -83,7 +83,7 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
               )
             )}
             {!compact && (
-              <p className="text-[10px] text-ink-faint leading-snug">{a.ourPlan}</p>
+              <p className="text-[10px] text-ink-faint leading-snug">{a.detail}</p>
             )}
           </div>
         ))}
