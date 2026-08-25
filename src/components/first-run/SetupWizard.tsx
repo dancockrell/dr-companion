@@ -253,6 +253,12 @@ export function SetupWizard() {
         </p>
       </header>
 
+      {plan?.dataWarning && (
+        <p className="text-[11px] text-danger leading-snug rounded-lg border border-danger/40 bg-danger/10 px-3 py-2">
+          {plan.dataWarning}
+        </p>
+      )}
+
       {plan?.offlineNote && (
         <p className="text-[11px] text-warn leading-snug rounded-lg border border-warn/30 bg-warn/10 px-3 py-2">
           {plan.offlineNote}

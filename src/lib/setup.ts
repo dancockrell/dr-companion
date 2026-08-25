@@ -61,6 +61,8 @@ export interface SetupPlan {
   components: ComponentPlan[]
   ready: boolean
   offlineNote: string | null
+  /** Pre-0.1.1 builds left downloads and Lich inside the program folder. */
+  dataWarning: string | null
 }
 
 export interface Progress {
@@ -81,13 +83,17 @@ export interface DownloadResult {
 export async function planSetup(): Promise<SetupPlan | null> {
   if (!isTauri()) return null
   const res = (await invokeTauri('plan_setup')) as
-    | (Omit<SetupPlan, 'offlineNote'> & { offline_note: string | null })
+    | (Omit<SetupPlan, 'offlineNote' | 'dataWarning'> & {
+        offline_note: string | null
+        data_warning: string | null
+      })
     | undefined
   if (!res) return null
   return {
     components: res.components,
     ready: res.ready,
     offlineNote: res.offline_note ?? null,
+    dataWarning: res.data_warning ?? null,
   }
 }
 

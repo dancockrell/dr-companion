@@ -57,7 +57,7 @@ anything outside the app's own download folder and anything that is not an
 **5. Everything lands in one place.**
 
 ```
-%LOCALAPPDATA%\DR Companion\
+%LOCALAPPDATA%\DR Companion Data\
     downloads\     verified files, kept so you can re-check them
     lich\          Lich, if the app installed it
     genie\         Genie, if you chose the portable build
@@ -67,6 +67,17 @@ Nothing is written to Program Files, no service is installed, no registry keys
 are set, no PATH is modified, and nothing needs administrator rights. Deleting
 that folder removes everything the app put on your machine. There is a button
 on the setup screen that opens it.
+
+Note the `Data` on the end. The program installs to
+`%LOCALAPPDATA%\DR Companion\`, and until 0.1.1 that was also where downloads
+and Lich went. Installing this app therefore put a full Lich tree, including
+the `scripts\` folder holding your own scripts, next to `uninstall.exe`, where
+uninstalling would have deleted the lot. The two are now separate directories,
+and the app refuses at runtime to return a data path that contains its own
+executable, so a rename cannot walk that back.
+
+If you ran a build before 0.1.1, the setup screen says so and names what is
+still sitting in the program folder. Move it across before you uninstall.
 
 **6. One thing is installed for you: our own script.**
 `companion_bridge.lic` is a single Ruby file copied into Lich's scripts folder.

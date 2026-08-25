@@ -63,16 +63,143 @@ fn home_dir() -> Option<PathBuf> {
 
 /// Where we put anything we install. App-scoped, so nothing we do can collide
 /// with a system Ruby or a Lich the user installed themselves.
+///
+/// **Deliberately not `%LOCALAPPDATA%\DR Companion`.** That is where the NSIS
+/// installer puts the program itself, and the first real install proved what
+/// happens: a full Lich 5 tree, including the user's own `scripts` folder,
+/// ended up sitting beside `uninstall.exe`. Uninstalling this app would have
+/// taken their Lich and every personal script in it.
+///
+/// The name is separate, and `guard_not_install_dir` below makes it structural
+/// rather than a convention someone can quietly rename their way back into.
 pub fn app_data_dir() -> PathBuf {
-    std::env::var_os("LOCALAPPDATA")
+    let dir = std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .or_else(home_dir)
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("DR Companion")
+        .join("DR Companion Data");
+
+    guard_not_install_dir(dir)
 }
 
+/// Never hand back a directory that contains our own executable.
+///
+/// Cheap insurance against a future rename or a different installer layout
+/// putting user data back inside the program directory, where an uninstall
+/// would destroy it.
+fn guard_not_install_dir(dir: PathBuf) -> PathBuf {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()));
+
+    match exe_dir {
+        Some(exe) if exe == dir => dir.with_file_name("DR Companion Data (user)"),
+        _ => dir,
+    }
+}
+
+/// Warn if user data is sitting inside the program directory.
+///
+/// An early build used `%LOCALAPPDATA%\DR Companion` for both the install and
+/// for downloads and Lich, so anyone who ran it has a Lich tree next to
+/// `uninstall.exe` waiting to be deleted. Say so rather than letting them find
+/// out by uninstalling.
+fn stranded_data_warning() -> Option<String> {
+    let exe_dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
+    let stranded: Vec<&str> = ["lich", "genie", "downloads"]
+        .into_iter()
+        .filter(|name| exe_dir.join(name).is_dir())
+        .collect();
+
+    if stranded.is_empty() {
+        return None;
+    }
+    Some(format!(
+        "An earlier version of this app kept downloads and Lich inside its own \
+         program folder. {} still there ({}), and uninstalling would delete \
+         them along with any scripts inside. Move them to {} before \
+         uninstalling.",
+        if stranded.len() == 1 { "One is" } else { "Some are" },
+        stranded.join(", "),
+        app_data_dir().to_string_lossy()
+    ))
+}
+
+/// Installers we fetched. These genuinely are ours: temporary files nobody
+/// else has a use for, kept only so a checksum can be re-checked.
 pub fn downloads_dir() -> PathBuf {
     app_data_dir().join("downloads")
+}
+
+/// Where third-party software goes: the place it normally lives.
+///
+/// The first draft put Lich and Genie inside this app's own data folder, on
+/// the reasoning that isolation is tidy. It is tidy and it is wrong. Lich is
+/// not ours. Every guide, every help-channel answer and every `#config
+/// lichpath` example in the community says `C:\Lich5` or `C:\Ruby4Lich5`, and
+/// the project's own installer uses the root. Somewhere private means their
+/// other scripts, their `.bat` shortcuts and every troubleshooting answer
+/// they will ever be given all point at the wrong path, and the person who
+/// suffers is exactly the newcomer this app exists for.
+///
+/// So: normal locations. `C:\` root is writable without elevation on a
+/// default Windows install (Authenticated Users hold create-folder rights
+/// there), which is checked rather than assumed — if it fails we fall back to
+/// our own folder rather than erroring.
+///
+/// Answered once per run. Detection asks for this several times per check and
+/// the answer costs a create and delete at the drive root; repeating that
+/// would be rude for no gain.
+pub fn install_root() -> PathBuf {
+    static ROOT: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    ROOT.get_or_init(|| {
+        let drive = std::env::var_os("SystemDrive")
+            .map(|d| PathBuf::from(format!("{}\\", d.to_string_lossy())))
+            .unwrap_or_else(|| PathBuf::from("C:\\"));
+
+        if can_create_dir_in(&drive) {
+            drive
+        } else {
+            app_data_dir()
+        }
+    })
+    .clone()
+}
+
+/// Can we make a directory here without asking for administrator rights?
+///
+/// Answered by making one and removing it. Any guess about ACLs would be a
+/// guess, and the cost of getting it wrong is an install that fails halfway.
+fn can_create_dir_in(root: &Path) -> bool {
+    let probe = root.join(format!("dr-companion-write-test-{}", std::process::id()));
+    match std::fs::create_dir(&probe) {
+        Ok(()) => {
+            let _ = std::fs::remove_dir(&probe);
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// Where we would put Lich, if we install it. `C:\Lich5` is what the guides
+/// say, so it is what a search, a friend or a wiki page will tell them too.
+pub fn lich_install_dir() -> PathBuf {
+    install_root().join("Lich5")
+}
+
+/// Genie 4's own installer uses `C:\Genie4`; the portable Genie 5 build has no
+/// installer, so we match the convention rather than inventing one.
+pub fn genie_install_dir() -> PathBuf {
+    install_root().join("Genie5")
+}
+
+/// Map an install id to where that software belongs.
+fn install_dir_for(target_name: &str) -> PathBuf {
+    match target_name {
+        "lich" => lich_install_dir(),
+        "genie" => genie_install_dir(),
+        other => app_data_dir().join(other),
+    }
 }
 
 fn candidate_dirs(names: &[&str]) -> Vec<PathBuf> {
@@ -104,6 +231,24 @@ fn candidate_dirs(names: &[&str]) -> Vec<PathBuf> {
     out
 }
 
+/// A path as it is actually spelled on disk.
+///
+/// Windows matches paths case-insensitively, so `C:\lich5` opens a folder
+/// named `C:\Lich5` and nothing complains. That is fine for opening files and
+/// wrong for showing someone, because this string gets pasted into `#config
+/// lichpath` and read back later by a person deciding whether the app found
+/// the right thing.
+///
+/// `canonicalize` returns the real casing but prefixes `\\?\`, which is
+/// correct and unreadable, so it comes back off.
+fn pretty_path(p: &Path) -> String {
+    let text = std::fs::canonicalize(p)
+        .map(|c| c.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| p.to_string_lossy().into_owned());
+
+    text.strip_prefix(r"\\?\").unwrap_or(&text).to_string()
+}
+
 fn first_existing(dirs: &[PathBuf], leaf: &str) -> Option<PathBuf> {
     dirs.iter().map(|p| p.join(leaf)).find(|p| p.exists())
 }
@@ -121,6 +266,9 @@ fn lich_dirs() -> Vec<PathBuf> {
         }
     }
 
+    // Both the place we would install to now, and the place the first build
+    // used, because someone who ran that build still has a working Lich there.
+    d.push(lich_install_dir());
     d.push(app_data_dir().join("lich"));
     d.retain(|p| p.exists());
     d
@@ -252,6 +400,9 @@ pub struct SetupPlan {
     pub ready: bool,
     /// Set when we could not reach GitHub to price the downloads.
     pub offline_note: Option<String>,
+    /// Set when data from a pre-0.1.1 build is still sitting in the program
+    /// directory, where uninstalling would delete it.
+    pub data_warning: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -411,6 +562,7 @@ fn detect_genie() -> (Option<String>, String) {
         "Wrayth",
         "StormFront",
     ]);
+    dirs.push(genie_install_dir());
     dirs.push(app_data_dir().join("genie"));
     dirs.retain(|p| p.exists());
 
@@ -484,6 +636,12 @@ pub async fn plan_setup() -> SetupPlan {
         newest_release(GENIE5_REPO),
         latest_release(GENIE4_REPO),
     );
+    // Kept in its own field rather than folded into `offline_note`. One says a
+    // version lookup failed; the other says your scripts are in the folder an
+    // uninstall deletes. Sharing a slot lets the trivial one hide the serious
+    // one.
+    let data_warning = stranded_data_warning();
+
     let offline_note = if release.is_none() {
         Some(
             "Could not reach GitHub to check the current Lich release. \
@@ -518,17 +676,30 @@ pub async fn plan_setup() -> SetupPlan {
             ),
             None => (Presence::Unknown, format!("{v} — could not read the version")),
         },
-        None => (Presence::Missing, "Not found on PATH".into()),
+        None => (
+            Presence::Missing,
+            "Not on your PATH, and not in any of the usual folders".into(),
+        ),
     };
 
     let ruby_remedy = match ruby_presence {
         Presence::Present => Remedy::None,
+        // Not a dead end. Lich 5 checks `RUBY_VERSION` against `REQUIRED_RUBY`
+        // on startup and quits with a dialog if it loses, so an old Ruby is a
+        // hard stop rather than a warning, and "sorry, do it yourself" is the
+        // exact failure this app exists to remove.
+        //
+        // The offer below is safe to make plainly: Ruby4Lich5 installs its own
+        // Ruby into its own folder. Nothing on PATH changes and the Ruby
+        // already here keeps working for whatever else uses it.
         Presence::Outdated => Remedy::Manual {
             instructions:
-                "Your Ruby is too old for Lich, and replacing it is not something this app \
-                 should do behind your back — other things on your machine may depend on it. \
-                 Ruby4Lich5 below installs its own Ruby alongside yours without changing it. \
-                 If you would rather upgrade Ruby yourself, do that and press Check again."
+                "Lich 5 needs Ruby 4.0 or newer and refuses to start on anything older, so \
+                 this one will not run it. Ruby4Lich5 below is the fix: it installs its own \
+                 Ruby in its own folder, alongside the one you have rather than over it, and \
+                 nothing on your PATH changes. Your existing Ruby keeps working for whatever \
+                 else uses it. If you would rather upgrade Ruby yourself instead, do that and \
+                 press Check again."
                     .into(),
             link: "https://rubyinstaller.org/downloads/".into(),
         },
@@ -576,7 +747,7 @@ pub async fn plan_setup() -> SetupPlan {
                     },
                     &format!(
                         "Unpacked into {}. Nothing else on your machine is touched.",
-                        app_data_dir().join("lich").to_string_lossy()
+                        lich_install_dir().to_string_lossy()
                     ),
                     has_ruby,
                 ));
@@ -641,9 +812,13 @@ pub async fn plan_setup() -> SetupPlan {
                      existing scripts keep working exactly as they do now."
                 .into(),
         },
+        // Shown in the connect guide and pasted into `#config lichpath`, so
+        // it should read the way it reads in Explorer. We build candidate
+        // paths from a list of spellings ("lich5", "Lich5"), and the one that
+        // matched is not necessarily the one on disk.
         path: lich_found
             .as_ref()
-            .and_then(|p| p.parent().map(|d| d.to_string_lossy().into_owned())),
+            .and_then(|p| p.parent().map(pretty_path)),
         required: true,
         remedy: if lich_found.is_some() {
             Remedy::None
@@ -855,6 +1030,7 @@ pub async fn plan_setup() -> SetupPlan {
         components,
         ready,
         offline_note,
+        data_warning,
     }
 }
 
@@ -1009,7 +1185,7 @@ pub fn extract_archive(
     target_name: String,
     expect: Option<String>,
 ) -> Result<String, String> {
-    let target = app_data_dir().join(&target_name);
+    let target = install_dir_for(&target_name);
     std::fs::create_dir_all(&target).map_err(|e| e.to_string())?;
 
     let file = std::fs::File::open(&archive).map_err(|e| e.to_string())?;

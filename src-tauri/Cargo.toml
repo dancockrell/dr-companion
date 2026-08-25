@@ -1,6 +1,6 @@
 [package]
 name = "dr-companion"
-version = "0.1.0"
+version = "0.1.1"
 description = "DR Companion — a DragonRealms control panel for Lich"
 authors = ["Dan Cockrell"]
 edition = "2021"
