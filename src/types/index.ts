@@ -157,6 +157,12 @@ export interface AppState {
   huntFavorites: string[]
   huntMode: 'suggest' | 'favorites_only' | 'manual'
   preferredHealCity: string | null
+  /**
+   * Which frontend the player uses. Genie starts Lich scripts with a comma;
+   * everything else uses a semicolon, so this changes what we tell them to
+   * type. See lib/frontends.ts.
+   */
+  frontend: string
   /** Settings per character, keyed by instance and name. */
   profiles: Record<string, CharacterProfile>
   activeProfileKey: string | null
@@ -177,6 +183,7 @@ export interface AppState {
   setTraceEnabled: (v: boolean) => void
   setConsoleOpen: (v: boolean) => void
   clearRunaway: () => void
+  setFrontend: (id: string) => void
   simulateConnect: () => void
   connectBridge: () => void
   disconnectBridge: () => void

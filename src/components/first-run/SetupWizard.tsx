@@ -21,6 +21,7 @@ import { NoobChecklist } from './NoobChecklist'
 import { Preflight } from './Preflight'
 import { ComponentCard, type CardState } from './ComponentCard'
 import { ConnectGuide } from './ConnectGuide'
+import { bridgeCommand } from '../../lib/frontends'
 import { isTauri } from '../../lib/tauri'
 import {
   planSetup,
@@ -42,6 +43,7 @@ export function SetupWizard() {
   const setSetupComplete = useAppStore((s) => s.setSetupComplete)
   const simulateConnect = useAppStore((s) => s.simulateConnect)
   const addLog = useAppStore((s) => s.addLog)
+  const frontend = useAppStore((s) => s.frontend)
 
   const [phase, setPhase] = useState<Phase>(isTauri() ? 'checking' : 'browser')
   const [plan, setPlan] = useState<SetupPlan | null>(null)
@@ -226,8 +228,12 @@ export function SetupWizard() {
   const required = plan?.components.filter((c) => c.required) ?? []
   const lichPresent =
     plan?.components.find((c) => c.id === 'lich')?.presence === 'present'
-  const geniePresent =
-    plan?.components.find((c) => c.id === 'genie')?.presence === 'present'
+  // Detection reports the folder containing lich.rbw, and #config lichpath
+  // wants the file. Getting this wrong is one of the causes of the
+  // connect-retry loop, so hand them the exact string.
+  const lichDir = plan?.components.find((c) => c.id === 'lich')?.path ?? null
+  const lichRbwPath = lichDir ? `${lichDir}\lich.rbw` : null
+
   const missing = required.filter((c) => c.presence !== 'present')
 
   return (
@@ -304,7 +310,11 @@ export function SetupWizard() {
       )}
 
       {/* Both installed is not the same as both talking to each other. */}
-      {phase !== 'browser' && lichPresent && geniePresent && <ConnectGuide />}
+      {/* Shown once Lich exists. The frontend does not have to be Genie: this
+          app is a panel for Lich, and Lich works with whatever you use. */}
+      {phase !== 'browser' && lichPresent && (
+        <ConnectGuide lichPath={lichRbwPath} />
+      )}
 
       <div className="mt-auto pt-2 space-y-2">
         <Button
@@ -318,7 +328,7 @@ export function SetupWizard() {
         </Button>
         <p className="text-[11px] text-ink-faint text-center leading-relaxed">
           {missing.length === 0 && phase !== 'browser'
-            ? 'Start the bridge in game with ;companion_bridge, then switch to Live Lich in Settings.'
+            ? `Start the bridge in game with ${bridgeCommand(frontend)}, then switch to Live Lich in Settings.`
             : 'The demo runs a simulated character and needs none of the above. You can set the rest up whenever.'}
         </p>
       </div>

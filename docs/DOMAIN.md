@@ -971,3 +971,105 @@ cannot do is port one to the other. Nobody has to.
 
 Worth doing here before it bites: the trace and any saved report should carry
 the character name, and a saved report filename should include it.
+
+---
+
+## 23. There are many frontends, and we are a GUI for Lich
+
+The clearest framing of what this project is, from Dan: *Lich is a layer on
+top, and we are adding a GUI to Lich.* That has consequences the earlier
+sections did not draw out, because they treated Genie as near-required.
+
+The community is actively using at least: **Genie 4 and 5**, **Wrayth**
+(formerly StormFront), **Frostbite**, **Saga** (Simutronics' own newer client),
+**Avalon**, **ProfanityFE**, **Vellum**, and **Warlock 3**. People switch
+between them and argue about them cheerfully. Lich sits under all of them.
+
+So the frontend is the user's business, not ours. What we need from it is
+nothing at all; what we need from Lich is everything.
+
+### The comma
+
+> "genie uses commas to start lich scripts, every other FE uses semicolon"
+
+Every instruction this app gave said `;companion_bridge`. For a Genie user that
+is wrong, and it fails **silently**: Genie passes it to the game as a command,
+the game says it does not understand, and the bridge never starts. The most
+common frontend, the first instruction, no error worth reading.
+
+That is now in `lib/frontends.ts` with the prefix per frontend, and nothing
+in the app hardcodes a punctuation mark any more.
+
+### Which way round the connection goes
+
+The two-day confusion in section 22 has a specific cause:
+
+> "You can't launch genie with the lich launcher"
+
+For most frontends you launch **Lich**, and Lich brings the frontend up:
+
+```
+ruby lich.rbw --dragonrealms --frostbite
+```
+
+For Genie it is the opposite: Genie launches, and you point it at the port Lich
+opened, via `#lichsettings` and `#config`. A guide written for one looks broken
+if you are on the other, which is exactly what happened to the person who spent
+two days on it. The setup screen now asks which frontend and shows the matching
+direction.
+
+### Lich already has travel, and we should probably use it
+
+`;go2` is Lich's own travel script, and `;map` its mapper. Both are in active
+use and maintained by people who play the game daily.
+
+This is worth taking seriously before writing more of `travelPath.ts`. The
+argument for delegating rather than reimplementing is the same one that made
+Ruby4Lich5 the right install route: it is the thing their community supports,
+troubleshoots and fixes. A companion that drives `;go2` inherits every fix
+anyone makes to it. One that reimplements pathfinding owns every bug forever.
+
+### Room IDs come in two flavours
+
+```
+[Tower South, Aether Floor] (88032)
+>;go2 88032
+[go2: error: room number (88032) was not found in the map database]
+```
+
+The number the game displays is a Simutronics room id. Lich's map database uses
+its own ids, and `;go2` wants those, or a `u` prefix for the Simu one. So
+`Room.current.id` is not the number a player sees on screen, and anything that
+shows or accepts a room number has to be clear about which it means.
+
+### More settings that change what automation sees
+
+Section 21 had `BRIEF` and `INVBRIEF`. Add **typeahead**: a player on Saga had
+to drop it from 4 to 3 before `;go2` worked properly. Anything that sends
+several commands in sequence is at the mercy of it, and `Sorry, you may only
+type ahead N commands` is one of the three refusals `Companion::Cmd` already
+handles, which is not a coincidence.
+
+### Custom scripts shadow stock ones, and confuse debugging
+
+> "cause it's referencing lines 10, 11, 12 ... as constants but I'm not seeing
+> those at that line at all" — "are they in your custom folder?" — "yes"
+
+Lich loads scripts from a `custom` folder in preference to the stock ones. A
+debug log then refers to line numbers in a file the maintainer is not reading.
+Same family as the version-mismatch problem in section 20: the log and the
+source disagree, and nobody notices for a while.
+
+### Lich versions are not always releases
+
+```
+;lich5-update --status
+  Version: 5.16.2
+  Type: Branch (Development)
+  Branch: fix/econnreset-spam-and-walk-to-recursion
+  Repository: MahtraDR/lich-5
+```
+
+People run development branches from forks. Our version reporting should not
+assume a release number, and `;lich5-update --status` is worth suggesting in a
+bug report rather than asking someone to remember.

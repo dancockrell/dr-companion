@@ -110,16 +110,29 @@ app says so on the maps card rather than pretending it is the only route.
 
 ## The frontend
 
-Genie is the window you read the game in. If none is found, the app offers:
+The frontend is the window you read the game in. **This app is a panel for
+Lich, and Lich works with whichever frontend you already use**, so nothing here
+is required if you have one. Genie, Wrayth, Frostbite, Saga, Avalon and
+Profanity all work.
+
+If none is found, the app offers to fetch Genie, since it is the most common
+and its Lich setup is the best documented:
 
 | Option | Notes |
 |---|---|
-| **Genie 5 portable** (suggested) | Current development line, .NET 8, runs Genie 4 `.cmd` scripts. Beta. Unpacks into the app folder, no installer, deletes cleanly. Checksummed. |
+| **Genie 4** (suggested) | Stable, free, open source, and what the Lich connection guides are written for. Release 4.0.2.9 from December 2023. **The project publishes no checksum for this file**, so the app says so plainly rather than implying a check it cannot make. |
+| Genie 5 portable | Their README says "Beta ... expect rough edges". A .NET 10 / Avalonia rewrite that runs on Windows, macOS and Linux and runs Genie 4 `.cmd` scripts. Checksummed, unpacks into the app folder, deletes cleanly. |
 | Genie 5 installer | Same build, installed normally |
-| Genie 4 | The stable client most scripts were written against. Release 4.0.2.9 from December 2023. **The project publishes no checksum for this file**, so the app says so plainly rather than implying a check it cannot make. |
 
-The portable build is suggested because it fits the rest of this policy: it
-lands in the app folder, changes nothing else, and is verifiable.
+Genie 4 is suggested rather than Genie 5 because of what happens to newcomers:
+in the help channel, a returning player on Genie 5 could not run
+`#lichsettings` at all, which is the first command the connection guide
+depends on. Genie 5 is offered beside it, described in its own words.
+
+**Genie starts Lich scripts with a comma; every other frontend uses a
+semicolon.** The app asks which one you use and spells its instructions
+accordingly, because `;companion_bridge` fails silently on Genie: it goes to
+the game as a command, the game does not understand it, and nothing starts.
 
 Ruby4Lich5 is published by elanthia-online as a release asset alongside Lich
 itself. Pointing at their installer is better than inventing our own Ruby
@@ -145,7 +158,8 @@ the card before you agree, and nothing outside them is ever touched.
 
 Nothing here is required. Install Ruby and Lich however you like, drop
 `lich-scripts/companion_bridge.lic` into Lich's `scripts` folder, run
-`;companion_bridge` in game, and switch the app to Live Lich in Settings. The
+the bridge script in game (`,companion_bridge` on Genie, `;companion_bridge`
+elsewhere), and switch the app to Live Lich in Settings. The
 setup screen will detect all of it and get out of the way.
 
 The demo dashboard needs none of this and is always reachable.

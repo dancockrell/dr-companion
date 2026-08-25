@@ -52,7 +52,7 @@ export function compareVersions(v: VersionState): {
       verdict: 'stale_bridge',
       message:
         `The bridge script running in Lich is v${v.actualBridge}, but this app ships ` +
-        `v${v.expectedBridge}. Reinstall it from Setup, then run ;companion_bridge again. ` +
+        `v${v.expectedBridge}. Reinstall it from Setup, then start the bridge again. ` +
         `Mismatched versions are the most common cause of confusing behaviour, and of ` +
         `bug reports that turn out to be already fixed.`,
     }

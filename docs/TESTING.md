@@ -13,11 +13,13 @@ a tester who knows where to push finds things faster than one who wanders.
 1. Get Lich running with your usual frontend.
 2. Copy `lich-scripts/companion_bridge.lic` into Lich's `scripts` folder. The
    app will do this for you from the setup screen if it can find Lich.
-3. In game: `;companion_bridge`
+3. In game: `;companion_bridge` — or `,companion_bridge` if you use Genie.
+   Genie starts Lich scripts with a comma; every other frontend uses a
+   semicolon. The app shows the right one for the frontend you pick.
 4. In the app: Settings → Bridge → **Live Lich**
 5. Open the **Console** at the bottom and turn **trace** on.
 
-If the bridge will not start, `;companion_bridge stop` then start it again. It
+If the bridge will not start, run it again with `stop` and then start it. It
 refuses to run twice on the same port on purpose.
 
 ## Turn trace on before you do anything
@@ -95,7 +97,7 @@ bug, but it is worth confirming it degrades quietly rather than throwing.
 - Start any Lich script, then press **Stop all**. Everything except the bridge
   should die. Try it while in roundtime, while stunned, and while dead.
 - **Pause** and **Resume**.
-- Break the connection deliberately: `;companion_bridge stop` while the panel
+- Break the connection deliberately: stop the bridge script while the panel
   is connected. The panel should notice, back off, and reconnect when you start
   it again. It should not spin.
 - Let the game sit idle long enough to be disconnected. The panel should

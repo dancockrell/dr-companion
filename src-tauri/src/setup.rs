@@ -833,9 +833,11 @@ pub async fn plan_setup() -> SetupPlan {
                         bytes: map_bytes,
                         target: maps_dir.to_string_lossy().into_owned(),
                         note: "The community map set, verified file by file against \
-                               the git blob hashes GitHub publishes. Genie 4 also \
-                               ships Lamp.exe, its own updater, which does the same \
-                               job if you would rather use it."
+                               the git blob hashes GitHub publishes. Genie 4 ships \
+                               Lamp.exe to do this itself, but the Lamp build it \
+                               fetches is currently broken and reports \"Maps \
+                               Updated\" either way, which is why people keep \
+                               finding an empty Maps folder after a clean install."
                             .into(),
                     }
                 },

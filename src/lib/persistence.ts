@@ -20,6 +20,8 @@ export interface PersistedPrefs {
   /** Town the player wants to heal in, overriding the scorer. */
   preferredHealCity?: string | null
   consoleOpen?: boolean
+  /** Frontend id, which decides the Lich script prefix. */
+  frontend?: string
   houseEntryMethod?: 'rope' | 'lockpick' | 'lockpick_ring'
   houseEntryMaxSearches?: number
   houseEntryHide?: boolean
@@ -35,6 +37,7 @@ const defaults: PersistedPrefs = {
   huntMode: 'suggest',
   preferredHealCity: null,
   consoleOpen: false,
+  frontend: 'genie',
   houseEntryMethod: 'lockpick_ring',
   houseEntryMaxSearches: 3,
   houseEntryHide: true,

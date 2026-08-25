@@ -5,6 +5,7 @@ import type { IntentName, BridgeServerMessage } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
 import { loadPrefs, savePrefs } from '../lib/persistence'
 import { combatRanks } from '../data/skills'
+import { DEFAULT_FRONTEND } from '../lib/frontends'
 import {
   APP_VERSION,
   EXPECTED_BRIDGE_VERSION,
@@ -165,6 +166,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   huntFavorites: prefs.huntFavorites ?? [],
   huntMode: prefs.huntMode ?? 'suggest',
   preferredHealCity: prefs.preferredHealCity ?? null,
+  frontend: prefs.frontend ?? DEFAULT_FRONTEND,
   profiles: loadProfiles(),
   activeProfileKey: null,
   selectedHuntId: null,
@@ -218,6 +220,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setConsoleOpen: (v: boolean) => {
     savePrefs({ consoleOpen: v })
     set({ consoleOpen: v })
+  },
+
+  setFrontend: (id: string) => {
+    savePrefs({ frontend: id })
+    set({ frontend: id })
   },
 
   clearRunaway: () => {

@@ -641,7 +641,12 @@ module Companion
     # We report rather than change them. They are the player's settings and
     # some people run BRIEF on purpose. But nobody should lose a week to one.
     def check_toggles(server)
-      line = Cmd.exec('toggle', expect: [/BRIEF|INVBRIEF|Toggle settings|You have the following/i], timeout: 8)
+      line = Cmd.exec(
+        'toggle',
+        expect: [/BRIEF|INVBRIEF|Toggle settings|You have the following/i],
+        timeout: 8,
+        label: 'toggles'
+      )
 
       if line.nil?
         server.log(
@@ -649,25 +654,82 @@ module Companion
           'INVBRIEF by hand: both change the text scripts read.',
           'warn'
         )
-        return [false, 'could not read toggles']
+      else
+        server.log("TOGGLE: #{line.to_s.strip}")
+        risky = []
+        risky << 'INVBRIEF' if line =~ /invbrief\s+(on|yes)/i
+        risky << 'BRIEF'    if line =~ /(?<!inv)brief\s+(on|yes)/i
+
+        if risky.empty?
+          server.log('No display toggles that would confuse parsing.')
+        else
+          server.log(
+            "#{risky.join(' and ')} is on. That shortens what the game prints, " \
+            'which breaks anything reading inventory or room text. Worth ' \
+            'turning off while testing.',
+            'warn'
+          )
+        end
       end
 
-      server.log("TOGGLE: #{line.to_s.strip}")
-      risky = []
-      risky << 'INVBRIEF' if line =~ /invbrief\s+(on|yes)/i
-      risky << 'BRIEF'    if line =~ /(?<!inv)brief\s+(on|yes)/i
+      check_room_id_flag(server)
+    end
 
-      if risky.empty?
-        server.log('No display toggles that would confuse parsing.')
-        [true, 'toggles look fine']
-      else
+    # ShowRoomID is the one people actually get burned by, and it cuts both
+    # ways, which is why it needs explaining rather than just reporting.
+    #
+    # From the Lich help channel:
+    #
+    #   "If you used Lich to play, Lich requires the FLAG to be on. But if you
+    #    then login without lich into Genie, your maps in genie will be messed
+    #    up. The FLAG works with Lich & Genie because Lich disguises the Room
+    #    Title display of the ID# automatically so as to not break Genie. But
+    #    without Lich, that doesn't happen and your maps will be broke in Genie
+    #    until you turn off the FLAG."
+    #
+    # And the symptom, from someone who lost an afternoon to it:
+    #
+    #   "the maps simply wont work, #goto does not work and it no longer shows
+    #    my position on the map" ... "ShowRoomID was on in flags, have turned it
+    #    off. And now goto now works again."
+    #
+    # So: on is correct while Lich is running, and wrong the moment they play
+    # without it. We are running under Lich, so we want it on, and we say the
+    # other half out loud because nobody is going to remember it later.
+    def check_room_id_flag(server)
+      line = Cmd.exec(
+        'flags',
+        expect: [/ShowRoomID|Flags|You have the following/i],
+        timeout: 8,
+        label: 'flags'
+      )
+
+      if line.nil?
         server.log(
-          "#{risky.join(' and ')} is on. That shortens what the game prints, " \
-          'which breaks anything reading inventory or room text. Worth turning ' \
-          'off while testing.',
+          'Could not read FLAGS. ShowRoomID needs to be ON for Lich to track ' \
+          'rooms. Check it with FLAGS if room tracking looks wrong.',
           'warn'
         )
-        [true, "risky toggles: #{risky.join(', ')}"]
+        return [true, 'toggles read, flags unknown']
+      end
+
+      on = line =~ /showroomid\s*(?:is\s*)?(on|yes|true)/i
+
+      if on
+        server.log(
+          'ShowRoomID is on, which is what Lich needs. Remember it the other ' \
+          'way round: if you later play without Lich, turn it off again or ' \
+          'your frontend mapper will stop working.'
+        )
+        [true, 'ShowRoomID on']
+      else
+        server.log(
+          'ShowRoomID is off. Lich needs it on to know which room you are in, ' \
+          'and without it travel and room tracking will not work. Turn it on ' \
+          'with: FLAGS ShowRoomID ON',
+          'warn'
+        )
+        [true, 'ShowRoomID off']
       end
     end
 
