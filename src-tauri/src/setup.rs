@@ -682,31 +682,74 @@ pub async fn plan_setup() -> SetupPlan {
         ),
     };
 
-    let ruby_remedy = match ruby_presence {
-        Presence::Present => Remedy::None,
-        // Not a dead end. Lich 5 checks `RUBY_VERSION` against `REQUIRED_RUBY`
-        // on startup and quits with a dialog if it loses, so an old Ruby is a
-        // hard stop rather than a warning, and "sorry, do it yourself" is the
-        // exact failure this app exists to remove.
-        //
-        // The offer below is safe to make plainly: Ruby4Lich5 installs its own
-        // Ruby into its own folder. Nothing on PATH changes and the Ruby
-        // already here keeps working for whatever else uses it.
-        Presence::Outdated => Remedy::Manual {
-            instructions:
+    // The offer has to live on this row, not on Lich's.
+    //
+    // It used to be built inside the Lich block and only when Lich was
+    // missing, which produced a screen with no way forward: Lich present,
+    // Ruby 3.3, every row either fine or advisory, and nothing to press. The
+    // one thing that fixes it was gated behind a condition that had nothing
+    // to do with it. Ruby is the dependency; Ruby's row makes the offer.
+    //
+    // Lich 5 checks `RUBY_VERSION` against `REQUIRED_RUBY` in lib/version.rb
+    // and quits with a dialog if it loses, so an old Ruby is a hard stop, not
+    // a warning, and "here is a link, good luck" is the exact failure this app
+    // exists to remove.
+    //
+    // Offering it plainly is safe: Ruby4Lich5 installs its own Ruby into its
+    // own folder. Nothing on PATH changes and the Ruby already here keeps
+    // working for whatever else uses it. Someone who would rather do it
+    // themselves still has the link.
+    let ruby_needed = ruby_presence != Presence::Present;
+    let ruby4lich5 = release
+        .as_ref()
+        .filter(|_| ruby_needed)
+        .and_then(|rel| asset(rel, "Ruby4Lich5.exe").map(|a| (rel, a)))
+        .map(|(rel, a)| {
+            option_from(
+                "ruby4lich5",
+                "Ruby4Lich5 — Ruby and Lich together",
+                rel,
+                a,
+                "installer",
+                if ruby_presence == Presence::Outdated {
+                    "Installs its own Ruby beside yours, leaving yours alone"
+                } else {
+                    "Everything in one step"
+                },
+                "The Lich project's own Windows installer, so it is the setup their \
+                 community supports and troubleshoots. We fetch it, check it against \
+                 the checksum GitHub publishes, and hand it to you. It does not run \
+                 until you ask separately, and it asks its own questions.",
+                true,
+            )
+        });
+
+    let ruby_offers_bundle = ruby4lich5.is_some();
+
+    let ruby_remedy = match (&ruby_presence, ruby4lich5) {
+        (Presence::Present, _) => Remedy::None,
+        (_, Some(option)) => Remedy::Choose {
+            options: vec![option],
+            note: if ruby_presence == Presence::Outdated {
                 "Lich 5 needs Ruby 4.0 or newer and refuses to start on anything older, so \
-                 this one will not run it. Ruby4Lich5 below is the fix: it installs its own \
-                 Ruby in its own folder, alongside the one you have rather than over it, and \
-                 nothing on your PATH changes. Your existing Ruby keeps working for whatever \
-                 else uses it. If you would rather upgrade Ruby yourself instead, do that and \
-                 press Check again."
-                    .into(),
-            link: "https://rubyinstaller.org/downloads/".into(),
+                 the Ruby you have will not run it. This installs a second Ruby in its own \
+                 folder rather than over yours, and changes nothing on your PATH — your \
+                 existing Ruby keeps working for whatever else uses it. If you would rather \
+                 upgrade Ruby yourself, do that and press Check again."
+                    .into()
+            } else {
+                "Lich runs on Ruby, and this is the Lich project's own bundle of the two \
+                 together. It installs into its own folder and does not touch anything else."
+                    .into()
+            },
         },
+        // No release info, so we cannot price or verify a download. Say what
+        // to do rather than showing a button that cannot work.
         _ => Remedy::Manual {
             instructions:
-                "Lich runs on Ruby. The simplest route on Windows is Ruby4Lich5 below, \
-                 which bundles Ruby and Lich together and is published by the Lich project itself."
+                "Lich 5 needs Ruby 4.0 or newer. Could not reach GitHub to offer the \
+                 download, so either check your connection and press Check again, or \
+                 install Ruby yourself and do the same."
                     .into(),
             link: "https://rubyinstaller.org/downloads/".into(),
         },
@@ -752,8 +795,13 @@ pub async fn plan_setup() -> SetupPlan {
                     has_ruby,
                 ));
             }
-            // Without one, the project's own bundle is the supported path.
-            if let Some(a) = asset(rel, "Ruby4Lich5.exe") {
+            // Without one, the project's own bundle is the supported path —
+            // but only offer it here when Ruby's own row has not already. Two
+            // rows showing the same 65 MB installer reads as two downloads.
+            if !has_ruby && ruby_offers_bundle {
+                // The Ruby row is already offering it, and satisfying that row
+                // satisfies this one too. Say so rather than repeating it.
+            } else if let Some(a) = asset(rel, "Ruby4Lich5.exe") {
                 options.push(option_from(
                     "ruby4lich5",
                     "Ruby4Lich5 — Ruby and Lich together",
@@ -779,6 +827,11 @@ pub async fn plan_setup() -> SetupPlan {
                     options,
                     note: if has_ruby {
                         "You already have a Ruby that works, so the small one is enough."
+                            .into()
+                    } else if ruby_offers_bundle {
+                        "Ruby4Lich5, offered on the Ruby row above, already includes Lich. \
+                         Take that one and this row takes care of itself. The zip here is \
+                         only worth it if you would rather install Ruby 4 yourself."
                             .into()
                     } else {
                         "Either route works. The bundle is simpler; the zip is smaller \
