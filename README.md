@@ -67,9 +67,17 @@ and the Lich side stays inspectable Ruby that any player can read.
 | Tier gating (`intentBlockReason`) | Implemented. Safety intents are never gated. |
 | Preferred heal city | Works, with a scored fallback that says why |
 | Windows `.exe` and installer | Builds. NSIS, MSI, and a standalone exe. |
-| **Driving the game** (travel, hunt, town run) | **Not built.** The bridge reads and stops. It does not yet act. |
+| Command layer (roundtime, stun, refusals) | Works, tested against a fake game |
+| `check_health`, `stow_all` | Written, untested against a live game |
+| Console with command trace | Works. Turn on trace before testing anything. |
+| **Driving the game** (travel, hunt, town run) | **Not built.** The bridge reads, stops, and does two small things. |
 
-Two documents cover the detail. [docs/REVIEW.md](docs/REVIEW.md) is a code review of this
+Testing it against a live game is the next step, and
+[docs/TESTING.md](docs/TESTING.md) says where the weak points are, what to try
+in what order, and what to send back. Nothing here has ever talked to
+DragonRealms, so that list is where the bugs are.
+
+Two more documents cover the detail. [docs/REVIEW.md](docs/REVIEW.md) is a code review of this
 exact tree, written before any of it was cleaned up. [docs/DOMAIN.md](docs/DOMAIN.md)
 is a research pass on how DragonRealms actually works, sourced from Elanthipedia
 and from reading community scripts, and it corrects several things the data
