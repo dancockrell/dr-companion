@@ -5,9 +5,10 @@ the things you do every session (get to a healer, run town chores, pick a
 hunting ground, stop everything right now) are buttons instead of typed
 commands you have to remember while something is eating you.
 
-**Status: pre-alpha.** The interface is real and you can click through all of
-it. The Lich side is not written yet. Everything you see running is a mock.
-Read [Honest status](#honest-status) before you install anything.
+**Status: pre-alpha, but no longer a mock.** The Lich bridge is written and
+works: the panel reads live character state, including per-skill mindstate, and
+can stop every running script. What it does not do yet is drive the game. Read
+[Honest status](#honest-status) before you install anything.
 
 ## What it is
 
@@ -35,7 +36,7 @@ character locked to Zoluren has a different correct answer than a Premium one.
 Game server
     |
   Lich 5   (Ruby, TCP proxy, runs the automation)
-    |      ws://127.0.0.1:7415/companion   <- the bridge, not yet written
+    |      ws://127.0.0.1:7415/companion   <- lich-scripts/companion_bridge.lic
 DR Companion   (Tauri 2 window, React UI, this repo)
 ```
 
@@ -94,7 +95,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:1420` and click **Skip installs, open demo dashboard**.
+Open `http://localhost:1420` and click **Open the demo dashboard**.
 No Genie, no Lich, no Ruby. You are driving a simulated character.
 
 To exercise the live WebSocket path without the game:
@@ -107,8 +108,8 @@ npm run mock-lich
 Then switch the bridge to **Live Lich** in Settings.
 
 For the native window you also need Rust and the Visual Studio C++ build tools.
-See [docs/PACKAGING.md](docs/PACKAGING.md), and note the icon problem listed in
-the review before you try `npm run tauri:build`.
+`npm run tauri:build` produces an NSIS installer, an MSI and a standalone exe.
+See [docs/PACKAGING.md](docs/PACKAGING.md).
 
 ## On rules and other people's work
 
