@@ -27,10 +27,10 @@ reqwest = { version = "0.12", default-features = false, features = [
   "charset",
   "http2",
 ] }
-sha2 = "0.10"
+sha2 = "0.11"
 # git blob hashing, to verify files that ship in a repo rather than a release
-sha1 = "0.10"
-zip = { version = "2", default-features = false, features = ["deflate"] }
+sha1 = "0.11"
+zip = { version = "8", default-features = false, features = ["deflate"] }
 # `macros` only, for tokio::join!. Tauri already supplies the runtime.
 tokio = { version = "1", default-features = false, features = ["macros"] }
 
