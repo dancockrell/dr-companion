@@ -957,10 +957,9 @@ more players:
 - **Our own repo as a custom repo** — MIT, installs the same way, but the player
   has to hear about it first.
 
-**Default: offer it upstream, and their licence is fine.** MIT is used elsewhere
-in this project to maximise freedom to adopt, not out of attachment to it — and
-that same reasoning says a GPL-2.0 script sitting in the suite everyone already
-has beats an MIT script nobody finds.
+**Default: offer it upstream, and their licence is fine.** See §7.6 — the goal
+is adoption and attribution rather than control, so a GPL-2.0 script sitting in
+the suite everyone already has beats an MIT script nobody finds.
 
 Our own repo is the fallback for anything that does not fit their suite or that
 they would rather not carry.
@@ -974,6 +973,61 @@ and it happens to be the same act as making the codebase maintainable.
 
 It also sets the quality bar. These will be read by people who have maintained
 DR scripts for years. That is the audience to write for.
+
+---
+
+## 7.6 Give it away, and be visible doing it
+
+The licensing questions above all resolve the same way, so they are settled here
+once rather than argued per-artifact.
+
+**The goal is adoption and attribution, not control.** Give the software away.
+Give the art to Simutronics. Take whatever licence the receiving project prefers.
+None of that costs anything worth keeping, and all of it increases the number of
+people who use the work and know who wrote it.
+
+That inverts the usual tradeoff. Normally a licence protects the author's
+position; here the author's position *is* how widely it spreads.
+
+### What that actually requires
+
+Giving work away only pays if it stays attached to a name, which means
+attribution is a technical task and not a modesty question.
+
+**Follow the community's own header convention**, which Lich parses and which is
+how this ecosystem has always credited people. From `go2.lic`:
+
+```
+            author: Tillmen (tillmen@lichproject.org)
+   original author: Shaelun
+      contributors: Deysh, Doug, Gildaren, Sarvatt, Tysong, Xanlin, ...
+              game: any
+              tags: core, movement
+           version: 2.3.3
+          required: Lich >= 5.12.0
+```
+
+`Script.version` reads `version:` out of that block, so the header is required
+anyway — and the same block carries the author line. Every script we publish
+uses it, filled in properly.
+
+The same applies to the repository: a README that says who built it and why, and
+commit messages that show the reasoning. §1.5 already said the repo is the work
+sample; this is the part that makes the sample legible as *someone's*.
+
+### And it changes what "finished" means
+
+If the repository is the artifact, **ten things done well beat forty half-built
+ones.** A reader who opens this and finds a working, tested, documented mindstate
+tracker learns more than one who finds sketches of eleven features.
+
+So the build order is a commitment rather than a wish list: finish a step, prove
+it, ship it, then start the next. Anything abandoned half-done should be removed
+rather than left as evidence of abandoning things.
+
+That is also the only part of the outcome this document can affect. Whether it
+leads anywhere is not something a design decides; whether the work is worth
+finding is.
 
 ---
 
