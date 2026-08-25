@@ -82,7 +82,12 @@ the difference is visible:
 
 ## Running it
 
-You need Node.js LTS. Nothing else, for the demo.
+The desktop app checks what you have and offers to fill the gaps. It will not
+touch a Ruby you already have, nothing downloads without a yes, and everything
+it installs goes in its own folder. The rules are written down in
+[docs/SETUP-POLICY.md](docs/SETUP-POLICY.md).
+
+To run it from source you need Node.js LTS. Nothing else, for the demo.
 
 ```bash
 npm install
