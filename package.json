@@ -15,11 +15,12 @@
     "test:scrub": "node tools/scrub-test.mjs",
     "test:bridge": "ruby lich-scripts/test/cmd_test.rb lich-scripts/companion_bridge.lic",
     "test:runaway": "ruby lich-scripts/test/runaway_test.rb lich-scripts/companion_bridge.lic",
-    "test": "npm run test:scrub && npm run test:frontend && npm run test:bundle && npm run test:bridge && npm run test:runaway && npm run test:yaml && npm run test:server",
+    "test": "npm run test:scrub && npm run test:frontend && npm run test:bundle && npm run test:bridge && npm run test:runaway && npm run test:yaml && npm run test:server && npm run test:live",
     "test:bundle": "npm run build && node tools/bundle-test.mjs",
     "test:frontend": "node tools/frontend-test.mjs",
     "test:yaml": "ruby lich-scripts/test/yaml_test.rb lich-scripts/companion_bridge.lic",
-    "test:server": "ruby lich-scripts/test/server_test.rb lich-scripts/companion_bridge.lic"
+    "test:server": "ruby lich-scripts/test/server_test.rb lich-scripts/companion_bridge.lic",
+    "test:live": "node tools/live-bridge-test.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

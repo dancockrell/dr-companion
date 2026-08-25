@@ -254,9 +254,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (unsubBridge) unsubBridge()
     unsubBridge = bridge.onMessage((msg) => handleBridgeMessage(msg, set, get))
     bridge.setMode(get().bridgeMode)
-    bridge.connect()
-    set({ bridgeConnected: true })
-    if (bridge.getMode() === 'live') {
+
+    const live = bridge.getMode() === 'live'
+
+    if (live) {
+      // Subscribed before connect, not after. A refused connection can report
+      // itself almost immediately, and a listener attached afterwards misses
+      // the one event that explains why nothing is happening.
+      //
       // Keep the unsubscribe. Dropping it leaked a listener per connect and
       // per reconnect, which multiplied every log line.
       if (unsubLiveStatus) unsubLiveStatus()
@@ -267,6 +272,20 @@ export const useAppStore = create<AppState>((set, get) => ({
           set({ bridgeConnected: false })
       })
     }
+
+    bridge.connect()
+
+    // `bridgeConnected` means the transport is open, so only the mock can say
+    // so here: it is in-process and connects synchronously. A live socket is
+    // merely *connecting*, and may never arrive if Lich is not running.
+    //
+    // It used to be set true for both. The socket layer refuses to send on a
+    // socket that is not open, so nothing was ever lost down a hole — but the
+    // gate in requestIntent reads this flag, so pressing Stop during those
+    // first moments got "Not connected to Lich bridge" from the transport
+    // instead of this store's clear "stop scripts in Lich directly". Wrong
+    // message, worst moment.
+    set({ bridgeConnected: !live })
   },
 
   disconnectBridge: () => {

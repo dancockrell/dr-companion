@@ -39,8 +39,14 @@ export class RealBridge {
   private reconnectAttempts = 0
   private lastGameTime: number | null = null
   private lastGameTimeAt = 0
-  private staleTimer: number | null = null
-  private reconnectTimer: number | null = null
+  // `ReturnType<typeof setTimeout>` rather than `number`, because the timers
+  // below are the bare globals, not `window.setTimeout`. They used to be
+  // window-scoped, which meant this class could only be constructed inside a
+  // DOM — so the one piece of the app that cannot be wrong, the transport to
+  // Lich, was also the one piece that could not be tested outside a browser.
+  // It went unexercised for exactly that long.
+  private staleTimer: ReturnType<typeof setInterval> | null = null
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private shouldReconnect = false
 
   constructor(url = DEFAULT_URL) {
@@ -117,7 +123,7 @@ export class RealBridge {
             'disconnected',
             `Connection closed — retrying in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts})`
           )
-          this.reconnectTimer = window.setTimeout(() => this.connect(), delay)
+          this.reconnectTimer = setTimeout(() => this.connect(), delay)
         } else {
           this.setStatus('disconnected')
         }
@@ -172,7 +178,7 @@ export class RealBridge {
   private startStaleWatch() {
     this.stopStaleWatch()
     this.lastGameTimeAt = Date.now()
-    this.staleTimer = window.setInterval(() => {
+    this.staleTimer = setInterval(() => {
       if (this.status !== 'connected') return
       if (this.lastGameTime === null) return
       const since = Date.now() - this.lastGameTimeAt
