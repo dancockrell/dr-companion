@@ -5,6 +5,9 @@
  * says yes, and when they say yes they have already seen the version, the
  * size, the host and the checksum. "Transparency but it just works" means the
  * detail is present and legible, not that it is hidden to keep things tidy.
+ *
+ * Where a project publishes no checksum, this says so rather than quietly
+ * skipping the line and implying a check we did not perform.
  */
 import { useState } from 'react'
 import {
@@ -19,7 +22,12 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { Button } from '../shared/Button'
-import { formatBytes, type ComponentPlan, type Progress } from '../../lib/setup'
+import {
+  formatBytes,
+  type ComponentPlan,
+  type DownloadOption,
+  type Progress,
+} from '../../lib/setup'
 
 function Icon({ presence }: { presence: ComponentPlan['presence'] }) {
   if (presence === 'present')
@@ -33,7 +41,11 @@ function Icon({ presence }: { presence: ComponentPlan['presence'] }) {
 
 export interface CardState {
   progress?: Progress
+  /** Which option produced `downloadedPath`. */
+  downloadedFor?: string
   downloadedPath?: string
+  /** Which option the user selected, if they moved off the suggested one. */
+  chosen?: string
   error?: string
   busy?: boolean
   done?: string
@@ -42,6 +54,7 @@ export interface CardState {
 export function ComponentCard({
   plan,
   state,
+  onChoose,
   onDownload,
   onRunInstaller,
   onReveal,
@@ -50,19 +63,15 @@ export function ComponentCard({
 }: {
   plan: ComponentPlan
   state: CardState
-  onDownload: () => void
+  onChoose: (optionId: string) => void
+  onDownload: (option: DownloadOption) => void
   onRunInstaller: (path: string) => void
   onReveal: (path: string) => void
   onInstallBridge?: () => void
   canInstallBridge?: boolean
 }) {
-  const [showDetail, setShowDetail] = useState(false)
+  const [showDetail, setShowDetail] = useState<string | null>(null)
   const r = plan.remedy
-
-  const pct =
-    state.progress && state.progress.total > 0
-      ? Math.round((state.progress.received / state.progress.total) * 100)
-      : null
 
   return (
     <div className="rounded-2xl border border-border bg-surface-raised p-4 flex gap-3 items-start">
@@ -141,107 +150,174 @@ export function ComponentCard({
           </div>
         )}
 
-        {r.kind === 'download' && (
+        {r.kind === 'choose' && (
           <div className="pt-1 space-y-2">
             <p className="text-[11px] text-ink-muted leading-snug">{r.note}</p>
 
-            <div className="rounded-lg border border-border bg-surface px-2.5 py-2 space-y-1">
-              <div className="flex items-center justify-between gap-2 text-[11px]">
-                <span className="text-ink truncate">{r.label}</span>
-                <span className="text-ink-faint shrink-0">
-                  {r.version} · {formatBytes(r.bytes)}
-                </span>
-              </div>
+            {r.options.map((o) => {
+              const active =
+                state.chosen === o.id || (!state.chosen && o.recommended)
+              const prog =
+                state.progress?.id === `${plan.id}:${o.id}`
+                  ? state.progress
+                  : undefined
+              const pct =
+                prog && prog.total > 0
+                  ? Math.round((prog.received / prog.total) * 100)
+                  : null
+              const done = state.downloadedFor === o.id
 
-              <button
-                type="button"
-                onClick={() => setShowDetail((v) => !v)}
-                className="flex items-center gap-1 text-[10px] text-ink-faint hover:text-ink-muted"
-              >
-                <ChevronDown
-                  className={`w-3 h-3 transition-transform ${showDetail ? 'rotate-180' : ''}`}
-                />
-                {showDetail ? 'Hide' : 'Where this comes from'}
-              </button>
-
-              {showDetail && (
-                <div className="space-y-1 pt-1 text-[10px] font-mono break-all">
-                  <div>
-                    <span className="text-ink-faint">from </span>
-                    <span className="text-info">{r.url}</span>
-                  </div>
-                  <div>
-                    <span className="text-ink-faint">sha256 </span>
-                    <span className="text-ink-muted">{r.sha256 || 'unavailable'}</span>
-                  </div>
-                  <div>
-                    <span className="text-ink-faint">to </span>
-                    <span className="text-ink-muted">{r.dest}</span>
-                  </div>
-                  <p className="font-sans text-ink-faint leading-snug pt-0.5">
-                    The checksum comes from GitHub's release API, the same
-                    source as the link. We verify the file against it and
-                    delete it if it does not match.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {pct !== null && state.progress?.phase === 'downloading' && (
-              <div className="space-y-1">
-                <div className="h-1.5 rounded-full bg-surface overflow-hidden border border-border/40">
-                  <div
-                    className="h-full rounded-full bg-info transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <p className="text-[10px] text-ink-faint tabular-nums">
-                  {formatBytes(state.progress.received)} of{' '}
-                  {formatBytes(state.progress.total)} · {pct}%
-                </p>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-1.5">
-              {!state.downloadedPath && (
-                <Button
-                  size="sm"
-                  variant="primary"
-                  icon={<Download className="w-3.5 h-3.5" />}
-                  onClick={onDownload}
-                  disabled={state.busy}
+              return (
+                <div
+                  key={o.id}
+                  className={`rounded-lg border px-2.5 py-2 space-y-1.5 ${
+                    active
+                      ? 'border-accent/40 bg-accent/5'
+                      : 'border-border bg-surface'
+                  }`}
                 >
-                  {state.busy ? 'Downloading…' : 'Download'}
-                </Button>
-              )}
-
-              {state.downloadedPath && r.after === 'installer' && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={() => onRunInstaller(state.downloadedPath!)}
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => onChoose(o.id)}
                   >
-                    Run the installer
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    icon={<FolderOpen className="w-3.5 h-3.5" />}
-                    onClick={() => onReveal(state.downloadedPath!)}
-                  >
-                    Show me the file
-                  </Button>
-                </>
-              )}
-            </div>
+                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-ink truncate flex items-center gap-1.5">
+                        <span
+                          className={`w-2 h-2 rounded-full shrink-0 ${
+                            active ? 'bg-accent' : 'bg-border'
+                          }`}
+                        />
+                        {o.label}
+                        {o.prerelease && (
+                          <span className="text-warn text-[10px]">beta</span>
+                        )}
+                        {o.recommended && (
+                          <span className="text-good text-[10px]">suggested</span>
+                        )}
+                      </span>
+                      <span className="text-ink-faint shrink-0">
+                        {o.version} · {formatBytes(o.bytes)}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-ink-faint leading-snug pl-3.5 pt-0.5">
+                      {o.why}
+                    </p>
+                  </button>
 
-            {state.downloadedPath && r.after === 'installer' && (
-              <p className="text-[10px] text-ink-faint leading-snug">
-                Verified and saved. It has not been run. Opening it starts the
-                Lich project's own installer, which will ask its own questions.
-              </p>
-            )}
+                  {active && (
+                    <>
+                      <p className="text-[10px] text-ink-muted leading-snug pl-3.5">
+                        {o.note}
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowDetail((v) => (v === o.id ? null : o.id))
+                        }
+                        className="flex items-center gap-1 text-[10px] text-ink-faint hover:text-ink-muted pl-3.5"
+                      >
+                        <ChevronDown
+                          className={`w-3 h-3 transition-transform ${
+                            showDetail === o.id ? 'rotate-180' : ''
+                          }`}
+                        />
+                        {showDetail === o.id ? 'Hide' : 'Where this comes from'}
+                      </button>
+
+                      {showDetail === o.id && (
+                        <div className="space-y-1 pl-3.5 text-[10px] font-mono break-all">
+                          <div>
+                            <span className="text-ink-faint">from </span>
+                            <span className="text-info">{o.url}</span>
+                          </div>
+                          <div>
+                            <span className="text-ink-faint">sha256 </span>
+                            {o.sha256 ? (
+                              <span className="text-ink-muted">{o.sha256}</span>
+                            ) : (
+                              <span className="text-warn">
+                                not published by this project
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-ink-faint">to </span>
+                            <span className="text-ink-muted">{o.dest}</span>
+                          </div>
+                          <p className="font-sans text-ink-faint leading-snug pt-0.5">
+                            {o.sha256
+                              ? 'The checksum comes from the same release API as the link. We verify the file against it and delete it if it does not match.'
+                              : 'This project publishes no checksum for this file. We can confirm it came from their releases over HTTPS, but not check the contents against a published hash.'}
+                          </p>
+                        </div>
+                      )}
+
+                      {pct !== null && prog?.phase === 'downloading' && (
+                        <div className="space-y-1 pl-3.5">
+                          <div className="h-1.5 rounded-full bg-surface overflow-hidden border border-border/40">
+                            <div
+                              className="h-full rounded-full bg-info transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <p className="text-[10px] text-ink-faint tabular-nums">
+                            {formatBytes(prog.received)} of{' '}
+                            {formatBytes(prog.total)} · {pct}%
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-1.5 pl-3.5">
+                        {!done && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            icon={<Download className="w-3.5 h-3.5" />}
+                            onClick={() => onDownload(o)}
+                            disabled={state.busy}
+                          >
+                            {state.busy
+                              ? 'Working…'
+                              : o.after === 'extract'
+                                ? 'Download and install'
+                                : 'Download'}
+                          </Button>
+                        )}
+                        {done && o.after === 'installer' && state.downloadedPath && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => onRunInstaller(state.downloadedPath!)}
+                            >
+                              Run the installer
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              icon={<FolderOpen className="w-3.5 h-3.5" />}
+                              onClick={() => onReveal(state.downloadedPath!)}
+                            >
+                              Show me the file
+                            </Button>
+                          </>
+                        )}
+                      </div>
+
+                      {done && o.after === 'installer' && (
+                        <p className="text-[10px] text-ink-faint leading-snug pl-3.5">
+                          Verified and saved. It has not been run. Opening it
+                          starts that project’s own installer, which asks its own
+                          questions.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

@@ -9,19 +9,25 @@ import { isTauri, invokeTauri, listenTauri } from './tauri'
 
 export type Presence = 'present' | 'outdated' | 'missing' | 'unknown'
 
+export interface DownloadOption {
+  id: string
+  label: string
+  url: string
+  bytes: number
+  /** Empty when upstream publishes no digest. The UI must say so, not imply one. */
+  sha256: string
+  version: string
+  dest: string
+  /** 'extract' unpacks it for you; 'installer' needs a second yes. */
+  after: 'extract' | 'installer'
+  prerelease: boolean
+  why: string
+  note: string
+  recommended: boolean
+}
+
 export type Remedy =
-  | {
-      kind: 'download'
-      label: string
-      url: string
-      bytes: number
-      sha256: string
-      version: string
-      dest: string
-      /** 'extract' unpacks it for you; 'installer' needs a second yes. */
-      after: 'extract' | 'installer'
-      note: string
-    }
+  | { kind: 'choose'; options: DownloadOption[]; note: string }
   | { kind: 'manual'; instructions: string; link: string }
   | { kind: 'none' }
 
@@ -85,9 +91,16 @@ export async function downloadComponent(
   return res
 }
 
-export async function extractLich(archive: string): Promise<string> {
-  const res = (await invokeTauri('extract_lich', { archive })) as string
-  return res
+export async function extractArchive(
+  archive: string,
+  targetName: string,
+  expect?: string
+): Promise<string> {
+  return (await invokeTauri('extract_archive', {
+    archive,
+    targetName,
+    expect: expect ?? null,
+  })) as string
 }
 
 export async function installBridgeScript(): Promise<string> {

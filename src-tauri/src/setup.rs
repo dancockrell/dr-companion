@@ -35,6 +35,8 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 /// Lich's `.ruby-version`. Anything older is not merely untested, it will fail.
 const REQUIRED_RUBY_MAJOR: u32 = 4;
 const LICH_REPO: &str = "elanthia-online/lich-5";
+pub const GENIE4_REPO: &str = "GenieClient/Genie4";
+pub const GENIE5_REPO: &str = "GenieClient/Genie5";
 
 // ---------------------------------------------------------------- detection --
 
@@ -173,20 +175,36 @@ pub enum Presence {
     Unknown,
 }
 
+/// One thing we could fetch, with everything needed to judge it.
+#[derive(Serialize, Clone)]
+pub struct DownloadOption {
+    pub id: String,
+    pub label: String,
+    pub url: String,
+    pub bytes: u64,
+    /// Empty when upstream publishes no digest for this asset. The UI says so
+    /// rather than implying a verification we cannot perform.
+    pub sha256: String,
+    pub version: String,
+    pub dest: String,
+    /// "extract" unpacks it here; "installer" needs a second, separate consent.
+    pub after: String,
+    /// Set for anything not a stable release, so the label can say beta.
+    pub prerelease: bool,
+    /// Short reason to pick this one. Shown next to the option.
+    pub why: String,
+    pub note: String,
+    /// True when we suggest this one by default.
+    pub recommended: bool,
+}
+
 #[derive(Serialize, Clone)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Remedy {
-    /// We can fetch this. Everything the user needs to judge it is here.
-    Download {
-        label: String,
-        url: String,
-        bytes: u64,
-        sha256: String,
-        version: String,
-        /// Where the downloaded file will be written.
-        dest: String,
-        /// What happens to it afterwards: "installer" needs a second consent.
-        after: String,
+    /// One or more ways to satisfy this. The user picks; we never auto-select
+    /// on their behalf beyond marking one as recommended.
+    Choose {
+        options: Vec<DownloadOption>,
         note: String,
     },
     /// We will not do this for you, and here is why plus where to go.
@@ -216,7 +234,7 @@ pub struct SetupPlan {
 }
 
 #[derive(Deserialize)]
-struct GhAsset {
+pub struct GhAsset {
     name: String,
     size: u64,
     digest: Option<String>,
@@ -224,19 +242,47 @@ struct GhAsset {
 }
 
 #[derive(Deserialize)]
-struct GhRelease {
+pub struct GhRelease {
     tag_name: String,
+    #[serde(default)]
+    prerelease: bool,
+    #[serde(default)]
+    draft: bool,
     assets: Vec<GhAsset>,
 }
 
-async fn latest_lich_release() -> Option<GhRelease> {
+/// Latest stable release of a repo, or None.
+pub async fn latest_release(repo: &str) -> Option<GhRelease> {
+    let client = reqwest::Client::builder()
+        .user_agent("dr-companion-setup")
+        .build()
+        .ok()?;
+    let res = client
+        .get(format!("https://api.github.com/repos/{repo}/releases/latest"))
+        .send()
+        .await
+        .ok()?;
+    if !res.status().is_success() {
+        return None;
+    }
+    let mut rel = res.json::<GhRelease>().await.ok()?;
+    rel.prerelease = false;
+    Some(rel)
+}
+
+/// Newest release including prereleases.
+///
+/// Genie 5 only publishes betas so far, and `releases/latest` skips those. A
+/// project whose current build is a beta should not look like it has no
+/// releases at all, so ask for the list and take the first.
+pub async fn newest_release(repo: &str) -> Option<GhRelease> {
     let client = reqwest::Client::builder()
         .user_agent("dr-companion-setup")
         .build()
         .ok()?;
     let res = client
         .get(format!(
-            "https://api.github.com/repos/{LICH_REPO}/releases/latest"
+            "https://api.github.com/repos/{repo}/releases?per_page=10"
         ))
         .send()
         .await
@@ -244,11 +290,141 @@ async fn latest_lich_release() -> Option<GhRelease> {
     if !res.status().is_success() {
         return None;
     }
-    res.json::<GhRelease>().await.ok()
+    let list = res.json::<Vec<GhRelease>>().await.ok()?;
+    list.into_iter().find(|r| !r.draft)
+}
+
+async fn latest_lich_release() -> Option<GhRelease> {
+    latest_release(LICH_REPO).await
+}
+
+/// The Genie builds we can offer, newest line first.
+///
+/// Separate from `plan_setup` so it can be exercised without pretending Genie
+/// is absent on a machine that has it.
+pub fn genie_options(
+    genie5: &Option<GhRelease>,
+    genie4: &Option<GhRelease>,
+) -> Vec<DownloadOption> {
+    let mut options = Vec::new();
+
+    // Genie 5 first: actively developed, cross-platform, and every asset
+    // carries a published checksum. Still beta, and labelled as such.
+    if let Some(rel) = genie5 {
+        if let Some(a) = asset(rel, "01-Windows-Genie5-Portable.zip") {
+            options.push(option_from(
+                "genie5-portable",
+                "Genie 5 portable",
+                rel,
+                a,
+                "extract",
+                "No installer. Unpacks into this app's folder and deletes cleanly.",
+                "The current line of development, .NET 8, and it runs Genie 4 .cmd \
+                 scripts. Still a beta, so expect rough edges.",
+                true,
+            ));
+        }
+        if let Some(a) = asset(rel, "01-Windows-Genie5-Setup.exe") {
+            options.push(option_from(
+                "genie5-setup",
+                "Genie 5 installer",
+                rel,
+                a,
+                "installer",
+                "Start-menu entry and file associations",
+                "Same build as the portable version, installed normally.",
+                false,
+            ));
+        }
+    }
+
+    // Genie 4: the long-standing stable client. Worth offering, with the two
+    // things a person should know before choosing it.
+    if let Some(rel) = genie4 {
+        if let Some(a) = asset(rel, "Genie4.zip") {
+            let tag = rel.tag_name.clone();
+            options.push(option_from(
+                "genie4",
+                "Genie 4",
+                rel,
+                a,
+                "extract",
+                "The stable client most scripts were written against",
+                &format!(
+                    "Release {tag}, from December 2023. The project publishes no \
+                     checksum for this file, so we can confirm it came from the \
+                     GenieClient releases over HTTPS but cannot check it against a \
+                     published hash the way we can for the others."
+                ),
+                false,
+            ));
+        }
+    }
+
+    options
+}
+
+/// Find an installed Genie, by executable rather than by folder name alone.
+///
+/// A bare directory called "Genie" proves nothing; the old code reported one as
+/// "Found" and moved on. Look for something runnable, and report the version
+/// line from the folder so the user can see which client we picked up.
+fn detect_genie() -> (Option<String>, String) {
+    let dirs = candidate_dirs(&[
+        "Genie",
+        "Genie4",
+        "Genie5",
+        "GenieClient",
+        "Genie Client",
+    ]);
+    let mut dirs = dirs;
+    dirs.push(app_data_dir().join("genie"));
+    dirs.retain(|p| p.exists());
+
+    for exe in ["Genie.exe", "Genie4.exe", "Genie5.exe", "GenieClient.exe"] {
+        if let Some(p) = first_existing(&dirs, exe) {
+            return (
+                Some(p.to_string_lossy().into_owned()),
+                format!("Found {exe}"),
+            );
+        }
+    }
+    (
+        None,
+        "Not found. Lich can run without one, but you need something to read the \
+         game in."
+            .into(),
+    )
 }
 
 fn asset<'a>(rel: &'a GhRelease, name: &str) -> Option<&'a GhAsset> {
     rel.assets.iter().find(|a| a.name == name)
+}
+
+fn option_from(
+    id: &str,
+    label: &str,
+    rel: &GhRelease,
+    a: &GhAsset,
+    after: &str,
+    why: &str,
+    note: &str,
+    recommended: bool,
+) -> DownloadOption {
+    DownloadOption {
+        id: id.into(),
+        label: label.into(),
+        url: a.browser_download_url.clone(),
+        bytes: a.size,
+        sha256: digest_hex(a),
+        version: rel.tag_name.clone(),
+        dest: downloads_dir().join(&a.name).to_string_lossy().into_owned(),
+        after: after.into(),
+        prerelease: rel.prerelease,
+        why: why.into(),
+        note: note.into(),
+        recommended,
+    }
 }
 
 fn digest_hex(a: &GhAsset) -> String {
@@ -262,7 +438,12 @@ fn digest_hex(a: &GhAsset) -> String {
 /// Look at the machine and report. Downloads nothing, changes nothing.
 #[tauri::command]
 pub async fn plan_setup() -> SetupPlan {
-    let release = latest_lich_release().await;
+    // Three lookups, one round trip each, run together.
+    let (release, genie5, genie4) = tokio::join!(
+        latest_lich_release(),
+        newest_release(GENIE5_REPO),
+        latest_release(GENIE4_REPO),
+    );
     let offline_note = if release.is_none() {
         Some(
             "Could not reach GitHub to check the current Lich release. \
@@ -334,45 +515,69 @@ pub async fn plan_setup() -> SetupPlan {
     let dirs = lich_dirs();
     let lich_found = first_existing(&dirs, "lich.rbw").or_else(|| first_existing(&dirs, "lich.rb"));
 
-    let lich_remedy = match (&release, &ruby_presence) {
-        // A usable Ruby means the small archive is the right answer: it adds
-        // Lich and nothing else.
-        (Some(rel), Presence::Present) => match asset(rel, "lich-5.zip") {
-            Some(a) => Remedy::Download {
-                label: "Lich 5 (zip)".into(),
-                url: a.browser_download_url.clone(),
-                bytes: a.size,
-                sha256: digest_hex(a),
-                version: rel.tag_name.clone(),
-                dest: downloads_dir().join(&a.name).to_string_lossy().into_owned(),
-                after: "extract".into(),
-                note: format!(
-                    "Extracted to {}. Your Ruby is used as-is; nothing else on your \
-                     machine is modified.",
-                    app_data_dir().join("lich").to_string_lossy()
-                ),
-            },
-            None => Remedy::None,
-        },
-        // No usable Ruby: the bundle is the community's supported path.
-        (Some(rel), _) => match asset(rel, "Ruby4Lich5.exe") {
-            Some(a) => Remedy::Download {
-                label: "Ruby4Lich5 (Ruby + Lich installer)".into(),
-                url: a.browser_download_url.clone(),
-                bytes: a.size,
-                sha256: digest_hex(a),
-                version: rel.tag_name.clone(),
-                dest: downloads_dir().join(&a.name).to_string_lossy().into_owned(),
-                after: "installer".into(),
-                note:
-                    "This is the Lich project's own Windows installer. We download and \
-                     check it against the SHA-256 GitHub publishes, then hand it to you. \
-                     It will not run until you ask separately, and it asks its own questions."
-                        .into(),
-            },
-            None => Remedy::None,
-        },
-        (None, _) => Remedy::Manual {
+    let lich_remedy = match &release {
+        Some(rel) => {
+            let has_ruby = ruby_presence == Presence::Present;
+            let mut options = Vec::new();
+
+            // With a usable Ruby the small archive is the right answer: it
+            // adds Lich and nothing else.
+            if let Some(a) = asset(rel, "lich-5.zip") {
+                options.push(option_from(
+                    "lich-zip",
+                    "Lich 5 only",
+                    rel,
+                    a,
+                    "extract",
+                    if has_ruby {
+                        "Uses the Ruby you already have"
+                    } else {
+                        "Needs a Ruby 4.x you install yourself"
+                    },
+                    &format!(
+                        "Unpacked into {}. Nothing else on your machine is touched.",
+                        app_data_dir().join("lich").to_string_lossy()
+                    ),
+                    has_ruby,
+                ));
+            }
+            // Without one, the project's own bundle is the supported path.
+            if let Some(a) = asset(rel, "Ruby4Lich5.exe") {
+                options.push(option_from(
+                    "ruby4lich5",
+                    "Ruby4Lich5 — Ruby and Lich together",
+                    rel,
+                    a,
+                    "installer",
+                    if has_ruby {
+                        "Installs a second Ruby beside yours, leaving yours alone"
+                    } else {
+                        "Everything in one step"
+                    },
+                    "The Lich project's own Windows installer. We fetch it, check it \
+                     against the checksum GitHub publishes, and hand it to you. It will \
+                     not run until you ask separately, and it asks its own questions.",
+                    !has_ruby,
+                ));
+            }
+
+            if options.is_empty() {
+                Remedy::None
+            } else {
+                Remedy::Choose {
+                    options,
+                    note: if has_ruby {
+                        "You already have a Ruby that works, so the small one is enough."
+                            .into()
+                    } else {
+                        "Either route works. The bundle is simpler; the zip is smaller \
+                         if you would rather manage Ruby yourself."
+                            .into()
+                    },
+                }
+            }
+        }
+        None => Remedy::Manual {
             instructions: "Could not reach GitHub. Download Lich 5 manually.".into(),
             link: format!("https://github.com/{LICH_REPO}/releases/latest"),
         },
@@ -426,27 +631,45 @@ pub async fn plan_setup() -> SetupPlan {
         remedy: Remedy::None,
     });
 
-    // ---- Frontend (optional) ----
-    let genie = candidate_dirs(&["Genie", "Genie4", "GenieClient"]);
+    // ---- Frontend ----
+    // Genie is the window you actually read the game in. It is optional in the
+    // sense that other frontends exist, but a new player with none of them has
+    // nothing to look at, so this offers to fetch one.
+    let (genie_path, genie_detail) = detect_genie();
+
+    let genie_remedy = if genie_path.is_some() {
+        Remedy::None
+    } else {
+        let options = genie_options(&genie5, &genie4);
+
+        if options.is_empty() {
+            Remedy::Manual {
+                instructions: "Could not reach GitHub to look up a Genie release."
+                    .into(),
+                link: format!("https://github.com/{GENIE5_REPO}/releases"),
+            }
+        } else {
+            Remedy::Choose {
+                options,
+                note: "Genie is the window you read the game in. Lich can run without \
+                       one, and other frontends work too, so this is optional."
+                    .into(),
+            }
+        }
+    };
+
     components.push(ComponentPlan {
         id: "genie".into(),
-        label: "Game frontend".into(),
-        presence: if genie.is_empty() {
-            Presence::Unknown
-        } else {
+        label: "Game frontend (Genie)".into(),
+        presence: if genie_path.is_some() {
             Presence::Present
-        },
-        detail: if genie.is_empty() {
-            "Not detected. Any Simutronics frontend works, and Lich can run without one.".into()
         } else {
-            "Found".into()
+            Presence::Missing
         },
-        path: genie.first().map(|p| p.to_string_lossy().into_owned()),
+        detail: genie_detail,
+        path: genie_path,
         required: false,
-        remedy: Remedy::Manual {
-            instructions: "Optional. Genie is the common DragonRealms frontend.".into(),
-            link: "https://genie.gs4dragon.com/".into(),
-        },
+        remedy: genie_remedy,
     });
 
     let ready = components
@@ -491,9 +714,13 @@ pub async fn download_verified(
     mut on_progress: impl FnMut(u64, u64),
 ) -> Result<DownloadResult, String> {
     // Only ever fetch from the project's own release host.
-    if !url.starts_with("https://github.com/elanthia-online/")
-        && !url.starts_with("https://objects.githubusercontent.com/")
-    {
+    // Only the two projects this app integrates with, over HTTPS.
+    const ALLOWED: [&str; 3] = [
+        "https://github.com/elanthia-online/",
+        "https://github.com/GenieClient/",
+        "https://objects.githubusercontent.com/",
+    ];
+    if !ALLOWED.iter().any(|p| url.starts_with(p)) {
         return Err(format!("refusing to download from an unexpected host: {url}"));
     }
 
@@ -594,7 +821,21 @@ pub async fn download_component(
 /// common top-level directory when there is exactly one.
 #[tauri::command]
 pub fn extract_lich(archive: String) -> Result<String, String> {
-    let target = app_data_dir().join("lich");
+    extract_archive(archive, "lich".into(), Some("lich.rbw".into()))
+}
+
+/// Unpack a verified archive into a named folder under the app directory.
+///
+/// `expect` is a file that must exist afterwards. Release archives often wrap
+/// everything in one directory, and silently installing one level too deep
+/// looks like success until nothing can find it.
+#[tauri::command]
+pub fn extract_archive(
+    archive: String,
+    target_name: String,
+    expect: Option<String>,
+) -> Result<String, String> {
+    let target = app_data_dir().join(&target_name);
     std::fs::create_dir_all(&target).map_err(|e| e.to_string())?;
 
     let file = std::fs::File::open(&archive).map_err(|e| e.to_string())?;
@@ -640,11 +881,13 @@ pub fn extract_lich(archive: String) -> Result<String, String> {
         std::io::copy(&mut entry, &mut w).map_err(|e| e.to_string())?;
     }
 
-    if !target.join("lich.rbw").exists() {
-        return Err(format!(
-            "extracted to {} but lich.rbw is not there. The archive layout may have changed.",
-            target.to_string_lossy()
-        ));
+    if let Some(expected) = expect {
+        if !target.join(&expected).exists() {
+            return Err(format!(
+                "extracted to {} but {expected} is not there. The archive layout may have changed.",
+                target.to_string_lossy()
+            ));
+        }
     }
     Ok(target.to_string_lossy().into_owned())
 }

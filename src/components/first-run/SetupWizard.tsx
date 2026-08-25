@@ -24,13 +24,14 @@ import { isTauri } from '../../lib/tauri'
 import {
   planSetup,
   downloadComponent,
-  extractLich,
+  extractArchive,
   installBridgeScript,
   runInstaller,
   revealFile,
   onSetupProgress,
   appDataPath,
   type SetupPlan,
+  type DownloadOption,
 } from '../../lib/setup'
 
 type Phase = 'checking' | 'plan' | 'browser'
@@ -93,32 +94,55 @@ export function SetupWizard() {
     })
   }, [])
 
-  async function handleDownload(id: string) {
-    const comp = plan?.components.find((c) => c.id === id)
-    if (!comp || comp.remedy.kind !== 'download') return
-    const r = comp.remedy
+  function handleChoose(componentId: string, optionId: string) {
+    setCards((c) => ({
+      ...c,
+      [componentId]: { ...c[componentId], chosen: optionId },
+    }))
+  }
 
-    setCards((c) => ({ ...c, [id]: { ...c[id], busy: true, error: undefined } }))
-    addLog(`Downloading ${r.label} (${r.version}) from ${r.url}`)
+  async function handleDownload(componentId: string, o: DownloadOption) {
+    // Progress events are keyed per option so two cards cannot cross wires.
+    const key = `${componentId}:${o.id}`
+    setCards((c) => ({
+      ...c,
+      [componentId]: { ...c[componentId], busy: true, error: undefined },
+    }))
+    addLog(`Downloading ${o.label} ${o.version} from ${o.url}`)
+    if (!o.sha256) {
+      addLog(`Note: ${o.label} publishes no checksum. Verifying source only.`)
+    }
 
     try {
-      const res = await downloadComponent(id, r.url, r.sha256, r.dest)
-      addLog(`Verified ${r.label}: sha256 ${res.sha256.slice(0, 16)}…`)
+      const res = await downloadComponent(key, o.url, o.sha256, o.dest)
+      addLog(
+        o.sha256
+          ? `Verified ${o.label}: sha256 ${res.sha256.slice(0, 16)}…`
+          : `Downloaded ${o.label}: sha256 ${res.sha256.slice(0, 16)}… (ours, not upstream's)`
+      )
 
-      if (r.after === 'extract') {
-        const dir = await extractLich(res.path)
+      if (o.after === 'extract') {
+        const target = componentId === 'lich' ? 'lich' : componentId
+        const expect = componentId === 'lich' ? 'lich.rbw' : undefined
+        const dir = await extractArchive(res.path, target, expect)
         setCards((c) => ({
           ...c,
-          [id]: { ...c[id], busy: false, done: `Installed to ${dir}` },
+          [componentId]: {
+            ...c[componentId],
+            busy: false,
+            downloadedFor: o.id,
+            done: `Installed to ${dir}`,
+          },
         }))
-        addLog(`Extracted Lich to ${dir}`)
+        addLog(`Installed ${o.label} to ${dir}`)
         await check()
       } else {
         setCards((c) => ({
           ...c,
-          [id]: {
-            ...c[id],
+          [componentId]: {
+            ...c[componentId],
             busy: false,
+            downloadedFor: o.id,
             downloadedPath: res.path,
             done: `Verified and saved to ${res.path}`,
           },
@@ -126,10 +150,14 @@ export function SetupWizard() {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
-      setCards((c) => ({ ...c, [id]: { ...c[id], busy: false, error: msg } }))
+      setCards((c) => ({
+        ...c,
+        [componentId]: { ...c[componentId], busy: false, error: msg },
+      }))
       addLog(`Download failed: ${msg}`)
     }
   }
+
 
   async function handleInstallBridge() {
     setCards((c) => ({
@@ -230,7 +258,8 @@ export function SetupWizard() {
               key={c.id}
               plan={c}
               state={cards[c.id] ?? {}}
-              onDownload={() => void handleDownload(c.id)}
+              onChoose={(oid) => handleChoose(c.id, oid)}
+              onDownload={(o) => void handleDownload(c.id, o)}
               onRunInstaller={(p) => void handleRunInstaller(p)}
               onReveal={(p) => void revealFile(p)}
               onInstallBridge={() => void handleInstallBridge()}

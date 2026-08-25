@@ -39,8 +39,13 @@ and nothing is installed. This path is tested, not assumed: see
 `src-tauri/examples/fetch.rs`, which deliberately fails a checksum and confirms
 no partial file survives.
 
+Where a project publishes no checksum for an asset, the app says so on the
+option itself and in the detail panel, rather than quietly omitting the line.
+Genie 4 is the current case. You get told what can and cannot be checked.
+
 Downloads are refused outright from any host other than
-`github.com/elanthia-online/` and `objects.githubusercontent.com`.
+`github.com/elanthia-online/`, `github.com/GenieClient/` and
+`objects.githubusercontent.com`.
 
 **4. Downloading and running are two different decisions.**
 Fetching an installer does not run it. A verified installer sits in the app's
@@ -55,6 +60,7 @@ anything outside the app's own download folder and anything that is not an
 %LOCALAPPDATA%\DR Companion\
     downloads\     verified files, kept so you can re-check them
     lich\          Lich, if the app installed it
+    genie\         Genie, if you chose the portable build
 ```
 
 Nothing is written to Program Files, no service is installed, no registry keys
@@ -76,6 +82,21 @@ native side to copy an arbitrary file somewhere.
 | Ruby 4.x, no Lich | `lich-5.zip`, about 1.8 MB | Adds Lich only, uses your Ruby as-is |
 | No Ruby, or Ruby too old | `Ruby4Lich5.exe`, about 65 MB | The Lich project's own Windows bundle |
 
+Both Lich routes are always offered; the table says which one is suggested.
+
+## The frontend
+
+Genie is the window you read the game in. If none is found, the app offers:
+
+| Option | Notes |
+|---|---|
+| **Genie 5 portable** (suggested) | Current development line, .NET 8, runs Genie 4 `.cmd` scripts. Beta. Unpacks into the app folder, no installer, deletes cleanly. Checksummed. |
+| Genie 5 installer | Same build, installed normally |
+| Genie 4 | The stable client most scripts were written against. Release 4.0.2.9 from December 2023. **The project publishes no checksum for this file**, so the app says so plainly rather than implying a check it cannot make. |
+
+The portable build is suggested because it fits the rest of this policy: it
+lands in the app folder, changes nothing else, and is verifiable.
+
 Ruby4Lich5 is published by elanthia-online as a release asset alongside Lich
 itself. Pointing at their installer is better than inventing our own Ruby
 layout, because it is the thing their community supports and troubleshoots. We
@@ -89,7 +110,7 @@ download it, verify it, and hand it to you. It asks its own questions.
   scripts folder
 - Request administrator rights
 - Run an installer you did not separately approve
-- Download from anywhere other than the Lich project's releases
+- Download from anywhere other than the Lich and Genie projects' own GitHub releases
 - Send anything anywhere. There is no telemetry, no analytics, no account.
 
 ## If you would rather do it yourself
