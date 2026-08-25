@@ -32,12 +32,54 @@ import { join, basename } from 'node:path'
 const DB_DIR = 'data/kb'
 const DB_PATH = join(DB_DIR, 'knowledge.db')
 
-/** Where the sources live. Absent ones are skipped, not fatal. */
+/**
+ * Where the sources live. Absent ones are skipped rather than fatal, because
+ * this has to work on a machine that does not have all of them.
+ *
+ * The point is coverage. A question like "how does Genie decide a script has
+ * stalled" is answerable from Genie's own C# source and from nowhere else, and
+ * "what does uber do when a box blows" is answerable only from uber. Indexing
+ * the engines as well as the scripts is what turns this from a script search
+ * into something that can actually answer questions about the game.
+ */
 const SOURCES = {
-  wiki: 'data/elanthipedia',
-  lich: 'C:/Ruby4Lich5/Lich5/lib',
-  scripts: 'C:/Ruby4Lich5/Lich5/scripts',
-  genieScripts: 'C:/Users/Admin/Downloads',
+  wiki: { dir: 'data/elanthipedia', kind: 'wiki' },
+
+  // The two engines.
+  lich: { dir: 'C:/Ruby4Lich5/Lich5/lib', kind: 'api', label: 'lich', ext: /\.rb$/i },
+  genieSrc: {
+    dir: 'C:/Users/Admin/AppData/Local/Temp/mine/Genie4-main',
+    kind: 'api',
+    label: 'genie-source',
+    ext: /\.(cs|vb)$/i,
+  },
+
+  // The scripts people actually run.
+  drScripts: {
+    dir: 'C:/Ruby4Lich5/Lich5/scripts',
+    kind: 'script',
+    label: 'dr-scripts',
+    ext: /\.lic$/i,
+  },
+  uber: {
+    dir: 'C:/Users/Admin/AppData/Local/Temp/mine/UBER_FULL_PACKAGE',
+    kind: 'script',
+    label: 'uber',
+    ext: /\.(cmd|inc)$/i,
+  },
+  mastercraft: {
+    dir: 'C:/Users/Admin/AppData/Local/Temp/mine/Mastercraft-master',
+    kind: 'script',
+    label: 'mastercraft',
+    ext: /\.(cmd|inc)$/i,
+  },
+  looseGenie: {
+    dir: 'C:/Users/Admin/Downloads',
+    kind: 'script',
+    label: 'genie',
+    ext: /\.(cmd|inc)$/i,
+    shallow: true,
+  },
 }
 
 function open() {
@@ -78,7 +120,7 @@ function schema(db) {
 // ---------------------------------------------------------------- indexing --
 
 function indexWiki(db) {
-  const dir = SOURCES.wiki
+  const dir = SOURCES.wiki.dir
   if (!existsSync(dir)) return 0
   let n = 0
 
@@ -112,8 +154,9 @@ function indexWiki(db) {
  * come from", and the answer is a method name and a path. Full text of 2.75 MB
  * of scripts would bury that.
  */
-function indexRuby(db, dir, source, kind) {
+function indexCode(db, { dir, kind, label, ext, shallow }) {
   if (!existsSync(dir)) return 0
+  const source = label
   let n = 0
   const insert = db.prepare(
     'INSERT INTO entity (kind, name, noun, source, props) VALUES (?, ?, ?, ?, ?)'
@@ -124,24 +167,32 @@ function indexRuby(db, dir, source, kind) {
     for (const e of readdirSync(d, { withFileTypes: true })) {
       const full = join(d, e.name)
       if (e.isDirectory()) {
-        walk(full)
+        if (!shallow) walk(full)
         continue
       }
-      if (!/\.(rb|lic|cmd|inc)$/i.test(e.name)) continue
-      if (statSync(full).size > 4_000_000) continue
+      if (!ext.test(e.name)) continue
+      if (statSync(full).size > 8_000_000) continue
 
       const text = readFileSync(full, 'utf8')
 
-      // The header comment is the script's own description of itself, and it
-      // is the single most useful paragraph about any of these.
+      // The header comment is the file's own description of itself, and for a
+      // Lich script it is the single most useful paragraph about it.
       const header = text.match(/^=begin([\s\S]{0,1200}?)^=end/m)?.[1] ?? text.slice(0, 600)
-      const methods = [...text.matchAll(/^\s*def (?:self\.)?([a-z_][a-zA-Z0-9_?!]*)/gm)]
-        .map((m) => m[1])
+
+      // Named things, across three languages. Ruby `def`, C# methods, and
+      // Genie script labels — which are how a .cmd file is structured and are
+      // the closest thing it has to function names.
+      const methods = [
+        ...[...text.matchAll(/^\s*def (?:self\.)?([a-z_][a-zA-Z0-9_?!]*)/gm)].map((m) => m[1]),
+        ...[...text.matchAll(/(?:public|private|internal|protected)\s+[\w<>\[\],\s]+?\s(\w+)\s*\(/g)].map((m) => m[1]),
+        ...[...text.matchAll(/^([A-Z][A-Z0-9_]{2,}):/gm)].map((m) => m[1]),
+      ]
+
       const version = text.match(/^\s*#?\s*version:\s*([\w.]+)/mi)?.[1] ?? null
 
       insert.run(
         kind,
-        basename(e.name).replace(/\.(rb|lic|cmd|inc)$/i, ''),
+        basename(e.name).replace(/\.[a-z]+$/i, ''),
         null,
         source,
         JSON.stringify({ path: full, version, methods: methods.slice(0, 80), bytes: statSync(full).size })
@@ -180,14 +231,12 @@ function build() {
   const db = open()
   schema(db)
 
-  const counts = {
-    wiki: indexWiki(db),
-    lich: indexRuby(db, SOURCES.lich, 'lich', 'api'),
-    scripts: indexRuby(db, SOURCES.scripts, 'dr-scripts', 'script'),
-    genie: indexRuby(db, SOURCES.genieScripts, 'genie', 'script'),
+  // Every source in the table, so adding one is a table entry rather than a
+  // code change — which is the difference between this growing and it not.
+  for (const [name, src] of Object.entries(SOURCES)) {
+    const n = name === 'wiki' ? indexWiki(db) : indexCode(db, src)
+    console.log(`  ${name.padEnd(12)} ${n}`)
   }
-
-  for (const [k, v] of Object.entries(counts)) console.log(`  ${k.padEnd(10)} ${v}`)
   db.close()
 }
 
