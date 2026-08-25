@@ -140,6 +140,79 @@ empty and editable rather than guessed at.
 
 ---
 
+## 2.35 The objective function: keep every pool absorbing
+
+This is the point of the whole product and it was missing from the last draft.
+
+DragonRealms does not reward time spent, it rewards *absorption*. Every skill
+has a mindstate pool, 0–34. Experience lands in the pool and drains into ranks
+over time. A pool at 0 is idle capacity: you are gaining nothing there. A pool
+at 34 is mind locked: further work on that skill is thrown away.
+
+So the actual goal is not "run a script well". It is:
+
+> **Do as many different activities per hour as possible, so as many pools as
+> possible are holding experience at once.** Total growth over weeks is the area
+> under that curve, not the intensity of any one activity.
+
+Which means the interesting question a player asks, constantly, is *"what
+should I be doing right now"* — and the answer depends on the whole field of 30+
+pools, not on one skill.
+
+### The pieces already exist, unassembled
+
+| Piece | Where |
+|---|---|
+| The pool, per skill | `DRSkill.getxp(name)` → 0–34 |
+| Ranks, per skill | `DRSkill.getrank(name)` |
+| ~28 skills trainable in town, cycled | `crossing-training.lic`, 881 lines |
+| Weapon, armour, survival skills | `combat-trainer.lic`, 277 KB |
+| Alternate hunting and town on a check | `training-manager.lic` |
+| General scheduler with predicates | `coordinator.lic` |
+
+`training-manager.lic` already runs the loop, but its decision is one line:
+
+```ruby
+def priority_skills_low?
+  @settings.training_manager_priority_skills.any? { |skill|
+    DRSkill.getxp(skill) <= @settings.priority_skills_lower_limit }
+end
+```
+
+A binary check against a hand-listed set of priority skills. It works, and it is
+invisible: the player cannot see the field it is deciding over, cannot see which
+pools are locked and wasting effort, and cannot see which are empty and idle.
+The scheduling lives in YAML predicates nobody can read at a glance.
+
+### So the app's core contribution is a mindstate board
+
+Not another trainer. **The picture the schedulers are already deciding over.**
+
+- Every skill, its pool, and which way it is moving.
+- **Locked** pools called out — that is effort being discarded right now.
+- **Empty** pools called out — that is capacity earning nothing.
+- Which activity, meaning which script, feeds which skills.
+- Therefore: what to run next to light up the most dark pools.
+
+That last line is the recommendation, and it should be a *suggestion with its
+reasoning visible*, not an automatic decision. The player knows what gear and
+spells they have and what they feel like doing; the app knows the arithmetic.
+
+It also gives the workflow editor (§2.2) something worth editing. A coordinator
+task list stops being an abstract YAML array and becomes "this rotation keeps
+these eleven pools full, and leaves these four dark."
+
+### Mapping activity to skills
+
+The one piece nobody has published as data. It can be built from what scripts
+declare and the YAML keys that configure them — `crossing-training.lic`'s
+handled skill list, `training_list`, `training_abilities`, `weapon_training`,
+`magic_training`, `appraisal_training`, `astrology_training` — and corrected by
+observation, since we can watch which pools move while a script runs.
+
+Observation is the honest source: it needs no maintenance and it is right for
+*this* character. Ship a starting map, learn the rest, let it be edited.
+
 ## 2.4 Nothing starts blank, and nothing is fixed
 
 Every character's gear is different, new items arrive constantly, and the nouns
@@ -329,11 +402,14 @@ Each step is one bridge topic plus one panel, shippable alone.
 2. **Dependency page extended to scripts and the map database.**
    *Done when:* a fresh machine reaches a working dr-scripts install without
    the player typing a `;` command.
+2a. **Mindstate board.** Every pool, locked and empty called out, and which
+   script feeds which skills. This is the reason to install the app.
+   *Done when:* a player can see at a glance where growth is being wasted.
 3. **Room panel.** *Done when:* what is in the room is visible without
    scrolling and matches `look`.
 4. **Body panel.** Paperdoll from `injuries`.
-5. **Scripts + watchdog panel.** *Done when:* a player sees uber has died and
-   restarts it without typing, and can see every script's version.
+5. **Scripts + watchdog panel.** *Done when:* a player sees a script has died
+   and restarts it without typing, and can see every script's version.
 6. **Gear panel and profiles.** *Done when:* a profile can be defined, applied
    and verified — drowning and box-popping both work with no bespoke button.
 7. **YAML assistant.** Scan character → propose → form → write → `;validate`.
@@ -354,13 +430,29 @@ would choose over typing.
 
 ---
 
-## 9. Open questions
+## 9. Decisions
 
-1. **Whose thresholds?** `travel.cmd` ships conservative numbers and lets you
-   lower them. Ship the same, read theirs, or ask?
-2. **Risk appetite** — one global setting or per situation?
-3. **How much should it try to see uber?** Genie's uber is not a Lich script, so
-   we cannot see it through `Script.list` at all. Do we care about Genie users
-   beyond the frontend, or is the Lich suite the audience?
-4. **Does the YAML assistant own the file, or propose into it?** Owning it is
-   simpler and would overwrite hand-tuning that took someone months.
+Settled, no longer open.
+
+1. **Thresholds.** Ship `travel.cmd`'s conservative numbers as defaults. Every
+   one of them gets a field in settings. The defaults live in a script settings
+   file with the blanks already filled, so nobody starts from nothing and
+   anybody can change anything.
+2. **Risk is per situation, and the player chooses.** Not one global dial. They
+   know what gear, spells and buffs they have; we do not, and a single number
+   would pretend otherwise.
+3. **Lich scripts only.** Genie's uber is not a Lich script and we will not try
+   to see or drive it. Genie remains supported as a *frontend* — that is the
+   comma-prefix work, which stays — but the script ecosystem we integrate with
+   is Lich's.
+4. **YAML owns the profile.** The assistant proposes and writes into it; the
+   file is the source of truth and dr-scripts keeps reading it. We do not
+   maintain a parallel store that could disagree with what the scripts run on.
+
+### What is still genuinely unknown
+
+- The activity-to-skill map (§2.35). Nobody has published it as data. Plan is to
+  ship a starting map from what the scripts declare, then correct it by watching
+  which pools actually move.
+- Whether the mindstate board should ever *act* on its recommendation, or only
+  ever suggest. Starting position: suggest, with the reasoning visible.
