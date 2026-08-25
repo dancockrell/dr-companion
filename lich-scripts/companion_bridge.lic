@@ -284,6 +284,92 @@ module Companion
     end
   end
 
+  # ---------------------------------------------------------------- commands --
+
+  # Sending a command to DragonRealms is not fire-and-forget. The game refuses
+  # in three distinguishable ways and every community script handles all three:
+  #
+  #     ...wait            you are in roundtime
+  #     still stunned      you are stunned
+  #     Sorry, you may only    a command-specific refusal
+  #
+  # Roundtime itself is printed in several formats depending on frontend and
+  # situation, so scripts match all of them. This is why "the button did
+  # nothing" is the default failure mode in this game, and why anything that
+  # sends commands has to go through one place that gets it right.
+  #
+  # See docs/DOMAIN.md section 9.
+  module Cmd
+    module_function
+
+    REFUSALS = /\.\.\.wait|still stunned|^Sorry, you may only|^\[Please wait/i.freeze
+    ROUNDTIME = /^\[?\(?Roundtime:?/i.freeze
+
+    # Wait out any roundtime Lich knows about, bounded so a bad read cannot
+    # hang the bridge forever.
+    def wait_rt(limit = 20)
+      deadline = Time.now + limit
+      loop do
+        rt = begin
+          XMLData.roundtime_end.to_f - Time.now.to_f
+        rescue StandardError
+          0
+        end
+        break if rt <= 0
+        break if Time.now > deadline
+        sleep([rt, 1.0].min)
+      end
+    end
+
+    # Send `command` and wait for one of `expect`, retrying through refusals.
+    #
+    # Returns the matched line, or nil on timeout. Never raises: a bridge that
+    # dies because the game said something unexpected is worse than one that
+    # reports it could not tell.
+    def exec(command, expect: [], timeout: 10, attempts: 3)
+      patterns = Array(expect)
+      attempts.times do |try|
+        wait_rt
+
+        line = begin
+          if patterns.empty?
+            fput(command)
+            return ''
+          else
+            dothistimeout(command, timeout, Regexp.union(patterns + [REFUSALS]))
+          end
+        rescue StandardError => e
+          return nil.tap { Companion.log_error("#{command}: #{e.message}") }
+        end
+
+        return nil if line.nil?
+
+        # A refusal is not a result. Wait and try again.
+        if line =~ REFUSALS
+          sleep(1 + try)
+          next
+        end
+        return line
+      end
+      nil
+    end
+
+    # Run a command purely for its output, with no expectation of success.
+    def send_raw(command)
+      wait_rt
+      begin
+        fput(command)
+        true
+      rescue StandardError
+        false
+      end
+    end
+  end
+
+  def self.log_error(msg)
+    respond "[companion] #{msg}"
+  end
+
   # ---------------------------------------------------------------- intents --
 
   module Intents
@@ -299,11 +385,102 @@ module Companion
       when 'stop_all' then stop_all(server)
       when 'pause'    then pause_all(server)
       when 'resume'   then resume_all(server)
+      when 'check_health' then check_health(server)
+      when 'stow_all'     then stow_all(server)
       when 'get_favors'
         [true, "favors: #{State.safe(0) { DRStats.favors.to_i }}"]
       else
         [false, "'#{intent}' is not implemented in bridge v#{BRIDGE_VERSION} yet. " \
                 'The panel can read state and stop scripts; it cannot run this activity.']
+      end
+    end
+
+    # Wounds are not in the passive status stream. `check_health` in Lich's
+    # commons works by sending HEALTH and parsing the reply, so this is a poll
+    # and deliberately not on the status tick.
+    #
+    # Read-only: it sends one command and reports what came back.
+    def check_health(server)
+      data = begin
+        DRCH.check_health
+      rescue StandardError
+        nil
+      end
+
+      unless data.is_a?(Hash)
+        # Fall back to reading the raw reply ourselves rather than giving up.
+        line = Cmd.exec('health', expect: [/You have|You feel/i], timeout: 8)
+        return [false, 'Could not read health.'] if line.nil?
+        server.log(line.to_s)
+        return [true, 'health read']
+      end
+
+      wounds    = data['wounds'] || {}
+      bleeders  = data['bleeders'] || {}
+      poisoned  = data['poisoned']
+      diseased  = data['diseased']
+
+      count = wounds.values.flatten.size
+      bleed = bleeders.values.flatten.size
+
+      if count.zero? && bleed.zero? && !poisoned && !diseased
+        server.log('Health: no wounds.')
+      else
+        server.log(
+          "Health: #{count} wound(s), #{bleed} bleeding" \
+          "#{poisoned ? ', poisoned' : ''}#{diseased ? ', diseased' : ''}",
+          bleed.positive? ? 'warn' : 'info'
+        )
+        bleeders.each do |severity, list|
+          Array(list).each do |w|
+            part = begin
+              w.body_part
+            rescue StandardError
+              'unknown'
+            end
+            server.log("  bleeding #{severity}: #{part}", 'warn')
+          end
+        end
+      end
+
+      [true, "#{count} wounds, #{bleed} bleeding"]
+    end
+
+    # Put loose items away. Small, reversible, and a good first thing to let
+    # the panel actually do: it touches inventory and nothing else.
+    def stow_all(server)
+      moved = []
+      %w[right left].each do |hand|
+        item = begin
+          hand == 'right' ? GameObj.right_hand : GameObj.left_hand
+        rescue StandardError
+          nil
+        end
+        next if item.nil? || item.id.nil?
+
+        name = begin
+          item.noun.to_s
+        rescue StandardError
+          next
+        end
+        next if name.empty?
+
+        line = Cmd.exec("stow #{name}", expect: [/You put|You (?:can't|cannot)|is too/i], timeout: 6)
+        if line.nil?
+          server.log("stow #{name}: no reply", 'warn')
+        elsif line =~ /You put/i
+          moved << name
+        else
+          server.log("stow #{name}: #{line}", 'warn')
+        end
+      end
+
+      if moved.empty?
+        server.log('Nothing loose in hand to stow.')
+        [true, 'nothing to stow']
+      else
+        server.log("Stowed #{moved.join(', ')}.")
+        [true, "stowed #{moved.size}"]
       end
     end
 

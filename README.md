@@ -62,7 +62,10 @@ and the Lich side stays inspectable Ruby that any player can read.
 | Travel: passports and instance scoping | Works |
 | Healer / hunting / town-run scoring | Works, on placeholder game data |
 | Athletics obstacle thresholds | Data is in, not yet wired into route planning |
-| Setup wizard | Detects for real. Installs nothing silently: it shows you the command. |
+| Setup wizard | Detects Ruby, Lich, Genie, plugins and maps. Offers verified installs, asks first, never touches your Ruby. See [SETUP-POLICY](docs/SETUP-POLICY.md). |
+| Per-character profiles | Works. Settings follow the character automatically. |
+| Tier gating (`intentBlockReason`) | Implemented. Safety intents are never gated. |
+| Preferred heal city | Works, with a scored fallback that says why |
 | Windows `.exe` and installer | Builds. NSIS, MSI, and a standalone exe. |
 | **Driving the game** (travel, hunt, town run) | **Not built.** The bridge reads and stops. It does not yet act. |
 

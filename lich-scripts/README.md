@@ -41,6 +41,8 @@ Accepts:
 | Intent | Status |
 |---|---|
 | `stop_all` | Kills every running script except the bridge |
+| `check_health` | Polls HEALTH and reports wounds and bleeders. Read-only. |
+| `stow_all` | Puts what is in your hands away |
 | `pause` / `resume` | Pauses and unpauses them |
 | `get_status`, `get_inventory`, `subscribe`, `ping` | Working |
 | everything else | Acked `ok:false` with a reason |
