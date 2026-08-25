@@ -6,34 +6,36 @@
  *   node tools/elanthipedia.mjs update      only what changed since last run
  *   node tools/elanthipedia.mjs status      what we have
  *
- * Why this exists: every character's gear is different, new items arrive
- * constantly, and the nouns are strange. No table we hand-write stays right.
- * Elanthipedia has 112,323 pages including 65,017 items, and it runs Semantic
- * MediaWiki, so the data is *structured* rather than prose to be parsed.
- * See docs/DESIGN.md §2.4 and §S5.
+ * Elanthipedia runs Semantic MediaWiki, so item data comes back structured
+ * rather than as prose to be parsed. 500 rows per query, roughly 130 queries
+ * for the full set, instead of 65,000 page fetches.
  *
- * Being a good guest is a hard requirement, not a nicety — and the reason is
- * sharper than politeness. Elanthipedia is community-*written*, which is easy
- * to mistake for community-hosted. It is not: `elanthipedia.play.net` is
- * Simutronics' domain, their infrastructure and their bill.
- *
- * So this is the server belonging to the company this project is meant to be
- * given to. Appearing in their logs as a traffic spike would be the worst
- * possible introduction.
+ * elanthipedia.play.net is Simutronics infrastructure, not community-hosted.
+ * This runs once, centrally, on a schedule, and clients read the committed
+ * result. It never runs from a player machine.
  *
  *   - one request at a time, never parallel
- *   - a deliberate pause between requests
- *   - maxlag, so we back off automatically when their database is struggling
- *   - a User-Agent that says who we are and links to the project
- *   - incremental by default; the full pull is meant to run once
+ *   - PAUSE_MS between requests
+ *   - maxlag=5, so the server can refuse us while it is behind
+ *   - a hard request ceiling per run
+ *   - incremental by default; the full pull runs once
  *
- * If this ever looks like a load problem from their side, it is built wrong.
+ * Contact for anything about this traffic: the GitHub issues page below.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 const API = 'https://elanthipedia.play.net/api.php'
-const UA = 'dr-companion/0.1 (https://github.com/dancockrell/dr-companion) node-fetch'
+const { version: VERSION } = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+)
+// Format follows the MediaWiki UA policy: name/version, then how to reach us.
+// Read from package.json so it cannot drift out of date.
+const UA =
+  `dr-companion/${VERSION} ` +
+  `(https://github.com/dancockrell/dr-companion; ` +
+  `173971169+dancockrell@users.noreply.github.com) ` +
+  `Node.js/${process.versions.node}`
 const OUT = 'data/elanthipedia'
 
 /** Between requests. Slower than we could go, on purpose. */
