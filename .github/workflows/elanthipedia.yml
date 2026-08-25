@@ -63,7 +63,19 @@ jobs:
           git config user.name  'dr-companion bot'
           git config user.email '173971169+dancockrell@users.noreply.github.com'
           git add data/elanthipedia
-          # Nothing changed is the normal outcome, not a failure.
-          git diff --staged --quiet && echo 'no changes' && exit 0
+
+          # state.json is only a cursor. It moves on every run whether or not
+          # the wiki changed, so committing on "something is staged" would
+          # produce twenty-four empty commits a day and bury the real ones.
+          #
+          # When nothing but the cursor moved, the cursor is deliberately left
+          # where it was. The next run then asks from the older timestamp, which
+          # costs a few extra requests and cannot miss an edit. That is the safe
+          # direction to be wrong in.
+          if git diff --staged --quiet -- data/elanthipedia ':!data/elanthipedia/state.json'; then
+            echo 'nothing new on the wiki'
+            exit 0
+          fi
+
           git commit -m "Elanthipedia refresh $(date -u +%Y-%m-%dT%H:%MZ)"
           git push
