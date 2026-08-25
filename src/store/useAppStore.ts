@@ -1,10 +1,19 @@
 import { create } from 'zustand'
-import type { AppState, SetupComponent, UiMode } from '../types'
+import type { AppState, SetupComponent, UiMode, GameInstance } from '../types'
 import { bridge } from '../bridge'
 import type { IntentName, BridgeServerMessage } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
 import { loadPrefs, savePrefs } from '../lib/persistence'
 import { combatRanks } from '../data/skills'
+import {
+  loadProfiles,
+  upsertProfile,
+  newProfile,
+  profileKey,
+  copyProfileSettings,
+  deleteProfile as deleteProfileEntry,
+  type CharacterProfile,
+} from '../lib/profiles'
 
 const prefs = loadPrefs()
 
@@ -60,9 +69,13 @@ function handleBridgeMessage(
         `Bridge hello — Lich ${msg.lichVersion}, protocol ${msg.protocol}`
       )
       break
-    case 'status':
+    case 'status': {
       set({ character: msg.payload })
+      // Adopt this character's own settings the moment we learn who they are.
+      const p = msg.payload
+      if (p.name) get().syncProfile(p.name, p.instance, p.guild)
       break
+    }
     case 'inventory':
       set({ inventory: msg.payload })
       break
@@ -98,6 +111,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   huntFavorites: prefs.huntFavorites ?? [],
   huntMode: prefs.huntMode ?? 'suggest',
   preferredHealCity: prefs.preferredHealCity ?? null,
+  profiles: loadProfiles(),
+  activeProfileKey: null,
   selectedHuntId: null,
   houseEntryMethod: prefs.houseEntryMethod ?? 'lockpick_ring',
   houseEntryMaxSearches: prefs.houseEntryMaxSearches ?? 3,
@@ -245,15 +260,97 @@ export const useAppStore = create<AppState>((set, get) => ({
   demoSafe: () => bridge.simulateSafe(),
   loadPreset: (id: string) => bridge.loadPreset(id as DemoPresetId),
 
+  /**
+   * Adopt the settings belonging to whoever the bridge is reporting.
+   *
+   * Called on every status where the character identity changed. Creating a
+   * profile on first sight is deliberate: a new character should just work,
+   * and the player should never have to declare one before playing.
+   */
+  syncProfile: (name: string, instance: GameInstance, guild?: string) => {
+    const key = profileKey(name, instance)
+    if (key === get().activeProfileKey) return
+
+    const map = loadProfiles()
+    const existing = map[key]
+    const profile = existing
+      ? { ...existing, guild: guild ?? existing.guild, lastSeen: Date.now() }
+      : newProfile(name, instance, { guild })
+
+    upsertProfile(profile)
+
+    set({
+      activeProfileKey: key,
+      profiles: loadProfiles(),
+      trainFocus: profile.trainFocus,
+      huntFavorites: profile.huntFavorites,
+      huntMode: profile.huntMode,
+      preferredHealCity: profile.preferredHealCity,
+      houseEntryMethod: profile.houseEntryMethod,
+      houseEntryMaxSearches: profile.houseEntryMaxSearches,
+      houseEntryHide: profile.houseEntryHide,
+    })
+
+    get().addLog(
+      existing
+        ? `Loaded settings for ${name} on ${instance}.`
+        : `New character: ${name} on ${instance}. Started a profile.`
+    )
+  },
+
+  /** Persist a change onto the active character's profile as well as the UI. */
+  patchActiveProfile: (patch: Partial<CharacterProfile>) => {
+    const key = get().activeProfileKey
+    if (!key) return
+    const map = loadProfiles()
+    const current = map[key]
+    if (!current) return
+    const next = { ...current, ...patch, lastSeen: Date.now() }
+    upsertProfile(next)
+    set({ profiles: loadProfiles() })
+  },
+
+  deleteProfileByKey: (key: string) => {
+    const map = loadProfiles()
+    const p = map[key]
+    if (!p) return
+    const next = deleteProfileEntry(p.name, p.instance)
+    set({ profiles: next })
+    get().addLog(`Deleted the profile for ${p.name}.`)
+  },
+
+  copySettingsFrom: (key: string) => {
+    const map = loadProfiles()
+    const from = map[key]
+    const activeKey = get().activeProfileKey
+    const onto = activeKey ? map[activeKey] : undefined
+    if (!from || !onto) return
+    const merged = copyProfileSettings(from, onto)
+    upsertProfile(merged)
+    set({
+      profiles: loadProfiles(),
+      trainFocus: merged.trainFocus,
+      huntFavorites: merged.huntFavorites,
+      huntMode: merged.huntMode,
+      preferredHealCity: merged.preferredHealCity,
+      houseEntryMethod: merged.houseEntryMethod,
+      houseEntryMaxSearches: merged.houseEntryMaxSearches,
+      houseEntryHide: merged.houseEntryHide,
+    })
+    get().addLog(`Copied ${from.name}'s settings onto ${onto.name}.`)
+  },
+
   setTrainFocus: (ids: string[]) => {
     savePrefs({ trainFocus: ids })
     set({ trainFocus: ids })
+    get().patchActiveProfile({ trainFocus: ids })
   },
   toggleTrainFocus: (id: string) => {
     const cur = get().trainFocus
     const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]
     savePrefs({ trainFocus: next })
     set({ trainFocus: next })
+    get().patchActiveProfile({ trainFocus: next })
   },
   setAutoSuggestHealer: (v: boolean) => {
     savePrefs({ autoSuggestHealer: v })
@@ -264,26 +361,32 @@ export const useAppStore = create<AppState>((set, get) => ({
     const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]
     savePrefs({ huntFavorites: next })
     set({ huntFavorites: next })
+    get().patchActiveProfile({ huntFavorites: next })
   },
   setHuntMode: (m) => {
     savePrefs({ huntMode: m })
     set({ huntMode: m })
+    get().patchActiveProfile({ huntMode: m })
   },
   setSelectedHuntId: (id) => set({ selectedHuntId: id }),
   setPreferredHealCity: (id: string | null) => {
     savePrefs({ preferredHealCity: id })
     set({ preferredHealCity: id })
+    get().patchActiveProfile({ preferredHealCity: id })
   },
   setHouseEntryMethod: (m) => {
     savePrefs({ houseEntryMethod: m })
     set({ houseEntryMethod: m })
+    get().patchActiveProfile({ houseEntryMethod: m })
   },
   setHouseEntryMaxSearches: (n) => {
     savePrefs({ houseEntryMaxSearches: n })
     set({ houseEntryMaxSearches: n })
+    get().patchActiveProfile({ houseEntryMaxSearches: n })
   },
   setHouseEntryHide: (v) => {
     savePrefs({ houseEntryHide: v })
     set({ houseEntryHide: v })
+    get().patchActiveProfile({ houseEntryHide: v })
   },
 }))

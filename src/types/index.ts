@@ -1,8 +1,10 @@
 /** Core domain types for DR Companion — mirrors design document awareness model */
 
 import type { SkillState } from '../data/skills'
+import type { CharacterProfile } from '../lib/profiles'
 
 export type { SkillState }
+export type { CharacterProfile }
 
 export type GameInstance = 'Prime' | 'Platinum' | 'Fallen' | 'Test' | 'Unknown'
 
@@ -128,6 +130,9 @@ export interface AppState {
   huntFavorites: string[]
   huntMode: 'suggest' | 'favorites_only' | 'manual'
   preferredHealCity: string | null
+  /** Settings per character, keyed by instance and name. */
+  profiles: Record<string, CharacterProfile>
+  activeProfileKey: string | null
   selectedHuntId: string | null
   houseEntryMethod: 'rope' | 'lockpick' | 'lockpick_ring'
   houseEntryMaxSearches: number
@@ -156,6 +161,10 @@ export interface AppState {
   toggleHuntFavorite: (id: string) => void
   setHuntMode: (m: 'suggest' | 'favorites_only' | 'manual') => void
   setPreferredHealCity: (id: string | null) => void
+  syncProfile: (name: string, instance: GameInstance, guild?: string) => void
+  patchActiveProfile: (patch: Partial<CharacterProfile>) => void
+  deleteProfileByKey: (key: string) => void
+  copySettingsFrom: (key: string) => void
   setSelectedHuntId: (id: string | null) => void
   setHouseEntryMethod: (m: 'rope' | 'lockpick' | 'lockpick_ring') => void
   setHouseEntryMaxSearches: (n: number) => void

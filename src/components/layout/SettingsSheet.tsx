@@ -7,6 +7,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
 import { TRAIN_FOCUS_OPTIONS } from '../../data/training'
 import { HEAL_CITIES } from '../../data/healers'
+import { ProfilesPanel } from './ProfilesPanel'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const uiMode = useAppStore((s) => s.uiMode)
@@ -70,6 +71,8 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               Simple = big buttons. Power = rankings and dense controls.
             </p>
           </section>
+
+          <ProfilesPanel />
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
