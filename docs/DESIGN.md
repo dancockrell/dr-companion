@@ -1288,3 +1288,124 @@ That is validation, and a warning: being right about a feature is not the same
 as it being usable. Ours has to be better than a list in a grey box or there is
 no reason for it.
 
+---
+
+## S4. Art: model, style, resolution, pack
+
+Decisions, not options. Style consistency is a stated reject condition, so
+every knob that could vary between two images is pinned here.
+
+### The model is FLUX.1 **schnell**, and the licence is the reason
+
+Available locally, checked:
+
+| Model | Licence | Verdict |
+|---|---|---|
+| `flux1-schnell-fp8` | **Apache 2.0** | **use this** |
+| `flux1-dev-fp8` | FLUX.1 non-commercial | cannot ship outputs |
+| `sd_xl_base_1.0` | OpenRAIL++-M | usable, but weaker prose comprehension |
+
+This is not a quality-first choice, it is a rights-first one. The pack is meant
+to be **given to Simutronics**, who may ship it in a client or sell it. Anything
+generated with `dev` carries a non-commercial licence and would make that
+impossible — a gift they legally cannot use is not a gift. Apache 2.0 puts no
+conditions on outputs at all.
+
+Schnell also happens to be the fast one: four steps rather than twenty-plus,
+which is the difference between a job that finishes and one that does not.
+
+### Resolution, reasoned from where it is actually displayed
+
+The panel is resizable, so the honest question is how large a room image can
+plausibly get. On a 4K screen with a generous panel, roughly 1200px wide; on
+1080p, nearer 600. Images are cheap next to video, and quality is the point.
+
+| Asset | Generated at | Why |
+|---|---|---|
+| Room scene | **1344 × 768** | 16:9, a FLUX-native size, crisp at 1200px and downscales cleanly to 600 |
+| Creature card | **832 × 1216** | portrait, reads as a card, sharp at typical card widths |
+| Player portrait | **1024 × 1024** | square, framed by the player, uploaded not generated |
+
+Stored as WebP at high quality, roughly 180 KB each. Never upscaled at runtime
+past their native size, because a soft image is worse than a smaller one.
+
+### Style: fixed, and deliberately not Simutronics
+
+The house style is thirty years old and is not the target. What is specified
+here is a single consistent look, applied to every image, defined by a fixed
+suffix that never varies:
+
+> painterly digital illustration, muted naturalistic palette, soft directional
+> light, atmospheric depth, painted texture, no text, no watermark, no people
+> unless described, consistent fantasy realism
+
+Fixed alongside it, and equally load-bearing for consistency:
+
+- **Model** — `flux1-schnell-fp8`, one file, never swapped mid-pack
+- **Steps and guidance** — one setting for the whole run
+- **Seed** — derived from the room, so the same room is the same image forever
+  and a regeneration reproduces rather than reinvents
+- **No LoRAs, no per-image tweaking.** One knob turned once is the difference
+  between a set and a collection.
+
+If two images sat side by side and looked like different artists, the run is
+wrong and gets thrown away rather than patched.
+
+### Racial descriptions have to be exact
+
+Thirteen playable races, confirmed against Elanthipedia (Half-Elf and Aelotoi
+have no standalone page but are playable and documented elsewhere):
+
+```
+Human   Elf   Half-Elf   Dwarf   Halfling   Gnome   Gor'Tog
+S'Kra Mur   Prydaen   Rakash   Kaldar   Elothean   Aelotoi
+```
+
+These are not generic fantasy races and must not be rendered as them. S'Kra Mur
+are reptilian, Prydaen feline, Rakash lupine shapechangers, Gor'Tog large and
+green-skinned, Aelotoi winged. Getting one wrong is worse than shipping no
+portrait, because it tells thirty-year players we did not look.
+
+Each race gets a written descriptor block, sourced from Elanthipedia, reviewed
+before any generation. **That work happens before the run, not during it.**
+
+### The pack, and what actually ships
+
+Measured from the map data: 18,490 rooms, 23,335 descriptions. Not all of it is
+worth generating first.
+
+| Scope | Rooms | Pack size |
+|---|---|---|
+| Top 10 zones | 7,339 | ~1.3 GB |
+| Top 20 zones | 11,201 | ~1.9 GB |
+| Everything | 18,490 | ~3.2 GB |
+
+The top ten zones are Crossing, Ratha, the Northern Trade Road, Shard and its
+approaches, Boar Clan, Riverhaven, Muspar'i and the Crossing West Gate — which
+is where players actually spend their time.
+
+So: **ship the top zones as the starter pack, generate outward from there.**
+A 1.3 GB download is defensible; a 3.2 GB one on first run is not, and most of
+that tail is rooms a given player will never stand in.
+
+### Where generation happens
+
+Centrally, here, not on the player's machine. They are not being asked to own a
+GPU or wait, and a shared pack is the only way every player sees the same world
+— two people comparing screenshots of the same room must see the same room.
+
+Local generation stays available for anyone who wants their own look, and the
+player portrait is theirs entirely: uploaded, from anywhere. Point them at a
+couple of online generators rather than shipping a generator.
+
+### Order of work
+
+1. **Creature cards first.** A few hundred images, the highest value per image,
+   and a small enough set to prove the style on before committing to thousands.
+2. **A sample of twenty rooms**, spread across zone types — town street, forest,
+   cave, shore, interior — reviewed together for consistency. **Approval gate.**
+3. **Top ten zones**, then outward.
+
+Nothing large gets generated before step 2 is signed off, because the failure
+mode is 7,000 images in an inconsistent style and no way to tell which are
+wrong.
