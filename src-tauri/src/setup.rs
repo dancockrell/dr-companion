@@ -2,9 +2,11 @@
 //!
 //! Design rules, in priority order:
 //!
-//! 1. **Never touch a Ruby the user already has.** If a suitable Ruby exists we
-//!    use it and install nothing. If theirs is too old we say so and explain the
-//!    options; we do not upgrade, replace or shadow it.
+//! 1. **Install the current version, and leave unrelated things alone.** If a
+//!    usable Ruby is already here we use it. If it is too old we offer the
+//!    current one, installed in its own folder without touching PATH. Not
+//!    clobbering someone's other software during a game setup is ordinary good
+//!    manners; keeping a deprecated runtime alive is not a goal.
 //! 2. **Nothing downloads without a yes.** `plan_setup` only looks and reports.
 //!    Every byte that crosses the network comes from an explicit call the user
 //!    triggered, after seeing the URL, the size and the version.
@@ -655,14 +657,20 @@ pub async fn plan_setup() -> SetupPlan {
     let mut components = Vec::new();
 
     // ---- Ruby ----
-    // The rule that matters: if a usable Ruby exists we use it and install
-    // nothing. We never replace or shadow one the user already has.
+    // Nobody here wants Ruby. Lich is written in it, so it comes along; that
+    // is the whole reason it appears in this app at all.
     //
-    // PATH alone is not enough. A Ruby installed while this app was already
-    // running will not be on our inherited PATH, and neither will the Ruby
-    // that Ruby4Lich5 installs. Reporting "missing" then would push someone
-    // into installing a second copy of something they already have, so fall
-    // back to looking on disk.
+    // Which means: install the current one and move on. An earlier draft made
+    // a virtue of leaving an old Ruby in place — "we never touch your Ruby" —
+    // which is the wrong instinct. Not clobbering unrelated software during a
+    // game setup is ordinary good manners, not a feature, and preserving a
+    // deprecated runtime is not something to design around. If a usable Ruby
+    // is already here we use it. If it is too old we offer the current one.
+    //
+    // PATH alone is not enough for detection. A Ruby installed while this app
+    // was running will not be on our inherited PATH, and neither will the one
+    // Ruby4Lich5 installs, so a "missing" verdict there would push someone
+    // into a second copy of what they just installed. Look on disk too.
     let (ruby_version, ruby_path) = detect_ruby();
 
     let (ruby_presence, ruby_detail) = match ruby_version.as_deref() {
@@ -712,7 +720,7 @@ pub async fn plan_setup() -> SetupPlan {
                 a,
                 "installer",
                 if ruby_presence == Presence::Outdated {
-                    "Installs its own Ruby beside yours, leaving yours alone"
+                    "Installs the current Ruby, and Lich with it"
                 } else {
                     "Everything in one step"
                 },
@@ -732,14 +740,14 @@ pub async fn plan_setup() -> SetupPlan {
             options: vec![option],
             note: if ruby_presence == Presence::Outdated {
                 "Lich 5 needs Ruby 4.0 or newer and refuses to start on anything older, so \
-                 the Ruby you have will not run it. This installs a second Ruby in its own \
-                 folder rather than over yours, and changes nothing on your PATH — your \
-                 existing Ruby keeps working for whatever else uses it. If you would rather \
-                 upgrade Ruby yourself, do that and press Check again."
+                 the Ruby on this machine will not run it. This installs the current one, \
+                 in its own folder, without changing your PATH — so if something else here \
+                 still depends on the old one, it carries on working. Prefer to upgrade \
+                 Ruby yourself? Do that and press Check again."
                     .into()
             } else {
-                "Lich runs on Ruby, and this is the Lich project's own bundle of the two \
-                 together. It installs into its own folder and does not touch anything else."
+                "Lich is written in Ruby, so Ruby comes along. This is the Lich project's \
+                 own bundle of the two, installed into its own folder."
                     .into()
             },
         },
@@ -767,6 +775,20 @@ pub async fn plan_setup() -> SetupPlan {
 
     // ---- Lich ----
     let dirs = lich_dirs();
+
+    // Every Lich on the machine, not just the first one found.
+    //
+    // Two is a normal outcome, not an edge case: install Lich by hand, later
+    // run Ruby4Lich5, and now there are two — `C:\Lich5` and
+    // `C:\Ruby4Lich5\Lich5`. Picking one silently is how someone ends up
+    // dropping scripts into the copy that is not running and concluding the
+    // app is broken. Say which one we mean and that there is another.
+    let lich_installs: Vec<PathBuf> = dirs
+        .iter()
+        .filter(|d| d.join("lich.rbw").exists() || d.join("lich.rb").exists())
+        .cloned()
+        .collect();
+
     let lich_found = first_existing(&dirs, "lich.rbw").or_else(|| first_existing(&dirs, "lich.rb"));
 
     let lich_remedy = match &release {
@@ -860,6 +882,22 @@ pub async fn plan_setup() -> SetupPlan {
             Presence::Missing
         },
         detail: match &lich_found {
+            // Naming the extras matters more than it looks. The bridge script
+            // gets copied into one `scripts\` folder, and if that is not the
+            // one the frontend launches, everything looks installed and
+            // nothing happens.
+            Some(_) if lich_installs.len() > 1 => format!(
+                "Found {} installs. Using the first; the others are {}. \
+                 Make sure your frontend points at the same one, or the bridge \
+                 will be sitting in a Lich that never runs.",
+                lich_installs.len(),
+                lich_installs
+                    .iter()
+                    .skip(1)
+                    .map(|p| pretty_path(p))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
             Some(_) => "Found".into(),
             None => "Not installed. It runs alongside your frontend, and your \
                      existing scripts keep working exactly as they do now."

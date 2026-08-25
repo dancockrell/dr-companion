@@ -9,11 +9,17 @@ All of this is in [`src-tauri/src/setup.rs`](../src-tauri/src/setup.rs).
 
 ## The rules
 
-**1. Your Ruby is yours.**
-If you have a Ruby that Lich can use, the app uses it and installs nothing. If
-yours is too old, it says so and stops. It will not upgrade it, replace it,
-reinstall over it, or put anything earlier on your PATH. Other things on your
-machine may depend on that Ruby and this app has no business guessing which.
+**1. Current versions, and nothing else disturbed.**
+Nobody installs this app because they want Ruby. Lich is written in it, so Ruby
+comes along, and the job is to get a working one in place and get out of the
+way.
+
+If you already have a Ruby that Lich can use, the app uses it and installs
+nothing. If it is too old, the app offers the current release, installed in its
+own folder without changing your PATH. Anything else on your machine that
+depended on the old one keeps working, which is ordinary good manners rather
+than a feature: this app has no business deciding what else on your machine
+needs Ruby, and no business keeping a deprecated runtime alive either.
 
 Detection looks on PATH first and then on disk, because a Ruby installed while
 the app was running will not be on PATH yet. Being told to install Ruby you
