@@ -2,13 +2,41 @@
  * Urgent situation strip — low health, combat, dead, etc.
  * Shown above the dashboard body so a 10-year-old still sees "you're hurt".
  */
-import { AlertTriangle, Heart, Swords, Skull } from 'lucide-react'
+import { AlertTriangle, Heart, Swords, Skull, RotateCcw } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 
 export function SituationBanner() {
   const character = useAppStore((s) => s.character)
   const requestIntent = useAppStore((s) => s.requestIntent)
   const autoSuggestHealer = useAppStore((s) => s.autoSuggestHealer)
+  const runawayReason = useAppStore((s) => s.runawayReason)
+  const clearRunaway = useAppStore((s) => s.clearRunaway)
+
+  // A self-stop outranks everything else on this strip. The character has been
+  // repeating itself, which is both useless and the thing that gets noticed.
+  if (runawayReason) {
+    return (
+      <div className="mx-3 mt-2 rounded-xl border px-3 py-2 flex items-start gap-2 text-sm bg-danger/15 border-danger/40 text-danger">
+        <RotateCcw className="w-4 h-4 shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold leading-tight">
+            Stopped itself: it was going in circles
+          </div>
+          <div className="text-[11px] opacity-80 leading-snug">
+            {runawayReason}. Nothing was being achieved, so it stopped rather
+            than keep going. Check the console before restarting.
+          </div>
+        </div>
+        <button
+          type="button"
+          className="shrink-0 text-xs font-semibold rounded-lg px-2.5 py-1.5 bg-surface/80 border border-border hover:bg-surface"
+          onClick={clearRunaway}
+        >
+          Dismiss
+        </button>
+      </div>
+    )
+  }
 
   if (!character) return null
 

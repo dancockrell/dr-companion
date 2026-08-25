@@ -35,7 +35,7 @@ character locked to Zoluren has a different correct answer than a Premium one.
 ```
 Game server
     |
-  Lich 5   (Ruby, TCP proxy, runs the automation)
+  Lich 5   (Ruby, TCP proxy. This app's engine, not a replacement for yours.)
     |      ws://127.0.0.1:7415/companion   <- lich-scripts/companion_bridge.lic
 DR Companion   (Tauri 2 window, React UI, this repo)
 ```
@@ -55,6 +55,7 @@ and the Lich side stays inspectable Ruby that any player can read.
 | React UI, three modes | Works |
 | Mock bridge (simulated character) | Works |
 | **`lich-scripts/companion_bridge.lic`** | **Works.** Verified against an independent WebSocket client. |
+| Runaway detection | Works. Stops itself when it is repeating without progress. |
 | Reading live state from Lich | Works: vitals, guild, circle, favors, burden, room, and per-skill ranks and mindstate |
 | Training recommendation from mindstate | Works |
 | `stop_all`, `pause`, `resume` | Work, and are never gated on game state |

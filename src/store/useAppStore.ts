@@ -119,6 +119,13 @@ function handleBridgeMessage(
     case 'trace':
       get().addTrace(msg.row)
       break
+    case 'runaway':
+      // The bridge stopped itself for looping. Put it where it cannot be
+      // missed: this is the case where the character has been doing something
+      // pointless and visible, which is exactly what should not run unwatched.
+      set({ runawayReason: msg.reason })
+      get().addLog(`Stopped itself: ${msg.reason}`)
+      break
     case 'intent_ack':
       if (!msg.ok)
         get().addLog(`Intent failed: ${msg.intent} — ${msg.detail ?? ''}`)
@@ -150,6 +157,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     protocol: null,
   },
   consoleOpen: prefs.consoleOpen ?? false,
+  runawayReason: null,
   bridgeConnected: false,
   bridgeMode: prefs.bridgeMode,
   trainFocus: prefs.trainFocus,
@@ -210,6 +218,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setConsoleOpen: (v: boolean) => {
     savePrefs({ consoleOpen: v })
     set({ consoleOpen: v })
+  },
+
+  clearRunaway: () => {
+    set({ runawayReason: null })
+    bridge.requestIntent('reset_runaway' as IntentName)
   },
 
   setBridgeMode: (m: 'mock' | 'live') => {

@@ -366,6 +366,90 @@ module Companion
     end
   end
 
+  # ---------------------------------------------------------------- runaway --
+
+  # Stop when we are repeating ourselves and getting nowhere.
+  #
+  # The rule on Prime and Platinum is that automation is monitored, and this is
+  # the feature that respects it in practice rather than in a disclaimer. What
+  # gets a character noticed is not automation as such: it is a script doing
+  # something visibly stupid for a long time.
+  #
+  # Two real examples from the community, both in docs/DOMAIN.md section 20:
+  # a character that teleported through the portal network nine times, passing
+  # through its own destination on hop eight and continuing; and one that sat
+  # "endlessly looking at the ferry and never getting on".
+  #
+  # Neither player was doing anything wrong. Their script was. Detecting that
+  # and stopping serves them directly, because the character is achieving
+  # nothing either way, and it is the difference between automation that is
+  # boring and automation that draws a crowd.
+  module Runaway
+    # Same command this many times with nothing changing.
+    REPEAT_LIMIT = 6
+    # Same room for this long while still issuing movement.
+    STUCK_SECONDS = 180
+
+    @recent = []
+    @last_room = nil
+    @room_since = Time.now
+    @tripped = false
+
+    class << self
+      attr_reader :tripped
+
+      def reset
+        @recent = []
+        @last_room = nil
+        @room_since = Time.now
+        @tripped = false
+      end
+
+      # Called for every command we send. Returns a reason string when the
+      # pattern looks like a loop, or nil.
+      def observe(command)
+        @recent << command.to_s
+        @recent.shift while @recent.size > REPEAT_LIMIT * 2
+
+        room = begin
+          Room.current&.id
+        rescue StandardError
+          nil
+        end
+
+        if room != @last_room
+          @last_room = room
+          @room_since = Time.now
+        end
+
+        recent = @recent.last(REPEAT_LIMIT)
+        if recent.size >= REPEAT_LIMIT && recent.uniq.size == 1
+          return trip("sent '#{recent.first}' #{REPEAT_LIMIT} times in a row")
+        end
+
+        # Movement that is not moving. The portal loop and the ferry both look
+        # like this from the outside.
+        if movement?(command) && room && (Time.now - @room_since) > STUCK_SECONDS
+          return trip(
+            "still in room #{room} after #{STUCK_SECONDS}s of movement commands"
+          )
+        end
+
+        nil
+      end
+
+      def movement?(command)
+        command.to_s =~ /\A(go |climb |swim |north|south|east|west|up|down|ne|nw|se|sw|out|in\b)/i
+      end
+
+      def trip(reason)
+        return nil if @tripped
+        @tripped = true
+        reason
+      end
+    end
+  end
+
   # ---------------------------------------------------------------- commands --
 
   # Sending a command to DragonRealms is not fire-and-forget. The game refuses
@@ -414,6 +498,18 @@ module Companion
 
       attempts.times do |try|
         wait_rt
+
+        # Check for a loop, but only on the first attempt. Retrying through
+        # roundtime is normal and expected, and counting each retry would make
+        # three ordinary calls look like nine repetitions of the same command.
+        # The detector is meant to catch a script going nowhere, not a script
+        # politely waiting its turn.
+        if try.zero? && (reason = Runaway.observe(command))
+          Trace.event(:runaway, reason)
+          Companion.runaway!(reason)
+          return nil
+        end
+
         Trace.event(:send, "#{tag}#{command}#{try.positive? ? " (retry #{try})" : ''}")
 
         line = begin
@@ -466,6 +562,26 @@ module Companion
     end
   end
 
+  # Stop everything and say why.
+  #
+  # Deliberately the same action as a user pressing Stop: kill the running
+  # scripts, tell every connected panel, and leave the character standing still
+  # rather than continuing to do something that is not working.
+  def self.runaway!(reason)
+    respond "[companion] stopping: #{reason}"
+    server = $companion_bridge
+    return unless server
+
+    server.log(
+      "Stopped: #{reason}. Nothing was achieving anything, and a script " \
+      'repeating itself is the thing that gets noticed. Check the console, ' \
+      'fix it, and start again when you are ready.',
+      'error'
+    )
+    Intents.stop_all(server)
+    server.broadcast(type: 'runaway', reason: reason)
+  end
+
   def self.log_error(msg)
     respond "[companion] #{msg}"
   end
@@ -483,6 +599,10 @@ module Companion
     def handle(intent, args, server)
       case intent
       when 'stop_all' then stop_all(server)
+      when 'reset_runaway'
+        Runaway.reset
+        server.log('Runaway detection reset.')
+        [true, 'reset']
       when 'pause'    then pause_all(server)
       when 'resume'   then resume_all(server)
       when 'check_health' then check_health(server)
@@ -641,6 +761,9 @@ module Companion
     end
 
     def stop_all(server)
+      # A deliberate stop clears the loop detector: whatever happens next is
+      # a fresh decision by the player, not a continuation.
+      Runaway.reset
       killed = []
       me = State.safe(nil) { Script.current.name }
       State.safe([]) { Script.running }.each do |s|

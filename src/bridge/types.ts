@@ -19,6 +19,7 @@ export type BridgeServerMessage =
   | { type: 'scripts'; payload: { name: string; status: string }[] }
   | { type: 'log'; line: string; level?: 'info' | 'warn' | 'error' }
   | { type: 'trace'; row: TraceRow }
+  | { type: 'runaway'; reason: string }
   | { type: 'intent_ack'; intent: string; ok: boolean; detail?: string }
   | { type: 'error'; message: string }
 
@@ -51,6 +52,7 @@ export type IntentName =
   | 'stow_all'
   | 'check_health'
   | 'check_toggles'
+  | 'reset_runaway'
 
 export interface BridgeConnectionState {
   connected: boolean

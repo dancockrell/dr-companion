@@ -13,7 +13,9 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "test:scrub": "node tools/scrub-test.mjs",
-    "test:bridge": "ruby lich-scripts/test/cmd_test.rb lich-scripts/companion_bridge.lic"
+    "test:bridge": "ruby lich-scripts/test/cmd_test.rb lich-scripts/companion_bridge.lic",
+    "test:runaway": "ruby lich-scripts/test/runaway_test.rb lich-scripts/companion_bridge.lic",
+    "test": "npm run test:scrub && npm run test:bridge && npm run test:runaway"
   },
   "dependencies": {
     "clsx": "^2.1.1",

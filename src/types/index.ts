@@ -148,6 +148,8 @@ export interface AppState {
   traceEnabled: boolean
   versions: VersionState
   consoleOpen: boolean
+  /** Set when the bridge stopped itself for looping. */
+  runawayReason: string | null
   bridgeConnected: boolean
   bridgeMode: 'mock' | 'live'
   trainFocus: string[]
@@ -174,6 +176,7 @@ export interface AppState {
   addTrace: (row: TraceRow) => void
   setTraceEnabled: (v: boolean) => void
   setConsoleOpen: (v: boolean) => void
+  clearRunaway: () => void
   simulateConnect: () => void
   connectBridge: () => void
   disconnectBridge: () => void

@@ -607,7 +607,11 @@ pub async fn plan_setup() -> SetupPlan {
 
     components.push(ComponentPlan {
         id: "lich".into(),
-        label: "Lich 5".into(),
+        // "Lich 5" alone reads to a Genie user as "switch to Lich", which is
+        // the objection to answer rather than accept. Lich is a proxy: the
+        // frontend still runs and every .cmd script keeps working. It is this
+        // app's plumbing, not a toolchain anyone has to adopt.
+        label: "Lich 5 (this app's engine)".into(),
         presence: if lich_found.is_some() {
             Presence::Present
         } else {
@@ -615,7 +619,9 @@ pub async fn plan_setup() -> SetupPlan {
         },
         detail: match &lich_found {
             Some(_) => "Found".into(),
-            None => "Not installed".into(),
+            None => "Not installed. It runs alongside your frontend, and your \
+                     existing scripts keep working exactly as they do now."
+                .into(),
         },
         path: lich_found
             .as_ref()

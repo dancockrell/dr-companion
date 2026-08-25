@@ -39,6 +39,14 @@ eval(body.sub(/\n  # -+ intents --\z/, "\nend\n"), TOPLEVEL_BINDING, ARGV[0])
 
 C = Companion::Cmd
 fails = 0
+
+# Each case below deliberately repeats one command. The loop detector is
+# tested separately in runaway_test.rb; reset it between cases so its state
+# does not leak across unrelated assertions.
+def fresh
+  Companion::Runaway.reset
+  $room += 1
+end
 def check(label, got, want)
   ok = got == want
   puts "#{ok ? 'OK  ' : 'FAIL'} #{label}: got #{got.inspect}"

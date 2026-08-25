@@ -733,7 +733,7 @@ almost always a longer noun phrase.
 A second run of community traffic, this time from the general Genie/Lich/Wrayth
 help channel rather than one script's bug queue.
 
-### Community spaces are public, and that has consequences for us
+### The rule is that you monitor it, and the failure mode is a script running wild
 
 > "You're aware that this is not a private discord with a restricted invite, so
 > GMs can and DO lurk in here right? So maybe immediately coming to an
@@ -741,25 +741,36 @@ help channel rather than one script's bug queue.
 > not get caught?' after JUST getting popped for AFK scripting isn't the
 > smartest move?"
 
-Someone had just been actioned for unattended play and asked for advice about
-it in the open. The reply is the community policing itself, and it is correct.
+An earlier draft of this section read that as a warning about surveillance and
+built a conclusion about self-incrimination on top of it. That was wrong, and
+the correction matters because it points at a different and better feature.
 
-**This constrains the bug reporter directly.** A report is a timestamped record
-of what a character was doing, and the button posts it to a public GitHub issue
-under the user's own name. Somebody could file a perfectly good bug report that
-also documents hours of unattended automation.
+The actual advice is: do not be obnoxious and obvious. Enforcement is mostly
+reactive. Unattended play draws action when a script becomes *visible*, usually
+by getting out of control. Otherwise a GM is more likely to drop an invasion
+into a suspiciously quiet room, or to leave it alone.
 
-What the app does about it:
+**The rule itself is simple and not in dispute: on Prime and on Platinum the
+script must be monitored.** That obligation belongs to the person at the
+keyboard. This app is built to make attending easy rather than to argue about
+it.
 
-- The capture is scoped to our own commands and their replies, not a window of
-  everything that happened.
-- The preview is mandatory and shows the exact text.
-- The dialog says plainly that an issue is public and permanent, and offers
-  saving a file instead for anyone who would rather send it privately.
+What that means for design is more useful than any warning could be. What gets
+a player noticed is a script doing something visibly stupid for a long time.
+Section 20 has a perfect specimen: a character teleporting through the portal
+network nine times, passing through its own destination on hop eight and
+carrying on. Another player in the same channel sat "endlessly looking at the
+ferry and never getting on".
 
-None of that is about policy enforcement, which is not this app's job. It is
-about not handing someone a convenient way to publish something they would
-regret.
+So the feature this argues for is **runaway detection**. If the Companion is
+repeating itself without making progress, the right response is to stop and say
+so. That serves the player directly, since their character is achieving nothing
+anyway, and it is the whole difference between automation that is boring and
+automation that is conspicuous.
+
+Separately, and for ordinary reasons rather than this one: a GitHub issue is
+public and permanent and carries a character name and a slice of play history,
+so the report dialog says so before anyone posts one.
 
 ### The refusal-handling bug, in the wild
 
@@ -817,18 +828,34 @@ the same thing in two different channels is a design problem, not user error.
 It reinforces the conclusion there: report both the wound list and the summary,
 and make the threshold visible rather than implicit.
 
-### Lich is not Genie-only, and some players will never move
+### Lich is our backend, not a migration we are asking anyone to make
 
-Lich runs as a plugin for **Wrayth** as well as Genie, so frontend detection
-should not assume Genie.
+Lich runs under **Wrayth** as well as Genie, so frontend detection should not
+assume Genie.
 
-And there is a cohort that will not migrate at all:
+More importantly, an earlier draft of this section got the adoption story
+badly wrong. It quoted this:
 
 > "I don't lich. I just genie script. It's what I know now, and I'm too GD old
 > and tired to learn a new language/system."
 
-DR Companion requires Lich. That is a real adoption ceiling and worth being
-honest about rather than assuming everyone will move.
+and concluded that DR Companion "requires Lich", calling it an adoption
+ceiling. That is not what installing Lich does to a player.
+
+Lich is a **proxy** that sits between the frontend and the game server. The
+frontend still runs, and everything it does still works. A Genie player who
+installs Lich keeps every `.cmd` script they have, keeps their variables files,
+keeps their muscle memory. Nothing about their setup is replaced or has to be
+rewritten.
+
+So Lich here is **our plumbing, not their new toolchain**. It is how this app
+reads character state and stops scripts, and the player does not have to learn
+any of it, write any of it, or give anything up to have it there. The person
+above can carry on genie scripting exactly as before and still run the panel.
+
+That is worth saying out loud in the setup screen, because "install Lich"
+reasonably sounds to a Genie user like "switch to Lich", and that is the
+objection to answer rather than accept.
 
 ### Free alternatives exist, and matter for positioning
 
