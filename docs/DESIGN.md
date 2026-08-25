@@ -351,8 +351,8 @@ Constraints that come with that, and they are not optional:
 ## 2.5 Where information goes
 
 The app currently has explanatory sentences baked under half its panels. That is
-the wrong place for them: on a 520×780 window, prose is paid for in the space
-the actual thing needed.
+the wrong place for them: prose is paid for in space taken from the game window
+next to us, which is the space the actual thing needed. See §2.115.
 
 - **The panel shows values.** Not sentences about values.
 - **Hover carries the detail** — where a number came from, what the threshold
@@ -543,6 +543,37 @@ container, it is their containers.
 That turns the worst part of dr-scripts — a 625-key YAML and a wiki tab — into
 picking from lists of things they recognise, because they own them.
 
+## 2.115 Screen space is competitive, and it is earned
+
+Genie is resizable. So is every frontend. The app does not sit alone on a
+monitor — it sits *next to the game*, and every pixel it takes is a pixel the
+game window does not have.
+
+> **The better we are, the more screen real estate we are worth against Genie.**
+> That is the honest arrangement, and it is continuous rather than settled once.
+
+This corrects a framing used throughout earlier drafts of this document.
+"520×780" is not a constraint to design within. It is the width a player gives
+an app they are not yet sure about, and it should grow when we earn it.
+
+What follows:
+
+- **No layout may assume a width.** Not 520, not anything. A narrow strip beside
+  a maximised Genie and a half-screen panel are both normal.
+- **Density adapts.** Narrow: vitals, room, stop. Wide: the map big, enemy cards
+  beside the doll, the mindstate board readable. Same panels, different
+  allocation — not a separate "wide mode" to maintain.
+- **Every panel is optional and movable**, because the player decides what is
+  worth their pixels, and two players will not agree. Someone wants the map at
+  the top; someone else never looks at it and wants gear there.
+- **Dead space is a bug.** If a panel is not earning its area at the current
+  width, it should shrink or go, not sit half-empty.
+- **Nothing hides behind a size.** If a feature only works at 1200px it is a
+  feature most people will never see.
+
+The practical test for any panel: *would I give up game window for this?* If the
+answer is no at any width, it does not belong on the front page.
+
 ## 2.12 The map has to beat Genie's
 
 Genie's automapper is fifteen years old and it is the incumbent. If ours is
@@ -609,8 +640,9 @@ from where, how big, and where it lands. Downloading and running stay separate.
 
 ## 5. What earns the screen
 
-520×780 by default. Ranking comes from what a player does, not what is easy to
-draw.
+Ranking comes from what a player does, not from what is easy to draw — and it
+has to hold at any width, because the window is only as wide as we have earned
+(§2.115).
 
 **Tier 1 — always visible**
 
@@ -694,9 +726,11 @@ YAML; and writing YAML the player approved in a form.
 
 Each step is one bridge topic plus one panel, shippable alone.
 
-1. **Panels move and resize.** `Panel.tsx` and `lib/layout.ts` exist and almost
-   nothing uses them. *Done when:* every panel moves, resizes, collapses, and
-   the arrangement survives a restart.
+1. **Panels move and resize, at any window width.** `Panel.tsx` and
+   `lib/layout.ts` exist and almost nothing uses them.
+   *Done when:* every panel moves, resizes, collapses, the arrangement survives
+   a restart, and the layout is usable from a narrow strip beside a maximised
+   Genie up to half a screen — with no dead space at either end.
 2. **Dependency page extended to scripts and the map database.**
    *Done when:* a fresh machine reaches a working dr-scripts install without
    the player typing a `;` command.
