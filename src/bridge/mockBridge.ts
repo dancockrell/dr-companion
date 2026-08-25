@@ -152,7 +152,7 @@ const presets: Record<DemoPresetId, DemoPreset> = {
       location: {
         title: 'Fang Cove – Commons',
         zone: 'Fang Cove',
-        province: 'Zoluren',
+        province: 'Ilithi',
         isTown: true,
         isSafe: true,
       },

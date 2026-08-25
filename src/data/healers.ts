@@ -80,15 +80,18 @@ export const HEALER_OPTIONS: HealerOption[] = [
   },
   {
     id: 'fang-cove-healer',
-    name: 'Fang Cove healer',
+    name: 'Fang Cove healer (Yrisa)',
     kind: 'npc_empath',
     instance: 'Prime',
     area: 'Fang Cove',
-    pathDifficulty: 1,
+    pathDifficulty: 2,
     costCopper: 0,
     requiresPremium: true,
-    inZoluren: true,
-    notes: 'Premium/Platinum only',
+    inZoluren: false,
+    notes:
+      'Fang Cove is in Ilithi, reached by sea mammoth from Ratha or Acenamacra. ' +
+      'Primarily Estate Holder, but the docks and Grazhir shard are open to others. ' +
+      'The sea mammoth leg needs an active Ilithi passport.',
   },
   {
     id: 'haven-empath',

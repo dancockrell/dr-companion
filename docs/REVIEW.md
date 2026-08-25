@@ -341,12 +341,18 @@ Dead exports: `ENTRY_ROOMS`, `formatRankBand`, `listReachable`,
   dash.
 - Fang Cove is `province: 'Ilithi'` in `travelDestinations.ts`,
   `province: 'Zoluren'` in the `premium_prime` preset, and `inZoluren: true` in
-  `healers.ts`. Three answers, and it is really its own premium area.
-- `capabilitiesFor` gives `hasVault: !f2p`, so Basic accounts get a vault. Worth
-  checking against current rules, since `canUsePremiumAreas` is correctly
-  Premium-and-above in the same function.
+  `healers.ts`. Three answers. Checked since: Ilithi is correct, so
+  `travelDestinations.ts` is right and the other two are wrong. (An earlier
+  version of this line said Fang Cove was its own premium area. That was wrong.
+  See `DOMAIN.md` section 5.)
+- `capabilitiesFor` gives `hasVault: !f2p`, so Basic accounts get a vault.
+  Checked since: broadly correct, but F2P can buy vault expansions up to 250
+  items, so the boolean is incomplete rather than wrong. The
+  `vaultApproximateCapacity: 500` beside it has no basis.
 - `bankDepositCap: 100000` and `bankCapPlatinum: 10` are bare numbers with no
-  unit anywhere near them.
+  unit anywhere near them. Checked since: both are correct and they are the
+  *same* cap in two units, since 10 platinum is 100,000 copper. Redundant, not
+  contradictory.
 - `estimatedHops: steps.length` counts narrative steps, not rooms.
 - `combatMachine` transitions `retreating -> safe -> escaping -> safe ->
   stopped`. Retreating into escaping reads backwards, and the machine is only
@@ -402,6 +408,35 @@ UI flourish. Simple mode exists because a player who is bleeding does not want a
 ranking table.
 
 ---
+
+## 15. What the domain research changed
+
+`DOMAIN.md` was written after this review, from Elanthipedia and from reading
+community scripts. It supersedes several assumptions here and adds findings this
+pass could not have caught by reading the code alone. The load-bearing ones:
+
+- **Training is driven by mindstate**, a 34-point pool per skill that fills and
+  drains. `trainFocus` as static checkboxes plus a single `skillRanks` number is
+  the wrong shape for the central feature. This is a larger correction than
+  anything in findings 1 through 14.
+- **F2P travel is passport-gated per transport leg**, not tier-locked to
+  Zoluren, and an expired passport can strand a character. `canTravelOutsideZoluren`
+  cannot answer the question with the inputs it has.
+- **Athletics ranks against published per-obstacle thresholds** is the real
+  mobility mechanic, modified by burden, armor, buffs, rope and group state.
+  That replaces both `pathDifficulty: 0-3` and the hardcoded `mobilityScore: 55`
+  from finding 5.
+- **`BRIDGE_CONTRACT.md` names the wrong Lich API.** It says to push status from
+  "Char / Room / XMLData / Infomon". Infomon is GemStone. DragonRealms uses
+  `DRStats`, `DRSkill`, `DRRoom` and the `DRC*` commons modules. Fix before
+  anyone writes the Ruby.
+- **`elanthia-online/dr-scripts` is GPL-2.0** and this repo is MIT, so its Ruby
+  cannot be copied in. Its *data* files are already on any Lich user's disk and
+  are better read than duplicated.
+- Three guilds (Empath, Trader, Necromancer) are closed to F2P, which
+  `GUILD_PROFILES` does not gate.
+- Platinum cross-world portals require six months of tenure, which
+  `travelPath.ts` offers unconditionally.
 
 ## Suggested order
 

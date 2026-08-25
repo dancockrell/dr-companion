@@ -61,8 +61,11 @@ and the Lich side stays inspectable Ruby that any player can read.
 | Setup wizard detect + install | Simulated. Detects and installs nothing yet. |
 | Tauri `.exe` build | Not yet buildable, see the review |
 
-A fuller account is in [docs/REVIEW.md](docs/REVIEW.md), a code review of this
-exact tree written before any of it was cleaned up.
+Two documents cover the detail. [docs/REVIEW.md](docs/REVIEW.md) is a code review of this
+exact tree, written before any of it was cleaned up. [docs/DOMAIN.md](docs/DOMAIN.md)
+is a research pass on how DragonRealms actually works, sourced from Elanthipedia
+and from reading community scripts, and it corrects several things the data
+modules had guessed.
 
 ## Repository history
 
