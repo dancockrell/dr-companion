@@ -1,294 +1,295 @@
 # DR Companion — design
 
-Status: **proposed, not approved.** Nothing here is built yet.
+Status: **proposed, not approved.** Nothing here is built.
 
-Written after reading the community scripts rather than guessing. Every claim
-below is sourced, because the point of this document is that it can be argued
-with.
+Every number and file path below was read, not remembered. The point of this
+document is that it can be checked and argued with.
 
 ---
 
-## 1. What the evidence says
+## 1. The evidence
 
 ### The scripts are enormous because the game is exceptional
 
-| Script | Lines | What it is |
+| Script | Lines / bytes | What it is |
 |---|---|---|
-| `uber.cmd` | 77,867 | combat, hunting, selling, town, invasions |
-| `travel.cmd` | 8,248 | routing, ferries, shortcuts |
-| `disarm.cmd` | 5,517 | box popping |
-| `burgle.cmd` | 944 | house entry |
-| `uberwatch.cmd` | ~120 | notices when uber has died |
+| `uber.cmd` (Genie) | 77,867 lines | combat, hunting, selling, town, invasions |
+| `travel.cmd` (Genie) | 8,248 lines | routing, ferries, shortcuts |
+| `disarm.cmd` (Genie) | 5,517 lines | box popping |
+| `uberwatch.cmd` (Genie) | ~120 lines | notices when uber has died |
+| `combat-trainer.lic` (Lich) | 277 KB | the dr-scripts equivalent of uber |
+| **dr-scripts, all of it** | **222 scripts, 2.75 MB** | the DR Lich suite |
 
-`uber.cmd` contains **2,008 `action` triggers**. Not 2,008 features — 2,008
-things that can happen to you mid-script. They include a Dragon Priest
-juggernaut giggling, an ambush choke, arriving aboard the Mammoth, and
-*DragonRealms announcing a server shutdown*.
+`uber.cmd` carries **2,008 `action` triggers** — not features, things that can
+happen to you mid-script: a juggernaut giggling, an ambush choke, arriving
+aboard the Mammoth, DragonRealms announcing a server shutdown.
 
 `uberwatch.cmd` exists only because uber dies. It watches for disconnects six
 ways, the idle timeout, the script vanishing from `$scriptlist`, an unexplained
 `Your worn items are:`, and **the game clock failing to advance**.
 
-**Conclusion: we do not write a better automation engine.** That fight is
-already fought, at a scale we will not match, by people who have been at it for
-years. What none of those 95,000 lines has is an interface.
+**We do not write a better automation engine.** That fight is fought, at a
+scale we will not match. What none of those scripts has is an interface.
 
 ### Reading, not copying
 
-Community scripts are the map of the game world and should be used hard —
-for their *information*. Shroom's work in particular is not community-licensed.
-We read them to learn what the game does. We do not copy code out of them, and
-this repo stays MIT.
+Community scripts are the map of the game world and should be used hard, for
+their *information*. Shroom's work in particular is not community-licensed. We
+read to learn what the game does; we do not copy code. This repo stays MIT.
 
-Everything we *call* is Lich 5, which is BSD 3-Clause
-(`C:\Ruby4Lich5\Lich5\LICENSE`) and therefore unencumbered.
+What we *call* is Lich 5 (BSD 3-Clause) and the community scripts as scripts —
+started, not vendored.
 
-### All our automation lives in Lich
+### Everything we build runs inside Lich
 
-The Ruby bridge script is where anything that touches the game goes. Rust is
-the installer and the window shell, and it is essentially finished. **If a
-feature needs new Rust, that is a signal it is the wrong feature.**
-
-### And most of it should not be ours at all
-
-Lich is not just an API, it is a script platform with a maintained script
-library, and the first question for any behaviour is **"which existing script
-already does this?"** `Script` gives us the whole lifecycle:
-
-```
-Script.list        Script.running      Script.running?(name)
-Script.start(name, *args)              Script.run(name)        # blocking
-Script.run_child(name, timeout:)       Script.pause/unpause
-Script.kill(name)  Script.exists?      Script.version(name)
-```
-
-Which means the honest shape of a feature is usually: read state, show it,
-start somebody else's script, watch it, report what happened.
-
-**Travel is the clearest case.** `go2` is version 2.3.3, actively maintained,
-by Tillmen with eight named contributors. It resolves **any map tag** as a
-destination — `Map.list.find_all { |r| r.tags.include?(target) }` — plus
-profession-aware targets like `;go2 guild`, `;go2 guild shop` and `;go2 locker`,
-and it confirms trips over 20 rooms before walking them.
-
-So the map's tag vocabulary *is* the destination menu, and go2 does the moving.
-Writing our own walker would be worse on day one and worse every day after.
-
-Our `map_path` stays, because showing a route before committing to it is a real
-thing the panel adds. What follows the preview is `Script.start('go2', id)`.
-
-**This also corrects something I got wrong earlier.** Lich does not fetch its
-map database on first connect. It comes from `;repository download-mapdb`, and
-`repository.lic` is the script that installs anything else from the community
-library too. Setup should offer that, and the map panel's empty state should
-name the command rather than shrugging.
+The Ruby bridge is where anything touching the game goes. Rust is the installer
+and the window shell and is essentially finished. **If a feature needs new
+Rust, that is a signal it is the wrong feature.**
 
 ---
 
-## 2. The model
+## 2. The three things I found that change the design
 
-The mistake to avoid is a button called "wear swimming armour". There is no end
-to those. Four examples from four different scripts, all the same shape:
+### 2.1 The script library *is* the feature list
 
-| Situation | Requirement | Modifiers | If it fails |
-|---|---|---|---|
-| Swim the Segoltha | Athletics ~565 | burden, armour, buffs, strength | stuck, possibly dead |
-| Pop a box | Appraisal vs trap difficulty | helmet and gloves off | acid, wounds, ruined armour |
-| Burgle in town | Stealth vs guards | hidden, buffs, rope | **jail** — a fine and dead time |
-| Burgle in a clan | same | same | **maimed** — walk to an empath |
+222 scripts. Not a dependency — the product surface. `craft`, `forge`,
+`workorders`, `healer`, `burgle`, `pick`, `hunting-buddy`, `inventory-manager`,
+`appraisal`, `athletics`, `astrology`, `trade`, `crossing-training`.
 
-`travel.cmd` states three numbers per crossing, not one: *possible* with no
-burden and no armour, *safe*, and a conservative default it ships with. It
-carries a player-tunable risk appetite. `disarm.cmd` picks its disarm mode —
-Blind, Quick, Normal, Careful — from measured difficulty against your skill, and
-throws the box away when the sum is bad.
+Almost every feature I have been sketching already exists as a script written by
+someone who plays more than I ever will. The app's job is to make them
+**findable, startable, watchable and configurable** — not to reimplement them.
 
-So the abstraction is:
+`Script` gives the whole lifecycle:
 
-> **A Situation is a requirement, a set of modifiers you control, a risk band,
-> and a consequence with a recovery cost.**
+```
+Script.list   Script.running   Script.running?(name)   Script.version(name)
+Script.start(name, *args)      Script.run_child(name, timeout:)
+Script.pause / unpause / kill / exists?
+```
 
-That single model covers swimming, box popping, burgling, travel shortcuts and
-hunting-ground choice. It is worth building once.
+**Travel is the worked example.** `go2` is v2.3.3, maintained by Tillmen with
+eight contributors. It resolves **any map tag** as a destination, has
+profession-aware targets (`;go2 guild`, `;go2 guild shop`, `;go2 locker`), and
+confirms trips over twenty rooms. So the tag vocabulary the map already reads
+*is* the destination menu, and go2 does the walking. Our route preview stays,
+because showing the way before committing is real value; what follows it is
+`Script.start('go2', id)`.
 
-The burgle case proves the consequence half matters as much as the odds.
-`burgle.cmd`'s `JAIL:` handler is a loop that kicks a dust pile forever.
-Its `CLANJUSTICE:` handler prints "GO HEAL YOURSELF" and exits cleanly. Same
-crime, same chance of being caught, wildly different cost — so *where* you do a
-risky thing is a real decision, and nothing in this app currently helps make it.
+### 2.2 Workflows already exist, and they are YAML
 
-### What that means for the interface
+`coordinator.lic`, from its own header:
 
-Not buttons per case. Two things:
+> Task scheduler that runs hunting, town and cleanup tasks in priority order.
+> Tasks and their predicates come from `coordinator_hunting_tasks`,
+> `coordinator_town_tasks` and `coordinator_hunting_cleanup` in your yaml.
+> Predicates are evaluated against skills and timers, and timers persist in
+> UserVars.
 
-1. **Gear profiles** — named sets the player defines: `swimming`, `boxes`,
-   `burgle`, `combat`. Lich already has this: `EquipmentManager#wear_equipment_set?`
-   takes a set name, and its own docs use `"standard"` and `"swimming"` as the
-   examples. We expose it and show what is currently worn so it can be trusted.
-2. **A readiness read-out** — for the situation you are in, what the requirement
-   is, where you stand against it, what would move the number, and what it costs
-   if it goes wrong. Not a decision made for you.
+The task schema, read out of the source:
+
+```
+script  args  action  file  town  walk_to  safe_room  buff  play_song
+start_on  stop_on  type  default  skip_first_run  no_cleanup
+```
+
+`start_on` and `stop_on` are predicates over skills and timers. That is a
+workflow engine with a declarative task list, already written, already
+maintained, already scheduling real play.
+
+**So the workflow builder and the YAML editor are the same feature.** A visual
+task editor that emits `coordinator_*` keys gives prebuilt workflows, user-built
+workflows as a first-class thing, and a large chunk of the YAML problem, without
+us writing one line of automation.
+
+### 2.3 The YAML is the actual wall
+
+- `base.yaml` — **2,901 lines, 625 top-level keys**
+- `base-empty.yaml` — **~130 collection keys** a player is expected to fill
+- `validate.lic` — 51 KB of checking, so it is a known problem
+- `edityaml.lic` — 11 KB, an in-game editor already exists
+
+The hard keys are the collections, because that is where nesting, anchors and
+merge keys bite: `gear`, `gear_sets`, `storage_containers`, `training_list`,
+`training_abilities`, `waggle_sets`, `crossing_training`, `weapon_training`,
+`priority_weapons`, and seven separate `*_tools` lists for the crafting
+disciplines.
+
+**Most of those are derivable from a logged-in character.** That is the answer
+to "how will you help people make their yaml":
+
+| YAML key | Read it from |
+|---|---|
+| `hometown`, `*_town` | `Map.current.location`, room tags |
+| `storage_containers` | `GameObj.containers` |
+| `gear`, `gear_sets` | `GameObj.inv` + `DRCI.wearing?` + what is in hands |
+| `priority_weapons`, `weapon_training` | weapons found in inventory, `DRSkill` |
+| `alchemy_tools`, `forging_tools`, … | inventory scan against known tool nouns |
+| `training_list`, `training_abilities` | `DRSkill.list` with ranks and mindstate |
+| `waggle_sets` | `DRSpells` known spells |
+| `crossing_training` | skills below a rank threshold |
+
+So: **scan the character, propose a YAML, let them correct it in a form, write
+it, then run `;validate` and show the result.** Never a blank file and a wiki
+link. The novel work is the proposal and the form; the checking already exists.
 
 ---
 
 ## 3. What the app is
 
-**A face for state and control, on top of Lich and whatever scripts the player
-already runs.** It does not replace uber. Ideally it can see uber running and
-report on it.
+**A face for the Lich script ecosystem.** Find, install, configure, launch,
+watch, and chain other people's scripts — and show enough state that a player
+can tell what is happening and step in.
 
 Three jobs, in order:
 
 1. **Show me what is happening**, at a glance, without scrolling.
-2. **Let me act on it** — gear, movement, stop — without typing.
-3. **Tell me when it has gone wrong**, because that is the failure mode of this
-   entire genre.
+2. **Let me act** — gear, movement, scripts, stop — without typing.
+3. **Tell me when it has gone wrong**, which is the failure mode of the genre.
 
 ---
 
-## 4. What earns the screen
+## 4. First run: the dependency page
 
-The window is 520×780 by default. Ranking has to come from what the player is
-doing, not from what is easy to draw.
+One page, one list, a green tick or a red cross against each, then an offer to
+install everything missing. No prose wall.
 
-**Tier 1 — always visible, never scrolled to**
+| Checked | How | Fix |
+|---|---|---|
+| Ruby 4.0+ | on PATH, then on disk | Ruby4Lich5 installer |
+| Lich 5 | `lich.rbw` in the usual places | Ruby4Lich5 or `lich-5.zip` |
+| Frontend | Genie / Wrayth / Frostbite / Saga / … | offer Genie 4 |
+| **Map database** | `map-*.json` under `DATA_DIR` | **`;repository download-mapdb`** |
+| **dr-scripts suite** | scripts present in `scripts/` | `;repository download <name>` |
+| **Per-script** | `Script.exists?` + `Script.version` | download or update |
+| Bridge script | ours | copy it in |
+| Genie plugins / maps | only if Genie | verified bundles |
 
-- **Room**: creatures with per-creature status, dead ones, other players.
-  `GameObj.npcs` + `GameObj.npc_status`, `DRRoom.dead_npcs`, `DRRoom.pcs`.
-  This is the biggest current gap and the thing looked at most often.
-- **Body**: wounds by location, not a health number. A bleeding head and a
-  bleeding leg are different emergencies. `XMLData.injuries` gives 16 parts with
-  wound and scar severity 0–3 — a paperdoll, already, in less space than three
-  bars.
-- **Stop.** Already correct, do not touch.
+Two of those are new and both matter. The map database does **not** arrive with
+Lich — it comes from `;repository download-mapdb`, which is why there is no
+`map-*.json` on this machine and why the map panel has nothing to draw. And the
+script check is what turns "install the app" into "install the app and have
+everything the community uses".
 
-**Tier 2 — one glance, resizable, dockable**
+Consent is unchanged and already documented in `SETUP-POLICY.md`: show what,
+from where, how big, and where it lands. Downloading and running stay separate.
 
-- **Map**, sized to follow movement, hazards coloured. Not a thumbnail.
-  Clicking a room previews the route; going hands off to `go2`.
-- **Hands and worn**, with gear profiles. `GameObj.right_hand`/`left_hand`,
-  `GameObj.inv`, `DRCI`, `EquipmentManager`.
-- **Scripts**: what is running, paused, or dead, with versions, and start /
-  pause / stop for each. This is the same panel as the watchdog — knowing uber
-  has stopped and being able to restart it are one problem, and `uberwatch.cmd`
-  exists because nothing offered either. `Script.list` / `running` / `version`
-  give us all of it, including the version numbers that dominate support
-  traffic.
-- **Watchdog signals** inside that panel: game clock advancing, last command and
-  its reply. Modelled directly on what `uberwatch.cmd` watches.
+---
+
+## 5. What earns the screen
+
+520×780 by default. Ranking comes from what a player does, not what is easy to
+draw.
+
+**Tier 1 — always visible**
+
+- **Room** — creatures with per-creature status, dead ones, other players.
+  `GameObj.npcs` + `npc_status`, `DRRoom.dead_npcs`, `DRRoom.pcs`. Biggest
+  current gap; looked at most often.
+- **Body** — wounds by location, not a health number. A bleeding head and a
+  bleeding leg are different emergencies. `XMLData.injuries` has 16 parts at
+  severity 0–3 — a paperdoll already, in less space than three bars.
+- **Stop.**
+
+**Tier 2 — resizable, dockable**
+
+- **Scripts + watchdog** — running, paused, dead, with versions; start, pause,
+  stop. Plus the game clock and last command. This is `uberwatch.cmd` as a
+  panel, and it is the thing an existing uber user would install this for.
+- **Map** — sized to follow movement, hazards coloured, `go2` as the action.
+- **Gear** — hands, worn, gear sets, weapon swap by skill.
 
 **Tier 3 — on demand**
 
-- Skills and mindstate, healer scoring, hunting-ground ranking, settings.
+- Workflow editor, YAML assistant, skills, healer scoring, hunt ranking.
 
-Healer rankings and hunt scores currently sit in the middle of the Power view.
-They are decisions made once every few hours and they should not outrank the
-room you are standing in.
-
----
-
-## 5. Layout
-
-Both current layouts were arrived at by appending panels in the order they were
-written. Rather than defend a guess: every panel moves, resizes, collapses, and
-can be docked to a side rail that widens the window instead of covering it.
-The arrangement persists per mode.
-
-A crafter wants inventory open and the map small. Someone hunting wants the map
-large and watched. Neither is wrong, so the app should not have an opinion.
-
-Two modes only, Basic and Power, differing in density rather than in which
-panels exist.
+Healer rankings and hunt scores currently sit mid-screen in Power. They are
+decisions made every few hours and should not outrank the room you are in.
 
 ---
 
-## 6. Architecture
+## 6. The situation model
 
-```
-Lich (Ruby)                     bridge script          panel (React)
-  DRStats, DRSkill, DRRoom  ->  reads, never guesses -> renders
-  GameObj, XMLData.injuries     one JSON per topic      arranges
-  DRCI, EquipmentManager    <-  intents, acked        <- asks
-  Map (rooms, Dijkstra, tags)
-```
+Avoid a button called "wear swimming armour"; there is no end to those. Four
+cases from four scripts share one shape:
 
-Rules that already earned their place and stay:
+| Situation | Requirement | Modifiers | If it fails |
+|---|---|---|---|
+| Swim the Segoltha | Athletics ~565 | burden, armour, buffs, strength | stuck, possibly dead |
+| Pop a box | appraisal vs trap difficulty | helmet and gloves off | acid, wounds, ruined armour |
+| Burgle in town | stealth vs guards | hidden, buffs, rope | **jail** — fine and dead time |
+| Burgle in a clan | same | same | **maimed** — walk to an empath |
 
-- Every read is defensive. Lich's DR objects come from parsing a game stream;
-  any of them can be nil right after login.
-- Every intent is acked, with a reason when refused. Never a silent no-op.
-- "I could not look" and "there is nothing there" must never render the same.
-- Stop is never gated on anything.
-- Read-only queries are never gated either — lying dead is exactly when you want
-  to know where the healer is.
+`travel.cmd` publishes three numbers per crossing — *possible* with no burden or
+armour, *safe*, and a conservative shipped default — plus a tunable risk
+appetite. `disarm.cmd` picks its mode (Blind, Quick, Normal, Careful) from
+measured difficulty and bins the box when the sum is bad.
 
----
+> **A Situation is a requirement, modifiers you control, a risk band, and a
+> consequence with a recovery cost.**
 
-## 7. Build order
+The burgle pair proves the consequence half matters as much as the odds:
+`burgle.cmd`'s `JAIL:` handler is a loop kicking a dust pile forever, while
+`CLANJUSTICE:` prints "go heal yourself" and exits clean. Same crime, same odds,
+wildly different cost — so *where* you do a risky thing is a real decision, and
+nothing helps make it.
 
-Each step is one bridge topic plus one panel, and each is shippable alone.
-
-1. **Panels move and resize.** `Panel.tsx` and `lib/layout.ts` exist; almost
-   nothing uses them. Highest value, no new game knowledge needed.
-   *Done when:* every panel can be moved, resized, collapsed, and the
-   arrangement survives a restart.
-2. **Room panel.** Creatures, status, dead, players.
-   *Done when:* what is in the room is visible without scrolling, and matches
-   `look`.
-3. **Body panel.** Paperdoll from `injuries`.
-   *Done when:* a wound to a specific limb is visible and severity-coloured.
-4. **Gear panel and profiles.** Hands, worn, named sets, weapon swap by skill.
-   *Done when:* a profile can be defined, applied, and verified from the panel —
-   the drowning and box-popping cases both work without a bespoke button.
-5. **Scripts panel.** `Script.list` / `running` / `version`, with start, pause,
-   stop. Plus the watchdog signals.
-   *Done when:* a player can see uber is dead and restart it without typing,
-   and can see every script's version.
-6. **Map to a side dock**, following the character, with `go2` as the action.
-   *Done when:* clicking a room previews the route and a second, separate press
-   hands it to `go2`.
-7. **Situation read-out** — the model in §2, starting with route crossings,
-   where `travel.cmd` has already published the thresholds.
-
-Steps 1–3 need no new game knowledge and no new Rust. Step 4 is where this
-becomes a tool people would choose over typing. Step 5 is the one an existing
-uber user would install this for.
+Interface consequence: **gear profiles, not per-case buttons** — Lich already
+has `EquipmentManager#wear_equipment_set?` and dr-scripts already has a
+`gear_sets` YAML key — plus a **readiness read-out** saying where you stand,
+what would move the number, and what being wrong costs.
 
 ---
 
-## 8. What we write, and what we call
+## 7. What we write, and what we call
 
-The test for any proposed feature, in order:
+1. **A script already does it** → start it, watch it, report.
+2. **Lich has the primitive** → call it.
+3. **Genuinely absent** → `companion_bridge.lic`, and the bar is high.
 
-1. **Does a Lich script already do this?** Then start it and report on it.
-   Travel, mapping, selling, alias handling, waggle sets — all of it exists.
-2. **Does Lich have the primitive?** Then call it. Gear sets, wounds, room
-   contents, pathing.
-3. **Is it genuinely absent?** Then it belongs in `companion_bridge.lic`, and
-   the bar for that is high.
+By that test the bridge legitimately owns: reading state into one shape;
+the runaway detector, because nothing else stops a loop the player cannot see;
+roundtime, stun and refusal handling on anything we do send; reading dr-scripts
+YAML; and writing YAML the player approved in a form.
 
-By that test the bridge should stay small. What it legitimately owns:
+---
 
-- reading state into one shape the panel can render
-- the runaway detector, because nothing else stops a loop the player cannot see
-- roundtime, stun and refusal handling around any command we do send
-- reading dr-scripts YAML so we can report on config rather than replace it
+## 8. Build order
 
-Everything else is somebody else's script, and they have been at it longer.
+Each step is one bridge topic plus one panel, shippable alone.
+
+1. **Panels move and resize.** `Panel.tsx` and `lib/layout.ts` exist and almost
+   nothing uses them. *Done when:* every panel moves, resizes, collapses, and
+   the arrangement survives a restart.
+2. **Dependency page extended to scripts and the map database.**
+   *Done when:* a fresh machine reaches a working dr-scripts install without
+   the player typing a `;` command.
+3. **Room panel.** *Done when:* what is in the room is visible without
+   scrolling and matches `look`.
+4. **Body panel.** Paperdoll from `injuries`.
+5. **Scripts + watchdog panel.** *Done when:* a player sees uber has died and
+   restarts it without typing, and can see every script's version.
+6. **Gear panel and profiles.** *Done when:* a profile can be defined, applied
+   and verified — drowning and box-popping both work with no bespoke button.
+7. **YAML assistant.** Scan character → propose → form → write → `;validate`.
+8. **Workflow editor** over `coordinator_*` keys. Ships with a few prebuilt
+   workflows; building your own is the same editor, not a lesser path.
+9. **Map to a side dock**, following the character, `go2` as the action.
+10. **Situation read-out**, starting with route crossings where `travel.cmd`
+    has already published the thresholds.
+
+Steps 1–5 need no new game knowledge. 6–8 are where this becomes a tool people
+would choose over typing.
+
+---
 
 ## 9. Open questions
 
-1. **Should the app read the player's dr-scripts / Genie settings** to learn
-   their existing gear sets and containers, rather than asking them to define
-   everything again?
-
-2. **How much should it try to see uber?** Reporting on a running script is
-   useful and cheap. Driving one is a different product.
-3. **Whose thresholds?** `travel.cmd` ships conservative numbers and lets you
-   lower them. Do we ship the same numbers, read theirs, or ask?
-4. **Where does risk appetite live** — one global setting, or per situation?
-5. **Should we offer to install community scripts** through `repository.lic`?
-   It is the same consent question the dependency installer already answers,
-   and it would make the app a way into the script library rather than a thing
-   sitting beside it. `;repository download-mapdb` is the minimum, since the
-   map is useless without it.
+1. **Whose thresholds?** `travel.cmd` ships conservative numbers and lets you
+   lower them. Ship the same, read theirs, or ask?
+2. **Risk appetite** — one global setting or per situation?
+3. **How much should it try to see uber?** Genie's uber is not a Lich script, so
+   we cannot see it through `Script.list` at all. Do we care about Genie users
+   beyond the frontend, or is the Lich suite the audience?
+4. **Does the YAML assistant own the file, or propose into it?** Owning it is
+   simpler and would overwrite hand-tuning that took someone months.
