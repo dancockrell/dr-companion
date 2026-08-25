@@ -288,3 +288,101 @@ export function pickBestHealer(ctx: HealerScoreContext): ScoredHealer | null {
   const scored = scoreHealers(ctx)
   return scored.find((s) => !s.rejected) ?? null
 }
+
+/**
+ * Towns a player can nominate as their heal destination.
+ *
+ * Real configs set one and stick to it. The community combat script's setting
+ * reads "HEAL.CITY — will run to this town for HEALING no matter where you
+ * are", which is the player explicitly rejecting proximity: they know the
+ * route, they want the predictable one.
+ *
+ * So a preferred city wins by default and the scorer is the fallback for the
+ * case where none is set or the preferred one is unreachable. That fallback is
+ * the new-player case, which is who this app is for.
+ *
+ * See docs/DOMAIN.md section 15.
+ */
+export const HEAL_CITIES = [
+  { id: 'crossing', label: 'Crossing', province: 'Zoluren' },
+  { id: 'leth', label: 'Leth Deriel', province: 'Zoluren' },
+  { id: 'haven', label: 'Riverhaven', province: 'Therengia' },
+  { id: 'theren', label: 'Therenborough', province: 'Therengia' },
+  { id: 'shard', label: 'Shard', province: 'Ilithi' },
+  { id: 'hib', label: 'Hibarnhvidar', province: 'Forfedhdar' },
+] as const
+
+export type HealCityId = (typeof HEAL_CITIES)[number]['id']
+
+/** Human name for a heal city id, for anything the player reads. */
+export function cityLabel(id: HealCityId): string {
+  return HEAL_CITIES.find((c) => c.id === id)?.label ?? id
+}
+
+/** Map a preferred city onto the healer entries that sit in it. */
+export function healersInCity(
+  cityId: HealCityId,
+  instance: GameInstance
+): HealerOption[] {
+  const city = HEAL_CITIES.find((c) => c.id === cityId)
+  if (!city) return []
+  return HEALER_OPTIONS.filter(
+    (o) => o.instance === instance && o.area.toLowerCase() === city.label.toLowerCase()
+  )
+}
+
+export interface HealChoice {
+  option: HealerOption | null
+  /** 'preferred' when the player's own setting decided it. */
+  source: 'preferred' | 'scored' | 'none'
+  reasons: string[]
+}
+
+/**
+ * Pick a healer, honouring the player's choice first.
+ *
+ * Falls back to scoring with an explicit reason when the preference cannot be
+ * used, so the player can see that their setting was overridden and why. A
+ * silent fallback would be worse than no preference at all.
+ */
+export function chooseHealer(
+  ctx: HealerScoreContext & { preferredCity?: HealCityId | null }
+): HealChoice {
+  if (ctx.preferredCity) {
+    const inCity = healersInCity(ctx.preferredCity, ctx.instance)
+    const usable = inCity.filter((o) => {
+      if (o.requiresPremium && ctx.accountTier !== 'premium' && ctx.accountTier !== 'platinum') {
+        return false
+      }
+      const zolurenLocked = ctx.accountTier === 'f2p' || ctx.accountTier === 'unknown'
+      return !(zolurenLocked && !o.inZoluren)
+    })
+
+    if (usable.length > 0) {
+      const best =
+        usable.find((o) => o.kind === 'npc_empath') ?? usable[0]!
+      return {
+        option: best,
+        source: 'preferred',
+        reasons: [`Your heal city is ${cityLabel(ctx.preferredCity)}. Going there.`],
+      }
+    }
+
+    const scored = pickBestHealer(ctx)
+    return {
+      option: scored?.option ?? null,
+      source: scored ? 'scored' : 'none',
+      reasons: [
+        `Your heal city (${cityLabel(ctx.preferredCity)}) is not reachable on this account or instance.`,
+        ...(scored?.reasons ?? ['No healer available at all.']),
+      ],
+    }
+  }
+
+  const scored = pickBestHealer(ctx)
+  return {
+    option: scored?.option ?? null,
+    source: scored ? 'scored' : 'none',
+    reasons: scored?.reasons ?? ['No healer available for this tier and instance.'],
+  }
+}

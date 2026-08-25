@@ -97,6 +97,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   autoSuggestHealer: prefs.autoSuggestHealer,
   huntFavorites: prefs.huntFavorites ?? [],
   huntMode: prefs.huntMode ?? 'suggest',
+  preferredHealCity: prefs.preferredHealCity ?? null,
   selectedHuntId: null,
   houseEntryMethod: prefs.houseEntryMethod ?? 'lockpick_ring',
   houseEntryMaxSearches: prefs.houseEntryMaxSearches ?? 3,
@@ -224,6 +225,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       bridge.requestIntent('travel' as IntentName, args)
       return
     }
+    if (intent === 'go_healer' || intent === 'escape_heal') {
+      args = { preferredCity: get().preferredHealCity }
+    }
     if (intent === 'burgle') {
       const { houseEntryMethod, houseEntryMaxSearches, houseEntryHide } = get()
       args = {
@@ -266,6 +270,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ huntMode: m })
   },
   setSelectedHuntId: (id) => set({ selectedHuntId: id }),
+  setPreferredHealCity: (id: string | null) => {
+    savePrefs({ preferredHealCity: id })
+    set({ preferredHealCity: id })
+  },
   setHouseEntryMethod: (m) => {
     savePrefs({ houseEntryMethod: m })
     set({ houseEntryMethod: m })

@@ -104,6 +104,120 @@ export function capabilitiesForCharacter(c: CharacterStatus): AccountCapabilitie
   return capabilitiesFor(c.accountTier, c.instance)
 }
 
-export function intentBlockReason(_intent: string, _c: CharacterStatus): string | null {
-  return null
+/**
+ * Why this intent cannot run right now, or null if it can.
+ *
+ * This used to be `return null`, which made the "capability-aware rule
+ * (mandatory)" in the bridge contract a function that permitted everything.
+ * It now enforces the things that are actually true, and deliberately does not
+ * guess at the things that are not knowable from a status payload.
+ *
+ * Two rules govern what belongs here:
+ *
+ * 1. **Safety intents are never blocked.** Stop, pause, resume and escape go
+ *    out whatever the state says. A gate on the emergency control is a bug,
+ *    not a feature. See docs/DOMAIN.md.
+ * 2. **Only block on things we know.** A wrong refusal is worse than a missing
+ *    one, because the player cannot argue with it. Where tier is `unknown` we
+ *    warn rather than refuse.
+ */
+export function intentBlockReason(
+  intent: string,
+  c: CharacterStatus
+): string | null {
+  // 1. Never gate the way out.
+  if (['stop_all', 'pause', 'resume', 'escape'].includes(intent)) return null
+
+  const tier = c.accountTier
+  const f2p = tier === 'f2p'
+  const caps = capabilitiesFor(tier, c.instance)
+
+  // Dead is dead. Everything except getting help is pointless.
+  if (c.situation.includes('dead') || c.situation.includes('dying')) {
+    if (intent !== 'go_healer' && intent !== 'escape_heal') {
+      return 'You are down. Get help first.'
+    }
+  }
+
+  switch (intent) {
+    case 'start_training':
+    case 'start_combat': {
+      if (c.situation.includes('stunned')) {
+        return 'Stunned — wait for it to pass.'
+      }
+      // Guilds a free account cannot play. If the bridge is reporting one, the
+      // tier reading is more likely wrong than the guild, so say so carefully.
+      if (f2p && !guildAllowed(c.guild, tier)) {
+        return `Free accounts cannot play ${c.guild}. If this is wrong, check the account tier setting.`
+      }
+      return null
+    }
+
+    case 'travel': {
+      // The real gate is per-province and per-passport, which planTravel
+      // handles because it knows the destination. Nothing useful to add here.
+      return null
+    }
+
+    case 'burgle': {
+      // Not a tier rule. Justice is real, fines are large, and the community
+      // script's own disclaimer is "NOT RESPONSIBLE FOR YOUR ASTRONOMICAL
+      // FINES". Refuse only where the character plainly cannot cope.
+      if (c.situation.includes('in_combat')) {
+        return 'Something is fighting you. Deal with that first.'
+      }
+      return null
+    }
+
+    case 'town_run': {
+      if (f2p && !caps.hasVault) {
+        // Not a refusal: the planner drops the vault step. Worth saying once.
+        return null
+      }
+      return null
+    }
+
+    default:
+      return null
+  }
+}
+
+/**
+ * Things worth telling the player before an intent runs, that are not reasons
+ * to refuse it. The mock and the bridge log these; they never block.
+ */
+export function intentWarnings(intent: string, c: CharacterStatus): string[] {
+  const out: string[] = []
+  const tier = c.accountTier
+  const caps = capabilitiesFor(tier, c.instance)
+
+  if (tier === 'unknown') {
+    out.push(
+      'Account tier is unknown, so restrictions are being guessed conservatively. Set it in Settings.'
+    )
+  }
+
+  if (intent === 'town_run' && !caps.hasVault) {
+    out.push('No vault on this tier, so the vault step is skipped.')
+  }
+  if (intent === 'town_run' && caps.bankCapPlatinum != null) {
+    out.push(
+      `Bank ceiling is ${caps.bankCapPlatinum} platinum across all banks. Do not overflow it.`
+    )
+  }
+  if (intent === 'start_training' && caps.expThrottled) {
+    const ranks = c.skills?.length ? Math.max(...c.skills.map((s) => s.ranks)) : 0
+    const rate = Math.round(expAbsorptionRate(tier, ranks) * 100)
+    out.push(`Free account: absorbing at about ${rate}% of the subscriber rate.`)
+  }
+  if (c.roomPlayers?.length) {
+    out.push(
+      `${c.roomPlayers.length} other player${c.roomPlayers.length > 1 ? 's' : ''} here. Hunting grounds are shared.`
+    )
+  }
+  if ((c.favors ?? 0) === 0 && (intent === 'start_combat' || intent === 'start_training')) {
+    out.push('No favors. A death will cost full price.')
+  }
+
+  return out
 }

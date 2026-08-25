@@ -6,6 +6,7 @@ import { X } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
 import { TRAIN_FOCUS_OPTIONS } from '../../data/training'
+import { HEAL_CITIES } from '../../data/healers'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const uiMode = useAppStore((s) => s.uiMode)
@@ -27,6 +28,8 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const houseEntryHide = useAppStore((s) => s.houseEntryHide)
   const setHouseEntryHide = useAppStore((s) => s.setHouseEntryHide)
   const character = useAppStore((s) => s.character)
+  const preferredHealCity = useAppStore((s) => s.preferredHealCity)
+  const setPreferredHealCity = useAppStore((s) => s.setPreferredHealCity)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-3">
@@ -176,6 +179,30 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             </label>
           </section>
 
+
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
+              Heal city
+            </h3>
+            <select
+              className="w-full text-xs bg-surface-overlay border border-border rounded-lg px-2 py-1.5 text-ink"
+              value={preferredHealCity ?? ''}
+              onChange={(e) => setPreferredHealCity(e.target.value || null)}
+            >
+              <option value="">No preference — score the options</option>
+              {HEAL_CITIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label} ({c.province})
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-ink-faint leading-snug">
+              Pick one and healing goes there regardless of where you are, which
+              is what most players want once they know a route. Leave it unset
+              and the Companion scores the options by instance, tier, path and
+              cost, and shows its reasoning in Power mode.
+            </p>
+          </section>
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">

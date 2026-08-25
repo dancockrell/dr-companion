@@ -127,6 +127,7 @@ export interface AppState {
   autoSuggestHealer: boolean
   huntFavorites: string[]
   huntMode: 'suggest' | 'favorites_only' | 'manual'
+  preferredHealCity: string | null
   selectedHuntId: string | null
   houseEntryMethod: 'rope' | 'lockpick' | 'lockpick_ring'
   houseEntryMaxSearches: number
@@ -154,6 +155,7 @@ export interface AppState {
   setAutoSuggestHealer: (v: boolean) => void
   toggleHuntFavorite: (id: string) => void
   setHuntMode: (m: 'suggest' | 'favorites_only' | 'manual') => void
+  setPreferredHealCity: (id: string | null) => void
   setSelectedHuntId: (id: string | null) => void
   setHouseEntryMethod: (m: 'rope' | 'lockpick' | 'lockpick_ring') => void
   setHouseEntryMaxSearches: (n: number) => void

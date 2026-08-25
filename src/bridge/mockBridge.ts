@@ -5,14 +5,24 @@
 
 import type { CharacterStatus, InventorySummary } from '../types'
 import type { BridgeClientMessage, BridgeServerMessage, IntentName } from './types'
-import { capabilitiesForCharacter, intentBlockReason } from '../lib/accountCapabilities'
-import { pickBestHealer, scoreHealers } from '../data/healers'
+import {
+  capabilitiesForCharacter,
+  intentBlockReason,
+  intentWarnings,
+} from '../lib/accountCapabilities'
+import {
+  pickBestHealer,
+  scoreHealers,
+  chooseHealer,
+  type HealCityId,
+} from '../data/healers'
 import { planTownRun } from '../data/townRun'
 import { pickSuggestedHunt, rankHuntingGrounds, HUNTING_GROUNDS } from '../data/hunting'
 import { simulateCombatLoop, describeCombatState } from '../data/combatMachine'
 import { planTravel } from '../data/travelPath'
 import type { GuildId } from '../data/hunting'
-import type { SkillState } from '../data/skills'
+import { ranksOf, type SkillState } from '../data/skills'
+import { effectiveAthletics } from '../data/obstacles'
 
 type Listener = (msg: BridgeServerMessage) => void
 
@@ -402,6 +412,12 @@ export class MockBridge {
     }
 
     this.emit({ type: 'intent_ack', intent, ok: true })
+
+    // Things worth knowing that are not reasons to refuse.
+    intentWarnings(intent, this.character).forEach((w) =>
+      this.emit({ type: 'log', line: w, level: 'warn' })
+    )
+
     const cap = capabilitiesForCharacter(this.character)
 
     switch (intent) {
@@ -511,18 +527,41 @@ export class MockBridge {
       case 'go_healer': {
         this.character = { ...this.character, activity: 'Evaluating healers…' }
         this.emitStatus()
-        this.emit({
-          type: 'log',
-          line: 'Scoring healers (instance + tier + path + cost)…',
+        const preferredCity =
+          (_args?.preferredCity as HealCityId | null | undefined) ?? null
+
+        // Mobility from Athletics and burden rather than a hardcoded 55, now
+        // that the bridge reports per-skill ranks.
+        const athletics = this.character.skills
+          ? ranksOf(this.character.skills, 'Athletics')
+          : 0
+        const mobilityScore = effectiveAthletics({
+          athleticsRanks: athletics,
+          encumbrance: this.character.encumbrance,
+          guild: this.character.guild,
         })
+
         const ctx = {
           instance: this.character.instance,
           accountTier: this.character.accountTier,
-          mobilityScore: 55,
+          mobilityScore,
           preferFree: true,
+          preferredCity,
         }
+
+        // The player's own choice wins; scoring is the fallback and says so.
+        const choice = chooseHealer(ctx)
+        choice.reasons.forEach((r) => this.emit({ type: 'log', line: r }))
+        this.emit({
+          type: 'log',
+          line: `Athletics ${athletics} (effective ${mobilityScore} after burden).`,
+        })
+
         const ranked = scoreHealers(ctx)
-        const best = pickBestHealer(ctx)
+        const best = choice.option
+          ? (ranked.find((r) => r.option.id === choice.option!.id) ??
+            pickBestHealer(ctx))
+          : pickBestHealer(ctx)
         ranked
           .filter((r) => !r.rejected)
           .slice(0, 3)
