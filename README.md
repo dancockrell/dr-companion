@@ -53,13 +53,17 @@ and the Lich side stays inspectable Ruby that any player can read.
 |---|---|
 | React UI, three modes | Works |
 | Mock bridge (simulated character) | Works |
+| **`lich-scripts/companion_bridge.lic`** | **Works.** Verified against an independent WebSocket client. |
+| Reading live state from Lich | Works: vitals, guild, circle, favors, burden, room, and per-skill ranks and mindstate |
+| Training recommendation from mindstate | Works |
+| `stop_all`, `pause`, `resume` | Work, and are never gated on game state |
+| Every other intent | Refused with a reason. Nothing pretends to work. |
+| Travel: passports and instance scoping | Works |
 | Healer / hunting / town-run scoring | Works, on placeholder game data |
-| WebSocket client | Written, connects, reconnects |
-| `tools/mock-lich-server.mjs` | Works, but needs `npm install ws` first |
-| `lich-scripts/companion_bridge.rb` | Two `echo` lines. Not implemented. |
-| Tier gating (`intentBlockReason`) | Returns `null` for everything |
-| Setup wizard detect + install | Simulated. Detects and installs nothing yet. |
-| Tauri `.exe` build | Not yet buildable, see the review |
+| Athletics obstacle thresholds | Data is in, not yet wired into route planning |
+| Setup wizard | Detects for real. Installs nothing silently: it shows you the command. |
+| Windows `.exe` and installer | Builds. NSIS, MSI, and a standalone exe. |
+| **Driving the game** (travel, hunt, town run) | **Not built.** The bridge reads and stops. It does not yet act. |
 
 Two documents cover the detail. [docs/REVIEW.md](docs/REVIEW.md) is a code review of this
 exact tree, written before any of it was cleaned up. [docs/DOMAIN.md](docs/DOMAIN.md)

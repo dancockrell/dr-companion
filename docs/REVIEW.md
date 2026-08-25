@@ -440,18 +440,21 @@ pass could not have caught by reading the code alone. The load-bearing ones:
 
 ## Suggested order
 
-1. Restore the truncated file. (done)
-2. Real detection in the setup wizard, then real installs.
-3. Ungate Stop.
-4. Fix the listener leak and add reconnect backoff.
-5. Turn on `strict`.
-6. Change the bundle identifier off the elanthia.online namespace.
-7. Implement `intentBlockReason`, or remove it and correct the doc.
-8. Location-aware healer scoring.
-9. Instance-scoped travel data.
-10. Real icons, then a build that actually produces an installer.
-11. Collapse the three dashboards onto shared components.
-12. Write the Ruby bridge.
+1. ~~Restore the truncated file.~~ done
+2. ~~Real detection in the setup wizard.~~ done. Real installs are still hand-off-the-command rather than automated, deliberately.
+3. ~~Ungate Stop.~~ done
+4. ~~Fix the listener leak and add reconnect backoff.~~ done, plus game-clock liveness detection
+5. ~~Turn on `strict`.~~ done, zero errors
+6. ~~Change the bundle identifier off the elanthia.online namespace.~~ done
+7. ~~Instance-scoped travel data.~~ done, along with passport gating
+8. ~~Real icons, then a build that produces an installer.~~ done, NSIS + MSI + exe
+9. ~~Write the Ruby bridge.~~ done for reading state and stopping scripts
+10. Implement `intentBlockReason`, or remove it and correct the doc
+11. Healer scoring with a preferred-heal-city override, then location awareness
+12. Wire the athletics thresholds into route planning
+13. Per-character profiles as a first-class object
+14. Intents that actually drive the game: travel, hunt, town run
+15. Collapse the three dashboards onto shared components
 
 Nothing above item 12 needs the game running. All of it can be done against the
 mock.
