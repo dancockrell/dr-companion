@@ -26,6 +26,7 @@ export type BridgeServerMessage =
   | { type: 'map_tags'; payload: string[] }
   | { type: 'map_nearest'; payload: MapNearest }
   | { type: 'map_path'; payload: MapPath }
+  | { type: 'map_zone'; payload: MapZone }
 
 /**
  * A room, as Lich knows it.
@@ -51,6 +52,39 @@ export interface MapNearest extends MapRoom {
   ok: boolean
   tag?: string
   steps?: number | null
+  reason?: string
+}
+
+/**
+ * One zone, laid out so it can be drawn.
+ *
+ * Coordinates come from Lich's `genie_pos` — the layout community
+ * cartographers built for Genie's automapper, which Lich stores per room
+ * against its own room ids. They are zone-local, so two zones must not share
+ * a canvas.
+ */
+export interface MapZoneRoom {
+  id: number | null
+  uid: number | null
+  title: string | null
+  x: number | null
+  y: number | null
+  z: number | null
+  tags?: string[]
+  /** Lich room ids reachable from here. */
+  to?: number[]
+}
+
+export interface MapZone {
+  ok: boolean
+  zone?: string
+  name?: string | null
+  /** Lich room id the character is standing in. */
+  here?: number | null
+  total?: number
+  /** True when rooms were capped. Reported, never silent. */
+  truncated?: boolean
+  rooms?: MapZoneRoom[]
   reason?: string
 }
 
@@ -102,6 +136,7 @@ export type IntentName =
   | 'map_tags'
   | 'map_nearest'
   | 'map_path'
+  | 'map_zone'
 
 export interface BridgeConnectionState {
   connected: boolean

@@ -31,9 +31,10 @@ SRC = ARGV[0] or abort 'usage: map_test.rb <path to companion_bridge.lic>'
 #   3 (Road) -- 4 (Healer, tagged healer)
 
 class StubRoom
-  attr_reader :id, :uid, :title, :location, :climate, :terrain, :tags, :wayto
+  attr_reader :id, :uid, :title, :location, :climate, :terrain, :tags, :wayto,
+              :genie_zone, :genie_id, :genie_pos
 
-  def initialize(id, uid, title, location, tags, wayto)
+  def initialize(id, uid, title, location, tags, wayto, zone = '1', pos = nil)
     @id = id
     # Lich stores these as arrays and uses the last entry.
     @uid = [uid]
@@ -43,6 +44,11 @@ class StubRoom
     @terrain = 'stone'
     @tags = tags
     @wayto = wayto
+    # The layout the community's cartographers built, which Lich carries per
+    # room keyed to its own ids. Coordinates are what make a map drawable.
+    @genie_zone = zone
+    @genie_id = id.to_s
+    @genie_pos = pos || { 'x' => id * 20, 'y' => 0, 'z' => 0 }
   end
 
   def path_to(dest)
@@ -50,7 +56,7 @@ class StubRoom
   end
 
   def find_nearest_by_tag(tag)
-    StubMap.list.values.find { |r| r.tags.include?(tag) }&.id
+    StubMap.list.compact.find { |r| r.tags.include?(tag) }&.id
   end
 end
 
@@ -62,13 +68,27 @@ module StubMap
     [3, 4] => [4]
   }.freeze
 
+  # Rooms 1-3 are zone "1"; room 4 sits in zone "2", so the zone query has
+  # something to correctly leave out. Coordinates are zone-local in the real
+  # data, which is exactly why zones must not share a canvas.
+  #
+  # `list` is an **Array indexed by room id**, with a nil at 0, because that is
+  # what Lich's Map is. An earlier version of this stub returned a Hash, which
+  # made `list.compact.select` yield [key, value] pairs instead of rooms and
+  # failed the zone tests. The code was right and the stub was lying — which is
+  # the only bug a stub can have that is worse than no stub at all.
   def self.list
-    @list ||= {
-      1 => StubRoom.new(1, 9001, 'Town Square', 'Crossing', [], { 2 => 'east', 3 => 'south' }),
-      2 => StubRoom.new(2, 9002, 'Bank Lobby', 'Crossing', ['bank'], { 1 => 'west' }),
-      3 => StubRoom.new(3, 9003, 'Wide Road', 'Crossing', [], { 1 => 'north', 4 => 'east' }),
-      4 => StubRoom.new(4, 9004, 'Empath Clinic', 'Crossing', ['healer'], { 3 => 'west' })
-    }
+    @list ||= begin
+      rooms = [
+        StubRoom.new(1, 9001, 'Town Square', 'Crossing', [], { 2 => 'east', 3 => 'south' }),
+        StubRoom.new(2, 9002, 'Bank Lobby', 'Crossing', ['bank'], { 1 => 'west' }),
+        StubRoom.new(3, 9003, 'Wide Road', 'Crossing', [], { 1 => 'north', 4 => 'east' }),
+        StubRoom.new(4, 9004, 'Empath Clinic', 'Outskirts', ['healer'], { 3 => 'west' }, '2')
+      ]
+      arr = [nil]
+      rooms.each { |r| arr[r.id] = r }
+      arr
+    end
   end
 
   def self.route(from, to) = ROUTES[[from, to]]
@@ -156,6 +176,41 @@ fails += 1 unless check('refused', none['ok'] == false)
 fails += 1 unless check('names both ends', none['reason'].to_s.include?('99'), none['reason'])
 fails += 1 unless check('a missing destination is refused too',
                         M.preview_path(nil)['ok'] == false)
+
+puts ''
+puts '-- a zone, laid out well enough to draw --'
+z = M.zone
+fails += 1 unless check('ok', z['ok'] == true, z.inspect[0, 60])
+fails += 1 unless check('knows which zone', z['zone'] == '1', z['zone'].inspect)
+fails += 1 unless check('marks where we are', z['here'] == 1, z['here'].inspect)
+fails += 1 unless check('only this zone', z['rooms'].length == 3, z['rooms'].length.to_s)
+fails += 1 unless check(
+  'a room from another zone is excluded',
+  z['rooms'].none? { |r| r['id'] == 4 },
+  z['rooms'].map { |r| r['id'] }.inspect
+)
+fails += 1 unless check(
+  'coordinates survive, which is what makes it drawable',
+  z['rooms'].all? { |r| !r['x'].nil? && !r['y'].nil? },
+  z['rooms'].map { |r| [r['x'], r['y']] }.inspect
+)
+fails += 1 unless check(
+  'exits are Lich room ids, not direction words',
+  z['rooms'].find { |r| r['id'] == 1 }['to'].sort == [2, 3],
+  z['rooms'].find { |r| r['id'] == 1 }['to'].inspect
+)
+fails += 1 unless check('nothing was capped', z['truncated'] == false)
+
+puts ''
+puts '-- capping is reported, never silent --'
+capped = M.zone(nil, 2)
+fails += 1 unless check('fewer rooms returned', capped['rooms'].length == 2)
+fails += 1 unless check('says so', capped['truncated'] == true)
+fails += 1 unless check('and says out of how many', capped['total'] == 3, capped['total'].inspect)
+
+puts ''
+puts '-- a zone that does not exist is refused --'
+fails += 1 unless check('refused', M.zone('nowhere')['ok'] == false)
 
 puts ''
 puts '-- with no map at all, nothing pretends to be an answer --'

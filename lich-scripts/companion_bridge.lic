@@ -662,6 +662,80 @@ module Companion
       }
     end
 
+    # Enough of one zone to draw it.
+    #
+    # This is where the community's map work actually reaches us. Cartographers
+    # spent years laying out Elanthia by hand for Genie's automapper, and Lich
+    # carries that layout per room as `genie_zone`, `genie_id` and `genie_pos`,
+    # keyed to Lich's own room ids. `Map.by_genie_ref` exists as a first-class
+    # lookup. So the coordinates that make a map drawable are already here,
+    # already translated, already on the player's machine — nothing to parse,
+    # nothing to redistribute, and no second copy to go stale.
+    #
+    # Coordinates are zone-local, which is why this groups by `genie_zone`
+    # rather than by `location`: two towns can both have a room at (0, 0), and
+    # drawing them on one canvas would stack them.
+    #
+    # `limit` is real and reported. The Crossing runs to several hundred rooms
+    # and a panel that quietly drew the first two hundred would look like a map
+    # with a missing district.
+    def zone(zone_id = nil, limit = 400)
+      k = klass
+      return { 'ok' => false, 'reason' => 'no map' } unless k
+
+      room = current
+      zid = (zone_id || State.safe(nil) { room&.genie_zone }).to_s
+      return { 'ok' => false, 'reason' => 'this room has no zone recorded' } if zid.empty?
+
+      all = State.safe([]) { k.list.compact.select { |r| r.genie_zone.to_s == zid } } || []
+      return { 'ok' => false, 'reason' => "no rooms in zone #{zid}" } if all.empty?
+
+      shown = all.first(limit)
+
+      {
+        'ok'        => true,
+        'zone'      => zid,
+        'name'      => State.safe(nil) { shown.first.location },
+        'here'      => State.safe(nil) { room&.id },
+        'total'     => all.length,
+        'truncated' => all.length > shown.length,
+        'rooms'     => shown.map { |r| node(r) }
+      }
+    end
+
+    # One room as a drawable node: position, and edges to rooms in this zone.
+    def node(r)
+      pos = State.safe(nil) { r.genie_pos }
+      x, y, z = coords(pos)
+
+      {
+        'id'    => State.safe(nil) { r.id },
+        'uid'   => State.safe(nil) { Array(r.uid).last },
+        'title' => State.safe(nil) { Array(r.title).last.to_s.gsub(/^\[|\]$/, '') },
+        'x'     => x,
+        'y'     => y,
+        'z'     => z,
+        'tags'  => State.safe([]) { r.tags.to_a.map(&:to_s) },
+        # Where you can go from here, as Lich room ids. The panel draws an edge
+        # only when it also has the other end, so links out of the zone simply
+        # do not appear rather than dangling.
+        'to'    => State.safe([]) { r.wayto.keys.map(&:to_i) }
+      }
+    end
+
+    # genie_pos arrives as a hash or an array depending on how the database was
+    # written. Accept both rather than making the shape someone else's problem.
+    def coords(pos)
+      case pos
+      when Hash
+        [pos['x'] || pos[:x], pos['y'] || pos[:y], pos['z'] || pos[:z]]
+      when Array
+        [pos[0], pos[1], pos[2]]
+      else
+        [nil, nil, nil]
+      end.map { |v| v.nil? ? nil : v.to_i }
+    end
+
     def describe(room_id)
       r = State.safe(nil) { klass&.[](room_id) }
       {
@@ -864,6 +938,7 @@ module Companion
       when 'map_tags' then map_tags(server)
       when 'map_nearest' then map_nearest(args, server)
       when 'map_path' then map_path(args, server)
+      when 'map_zone' then map_zone(args, server)
 
       else
         [false, "'#{intent}' is not implemented in bridge v#{BRIDGE_VERSION} yet. " \
@@ -926,6 +1001,18 @@ module Companion
       # Says "not moving" out loud. A route appearing on screen looks like the
       # start of a journey, and this one is not.
       [true, "#{result['steps']} rooms from #{result['from']} to #{result['to']}. Not moving."]
+    end
+
+    def map_zone(args, server)
+      return no_map unless MapInfo.available?
+
+      zid = args.is_a?(Hash) ? args['zone'] : args
+      result = MapInfo.zone(zid)
+      server.broadcast(type: 'map_zone', payload: result)
+      return [false, result['reason']] unless result['ok']
+
+      note = result['truncated'] ? " (of #{result['total']}, capped)" : ''
+      [true, "zone #{result['zone']}: #{result['rooms'].length} rooms#{note}"]
     end
 
     # Report the game display settings that change what a parser sees.

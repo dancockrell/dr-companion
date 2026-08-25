@@ -3,7 +3,7 @@
 import type { SkillState } from '../data/skills'
 import type { CharacterProfile } from '../lib/profiles'
 import type { VersionState } from '../lib/versions'
-import type { MapRoom, MapNearest, MapPath } from '../bridge/types'
+import type { MapRoom, MapNearest, MapPath, MapZone } from '../bridge/types'
 
 export type { SkillState }
 export type { CharacterProfile }
@@ -144,6 +144,7 @@ export interface AppState {
   mapTags: string[]
   mapNearest: MapNearest | null
   mapPath: MapPath | null
+  mapZone: MapZone | null
 
   setupComplete: boolean
   /**

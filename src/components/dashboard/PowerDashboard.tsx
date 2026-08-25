@@ -1,3 +1,4 @@
+import { MapPanel } from '../shared/MapPanel'
 import { ScriptLauncher } from '../shared/ScriptLauncher'
 /**
  * Power mode — denser controls + live healer ranking explainability.
@@ -322,6 +323,8 @@ export function PowerDashboard() {
         <InventoryPanel dense />
       </section>
       <RiskBar />
+
+      <MapPanel />
 
       <TrainingPanel dense />
 

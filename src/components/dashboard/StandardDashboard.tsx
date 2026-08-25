@@ -1,3 +1,4 @@
+import { MapPanel } from '../shared/MapPanel'
 import { ScriptLauncher } from '../shared/ScriptLauncher'
 /**
  * Standard mode — more density: inventory containers, situation chips,
@@ -277,6 +278,8 @@ export function StandardDashboard() {
           </Button>
         </div>
       </section>
+
+      <MapPanel />
 
       <ScriptLauncher />
     </div>

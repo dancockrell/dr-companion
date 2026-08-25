@@ -150,6 +150,10 @@ function handleBridgeMessage(
       set({ mapPath: msg.payload })
       if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'no route'}`)
       break
+    case 'map_zone':
+      set({ mapZone: msg.payload })
+      if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'no zone'}`)
+      break
   }
 }
 
@@ -158,6 +162,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   mapTags: [],
   mapNearest: null,
   mapPath: null,
+  mapZone: null,
 
   setupComplete: false,
   setupReopened: false,
