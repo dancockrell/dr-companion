@@ -389,6 +389,25 @@ export class MockBridge {
     this.emit({ type: 'log', line: 'Demo: combat engaged.' })
   }
 
+  /**
+   * Pretend a command got no reply the bridge recognised.
+   *
+   * This is the failure the console exists for, and it needs to be reachable
+   * in demo mode so the report flow can be exercised before anyone is in game.
+   */
+  simulateBrokenPattern() {
+    this.trace('send', 'stow sword')
+    this.trace(
+      'no_match',
+      'stow sword — nothing matched /You put/ or /You (?:can.t|cannot)/ in 6s'
+    )
+    this.emit({
+      type: 'log',
+      line: 'stow: no reply the bridge recognised. This is a pattern bug.',
+      level: 'warn',
+    })
+  }
+
   simulateSafe() {
     this.character = {
       ...this.character,

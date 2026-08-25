@@ -28,6 +28,7 @@ export function SimpleDashboard() {
     demoLowHealth,
     demoCombat,
     demoSafe,
+    demoBrokenPattern,
   } = useAppStore()
 
   if (!character) {
@@ -273,6 +274,9 @@ export function SimpleDashboard() {
           </Button>
           <Button size="sm" variant="ghost" onClick={demoSafe}>
             Safe again
+          </Button>
+          <Button size="sm" variant="ghost" onClick={demoBrokenPattern}>
+            Broken pattern
           </Button>
         </div>
       </section>

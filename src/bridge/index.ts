@@ -90,6 +90,9 @@ export const bridge = {
   simulateSafe() {
     if (mode === 'mock') mockBridge.simulateSafe()
   },
+  simulateBrokenPattern() {
+    if (mode === 'mock') mockBridge.simulateBrokenPattern()
+  },
 
   onLiveStatus(fn: (status: string, detail?: string) => void) {
     return realBridge.onStatus(fn)

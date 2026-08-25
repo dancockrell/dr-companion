@@ -180,6 +180,7 @@ export interface AppState {
   demoLowHealth: () => void
   demoCombat: () => void
   demoSafe: () => void
+  demoBrokenPattern: () => void
   loadPreset: (id: string) => void
   setTrainFocus: (ids: string[]) => void
   toggleTrainFocus: (id: string) => void

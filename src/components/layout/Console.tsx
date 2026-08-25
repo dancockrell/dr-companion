@@ -19,8 +19,10 @@ import {
   Check,
   Trash2,
   Radio,
+  Bug,
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
+import { ReportDialog } from './ReportDialog'
 
 type Filter = 'all' | 'problems' | 'game'
 
@@ -48,6 +50,7 @@ export function Console() {
 
   const [filter, setFilter] = useState<Filter>('all')
   const [copied, setCopied] = useState(false)
+  const [reporting, setReporting] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
 
   // Merge the human log and the machine trace into one view, ordered by the
@@ -110,6 +113,7 @@ export function Console() {
   }
 
   return (
+    <>
     <div className="shrink-0 border-t border-border bg-surface-raised/95">
       <div className="flex items-center gap-2 px-3 py-1.5">
         <button
@@ -133,9 +137,17 @@ export function Console() {
         )}
 
         {problemCount > 0 && (
-          <span className="text-[10px] text-danger">
-            {problemCount} problem{problemCount > 1 ? 's' : ''}
-          </span>
+          // The nudge. Something failed, and turning that into a report should
+          // be the nearest thing to hand rather than a menu away.
+          <button
+            type="button"
+            className="text-[10px] text-danger hover:underline flex items-center gap-1"
+            onClick={() => setReporting(true)}
+            title="Report this"
+          >
+            <Bug className="w-3 h-3" />
+            {problemCount} problem{problemCount > 1 ? 's' : ''} — report?
+          </button>
         )}
 
         <div className="flex-1" />
@@ -189,6 +201,16 @@ export function Console() {
 
             <button
               type="button"
+              className="text-[10px] flex items-center gap-1 text-ink-faint hover:text-ink"
+              onClick={() => setReporting(true)}
+              title="Turn the last few minutes into a bug report"
+            >
+              <Bug className="w-3 h-3" />
+              report
+            </button>
+
+            <button
+              type="button"
               className="text-[10px] text-ink-faint hover:text-danger"
               onClick={clearLog}
               title="Clear"
@@ -224,5 +246,7 @@ export function Console() {
         </div>
       )}
     </div>
+    {reporting && <ReportDialog onClose={() => setReporting(false)} />}
+    </>
   )
 }

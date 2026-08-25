@@ -295,6 +295,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   demoLowHealth: () => bridge.simulateLowHealth(),
   demoCombat: () => bridge.simulateCombat(),
   demoSafe: () => bridge.simulateSafe(),
+  demoBrokenPattern: () => bridge.simulateBrokenPattern(),
   loadPreset: (id: string) => bridge.loadPreset(id as DemoPresetId),
 
   /**
