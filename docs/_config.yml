@@ -1,9 +1,0 @@
-# GitHub Pages serves this folder directly. No build step, no site generator to
-# keep working: the documents are already markdown and Jekyll renders them where
-# they sit.
-title: DR Companion
-description: A control panel for DragonRealms, built on Lich 5
-theme: jekyll-theme-primer
-show_downloads: false
-exclude:
-  - REVIEW.md
