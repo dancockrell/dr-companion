@@ -62,7 +62,7 @@ export function RiskBar() {
         {contested.length > 0 && (
           <span
             className="flex items-center gap-1.5"
-            title="Hunting grounds are shared. Someone else being here is a normal reason to move on."
+            title="Other players hunting in this area"
           >
             <Users className="w-3.5 h-3.5 text-warn" />
             <span className="text-warn">
