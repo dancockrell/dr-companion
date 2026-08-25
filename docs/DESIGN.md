@@ -1114,3 +1114,177 @@ Settled, no longer open.
   which pools actually move.
 - Whether the mindstate board should ever *act* on its recommendation, or only
   ever suggest. Starting position: suggest, with the reasoning visible.
+---
+
+# Part II — Panel specifications
+
+The sections above decide what to build and why. These decide *exactly* what
+each panel shows, where every value comes from, and what it does when the value
+is missing — because the cost of vagueness here is a build-and-revise cycle, and
+the cost of precision is a paragraph.
+
+Every field below was checked against Lich 5.20.1 on disk. Where something is
+not available, that is stated rather than left to be discovered later.
+
+## S1. Room panel — enemy cards
+
+### Where the data comes from, exactly
+
+Two sources, and they are not interchangeable.
+
+| Source | Shape | Use it for |
+|---|---|---|
+| `DRRoom.npcs` | `Array<String>` — cleaned display names | living creatures, in room order |
+| `DRRoom.dead_npcs` | `Array<String>` | corpses |
+| `DRRoom.pcs` | `Array<String>` | other players |
+| `DRRoom.pcs_prone` / `pcs_sitting` | `Array<String>` | posture of those players |
+| `DRRoom.group_members` | `Array<String>` | who is with you |
+| `GameObj.npcs` | `Array<GameObj>` — `id`, `noun`, `name`, `status`, `type` | the noun, for art keying |
+
+`DRRoom` gives strings. `GameObj` gives objects. The card needs both: the
+display name comes from `DRRoom`, the **noun** — `goblin` out of
+`a snarling goblin` — comes from `GameObj` and is what art is keyed on.
+
+### How Lich decides something is a creature
+
+`extract_npcs` in `drinfomon/drdefs.rb`. Creatures are the room objects the game
+marked with a `pushBold` tag; dead ones match
+`/which appears dead|\(dead\)/`; names are then normalised and HTML-stripped.
+
+That is worth knowing because it sets the limit: **if the game did not bold it,
+Lich does not think it is a creature**, and no amount of work on our side
+changes that.
+
+### What status is actually available, and what is not
+
+This is the finding that shapes the panel. Searching the whole of Lich for
+values assigned to `npc_status` turns up **`dead` and `stunned`**. That is it.
+
+So an honest card carries:
+
+- **name** — from `DRRoom.npcs`
+- **noun** — from the matching `GameObj`, for the picture
+- **dead** — membership of `dead_npcs` rather than a status flag
+- **stunned** — when `GameObj#status` says so
+- **count** — several of the same noun collapse to one card with a multiplier,
+  because six identical goblins as six cards is a wall, not information
+
+There is **no health, no wounded state, and no "it is fleeing"** available. Any
+of that would mean parsing combat text ourselves, which is the 2,008-trigger
+problem the design refuses in §1. The card does not pretend otherwise: it shows
+what is there, not a health bar it cannot fill.
+
+### Edge cases, decided here rather than during the build
+
+- **Empty room.** Show nothing, not "no creatures". An empty panel is already
+  the message.
+- **No bridge.** Different from an empty room: say the bridge is down, once.
+- **Duplicate nouns with different names** — `a snarling goblin` and
+  `a wounded goblin` — group on the *noun* for art, but keep the names, since
+  the difference is the interesting part.
+- **Very many creatures.** An invasion is real. Cap the cards, show the count,
+  and say it is capped, per the no-silent-truncation rule.
+- **Dead ones** go after the living, dimmed, and collapse to a count once past
+  three. Corpses matter for skinning, not for threat.
+
+### Layout
+
+Cards in a wrapping grid, sized by the space they get. Narrow: name and count
+only. Wider: room for the picture when creature art exists (§2.13). The panel
+must be legible at both without a second component.
+
+## S2. Body panel — the paperdoll
+
+### The data is already complete
+
+`XMLData.injuries` (`common/xmlparser.rb:137`) is a hash of **sixteen** body
+parts, each `{ 'scar' => 0..3, 'wound' => 0..3 }`:
+
+```
+head  neck  chest  abdomen  back
+leftArm  rightArm  leftHand  rightHand
+leftLeg  rightLeg  leftFoot  rightFoot
+leftEye  rightEye  nsys
+```
+
+`nsys` is the nervous system, which has no location on a body and is the reason
+the doll needs one off-body indicator.
+
+Severity is 0-3 and Lich packs it two bits per part into `wound_gsl`, which
+confirms the range. Lich carries no severity *labels*, so we supply them and
+they are ours to get right: **1 minor, 2 serious, 3 severe.**
+
+### Why a doll rather than a number
+
+A single health percentage cannot say that the damage is in a leg. A bleeding
+head and a bleeding leg are different emergencies with different answers, and
+players already think in body parts because the game does.
+
+### What it shows
+
+- Sixteen positions, coloured by wound severity, scars indicated separately and
+  more quietly — a scar is history, a wound is now.
+- `nsys` as its own indicator, since it has nowhere to sit on a body.
+- Hover gives the part, the wound severity, the scar severity. Nothing is
+  written on the doll itself: labels at that size would be unreadable and
+  §1.5 sets a 12px floor.
+
+### Edge cases
+
+- **All zeroes** is the common case and must look calm, not blank-because-broken.
+- **Right after login** the parse may not have run. Absent is not uninjured, and
+  they must not render the same.
+- **Scar 3 with wound 0** is a healed cripple and is normal. It is not an alert.
+
+## S3. Scripts panel and watchdog
+
+### Available API, checked
+
+```
+Script.running       -> Array<Script>, hidden ones already excluded
+Script.list          -> all known
+Script.running?(name)
+Script.paused?(name)
+Script.version(name) -> parsed from the =begin header's `version:` line
+Script.exists?(name)
+Script.start(name, *args) / pause / unpause / kill
+```
+
+`Script.running` filters `hidden` itself, which matters: `script-watch.lic` and
+our own bridge call `hide_me` and would otherwise clutter the list.
+
+### What the panel shows per script
+
+Name, version, and state — running, paused, or installed-and-idle. Start, pause
+and stop per row. Version is on the row rather than behind a hover, because
+version mismatch is the single largest time sink in this ecosystem's support
+traffic and the whole point is to make it answerable at a glance.
+
+### The watchdog half
+
+Modelled directly on what `uberwatch.cmd` watches, since that script is the
+distilled experience of everything that goes wrong:
+
+| Signal | Source | Means |
+|---|---|---|
+| Game clock not advancing | `gameTime` on the status payload | the game has hung or disconnected |
+| A script vanished | `Script.running` no longer lists it | it died |
+| No command reply | our own `Cmd` layer | roundtime, stun, or a refusal |
+| Bridge socket closed | the transport | Lich or the game went away |
+
+The stale-clock check already exists in `realBridge.ts` at 90 seconds. The
+others are new and belong in this panel.
+
+### Why this panel matters more than it looks
+
+For someone running four free accounts as healer bots, this **is** the product.
+They are not levelling, so the mindstate board is close to meaningless to them;
+what they need is to know a bot has died and to restart it without typing.
+
+### Edge case that is easy to get wrong
+
+`script-watch.lic` already exists and does a version of this in a GTK window.
+That is validation, and a warning: being right about a feature is not the same
+as it being usable. Ours has to be better than a list in a grey box or there is
+no reason for it.
+
