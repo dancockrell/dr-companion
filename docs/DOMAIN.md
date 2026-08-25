@@ -601,3 +601,240 @@ if every automation feature were removed.
 Attended use is a real differentiator here, not just a compliance posture. A
 panel that shows you what is happening is worth something to a player sitting
 at the keyboard. It is worth nothing to someone who is AFK, and that is fine.
+
+---
+
+## 20. What real bug reports look like, and what they teach
+
+Dan supplied a run of actual support traffic from the community: debug logs
+plus the Discord threads around them. The technical findings are useful. The
+shape of the support process is more useful still.
+
+### The support loop, as it actually runs
+
+One representative thread, spanning six days:
+
+```
+user:  [383 KB debug.txt]
+dev:   "wait a second... the line numbers in your debug don't line up with
+        the script.. that's an older version of the script"
+user:  "So update everything I don't always update all of them"
+dev:   "with this version.."
+user:  [another debug]
+dev:   "and that's still not 10.7.1 posted here.. you're still on 10.7"
+```
+
+Two full round trips, days apart, spent discovering the user was running an old
+file. Another thread opens with the maintainer's entire first reply being the
+single word `debug`. A third ends `pastebin merked the debug`, and several
+Discord attachments read `(333 KB left)` where the platform truncated them.
+
+Four things cost the most time, in order:
+
+1. **Version mismatch.** By far the largest. Diagnosed late, after the log has
+   already been read.
+2. **Getting a debug at all**, and at the right verbosity. `Debug 5 then`,
+   `start debug 10 AFTER the variables load`.
+3. **Truncation.** Debugs are hundreds of kilobytes; pastebin mangles them and
+   Discord cuts them off.
+4. **Configuration interactions that look like bugs.** One user spent a thread
+   on a "bug" that was `SELLGEMS ON` combined with tied pouches, sending the
+   character to Shard as designed.
+
+Every one of those is preventable by the tool rather than by the human. The app
+ships the bridge script, so it knows what version should be installed and says
+so on connect. It captures its own trace, so nobody has to know a verbosity
+flag. It keeps the report small enough not to be truncated. And it reports
+config state alongside the failure.
+
+### Wounds: the summary line contradicts the wound list
+
+A player set their heal city to Fang Cove, travelled there correctly, and then
+herb-healed instead of visiting the healer. The log:
+
+```
+health
+Your body feels at full strength.
+Your spirit feels full of life.
+You have some minor abrasions to the left arm, some minor abrasions to the
+left hand, some minor abrasions to the chest.
+You have no significant injuries.
+```
+
+Three wounds listed, and then a summary line saying there are no significant
+injuries. The script trusted the summary, decided nothing needed healing, and
+went on. The player, having turned "heal all" on, expected a healer visit.
+
+Neither is wrong. `HEALTH` gives both a wound list and a severity summary, and
+which one a tool trusts is a **policy decision that belongs to the player**,
+not a threshold buried in a script. `check_health` should report both, and any
+"go heal" decision should expose the threshold it used.
+
+### Multi-hop transport needs an arrival check on every hop
+
+A Platinum character asked to travel to Crossing and looped through the portal
+network nine times:
+
+```
+* Starting ZoneID:67  RoomID:455
+* Starting ZoneID:107 RoomID:273
+* Starting ZoneID:30  RoomID:331
+* Starting ZoneID:90  RoomID:468
+* Starting ZoneID:40  RoomID:254
+* Starting ZoneID:47  RoomID:97
+* Starting ZoneID:116 RoomID:188
+* Starting ZoneID:1   RoomID:484     <- zone 1 is Crossing. It arrived.
+* Starting ZoneID:99  RoomID:115
+```
+
+It reached the destination on the eighth hop and kept going. The same bug was
+reported in July, fixed, and reported again in August, which is what happens
+when arrival is inferred from control flow rather than checked.
+
+The lesson for `planTravel`: every hop needs an explicit "am I there yet"
+against the actual destination, evaluated after the move completes. This is
+also why the Athletics thresholds in `obstacles.ts` matter less than they look:
+knowing you *can* make a crossing is worth much less than knowing whether you
+just did.
+
+### Creature names carry post-strings that break parsing
+
+> "when critters are under the effect of shadow web, they have a post string of
+> being webbed which is messing up the appraisal (its trying to
+> `appraise web quick`)"
+
+and later, the same for `(flying)`. Anything that parses a creature name out of
+room text has to strip trailing state markers first, or it will build commands
+out of them.
+
+### Game text does not always break where you expect
+
+> "It looks like the action within uber is expecting the second sentence to be
+> on a new line, but it isn't."
+
+A two-sentence backlash message arrived on one line, so a pattern anchored with
+`^` on the second sentence never fired, and the character stayed in combat
+through a spell backlash. Anchoring to line starts is a real hazard when the
+game concatenates.
+
+### Fang Cove: `go meeting portal`, not `go portal`
+
+> "uber goes to wyvern trials when attempting to go to fang cove at times.
+> Need to change go portal to go meeting portal."
+
+A bare `go portal` in a room with more than one portal picks the wrong one.
+Worth remembering that DR room nouns are frequently ambiguous and the fix is
+almost always a longer noun phrase.
+
+---
+
+## 21. Lessons from the wider scripting channel
+
+A second run of community traffic, this time from the general Genie/Lich/Wrayth
+help channel rather than one script's bug queue.
+
+### Community spaces are public, and that has consequences for us
+
+> "You're aware that this is not a private discord with a restricted invite, so
+> GMs can and DO lurk in here right? So maybe immediately coming to an
+> effectively public area and going 'Hey guyz, how do I afk script better and
+> not get caught?' after JUST getting popped for AFK scripting isn't the
+> smartest move?"
+
+Someone had just been actioned for unattended play and asked for advice about
+it in the open. The reply is the community policing itself, and it is correct.
+
+**This constrains the bug reporter directly.** A report is a timestamped record
+of what a character was doing, and the button posts it to a public GitHub issue
+under the user's own name. Somebody could file a perfectly good bug report that
+also documents hours of unattended automation.
+
+What the app does about it:
+
+- The capture is scoped to our own commands and their replies, not a window of
+  everything that happened.
+- The preview is mandatory and shows the exact text.
+- The dialog says plainly that an issue is public and permanent, and offers
+  saving a file instead for anyone who would rather send it privately.
+
+None of that is about policy enforcement, which is not this app's job. It is
+about not handing someone a convenient way to publish something they would
+regret.
+
+### The refusal-handling bug, in the wild
+
+> "sometimes a script issues a command early, and I get the '...wait 1 seconds.'
+> text. I tried to add a Matchwait command for '...wait' to attempt to fix
+> this, but it doesn't seem to detect it"
+>
+> "you probably messed up the match... that's an extremely common match"
+>
+> "the match was there, but placed in the wrong waiting block. face --> palm"
+
+This is exactly the failure `Companion::Cmd` exists to make impossible. Every
+script author writes this handling, most of them write it more than once, and
+putting it in one place that everything goes through is the whole reason that
+module is separate.
+
+### Game display toggles change the text your parser sees
+
+> "okay, gonna delete all that as I finally found the issue & its not related to
+> mc at all. Culprit in that blasted invbrief on the toggle list."
+
+A player spent a week on a crafting script that claimed they had no materials.
+The cause was `INVBRIEF`, a game setting that shortens inventory output. The
+script was parsing text the game had stopped printing.
+
+Anything that parses game output is at the mercy of the player's display
+settings. `BRIEF`, `INVBRIEF` and friends silently change the shape of what
+arrives. A tool that reads inventory or room text should check these at
+startup and either normalise them or say which ones will break it, rather than
+letting someone lose a week to a toggle.
+
+### Vitals really are percentages
+
+> ```
+> Your body feels at full strength. (100%)
+> Your spirit feels full of life. (100%)
+> ```
+
+This confirms the assumption behind `healthMax: 100` in the bridge, which was
+previously flagged in `TESTING.md` as unverified. It is right.
+
+### The wound summary confusion is common, not a one-off
+
+The same player, running the standard Lich healing scripts:
+
+> "when I run them I'm still left with some boo-boo's:
+> `You have minor scarring along the neck, some minor abrasions to the right
+> leg, a few nearly invisible scars along the chest`"
+
+That is the second independent report of the same confusion described in
+section 20: healing "worked" and wounds remain, because scars and minor
+abrasions sit below whatever threshold the script used. Two people confused by
+the same thing in two different channels is a design problem, not user error.
+
+It reinforces the conclusion there: report both the wound list and the summary,
+and make the threshold visible rather than implicit.
+
+### Lich is not Genie-only, and some players will never move
+
+Lich runs as a plugin for **Wrayth** as well as Genie, so frontend detection
+should not assume Genie.
+
+And there is a cohort that will not migrate at all:
+
+> "I don't lich. I just genie script. It's what I know now, and I'm too GD old
+> and tired to learn a new language/system."
+
+DR Companion requires Lich. That is a real adoption ceiling and worth being
+honest about rather than assuming everyone will move.
+
+### Free alternatives exist, and matter for positioning
+
+The channel routinely points newcomers at free tooling: `Tirost/DR-Genie-Scripts`
+for hunting, `Dasffion/Mastercraft` for crafting. The paid combat script is
+described as "pretty slick but super expensive". A free, open, well-documented
+tool is landing in a space where free alternatives are already the default
+recommendation, which is a good position to be in and an argument for keeping
+the licence permissive.

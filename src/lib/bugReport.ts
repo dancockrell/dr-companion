@@ -25,6 +25,7 @@
  */
 
 import type { CharacterStatus, LogRow, TraceRow } from '../types'
+import type { VersionState } from './versions'
 
 /**
  * Lines that are somebody's private conversation rather than our business.
@@ -100,6 +101,12 @@ export interface ReportInput {
   logLines: LogRow[]
   bridgeMode: 'mock' | 'live'
   appVersion: string
+  /**
+   * Versions of everything. First on the list because "what version are you
+   * on" is the first question every support thread in this ecosystem asks,
+   * usually twice.
+   */
+  versions?: VersionState
   /** Minutes of history to include. */
   windowMinutes: number
   redactNames: boolean
@@ -175,9 +182,21 @@ export function buildReport(input: ReportInput): BuiltReport {
           .join('\n')
       : '_No failed matches recorded. The problem may be elsewhere._'
 
+  // Versions first, and the mismatch called out in capitals, because "what
+  // version are you on" is the first question every support thread in this
+  // ecosystem asks, and often the second one too.
+  const v = input.versions
+  const mismatch =
+    v?.actualBridge && v.actualBridge !== v.expectedBridge
+      ? ` **MISMATCH — this app ships v${v.expectedBridge}**`
+      : ''
+
   const env = [
     `- App: ${input.appVersion}`,
-    `- Bridge: ${input.bridgeMode}`,
+    `- Bridge script: ${v?.actualBridge ?? 'not connected'}${mismatch}`,
+    `- Lich: ${v?.lich ?? 'unknown'}`,
+    `- Protocol: ${v?.protocol ?? 'unknown'}`,
+    `- Bridge mode: ${input.bridgeMode}`,
     c ? `- Instance: ${c.instance}` : '- Instance: unknown',
     c ? `- Account tier: ${c.accountTier}` : '',
     c ? `- Guild: ${c.guild ?? 'unknown'}` : '',

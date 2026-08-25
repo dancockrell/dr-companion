@@ -6,6 +6,11 @@ import type { DemoPresetId } from '../bridge/mockBridge'
 import { loadPrefs, savePrefs } from '../lib/persistence'
 import { combatRanks } from '../data/skills'
 import {
+  APP_VERSION,
+  EXPECTED_BRIDGE_VERSION,
+  compareVersions,
+} from '../lib/versions'
+import {
   loadProfiles,
   upsertProfile,
   newProfile,
@@ -75,11 +80,26 @@ function handleBridgeMessage(
   get: () => AppState
 ) {
   switch (msg.type) {
-    case 'hello':
+    case 'hello': {
+      set({
+        versions: {
+          app: APP_VERSION,
+          expectedBridge: EXPECTED_BRIDGE_VERSION,
+          actualBridge: msg.bridgeVersion,
+          lich: msg.lichVersion,
+          protocol: msg.protocol,
+        },
+      })
       get().addLog(
-        `Bridge hello — Lich ${msg.lichVersion}, protocol ${msg.protocol}`
+        `Bridge v${msg.bridgeVersion} on Lich ${msg.lichVersion}, protocol ${msg.protocol}`
       )
+      // Version mismatch is the largest time sink in this ecosystem's support.
+      // Say it now and loudly, rather than letting someone spend a week
+      // filing reports against a script that was fixed two releases ago.
+      const v = compareVersions(get().versions)
+      if (v.message) get().addLog(v.message)
       break
+    }
     case 'status': {
       set({ character: msg.payload })
       // Adopt this character's own settings the moment we learn who they are.
@@ -122,6 +142,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   ],
   trace: [],
   traceEnabled: false,
+  versions: {
+    app: APP_VERSION,
+    expectedBridge: EXPECTED_BRIDGE_VERSION,
+    actualBridge: null,
+    lich: null,
+    protocol: null,
+  },
   consoleOpen: prefs.consoleOpen ?? false,
   bridgeConnected: false,
   bridgeMode: prefs.bridgeMode,

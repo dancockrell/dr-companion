@@ -50,6 +50,7 @@ export type IntentName =
   | 'escape'
   | 'stow_all'
   | 'check_health'
+  | 'check_toggles'
 
 export interface BridgeConnectionState {
   connected: boolean

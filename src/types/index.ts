@@ -2,6 +2,7 @@
 
 import type { SkillState } from '../data/skills'
 import type { CharacterProfile } from '../lib/profiles'
+import type { VersionState } from '../lib/versions'
 
 export type { SkillState }
 export type { CharacterProfile }
@@ -145,6 +146,7 @@ export interface AppState {
   /** Command trace from the bridge, for diagnosing broken patterns. */
   trace: TraceRow[]
   traceEnabled: boolean
+  versions: VersionState
   consoleOpen: boolean
   bridgeConnected: boolean
   bridgeMode: 'mock' | 'live'

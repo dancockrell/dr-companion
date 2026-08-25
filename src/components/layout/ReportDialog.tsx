@@ -13,14 +13,15 @@ import { X, Copy, Check, ExternalLink, Save, ShieldCheck } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { Button } from '../shared/Button'
 import { buildReport, issueUrl } from '../../lib/bugReport'
+import { APP_VERSION } from '../../lib/versions'
 
-const APP_VERSION = '0.1.0'
 
 export function ReportDialog({ onClose }: { onClose: () => void }) {
   const character = useAppStore((s) => s.character)
   const trace = useAppStore((s) => s.trace)
   const logLines = useAppStore((s) => s.logLines)
   const bridgeMode = useAppStore((s) => s.bridgeMode)
+  const versions = useAppStore((s) => s.versions)
   const addLog = useAppStore((s) => s.addLog)
 
   const [description, setDescription] = useState('')
@@ -38,10 +39,11 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
         logLines,
         bridgeMode,
         appVersion: APP_VERSION,
+        versions,
         windowMinutes,
         redactNames,
       }),
-    [description, character, trace, logLines, bridgeMode, windowMinutes, redactNames]
+    [description, character, trace, logLines, bridgeMode, versions, windowMinutes, redactNames]
   )
 
   async function copyReport() {
@@ -141,6 +143,18 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
               </p>
             )}
           </div>
+
+          {/*
+            A GitHub issue is public and stays public. Community spaces around
+            this game are read by more people than post in them, and a trace
+            is a timestamped record of what your character was doing. That is
+            worth one sentence before someone posts one, not a footnote after.
+          */}
+          <p className="text-[11px] text-warn leading-snug rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-2">
+            A GitHub issue is public and permanent. Read the preview and cut
+            anything you would rather not have on the internet under your name.
+            Save the file instead if you would rather send it privately.
+          </p>
 
           <div className="space-y-1">
             <div className="flex items-center justify-between">

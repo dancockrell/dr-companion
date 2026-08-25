@@ -380,18 +380,30 @@ pub fn genie_options(
 /// "Found" and moved on. Look for something runnable, and report the version
 /// line from the folder so the user can see which client we picked up.
 fn detect_genie() -> (Option<String>, String) {
-    let dirs = candidate_dirs(&[
+    // Genie is the common frontend, but not the only one Lich runs under.
+    // Wrayth is in active use too, and telling someone with a working setup
+    // that they have no frontend is the kind of wrong answer that makes people
+    // stop trusting a checker.
+    let mut dirs = candidate_dirs(&[
         "Genie",
         "Genie4",
         "Genie5",
         "GenieClient",
         "Genie Client",
+        "Wrayth",
+        "StormFront",
     ]);
-    let mut dirs = dirs;
     dirs.push(app_data_dir().join("genie"));
     dirs.retain(|p| p.exists());
 
-    for exe in ["Genie.exe", "Genie4.exe", "Genie5.exe", "GenieClient.exe"] {
+    for exe in [
+        "Genie.exe",
+        "Genie4.exe",
+        "Genie5.exe",
+        "GenieClient.exe",
+        "Wrayth.exe",
+        "StormFront.exe",
+    ] {
         if let Some(p) = first_existing(&dirs, exe) {
             return (
                 Some(p.to_string_lossy().into_owned()),
