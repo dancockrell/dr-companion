@@ -9,9 +9,15 @@
  * - If everything is there, do not make them read anything. Go.
  * - If something is missing, say exactly what, offer to fetch it, and show
  *   where it comes from and what will happen to it.
- * - Never touch a Ruby they already have.
+ * - Install current versions, into the folders that software normally lives
+ *   in, and leave unrelated things alone.
  * - Never run anything without a separate, explicit yes.
  * - Always leave the demo open, so nobody is stuck behind a download.
+ * - Never report a state we did not actually observe. A check that failed and
+ *   a machine that needs nothing must not render the same.
+ *
+ * Reachable again from Settings once set up, because "it skipped past, what
+ * did it find?" is a fair question and there was no way to ask it.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, FolderOpen } from 'lucide-react'
@@ -44,6 +50,9 @@ export function SetupWizard() {
   const simulateConnect = useAppStore((s) => s.simulateConnect)
   const addLog = useAppStore((s) => s.addLog)
   const frontend = useAppStore((s) => s.frontend)
+  // Opened from Settings rather than because something is missing. Changes one
+  // thing: it does not skip itself when everything is present.
+  const reopened = useAppStore((s) => s.setupReopened)
 
   const [phase, setPhase] = useState<Phase>(isTauri() ? 'checking' : 'browser')
   const [plan, setPlan] = useState<SetupPlan | null>(null)
@@ -78,7 +87,7 @@ export function SetupWizard() {
       const elapsed = Date.now() - startedAt.current
       const wait = Math.max(0, 900 - elapsed)
       window.setTimeout(() => {
-        if (p?.ready) {
+        if (p?.ready && !reopened) {
           addLog('All dependencies found. Connecting.')
           enter()
         } else {
@@ -94,7 +103,7 @@ export function SetupWizard() {
       setCheckError(msg)
       setPhase('plan')
     }
-  }, [addLog, enter])
+  }, [addLog, enter, reopened])
 
   useEffect(() => {
     void check()
@@ -361,7 +370,11 @@ export function SetupWizard() {
           variant={ready && phase !== 'browser' ? 'good' : 'primary'}
           onClick={enter}
         >
-          {ready && phase !== 'browser' ? 'Continue' : 'Open the demo dashboard'}
+          {reopened
+            ? 'Back to the dashboard'
+            : ready && phase !== 'browser'
+              ? 'Continue'
+              : 'Open the demo dashboard'}
         </Button>
         <p className="text-[11px] text-ink-faint text-center leading-relaxed">
           {ready && phase !== 'browser'

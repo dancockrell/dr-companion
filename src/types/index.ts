@@ -134,6 +134,13 @@ export interface InventorySummary {
 
 export interface AppState {
   setupComplete: boolean
+  /**
+   * Setup opened deliberately from Settings, rather than because something is
+   * missing. Kept separate from `setupComplete` because the first-run screen
+   * skips itself when everything is present, so once a machine is set up there
+   * was no way left to look at what the app had found or where it lives.
+   */
+  setupReopened: boolean
   setupComponents: SetupComponent[]
 
   uiMode: UiMode
@@ -172,6 +179,7 @@ export interface AppState {
   houseEntryHide: boolean
 
   setSetupComplete: (v: boolean) => void
+  openSetup: () => void
   updateSetupComponent: (id: SetupComponentId, patch: Partial<SetupComponent>) => void
   setUiMode: (mode: UiMode) => void
   setAlwaysOnTop: (v: boolean) => void

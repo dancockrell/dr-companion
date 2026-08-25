@@ -139,6 +139,7 @@ function handleBridgeMessage(
 
 export const useAppStore = create<AppState>((set, get) => ({
   setupComplete: false,
+  setupReopened: false,
   setupComponents: defaultSetup,
   uiMode: prefs.uiMode,
   alwaysOnTop: prefs.alwaysOnTop,
@@ -174,7 +175,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   houseEntryMaxSearches: prefs.houseEntryMaxSearches ?? 3,
   houseEntryHide: prefs.houseEntryHide ?? true,
 
-  setSetupComplete: (v) => set({ setupComplete: v }),
+  setSetupComplete: (v) => set({ setupComplete: v, setupReopened: false }),
+
+  // Show the setup screen on purpose. It will not skip itself this time.
+  openSetup: () => set({ setupComplete: false, setupReopened: true }),
 
   updateSetupComponent: (id, patch) =>
     set((state) => ({

@@ -19,6 +19,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const setBridgeMode = useAppStore((s) => s.setBridgeMode)
   const connectBridge = useAppStore((s) => s.connectBridge)
   const clearLog = useAppStore((s) => s.clearLog)
+  const openSetup = useAppStore((s) => s.openSetup)
   const trainFocus = useAppStore((s) => s.trainFocus)
   const toggleTrainFocus = useAppStore((s) => s.toggleTrainFocus)
   const autoSuggestHealer = useAppStore((s) => s.autoSuggestHealer)
@@ -262,6 +263,31 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               guards; leave on footsteps; respect cooldown.
             </p>
           </section>
+
+          {/* The setup screen skips itself when nothing is missing, which
+              means once a machine is working there was no way left to see
+              what the app found or which folder it is using. */}
+          {isTauri() && (
+            <section className="space-y-2">
+              <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
+                Ruby, Lich and your frontend
+              </h3>
+              <button
+                type="button"
+                className="w-full rounded-lg border border-border px-3 py-2 text-ink-muted hover:text-ink"
+                onClick={() => {
+                  openSetup()
+                  onClose()
+                }}
+              >
+                Check what is installed
+              </button>
+              <p className="text-[11px] text-ink-faint leading-snug">
+                Shows each piece and the folder it is in. Also where to go after
+                updating Lich, or if the bridge script needs reinstalling.
+              </p>
+            </section>
+          )}
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
