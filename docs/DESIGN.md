@@ -1550,3 +1550,109 @@ on launch, and hourly while running:
 The last line is load-bearing. The feed is an enhancement, never a dependency:
 the app must be fully usable with no network beyond the game itself, because a
 tool that breaks when a third party is down is a tool nobody trusts.
+
+---
+
+## S6. The card system
+
+Everything in the room that can act is a card. There are exactly three decks and
+the deck a card belongs to is never in doubt.
+
+### Why three decks and not one list
+
+| Deck | Contents | The question it answers |
+|---|---|---|
+| **Hostile** | `DRRoom.npcs`, `dead_npcs` | what is trying to kill me |
+| **Allied** | group members' creatures, summons, pets, familiars | what is helping |
+| **People** | `DRRoom.pcs`, shopkeepers and other named NPCs | who is here |
+
+Mixing them is the failure mode to design against. In a fight the eye is looking
+for one thing, and a friendly summon rendered like a threat costs a beat that
+the player does not have. So each deck gets its own band colour **and its own
+card silhouette** — square corners for hostile, cut corners for allied, rounded
+for people — because colour alone fails for the eight percent of men with a
+colour vision deficiency, and this audience skews male and over forty.
+
+Decks keep their order and never interleave. A deck with nothing in it does not
+render at all: an empty "Allied" header is wasted space, and wasted space is the
+thing this panel exists to avoid.
+
+### Compression, which is the actual idea
+
+Cards behave like a hand of playing cards. When there is room they lie side by
+side. When there is not, they slide under each other and fan, and the exposed
+sliver of each card carries the information that matters most, exactly the way a
+fanned hand shows rank and suit down the left edge and hides the rest.
+
+Five tiers. The panel picks one from its own width and its card count, measured
+with a `ResizeObserver` rather than a media query, because the panel is
+resizable and pop-outable and the viewport tells you nothing about it.
+
+| Tier | Card | Shows |
+|---|---|---|
+| **Full** | 168px | art, name, level band, trait chips, actions |
+| **Compact** | 112px | small art, name, status chips |
+| **Row** | full width, 32px tall | name, status, count |
+| **Fan** | 26px exposed | band colour, first line of name, status dot |
+| **Count** | one chip per deck | "6 hostile", tap to expand |
+
+**Count is the floor.** However cramped it gets, the deck and its size stay on
+screen. A panel that hides the fact that six things are attacking you has failed
+at the only job it had.
+
+### The exposed sliver
+
+This is the whole design problem in one measurement. At Fan tier a card shows
+26 pixels, and what goes in them, in order of what gets dropped last:
+
+1. **Deck band** — 4px of colour plus the silhouette
+2. **Alive or dead** — dead cards desaturate and drop to the back of the deck
+3. **Stunned** — a single dot, because it is the one status that changes what
+   you do next
+4. **First glyph of the name**, then as much of the name as fits
+
+Level is deliberately not in that list. It is on the card at Compact and above,
+and it does not change during a fight, so it loses to status.
+
+### Unpacking
+
+Any card expands in place: it grows to Full, its neighbours fan tighter to pay
+for it, and nothing reflows outside the deck. Expansion is per-card and more
+than one can be open, because comparing two creatures is a real thing players
+do and forcing an accordion would make that impossible.
+
+Any card can also be torn off into its own window, which already exists for
+panels and costs nothing to extend. That is the answer to "infinitely
+unpackable" — the panel compresses to a chip, and any single card can become a
+window the size of the screen.
+
+Expansion state is per deck and survives a resize. Shrinking the panel collapses
+cards visually but does not forget which were open, so widening it again returns
+what was there rather than a reset.
+
+### What a card can honestly say
+
+The card is bounded by what Lich actually knows, which per S1 is name, noun,
+dead, and stunned. There is no health bar because there is no health.
+
+The bestiary pull adds the rest, keyed on the noun:
+
+| From | Field |
+|---|---|
+| `naturallevel`, `MinCap`, `MaxCap` | level band, and whether it is above your ranks |
+| `BodyType`, `BodySize` | silhouette and art |
+| `Attack Range` | melee or ranged, which decides whether closing helps |
+| `Casts Spells`, `Stealthy` | trait chips, both of which change tactics |
+| `Skinnable`, `Has Boxes`, `Has Coins`, `Has Gems` | what the corpse is worth |
+
+That last row is why dead cards do not simply vanish. A skinnable corpse with
+boxes is a task, not a footnote, and it stays on the card until it is dealt
+with.
+
+### The rule this section is really about
+
+Density is not the same as clutter. Every element on a card has to answer a
+question the player is actually asking at that moment, and the tiers exist so
+that the answer to "how much space does this deserve" is different in a fight
+than it is in a shop. Nothing here is decoration, and anything that cannot
+justify its pixels at Row tier does not belong on the card at all.

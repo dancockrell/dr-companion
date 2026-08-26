@@ -1,0 +1,18 @@
+import { CardDeck } from './CardDeck'
+import { DECKS, type RoomCard } from '../../lib/cards'
+
+/**
+ * The three decks, in the order the eye should find them in a fight: what is
+ * trying to kill you, what is helping, who else is here.
+ *
+ * Decks never interleave and empty ones do not render. See DESIGN.md S6.
+ */
+export function RoomCards({ cards }: { cards: RoomCard[] }) {
+  return (
+    <div className="flex flex-col gap-3">
+      {DECKS.map((deck) => (
+        <CardDeck key={deck} deck={deck} cards={cards.filter((c) => c.deck === deck)} />
+      ))}
+    </div>
+  )
+}
