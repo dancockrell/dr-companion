@@ -122,7 +122,7 @@ export function CardDeck({
           type="button"
           onClick={() => setOpen(new Set(items.map((c) => c.id)))}
           className={cn(
-            'flex w-full items-center gap-2 border border-border bg-surface-raised px-2 py-1',
+            'flex w-full items-center gap-2 rounded border border-border px-2 py-1 hover:bg-surface-overlay',
             style.corner
           )}
         >

@@ -224,7 +224,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           which for a small zone is a stamp in the corner.
           In plane mode the height comes from the column instead. */}
       <div
-        className={`rounded-lg border border-border bg-surface overflow-hidden ${
+        className={`overflow-hidden rounded bg-surface ${
           plane ? 'flex-1 min-h-0' : ''
         }`}
         style={plane ? undefined : { height: tall ? 320 : 168 }}
@@ -239,7 +239,9 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <MapLegend />
+        <MapLegend
+          kinds={[...new Set((zone?.rooms ?? []).flatMap((r) => r.tags ?? []))]}
+        />
         <span className="text-xs text-ink-faint shrink-0">
           {zone.rooms?.length ?? 0}
           {zone.truncated ? ` of ${zone.total} (capped)` : ''}
@@ -276,7 +278,7 @@ function Shell({
 }) {
   return (
     <section
-      className={`space-y-2 rounded-xl border border-border bg-surface-raised p-3 ${
+      className={`flex flex-col gap-1.5 p-2 ${
         // In a plane the section owns the column, so it becomes the flex
         // container the map body stretches inside. Otherwise it sizes to its
         // own content like any other panel.

@@ -244,21 +244,36 @@ export function MapCanvas({
   )
 }
 
-/** Shared legend, so the colours mean the same thing in both places. */
-export function MapLegend() {
-  const items: [RoomKind, string][] = [
+/**
+ * The legend names places the way the game does.
+ *
+ * It used to say "service", which is not a word DragonRealms uses for
+ * anything. The map knows what each room is, so it says: bank, healer, guild,
+ * temple, gate. A twenty-year player reading "service" learns that a
+ * programmer wrote the label without looking at the game.
+ *
+ * Only what is actually on screen is listed. A legend explaining colours that
+ * are not present is furniture.
+ */
+export function MapLegend({ kinds }: { kinds?: string[] }) {
+  const present = new Set(kinds ?? [])
+
+  const items: Array<[string, string]> = [
     ['here', 'you'],
     ['route', 'route'],
     ['hazard', 'hazard'],
-    ['service', 'service'],
+    ...(['bank', 'healer', 'guild', 'temple', 'gate', 'bridge', 'shop', 'park'] as const)
+      .filter((k) => present.has(k))
+      .map((k) => [k, k] as [string, string]),
   ]
+
   return (
-    <div className="flex flex-wrap items-center gap-3 text-xs text-ink-faint">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-faint">
       {items.map(([kind, label]) => (
         <span key={kind} className="flex items-center gap-1">
           <span
-            className="inline-block w-2.5 h-2.5 rounded-sm"
-            style={{ background: FILL[kind] }}
+            className="inline-block h-2.5 w-2.5 rounded-sm"
+            style={{ background: KIND_FILL[kind] ?? FILL[kind as RoomKind] }}
           />
           {label}
         </span>

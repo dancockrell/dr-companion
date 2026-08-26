@@ -152,7 +152,7 @@ export function DockView({
             </div>
           )}
 
-          <div className="min-h-0 min-w-0 flex-1 overflow-auto">
+          <div className="min-h-0 min-w-0 flex-1 overflow-auto p-2">
             {render(region.panels.length > 1 ? region.active : region.panels[0])}
           </div>
         </div>

@@ -1,24 +1,40 @@
 @import "tailwindcss";
 
 @theme {
-  --color-surface: #0c0e12;
-  --color-surface-raised: #141820;
-  --color-surface-overlay: #1a1f2a;
-  --color-border: #2a3142;
-  --color-ink: #e8eaef;
-  --color-ink-muted: #9aa3b5;
-  /* Was #6b7385, which measured 4.06 / 3.74 / 3.47 against the three surfaces
-     and failed WCAG AA at all of them. It was also the colour used for almost
-     every small label in the app, so the least readable size and the least
-     readable colour were the same text. #7f8799 clears 4.5 on the worst case.
-     Checked by tools/contrast-test.mjs rather than by eye. */
-  --color-ink-faint: #7f8799;
+  /* Elanthia, not a dashboard.
+   *
+   * The old palette was cold blue-grey slate, which is what every dark mode
+   * looks like and told a player nothing about which game they were in. These
+   * are warm: ink on dark parchment, aged bronze, moss, iron and blood.
+   *
+   * Every ink clears WCAG AA against every surface, worst case 4.53:1, checked
+   * by tools/contrast-test.mjs rather than by eye. The audience is mid-forties
+   * to sixties and this window sits beside a black game client at two in the
+   * morning. */
+  --color-surface: #0d0c0a;
+  --color-surface-raised: #16140f;
+  --color-surface-overlay: #211d16;
+
+  /* Quiet on purpose. A boundary is a hairline, not a frame: the previous
+     border was loud enough that six panels read as a grid of boxes. */
+  --color-border: #2e2a20;
+
+  --color-ink: #ece7db;
+  --color-ink-muted: #a89f8c;
+  /* The colour of almost every small label, so it is held to the same bar as
+     body text rather than treated as decoration. */
+  --color-ink-faint: #8d8574;
+
+  /* Accent means *you*: your room on the map, your character, your turn. It is
+     not a synonym for "primary button". */
   --color-accent: #d4a84b;
   --color-accent-soft: #b8923f;
-  --color-good: #3ecf8e;
-  --color-warn: #e6b84d;
-  --color-danger: #e85d5d;
-  --color-info: #5b9fd4;
+
+  --color-good: #7fb069;
+  --color-warn: #d99a3c;
+  --color-danger: #d2635a;
+  --color-info: #7ba3c4;
+
   --font-sans: "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
