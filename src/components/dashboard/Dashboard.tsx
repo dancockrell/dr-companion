@@ -96,13 +96,47 @@ export function Dashboard() {
      */
     return (
       <div className="flex h-full flex-col items-start justify-center gap-3 p-6">
-        <div>
+        <div className="max-w-lg">
           <p className="text-sm text-ink">Waiting for a character.</p>
-          <p className="mt-1 text-xs text-ink-muted">
-            {bridgeConnected
-              ? 'The bridge is up but no character has reported in yet. Log in, or run the companion bridge script in Lich.'
-              : 'Start Lich, then run the companion bridge script. This panel fills in on its own once it does.'}
-          </p>
+
+          {bridgeConnected ? (
+            <p className="mt-1 text-xs text-ink-muted">
+              The bridge is up but no character has reported in yet. Log in, or run{' '}
+              <code className="text-ink">,companion_bridge</code> in the game.
+            </p>
+          ) : (
+            <>
+              {/*
+               * The likeliest state here is not "not started yet". It is
+               * playing already, through Genie, with Lich not in the loop at
+               * all — because Genie connects straight to the game and Lich is
+               * a separate thing you have to point it at.
+               *
+               * This said "Start Lich, then run the companion bridge script",
+               * which is not the procedure. Genie launches Lich, not the other
+               * way round, and the whole thing is four config lines typed into
+               * Genie. Confirmed by connecting a real character and watching
+               * this panel stay empty while the game played perfectly well
+               * next to it.
+               */}
+              <p className="mt-1 text-xs text-ink-muted">
+                If you are already playing, this is the usual reason: Genie connects
+                straight to the game, and Lich is a separate step. Nothing is broken,
+                the companion just has nothing to read yet.
+              </p>
+              <p className="mt-2 text-xs text-ink-muted">In Genie, once per profile:</p>
+              <pre className="mt-1 overflow-x-auto rounded border border-border bg-surface p-2 text-xs leading-relaxed text-ink-muted">
+{`#config lichpath C:\\Ruby4Lich5\\Lich5\\lich.rbw
+#config lichport 11024
+#config licharguments --genie --dragonrealms
+#lichconnect YourCharacterDR`}
+              </pre>
+              <p className="mt-2 text-xs text-ink-muted">
+                Then <code className="text-ink">,companion_bridge</code> in the game.
+                This panel fills in on its own.
+              </p>
+            </>
+          )}
         </div>
         <div className="flex gap-2">
           <button
@@ -116,8 +150,9 @@ export function Dashboard() {
             type="button"
             onClick={() => useAppStore.getState().openSetup()}
             className="rounded border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
+            title="The full connect guide, including Platinum, Fallen and Test"
           >
-            Setup
+            Connection help
           </button>
         </div>
       </div>
