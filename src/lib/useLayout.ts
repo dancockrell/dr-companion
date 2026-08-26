@@ -18,11 +18,14 @@ import {
   setMapPlane,
   setMapSplit,
   cycleDeckPref,
+  setPanelRect,
+  clearPanelRects,
   type Layout,
   type PanelId,
   type PanelState,
 } from './layout'
 import type { Deck } from './cards'
+import type { Rect } from './freeLayout'
 
 export function useLayout(mode: UiMode) {
   const [layout, setLayout] = useState<Layout>(() => loadLayout(mode))
@@ -77,5 +80,23 @@ export function useLayout(mode: UiMode) {
     [commit, layout]
   )
 
-  return { layout, move, reorder, update, reset, setPlane, setSplit, cycleDeck }
+  const place = useCallback(
+    (id: PanelId, rect: Rect) => commit(setPanelRect(layout, id, rect)),
+    [commit, layout]
+  )
+
+  const unplace = useCallback(() => commit(clearPanelRects(layout)), [commit, layout])
+
+  return {
+    layout,
+    move,
+    reorder,
+    update,
+    reset,
+    setPlane,
+    setSplit,
+    cycleDeck,
+    place,
+    unplace,
+  }
 }

@@ -20,6 +20,10 @@ import type { MapZone, MapZoneRoom } from '../bridge/types'
 interface BuiltRoom {
   id: number
   name: string
+  /** bank, healer, guild and so on, read off the name at build time. */
+  kind?: string
+  /** The street or place: what a player says when asked where they are. */
+  place?: string
   x: number
   y: number
   z: number
@@ -64,9 +68,9 @@ function toZoneRoom(r: BuiltRoom): MapZoneRoom {
     x: r.x,
     y: r.y,
     z: r.z,
-    // The built data carries no tags. Saying so with an empty array rather
-    // than omitting it keeps the hazard and service colouring from throwing.
-    tags: [],
+    // 1,863 rooms across the game say what kind of place they are, and the
+    // canvas already colours by tag, so the classification travels as one.
+    tags: r.kind ? [r.kind] : [],
     to: r.exits.map((e) => e.to),
   }
 }

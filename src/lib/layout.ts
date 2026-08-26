@@ -11,6 +11,7 @@
  */
 import type { UiMode } from '../types'
 import { DECKS, type Deck, type Tier } from './cards'
+import type { Rect } from './freeLayout'
 
 export type PanelId =
   | 'map'
@@ -59,6 +60,16 @@ export interface Layout {
   mapSplit: number
   /** Per-deck density, pinned by the player. Auto unless they said otherwise. */
   decks: Record<Deck, DeckPref>
+  /**
+   * Where each panel sits, once it has been dragged.
+   *
+   * Empty until someone moves something. Before that the panels flow, which is
+   * a sensible arrangement nobody had to build; after it they stay exactly
+   * where they were put, which is the point.
+   */
+  rects: Partial<Record<PanelId, Rect>>
+  /** True once anything has been placed by hand. */
+  freeform: boolean
 }
 
 /** Every deck starts on auto. */
@@ -80,6 +91,8 @@ const DEFAULTS: Record<UiMode, Layout> = {
     mapPlane: true,
     mapSplit: 0.5,
     decks: autoDecks(),
+    rects: {},
+    freeform: false,
   },
   power: {
     order: ['vitals', 'room', 'actions', 'map', 'risk', 'training', 'inventory', 'launcher'],
@@ -87,6 +100,8 @@ const DEFAULTS: Record<UiMode, Layout> = {
     mapPlane: true,
     mapSplit: 0.55,
     decks: autoDecks(),
+    rects: {},
+    freeform: false,
   },
 }
 
@@ -103,6 +118,8 @@ export function defaultLayout(mode: UiMode): Layout {
     mapPlane: d.mapPlane,
     mapSplit: d.mapSplit,
     decks: { ...d.decks },
+    rects: { ...d.rects },
+    freeform: d.freeform,
   }
 }
 
@@ -134,6 +151,8 @@ export function loadLayout(mode: UiMode): Layout {
       // Merged rather than trusted, same as the panels: a deck added later
       // must not be missing for anyone who already saved a layout.
       decks: { ...d.decks, ...(parsed.decks ?? {}) },
+      rects: parsed.rects ?? {},
+      freeform: parsed.freeform ?? false,
     }
   } catch {
     return defaultLayout(mode)
@@ -223,4 +242,18 @@ export function cycleDeckPref(layout: Layout, deck: Deck): Layout {
   const now = layout.decks[deck] ?? 'auto'
   const next = DECK_PREFS[(DECK_PREFS.indexOf(now) + 1) % DECK_PREFS.length]
   return setDeckPref(layout, deck, next)
+}
+
+/** Place one panel, and record that the layout is now hand-arranged. */
+export function setPanelRect(layout: Layout, id: PanelId, rect: Rect): Layout {
+  return {
+    ...layout,
+    freeform: true,
+    rects: { ...layout.rects, [id]: rect },
+  }
+}
+
+/** Back to the flow, discarding every placement. */
+export function clearPanelRects(layout: Layout): Layout {
+  return { ...layout, freeform: false, rects: {} }
 }

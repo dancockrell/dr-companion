@@ -25,11 +25,12 @@ import { Panel } from '../shared/Panel'
 import { CharacterHeader } from './CharacterHeader'
 import { MapPanel } from '../shared/MapPanel'
 import { PANEL_CONTENT, PANEL_ICONS, PANEL_TITLES } from './panels'
+import { FreeCanvas } from './FreeCanvas'
 
 export function Dashboard() {
   const character = useAppStore((s) => s.character)
   const uiMode = useAppStore((s) => s.uiMode)
-  const { layout, reorder, update, setSplit, cycleDeck } = useLayout(uiMode)
+  const { layout, reorder, update, setSplit, cycleDeck, place, unplace } = useLayout(uiMode)
 
   // Which panel is in the hand, and where it would land. Held here rather than
   // in each Panel so the insertion line can be drawn on a different panel from
@@ -235,8 +236,35 @@ export function Dashboard() {
             <div className="w-0.5 h-10 rounded-full bg-border group-hover:bg-ink-faint" />
           </div>
 
-          <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-2 [column-width:--spacing(80)] [column-gap:--spacing(2)] [&>*]:break-inside-avoid [&>*]:mb-2">{panels}</div>
+          {layout.freeform ? (
+            <FreeCanvas
+              items={stack.map((id) => ({
+                id,
+                rect: layout.rects[id],
+                node: PANEL_CONTENT[id]?.(dense, false, {
+                  deckPrefs: layout.decks,
+                  onCycleDeck: cycleDeck,
+                }),
+              }))}
+              onPlace={place}
+              onReflow={unplace}
+            />
+          ) : (
+            <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-2 [column-width:--spacing(80)] [column-gap:--spacing(2)] [&>*]:break-inside-avoid [&>*]:mb-2">{panels}</div>
+          )}
         </div>
+      ) : layout.freeform ? (
+            <FreeCanvas
+              items={stack.map((id) => ({
+                id,
+                rect: layout.rects[id],
+                node: PANEL_CONTENT[id]?.(dense, false, {
+                  deckPrefs: layout.decks,
+                  onCycleDeck: cycleDeck,
+                }),
+              }))}
+              onPlace={place}
+            />
       ) : (
         <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-2 [column-width:--spacing(80)] [column-gap:--spacing(2)] [&>*]:break-inside-avoid [&>*]:mb-2">{panels}</div>
       )}

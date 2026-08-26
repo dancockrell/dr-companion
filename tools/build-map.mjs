@@ -21,6 +21,53 @@ import { join } from 'node:path'
 const SRC = 'C:/Genie4/Maps'
 const OUT = 'src/data/map'
 
+/**
+ * What kind of place a room is, read off its name.
+ *
+ * The cartography carries no tags, but the names are not decorative: 353 of
+ * Crossing's 1,060 rooms say what they are. A map of identical boxes tells you
+ * where you are and nothing else, and knowing which square is the bank is most
+ * of what a map is for.
+ *
+ * Order matters. A guild healer is a guild first.
+ */
+const KINDS = [
+  ['guild', /\bguild\b/i],
+  ['healer', /\bhealer|empath|infirmary\b/i],
+  ['bank', /\bbank\b|teller|money-?changer|exchange/i],
+  ['temple', /\btemple|shrine|altar|chapel\b/i],
+  ['gate', /\bgate\b|portcullis/i],
+  ['bridge', /\bbridge\b|ferry|\bdock\b|\bpier\b/i],
+  ['shop', /\bshop|store|market|emporium|smith|forge|apothecary|alchemist|tailor|jeweler|bakery|\binn\b|tavern/i],
+  ['park', /\bpark\b|garden|grove|orchard/i],
+]
+
+/**
+ * Classify on the part before the comma, and only for rooms you walk into.
+ *
+ * Naive matching on the whole name paints streets as venues: "The Crossing,
+ * Bank Street" is a road, not a bank, and there are several of them. The names
+ * are structured, and the structure is the answer. An establishment puts its
+ * own name first ("First Provincial Bank, Lobby"); a street puts the town
+ * first ("The Crossing, Bank Street").
+ *
+ * Requiring a `go` arc as well was tried and was worse: it is true of shops
+ * but not of the bank, so it swapped false positives for false negatives and
+ * lost every bank and guild in the game. The prefix alone is the rule.
+ */
+function kindOf(name) {
+  const i = name.indexOf(',')
+  const establishment = i >= 0 ? name.slice(0, i) : name
+  for (const [kind, re] of KINDS) if (re.test(establishment)) return kind
+  return undefined
+}
+
+/** The part after the comma: the street or place, which is how players say where they are. */
+function placeOf(name) {
+  const i = name.indexOf(',')
+  return i >= 0 ? name.slice(i + 1).trim() : name.trim()
+}
+
 const attr = (tag, name) => {
   const m = new RegExp(`${name}="([^"]*)"`).exec(tag)
   return m ? m[1] : undefined
@@ -65,9 +112,12 @@ function parseZone(xml) {
       })
     }
 
+    const name = unescapeXml(attr(head, 'name') ?? '')
     zone.rooms.push({
       id: num(attr(head, 'id')),
-      name: unescapeXml(attr(head, 'name') ?? ''),
+      name,
+      kind: kindOf(name),
+      place: placeOf(name),
       x: num(attr(pos, 'x')) ?? 0,
       y: num(attr(pos, 'y')) ?? 0,
       z: num(attr(pos, 'z')) ?? 0,
@@ -82,6 +132,7 @@ mkdirSync(OUT, { recursive: true })
 const index = []
 let rooms = 0
 let arcs = 0
+let tagged = 0
 
 for (const file of readdirSync(SRC).filter((f) => f.endsWith('.xml'))) {
   const zone = parseZone(readFileSync(join(SRC, file), 'utf8').replace(/^\uFEFF/, ''))
@@ -90,6 +141,7 @@ for (const file of readdirSync(SRC).filter((f) => f.endsWith('.xml'))) {
   writeFileSync(join(OUT, `${zone.id}.json`), JSON.stringify(zone))
   rooms += zone.rooms.length
   arcs += zone.rooms.reduce((n, r) => n + r.exits.length, 0)
+  tagged += zone.rooms.filter((r) => r.kind).length
   index.push({ id: zone.id, name: zone.name, rooms: zone.rooms.length })
 }
 
@@ -97,5 +149,6 @@ index.sort((a, b) => b.rooms - a.rooms)
 writeFileSync(join(OUT, 'index.json'), JSON.stringify(index, null, 1))
 
 console.log(`${index.length} zones, ${rooms.toLocaleString()} rooms, ${arcs.toLocaleString()} exits`)
+console.log(`${tagged.toLocaleString()} rooms say what kind of place they are`)
 console.log('largest:')
 for (const z of index.slice(0, 5)) console.log(`  ${String(z.rooms).padStart(5)}  ${z.name}`)

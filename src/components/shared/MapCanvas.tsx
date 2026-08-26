@@ -22,7 +22,24 @@ import type { MapZone, MapZoneRoom } from '../../bridge/types'
  * these, so they get colour rather than a tooltip.
  */
 const HAZARD = /water|swim|drown|underwater|obstacle|climb|roundtime|rt/i
-const SERVICE = /bank|teller|exchange|healer|empath|guild|shop|repair|depart|altar|shrine/i
+const SERVICE = /bank|teller|exchange|healer|empath|guild|shop|repair|depart|altar|shrine|temple|gate|bridge|park/i
+
+/**
+ * Colour by what the place is.
+ *
+ * A map of identical boxes says where you are and nothing else. These are the
+ * things players navigate by, so they are the things that get a colour.
+ */
+const KIND_FILL: Record<string, string> = {
+  bank: 'var(--color-accent)',
+  healer: 'var(--color-good)',
+  guild: 'var(--color-info)',
+  temple: 'var(--color-info)',
+  shop: 'var(--color-ink-muted)',
+  gate: 'var(--color-warn)',
+  bridge: 'var(--color-warn)',
+  park: 'var(--color-good)',
+}
 
 /**
  * How many rooms the map draws at once.
@@ -191,7 +208,13 @@ export function MapCanvas({
               width={box}
               height={box}
               rx={Math.max(2, 3 * scale)}
-              fill={FILL[kind]}
+              fill={
+                // Where you are and where you are going outrank what a place
+                // is: a bank you are standing in should read as here first.
+                kind === 'here' || kind === 'route' || kind === 'hazard'
+                  ? FILL[kind]
+                  : (KIND_FILL[(r.tags ?? [])[0] ?? ''] ?? FILL[kind])
+              }
               stroke={
                 kind === 'here'
                   ? 'var(--color-accent)'
