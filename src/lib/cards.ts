@@ -47,6 +47,12 @@ export interface RoomCard {
   status: CardStatus
   /** Several identical nouns collapse into one card with a multiplier. */
   count: number
+  /**
+   * The lore came from the ambiguous noun index rather than an exact match,
+   * so it is what every candidate agreed on and nothing more. The card marks
+   * it, because "some troll" and "this troll" are different claims.
+   */
+  loreApproximate?: boolean
   lore?: {
     level?: number
     minCap?: number

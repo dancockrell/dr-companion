@@ -8,6 +8,7 @@
  */
 import type { CharacterStatus } from '../types'
 import type { Deck, RoomCard } from './cards'
+import { loreFor, isApproximate } from './bestiary'
 
 /**
  * The bare noun out of a display name.
@@ -32,13 +33,18 @@ function card(
   status: RoomCard['status'],
   index: number
 ): RoomCard {
+  const noun = nounOf(name)
+  // People are not in the bestiary and looking them up would be a coincidence
+  // waiting to happen: a player called Bear should not inherit a bear's level.
+  const lore = deck === 'people' ? undefined : loreFor(name, noun)
   return {
     id: `${deck}:${index}:${name}`,
     deck,
     name,
-    noun: nounOf(name),
+    noun,
     status,
     count: 1,
+    ...(lore ? { lore, loreApproximate: isApproximate(name, noun) } : {}),
   }
 }
 

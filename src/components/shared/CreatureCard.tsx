@@ -97,6 +97,16 @@ export function CreatureCard({
         <div className="mt-0.5 text-xs text-ink-muted">level {card.lore.level}</div>
       )}
 
+      {/* Where the lore came from, when it is not certain. The noun index only
+          keeps what every candidate agreed on, so these traits are true of the
+          kind rather than of this one. Saying so costs a word and stops the
+          card overclaiming. */}
+      {full && card.loreApproximate && (
+        <div className="mt-0.5 text-xs text-ink-faint" title="Matched on the noun, not the full name. These traits hold for every creature of this kind that the wiki lists.">
+          typical for the kind
+        </div>
+      )}
+
       <div className="mt-1.5 flex flex-wrap gap-1">
         {card.status === 'stunned' && <Badge tone="warn">stunned</Badge>}
         {dead && <Badge>dead</Badge>}
