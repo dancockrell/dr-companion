@@ -116,9 +116,19 @@ if (!file || !existsSync(file)) {
 }
 
 const prompts = JSON.parse(readFileSync(file, 'utf8'))
-const names = picks ?? Object.keys(prompts).slice(0, limit)
+// Anything already in the manifest is done. A run this long will be
+// interrupted — by a reboot, by needing the GPU, by a mistake — and starting
+// from the beginning each time would mean it never finishes.
+const already = new Set(Object.keys(manifestSoFar()))
+const names = picks ?? Object.keys(prompts).filter((n) => !already.has(n)).slice(0, limit)
 
 mkdirSync('data/art/out', { recursive: true })
+function manifestSoFar() {
+  return existsSync('data/art/manifest.json')
+    ? JSON.parse(readFileSync('data/art/manifest.json', 'utf8'))
+    : {}
+}
+
 const manifest = existsSync('data/art/manifest.json')
   ? JSON.parse(readFileSync('data/art/manifest.json', 'utf8'))
   : {}
@@ -145,6 +155,7 @@ for (const name of names) {
       steps: STEPS,
       checkpoint: CKPT,
     }
+    writeFileSync('data/art/manifest.json', JSON.stringify(manifest, null, 1))
     done++
     console.log(
       `  ${String(done).padStart(3)}/${names.length}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${name}`
