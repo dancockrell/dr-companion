@@ -109,11 +109,26 @@ if (cmd === 'watch') {
   sock.write(`send ${rest[0]}\n`)
   await listen(sock, secs)
 } else if (cmd === 'run') {
-  const lines = readFileSync(rest[0], 'utf8')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#'))
+  const raw = readFileSync(rest[0], 'utf8').split('\n').map((l) => l.trim())
+
+  // Comments are `//`, not `#`.
+  //
+  // The first version skipped lines starting with `#`, which is the ordinary
+  // convention and exactly wrong here: every Genie client command begins with
+  // `#`. So a script of `#echo`, `#highlight`, `#config` lines was filtered
+  // down to nothing, sent nothing, printed no error and exited 0. It reported
+  // success for doing precisely nothing, which is the same shape as every
+  // other silent-success bug and took a screenshot of the game window to
+  // notice.
+  const lines = raw.filter((l) => l && !l.startsWith('//'))
+
+  if (!lines.length) {
+    console.error(`${rest[0]} has no commands in it (comments are //, not #)`)
+    process.exit(1)
+  }
+
   const gap = Number(rest[1]) || 3
+  console.error(`sending ${lines.length} command(s)`)
   for (const line of lines) {
     console.error(`--- ${line}`)
     sock.write(`send ${line}\n`)
