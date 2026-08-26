@@ -142,6 +142,10 @@ function parseZone(xml) {
         if (how) leaves.push(how)
         continue
       }
+      // One room in the game lists the same arc twice: room 340 in Crossing
+      // has \"go auction hall\" to 343 on two lines. A duplicate arc is not a
+      // second way to get there, and it is the only one in 42,867 exits.
+      if (exits.some((x) => x.to === to && x.dir === attr(t, 'exit') && x.move === unescapeXml(attr(t, 'move') ?? ''))) continue
       exits.push({
         dir: attr(t, 'exit') ?? '',
         move: unescapeXml(attr(t, 'move') ?? ''),

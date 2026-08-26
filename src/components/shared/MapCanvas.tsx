@@ -253,7 +253,7 @@ export function MapCanvas({
           buildings, and 118 climbs. A map that cannot tell a road from a door
           is hiding what you navigate by. */}
       {rooms.map((r) =>
-        (r.links ?? (r.to ?? []).map((t) => ({ to: t, kind: 'walk' as const }))).map((link) => {
+        (r.links ?? (r.to ?? []).map((t) => ({ to: t, kind: 'walk' as const }))).map((link, li) => {
           const other = index.get(link.to)
           if (!other || (other.id ?? 0) <= (r.id ?? 0)) return null
 
@@ -266,7 +266,14 @@ export function MapCanvas({
 
           return (
             <line
-              key={`${r.id}-${link.to}-${link.kind}`}
+              // The index is in the key because the rest of it is not unique. Two
+              // exits can share a room pair and a kind and still be different
+              // moves: north and northeast both run 48 to 49, and "go
+              // mahogany gate" and "go mahogany building" are two doors into
+              // one place. There are 991 such pairs, and React was dropping one
+              // line from every one of them - 991 corridors missing from the
+              // chart, with nothing on screen to say so.
+              key={`${r.id}-${link.to}-${link.kind}-${li}`}
               x1={px(r)}
               y1={py(r)}
               x2={px(other)}
