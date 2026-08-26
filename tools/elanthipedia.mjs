@@ -677,10 +677,85 @@ async function races() {
   if (missing.length) console.log(`  no page for: ${missing.join(', ')}`)
 }
 
+/**
+ * Player character descriptions, per race.
+ *
+ * These are the in-game LOOK text that players wrote for their own characters,
+ * and they are the only source that shows how a race actually reads in play.
+ * The Concept: pages describe a race in the abstract; these show which features
+ * the game's own character generator offers and which ones players reach for.
+ *
+ * Elothean is the example that made this necessary: the Concept page never
+ * says they have unusually high foreheads, and the descriptions say it
+ * constantly.
+ *
+ * 1,549 characters across twelve races, 50 titles per content request.
+ */
+const PC_RACES = [
+  'Dwarf', 'Elf', 'Elothean', 'Gnome', "Gor'Tog", 'Gorbesh',
+  'Halfling', 'Human', 'Kaldar', 'Prydaen', 'Rakash', "S'Kra Mur",
+]
+
+/** The "You see ..." block, stripped to plain sentences. */
+function pcDescription(wikitext) {
+  const m = /==\s*Description\s*==\s*\n([\s\S]*?)(?=\n==|$)/i.exec(wikitext)
+  if (!m) return null
+  const text = m[1]
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')
+    .replace(/'''?/g, '')
+    .replace(/\{\{[^}]*\}\}/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  // Anything shorter than this is a stub or an empty infobox, not a look.
+  return text.length > 60 ? text : null
+}
+
+async function pcs() {
+  const out = {}
+
+  for (const race of PC_RACES) {
+    const list = await api({
+      action: 'query',
+      list: 'categorymembers',
+      cmtitle: `Category:Player ${race}`,
+      cmlimit: '500',
+      cmtype: 'page',
+    })
+    const names = (list.query?.categorymembers ?? []).map((x) => x.title)
+    const found = []
+
+    for (let i = 0; i < names.length; i += 50) {
+      const json = await api({
+        action: 'query',
+        prop: 'revisions',
+        rvprop: 'content',
+        rvslots: 'main',
+        titles: names.slice(i, i + 50).join('|'),
+      })
+      for (const page of json.query?.pages ?? []) {
+        const text = page.revisions?.[0]?.slots?.main?.content
+        if (!text) continue
+        const d = pcDescription(text)
+        if (d) found.push({ name: page.title, look: d })
+      }
+    }
+
+    out[race] = found
+    console.log(`  ${race.padEnd(11)} ${String(found.length).padStart(4)} of ${names.length}`)
+  }
+
+  save('pcs', out)
+  const total = Object.values(out).reduce((n, a) => n + a.length, 0)
+  console.log(`saved ${total} descriptions`)
+}
+
 const cmd = process.argv[2] ?? 'status'
 if (cmd === 'index') await index()
 else if (cmd === 'full') await full()
 else if (cmd === 'update') await update()
 else if (cmd === 'bestiary') await bestiary()
 else if (cmd === 'races') await races()
+else if (cmd === 'pcs') await pcs()
 else status()

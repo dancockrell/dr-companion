@@ -1,0 +1,124 @@
+{
+  "Human": {
+    "build": "average height and build",
+    "face": "unremarkable features, the baseline the other races are described against",
+    "note": "no distinctive term appears above chance. That is the correct result.",
+    "prompt": "average height and build, unremarkable features, the baseline the other races are described against",
+    "evidence": {
+      "creation": "The figure speaks: \"I am Human, the middle road of the races. We have the potential for skill in all things, though the others may best us in one or another. We are less strong than some and not as fast as others, yet our kind prospers. For while we may lack some of the advantages of the others, we also lack their disadavantages....\" You regard the form of the Human figurine. Of moderate height; shorter than the Gor'Tog and Kaldar, but taller than Halflings, Dwarves, and Gnomes. Almost the center of all the possible variations you see before you are in this Human form.",
+      "lookSamples": 95,
+      "example": "You see Healer Axiarra Avondaine, a Human Empath. She has thick-lashed leaf-green eyes. Her red-gold hair is very long and thick, and is worn in a deceptively careless-looking arrangement of upswept locks held in place by a pair of silver hairsticks. She has fair skin and a slender figure. She is sl"
+    }
+  },
+  "Elf": {
+    "build": "tall, slender, long-limbed",
+    "face": "sharply pointed ears, fine features, wavy hair often worn long",
+    "note": "pointed ears in 95% of descriptions, the single strongest marker of any race",
+    "prompt": "tall, slender, long-limbed, sharply pointed ears, fine features, wavy hair often worn long",
+    "evidence": {
+      "creation": "The Elf figurine speaks in a voice light in tone, yet deep with age and wisdom: \"Elven am I. Not as bulky as the Dwarves and not as strong as the Humans, but faster than both and smarter. Speed and agility are ours, both in the mind and the body. We are children of the living world: all the sides of nature define us, from the hard beauty of the snowy wastes in the mountains to the lush silence of the deepest, darkest forests. When all the other races have dwindled and died, the light of the Elvenkind will remain.\" You regard the Elven form: A shade taller than the Human, it is willowy and graceful, aesthetically pleasing. The eyes sparkle with light-hearted joy, and a civilized air surrounds the Elf, a vital aura of age and refinement.",
+      "lookSamples": 80,
+      "example": "You see Aveda, Legendary Bard of the Ilithi Infantry, an Elf. Aveda has pointed ears and jade eyes. Her bright orange hair is shoulder length and straight, and is worn loose, tucked behind her ears. She has fair skin and a slender figure. She is young for an Elf. She has a tattoo of a bleeding heart"
+    }
+  },
+  "Dwarf": {
+    "build": "short, broad, heavily muscled",
+    "face": "square-jawed, thick braided beard and moustache, bushy brows",
+    "note": "beard and moustache both 67%, braids 47%",
+    "prompt": "short, broad, heavily muscled, square-jawed, thick braided beard and moustache, bushy brows",
+    "evidence": {
+      "creation": "The Dwarf figurine speaks: \"From the bones of the earth did the gods form us, the Dwarves, children of the mountains and the hardiest of all the sentient creations. What we lack in agility and height we make up for in strength and stamina. We are steadfast, enduring, and fatigue rarely troubles us. The earth cradles us; it is where we prefer to make our homes. When we set ourselves on a path none can sway us -- other than ourselves.\" You regard the form of the Dwarf figurine. Short and wide, a long beard descends from its face in many curls and braids. The eyes regard you unflinchingly, without fear or regret. Strength and power reside in this form.",
+      "lookSamples": 15,
+      "example": "==Timeline== {| class=\"wikitable\" cellpadding=\"2\" style=\"float:center; width:500px; background:#0099FF; margin-right:2em; margin-bottom:2em; border-spacing:1px; |- ! style=\"background:#0000CC;\" | Date !! style=\"background:#0000CC;\" | Information |}"
+    }
+  },
+  "Halfling": {
+    "build": "small, round, soft-featured",
+    "face": "curly hair, rosy cheeks, round open face",
+    "note": "curly 58%, short 50%, rosy and round well above baseline",
+    "prompt": "small, round, soft-featured, curly hair, rosy cheeks, round open face",
+    "evidence": {
+      "creation": "The Halfling figurine speaks, a bubbly, high-toned voice that is overrun with jovial humor. \"Clever Halfling am I! Strength I have not, and height I have not, and really, I'm not all that skilled in magic -- but clever, clever, clever is this one! We are the curious, the ingenious, the solver of riddles! Always have we an eye on the humor in things, for life is too short to be spent on brooding! Lanival gave all the lands to us, so all places are ours. Our curiosity untangles the knots that bind and finds that which is not yet lost. What we lack in power and height we make up with skill and accuracy and dexterity.\" Though short -- half the size of the Human and smaller than the Dwarves -- the Halfling radiates a confidence, merriment, and awareness of the world that makes up for size. Bright eyes twinkle with suppressed laughter.",
+      "lookSamples": 12,
+      "example": "You are Olethea of Elanthia, a Halfling. You have milky blue eyes. Your auburn hair is shoulder length and straight, and is worn loosely piled atop your head. You have fair skin. You are wearing a clinging hip-length blue silk tunic with silvery lace trim, a lemon-yellow spidersilk skirt with white "
+    }
+  },
+  "Gnome": {
+    "build": "very small, wiry, quick",
+    "face": "sharp inquisitive features, unruly hair, tinkerer’s clutter of tools and pouches",
+    "note": "tinker 38% at nineteen times baseline; the craft reads as the race",
+    "prompt": "very small, wiry, quick, sharp inquisitive features, unruly hair, tinkerer’s clutter of tools and pouches",
+    "evidence": {
+      "creation": "The figure speaks in a clear, light voice: \"I am a Gnome, perhaps one of the smallest of all that the gods ever created, but definitely the fastest, lightest, and the most nimble. Invention is my genius, but it is not my only skill. Let the others bash their heads against the world trying to make it do what it wants -- we know the truth. Gnomes manipulate rather than force, persuade instead of pummel. If you want to undo a knot by hacking it to death, get a 'Tog. If you want it unraveled, get a Gnome.\" You regard the small Gnome. Tiny in comparison to a Human or Kaldar, it is a shade shorter than the Halfling with an exuberance similar to that race, except that in the place of overbearing bubbliness is a razor-keen wit. The Gnome's ears are slightly pointed, and its fingers are constantly twitching, as if it were eager to be doing something.",
+      "lookSamples": 16,
+      "example": "==Background== Kadru is a gnome and a self-identified Albaria loyalist. He was taken \"against his will\" at the age of four from his home (by his parents) and moved with the Kaldar migration into Kermoria. Since entering adulthood, he has come to identify more with his Albarian heritage and constantl"
+    }
+  },
+  "Gor'Tog": {
+    "build": "very tall, massive, powerfully built, the largest of the races",
+    "face": "heavy brow, broad blunt features, green-toned skin",
+    "note": "few written looks (9); the creation prose carries this one",
+    "prompt": "very tall, massive, powerfully built, the largest of the races, heavy brow, broad blunt features, green-toned skin",
+    "evidence": {
+      "creation": "For a moment, nothing appears to happen. Then, slowly, the Gor'Tog figurine begins to speak in a deep rumbling voice, the words carefully chosen: \"I am Gor'Tog. Gor'Tog is strength. Gor'Tog is endurance. Gor'Tog needs not magic or cleverness, Gor'Tog has much trust in self. Elven are faster, but Gor'Tog does not need fast, Gor'Tog has might. Dwarven are strong but Gor'Tog is stronger. Halfling is clever but Gor'Tog finds the straight way, no need for tricks.\" You gaze at this slow-worded being. Tall and well-muscled, dark green skin covers a massive, hairless frame. Dark eyes look out, lacking sparkle perhaps, but forthright and true in many ways. Like an enduring oak tree or massive boulder, the Gor'Tog radiates a sense of solidity and permanence.",
+      "lookSamples": 9,
+      "example": "You see Snout Rapper Drevid Thaddom, Troublemaker of The Locksmith Union, a Gor'Tog. He has laugh lines and dark eyes. He has bronze-green skin and an athletic build. He has a tattoo of a red ribbon with the word \"MOM\" stitched onto it on his arm. He is wearing some gargoye-hide leathers tooled with"
+    }
+  },
+  "S'Kra Mur": {
+    "build": "lean, upright, long muscular tail",
+    "face": "scaled hide, elongated snout, slitted eyes, ridged crest",
+    "note": "scales 93%, slitted 87%, snout 63%; tailbands are common jewellery",
+    "prompt": "lean, upright, long muscular tail, scaled hide, elongated snout, slitted eyes, ridged crest",
+    "evidence": {
+      "creation": "The S'Kra Mur figurine opens hooded eyes and gazes at you. A sibilant voice issues forth: \"I am of the S'Kra Mur. We are the ssserpent folk. While we have two arms, two legs, a torso, and a head like any of the other races, our smile is the serpent's smile, our scales the serpent's scales, and our eyes the serpent's eyes. We strike like the snake with its agility and grace, and calculate our moves with the cold method that resides in our very blood. We are dangerous to encounter, and even more dangerous to cross.\" The S'Kra Mur stands tall and lithe, cold skin glistening with a faint tracery of scales. Slitted pupils slash its eyes down the middle and a short tail curls restlessly behind it. A chill presence lurks within its gaze, at once vaguely repulsive and strangely hypnotic.",
+      "lookSamples": 30,
+      "example": "You see Akariss Shhoiyvvhur'Slo, a S'Kra Mur. Akariss has a sharp-featured face, slitted silver eyes and a slender snout, black scales, a long tail and an athletic build. He is very tall for a S'Kra Mur. He is middle-aged for a S'Kra Mur. He is in good shape. He is wearing a deeply-cowled cape of bl"
+    }
+  },
+  "Prydaen": {
+    "build": "human height, slender, digitigrade, long tail",
+    "face": "short smooth fur over the whole body, feline muzzle, slitted eyes, pointed ears, mane",
+    "note": "mane 85%, tail 85%, slitted 85%; fur is never mentioned in the lore section",
+    "prompt": "human height, slender, digitigrade, long tail, short smooth fur over the whole body, feline muzzle, slitted eyes, pointed ears, mane",
+    "evidence": {
+      "creation": "With a yawn, the figure stretches and rolls its head fluidly to the left to regard you. It purrs out, \"Prydaen am I, the proudest and most graceful of all. Unwavering and fearless, I fight for what is mine...which is, of course, everything. My reflexes are by far the best of all the races, and I am certainly the most beautiful. Not brutishly strong, but then, what's strength if you can't hit anything? Magic is within my grasp, though I excel at the fighting arts. I hunt and stalk in the darkness, my footfalls soft and sure. When alone, I am the happiest.\" The Prydaen is about the same height as a Human with short, smooth fur covering its body that you at first mistake for skin. Bright, inquisitive slitted eyes peer out at you, and the Prydaen's pointed and tufted ears are always twitching, as is its long tail. The glint of claws draws your eyes to its hands, but not for long. Raising your head to meet the Prydaen's gaze, you find it hard to hold, and eventually look away, the Prydaen's fixed smile silently laughing at you.",
+      "lookSamples": 55,
+      "example": "You see Minstrel Ciaraa Niahm, a Prydaen Bard. She has pointed ears and cat-slitted bright violet eyes. She has a blue-black mane is long and thick, and is worn tied back. She has black fur with silver points, a slender tail and a lissome figure. She has a dancing pattern of glittering painted music"
+    }
+  },
+  "Rakash": {
+    "build": "human build in manskin, heavier and lupine in moonskin",
+    "face": "human features most of the month; under a full Katamba, fur, muzzle and tail",
+    "note": "two forms. Default to manskin unless the scene calls for moonskin.",
+    "prompt": "human build in manskin, heavier and lupine in moonskin, human features most of the month; under a full Katamba, fur, muzzle and tail",
+    "evidence": {
+      "creation": "A deep, growling voice emits from the figure: \"Rakash I am, the hunter who is happiest when she is with her pack. We live for the family, fight for the family, die for the family. No king can break us up, no god can destroy us. In ones and twos we may sometimes travel, but our happiness is complete when we are. The other races try to understand us, but cannot, for in their minds they are examining us in the singular. We discovered the truth long ago when we learned that we are strongest when united. Strength have I, and endurance, and speed. Whether I hunt with steel or with spell, all that matters is that I do what I do for the pack!\" The Rakash is of moderate height and seems to shift between a humanoid with a furry coat and a short snout and a Human with deep, soulful eyes. Both forms gaze at you with a combination of strength and loyalty, and there is a down-to-earth sensibility about this race present in only a few of the others. In its half-Human form, a short tail sweeps down behind the Rakash, stopping just short of the ground it stands on, and its ears are tall and curved, constantly twitching at the smallest sounds.",
+      "lookSamples": 31,
+      "example": "You are Mercenary Galren Rippentropp, Warlord of the Therengia Infantry, a Rakash. You have crystal green eyes. Your black hair is shoulder length and thick, and is worn arranged in oiled spikes. You have tanned skin. You are very tall for a Rakash. You are in good shape. You are wearing a spiked he"
+    }
+  },
+  "Kaldar": {
+    "build": "tall, broad, physically imposing",
+    "face": "weathered, strong-boned, hair worn tied back, worked brass and copper ornament",
+    "note": "barbarian 25%, height 38%; a cold-country people, not a brutish one",
+    "prompt": "tall, broad, physically imposing, weathered, strong-boned, hair worn tied back, worked brass and copper ornament",
+    "evidence": {
+      "creation": "The figure chuckles as you gaze at it. \"I am a Kaldar, though some consider me little more than a glorified Human. Obviously the originator of such thought was probably him- or herself a Human who was jealous of my strength and stamina. Humans may be diverse, but in combat they cannot hope to best a Kaldar. We are terrible to behold in battle, having been weaned on it since childhood. Cities cannot hold us -- we laugh at the storm and sneer at those who would shiver behind walls during the winter. If you want to be raised soft or waggle your fingers at every shadow that makes you whimper, be born a Human or an Elf. If you want strength and determination, choose me!\" An aura of mystery surrounds this tall, limber figure. While at first glance it seems little more than Human on a grand scale, the Kaldar is endowed with a stalwart spirit that reminds you more of the Dwarves. Sardonic humor lurks in its eyes, coupled with a sense of determination and unfaltering will.",
+      "lookSamples": 16,
+      "example": "You are Sir Martslyis, Defender of the Faith, a Kaldaran Paladin. You have crystal green eyes. Your platinum hair is long and thick, and is worn tied back. You have copper skin. You are very tall for a Kaldar. You have a thick bushy mustache that droops heavily on your upper lip and a long shaggy be"
+    }
+  },
+  "Elothean": {
+    "build": "very tall and very thin, gaunt, fine-boned, upright and composed",
+    "face": "high domed forehead with a far-receding hairline, long narrow face, tilted almond-shaped eyes, straight fine hair worn long and pulled back, or absent from the crown entirely",
+    "dress": "wrap-front robe closed with a wide sash, layered under-robe, gathered knee-length trousers, wrapped lower legs, split-toe footwear",
+    "note": "almond 56% and tilted 53% in player looks, against 3-13% elsewhere. The forehead appears in none of those looks, because it is not a selectable feature: it is inherent to the race, so nobody types it. It is unmistakable in the official art, which is where that line comes from. The culture is where the game keeps its Japanese-derived items: 242 kimonos, 20 katanas, plus wakizashi, tanto, naginata, nodachi and tsuba-hilted blades. Bearing is studied and openly superior, in their own words the most exalted of all the races.",
+    "prompt": "very tall and very thin, gaunt, fine-boned, upright and composed, high domed forehead with a far-receding hairline, long narrow face, tilted almond-shaped eyes, straight fine hair worn long and pulled back, or absent from the crown entirely, wrap-front robe closed with a wide sash, layered under-robe, gathered knee-length trousers, wrapped lower legs, split-toe footwear",
+    "evidence": {
+      "creation": "The Elothean figurine begins to speak, words soft and serene: \"I am Elothean. Some call us half-Human or half-Elven, but our religions tell us the truth. From the thought of the gods was our race born, and though others would want it otherwise, we remain their favored children. Our will is powerful, our skills in magic and knowledge the most exalted of all the races. We are agile when needed but we prefer to use our minds instead of force. Our paths are the ways of magic, scholarship, and lore. Calm and studied are we, neither hasting or wasting, we pursue our goals logically and skillfully.\" The Elothean stands tall and thin with large eyes that drink in every detail, examining you, weighing you, appraising you, knowing more about you, perhaps, than you yourself know. There is a sense of control about this one. A sense of well-managed power.",
+      "lookSamples": 32,
+      "example": "You are Divine Essence Entyycement Kentura of the House of the Waxen Moons, an Elothean Cleric. You have tilted almond-shaped crystal blue eyes. Your blue-black hair is very long and straight, and is worn pulled back in a ponytail. You have pale skin. You have a tattoo of a brightly glowing unicorn "
+    }
+  }
+}
