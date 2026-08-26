@@ -1,3 +1,10 @@
-* text=auto eol=lf
-*.png binary
-*.ico binary
+# Windows script files must keep CRLF.
+#
+# cmd.exe mis-parses LF-only .cmd and .bat files, and the failure is
+# misleading: it reports something unrelated, such as a broken interpreter
+# path, rather than a line-ending problem. Git would otherwise normalise these
+# to LF on checkout and the launcher would stop working for reasons nobody
+# could see in the file.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
