@@ -21,7 +21,7 @@
  * needs no help.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
-import { NEGATIVE } from './art-safety.mjs'
+import { CLOTHED_CREATURE, NEGATIVE, isHumanoid } from './art-safety.mjs'
 
 const IN = 'data/elanthipedia/bestiary.json'
 const OUT = 'data/art/creature-prompts.json'
@@ -144,7 +144,12 @@ for (const [name, v] of Object.entries(raw)) {
   out[name] = {
     source: described ? 'wiki+name' : 'name',
     lore: described || null,
-    prompt: [subject, body, GRIT, STYLE].filter(Boolean).join(', '),
+    // Anything with a torso is dressed. The negative prompt alone did not
+    // hold: the fire maiden shipped topless with "nude, topless, bare
+    // breasts" sitting in it, the same way the portraits did.
+    prompt: [subject, body, isHumanoid(name, v.description) ? CLOTHED_CREATURE : null, GRIT, STYLE]
+      .filter(Boolean)
+      .join(', '),
     negative: NEGATIVE,
     seed: seedOf(name),
     width: 832,
