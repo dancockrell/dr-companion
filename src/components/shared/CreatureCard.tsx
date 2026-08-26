@@ -47,11 +47,11 @@ export function CreatureCard({
         {band}
         <span className="absolute inset-y-0 left-1 flex w-[18px] flex-col items-center justify-start gap-1 pt-1.5">
           {card.status === 'stunned' && <span className="h-1.5 w-1.5 rounded-full bg-warn" />}
-          <span className="text-[11px] font-semibold leading-none text-ink">
+          <span className="text-xs font-semibold leading-none text-ink">
             {card.name.charAt(0).toUpperCase()}
           </span>
           {card.count > 1 && (
-            <span className="text-[10px] leading-none text-ink-faint">{card.count}</span>
+            <span className="text-xs leading-none text-ink-faint">{card.count}</span>
           )}
         </span>
       </button>

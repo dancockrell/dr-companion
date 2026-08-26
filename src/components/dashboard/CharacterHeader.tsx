@@ -10,7 +10,8 @@
 import { MapPin } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { Badge } from '../shared/Badge'
-import { VitalBar } from '../shared/VitalBar'
+import { VitalCluster, type Vital } from '../shared/VitalCluster'
+import { Paperdoll } from '../shared/Paperdoll'
 import type { CharacterStatus } from '../../types'
 
 const TIER_LABEL: Record<string, string> = {
@@ -30,6 +31,48 @@ function tierTone(tier: string) {
 export function CharacterHeader({ character }: { character: CharacterStatus }) {
   const uiMode = useAppStore((s) => s.uiMode)
   const setUiMode = useAppStore((s) => s.setUiMode)
+
+  // Concentration only appears for guilds that have it, so it is not padded
+  // into the row with a zero: an empty gauge reads as "you have none left"
+  // rather than "this does not apply to you".
+  const vitals: Vital[] = [
+    {
+      key: 'health',
+      glyph: 'H',
+      label: 'Health',
+      value: character.vitals.health,
+      max: character.vitals.healthMax,
+      tone: 'health',
+    },
+    {
+      key: 'spirit',
+      glyph: 'S',
+      label: 'Spirit',
+      value: character.vitals.spirit,
+      max: character.vitals.spiritMax,
+      tone: 'spirit',
+    },
+    {
+      key: 'fatigue',
+      glyph: 'F',
+      label: 'Fatigue',
+      value: character.vitals.fatigue,
+      max: character.vitals.fatigueMax,
+      tone: 'stamina',
+    },
+    ...(character.vitals.concentrationMax
+      ? [
+          {
+            key: 'concentration',
+            glyph: 'C',
+            label: 'Concentration',
+            value: character.vitals.concentration ?? 0,
+            max: character.vitals.concentrationMax,
+            tone: 'concentration' as const,
+          },
+        ]
+      : []),
+  ]
 
   const lowHealth = character.vitals.health / character.vitals.healthMax < 0.35
 
@@ -98,24 +141,16 @@ export function CharacterHeader({ character }: { character: CharacterStatus }) {
         </div>
       )}
 
-      <div className="space-y-2">
-        <VitalBar
-          label="Health"
-          value={character.vitals.health}
-          max={character.vitals.healthMax}
-          tone="health"
-        />
-        <VitalBar
-          label="Spirit"
-          value={character.vitals.spirit}
-          max={character.vitals.spiritMax}
-          tone="spirit"
-        />
-        <VitalBar
-          label="Fatigue"
-          value={character.vitals.fatigue}
-          max={character.vitals.fatigueMax}
-          tone="fatigue"
+      {/* Vitals and body side by side, because neither needs width and the
+          header is competing with the map for every pixel. Three stacked
+          full-width bars cost 120px of height; this is 100px and carries the
+          doll as well. See DESIGN.md S6. */}
+      <div className="flex items-start gap-3">
+        <VitalCluster vitals={vitals} />
+        <Paperdoll
+          injuries={character.injuries ?? {}}
+          height={62}
+          known={character.injuries !== undefined}
         />
       </div>
 

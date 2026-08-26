@@ -1,4 +1,14 @@
 import { cn } from '../../lib/cn'
+import {
+  BODY_PARTS,
+  PRETTY,
+  SEVERITY_LABEL,
+  type BodyPart,
+  type Injury,
+  type Severity,
+} from '../../lib/body'
+
+export type { BodyPart, Injury, Severity } from '../../lib/body'
 
 /**
  * The paperdoll, at a size that does not cost a column.
@@ -18,38 +28,6 @@ import { cn } from '../../lib/cn'
  * Nothing is labelled on the doll. At this size text would break the 12px
  * floor in S1.5, so the part name lives in the title attribute.
  */
-export type Severity = 0 | 1 | 2 | 3
-
-export interface Injury {
-  wound: Severity
-  scar: Severity
-}
-
-export const BODY_PARTS = [
-  'head', 'neck', 'chest', 'abdomen', 'back',
-  'leftArm', 'rightArm', 'leftHand', 'rightHand',
-  'leftLeg', 'rightLeg', 'leftFoot', 'rightFoot',
-  'leftEye', 'rightEye', 'nsys',
-] as const
-
-export type BodyPart = (typeof BODY_PARTS)[number]
-
-export const SEVERITY_LABEL: Record<Severity, string> = {
-  0: 'unhurt',
-  1: 'minor',
-  2: 'serious',
-  3: 'severe',
-}
-
-const PRETTY: Partial<Record<BodyPart, string>> = {
-  leftArm: 'left arm', rightArm: 'right arm',
-  leftHand: 'left hand', rightHand: 'right hand',
-  leftLeg: 'left leg', rightLeg: 'right leg',
-  leftFoot: 'left foot', rightFoot: 'right foot',
-  leftEye: 'left eye', rightEye: 'right eye',
-  nsys: 'nervous system',
-}
-
 /** Boxes on a 60x100 grid. Crude on purpose: it reads as a body at 90px tall. */
 const LAYOUT: Record<Exclude<BodyPart, 'nsys'>, [number, number, number, number]> = {
   head: [24, 2, 12, 11],
@@ -142,7 +120,7 @@ export function Paperdoll({
         className="flex flex-col items-center gap-0.5"
         title={`nervous system: ${SEVERITY_LABEL[nsys.wound]}`}
       >
-        <span className="text-[10px] leading-none text-ink-faint">n</span>
+        <span className="text-xs leading-none text-ink-faint">n</span>
         <span
           className={cn(
             'h-3 w-3 rounded-full border',

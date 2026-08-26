@@ -87,7 +87,7 @@ export function CardDeck({
                 : `density: pinned to ${pref}. Click for the next.`
             }
             className={cn(
-              'ml-auto rounded px-1 text-[10px] leading-4 transition-colors',
+              'ml-auto rounded px-1 text-xs leading-4 transition-colors',
               pref === 'auto'
                 ? 'text-ink-faint hover:text-ink-muted'
                 : 'bg-surface-overlay text-accent'

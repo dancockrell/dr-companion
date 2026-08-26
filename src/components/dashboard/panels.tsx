@@ -8,6 +8,7 @@
  */
 import type { ReactNode } from 'react'
 import {
+  Users,
   Map as MapIcon,
   Zap,
   Brain,
@@ -22,6 +23,9 @@ import { TrainingPanel } from '../shared/TrainingPanel'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { RiskBar } from '../shared/RiskBar'
 import { ScriptLauncher } from '../shared/ScriptLauncher'
+import { RoomPanel } from '../shared/RoomPanel'
+import type { Deck } from '../../lib/cards'
+import type { DeckPref } from '../../lib/layout'
 
 export const PANEL_TITLES: Record<PanelId, string> = {
   actions: 'Actions',
@@ -31,6 +35,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   risk: 'Risk',
   launcher: 'Activities',
   vitals: 'Vitals',
+  room: 'Room',
 }
 
 export const PANEL_ICONS: Record<PanelId, ReactNode> = {
@@ -41,6 +46,7 @@ export const PANEL_ICONS: Record<PanelId, ReactNode> = {
   risk: <ShieldAlert className="w-3.5 h-3.5" />,
   launcher: <ListChecks className="w-3.5 h-3.5" />,
   vitals: <Zap className="w-3.5 h-3.5" />,
+  room: <Users className="w-3.5 h-3.5" />,
 }
 
 /**
@@ -48,7 +54,20 @@ export const PANEL_ICONS: Record<PanelId, ReactNode> = {
  * @param filled The panel has a window or a plane to itself, so it should fill
  *   the height it is given rather than sizing to a box inside one.
  */
-type Render = (dense: boolean, filled: boolean) => ReactNode
+/**
+ * Panel-specific state the dashboard owns.
+ *
+ * Threaded in rather than read from a second useLayout inside the panel.
+ * Two copies of the layout in one window would each hold a stale view of
+ * the other, and the next write from either would quietly drop whatever
+ * the other had changed.
+ */
+export interface PanelContext {
+  deckPrefs?: Partial<Record<Deck, DeckPref>>
+  onCycleDeck?: (deck: Deck) => void
+}
+
+type Render = (dense: boolean, filled: boolean, ctx?: PanelContext) => ReactNode
 
 export const PANEL_CONTENT: Record<PanelId, Render> = {
   actions: (dense) => <ActionsPanel dense={dense} />,
@@ -60,6 +79,9 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
   // Vitals live in the fixed header: identity and health are the two things
   // that must never be closed by accident.
   vitals: () => null,
+  room: (_dense, _filled, ctx) => (
+    <RoomPanel deckPrefs={ctx?.deckPrefs} onCycleDeck={ctx?.onCycleDeck} />
+  ),
 }
 
 export function panelTitle(id: PanelId): string {

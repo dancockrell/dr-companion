@@ -12,6 +12,7 @@
 import { useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { PANEL_CONTENT, panelTitle } from './dashboard/panels'
+import { useLayout } from '../lib/useLayout'
 import type { PanelId } from '../lib/layout'
 
 export function PanelWindow({ id }: { id: PanelId }) {
@@ -24,6 +25,7 @@ export function PanelWindow({ id }: { id: PanelId }) {
     connectBridge()
   }, [connectBridge])
 
+  const { layout, cycleDeck } = useLayout(uiMode)
   const render = PANEL_CONTENT[id]
 
   if (!render) {
@@ -37,7 +39,10 @@ export function PanelWindow({ id }: { id: PanelId }) {
   return (
     <div className="h-full w-full bg-surface text-ink flex flex-col min-h-0">
       <div className="flex-1 min-h-0 overflow-auto p-3">
-        {render(uiMode === 'power', true)}
+        {render(uiMode === 'power', true, {
+          deckPrefs: layout.decks,
+          onCycleDeck: cycleDeck,
+        })}
       </div>
     </div>
   )

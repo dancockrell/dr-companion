@@ -20,6 +20,11 @@ import { cn } from '../../lib/cn'
  * Colour never carries anything alone. At low levels the column also gains a
  * notch at the danger line, so a player who cannot separate the reds still
  * sees the shape change.
+ *
+ * Nothing here drops below 12px. The first version used 10px to save width and
+ * failed the type-floor check, which is exactly the audience this floor exists
+ * for: mid-forties to sixties, reading a number that tells them whether they
+ * are about to die.
  */
 export interface Vital {
   key: string
@@ -68,10 +73,10 @@ export function VitalCluster({
         return (
           <div
             key={v.key}
-            className="flex w-6 flex-col items-center gap-0.5"
+            className="flex w-7 flex-col items-center gap-0.5"
             title={`${v.label} ${v.value} of ${v.max} (${pct}%)`}
           >
-            <span className="text-[10px] leading-none text-ink-faint">{v.glyph}</span>
+            <span className="text-xs leading-none text-ink-faint">{v.glyph}</span>
 
             <div
               className="relative w-full overflow-hidden rounded-sm border border-border bg-surface"
@@ -93,7 +98,7 @@ export function VitalCluster({
 
             <span
               className={cn(
-                'text-[10px] font-medium leading-none tabular-nums',
+                'text-xs font-medium leading-none tabular-nums',
                 danger ? 'text-danger' : 'text-ink-muted'
               )}
             >

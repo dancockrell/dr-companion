@@ -20,6 +20,7 @@ export type PanelId =
   | 'inventory'
   | 'risk'
   | 'launcher'
+  | 'room'
 
 export interface PanelState {
   /** Collapsed to its title bar. */
@@ -74,14 +75,14 @@ function autoDecks(): Record<Deck, DeckPref> {
  */
 const DEFAULTS: Record<UiMode, Layout> = {
   basic: {
-    order: ['vitals', 'map', 'actions', 'training', 'inventory', 'launcher', 'risk'],
+    order: ['vitals', 'map', 'room', 'actions', 'training', 'inventory', 'launcher', 'risk'],
     panels: { map: { height: 200 } },
     mapPlane: true,
     mapSplit: 0.5,
     decks: autoDecks(),
   },
   power: {
-    order: ['vitals', 'actions', 'map', 'risk', 'training', 'inventory', 'launcher'],
+    order: ['vitals', 'room', 'actions', 'map', 'risk', 'training', 'inventory', 'launcher'],
     panels: { map: { height: 260 } },
     mapPlane: true,
     mapSplit: 0.55,

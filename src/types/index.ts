@@ -1,3 +1,4 @@
+import type { BodyPart, Injury } from '../lib/body'
 /** Core domain types for DR Companion — mirrors design document awareness model */
 
 import type { SkillState } from '../data/skills'
@@ -102,11 +103,29 @@ export interface CharacterStatus {
   skillRanks?: number
   location: LocationInfo
   vitals: Vitals
+  /**
+   * Sixteen body parts, each with a wound and a scar, 0-3.
+   *
+   * Optional because absent is not the same as uninjured: right after login
+   * the parse may not have run, and a doll showing a clean bill of health it
+   * has not actually seen is worse than one admitting it does not know.
+   */
+  injuries?: Partial<Record<BodyPart, Injury>>
   situation: SituationFlag[]
   activity: string
   connected: boolean
   /** Other players in the room. Hunting grounds are contested. */
   roomPlayers?: string[]
+  /**
+   * Living creatures, from DRRoom.npcs. Display names as the game wrote
+   * them; the noun for art and bestiary lookup is derived, not sent.
+   */
+  roomCreatures?: string[]
+  /** Corpses, from DRRoom.dead_npcs. They stay on screen: a skinnable one
+   * with boxes is a task, not a footnote. */
+  roomDeadCreatures?: string[]
+  /** Summons, pets and familiars fighting on your side. */
+  roomAllies?: string[]
   groupMembers?: string[]
   /**
    * Bridge-side clock, seconds. An open socket does not mean a live game; if

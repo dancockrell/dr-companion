@@ -29,7 +29,7 @@ import { PANEL_CONTENT, PANEL_ICONS, PANEL_TITLES } from './panels'
 export function Dashboard() {
   const character = useAppStore((s) => s.character)
   const uiMode = useAppStore((s) => s.uiMode)
-  const { layout, reorder, update, setSplit } = useLayout(uiMode)
+  const { layout, reorder, update, setSplit, cycleDeck } = useLayout(uiMode)
 
   // Which panel is in the hand, and where it would land. Held here rather than
   // in each Panel so the insertion line can be drawn on a different panel from
@@ -197,7 +197,7 @@ export function Dashboard() {
             onToggle={() => update(id, { closed: !state.closed })}
             onResize={(h) => update(id, { height: h || undefined })}
           >
-            {render(dense, false)}
+            {render(dense, false, { deckPrefs: layout.decks, onCycleDeck: cycleDeck })}
           </Panel>
         )
       })}
