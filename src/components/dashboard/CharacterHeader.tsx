@@ -44,9 +44,16 @@ export function CharacterHeader({ character }: { character: CharacterStatus }) {
           </h1>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <Badge tone="accent">{character.instance}</Badge>
-            <Badge tone={tierTone(character.accountTier)}>
-              {TIER_LABEL[character.accountTier] ?? character.accountTier}
-            </Badge>
+            {/* Only when it gates something.
+                A pill reading "Basic" sat next to a mode toggle also reading
+                "Basic", and told the player nothing either way: they know what
+                they pay for. F2P is different, because it locks the character
+                to one province and changes what this app is allowed to offer. */}
+            {character.accountTier === 'f2p' && (
+              <Badge tone={tierTone(character.accountTier)}>
+                {TIER_LABEL[character.accountTier] ?? character.accountTier}
+              </Badge>
+            )}
             <Badge tone={character.connected ? 'good' : 'danger'}>
               {character.connected ? 'Connected' : 'Offline'}
             </Badge>
@@ -98,7 +105,6 @@ export function CharacterHeader({ character }: { character: CharacterStatus }) {
       )}
 
       <div className="flex items-center justify-between text-sm">
-        <span className="text-ink-muted">Status</span>
         <span
           className={
             lowHealth

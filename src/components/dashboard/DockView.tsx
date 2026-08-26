@@ -3,7 +3,6 @@ import { cn } from '../../lib/cn'
 import {
   activate,
   foldCramped,
-  measure,
   moveBoundary,
   type Dock,
 } from '../../lib/dock'
@@ -59,7 +58,6 @@ export function DockView({
   // arrangement the player chose survives a window they made narrow and then
   // wide again. Their layout is the input; what fits is a view of it.
   const shown = extent > 0 ? foldCramped(dock, extent) : dock
-  const sizes = extent > 0 ? measure(shown, extent) : []
 
   const onMove = useCallback(
     (e: PointerEvent) => {
@@ -117,7 +115,9 @@ export function DockView({
           // two lists interleave without having to be built as one.
           style={{
             order: i * 2,
-            [horizontal ? 'width' : 'height']: sizes[i] ? `${sizes[i]}px` : undefined,
+            flexGrow: region.size,
+            flexShrink: 1,
+            flexBasis: 0,
           }}
         >
           {/* Tabs only where there is a deck. A single panel does not need a

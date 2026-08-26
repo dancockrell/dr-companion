@@ -34,7 +34,7 @@ const ok = (label, cond, detail = '') => {
 const shape = (d) => d.regions.map((r) => r.panels.join('+')).join(' | ')
 
 console.log('-- wide enough: everything keeps its own region --')
-let dock = m.dockOf(['map', 'room', 'actions'])
+let dock = m.splitEach(['map', 'room', 'actions'])
 let wide = m.foldCramped(dock, 1200)
 ok('three regions at 1200px', wide.regions.length === 3, shape(wide))
 
@@ -65,7 +65,7 @@ for (let i = 0; i < 8; i++) {
 ok('stable across repeated passes', d2.regions.length === before, `${before} -> ${d2.regions.length}`)
 
 console.log('\n-- a boundary moves space between neighbours, not into thin air --')
-const three = m.dockOf(['a', 'b', 'c'])
+const three = m.splitEach(['a', 'b', 'c'])
 const moved = m.moveBoundary(three, 0, 120, 1200)
 const s0 = m.measure(three, 1200)
 const s1 = m.measure(moved, 1200)

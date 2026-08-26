@@ -151,11 +151,22 @@ export function activate(dock: Dock, id: PanelId): Dock {
   }
 }
 
-/** An even split, one panel each, as a starting point. */
+/**
+ * One region holding everything, as tabs.
+ *
+ * Giving every panel its own region was the wrong default: a wide window then
+ * split itself into columns nobody asked for, and the panels the player was
+ * not looking at took space from the one they were. Columns are a thing you
+ * make on purpose by dragging a tab out, not something the app decides
+ * because there happened to be room.
+ */
 export function dockOf(panels: PanelId[], axis: Axis = 'row'): Dock {
+  const kept = panels.filter(Boolean)
   return {
     axis,
-    regions: panels.map((p) => ({ id: String(p), size: 1, panels: [p], active: p })),
+    regions: kept.length
+      ? [{ id: 'main', size: 1, panels: kept, active: kept[0] }]
+      : [],
   }
 }
 
@@ -179,4 +190,37 @@ export function without(dock: Dock, drop: PanelId[]): Dock {
   if (!regions.length) return dock
   const even = 1 / regions.length
   return { ...dock, regions: regions.map((r) => ({ ...r, size: even })) }
+}
+
+/**
+ * One region per panel.
+ *
+ * Not the default — that produced columns nobody asked for — but the thing a
+ * player gets by pulling tabs apart, and the fixture the folding tests need.
+ */
+export function splitEach(panels: PanelId[], axis: Axis = 'row'): Dock {
+  const even = panels.length ? 1 / panels.length : 1
+  return {
+    axis,
+    regions: panels.map((p) => ({ id: String(p), size: even, panels: [p], active: p })),
+  }
+}
+
+/** Pull one panel out of its deck into a region of its own, beside it. */
+export function splitOut(dock: Dock, id: PanelId): Dock {
+  const i = dock.regions.findIndex((r) => r.panels.includes(id) && r.panels.length > 1)
+  if (i < 0) return dock
+
+  const region = dock.regions[i]
+  const keep = region.panels.filter((p) => p !== id)
+  const half = region.size / 2
+
+  const regions = [...dock.regions]
+  regions.splice(
+    i,
+    1,
+    { ...region, panels: keep, active: keep.includes(region.active) ? region.active : keep[0], size: half },
+    { id: `${region.id}:${id}`, panels: [id], active: id, size: half }
+  )
+  return { ...dock, regions }
 }

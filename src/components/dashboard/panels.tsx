@@ -20,6 +20,8 @@ import type { PanelId } from '../../lib/layout'
 import { ActionsPanel } from '../shared/ActionsPanel'
 import { MapPanel } from '../shared/MapPanel'
 import { TrainingPanel } from '../shared/TrainingPanel'
+import { MindstateBoard } from '../shared/MindstateBoard'
+import { useAppStore } from '../../store/useAppStore'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { RiskBar } from '../shared/RiskBar'
 import { ScriptLauncher } from '../shared/ScriptLauncher'
@@ -35,6 +37,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   risk: 'Risk',
   launcher: 'Activities',
   vitals: 'Vitals',
+  mindstate: 'Mindstate',
   room: 'Battle',
 }
 
@@ -46,6 +49,7 @@ export const PANEL_ICONS: Record<PanelId, ReactNode> = {
   risk: <ShieldAlert className="w-3.5 h-3.5" />,
   launcher: <ListChecks className="w-3.5 h-3.5" />,
   vitals: <Zap className="w-3.5 h-3.5" />,
+  mindstate: <Brain className="w-3.5 h-3.5" />,
   room: <Users className="w-3.5 h-3.5" />,
 }
 
@@ -79,6 +83,7 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
   // Vitals live in the fixed header: identity and health are the two things
   // that must never be closed by accident.
   vitals: () => null,
+  mindstate: (dense) => <MindstateContent dense={dense} />,
   room: (_dense, _filled, ctx) => (
     <BattlePanel deckPrefs={ctx?.deckPrefs} onCycleDeck={ctx?.onCycleDeck} />
   ),
@@ -86,4 +91,15 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
 
 export function panelTitle(id: PanelId): string {
   return PANEL_TITLES[id] ?? id
+}
+
+/**
+ * The board reads the character itself rather than being handed skills.
+ *
+ * Kept beside the registry so the panel stays a one-liner, and so nothing
+ * above has to know that mindstate comes from the character at all.
+ */
+function MindstateContent({ dense }: { dense: boolean }) {
+  const character = useAppStore((s) => s.character)
+  return <MindstateBoard skills={character?.skills ?? []} dense={dense} />
 }

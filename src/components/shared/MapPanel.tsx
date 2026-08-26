@@ -243,8 +243,8 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           kinds={[...new Set((zone?.rooms ?? []).flatMap((r) => r.tags ?? []))]}
         />
         <span className="text-xs text-ink-faint shrink-0">
-          {zone.rooms?.length ?? 0}
-          {zone.truncated ? ` of ${zone.total} (capped)` : ''}
+          {zone.rooms?.length ?? 0} rooms
+          {zone.truncated ? ` of ${zone.total}, capped` : ''}
         </span>
       </div>
 
