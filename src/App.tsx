@@ -59,17 +59,19 @@ export default function App() {
   })
 
   /**
-   * The narrowest each column may be dragged, in pixels.
+   * The only limit on a divider: a column may not disappear entirely.
    *
-   * A proportional floor is not enough. The dashboard column was draggable
-   * down to 200px while its own content needed 402 - the right rail alone has
-   * a 15rem minimum - so it did not shrink, it clipped, and the divider
-   * happily let you do it. Percentages know nothing about what is inside.
+   * An earlier version set a comfortable minimum per column - 200, 340, 260 -
+   * so that nothing could be made too narrow to read. That was the app
+   * deciding how wide the player's columns should be, and it fought them: drag
+   * a column narrow and it stopped, or stopped and clipped its own contents.
    *
-   * The map is the most compressible of the three: it scales to fit and stays
-   * readable small, which is why it gets the lowest floor.
+   * The columns are the player's. If they want the map at 90% and the rest
+   * slivers, that is a legitimate thing to want, and the content scrolls
+   * rather than the layout refusing. 80px is only enough to keep a column
+   * grabbable so it can be dragged back.
    */
-  const MIN_PX: [number, number, number] = [200, 340, 260]
+  const MIN_PX = 80
 
   const setCols = (next: [number, number, number]) => {
     setColsState(next)
@@ -94,8 +96,8 @@ export default function App() {
     // Converted to pixels so the floors mean what they say. On a narrow window
     // the two minimums can exceed the space available, in which case the
     // clamp collapses to the midpoint rather than inverting.
-    const lo = total > 0 ? MIN_PX[i] / total : 0.12
-    const hi = total > 0 ? pair - MIN_PX[i + 1] / total : pair - 0.12
+    const lo = total > 0 ? MIN_PX / total : 0.05
+    const hi = total > 0 ? pair - MIN_PX / total : pair - 0.05
     const want = share * pair
     const left = hi > lo ? Math.min(hi, Math.max(lo, want)) : pair / 2
 
@@ -142,15 +144,15 @@ export default function App() {
              * the one surface that is watched rather than consulted - players
              * keep it in view while doing something else - so it gets full
              * height and a width you set yourself. */}
-            <div className="min-w-0 overflow-hidden border-r border-border" style={{ flex: `${cols[0]} 1 0%`, minWidth: MIN_PX[0] }}>
+            <div className="min-w-0 overflow-hidden border-r border-border" style={{ flex: `${cols[0]} 1 0%` }}>
               <MapColumn />
             </div>
             <Splitter value={cols[0] / (cols[0] + cols[1])} onChange={moveDivider(0)} />
-            <div className="min-w-0 overflow-y-auto" style={{ flex: `${cols[1]} 1 0%`, minWidth: MIN_PX[1] }}>
+            <div className="min-w-0 overflow-auto" style={{ flex: `${cols[1]} 1 0%` }}>
               <Dashboard />
             </div>
             <Splitter value={cols[1] / (cols[1] + cols[2])} onChange={moveDivider(1)} />
-            <div className="min-w-0 overflow-hidden" style={{ flex: `${cols[2]} 1 0%`, minWidth: MIN_PX[2] }}>
+            <div className="min-w-0 overflow-auto" style={{ flex: `${cols[2]} 1 0%` }}>
               <RoomColumn />
             </div>
           </>
