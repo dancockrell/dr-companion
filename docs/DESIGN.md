@@ -1353,18 +1353,30 @@ wrong and gets thrown away rather than patched.
 
 ### Racial descriptions have to be exact
 
-Thirteen playable races, confirmed against Elanthipedia (Half-Elf and Aelotoi
-have no standalone page but are playable and documented elsewhere):
+Eleven playable races. This list is `Category:Races` on Elanthipedia,
+checked rather than recalled:
 
 ```
-Human   Elf   Half-Elf   Dwarf   Halfling   Gnome   Gor'Tog
-S'Kra Mur   Prydaen   Rakash   Kaldar   Elothean   Aelotoi
+Human   Elf   Dwarf   Halfling   Gnome   Gor'Tog
+S'Kra Mur   Prydaen   Rakash   Kaldar   Elothean
 ```
+
+An earlier draft of this section listed thirteen and named Half-Elf and Aelotoi,
+saying both were confirmed against Elanthipedia. Neither is a DragonRealms race.
+Both are GemStone IV, and the wiki search for Aelotoi returns nothing at all.
+The claim of having checked was the actual error; the wrong names were only its
+symptom.
 
 These are not generic fantasy races and must not be rendered as them. S'Kra Mur
-are reptilian, Prydaen feline, Rakash lupine shapechangers, Gor'Tog large and
-green-skinned, Aelotoi winged. Getting one wrong is worse than shipping no
-portrait, because it tells thirty-year players we did not look.
+are reptilian and tailed, Prydaen feline and furred, Rakash human until Katamba
+waxes full and lupine after, Gor'Tog large and powerfully built. Getting one
+wrong is worse than shipping no portrait, because it tells thirty-year players
+nobody looked.
+
+The source for each is the **Character Creation** section of that race's
+`Concept:` page, which is the in-game creation prose and describes what the
+race physically looks like. The Play.net Description section is lore and culture
+and is almost useless for this: for Prydaen it never mentions fur.
 
 Each race gets a written descriptor block, sourced from Elanthipedia, reviewed
 before any generation. **That work happens before the run, not during it.**

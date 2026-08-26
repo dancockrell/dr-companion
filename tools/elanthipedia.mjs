@@ -600,9 +600,87 @@ async function bestiary() {
   console.log(`saved ${Object.keys(out).length}, ${described} with a description`)
 }
 
+/**
+ * The thirteen playable races, for the art pack.
+ *
+ * These are not generic fantasy races and rendering them as such is the fastest
+ * way to tell a thirty-year player nobody looked. S'Kra Mur are reptilian,
+ * Prydaen feline, Rakash lupine shapechangers, Aelotoi winged, Gor'Tog large
+ * and green. The descriptions have to come from the wiki, not from instinct.
+ *
+ * Race pages redirect to the Concept: namespace, so redirects are followed.
+ * One request for all thirteen.
+ */
+const RACES = [
+  'Human', 'Elf', 'Half-Elf', 'Dwarf', 'Halfling', 'Gnome', "Gor'Tog",
+  "S'Kra Mur", 'Prydaen', 'Rakash', 'Kaldar', 'Elothean', 'Aelotoi',
+]
+
+/** Pull one == Section == out of wikitext, stripped of markup. */
+function section(wikitext, name) {
+  // Escapes are doubled because this is a template literal, where a lone \s
+  // collapses to a bare s. The regex silently matched nothing until it did.
+  const re = new RegExp(
+    `==+\\s*${name}\\s*==+\\s*\\n([\\s\\S]*?)(?=\\n==|$)`,
+    'i',
+  )
+  const m = re.exec(wikitext)
+  if (!m) return null
+  const text = m[1]
+    .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')
+    .replace(/'''?/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\{\{[^}]*\}\}/g, '')
+    .replace(/^\s*[*#:]+\s*/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text || null
+}
+
+async function races() {
+  const json = await api({
+    action: 'query',
+    prop: 'revisions',
+    rvprop: 'content',
+    rvslots: 'main',
+    redirects: '1',
+    titles: RACES.join('|'),
+  })
+
+  const byTitle = {}
+  for (const p of json.query?.pages ?? []) {
+    byTitle[p.title] = p.revisions?.[0]?.slots?.main?.content ?? ''
+  }
+  // Map Concept:X back to the name we asked for.
+  const back = {}
+  for (const r of json.query?.redirects ?? []) back[r.to] = r.from
+
+  const out = {}
+  for (const [title, text] of Object.entries(byTitle)) {
+    if (!text) continue
+    const name = back[title] ?? title
+    const entry = {
+      page: title,
+      description: section(text, 'Play\.net Description'),
+      appearance: section(text, `${name} Appearance and Behavior`) ?? section(text, 'Appearance'),
+      characteristics: section(text, 'Racial Characteristics'),
+      creation: section(text, 'Character Creation'),
+      height: section(text, 'Height'),
+    }
+    for (const k of Object.keys(entry)) if (!entry[k]) delete entry[k]
+    out[name] = entry
+  }
+
+  const missing = RACES.filter((r) => !out[r])
+  save('races', out)
+  console.log(`saved ${Object.keys(out).length} of ${RACES.length}`)
+  if (missing.length) console.log(`  no page for: ${missing.join(', ')}`)
+}
+
 const cmd = process.argv[2] ?? 'status'
 if (cmd === 'index') await index()
 else if (cmd === 'full') await full()
 else if (cmd === 'update') await update()
 else if (cmd === 'bestiary') await bestiary()
+else if (cmd === 'races') await races()
 else status()
