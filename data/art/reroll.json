@@ -1,0 +1,8 @@
+{
+ "_why": "Seeds are derived from the subject name so a regeneration reproduces rather than reinvents. That is correct for consistency and useless when a draw is simply bad: a better prompt re-rendered at the same seed returns the same composition. An entry here shifts one subject to a different draw and is itself recorded, so the result stays reproducible.",
+ "Elothean male": 1,
+ "Elothean female": 1,
+ "Halfling male": 1,
+ "Halfling female": 1,
+ "Gnome female": 1
+}
