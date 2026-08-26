@@ -26,6 +26,7 @@
   --map-ground-edge: #06080b;
   --map-plain: #2b3542;
   --map-line: #55636f;
+  --map-trail: #e8dcc8;
 
   /* Quiet on purpose. A boundary is a hairline, not a frame: the previous
      border was loud enough that six panels read as a grid of boxes. */

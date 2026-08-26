@@ -5,6 +5,7 @@ import type { SkillState } from '../data/skills'
 import type { CharacterProfile } from '../lib/profiles'
 import type { VersionState } from '../lib/versions'
 import type { MapRoom, MapNearest, MapPath, MapZone } from '../bridge/types'
+import type { Trail } from '../lib/trail'
 
 export type { SkillState }
 export type { CharacterProfile }
@@ -209,6 +210,8 @@ export interface AppState {
    * same as an empty result and must not render as one.
    */
   mapHere: MapRoom | null
+  /** Where you have been this session. See lib/trail.ts. */
+  mapTrail: Trail
   mapTags: string[]
   mapNearest: MapNearest | null
   mapPath: MapPath | null

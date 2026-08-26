@@ -26,6 +26,7 @@ import {
   ExternalLink,
   PanelRightClose,
 } from 'lucide-react'
+import { describeTrail } from '../../lib/trail'
 import { useAppStore } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
 import type { IntentName } from '../../bridge/types'
@@ -83,6 +84,8 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     if (!zone?.rooms) return []
     return [...new Set(zone.rooms.map((r) => r.z ?? 0))].sort((a, b) => a - b)
   }, [zone])
+
+  const trail = useAppStore((s) => s.mapTrail)
 
   const onRoute = useMemo(
     () => new Set((path?.ok ? (path.rooms ?? []) : []).map((r) => r.id)),
@@ -235,6 +238,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onRoute={onRoute}
           fit
           onPick={(id) => bridge.requestIntent('map_path' as IntentName, { to: id })}
+          trail={trail}
         />
       </div>
 
@@ -242,9 +246,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         <MapLegend
           kinds={[...new Set((zone?.rooms ?? []).flatMap((r) => r.tags ?? []))]}
         />
-        <span className="text-xs text-ink-faint shrink-0">
-          {zone.rooms?.length ?? 0} rooms
-          {zone.truncated ? ` of ${zone.total}, capped` : ''}
+        {/* What the trail says, in words.
+         *
+         * The stroke on the chart answers "where" and this answers "what is
+         * happening", which is the question you actually have when you look
+         * back at a window a script has been driving for an hour. It sits
+         * beside the room count because that is the line the eye already goes
+         * to for the state of the map rather than the state of the game. */}
+        <span className="text-xs text-ink-faint shrink-0 truncate" title={describeTrail(trail)}>
+          {trail.recent.length > 0
+            ? describeTrail(trail)
+            : `${zone.rooms?.length ?? 0} rooms${zone.truncated ? ` of ${zone.total}, capped` : ''}`}
         </span>
       </div>
 

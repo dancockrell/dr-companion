@@ -13,6 +13,7 @@
 import { useMemo } from 'react'
 import type { MapZone, MapZoneRoom } from '../../bridge/types'
 import { inkFor } from '../../lib/mapInk'
+import { recency, segments, type Trail } from '../../lib/trail'
 
 /**
  * Tags worth shouting about.
@@ -99,6 +100,8 @@ export function MapCanvas({
   labels = false,
   /** Scale the whole zone to fill the container instead of drawing at size. */
   fit = false,
+  /** Where you have been. Drawn as a stroke over the chart. */
+  trail,
 }: {
   zone: MapZone
   level: number
@@ -107,6 +110,7 @@ export function MapCanvas({
   scale?: number
   labels?: boolean
   fit?: boolean
+  trail?: Trail
 }) {
   /**
    * The cartography is authored on a 10-unit grid: 1,221 of Crossing's
@@ -176,6 +180,7 @@ export function MapCanvas({
   }
 
   const index = new Map(rooms.map((r) => [r.id, r]))
+  const fresh = trail ? recency(trail) : null
 
   const px = (r: MapZoneRoom) => (r.x as number) * scale - view.minX + pad
   const py = (r: MapZoneRoom) => (r.y as number) * scale - view.minY + pad
@@ -206,6 +211,39 @@ export function MapCanvas({
         </radialGradient>
       </defs>
       <rect x={0} y={0} width={view.w} height={view.h} fill="url(#map-paper)" />
+
+      {/* Where you have been, over the streets and under the rooms.
+       *
+       * Drawn as one continuous stroke rather than per-room marks, because the
+       * question it answers is about a route and a route is a line. It fades
+       * with age so the direction of travel is readable without an arrowhead:
+       * the bright end is now.
+       *
+       * A pair whose two rooms are not both on this level is skipped rather
+       * than drawn, which is why these are segments and not a polyline. A
+       * character who went up a staircase and came back down would otherwise
+       * get a line shot straight across the chart. */}
+      {trail &&
+        segments(trail).map((seg, i) => {
+          const a = index.get(seg.from)
+          const z = index.get(seg.to)
+          if (!a || !z) return null
+          return (
+            <line
+              key={`trail-${i}`}
+              x1={px(a)}
+              y1={py(a)}
+              x2={px(z)}
+              y2={py(z)}
+              stroke="var(--map-trail)"
+              strokeWidth={Math.max(1.2, 1.6 * scale)}
+              strokeLinecap="round"
+              // Floored well above nothing: the oldest segment should still be
+              // visible as part of the route, just clearly the oldest.
+              opacity={0.15 + 0.5 * seg.fresh}
+            />
+          )
+        })}
       {/* Links first, so rooms sit on top of them rather than under. */}
       {/* Streets, doorways and climbs are different acts and were drawn as
           one line. Crossing alone has 662 go-exits, which are entrances into
@@ -274,8 +312,28 @@ export function MapCanvas({
 
       {rooms.map((r) => {
         const kind = roomKind(r, zone.here, onRoute)
+        const been = r.id != null ? fresh?.get(r.id) : undefined
+        const times = r.id != null ? trail?.visits[r.id] : undefined
         return (
           <g key={r.id} className="cursor-pointer" onClick={() => r.id && onPick(r.id)}>
+            {/* A ring on a room you have stood in.
+             *
+             * The stroke alone is not enough for a circuit: a training loop
+             * runs the same four rooms for an hour and the line just retraces
+             * itself, so the rooms that matter most are the ones the drawing
+             * says least about. The ring marks them, and a room you keep
+             * coming back to gets a heavier one. */}
+            {been !== undefined && kind !== 'here' && (
+              <circle
+                cx={px(r)}
+                cy={py(r)}
+                r={box * 0.78}
+                fill="none"
+                stroke="var(--map-trail)"
+                strokeWidth={Math.min(1.6, 0.4 + (times ?? 1) * 0.15) * scale}
+                opacity={0.2 + 0.45 * been}
+              />
+            )}
             {/* The click target, larger than the room and invisible.
              *
              * A room box has to be smaller than the grid step or the squares
@@ -294,7 +352,8 @@ export function MapCanvas({
             <title>
               {`${r.title ?? 'Unknown'}\nLich room ${r.id}` +
                 (r.uid ? `\ngame uid ${r.uid}` : '') +
-                (r.tags?.length ? `\n${r.tags.join(', ')}` : '')}
+                (r.tags?.length ? `\n${r.tags.join(', ')}` : '') +
+                (times ? `\nvisited ${times === 1 ? 'once' : `${times} times`} this session` : '')}
             </title>
             <rect
               x={px(r) - box / 2}

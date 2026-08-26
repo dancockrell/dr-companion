@@ -45,6 +45,8 @@ export function MapWindow() {
     return [...new Set(zone.rooms.map((r) => r.z ?? 0))].sort((a, b) => a - b)
   }, [zone])
 
+  const trail = useAppStore((s) => s.mapTrail)
+
   const onRoute = useMemo(
     () => new Set((path?.ok ? (path.rooms ?? []) : []).map((r) => r.id)),
     [path]
@@ -144,6 +146,7 @@ export function MapWindow() {
             scale={zoom}
             labels={labels}
             onPick={(id) => bridge.requestIntent('map_path' as IntentName, { to: id })}
+            trail={trail}
           />
         ) : (
           <p className="text-xs text-ink-faint">

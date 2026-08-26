@@ -20,6 +20,7 @@ import {
   deleteProfile as deleteProfileEntry,
   type CharacterProfile,
 } from '../lib/profiles'
+import { emptyTrail, visit } from '../lib/trail'
 
 const prefs = loadPrefs()
 
@@ -136,9 +137,14 @@ function handleBridgeMessage(
       break
 
     // Geography, answered by Lich's own map rather than by a list we ship.
-    case 'map_here':
-      set({ mapHere: msg.payload.available ? msg.payload : null })
+    case 'map_here': {
+      const here = msg.payload.available ? msg.payload : null
+      // The trail is extended here rather than in the map panel, because the
+      // panel unmounts whenever the map is popped out into its own window and
+      // a trail that forgets itself on a layout change is worse than none.
+      set({ mapHere: here, mapTrail: visit(get().mapTrail, here?.id) })
       break
+    }
     case 'map_tags':
       set({ mapTags: msg.payload })
       break
@@ -159,6 +165,7 @@ function handleBridgeMessage(
 
 export const useAppStore = create<AppState>((set, get) => ({
   mapHere: null,
+  mapTrail: emptyTrail(),
   mapTags: [],
   mapNearest: null,
   mapPath: null,
@@ -527,3 +534,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().patchActiveProfile({ houseEntryHide: v })
   },
 }))
+
+// A handle on the store while developing, so the app can be driven from the
+// console without a game attached. Stripped from production builds by the
+// import.meta.env.DEV guard, which Vite resolves to false and then dead-code
+// eliminates, so this ships as nothing.
+if (import.meta.env.DEV) {
+  ;(window as unknown as Record<string, unknown>).__store = useAppStore
+}
