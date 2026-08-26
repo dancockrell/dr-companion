@@ -47,7 +47,16 @@ export function RoomColumn() {
   const title = here?.title ?? text?.title ?? null
 
   return (
-    <div className="flex min-h-0 flex-col gap-2 p-2">
+    /*
+     * h-full, and it is the whole reason this column works.
+     *
+     * Without it the root sizes to its content, so on a tall window the three
+     * blocks came to 414px inside a 1,474px column and the remaining thousand
+     * pixels were the parent's background showing through. A black void down
+     * half the app, and the chat panel's flex-1 had nothing to expand into
+     * because its parent had already collapsed.
+     */
+    <div className="flex h-full min-h-0 flex-col gap-2 p-2">
       <RoomScene
         zone={zone}
         room={room ?? 0}
