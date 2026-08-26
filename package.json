@@ -21,7 +21,7 @@
     "test:scrub": "node tools/scrub-test.mjs",
     "test:bridge": "ruby lich-scripts/test/cmd_test.rb lich-scripts/companion_bridge.lic",
     "test:runaway": "ruby lich-scripts/test/runaway_test.rb lich-scripts/companion_bridge.lic",
-    "test": "npm run test:contrast && npm run test:cards && npm run test:layout && npm run test:freelayout && npm run test:dock && npm run test:room && npm run test:bestiary && npm run test:creature-art && npm run test:scrub && npm run test:frontend && npm run test:bundle && npm run test:bridge && npm run test:runaway && npm run test:yaml && npm run test:server && npm run test:live && npm run test:map",
+    "test": "npm run test:contrast && npm run test:cards && npm run test:layout && npm run test:freelayout && npm run test:dock && npm run test:room && npm run test:look && npm run test:bestiary && npm run test:creature-art && npm run test:scrub && npm run test:frontend && npm run test:bundle && npm run test:bridge && npm run test:runaway && npm run test:yaml && npm run test:server && npm run test:live && npm run test:map",
     "test:bundle": "npm run build && node tools/bundle-test.mjs",
     "test:contrast": "node tools/contrast-test.mjs",
     "test:frontend": "node tools/frontend-test.mjs",
@@ -35,10 +35,12 @@
     "test:bestiary": "node tools/bestiary-test.mjs",
     "test:creature-art": "node tools/creature-art-test.mjs",
     "bestiary:index": "node tools/bestiary-index.mjs",
-    "art:rooms": "node tools/art-rooms.mjs",
+    "art:rooms": "node tools/art-rooms2.mjs",
     "test:freelayout": "node tools/freelayout-test.mjs",
     "map:build": "node tools/build-map.mjs",
-    "test:dock": "node tools/dock-test.mjs"
+    "test:dock": "node tools/dock-test.mjs",
+    "test:look": "node tools/look-test.mjs",
+    "art:loop": "node tools/art-loop.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
