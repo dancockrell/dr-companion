@@ -1,5 +1,6 @@
 import { SetupWizard } from './components/first-run/SetupWizard'
 import { Dashboard } from './components/dashboard/Dashboard'
+import { RoomColumn } from './components/room/RoomColumn'
 import { AppControls } from './components/layout/AppControls'
 import { SafetyFooter } from './components/layout/SafetyFooter'
 import { SituationBanner } from './components/layout/SituationBanner'
@@ -48,8 +49,31 @@ export default function App() {
           controls, which do not need a band of their own. */}
       <AppControls />
       {setupComplete && <SituationBanner />}
-      <main className="flex-1 min-h-0 overflow-y-auto">
-        {setupComplete ? <Dashboard /> : <SetupWizard />}
+      {/* Two columns of equal width: the companion, and the room.
+       *
+       * The split lives here rather than inside Dashboard because Dashboard
+       * measures its own width to decide whether to render dense. Splitting
+       * below that point would have it laying out for the full window while
+       * occupying half of one.
+       *
+       * Equal at default scale, and the room column is allowed to give ground
+       * first on a narrow window: the companion is the instrument, and a
+       * cramped map is a worse loss than a cramped description. */}
+      <main className="flex min-h-0 flex-1 overflow-hidden">
+        {setupComplete ? (
+          <>
+            <div className="min-w-0 flex-1 overflow-y-auto">
+              <Dashboard />
+            </div>
+            <div className="min-w-0 flex-1 overflow-hidden border-l border-border">
+              <RoomColumn />
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 overflow-y-auto">
+            <SetupWizard />
+          </div>
+        )}
       </main>
       {setupComplete && <Console />}
       {setupComplete && <SafetyFooter />}

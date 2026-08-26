@@ -38,3 +38,22 @@ data/art/room-prompts.json
 
 # Superseded renders held outside the repo, never committed.
 quarantine*/
+
+# Generated from data/art/room-prompts.json by tools/build-room-text.mjs.
+public/roomtext/
+
+# Room art, which does not belong in git.
+#
+# 17,750 rooms at a mean 178 KB is 3.0 GB against a 72 MB repository. Creatures
+# (773) and portraits (22) are committed because they are 53 MB together and
+# every card and character sheet needs them; rooms are forty times that and are
+# scenery. They ship as a release asset instead, and the app degrades to the
+# generated stand-in for any room whose picture is not installed - which is the
+# normal state for days while the daemon works through the queue.
+public/rooms/
+
+# Daemon runtime state: a pid lock and a status file rewritten every render.
+data/art/daemon-status.json
+data/art/daemon.lock
+data/art/daemon.stop
+data/art/failures.json

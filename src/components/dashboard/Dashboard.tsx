@@ -27,6 +27,7 @@ import { FreeCanvas } from './FreeCanvas'
 
 export function Dashboard() {
   const character = useAppStore((s) => s.character)
+  const bridgeConnected = useAppStore((s) => s.bridgeConnected)
   const uiMode = useAppStore((s) => s.uiMode)
   const { layout, cycleDeck, place, unplace } = useLayout(uiMode)
 
@@ -83,9 +84,42 @@ export function Dashboard() {
 
 
   if (!character) {
+    /*
+     * No character yet, which happens more often than it sounds: setup is
+     * remembered across restarts, so anyone who has run this before lands here
+     * every time they open the app before Lich is up.
+     *
+     * This used to be one sentence in an otherwise empty pane, and beside the
+     * room column it read as a broken app rather than a waiting one. It says
+     * what it is waiting for and offers the two ways forward, because "complete
+     * setup first" is not useful advice to someone who already did.
+     */
     return (
-      <div className="p-6 text-ink-muted text-sm">
-        Not connected. Complete setup first.
+      <div className="flex h-full flex-col items-start justify-center gap-3 p-6">
+        <div>
+          <p className="text-sm text-ink">Waiting for a character.</p>
+          <p className="mt-1 text-xs text-ink-muted">
+            {bridgeConnected
+              ? 'The bridge is up but no character has reported in yet. Log in, or run the companion bridge script in Lich.'
+              : 'Start Lich, then run the companion bridge script. This panel fills in on its own once it does.'}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => useAppStore.getState().simulateConnect()}
+            className="rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25"
+          >
+            Open the demo dashboard
+          </button>
+          <button
+            type="button"
+            onClick={() => useAppStore.getState().openSetup()}
+            className="rounded border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
+          >
+            Setup
+          </button>
+        </div>
       </div>
     )
   }
