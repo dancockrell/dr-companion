@@ -77,6 +77,20 @@ export async function zoneIndex(): Promise<ZoneSummary[]> {
  * Exits are directional and the drawing is not: a one-way arc still needs a
  * line, and drawing it twice from both ends is the same line.
  */
+/**
+ * How an exit is taken, which decides how it is drawn.
+ *
+ * The distinction that matters is walking versus entering: a line between two
+ * street rooms is a road, and a line into a shop is a door. Genie draws both
+ * the same and players learn the difference by memory.
+ */
+function kindOfExit(dir: string): 'walk' | 'enter' | 'climb' | 'vertical' {
+  if (dir === 'go' || dir === 'out') return 'enter'
+  if (dir === 'climb') return 'climb'
+  if (dir === 'up' || dir === 'down') return 'vertical'
+  return 'walk'
+}
+
 function toZoneRoom(r: BuiltRoom): MapZoneRoom {
   return {
     id: r.id,
@@ -89,6 +103,8 @@ function toZoneRoom(r: BuiltRoom): MapZoneRoom {
     // already draws from.
     tags: r.label ? [r.label] : [],
     to: r.exits.map((e) => e.to),
+    mapColour: r.color,
+    links: r.exits.map((e) => ({ to: e.to, kind: kindOfExit(e.dir) })),
   }
 }
 

@@ -21,7 +21,8 @@ export function Box({
   children,
   className,
 }: {
-  title: string
+  /** Omitted where the content says what it is without help. */
+  title?: string
   /** Shown beside the title. Left off when zero is not worth saying. */
   count?: number
   /** Hostile boxes earn a red edge; nothing else does. */
@@ -38,6 +39,7 @@ export function Box({
         className
       )}
     >
+      {(title || count !== undefined || action) && (
       <header className="flex shrink-0 items-baseline gap-2 px-2 pt-1.5">
         <h2
           className={cn(
@@ -52,6 +54,7 @@ export function Box({
         )}
         {action && <span className="ml-auto">{action}</span>}
       </header>
+      )}
 
       <div className="min-h-0 flex-1 overflow-auto p-2 pt-1.5">{children}</div>
     </section>

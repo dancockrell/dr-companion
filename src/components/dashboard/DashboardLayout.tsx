@@ -4,6 +4,7 @@ import { CardDeck } from '../shared/CardDeck'
 import { MapPanel } from '../shared/MapPanel'
 import { MindstateBoard } from '../shared/MindstateBoard'
 import { Paperdoll } from '../shared/Paperdoll'
+import { Portrait } from '../shared/Portrait'
 import { VitalCluster, type Vital } from '../shared/VitalCluster'
 import { ActionsPanel } from '../shared/ActionsPanel'
 import { fromRoom } from '../../lib/room'
@@ -112,6 +113,11 @@ export function DashboardLayout({
          * every part at once including the ones that are fine. */}
         <Box title={character?.name ?? 'You'} action={popper('mindstate')}>
           <div className="flex items-start gap-3">
+            <Portrait
+              character={character?.name ?? 'You'}
+              race={character?.race ?? undefined}
+              size={92}
+            />
             <Paperdoll
               injuries={character?.injuries ?? {}}
               height={92}
@@ -121,7 +127,7 @@ export function DashboardLayout({
           </div>
         </Box>
 
-        <Box title="Battle" tone="danger" count={hostile.length} action={popper('room')} className="min-h-0">
+        <Box tone="danger" action={popper('room')} className="min-h-0">
           {hostile.length ? (
             <CardDeck
               deck="hostile"

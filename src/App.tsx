@@ -1,6 +1,6 @@
 import { SetupWizard } from './components/first-run/SetupWizard'
 import { Dashboard } from './components/dashboard/Dashboard'
-import { AppHeader } from './components/layout/AppHeader'
+import { AppControls } from './components/layout/AppControls'
 import { SafetyFooter } from './components/layout/SafetyFooter'
 import { SituationBanner } from './components/layout/SituationBanner'
 import { Console } from './components/layout/Console'
@@ -43,7 +43,10 @@ export default function App() {
   // throw away space they deliberately gave us. See docs/DESIGN.md §2.115.
   return (
     <div className="h-full w-full bg-surface flex flex-col">
-      <AppHeader />
+      {/* No title bar. The window has one, the character box carries the
+          name, and the map says where you are. What is left is three
+          controls, which do not need a band of their own. */}
+      <AppControls />
       {setupComplete && <SituationBanner />}
       <main className="flex-1 min-h-0 overflow-y-auto">
         {setupComplete ? <Dashboard /> : <SetupWizard />}

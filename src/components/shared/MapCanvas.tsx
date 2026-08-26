@@ -196,22 +196,31 @@ export function MapCanvas({
   return (
     <svg viewBox={`0 0 ${view.w} ${view.h}`} className="block" {...sizing}>
       {/* Links first, so rooms sit on top of them rather than under. */}
+      {/* Streets, doorways and climbs are different acts and were drawn as
+          one line. Crossing alone has 662 go-exits, which are entrances into
+          buildings, and 118 climbs. A map that cannot tell a road from a door
+          is hiding what you navigate by. */}
       {rooms.map((r) =>
-        (r.to ?? []).map((t) => {
-          const other = index.get(t)
-          // Both ends must be on this level, and each pair drawn once. A link
-          // that leaves the zone or changes floor is real, but drawing it to
-          // nowhere would invent a corridor that is not there.
+        (r.links ?? (r.to ?? []).map((t) => ({ to: t, kind: 'walk' as const }))).map((link) => {
+          const other = index.get(link.to)
           if (!other || (other.id ?? 0) <= (r.id ?? 0)) return null
+
+          const style =
+            link.kind === 'enter'
+              ? { stroke: 'var(--color-accent)', strokeWidth: 0.6 * scale, strokeDasharray: '1.5 1.5', opacity: 0.55 }
+              : link.kind === 'climb' || link.kind === 'vertical'
+                ? { stroke: 'var(--color-warn)', strokeWidth: 0.9 * scale, strokeDasharray: '0.8 1.2', opacity: 0.7 }
+                : { stroke: 'var(--color-border)', strokeWidth: Math.max(1, 1.2 * scale) }
+
           return (
             <line
-              key={`${r.id}-${t}`}
+              key={`${r.id}-${link.to}-${link.kind}`}
               x1={px(r)}
               y1={py(r)}
               x2={px(other)}
               y2={py(other)}
-              stroke="var(--color-border)"
-              strokeWidth={Math.max(1, 1.5 * scale)}
+              strokeLinecap="round"
+              {...style}
             />
           )
         })
@@ -274,11 +283,14 @@ export function MapCanvas({
               height={box}
               rx={Math.max(2, 3 * scale)}
               fill={
-                // Where you are and where you are going outrank what a place
-                // is: a bank you are standing in should read as here first.
+                // Where you are and where you are going outrank everything.
+                // Under that, the cartographer's own colour: sixteen values
+                // they set by hand across the game, which is how Genie's map
+                // reads at a glance. Parsed since the first build and thrown
+                // away until now.
                 kind === 'here' || kind === 'route' || kind === 'hazard'
                   ? FILL[kind]
-                  : (KIND_FILL[(r.tags ?? [])[0] ?? ''] ?? FILL[kind])
+                  : (r.mapColour ?? FILL[kind])
               }
               stroke={
                 kind === 'here'

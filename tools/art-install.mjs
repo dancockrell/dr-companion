@@ -24,8 +24,11 @@
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-const OUT = 'data/art/out/creatures'
-const DEST = 'public/creatures'
+const KINDS = [
+  { out: 'data/art/out/creatures', dest: 'public/creatures' },
+  { out: 'data/art/out/portraits', dest: 'public/portraits' },
+  { out: 'data/art/out/rooms', dest: 'public/rooms' },
+]
 
 const slug = (s) =>
   s
@@ -39,13 +42,55 @@ const slug = (s) =>
 /** ComfyUI appends _00001_ and counts up. The subject is what comes before. */
 const subjectOf = (filename) => filename.replace(/_\d+_\.(webp|png)$/i, '')
 
-let files
-try {
-  files = readdirSync(OUT).filter((f) => /\.(webp|png)$/i.test(f))
-} catch {
-  console.log(`nothing at ${OUT}; render something first`)
-  process.exit(0)
+function install({ out, dest }) {
+  let files
+  try {
+    files = readdirSync(out).filter((f) => /.(webp|png)$/i.test(f))
+  } catch {
+    return null
+  }
+  if (!files.length) return null
+
+  // Newest render of each subject wins, so re-rendering one replaces it.
+  const newest = new Map()
+  for (const f of files) {
+    const subject = subjectOf(f)
+    const at = statSync(join(out, f)).mtimeMs
+    const seen = newest.get(subject)
+    const better =
+      !seen ||
+      at > seen.at ||
+      (at === seen.at && f.endsWith('.webp') && !seen.file.endsWith('.webp'))
+    if (better) newest.set(subject, { file: f, at })
+  }
+
+  mkdirSync(dest, { recursive: true })
+  const manifest = []
+  let png = 0
+  for (const [subject, { file }] of newest) {
+    if (file.endsWith('.png')) {
+      png++
+      continue
+    }
+    const target = `${subject}.webp`
+    copyFileSync(join(out, file), join(dest, target))
+    manifest.push(target)
+  }
+
+  manifest.sort()
+  writeFileSync(join(dest, 'manifest.json'), JSON.stringify(manifest, null, 1))
+  return { dest, count: manifest.length, png }
 }
+
+let any = false
+for (const kind of KINDS) {
+  const r = install(kind)
+  if (!r) continue
+  any = true
+  console.log(`${String(r.count).padStart(6)} into ${r.dest}${r.png ? `  (${r.png} PNG skipped)` : ''}`)
+}
+if (!any) console.log('nothing rendered yet')
+process.exit(0)
 
 // Newest render of each subject wins, so re-running one creature replaces it.
 const newest = new Map()

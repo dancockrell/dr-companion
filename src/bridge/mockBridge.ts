@@ -300,6 +300,10 @@ for (const p of Object.values(presets)) {
   p.character.roomCreatures = demoCreatures(level)
   p.character.roomDeadCreatures = level > 30 ? ['a kobold which appears dead'] : []
   p.character.injuries = demoInjuries(level)
+  // A race, so the portrait has something to match. Every demo preset is a
+  // Gor'Tog because it is the least generic-looking of the eleven and shows
+  // immediately whether the matching works.
+  p.character.race = p.character.race ?? 'Gor'+String.fromCharCode(39)+'Tog'
   p.character.roomItems =
     level > 20 ? ['a kobold skin', 'some copper kronars', 'a rusty dagger'] : []
 }

@@ -71,6 +71,23 @@ export interface MapZoneRoom {
   y: number | null
   z: number | null
   tags?: string[]
+  /**
+   * The colour the cartographer gave this room, as a hex string.
+   *
+   * Sixteen are in use across the game and they are a classification, not
+   * decoration: this is how Genie's map is readable at a glance. Parsed since
+   * the first build and discarded until now.
+   */
+  mapColour?: string
+  /**
+   * Exits, with how you take them.
+   *
+   * Walking east and going through a door are different acts and were drawn
+   * as the same line. Crossing alone has 662 go-exits, which are doorways
+   * into buildings, and 118 climbs. A map that cannot tell a street from an
+   * entrance is hiding the thing you navigate by.
+   */
+  links?: Array<{ to: number; kind: 'walk' | 'enter' | 'climb' | 'vertical' }>
   /** Lich room ids reachable from here. */
   to?: number[]
 }
