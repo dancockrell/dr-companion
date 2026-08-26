@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/cn'
 import {
-  activate,
   foldCramped,
   moveBoundary,
   type Dock,
@@ -110,51 +109,41 @@ export function DockView({
       {shown.regions.map((region, i) => (
         <div
           key={region.id}
-          className="flex min-h-0 min-w-0 flex-col"
+          className="flex min-h-0 min-w-0 flex-col overflow-auto"
           // Regions take the even orders and boundaries the odd ones, so the
           // two lists interleave without having to be built as one.
-          style={{
-            order: i * 2,
-            flexGrow: region.size,
-            flexShrink: 1,
-            flexBasis: 0,
-          }}
+          style={{ order: i * 2, flexGrow: region.size, flexShrink: 1, flexBasis: 0 }}
         >
-          {/* Tabs only where there is a deck. A single panel does not need a
-              tab telling it what it is; the panel already says so. */}
-          {region.panels.length > 1 && (
-            <div className="flex shrink-0 gap-px overflow-x-auto border-b border-border">
-              {region.panels.map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => onChange(activate(shown, id))}
-                  className={cn(
-                    'shrink-0 px-2 py-1 text-xs',
-                    id === region.active
-                      ? 'bg-surface-raised text-ink'
-                      : 'text-ink-faint hover:text-ink-muted'
-                  )}
-                >
+          {/* Every panel in the region is visible. No tabs.
+           *
+           * Folding used to turn a region into a tab strip, which is a menu:
+           * one thing shown, everything else hidden behind a click, and no way
+           * to see two things at once. The brief was the opposite of that —
+           * dense and unpackable, not hidden.
+           *
+           * So a crowded region stacks its panels instead. Each keeps a hairline
+           * header carrying its name and its controls, and the content below is
+           * whatever that panel can show in the height it has. */}
+          {region.panels.map((id) => (
+            <section key={id} className="flex min-h-0 shrink-0 flex-col">
+              <div className="flex items-center gap-1 px-2 pt-1.5">
+                <span className="text-xs uppercase tracking-wide text-ink-faint">
                   {title(id)}
-                </button>
-              ))}
-              {onPopOut && (
-                <button
-                  type="button"
-                  onClick={() => onPopOut(region.active)}
-                  title="Open this one in its own window"
-                  className="ml-auto shrink-0 px-2 py-1 text-xs text-ink-faint hover:text-ink"
-                >
-                  pop out
-                </button>
-              )}
-            </div>
-          )}
-
-          <div className="min-h-0 min-w-0 flex-1 overflow-auto p-2">
-            {render(region.panels.length > 1 ? region.active : region.panels[0])}
-          </div>
+                </span>
+                {onPopOut && (
+                  <button
+                    type="button"
+                    onClick={() => onPopOut(id)}
+                    title="Open this one in its own window"
+                    className="ml-auto text-xs text-ink-faint hover:text-ink"
+                  >
+                    ↗
+                  </button>
+                )}
+              </div>
+              <div className="min-h-0 px-2 pb-2">{render(id)}</div>
+            </section>
+          ))}
         </div>
       ))}
 

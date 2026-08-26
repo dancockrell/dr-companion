@@ -50,6 +50,14 @@ const KIND_FILL: Record<string, string> = {
  */
 const LOCAL_CAP = 220
 
+/**
+ * The step between adjacent rooms in the source data, in map units.
+ *
+ * Measured, not assumed: across Crossing 1,221 connections are 10 apart, 524
+ * are 20, 261 are 40. Ten is the unit everything else is a multiple of.
+ */
+const GRID = 10
+
 export type RoomKind = 'here' | 'route' | 'hazard' | 'service' | 'plain'
 
 export function roomKind(
@@ -93,8 +101,18 @@ export function MapCanvas({
   labels?: boolean
   fit?: boolean
 }) {
-  const box = 12 * scale
-  const pad = 6 * scale
+  /**
+   * The cartography is authored on a 10-unit grid: 1,221 of Crossing's
+   * connections are exactly 10 apart. The room box has to be smaller than that
+   * step or adjacent rooms overlap and the map has no boundaries between its
+   * squares at all — which is what it had, because the box was 12 against a
+   * step of 10.
+   *
+   * At 0.62 of the step there is a visible gap on every side, and the corridor
+   * between two rooms is drawn rather than implied.
+   */
+  const box = GRID * 0.62 * scale
+  const pad = GRID * 0.6 * scale
 
   // Only this level. Elanthia is not flat — towers, cellars and bridges share
   // x/y with whatever sits above them, and drawing every z at once makes a
@@ -197,6 +215,21 @@ export function MapCanvas({
         const kind = roomKind(r, zone.here, onRoute)
         return (
           <g key={r.id} className="cursor-pointer" onClick={() => r.id && onPick(r.id)}>
+            {/* The click target, larger than the room and invisible.
+             *
+             * A room box has to be smaller than the grid step or the squares
+             * overlap, which at normal zoom leaves about six pixels to hit.
+             * Fitts' law does not care that it looks fine: a six pixel target
+             * is a target you miss. This covers the whole cell, so the
+             * clickable area is the square the room occupies rather than the
+             * mark drawn inside it. */}
+            <rect
+              x={px(r) - (GRID * scale) / 2}
+              y={py(r) - (GRID * scale) / 2}
+              width={GRID * scale}
+              height={GRID * scale}
+              fill="transparent"
+            />
             <title>
               {`${r.title ?? 'Unknown'}\nLich room ${r.id}` +
                 (r.uid ? `\ngame uid ${r.uid}` : '') +

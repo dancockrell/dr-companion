@@ -42,9 +42,11 @@ export function ActionsPanel({ dense = false }: { dense?: boolean }) {
   ]
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
+      <div className="flex gap-2">
       <Button
-        size={dense ? 'lg' : 'xl'}
+        size={dense ? 'md' : 'lg'}
+        className="flex-1"
         variant={lowHealth ? 'danger' : 'primary'}
         icon={
           lowHealth ? <Heart className="w-5 h-5" /> : <Play className="w-5 h-5" />
@@ -53,8 +55,17 @@ export function ActionsPanel({ dense = false }: { dense?: boolean }) {
       >
         {primaryLabel}
       </Button>
+        <Button
+          size={dense ? 'md' : 'lg'}
+          variant="danger"
+          icon={<Square className="w-4 h-4" />}
+          onClick={() => requestIntent('stop_all')}
+        >
+          Stop
+        </Button>
+      </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Button
           size="md"
           variant="secondary"
@@ -70,14 +81,6 @@ export function ActionsPanel({ dense = false }: { dense?: boolean }) {
           onClick={() => requestIntent('pause')}
         >
           Pause
-        </Button>
-        <Button
-          size="md"
-          variant="danger"
-          icon={<Square className="w-4 h-4" />}
-          onClick={() => requestIntent('stop_all')}
-        >
-          Stop
         </Button>
       </div>
 

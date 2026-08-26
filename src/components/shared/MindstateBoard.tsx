@@ -23,13 +23,21 @@ import { MINDSTATE_LABELS, SKILL_SETS, type SkillState } from '../../data/skills
 /** Mindstate runs 0-34, and 34 means the pool will not take any more. */
 const LOCKED = MINDSTATE_LABELS.length - 1
 
+/**
+ * One colour, varying only in how much of the cell it covers.
+ *
+ * The first version ramped through green, amber, orange and red, which made
+ * forty cells into a rainbow: every cell lit, nothing standing out, and the
+ * names fighting the fill behind them. That is decoration pretending to be
+ * information.
+ *
+ * The signal is emptiness. A pool with room is what you go and train, so a
+ * dark cell is the thing worth seeing and the fill is deliberately quiet.
+ * Only mind lock gets a colour of its own, because it is the one state that
+ * means stop.
+ */
 function fill(mindstate: number): string {
-  const share = mindstate / LOCKED
-  if (mindstate >= LOCKED) return 'bg-danger/70'
-  if (share >= 0.75) return 'bg-warn/60'
-  if (share >= 0.4) return 'bg-accent/45'
-  if (share > 0) return 'bg-good/40'
-  return 'bg-surface-overlay'
+  return mindstate >= LOCKED ? 'bg-danger/25' : 'bg-ink/10'
 }
 
 export function MindstateBoard({
@@ -80,7 +88,7 @@ export function MindstateBoard({
                     title={`${s.name}: ${MINDSTATE_LABELS[s.mindstate] ?? s.mindstate} (${s.mindstate}/${LOCKED}), rank ${Math.round(s.ranks)}`}
                     className={cn(
                       'relative overflow-hidden rounded-sm px-1.5 py-1',
-                      atLock ? 'ring-1 ring-danger/60' : 'ring-1 ring-border'
+                      atLock ? 'ring-1 ring-danger/50' : 'ring-1 ring-border/60'
                     )}
                   >
                     {/* The pool, drawn as how much of the cell is spent. */}
