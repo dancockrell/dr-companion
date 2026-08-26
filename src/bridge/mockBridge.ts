@@ -21,7 +21,7 @@ import { pickSuggestedHunt, rankHuntingGrounds, HUNTING_GROUNDS } from '../data/
 import { simulateCombatLoop, describeCombatState } from '../data/combatMachine'
 import { planTravel } from '../data/travelPath'
 import type { GuildId } from '../data/hunting'
-import { ranksOf, type SkillState } from '../data/skills'
+import { ranksOf, type SkillState, SKILLS_BY_SET, SKILL_SETS } from '../data/skills'
 import { effectiveAthletics } from '../data/obstacles'
 import { DEMO_ZONE, demoPath } from '../data/demoMap'
 import { loadZone, DEFAULT_ZONE } from '../lib/mapData'
@@ -36,6 +36,28 @@ type Listener = (msg: BridgeServerMessage) => void
  * point of the mechanic is that skills diverge.
  */
 function demoSkills(level: number): SkillState[] {
+  // Past the early game, train everything the guild allows. Best practice in
+  // DragonRealms is to keep every skill your class can use in rotation, so a
+  // demo showing a dozen is not testing the board it claims to test.
+  if (level >= 40) {
+    let seed = 7
+    const roll = (n: number) => {
+      // Deterministic, so the demo does not reshuffle on every render.
+      seed = (seed * 1103515245 + 12345) % 2147483648
+      return seed % n
+    }
+    return SKILL_SETS.flatMap((set) =>
+      SKILLS_BY_SET[set].map((name) => ({
+        name,
+        skillset: set,
+        ranks: Math.round(level * (0.5 + roll(60) / 100)),
+        // Spread across the whole 0-34 range so every band appears: pools
+        // about to fall out, pools absorbing, pools at mind lock.
+        mindstate: roll(35),
+      }))
+    )
+  }
+
   const spread: [string, SkillState['skillset'], number, number][] = [
     ['Small Edged', 'Weapon', 1.0, 33],
     ['Large Edged', 'Weapon', 0.7, 8],

@@ -62,16 +62,35 @@ export function DashboardLayout({
   const people = cards.filter((c) => c.deck === 'people')
   const items = character?.roomItems ?? []
 
+  // Every vital the character reports, not a chosen three. Concentration only
+  // exists for some guilds, so it appears when it exists rather than being
+  // padded in as a zero.
   const vitals: Vital[] = character
     ? [
         { key: 'health', glyph: 'H', label: 'Health', value: character.vitals.health, max: character.vitals.healthMax, tone: 'health' },
         { key: 'spirit', glyph: 'S', label: 'Spirit', value: character.vitals.spirit, max: character.vitals.spiritMax, tone: 'spirit' },
         { key: 'fatigue', glyph: 'F', label: 'Fatigue', value: character.vitals.fatigue, max: character.vitals.fatigueMax, tone: 'stamina' },
+        ...(character.vitals.concentrationMax
+          ? [
+              {
+                key: 'concentration',
+                glyph: 'C',
+                label: 'Concentration',
+                value: character.vitals.concentration ?? 0,
+                max: character.vitals.concentrationMax,
+                tone: 'concentration' as const,
+              },
+            ]
+          : []),
       ]
     : []
 
   return (
-    <div className="grid min-h-0 flex-1 gap-2 p-2 [grid-template-columns:1fr_minmax(15rem,22rem)] [grid-template-rows:1fr_auto_auto]">
+    // The map row has a floor. With plain 1fr it resolved to whatever was
+    // left after the auto rows, so a full character with seventy skills ate
+    // the height and collapsed the map to two pixels. The most important
+    // element on the dashboard cannot be the one that yields.
+    <div className="grid h-full min-h-0 flex-1 gap-2 p-2 [grid-template-columns:1fr_minmax(15rem,22rem)] [grid-template-rows:minmax(12rem,1fr)_minmax(0,auto)_auto]">
       {/* The map, given the room it was asked for. */}
       <div className="col-start-1 row-start-1 min-h-0 overflow-hidden rounded border border-border bg-surface-raised">
         <MapPanel plane />
@@ -84,17 +103,21 @@ export function DashboardLayout({
 
       {/* You, and then the room, down the right. */}
       <div className="col-start-2 row-start-1 row-end-3 flex min-h-0 flex-col gap-2">
-        <Box title={character?.name ?? 'You'}>
+        {/* The doll stays, and it stays whole.
+         *
+         * A version of this replaced it with a list of only the parts that
+         * were hurt, which looked tidier and said less: sixteen locations at a
+         * glance became four lines of text you have to read. The doll answers
+         * "where am I damaged" without being read at all, and it answers it for
+         * every part at once including the ones that are fine. */}
+        <Box title={character?.name ?? 'You'} action={popper('mindstate')}>
           <div className="flex items-start gap-3">
-            {/* The portrait slot. Empty until a picture exists, and shaped now
-                so adding one later is a file rather than a refactor. */}
-            <div className="h-[72px] w-[54px] shrink-0 rounded-sm border border-border bg-surface-overlay" />
             <Paperdoll
               injuries={character?.injuries ?? {}}
-              height={72}
+              height={92}
               known={character?.injuries !== undefined}
             />
-            <VitalCluster vitals={vitals} height={56} />
+            <VitalCluster vitals={vitals} height={72} />
           </div>
         </Box>
 

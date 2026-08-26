@@ -44,11 +44,17 @@ const KIND_FILL: Record<string, string> = {
 /**
  * How many rooms the map draws at once.
  *
- * Not a rendering limit for its own sake: past a few hundred boxes the drawing
- * stops being readable, and Crossing alone is 1,060. What matters is the area
- * around the character, which is what an automapper is for.
+ * The whole zone. Crossing is 1,060 rooms and Genie draws every one of them,
+ * which is why a player finds the Bathhouse or the Ranger Circle by looking:
+ * the map is a directory of the city, not a diagram of the next junction.
+ *
+ * This was 220, then 40, on the reasoning that fewer rooms drawn larger would
+ * read better. Side by side with Genie that is plainly wrong. Forty unlabelled
+ * squares tell you nothing a compass would not, and the density is exactly
+ * what makes the thing navigable. The cap survives only as a guard against a
+ * pathological zone, set well above anything real.
  */
-const LOCAL_CAP = 220
+const LOCAL_CAP = 2000
 
 /**
  * The step between adjacent rooms in the source data, in map units.
@@ -210,6 +216,32 @@ export function MapCanvas({
           )
         })
       )}
+
+      {/* One label per named place, at the first room of its cluster.
+          Labelling every room of an eight-room guild would print its name
+          eight times; labelling none is what made this a diagram. */}
+      {(() => {
+        const seen = new Set<string>()
+        return rooms.map((r) => {
+          const place = (r.tags ?? [])[0]
+          if (!place) return null
+          const title = r.title ?? ''
+          const name = title.includes(',') ? title.slice(0, title.indexOf(',')) : title
+          if (!name || seen.has(name)) return null
+          seen.add(name)
+          return (
+            <text
+              key={`label-${r.id}`}
+              x={px(r) + box}
+              y={py(r) - box * 0.4}
+              fill="var(--color-ink-muted)"
+              style={{ fontSize: Math.max(7, 6.5 * scale), pointerEvents: 'none' }}
+            >
+              {name}
+            </text>
+          )
+        })
+      })()}
 
       {rooms.map((r) => {
         const kind = roomKind(r, zone.here, onRoute)
