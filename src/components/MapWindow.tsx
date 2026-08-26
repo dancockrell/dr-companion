@@ -17,6 +17,7 @@ import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import type { IntentName } from '../bridge/types'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
+import { useMapDock, setMapDock } from '../lib/mapDock'
 
 const ZOOMS = [1, 1.5, 2, 3]
 
@@ -27,7 +28,18 @@ export function MapWindow() {
   const connectBridge = useAppStore((s) => s.connectBridge)
 
   const [level, setLevel] = useState<number | null>(null)
-  const [zoom, setZoom] = useState(1.5)
+  /**
+   * Zoom, remembered.
+   *
+   * It reset to 1.5 on every open, which for a window whose entire purpose is
+   * to be left up and watched means re-setting it every session. Stored beside
+   * the docked map's zoom rather than sharing that number: docked, zoom is a
+   * multiple of fit-the-zone; here it is pixels per map unit, and one field
+   * would silently mean something different in each window.
+   */
+  const zoom = useMapDock().windowZoom
+  const setZoom = (next: number | ((v: number) => number)) =>
+    setMapDock({ windowZoom: typeof next === 'function' ? next(zoom) : next })
   const [labels, setLabels] = useState(false)
 
   // This window connects for itself. It did not inherit the main window's

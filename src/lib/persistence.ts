@@ -35,6 +35,16 @@ export interface PersistedPrefs {
   houseEntryMethod?: 'rope' | 'lockpick' | 'lockpick_ring'
   houseEntryMaxSearches?: number
   houseEntryHide?: boolean
+  /**
+   * Whether first-run setup has been through once.
+   *
+   * Kept out here with the preferences rather than in the store, because the
+   * store is rebuilt from nothing on every load and this is precisely the fact
+   * that has to survive that. Without it the app opens on the setup wizard
+   * forever: everything else about a returning player is remembered and the
+   * one bit saying they are a returning player was not.
+   */
+  setupComplete?: boolean
 }
 
 const defaults: PersistedPrefs = {
@@ -52,6 +62,7 @@ const defaults: PersistedPrefs = {
   houseEntryMethod: 'lockpick_ring',
   houseEntryMaxSearches: 3,
   houseEntryHide: true,
+  setupComplete: false,
 }
 
 export function loadPrefs(): PersistedPrefs {

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { SetupWizard } from './components/first-run/SetupWizard'
 import { Dashboard } from './components/dashboard/Dashboard'
 import { RoomColumn } from './components/room/RoomColumn'
@@ -10,6 +10,7 @@ import { SituationBanner } from './components/layout/SituationBanner'
 import { Console } from './components/layout/Console'
 import { MapWindow } from './components/MapWindow'
 import { PanelWindow } from './components/PanelWindow'
+import { useMapDock, setMapDock } from './lib/mapDock'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 
@@ -32,80 +33,91 @@ function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app
   return { kind: 'app' }
 }
 
-const SPLIT_KEY = 'drc.split.v2'
+const DASH_KEY = 'drc.dash-width.v1'
+
+/** The divider itself, which sits between the columns and has to be counted. */
+const SPLIT_W = 8
+
+/** Enough to keep a column grabbable so it can be dragged back. Nothing more. */
+const MIN_PX = 80
 
 export default function App() {
   const setupComplete = useAppStore((s) => s.setupComplete)
   const hostRef = useRef<HTMLElement | null>(null)
 
   /**
-   * How the window is divided between the companion and the room.
+   * The columns are fixed widths in pixels, not shares of the window.
    *
-   * Remembered, because a split you have to set again on every launch is one
-   * nobody moves a second time. Kept in localStorage rather than the store: it
-   * is a property of this window on this screen, and it should not follow a
-   * character profile around.
+   * They were shares, and shares are wrong here for a reason that only shows
+   * up in use: resize the window and every column moves. Someone sets the
+   * dashboard to exactly the width of the Experience board, drags the window
+   * a little wider to see the game text beside it, and the board reflows. The
+   * setting they made was not a proportion, it was a width.
+   *
+   * So a width is what is stored. The map and the dashboard keep the pixels
+   * they were given, and the room column takes whatever is left, which makes
+   * it the one that absorbs a resize. That is the right one to give the slack
+   * to: it holds a description and a chat log, both of which are text and
+   * reflow happily, while the other two hold charts and boards that have a
+   * size at which they are readable and no other.
    */
-  const [cols, setColsState] = useState<[number, number, number]>(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(SPLIT_KEY) ?? 'null')
-      if (Array.isArray(saved) && saved.length === 3 && saved.every((n) => typeof n === 'number')) {
-        return saved as [number, number, number]
-      }
-    } catch {
-      // Nothing saved, or saved by an older version with a single number.
-    }
-    return [0.34, 0.33, 0.33]
+  const [dashW, setDashWState] = useState<number>(() => {
+    const saved = Number(localStorage.getItem(DASH_KEY))
+    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 420
   })
 
-  /**
-   * The only limit on a divider: a column may not disappear entirely.
-   *
-   * An earlier version set a comfortable minimum per column - 200, 340, 260 -
-   * so that nothing could be made too narrow to read. That was the app
-   * deciding how wide the player's columns should be, and it fought them: drag
-   * a column narrow and it stopped, or stopped and clipped its own contents.
-   *
-   * The columns are the player's. If they want the map at 90% and the rest
-   * slivers, that is a legitimate thing to want, and the content scrolls
-   * rather than the layout refusing. 80px is only enough to keep a column
-   * grabbable so it can be dragged back.
-   */
-  const MIN_PX = 80
-
-  const setCols = (next: [number, number, number]) => {
-    setColsState(next)
+  const setDashW = (px: number) => {
+    const next = Math.max(MIN_PX, Math.round(px))
+    setDashWState(next)
     try {
-      localStorage.setItem(SPLIT_KEY, JSON.stringify(next))
+      localStorage.setItem(DASH_KEY, String(next))
     } catch {
       // Private mode. Losing a divider position is not worth an error.
     }
   }
 
+  const dock = useMapDock()
+
   /**
-   * Move one divider without disturbing the other.
+   * How wide `main` is right now.
    *
-   * A divider drag has to take from its right-hand neighbour only. Spreading
-   * the change across both would make the far column twitch while you are
-   * adjusting the near one, which reads as the layout fighting you.
+   * Needed because the Splitter reports the pointer as a fraction of its
+   * parent, and turning that back into pixels needs the parent width. Kept in
+   * state rather than read off the ref during a drag, so the divider position,
+   * which is derived from it, stays in step with the render.
    */
-  const moveDivider = (i: number) => (share: number) => {
-    const total = hostRef.current?.getBoundingClientRect().width ?? 0
-    const pair = cols[i] + cols[i + 1]
+  const [hostW, setHostW] = useState(0)
+  useLayoutEffect(() => {
+    const el = hostRef.current
+    if (!el) return
+    setHostW(el.getBoundingClientRect().width)
+    const ro = new ResizeObserver(([entry]) => setHostW(entry.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [setupComplete])
 
-    // Converted to pixels so the floors mean what they say. On a narrow window
-    // the two minimums can exceed the space available, in which case the
-    // clamp collapses to the midpoint rather than inverting.
-    const lo = total > 0 ? MIN_PX / total : 0.05
-    const hi = total > 0 ? pair - MIN_PX / total : pair - 0.05
-    const want = share * pair
-    const left = hi > lo ? Math.min(hi, Math.max(lo, want)) : pair / 2
+  const mapW = dock.docked ? dock.width : 0
+  const mapSplit = dock.docked ? SPLIT_W : 0
 
-    const next = [...cols] as [number, number, number]
-    next[i] = left
-    next[i + 1] = pair - left
-    setCols(next)
-  }
+  /** Small enough to keep a column grabbable, and no opinion beyond that. */
+  const atLeastVisible = (px: number) => Math.max(MIN_PX, px)
+
+  /**
+   * A divider sits at an absolute x, and moving it sets the width to its left.
+   *
+   * Only the column immediately left of the divider changes. Everything to its
+   * right is either fixed or flex, so nothing further along the row twitches
+   * while a near divider is being adjusted, which is what made the earlier
+   * share-based version feel like the layout was arguing back.
+   *
+   * Nothing is prevented from being dragged small except vanishing outright.
+   * If someone wants the map at nine tenths of the window and the rest
+   * slivers, that is a legitimate thing to want, and the content scrolls
+   * rather than the layout refusing.
+   */
+  const moveMapEdge = (share: number) => setMapDock({ width: atLeastVisible(share * hostW) })
+  const moveDashEdge = (share: number) =>
+    setDashW(atLeastVisible(share * hostW - mapW - mapSplit))
 
   // A popped-out panel is the whole window: no header, no console, no setup
   // wizard. The window *is* the panel, and chrome here would be space charged
@@ -116,7 +128,8 @@ export default function App() {
 
   // No max-width. The window is only as wide as the player has decided we are
   // worth against the game window next to it, and capping it at 560px would
-  // throw away space they deliberately gave us. See docs/DESIGN.md §2.115.
+  // throw away space they deliberately gave us. See docs/DESIGN.md, section
+  // 2.115.
   return (
     <div className="h-full w-full bg-surface flex flex-col">
       {/* No title bar. The window has one, the character box carries the
@@ -124,35 +137,48 @@ export default function App() {
           controls, which do not need a band of their own. */}
       <AppControls />
       {setupComplete && <SituationBanner />}
-      {/* Two columns of equal width: the companion, and the room.
-       *
-       * The split lives here rather than inside Dashboard because Dashboard
-       * measures its own width to decide whether to render dense. Splitting
-       * below that point would have it laying out for the full window while
-       * occupying half of one.
-       *
-       * Equal at default scale, and the room column is allowed to give ground
-       * first on a narrow window: the companion is the instrument, and a
-       * cramped map is a worse loss than a cramped description. */}
       <main ref={hostRef} className="flex min-h-0 flex-1 overflow-hidden">
         {setupComplete ? (
           <>
-            {/* The map gets a column of its own.
+            {/* The map gets a column of its own, when it is docked.
              *
              * It was a cell in the dashboard grid, competing for vertical
              * space with everything else in that column and losing. The map is
              * the one surface that is watched rather than consulted - players
              * keep it in view while doing something else - so it gets full
-             * height and a width you set yourself. */}
-            <div className="min-w-0 overflow-hidden border-r border-border" style={{ flex: `${cols[0]} 1 0%` }}>
-              <MapColumn />
-            </div>
-            <Splitter value={cols[0] / (cols[0] + cols[1])} onChange={moveDivider(0)} />
-            <div className="min-w-0 overflow-auto" style={{ flex: `${cols[1]} 1 0%` }}>
+             * height and a width the player sets.
+             *
+             * Popped out, the column is not narrowed, it is gone: a strip of
+             * chrome saying the map is elsewhere would cost width for nothing.
+             * The remembered width survives, and the map comes back at it, so
+             * popping out and back is not a move that costs you the layout. */}
+            {dock.docked && (
+              <>
+                <div
+                  className="min-w-0 shrink-0 overflow-hidden border-r border-border"
+                  style={{ width: mapW }}
+                >
+                  <MapColumn />
+                </div>
+                <Splitter
+                  value={hostW > 0 ? mapW / hostW : 0.33}
+                  onChange={moveMapEdge}
+                  min={0}
+                  max={1}
+                />
+              </>
+            )}
+            <div className="min-w-0 shrink-0 overflow-auto" style={{ width: dashW }}>
               <Dashboard />
             </div>
-            <Splitter value={cols[1] / (cols[1] + cols[2])} onChange={moveDivider(1)} />
-            <div className="min-w-0 overflow-auto" style={{ flex: `${cols[2]} 1 0%` }}>
+            <Splitter
+              value={hostW > 0 ? (mapW + mapSplit + dashW) / hostW : 0.66}
+              onChange={moveDashEdge}
+              min={0}
+              max={1}
+            />
+            {/* The column that absorbs a window resize. */}
+            <div className="min-w-0 flex-1 overflow-auto">
               <RoomColumn />
             </div>
           </>

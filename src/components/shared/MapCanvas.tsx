@@ -37,7 +37,7 @@ const KIND_FILL: Record<string, string> = {
   healer: 'var(--color-good)',
   guild: 'var(--color-info)',
   temple: 'var(--color-info)',
-  shop: 'var(--color-ink-muted)',
+  shop: 'var(--map-ink)',
   gate: 'var(--color-warn)',
   bridge: 'var(--color-warn)',
   park: 'var(--color-good)',
@@ -82,7 +82,9 @@ export function roomKind(
 }
 
 const FILL: Record<RoomKind, string> = {
-  here: 'var(--color-accent)',
+  // Not the app's accent. Gold on vellum is a wash, and this is the one square
+  // on the chart that must never be missed.
+  here: 'var(--map-here)',
   route: 'var(--color-good)',
   hazard: 'var(--color-danger)',
   service: 'var(--color-info)',
@@ -259,10 +261,10 @@ export function MapCanvas({
 
           const style =
             link.kind === 'enter'
-              ? { stroke: 'var(--color-accent)', strokeWidth: 0.6 * scale, strokeDasharray: '1.5 1.5', opacity: 0.55 }
+              ? { stroke: 'var(--map-route)', strokeWidth: 0.7 * scale, strokeDasharray: '1.5 1.5', opacity: 0.8 }
               : link.kind === 'climb' || link.kind === 'vertical'
-                ? { stroke: 'var(--color-warn)', strokeWidth: 0.9 * scale, strokeDasharray: '0.8 1.2', opacity: 0.7 }
-                : { stroke: 'var(--map-line)', strokeWidth: Math.max(0.6, 0.7 * scale), opacity: 0.75 }
+                ? { stroke: 'var(--color-warn)', strokeWidth: 0.9 * scale, strokeDasharray: '0.8 1.2', opacity: 0.9 }
+                : { stroke: 'var(--map-line)', strokeWidth: Math.max(0.6, 0.7 * scale), opacity: 0.9 }
 
           return (
             <line
@@ -302,7 +304,7 @@ export function MapCanvas({
               key={`label-${r.id}`}
               x={px(r) + box}
               y={py(r) - box * 0.4}
-              fill="var(--color-ink-muted)"
+              fill="var(--map-ink)"
               style={{
                 fontSize: Math.max(7, 6.5 * scale),
                 pointerEvents: 'none',
@@ -381,10 +383,10 @@ export function MapCanvas({
                 height={box * 1.7}
                 rx={Math.max(2, 3 * scale)}
                 fill="none"
-                stroke="var(--color-accent)"
+                stroke="var(--map-ink)"
                 strokeWidth={Math.max(0.7, 0.8 * scale)}
                 strokeDasharray={`${1.6 * scale} ${1.2 * scale}`}
-                opacity={0.75}
+                opacity={0.65}
               />
             )}
             <title>
@@ -396,6 +398,7 @@ export function MapCanvas({
                 (r.leaves?.length ? `\nleaves the zone: ${r.leaves.join(', ')}` : '')}
             </title>
             <rect
+              data-here={kind === 'here' ? 'true' : undefined}
               x={px(r) - box / 2}
               y={py(r) - box / 2}
               width={box}
@@ -413,12 +416,12 @@ export function MapCanvas({
               }
               stroke={
                 kind === 'here'
-                  ? 'var(--color-accent)'
+                  ? 'var(--map-here)'
                   : kind === 'hazard'
                     ? 'var(--color-danger)'
                     : kind === 'service'
-                      ? 'var(--color-info)'
-                      : 'var(--color-border)'
+                      ? 'var(--map-ink)'
+                      : 'var(--map-ink)'
               }
               strokeWidth={kind === 'here' ? 2.5 * scale : 1 * scale}
             />
@@ -427,7 +430,7 @@ export function MapCanvas({
                 x={px(r) + box}
                 y={py(r) + box / 3}
                 fontSize={9 * scale}
-                fill="var(--color-ink-muted)"
+                fill="var(--map-ink)"
                 className="pointer-events-none select-none"
               >
                 {r.title}
@@ -468,9 +471,14 @@ export function MapLegend({ kinds }: { kinds?: string[] }) {
       {items.map(([kind, label]) => (
         <span key={kind} className="flex items-center gap-1">
           <span
-            className="inline-block h-2.5 w-2.5 rounded-sm"
-            style={{ background: KIND_FILL[kind] ?? FILL[kind as RoomKind] }}
-          />
+            className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-sm"
+            style={{ background: 'var(--map-ground)' }}
+          >
+            <span
+              className="inline-block h-2 w-2 rounded-[1px]"
+              style={{ background: KIND_FILL[kind] ?? FILL[kind as RoomKind] }}
+            />
+          </span>
           {label}
         </span>
       ))}

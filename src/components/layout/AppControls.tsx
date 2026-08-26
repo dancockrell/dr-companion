@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Pin, PinOff, Circle, Settings } from 'lucide-react'
+import { Pin, PinOff, Circle, Settings, Map as MapIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { setAlwaysOnTop } from '../../lib/tauri'
+import { useMapDock, setMapDock } from '../../lib/mapDock'
 import { SettingsSheet } from './SettingsSheet'
 import { cn } from '../../lib/cn'
 
@@ -29,6 +30,7 @@ export function AppControls() {
   const setupComplete = useAppStore((s) => s.setupComplete)
   const uiMode = useAppStore((s) => s.uiMode)
   const setUiMode = useAppStore((s) => s.setUiMode)
+  const mapDock = useMapDock()
 
   const live = setupComplete && bridgeConnected && character?.connected === true
 
@@ -75,6 +77,26 @@ export function AppControls() {
             ))}
           </span>
         )}
+
+        {/* The map's way home.
+         *
+         * Popping the map into its own window hides its column, and the only
+         * control offering it back used to live inside the panel that had just
+         * gone. That is a one-way door dressed up as a toggle. Here it is
+         * always on screen, and it is the same setting either way: the column
+         * comes back at the width it was, because the width is remembered
+         * separately from whether it is showing. */}
+        <button
+          type="button"
+          title={mapDock.docked ? 'Hide the map column' : 'Show the map column'}
+          className={cn(
+            'pointer-events-auto rounded p-1 text-ink-faint hover:text-ink',
+            mapDock.docked && 'text-accent'
+          )}
+          onClick={() => setMapDock({ docked: !mapDock.docked })}
+        >
+          <MapIcon className="h-3.5 w-3.5" />
+        </button>
 
         <button
           type="button"

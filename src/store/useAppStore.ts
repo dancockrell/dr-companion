@@ -186,7 +186,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   mapPath: null,
   mapZone: null,
 
-  setupComplete: false,
+  setupComplete: prefs.setupComplete ?? false,
   setupReopened: false,
   setupComponents: defaultSetup,
   uiMode: prefs.uiMode,
@@ -228,9 +228,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   houseEntryMaxSearches: prefs.houseEntryMaxSearches ?? 3,
   houseEntryHide: prefs.houseEntryHide ?? true,
 
-  setSetupComplete: (v) => set({ setupComplete: v, setupReopened: false }),
+  setSetupComplete: (v) => {
+    savePrefs({ setupComplete: v })
+    set({ setupComplete: v, setupReopened: false })
+  },
 
   // Show the setup screen on purpose. It will not skip itself this time.
+  //
+  // Deliberately not persisted, unlike finishing setup. Someone who opens the
+  // wizard to change one component and then restarts the app wants the app,
+  // not the wizard again: reopening it is a thing you do now, and finishing it
+  // is a thing that stays done.
   openSetup: () => set({ setupComplete: false, setupReopened: true }),
 
   updateSetupComponent: (id, patch) =>

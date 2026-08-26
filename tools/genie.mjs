@@ -35,6 +35,25 @@ const PORT = 7416
  */
 const NOISE = /^\s*$|^>\s*$|^\s*<|^\[Plugin\]/
 
+/**
+ * The auto-look, which is most of the wire and almost none of the information.
+ *
+ * Every time anybody walks into or out of the room, DragonRealms replays the
+ * whole room description between `@suspend@` and `@resume@` markers. In a busy
+ * gate room that is forty lines a minute of text that has not changed since the
+ * last time it was sent, and it buries the one line that did.
+ *
+ * So the replayed block is dropped and the line that is actually new - who
+ * arrived, who left, by which exit - is kept. `--all` turns the filter off for
+ * when the description itself is the thing being read.
+ *
+ * These four are kept inside the block on purpose. The room title and the exits
+ * are the only lines in it that change when *you* move, and losing them would
+ * make the stream useless for navigation, which is the thing it exists to
+ * support. Who is present is kept for the same reason as the arrival lines.
+ */
+const KEEP_IN_BLOCK = /^\[|^Obvious paths|^Also here|^You also see/
+
 function open(onEvent) {
   return new Promise((resolve, reject) => {
     const sock = connect(PORT, HOST)
@@ -85,12 +104,35 @@ if (!cmd || cmd === 'help') {
   process.exit(0)
 }
 
+const ALL = process.argv.includes('--all')
+let suspended = false
+let lastLine = ''
+
 const show = (e) => {
   if (e.t === 'hello') {
     console.error(`connected to ${e.plugin} v${e.version}`)
     return
   }
-  if (e.t === 'text' && e.line && !NOISE.test(e.line)) console.log(e.line.replace(/\s+$/, ''))
+  if (e.t === 'text' && typeof e.line === 'string') {
+    const line = e.line.replace(/\s+$/, '')
+    if (line.startsWith('@suspend@')) {
+      suspended = true
+      return
+    }
+    if (line.startsWith('@resume@')) {
+      suspended = false
+      return
+    }
+    if (suspended && !ALL && !KEEP_IN_BLOCK.test(line)) return
+    if (!line || NOISE.test(line)) return
+
+    // The same line twice running is the auto-look repeating itself, not the
+    // room changing. Suppressed by content rather than by position, because
+    // the markers do not survive every code path the game sends text down.
+    if (ALL || line !== lastLine) console.log(line)
+    lastLine = line
+    return
+  }
   if (e.t === 'input') console.log(`  > ${e.line}`)
   if (e.t === 'variable' && cmd === 'vars') console.log(`  ${e.name} = ${e.value}`)
 }

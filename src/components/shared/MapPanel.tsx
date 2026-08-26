@@ -14,7 +14,7 @@
  * Not a travel control. Clicking a room asks for a route and shows it; it does
  * not walk anywhere. Moving stays a decision made with the route in view.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { loadZone, DEFAULT_ZONE } from '../../lib/mapData'
 import type { MapZone } from '../../bridge/types'
 import {
@@ -25,6 +25,8 @@ import {
   ChevronUp,
   ExternalLink,
   PanelRightClose,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react'
 import { describeTrail } from '../../lib/trail'
 import { useAppStore } from '../../store/useAppStore'
@@ -32,6 +34,7 @@ import { bridge } from '../../bridge'
 import type { IntentName } from '../../bridge/types'
 import { isTauri, invokeTauri } from '../../lib/tauri'
 import { MapCanvas, MapLegend } from './MapCanvas'
+import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { PlaceSearch } from './PlaceSearch'
 import type { PlaceHit } from '../../lib/placeSearch'
 
@@ -80,7 +83,9 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
   const [level, setLevel] = useState<number | null>(null)
   const [tall, setTall] = useState(false)
-  const [poppedOut, setPoppedOut] = useState(false)
+  const dock = useMapDock()
+  const poppedOut = !dock.docked
+  const setPoppedOut = (v: boolean) => setMapDock({ docked: !v })
 
   // Asked, not remembered. The map window is a separate webview with its own
   // state, so this panel cannot know from its own memory whether a window it
@@ -130,6 +135,37 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   }
 
   const refresh = () => bridge.requestIntent('map_zone' as IntentName)
+
+  /**
+   * Zoomed in, the box scrolls, and it stays centred on where you are.
+   *
+   * Without this, zooming shows the top-left corner of the zone, which for
+   * Crossing is a stretch of the north wall regardless of where the character
+   * actually is. A zoom control that reliably shows you somewhere else is
+   * worse than no zoom control.
+   *
+   * It re-centres whenever the zoom changes or the character moves, which is
+   * the same behaviour Genie's own mapper has and the reason a player can
+   * leave it zoomed in and still trust it.
+   *
+   * Layout effect rather than effect: the scroll is set in the same frame the
+   * new size is painted, so the chart does not flash at the corner first.
+   */
+  const boxRef = useRef<HTMLDivElement | null>(null)
+  const here = useAppStore((s) => s.mapHere)
+  useLayoutEffect(() => {
+    const box = boxRef.current
+    if (!box) return
+    const mark = box.querySelector('[data-here]')
+    if (!mark) return
+    const m = mark.getBoundingClientRect()
+    const b = box.getBoundingClientRect()
+    box.scrollLeft += m.left - b.left - (b.width - m.width) / 2
+    box.scrollTop += m.top - b.top - (b.height - m.height) / 2
+  }, [dock.zoom, here, zoneStack, level])
+
+  const zoomBy = (step: number) =>
+    setMapDock({ zoom: Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, dock.zoom + step)) })
 
   /**
    * Going where the search says the place is.
@@ -264,9 +300,41 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               ))}
             </div>
           )}
-          {/* Only meaningful in the stack. In a plane the height comes from
-              the column and the divider, so a grow/shrink toggle would be a
-              second control fighting the first. */}
+          {/* Zoom belongs to the plane and height belongs to the stack.
+              In a plane the height already comes from the column and the
+              divider, so a grow/shrink toggle there would be a second control
+              fighting the first; in the stack the box is too small for zoom to
+              show you anything the fit does not. */}
+          {plane && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+                title="Zoom out"
+                disabled={dock.zoom <= ZOOM_MIN}
+                onClick={() => zoomBy(-0.5)}
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
+                title="Back to the whole zone"
+                onClick={() => setMapDock({ zoom: 1 })}
+              >
+                {dock.zoom === 1 ? 'fit' : `${dock.zoom}x`}
+              </button>
+              <button
+                type="button"
+                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+                title="Zoom in"
+                disabled={dock.zoom >= ZOOM_MAX}
+                onClick={() => zoomBy(0.5)}
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           {!plane && (
             <button
               type="button"
@@ -294,20 +362,34 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           which for a small zone is a stamp in the corner.
           In plane mode the height comes from the column instead. */}
       <div
-        className={`overflow-hidden rounded bg-surface ${
+        ref={boxRef}
+        className={`rounded ${dock.zoom > 1 ? 'overflow-auto' : 'overflow-hidden'} ${
           plane ? 'flex-1 min-h-0' : ''
         }`}
-        style={plane ? undefined : { height: tall ? 320 : 168 }}
+        style={{
+          // The page, behind and around the chart. Letterboxing in the app's
+          // dark surface would read as the map having been cut off rather than
+          // as a sheet that does not fill the box.
+          background: 'var(--map-ground)',
+          ...(plane ? {} : { height: tall ? 320 : 168 }),
+        }}
       >
-        <MapCanvas
-          zone={zone}
-          level={z}
-          onRoute={onRoute}
-          fit
-          onPick={(id) => bridge.requestIntent('map_path' as IntentName, { to: id })}
-          onZone={(id) => setZoneStack((st) => [...st, id])}
-          trail={trail}
-        />
+        <div
+          style={{
+            width: `${dock.zoom * 100}%`,
+            height: `${dock.zoom * 100}%`,
+          }}
+        >
+          <MapCanvas
+            zone={zone}
+            level={z}
+            onRoute={onRoute}
+            fit
+            onPick={(id) => bridge.requestIntent('map_path' as IntentName, { to: id })}
+            onZone={(id) => setZoneStack((st) => [...st, id])}
+            trail={trail}
+          />
+        </div>
       </div>
 
       {/* The way back.

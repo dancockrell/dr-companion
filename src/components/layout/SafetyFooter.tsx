@@ -106,7 +106,7 @@ export function SafetyFooter() {
         <span
           className={cn(
             'shrink-0 font-medium',
-            busy ? 'animate-pulse-soft text-accent' : 'text-ink-faint'
+            busy ? 'text-accent' : 'text-ink-faint'
           )}
         >
           {busy ? 'Active' : 'Idle'}

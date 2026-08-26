@@ -15,18 +15,44 @@
   --color-surface-raised: #16140f;
   --color-surface-overlay: #211d16;
 
-  /* The chart's own paper.
+  /* Vellum.
    *
-   * The app palette is warm all the way down and the map inherited it, which
-   * made a chart of muted warm inks sit on a warm ground: everything the same
-   * temperature, and the whole thing read as brown. A sheet laid on a desk is
-   * allowed its own tone, so the map gets a cool slate ground and the warm
-   * inks read as ink against it. This is the contrast the chart runs on. */
-  --map-ground: #0a0d12;
-  --map-ground-edge: #06080b;
-  --map-plain: #2b3542;
-  --map-line: #55636f;
-  --map-trail: #e8dcc8;
+   * The chart went through two grounds before this one. Warm dark, which made
+   * everything the same temperature and read as brown. Then cool slate, which
+   * fixed the brown and left a glowing blue rectangle in a warm window - a
+   * screen inside a screen.
+   *
+   * A map is a physical object. Cartographers have drawn this one by hand for
+   * twenty years, and the thing they drew it on was not a monitor. So the
+   * ground is calfskin: pale, warm, slightly uneven, darker at the edges where
+   * a sheet is handled. Everything on it is ink.
+   *
+   * That inverts the contrast against the rest of the app, and that is the
+   * point rather than a side effect. The window is dark; the chart is the one
+   * lit thing in it, the way a lamp over a desk works.
+   *
+   * Consequence to keep in mind when editing: every colour drawn on the map
+   * now has to be dark enough to be ink. Anything pale disappears into the
+   * page. That is why the trail is red oxide and not cream, and why the map
+   * carries its own --map-ink for text instead of borrowing --color-ink-muted,
+   * which is a light ink for a dark surface and invisible here. */
+  --map-ground: #e8dfc6;
+  --map-ground-edge: #cdbf9d;
+  --map-plain: #d7c9a6;
+  --map-line: #8b7a58;
+  /* Red oxide. The route you actually walked, drawn in the one pigment a
+     surveyor would reach for to mark a line over their own chart. */
+  --map-trail: #9c3a24;
+  /* Where you are. Not the app's gold: gold on cream is a wash, and this is
+     the single thing on the chart that must never be missed. */
+  --map-here: #8c2f22;
+  /* Where you are going, as distinct from where you have been. Green ink
+     against the red oxide of the trail, so the two lines are never confused
+     when they run over each other - which on a route retraced is most of the
+     time. */
+  --map-route: #2f6b46;
+  /* Text on the page. Iron gall, which is what the annotations would be. */
+  --map-ink: #4a3f2c;
 
   /* Quiet on purpose. A boundary is a hairline, not a frame: the previous
      border was loud enough that six panels read as a grid of boxes. */
@@ -82,10 +108,14 @@ body {
   background: #3a4255;
 }
 
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-.animate-pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
-}
+/* Nothing in this window blinks.
+ *
+ * There was a two-second opacity pulse on the busy indicator and on low
+ * health. Both were reasonable in isolation and the effect in practice was a
+ * window that would not sit still in the corner of the eye while someone was
+ * reading the game text next to it. An indicator that has to move to be
+ * noticed is an indicator that is the wrong colour.
+ *
+ * If something needs attention it changes colour, and if it needs attention
+ * when nobody is looking at the window it makes a sound. There is no third
+ * case that animation solves. */

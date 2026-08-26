@@ -109,7 +109,7 @@ export function CharacterStrip({ character }: { character: CharacterStatus }) {
       <span
         className={cn(
           'ml-auto text-xs font-medium',
-          lowHealth ? 'animate-pulse-soft text-danger' : 'text-ink-muted'
+          lowHealth ? 'text-danger' : 'text-ink-muted'
         )}
       >
         {character.activity}
