@@ -40,6 +40,7 @@ import {
 } from 'node:fs'
 import { join } from 'node:path'
 import { scoreFile } from './art-eval.mjs'
+import { subjectOf } from './art-safety.mjs'
 import { hamming } from './art-eval.mjs'
 
 const HOST = 'http://127.0.0.1:8188'
@@ -560,8 +561,6 @@ function plan() {
 // Installing
 // ---------------------------------------------------------------------------
 
-/** ComfyUI appends _00001_ and counts up. The subject is what comes before. */
-const subjectOf = (f) => f.replace(/--c\d+_\d+_\.(webp|png)$/i, '').replace(/_\d+_\.(webp|png)$/i, '')
 
 /**
  * Copy finished art into public/, newest per subject.

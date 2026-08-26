@@ -22,6 +22,7 @@
  *     a key carrying the (1) matches nothing the game will ever send.
  */
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'node:fs'
+import { subjectOf } from './art-safety.mjs'
 import { join } from 'node:path'
 
 const KINDS = [
@@ -39,8 +40,6 @@ const slug = (s) =>
     .replace(/^-|-$/g, '')
     .slice(0, 60)
 
-/** ComfyUI appends _00001_ and counts up. The subject is what comes before. */
-const subjectOf = (filename) => filename.replace(/_\d+_\.(webp|png)$/i, '')
 
 function install({ out, dest }) {
   let files

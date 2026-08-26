@@ -156,3 +156,20 @@ export function isHumanoid(name, lore) {
   if (has(ANIMAL_NAMES, name)) return has(LORE_STRONG, lore)
   return has(HUMANOID_NAMES, name) || has(LORE_WORDS, lore)
 }
+
+/**
+ * The subject a rendered file belongs to.
+ *
+ * ComfyUI appends `_00001_` and counts up, and the daemon appends `--c0`,
+ * `--c1` and so on for the candidates it chooses between. Both have to come
+ * off, and the candidate suffix has to come off first.
+ *
+ * This lives here because it existed twice with two different definitions and
+ * only one of them knew about candidates. The other turned
+ * `1-516--c0_00001_.webp` into `1-516--c0.webp` instead of `1-516.webp`, so
+ * every subject installed under two names: 162 byte-identical duplicates,
+ * which at 17,750 rooms would have doubled a three gigabyte pack with files
+ * the app never asks for.
+ */
+export const subjectOf = (filename) =>
+  filename.replace(/--c\d+(_\d+_)?\.(webp|png)$/i, '').replace(/_\d+_\.(webp|png)$/i, '')
