@@ -20,8 +20,18 @@ import type { MapZone, MapZoneRoom } from '../bridge/types'
 interface BuiltRoom {
   id: number
   name: string
-  /** bank, healer, guild and so on, read off the name at build time. */
-  kind?: string
+  /**
+   * The cartographer's label for this room, drawn on the map.
+   *
+   * From the note attribute in the source: "Town Green", "Oxenwaithe Bridge",
+   * "Apostle Headquarters". 3,174 of them across the game. This replaced a
+   * regex that guessed venues from room titles and found 31.
+   */
+  label?: string
+  /** Other names the same place goes by, for search rather than drawing. */
+  aliases?: string[]
+  /** The cartographer's own colour for this room. */
+  color?: string
   /** The street or place: what a player says when asked where they are. */
   place?: string
   x: number
@@ -30,13 +40,20 @@ interface BuiltRoom {
   exits: { dir: string; move: string; to: number }[]
 }
 interface BuiltZone {
-  id: number
+  /**
+   * A string, not a number.
+   *
+   * Sub-maps carry ids like 1a, 1j, 107a and TF1 — the interiors and passages
+   * hanging off a main zone. Treating ids as integers dropped 36 of 85 zones
+   * without a word, including Crossing Temple and the Seacaves.
+   */
+  id: string
   name: string
   rooms: BuiltRoom[]
 }
 
 export interface ZoneSummary {
-  id: number
+  id: string
   name: string
   rooms: number
 }
@@ -44,10 +61,10 @@ export interface ZoneSummary {
 /** Vite resolves these at build time; only the requested zone is fetched. */
 const ZONES = import.meta.glob<{ default: BuiltZone }>('../data/map/*.json')
 
-const cache = new Map<number, MapZone>()
+const cache = new Map<string, MapZone>()
 
 /** The Crossing. Where new characters start, and the busiest zone in the game. */
-export const DEFAULT_ZONE = 1
+export const DEFAULT_ZONE = '1'
 
 export async function zoneIndex(): Promise<ZoneSummary[]> {
   const load = ZONES['../data/map/index.json']
@@ -68,14 +85,14 @@ function toZoneRoom(r: BuiltRoom): MapZoneRoom {
     x: r.x,
     y: r.y,
     z: r.z,
-    // 1,863 rooms across the game say what kind of place they are, and the
-    // canvas already colours by tag, so the classification travels as one.
-    tags: r.kind ? [r.kind] : [],
+    // The label travels as the first tag, which is the channel the canvas
+    // already draws from.
+    tags: r.label ? [r.label] : [],
     to: r.exits.map((e) => e.to),
   }
 }
 
-export async function loadZone(id: number): Promise<MapZone | null> {
+export async function loadZone(id: string): Promise<MapZone | null> {
   const hit = cache.get(id)
   if (hit) return hit
 
@@ -85,7 +102,7 @@ export async function loadZone(id: number): Promise<MapZone | null> {
   const zone = (await load()).default
   const built: MapZone = {
     ok: true,
-    zone: String(zone.id),
+    zone: zone.id,
     name: zone.name,
     here: null,
     total: zone.rooms.length,
@@ -98,7 +115,7 @@ export async function loadZone(id: number): Promise<MapZone | null> {
 
 /** The movement command for one step, so a route can be walked rather than read. */
 export async function moveBetween(
-  zoneId: number,
+  zoneId: string,
   from: number,
   to: number
 ): Promise<string | null> {

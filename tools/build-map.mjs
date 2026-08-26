@@ -55,11 +55,31 @@ const KINDS = [
  * but not of the bank, so it swapped false positives for false negatives and
  * lost every bank and guild in the game. The prefix alone is the rule.
  */
-function kindOf(name) {
-  const i = name.indexOf(',')
-  const establishment = i >= 0 ? name.slice(0, i) : name
-  for (const [kind, re] of KINDS) if (re.test(establishment)) return kind
-  return undefined
+/**
+ * The label a cartographer gave this room, if any.
+ *
+ * Pipe separated, most specific first: "Town Green|TGN|Wanted Board". The
+ * first field is the name to draw; the rest are aliases worth keeping for
+ * search but not for the map.
+ *
+ * Some notes are transport bookkeeping rather than places — they name another
+ * map file — so those are dropped.
+ */
+function labelOf(note) {
+  if (!note) return undefined
+  const first = note.split('|')[0].trim()
+  if (!first || /.xml$/i.test(first) || /^Mapd+/i.test(first)) return undefined
+  return first
+}
+
+/** Every alias, for finding a place by a name a player actually types. */
+function aliasesOf(note) {
+  if (!note) return undefined
+  const all = note
+    .split('|')
+    .map((x) => x.trim())
+    .filter((x) => x && !/.xml$/i.test(x) && !/^Mapd+/i.test(x))
+  return all.length > 1 ? all.slice(1) : undefined
 }
 
 /** The part after the comma: the street or place, which is how players say where they are. */
@@ -85,7 +105,12 @@ const unescapeXml = (s) =>
 function parseZone(xml) {
   const zoneTag = /<zone\b[^>]*>/.exec(xml)?.[0] ?? ''
   const zone = {
-    id: num(attr(zoneTag, 'id')),
+    // A string, not a number. Zone ids include 1a, 1j, 107a and TF1: the
+    // sub-maps, which are the interiors and passages that hang off the main
+    // zones. Parsing them as integers silently dropped 33 of 85 files,
+    // including Crossing Thief Passages, Crossing Temple, Market Plaza and
+    // the Seacaves.
+    id: attr(zoneTag, 'id'),
     name: unescapeXml(attr(zoneTag, 'name') ?? ''),
     rooms: [],
   }
@@ -116,7 +141,10 @@ function parseZone(xml) {
     zone.rooms.push({
       id: num(attr(head, 'id')),
       name,
-      kind: kindOf(name),
+      label: labelOf(attr(head, 'note')),
+      aliases: aliasesOf(attr(head, 'note')),
+      // The cartographer's own colour. Their classification beats mine.
+      color: attr(head, 'color'),
       place: placeOf(name),
       x: num(attr(pos, 'x')) ?? 0,
       y: num(attr(pos, 'y')) ?? 0,
@@ -136,12 +164,12 @@ let tagged = 0
 
 for (const file of readdirSync(SRC).filter((f) => f.endsWith('.xml'))) {
   const zone = parseZone(readFileSync(join(SRC, file), 'utf8').replace(/^\uFEFF/, ''))
-  if (zone.id === undefined || !zone.rooms.length) continue
+  if (!zone.id || !zone.rooms.length) continue
 
   writeFileSync(join(OUT, `${zone.id}.json`), JSON.stringify(zone))
   rooms += zone.rooms.length
   arcs += zone.rooms.reduce((n, r) => n + r.exits.length, 0)
-  tagged += zone.rooms.filter((r) => r.kind).length
+  tagged += zone.rooms.filter((r) => r.label).length
   index.push({ id: zone.id, name: zone.name, rooms: zone.rooms.length })
 }
 
@@ -149,6 +177,6 @@ index.sort((a, b) => b.rooms - a.rooms)
 writeFileSync(join(OUT, 'index.json'), JSON.stringify(index, null, 1))
 
 console.log(`${index.length} zones, ${rooms.toLocaleString()} rooms, ${arcs.toLocaleString()} exits`)
-console.log(`${tagged.toLocaleString()} rooms say what kind of place they are`)
+console.log(`${tagged.toLocaleString()} rooms carry a cartographer's label`)
 console.log('largest:')
 for (const z of index.slice(0, 5)) console.log(`  ${String(z.rooms).padStart(5)}  ${z.name}`)
