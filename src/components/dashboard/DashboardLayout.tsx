@@ -6,7 +6,8 @@ import { TaskFlowPanel } from './TaskFlowPanel'
 import { MindstateBoard } from '../shared/MindstateBoard'
 import { Paperdoll } from '../shared/Paperdoll'
 import { Portrait } from '../shared/Portrait'
-import { VitalCluster, type Vital } from '../shared/VitalCluster'
+import { VitalCluster, vitalsFor } from '../shared/VitalCluster'
+import { StatusBoard } from '../shared/StatusBoard'
 import { ActionsPanel } from '../shared/ActionsPanel'
 import { fromRoom } from '../../lib/room'
 import type { Deck } from '../../lib/cards'
@@ -71,25 +72,20 @@ export function DashboardLayout({
   // Every vital the character reports, not a chosen three. Concentration only
   // exists for some guilds, so it appears when it exists rather than being
   // padded in as a zero.
-  const vitals: Vital[] = character
-    ? [
-        { key: 'health', glyph: 'H', label: 'Health', value: character.vitals.health, max: character.vitals.healthMax, tone: 'health' },
-        { key: 'spirit', glyph: 'S', label: 'Spirit', value: character.vitals.spirit, max: character.vitals.spiritMax, tone: 'spirit' },
-        { key: 'fatigue', glyph: 'F', label: 'Fatigue', value: character.vitals.fatigue, max: character.vitals.fatigueMax, tone: 'stamina' },
-        ...(character.vitals.concentrationMax
-          ? [
-              {
-                key: 'concentration',
-                glyph: 'C',
-                label: 'Concentration',
-                value: character.vitals.concentration ?? 0,
-                max: character.vitals.concentrationMax,
-                tone: 'concentration' as const,
-              },
-            ]
-          : []),
-      ]
-    : []
+  /*
+   * Derived rather than hand-written here.
+   *
+   * This array was the mislabelling. It listed Health, Spirit and Fatigue and
+   * coloured Fatigue as stamina, so "S" meant spirit where every other window
+   * in DragonRealms means stamina, and "F" labelled a bar with no F in its
+   * name. Mana was not in the list at all despite the bridge sending it since
+   * the first version.
+   *
+   * Two callers each wrote their own copy of this and neither named the same
+   * five bars, which is how it stayed wrong. There is one derivation now and
+   * it lives beside the component that draws it.
+   */
+  const vitals = vitalsFor(character)
 
   return (
     // The map row has a floor. With plain 1fr it resolved to whatever was
@@ -147,6 +143,15 @@ export function DashboardLayout({
             />
             <VitalCluster vitals={vitals} height={72} />
           </div>
+
+          {/* What is currently happening to you, under what you are made of.
+           *
+           * This is the half of the pane that was missing. The bars say how
+           * much health is left; the statuses say whether you are bleeding,
+           * stunned, webbed, poisoned or hidden, and how long the spells
+           * holding you together have left. That is what you act on, and none
+           * of it was on screen anywhere. */}
+          <StatusBoard />
         </Box>
 
         {/* Task flows, on the first page.

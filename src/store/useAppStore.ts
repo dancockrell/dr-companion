@@ -196,6 +196,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   inventory: null,
   runningScripts: [],
   scriptStates: [],
+  activeFlow: null,
   settingsFiles: null,
   settingsCharacter: null,
   logLines: [
@@ -262,6 +263,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ settingsFiles: null, settingsCharacter: null })
     bridge.requestIntent('read_settings' as IntentName)
   },
+
+  setActiveFlow: (v) => set({ activeFlow: v }),
 
   clearLog: () => set({ logLines: [], trace: [] }),
 

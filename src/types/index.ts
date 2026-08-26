@@ -318,6 +318,16 @@ export interface AppState {
    */
   scriptStates: ScriptState[]
   /**
+   * The task flow running, if one is, as a sentence.
+   *
+   * Kept in the store rather than only in the panel because the safety bar has
+   * to answer "is this thing doing something" and a flow is the most likely
+   * thing it is doing. With flow state living only in TaskFlowPanel's local
+   * React state, the bar read Idle through an hour-long hunting loop.
+   */
+  activeFlow: string | null
+  setActiveFlow: (v: string | null) => void
+  /**
    * dr-scripts settings files, from the `read_settings` intent.
    *
    * null until asked. The bridge answers with a structured file list, which

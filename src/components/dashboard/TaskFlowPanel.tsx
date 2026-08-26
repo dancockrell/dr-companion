@@ -30,6 +30,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const requestIntent = useAppStore((s) => s.requestIntent)
   const addLog = useAppStore((s) => s.addLog)
   const connected = useAppStore((s) => s.bridgeConnected)
+  const setActiveFlow = useAppStore((s) => s.setActiveFlow)
 
   const [custom, setCustom] = useState<TaskFlow[]>([])
   const [state, setState] = useState<FlowState | null>(null)
@@ -44,7 +45,14 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         requestIntent('run_macro', { commands })
         return true
       },
-      onChange: setState,
+      onChange: (s) => {
+        setState(s)
+        // Published as well as held locally. The safety bar reports what the
+        // app is doing, and a flow is the most likely thing it is doing: with
+        // this state living only here, the bar read Idle through an hour-long
+        // hunting loop.
+        setActiveFlow(isFinished(s) ? null : describeFlow(s))
+      },
       log: addLog,
     })
   }
@@ -58,7 +66,13 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
 
   // The timer outlives the component otherwise, and a popped-out panel
   // unmounts while a hunting loop is mid-pass.
-  useEffect(() => () => driver.current?.dispose(), [])
+  useEffect(
+    () => () => {
+      driver.current?.dispose()
+      setActiveFlow(null)
+    },
+    [setActiveFlow]
+  )
 
   const flows = useMemo(() => allFlows(custom), [custom])
   const running = state && !isFinished(state) ? state : null

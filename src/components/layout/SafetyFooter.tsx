@@ -27,13 +27,23 @@ import { cn } from '../../lib/cn'
 export function SafetyFooter() {
   const requestIntent = useAppStore((s) => s.requestIntent)
   const runningScripts = useAppStore((s) => s.runningScripts)
+  const scriptStates = useAppStore((s) => s.scriptStates)
+  const activeFlow = useAppStore((s) => s.activeFlow)
   const character = useAppStore((s) => s.character)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
 
   // A script list the bridge sent is a fact. Matching activity strings against
   // a whitelist was a guess, and it guessed wrong in the direction that says
   // something is running when nothing is.
-  const busy = runningScripts.length > 0
+  /*
+   * Paused is not busy.
+   *
+   * The bridge reports each script's status and the store keeps it, but this
+   * counted scripts by name and a paused script has a name like any other. So
+   * pausing everything left the bar reading Active, which is the one reading
+   * you check before walking away from the keyboard.
+   */
+  const busy = scriptStates.some((x) => x.status !== 'paused') || activeFlow !== null
   const scripts = runningScripts.join(', ')
   const activity = character?.activity?.trim()
   // Rounded up, because the bridge sends it to a tenth and "RT 0s" while you
@@ -101,6 +111,17 @@ export function SafetyFooter() {
         >
           {busy ? 'Active' : 'Idle'}
         </span>
+
+        {/* The flow, in the accent, ahead of the game's own activity string.
+         *
+         * A running flow is this app's own doing and the more specific answer:
+         * "Looting (2 of 4), pass 3" says what is happening and how far in,
+         * where the game's activity says at most that something is. */}
+        {activeFlow && (
+          <span className="max-w-[14rem] shrink truncate text-accent" title={activeFlow}>
+            {activeFlow}
+          </span>
+        )}
 
         {activity && (
           <span className="max-w-[11rem] shrink truncate text-ink-muted" title={activity}>
