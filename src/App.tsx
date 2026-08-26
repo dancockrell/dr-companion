@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { SetupWizard } from './components/first-run/SetupWizard'
 import { Dashboard } from './components/dashboard/Dashboard'
 import { RoomColumn } from './components/room/RoomColumn'
+import { MapColumn } from './components/room/MapColumn'
 import { Splitter } from './components/layout/Splitter'
 import { AppControls } from './components/layout/AppControls'
 import { SafetyFooter } from './components/layout/SafetyFooter'
@@ -31,10 +32,11 @@ function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app
   return { kind: 'app' }
 }
 
-const SPLIT_KEY = 'drc.split.v1'
+const SPLIT_KEY = 'drc.split.v2'
 
 export default function App() {
   const setupComplete = useAppStore((s) => s.setupComplete)
+  const hostRef = useRef<HTMLElement | null>(null)
 
   /**
    * How the window is divided between the companion and the room.
@@ -44,17 +46,63 @@ export default function App() {
    * is a property of this window on this screen, and it should not follow a
    * character profile around.
    */
-  const [split, setSplitState] = useState(() => {
-    const saved = Number(localStorage.getItem(SPLIT_KEY))
-    return Number.isFinite(saved) && saved >= 0.25 && saved <= 0.75 ? saved : 0.5
-  })
-  const setSplit = (v: number) => {
-    setSplitState(v)
+  const [cols, setColsState] = useState<[number, number, number]>(() => {
     try {
-      localStorage.setItem(SPLIT_KEY, String(v))
+      const saved = JSON.parse(localStorage.getItem(SPLIT_KEY) ?? 'null')
+      if (Array.isArray(saved) && saved.length === 3 && saved.every((n) => typeof n === 'number')) {
+        return saved as [number, number, number]
+      }
+    } catch {
+      // Nothing saved, or saved by an older version with a single number.
+    }
+    return [0.34, 0.33, 0.33]
+  })
+
+  /**
+   * The narrowest each column may be dragged, in pixels.
+   *
+   * A proportional floor is not enough. The dashboard column was draggable
+   * down to 200px while its own content needed 402 - the right rail alone has
+   * a 15rem minimum - so it did not shrink, it clipped, and the divider
+   * happily let you do it. Percentages know nothing about what is inside.
+   *
+   * The map is the most compressible of the three: it scales to fit and stays
+   * readable small, which is why it gets the lowest floor.
+   */
+  const MIN_PX: [number, number, number] = [200, 340, 260]
+
+  const setCols = (next: [number, number, number]) => {
+    setColsState(next)
+    try {
+      localStorage.setItem(SPLIT_KEY, JSON.stringify(next))
     } catch {
       // Private mode. Losing a divider position is not worth an error.
     }
+  }
+
+  /**
+   * Move one divider without disturbing the other.
+   *
+   * A divider drag has to take from its right-hand neighbour only. Spreading
+   * the change across both would make the far column twitch while you are
+   * adjusting the near one, which reads as the layout fighting you.
+   */
+  const moveDivider = (i: number) => (share: number) => {
+    const total = hostRef.current?.getBoundingClientRect().width ?? 0
+    const pair = cols[i] + cols[i + 1]
+
+    // Converted to pixels so the floors mean what they say. On a narrow window
+    // the two minimums can exceed the space available, in which case the
+    // clamp collapses to the midpoint rather than inverting.
+    const lo = total > 0 ? MIN_PX[i] / total : 0.12
+    const hi = total > 0 ? pair - MIN_PX[i + 1] / total : pair - 0.12
+    const want = share * pair
+    const left = hi > lo ? Math.min(hi, Math.max(lo, want)) : pair / 2
+
+    const next = [...cols] as [number, number, number]
+    next[i] = left
+    next[i + 1] = pair - left
+    setCols(next)
   }
 
   // A popped-out panel is the whole window: no header, no console, no setup
@@ -84,14 +132,25 @@ export default function App() {
        * Equal at default scale, and the room column is allowed to give ground
        * first on a narrow window: the companion is the instrument, and a
        * cramped map is a worse loss than a cramped description. */}
-      <main className="flex min-h-0 flex-1 overflow-hidden">
+      <main ref={hostRef} className="flex min-h-0 flex-1 overflow-hidden">
         {setupComplete ? (
           <>
-            <div className="min-w-0 overflow-y-auto" style={{ flex: `${split} 1 0%` }}>
+            {/* The map gets a column of its own.
+             *
+             * It was a cell in the dashboard grid, competing for vertical
+             * space with everything else in that column and losing. The map is
+             * the one surface that is watched rather than consulted - players
+             * keep it in view while doing something else - so it gets full
+             * height and a width you set yourself. */}
+            <div className="min-w-0 overflow-hidden border-r border-border" style={{ flex: `${cols[0]} 1 0%`, minWidth: MIN_PX[0] }}>
+              <MapColumn />
+            </div>
+            <Splitter value={cols[0] / (cols[0] + cols[1])} onChange={moveDivider(0)} />
+            <div className="min-w-0 overflow-y-auto" style={{ flex: `${cols[1]} 1 0%`, minWidth: MIN_PX[1] }}>
               <Dashboard />
             </div>
-            <Splitter value={split} onChange={setSplit} />
-            <div className="min-w-0 overflow-hidden" style={{ flex: `${1 - split} 1 0%` }}>
+            <Splitter value={cols[1] / (cols[1] + cols[2])} onChange={moveDivider(1)} />
+            <div className="min-w-0 overflow-hidden" style={{ flex: `${cols[2]} 1 0%`, minWidth: MIN_PX[2] }}>
               <RoomColumn />
             </div>
           </>

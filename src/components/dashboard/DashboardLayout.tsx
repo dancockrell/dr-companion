@@ -1,7 +1,6 @@
 import { useAppStore } from '../../store/useAppStore'
 import { Box } from '../shared/Box'
 import { CardDeck } from '../shared/CardDeck'
-import { MapPanel } from '../shared/MapPanel'
 import { TaskFlowPanel } from './TaskFlowPanel'
 import { MindstateBoard } from '../shared/MindstateBoard'
 import { Paperdoll } from '../shared/Paperdoll'
@@ -92,19 +91,19 @@ export function DashboardLayout({
     // left after the auto rows, so a full character with seventy skills ate
     // the height and collapsed the map to two pixels. The most important
     // element on the dashboard cannot be the one that yields.
-    <div className="grid h-full min-h-0 flex-1 gap-2 p-2 [grid-template-columns:1fr_minmax(15rem,22rem)] [grid-template-rows:minmax(12rem,1fr)_minmax(0,auto)_auto]">
-      {/* The map, given the room it was asked for. */}
-      <div className="col-start-1 row-start-1 min-h-0 overflow-hidden rounded border border-border bg-surface-raised">
-        <MapPanel plane />
-      </div>
-
-      {/* Experience under it: read between fights, wants width not height. */}
-      <Box title="Experience" action={popper('mindstate')} className="col-start-1 row-start-2 min-h-0">
+    <div className="grid h-full min-h-0 flex-1 gap-2 p-2 [grid-template-columns:1fr_minmax(15rem,22rem)] [grid-template-rows:minmax(0,1fr)_auto]">
+      {/* Experience now has the whole left column.
+       *
+       * It used to sit under the map and get whatever height was left, which
+       * on a character with seventy skills was not much. The map has a column
+       * of its own now, so the board that Dan gives nearly full screen height
+       * to in Genie can finally have it here. */}
+      <Box title="Experience" action={popper('mindstate')} className="col-start-1 row-start-1 min-h-0">
         <MindstateBoard skills={character?.skills ?? []} dense={dense} />
       </Box>
 
       {/* You, and then the room, down the right. */}
-      <div className="col-start-2 row-start-1 row-end-3 flex min-h-0 flex-col gap-2">
+      <div className="col-start-2 row-start-1 flex min-h-0 flex-col gap-2 overflow-y-auto">
         {/* The doll stays, and it stays whole.
          *
          * A version of this replaced it with a list of only the parts that
@@ -208,7 +207,7 @@ export function DashboardLayout({
       {/* What to start. Stop, pause and resume are in the bar below this
           layout, in the window frame, where no arrangement of panels can
           scroll them off. */}
-      <div className="col-span-2 row-start-3">
+      <div className="col-span-2 row-start-2">
         <ActionsPanel dense={dense} />
       </div>
     </div>
