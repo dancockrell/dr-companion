@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { cn } from '../../lib/cn'
 import { CreatureCard } from './CreatureCard'
 import type { DeckPref } from '../../lib/layout'
@@ -33,18 +33,30 @@ export function CardDeck({
   pref?: DeckPref
   onCyclePref?: () => void
 }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
-  // Kept per deck and across resizes: collapsing a card visually should not
-  // forget that it was open, or widening the panel would silently reset it.
   const [open, setOpen] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    const el = ref.current
+  /**
+   * A callback ref rather than an effect, because the element is not always
+   * there on the first render.
+   *
+   * The deck returns null while the room is empty, so a `useEffect(..., [])`
+   * ran once against a ref that was still null, gave up, and never ran again.
+   * The measured width stayed at zero for the life of the component and every
+   * tier decision was made against it: a 306px deck fanned its cards down to
+   * single letters, and a 208px one collapsed to a count chip.
+   *
+   * A callback ref fires whenever the node attaches or detaches, which is
+   * exactly the event that matters here.
+   */
+  const [width, setWidth] = useState(0)
+  const observer = useRef<ResizeObserver | null>(null)
+
+  const measure = useCallback((el: HTMLDivElement | null) => {
+    observer.current?.disconnect()
     if (!el) return
-    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
-    ro.observe(el)
-    return () => ro.disconnect()
+    setWidth(el.getBoundingClientRect().width)
+    observer.current = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    observer.current.observe(el)
   }, [])
 
   // An empty deck renders nothing at all. A header over no cards is exactly
@@ -70,7 +82,11 @@ export function CardDeck({
     })
 
   return (
-    <div ref={ref} className="w-full">
+    // The measured width and the tier it produced, on the element itself.
+    // A component whose entire job is reacting to its own width should be able
+    // to tell you what width it thinks it has, rather than being reverse
+    // engineered from the classes it happened to render.
+    <div ref={measure} className="w-full" data-deck={deck} data-width={Math.round(width)} data-tier={tier}>
       <div className="mb-1 flex items-baseline gap-2">
         <span className={cn('text-xs font-semibold uppercase tracking-wide', style.text)}>
           {DECK_LABEL[deck]}

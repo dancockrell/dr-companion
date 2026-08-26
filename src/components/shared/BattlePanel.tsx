@@ -61,7 +61,12 @@ export function BattlePanel({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-start gap-3">
+      {/* Wraps rather than squeezing. The you-block is a fixed 170px, so in a
+          narrow region the enemy cards were left with too little and fanned
+          down to single letters. Letting the two blocks wrap gives the cards
+          the full width on the second line, and costs nothing when there is
+          room for both. No observer, no measuring: the browser already knows. */}
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
         {/* You. Body and vitals together, because a wound in a leg and a
             health bar at 40% are one situation, not two. */}
         <div className="flex shrink-0 items-start gap-2">
@@ -74,7 +79,7 @@ export function BattlePanel({
         </div>
 
         {/* Them. */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[13rem] flex-1">
           {hostile.length > 0 ? (
             <CardDeck
               deck="hostile"

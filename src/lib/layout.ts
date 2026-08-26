@@ -12,6 +12,7 @@
 import type { UiMode } from '../types'
 import { DECKS, type Deck, type Tier } from './cards'
 import type { Rect } from './freeLayout'
+import { dockOf, type Dock } from './dock'
 
 export type PanelId =
   | 'map'
@@ -70,6 +71,15 @@ export interface Layout {
   rects: Partial<Record<PanelId, Rect>>
   /** True once anything has been placed by hand. */
   freeform: boolean
+  /**
+   * Regions and their decks.
+   *
+   * Stored as the player arranged it, not as it currently looks: folding is
+   * derived from the width every render, so a window made narrow and then wide
+   * again returns the arrangement rather than whatever the narrow state
+   * collapsed to.
+   */
+  dock?: Dock
 }
 
 /** Every deck starts on auto. */
@@ -120,6 +130,7 @@ export function defaultLayout(mode: UiMode): Layout {
     decks: { ...d.decks },
     rects: { ...d.rects },
     freeform: d.freeform,
+    dock: dockOf([...d.order]),
   }
 }
 
@@ -153,6 +164,9 @@ export function loadLayout(mode: UiMode): Layout {
       decks: { ...d.decks, ...(parsed.decks ?? {}) },
       rects: parsed.rects ?? {},
       freeform: parsed.freeform ?? false,
+      // Rebuilt from the panel order when absent, so an old saved layout picks
+      // up docking without the player losing their arrangement.
+      dock: parsed.dock ?? dockOf([...kept, ...missing]),
     }
   } catch {
     return defaultLayout(mode)
@@ -256,4 +270,9 @@ export function setPanelRect(layout: Layout, id: PanelId, rect: Rect): Layout {
 /** Back to the flow, discarding every placement. */
 export function clearPanelRects(layout: Layout): Layout {
   return { ...layout, freeform: false, rects: {} }
+}
+
+/** Replace the dock wholesale, which is how the view reports every change. */
+export function setDock(layout: Layout, dock: Dock): Layout {
+  return { ...layout, dock }
 }

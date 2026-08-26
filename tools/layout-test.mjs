@@ -26,6 +26,8 @@ const compile = (src, name) => {
   return out
 }
 compile('src/lib/cards.ts', 'cards.js')
+// layout.ts imports the dock model for its defaults.
+compile('src/lib/dock.ts', 'dock.js')
 const layoutPath = compile('src/lib/layout.ts', 'layout.js')
 
 // A tiny localStorage, because layout.ts persists through it.

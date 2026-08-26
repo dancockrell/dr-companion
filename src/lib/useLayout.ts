@@ -20,12 +20,14 @@ import {
   cycleDeckPref,
   setPanelRect,
   clearPanelRects,
+  setDock,
   type Layout,
   type PanelId,
   type PanelState,
 } from './layout'
 import type { Deck } from './cards'
 import type { Rect } from './freeLayout'
+import type { Dock } from './dock'
 
 export function useLayout(mode: UiMode) {
   const [layout, setLayout] = useState<Layout>(() => loadLayout(mode))
@@ -87,6 +89,8 @@ export function useLayout(mode: UiMode) {
 
   const unplace = useCallback(() => commit(clearPanelRects(layout)), [commit, layout])
 
+  const dock = useCallback((next: Dock) => commit(setDock(layout, next)), [commit, layout])
+
   return {
     layout,
     move,
@@ -98,5 +102,6 @@ export function useLayout(mode: UiMode) {
     cycleDeck,
     place,
     unplace,
+    dock,
   }
 }

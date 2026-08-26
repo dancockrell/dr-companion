@@ -19,24 +19,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { useLayout } from '../../lib/useLayout'
-import { MAP_PLANE_AT, clampSplit, type PanelId } from '../../lib/layout'
+import { clampSplit, type PanelId } from '../../lib/layout'
 import { isTauri, invokeTauri } from '../../lib/tauri'
-import { Panel } from '../shared/Panel'
 import { CharacterHeader } from './CharacterHeader'
 import { MapPanel } from '../shared/MapPanel'
-import { PANEL_CONTENT, PANEL_ICONS, PANEL_TITLES } from './panels'
+import { PANEL_CONTENT, PANEL_TITLES } from './panels'
+import { DockView } from './DockView'
 import { FreeCanvas } from './FreeCanvas'
+import { dockOf, without } from '../../lib/dock'
 
 export function Dashboard() {
   const character = useAppStore((s) => s.character)
   const uiMode = useAppStore((s) => s.uiMode)
-  const { layout, reorder, update, setSplit, cycleDeck, place, unplace } = useLayout(uiMode)
+  const { layout, setSplit, cycleDeck, dock, place, unplace } = useLayout(uiMode)
 
   // Which panel is in the hand, and where it would land. Held here rather than
   // in each Panel so the insertion line can be drawn on a different panel from
   // the one being dragged.
-  const [held, setHeld] = useState<PanelId | null>(null)
-  const [drop, setDrop] = useState<{ id: PanelId; before: boolean } | null>(null)
 
   // Which panels are in windows of their own. Asked rather than remembered:
   // each is a separate webview, and the player can close one by hand without
@@ -79,14 +78,10 @@ export function Dashboard() {
   // things, and a media query would describe the screen rather than the space
   // we were actually handed.
   const hostRef = useRef<HTMLDivElement | null>(null)
-  const [width, setWidth] = useState(0)
 
   useEffect(() => {
     const el = hostRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
-    ro.observe(el)
-    return () => ro.disconnect()
   }, [])
 
   // Live during a drag, so the divider tracks the cursor without writing
@@ -120,6 +115,9 @@ export function Dashboard() {
     }
   }, [onMove, onUp])
 
+  // Open by default: orientation is the first thing you look at.
+  const [mapOpen, setMapOpen] = useState(true)
+
   if (!character) {
     return (
       <div className="p-6 text-ink-muted text-sm">
@@ -128,117 +126,62 @@ export function Dashboard() {
     )
   }
 
-  const dense = uiMode === 'power'
   const split = dragSplit ?? layout.mapSplit
 
-  // Two planes only when there is room for two. Below that the map returns to
-  // the stack rather than being hidden, which is why it stays in `order`.
-  const planed = layout.mapPlane && width >= MAP_PLANE_AT
+  const dense = uiMode === 'power'
 
-  const stack = layout.order.filter(
-    (id) =>
-      id !== 'vitals' &&
-      !(planed && id === 'map') &&
-      // A panel in its own window is not also in the stack. Showing it twice
-      // would mean two live copies of the same thing.
-      !out.includes(id)
-  )
-
-  const panels = (
-    <>
-      {out.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 px-0.5">
-          <span className="text-xs text-ink-faint">In their own windows:</span>
-          {out.map((id) => (
-            <button
-              key={id}
-              type="button"
-              className="text-xs rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink"
-              title="Bring it back into this window"
-              onClick={() => popBack(id)}
-            >
-              {PANEL_TITLES[id] ?? id}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {stack.map((id) => {
-        const render = PANEL_CONTENT[id]
-        if (!render) return null
-        const state = layout.panels[id] ?? {}
-        const isTarget = drop?.id === id
-        return (
-          <Panel
-            key={id}
-            title={PANEL_TITLES[id]}
-            icon={PANEL_ICONS[id]}
-            onPopOut={isTauri() ? () => popOut(id) : undefined}
-            closed={state.closed}
-            height={state.height}
-            dragging={held === id}
-            dropBefore={isTarget && drop.before && held !== id}
-            dropAfter={isTarget && !drop.before && held !== id}
-            onDragStart={() => setHeld(id)}
-            onDragEnd={() => {
-              setHeld(null)
-              setDrop(null)
-            }}
-            onDragOverPanel={(before) => setDrop({ id, before })}
-            onDropPanel={() => {
-              if (held && held !== id) {
-                // Index in the full order, not the visible stack, because the
-                // map may be living in its own plane and absent from it.
-                const target = layout.order.indexOf(id)
-                reorder(held, drop?.before ? target : target + 1)
-              }
-              setHeld(null)
-              setDrop(null)
-            }}
-            onToggle={() => update(id, { closed: !state.closed })}
-            onResize={(h) => update(id, { height: h || undefined })}
-          >
-            {render(dense, false, { deckPrefs: layout.decks, onCycleDeck: cycleDeck })}
-          </Panel>
-        )
-      })}
-    </>
+  // The map is a drawer, not a region. It is the one surface that is watched
+  // rather than consulted, and a panel competing for vertical space in a
+  // stack loses that argument every time. See DESIGN-BIBLE section 3.
+  //
+  // It also means the map is drawn exactly once. The previous build had it in
+  // a plane and in the dock at the same time, which is a bug and looked like
+  // one.
+  const docked = layout.order.filter(
+    (id) => id !== 'vitals' && id !== 'map' && !out.includes(id)
   )
 
   return (
-    <div ref={hostRef} className="flex flex-col h-full min-h-0">
+    <div ref={hostRef} className="flex h-full min-h-0 flex-col">
       <CharacterHeader character={character} />
 
-      {planed ? (
-        <div className="flex-1 min-h-0 flex">
-          {/* The map plane. Fills its column rather than sitting in a box
-              inside it, which is the whole point of giving it one. */}
-          <div
-            className="min-w-0 min-h-0 p-2"
-            style={{ width: `${split * 100}%` }}
-          >
-            <MapPanel plane />
-          </div>
+      <div className="flex min-h-0 flex-1">
+        {mapOpen && (
+          <>
+            <div
+              className="min-h-0 shrink-0"
+              style={{ width: `${Math.round(split * 100)}%` }}
+            >
+              <MapPanel plane />
+            </div>
+            <span
+              className="w-px shrink-0 cursor-col-resize bg-border/60 hover:bg-ink-faint"
+              title="Drag to resize"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                dragging.current = true
+                document.body.style.cursor = 'col-resize'
+                document.body.style.userSelect = 'none'
+              }}
+            />
+          </>
+        )}
 
-          {/* Drag to reapportion. Wide enough to hit, narrow enough not to be
-              furniture; double-click returns to an even split. */}
-          <div
-            className="w-1.5 shrink-0 cursor-col-resize group flex items-center justify-center"
-            title="Drag to resize, double-click to even it up"
-            onMouseDown={(e) => {
-              e.preventDefault()
-              dragging.current = true
-              document.body.style.cursor = 'col-resize'
-              document.body.style.userSelect = 'none'
-            }}
-            onDoubleClick={() => setSplit(0.5)}
-          >
-            <div className="w-0.5 h-10 rounded-full bg-border group-hover:bg-ink-faint" />
-          </div>
+        {/* One handle, on the edge the drawer comes from, so it reads as the
+            drawer rather than as another panel control. */}
+        <button
+          type="button"
+          onClick={() => setMapOpen((v) => !v)}
+          title={mapOpen ? 'Close the map' : 'Open the map'}
+          className="w-3 shrink-0 border-r border-border/60 text-ink-faint hover:bg-surface-raised hover:text-ink"
+        >
+          {mapOpen ? '‹' : '›'}
+        </button>
 
+        <div className="min-h-0 min-w-0 flex-1">
           {layout.freeform ? (
             <FreeCanvas
-              items={stack.map((id) => ({
+              items={docked.map((id) => ({
                 id,
                 rect: layout.rects[id],
                 node: PANEL_CONTENT[id]?.(dense, false, {
@@ -250,24 +193,23 @@ export function Dashboard() {
               onReflow={unplace}
             />
           ) : (
-            <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-2 [column-width:--spacing(80)] [column-gap:--spacing(2)] [&>*]:break-inside-avoid [&>*]:mb-2">{panels}</div>
+          <DockView
+            dock={without(layout.dock ?? dockOf(docked), ['map', 'vitals', ...out])}
+            onChange={dock}
+            title={(id) => PANEL_TITLES[id] ?? id}
+            onPopOut={popOut}
+            out={out}
+            onPopBack={popBack}
+            render={(id) =>
+              PANEL_CONTENT[id]?.(dense, false, {
+                deckPrefs: layout.decks,
+                onCycleDeck: cycleDeck,
+              })
+            }
+          />
           )}
         </div>
-      ) : layout.freeform ? (
-            <FreeCanvas
-              items={stack.map((id) => ({
-                id,
-                rect: layout.rects[id],
-                node: PANEL_CONTENT[id]?.(dense, false, {
-                  deckPrefs: layout.decks,
-                  onCycleDeck: cycleDeck,
-                }),
-              }))}
-              onPlace={place}
-            />
-      ) : (
-        <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-2 [column-width:--spacing(80)] [column-gap:--spacing(2)] [&>*]:break-inside-avoid [&>*]:mb-2">{panels}</div>
-      )}
+      </div>
     </div>
   )
 }
