@@ -19,6 +19,7 @@
  * there.
  */
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import { NEGATIVE } from './art-safety.mjs'
 import { join } from 'node:path'
 
 const MAPS = 'C:/Genie4/Maps'
@@ -31,9 +32,6 @@ const STYLE =
   'light, atmospheric depth, painted texture, wide establishing shot, no people, ' +
   'no text, no watermark, consistent fantasy realism'
 
-const NEGATIVE =
-  'text, watermark, signature, logo, frame, border, multiple views, ' +
-  'photorealistic, cartoon, anime, cute, chibi'
 
 function seedOf(key) {
   let h = 2166136261

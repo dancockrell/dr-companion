@@ -13,15 +13,13 @@
  * this file exists to avoid.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { CLOTHED, NEGATIVE } from './art-safety.mjs'
 
 const STYLE =
   'painterly digital illustration, muted naturalistic palette, soft directional ' +
   'light, atmospheric depth, painted texture, head and shoulders portrait, ' +
   'plain dark background, no text, no watermark, consistent fantasy realism'
 
-const NEGATIVE =
-  'text, watermark, signature, logo, frame, border, multiple views, ' +
-  'photorealistic, cartoon, anime, cute, chibi'
 
 function seedOf(name) {
   let h = 2166136261
@@ -45,7 +43,7 @@ for (const [race, d] of Object.entries(races)) {
       // The descriptor leads. The race name comes after it, because the name
       // alone summons a generic fantasy prior that overwhelms the text — the
       // same failure the creature prompts hit with "kobold".
-      prompt: [`A ${sex} ${race.toLowerCase()} of Elanthia.`, d.prompt, STYLE]
+      prompt: [`A ${sex} ${race.toLowerCase()} of Elanthia.`, d.prompt, CLOTHED, STYLE]
         .filter(Boolean)
         .join(', '),
       negative: NEGATIVE,

@@ -129,9 +129,25 @@ function manifestSoFar() {
     : {}
 }
 
-const manifest = existsSync('data/art/manifest.json')
-  ? JSON.parse(readFileSync('data/art/manifest.json', 'utf8'))
-  : {}
+/**
+ * Record one render, merging against whatever is on disk right now.
+ *
+ * The manifest used to be read once at startup and the whole object rewritten
+ * after every image. Two runs at once — a long creature sweep and a short
+ * portrait re-render, which is the normal way this gets used — meant the long
+ * one restored the short one's deletions from its stale copy every few
+ * seconds. Nothing errored; the portraits simply would not re-render, and the
+ * count went up while the disk stayed empty.
+ *
+ * Re-reading here means a run only ever adds its own key, so a concurrent run
+ * removing a different one survives.
+ */
+function record(name, entry) {
+  const disk = manifestSoFar()
+  disk[name] = entry
+  writeFileSync('data/art/manifest.json', JSON.stringify(disk, null, 1))
+  return Object.keys(disk).length
+}
 
 console.log(`${names.length} to render, ${STEPS} steps, ${CKPT}`)
 let done = 0
@@ -147,15 +163,14 @@ for (const name of names) {
     const { prompt_id } = await post('/prompt', { prompt: workflow(entry, prefix) })
     const result = await waitFor(prompt_id)
     const images = Object.values(result.outputs ?? {}).flatMap((o) => o.images ?? [])
-    manifest[name] = {
+    record(name, {
       kind,
       seed: entry.seed,
       source: entry.source,
       files: images.map((i) => join(i.subfolder, i.filename)),
       steps: STEPS,
       checkpoint: CKPT,
-    }
-    writeFileSync('data/art/manifest.json', JSON.stringify(manifest, null, 1))
+    })
     done++
     console.log(
       `  ${String(done).padStart(3)}/${names.length}  ${((Date.now() - started) / 1000).toFixed(1)}s  ${name}`
@@ -165,5 +180,4 @@ for (const name of names) {
   }
 }
 
-writeFileSync('data/art/manifest.json', JSON.stringify(manifest, null, 1))
-console.log(`${done} rendered, manifest has ${Object.keys(manifest).length}`)
+console.log(`${done} rendered, manifest has ${Object.keys(manifestSoFar()).length}`)

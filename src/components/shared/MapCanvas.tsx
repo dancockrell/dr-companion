@@ -12,6 +12,7 @@
  */
 import { useMemo } from 'react'
 import type { MapZone, MapZoneRoom } from '../../bridge/types'
+import { inkFor } from '../../lib/mapInk'
 
 /**
  * Tags worth shouting about.
@@ -84,7 +85,7 @@ const FILL: Record<RoomKind, string> = {
   route: 'var(--color-good)',
   hazard: 'var(--color-danger)',
   service: 'var(--color-info)',
-  plain: 'var(--color-surface-raised)',
+  plain: 'var(--map-plain)',
 }
 
 export function MapCanvas({
@@ -195,6 +196,16 @@ export function MapCanvas({
 
   return (
     <svg viewBox={`0 0 ${view.w} ${view.h}`} className="block" {...sizing}>
+      <defs>
+        {/* Lit from the middle, falling off at the edges. A flat fill running
+            hard into the panel border reads as a background; this reads as a
+            sheet of paper with a lamp over it, which is what the chart is. */}
+        <radialGradient id="map-paper" cx="50%" cy="45%" r="75%">
+          <stop offset="0%" stopColor="var(--map-ground)" />
+          <stop offset="100%" stopColor="var(--map-ground-edge)" />
+        </radialGradient>
+      </defs>
+      <rect x={0} y={0} width={view.w} height={view.h} fill="url(#map-paper)" />
       {/* Links first, so rooms sit on top of them rather than under. */}
       {/* Streets, doorways and climbs are different acts and were drawn as
           one line. Crossing alone has 662 go-exits, which are entrances into
@@ -210,7 +221,7 @@ export function MapCanvas({
               ? { stroke: 'var(--color-accent)', strokeWidth: 0.6 * scale, strokeDasharray: '1.5 1.5', opacity: 0.55 }
               : link.kind === 'climb' || link.kind === 'vertical'
                 ? { stroke: 'var(--color-warn)', strokeWidth: 0.9 * scale, strokeDasharray: '0.8 1.2', opacity: 0.7 }
-                : { stroke: 'var(--color-border)', strokeWidth: Math.max(1, 1.2 * scale) }
+                : { stroke: 'var(--map-line)', strokeWidth: Math.max(0.6, 0.7 * scale), opacity: 0.75 }
 
           return (
             <line
@@ -244,7 +255,16 @@ export function MapCanvas({
               x={px(r) + box}
               y={py(r) - box * 0.4}
               fill="var(--color-ink-muted)"
-              style={{ fontSize: Math.max(7, 6.5 * scale), pointerEvents: 'none' }}
+              style={{
+                fontSize: Math.max(7, 6.5 * scale),
+                pointerEvents: 'none',
+                // The annotations on a hand-drawn chart, not interface text:
+                // small, letter-spaced, and quiet enough that the geography
+                // stays the thing you read first.
+                letterSpacing: '0.04em',
+                fontVariant: 'small-caps',
+                opacity: 0.75,
+              }}
             >
               {name}
             </text>
@@ -290,7 +310,7 @@ export function MapCanvas({
                 // away until now.
                 kind === 'here' || kind === 'route' || kind === 'hazard'
                   ? FILL[kind]
-                  : (r.mapColour ?? FILL[kind])
+                  : inkFor(r.mapColour, FILL[kind])
               }
               stroke={
                 kind === 'here'

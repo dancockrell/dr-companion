@@ -35,3 +35,6 @@ yarn-error.log*
 data/art/out/
 data/art/manifest.json
 data/art/room-prompts.json
+
+# Superseded renders held outside the repo, never committed.
+quarantine*/

@@ -15,6 +15,18 @@
   --color-surface-raised: #16140f;
   --color-surface-overlay: #211d16;
 
+  /* The chart's own paper.
+   *
+   * The app palette is warm all the way down and the map inherited it, which
+   * made a chart of muted warm inks sit on a warm ground: everything the same
+   * temperature, and the whole thing read as brown. A sheet laid on a desk is
+   * allowed its own tone, so the map gets a cool slate ground and the warm
+   * inks read as ink against it. This is the contrast the chart runs on. */
+  --map-ground: #0a0d12;
+  --map-ground-edge: #06080b;
+  --map-plain: #2b3542;
+  --map-line: #55636f;
+
   /* Quiet on purpose. A boundary is a hairline, not a frame: the previous
      border was loud enough that six panels read as a grid of boxes. */
   --color-border: #2e2a20;

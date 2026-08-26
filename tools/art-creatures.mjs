@@ -21,6 +21,7 @@
  * needs no help.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { NEGATIVE } from './art-safety.mjs'
 
 const IN = 'data/elanthipedia/bestiary.json'
 const OUT = 'data/art/creature-prompts.json'
@@ -40,9 +41,6 @@ const STYLE =
   'light, atmospheric depth, painted texture, full body, plain dark background, ' +
   'no text, no watermark, consistent fantasy realism'
 
-const NEGATIVE =
-  'text, watermark, signature, logo, frame, border, multiple views, ' +
-  'photorealistic, cartoon, anime, cute, chibi'
 
 /** Text that is about the release rather than the creature. */
 const META = /introduced in|tuesday tidings|premium only|this creature was|see also|category:/i
