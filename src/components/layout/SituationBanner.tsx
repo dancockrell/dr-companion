@@ -1,6 +1,15 @@
 /**
  * Urgent situation strip — low health, combat, dead, etc.
  * Shown above the dashboard body so a 10-year-old still sees "you're hurt".
+ *
+ * There is no Stop button here any more. The in-combat banner used to carry
+ * one, which made three Stops in the app all sending `stop_all`. This strip
+ * says what is happening; the bar at the bottom of the window is what you press
+ * about it, and that bar is on screen whether or not this strip is.
+ *
+ * The room the button left is spent on numbers rather than given back. "Health
+ * is low" is a judgement the app made; 34 of 118 is the reading it made it
+ * from, and the reading is what decides whether you walk to a healer or run.
  */
 import { AlertTriangle, Heart, Swords, Skull, RotateCcw } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
@@ -53,11 +62,13 @@ export function SituationBanner() {
   let icon = <AlertTriangle className="w-4 h-4 shrink-0" />
   let title = 'Attention'
   let action: { label: string; intent: string } | null = null
+  let reading: string | null = null
 
   if (dead) {
     tone = 'bg-danger/20 border-danger/50 text-danger'
     icon = <Skull className="w-4 h-4 shrink-0" />
     title = 'You are down — get help'
+    reading = `${character.vitals.spirit} of ${character.vitals.spiritMax} spirit`
     action = autoSuggestHealer
       ? { label: 'Go to Healer', intent: 'go_healer' }
       : null
@@ -65,6 +76,7 @@ export function SituationBanner() {
     tone = 'bg-danger/15 border-danger/40 text-danger'
     icon = <Heart className="w-4 h-4 shrink-0" />
     title = 'Health is low'
+    reading = `${character.vitals.health} of ${character.vitals.healthMax} health`
     action = autoSuggestHealer
       ? { label: 'Go to Healer', intent: 'go_healer' }
       : null
@@ -72,8 +84,13 @@ export function SituationBanner() {
     tone = 'bg-warn/15 border-warn/40 text-warn'
     icon = <Swords className="w-4 h-4 shrink-0" />
     title = 'In combat'
-    action = { label: 'Stop', intent: 'stop_all' }
+    // No Stop here. It lives in the bar at the bottom of the window, alone.
+    reading = `${character.vitals.health} of ${character.vitals.healthMax} health`
   }
+
+  const detail = [reading, ...flags.map((f) => f.replace(/_/g, ' '))].filter(
+    Boolean
+  )
 
   return (
     <div
@@ -82,9 +99,9 @@ export function SituationBanner() {
       {icon}
       <div className="flex-1 min-w-0">
         <div className="font-semibold leading-tight">{title}</div>
-        {flags.length > 0 && (
+        {detail.length > 0 && (
           <div className="text-xs opacity-80 truncate">
-            {flags.map((f) => f.replace(/_/g, ' ')).join(' · ')}
+            {detail.join(' · ')}
           </div>
         )}
       </div>

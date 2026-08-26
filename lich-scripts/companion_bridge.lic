@@ -29,7 +29,7 @@ require 'base64'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.7.0'
+  BRIDGE_VERSION = '0.8.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -198,19 +198,61 @@ module Companion
       names.any? { |n| ind[n].to_s == 'y' }
     end
 
+    # The indicator hash the game already sends us, read all the way through.
+    #
+    # Five of these were being probed and the rest ignored, which meant a
+    # character could be poisoned, hidden, kneeling or grouped and the panel
+    # showed nothing at all. They cost one hash lookup each and they were
+    # already in memory. Probing for a name the game never sends is free and
+    # returns false, so listing one that turns out not to exist in DR is not a
+    # bug, it is a line that never fires.
+    #
+    # Posture is three separate icons rather than one field. Standing is the
+    # default and is deliberately not reported: a flag that is true almost all
+    # the time is not a status, it is furniture.
     def situation
       flags = []
       flags << 'dead'       if indicator?('IconDEAD')
       flags << 'stunned'    if indicator?('IconSTUNNED')
       flags << 'webbed'     if indicator?('IconWEBBED')
       flags << 'prone'      if indicator?('IconPRONE')
+      flags << 'kneeling'   if indicator?('IconKNEELING')
+      flags << 'sitting'    if indicator?('IconSITTING')
       flags << 'bleeding'   if indicator?('IconBLEEDING')
+      flags << 'poisoned'   if indicator?('IconPOISONED')
+      flags << 'diseased'   if indicator?('IconDISEASED')
+      flags << 'hidden'     if indicator?('IconHIDDEN')
+      flags << 'invisible'  if indicator?('IconINVISIBLE')
+      flags << 'joined'     if indicator?('IconJOINED')
       flags << 'in_combat'  unless safe([]) { DRRoom.npcs }.empty?
       flags << 'roundtime'  if safe(0) { XMLData.roundtime_end.to_f - Time.now.to_f }.positive?
 
       hp = safe(100) { DRStats.health.to_i }
       flags << 'low_health' if hp.positive? && hp < 35
       flags.uniq
+    end
+
+    # Spells up, and how long they have left.
+    #
+    # DRSpells.active_spells is a hash of spell name to minutes remaining,
+    # maintained by dr-scripts from the game's own spell messaging. It is the
+    # only status the game gives us with a real clock on it: everything else in
+    # `situation` is an icon that is either lit or not, with no magnitude and no
+    # duration behind it.
+    #
+    # Sorted shortest first, because the only decision this informs is what is
+    # about to drop and want recasting.
+    #
+    # Empty when dr-scripts is not loaded, rather than absent. The client draws
+    # nothing either way, and an exception here would take the whole status
+    # payload down with it.
+    def spells
+      raw = safe(nil) { DRSpells.active_spells }
+      return [] unless raw.is_a?(Hash)
+
+      raw.map { |name, minutes| { 'name' => name.to_s, 'minutes' => minutes.to_i } }
+         .reject { |s| s['name'].empty? }
+         .sort_by { |s| s['minutes'] }
     end
 
     # Skills with their mindstate. This is the payload the training view needs:
@@ -241,6 +283,8 @@ module Companion
         'location'    => location,
         'vitals'      => vitals,
         'situation'   => situation,
+        # The only status with a clock on it. See State.spells.
+        'spells'      => spells,
         'skills'      => skills,
         'activity'    => activity,
         'connected'   => true,

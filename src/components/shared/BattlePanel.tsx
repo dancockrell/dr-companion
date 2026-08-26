@@ -1,7 +1,7 @@
 import { useAppStore } from '../../store/useAppStore'
 import { CardDeck } from './CardDeck'
 import { Paperdoll } from './Paperdoll'
-import { VitalCluster, type Vital } from './VitalCluster'
+import { VitalCluster, vitalsFor } from './VitalCluster'
 import { fromRoom } from '../../lib/room'
 import type { Deck } from '../../lib/cards'
 import type { DeckPref } from '../../lib/layout'
@@ -27,34 +27,11 @@ export function BattlePanel({
   const character = useAppStore((s) => s.character)
   const cards = fromRoom(character)
 
-  const vitals: Vital[] = character
-    ? [
-        {
-          key: 'health',
-          glyph: 'H',
-          label: 'Health',
-          value: character.vitals.health,
-          max: character.vitals.healthMax,
-          tone: 'health',
-        },
-        {
-          key: 'spirit',
-          glyph: 'S',
-          label: 'Spirit',
-          value: character.vitals.spirit,
-          max: character.vitals.spiritMax,
-          tone: 'spirit',
-        },
-        {
-          key: 'fatigue',
-          glyph: 'F',
-          label: 'Fatigue',
-          value: character.vitals.fatigue,
-          max: character.vitals.fatigueMax,
-          tone: 'stamina',
-        },
-      ]
-    : []
+  // Derived, not hand-listed. This array used to name three vitals and the
+  // dashboard's named four, and mana was in neither although the bridge sent
+  // it on every tick. Two hand-written lists of the same thing is how a field
+  // goes missing from both.
+  const vitals = vitalsFor(character)
 
   const hostile = cards.filter((c) => c.deck === 'hostile')
   const rest = cards.filter((c) => c.deck !== 'hostile')

@@ -114,7 +114,12 @@ const presets: Record<DemoPresetId, DemoPreset> = {
         spiritMax: 100,
         fatigue: 62,
         fatigueMax: 100,
+        mana: 0,
+        manaMax: 100,
       },
+      hands: { right: 'a serrated broadsword', left: null },
+      spells: [],
+      roundtime: 0,
       situation: [],
       activity: 'Ready',
       connected: true,
@@ -153,8 +158,13 @@ const presets: Record<DemoPresetId, DemoPreset> = {
         spiritMax: 90,
         fatigue: 40,
         fatigueMax: 90,
+        mana: 0,
+        manaMax: 90,
       },
-      situation: [],
+      hands: { right: null, left: null },
+      spells: [],
+      roundtime: 0,
+      situation: ['hidden'],
       activity: 'Ready',
       connected: true,
     },
@@ -191,8 +201,19 @@ const presets: Record<DemoPresetId, DemoPreset> = {
         spiritMax: 110,
         fatigue: 55,
         fatigueMax: 110,
+        mana: 34,
+        manaMax: 110,
+        concentration: 78,
+        concentrationMax: 110,
       },
-      situation: [],
+      hands: { right: 'a bone-handled dagger', left: 'a tattered grimoire' },
+      spells: [
+        { name: 'Eyes of the Blind', minutes: 1 },
+        { name: 'Sanctuary', minutes: 4 },
+        { name: 'Philosophers Preservation', minutes: 47 },
+      ],
+      roundtime: 0,
+      situation: ['poisoned'],
       activity: 'Ready',
       connected: true,
     },
@@ -229,7 +250,12 @@ const presets: Record<DemoPresetId, DemoPreset> = {
         spiritMax: 120,
         fatigue: 80,
         fatigueMax: 120,
+        mana: 96,
+        manaMax: 120,
       },
+      hands: { right: 'a blessed mace', left: 'a wooden shield' },
+      spells: [{ name: 'Benediction', minutes: 12 }],
+      roundtime: 0,
       situation: [],
       activity: 'Ready',
       connected: true,
@@ -268,7 +294,12 @@ const presets: Record<DemoPresetId, DemoPreset> = {
         spiritMax: 130,
         fatigue: 90,
         fatigueMax: 130,
+        mana: 61,
+        manaMax: 130,
       },
+      hands: { right: 'a longsword', left: 'a tower shield' },
+      spells: [{ name: 'Aegis of Faith', minutes: 22 }],
+      roundtime: 0,
       situation: [],
       activity: 'Ready',
       connected: true,
@@ -460,11 +491,32 @@ export class MockBridge {
   simulateCombat() {
     this.character = {
       ...this.character,
-      situation: [...new Set([...this.character.situation, 'in_combat' as const])],
+      situation: [
+        ...new Set([
+          ...this.character.situation,
+          'in_combat' as const,
+          // The flags a real fight actually produces, rather than one. The
+          // status board sorts by seriousness and there is no way to see that
+          // it does with a single flag set.
+          'prone' as const,
+          'bleeding' as const,
+        ]),
+      ],
+      // A live roundtime, because the whole point of the meter is that it
+      // counts down and a demo that sets zero cannot show that.
+      roundtime: 5,
       activity: 'In combat',
     }
     this.emitStatus()
     this.emit({ type: 'log', line: 'Demo: combat engaged.' })
+
+    // Second push a moment later with the clock advanced, which is how the
+    // real bridge behaves: it re-reports rather than streaming a countdown.
+    window.setTimeout(() => {
+      if (!this.connected) return
+      this.character = { ...this.character, roundtime: 2.4 }
+      this.emitStatus()
+    }, 2600)
   }
 
   /**
@@ -712,14 +764,82 @@ export class MockBridge {
         break
       case 'pause':
         this.character = { ...this.character, activity: 'Paused' }
+        // Paused, and said so per script. The status was always in this payload
+        // and the store dropped it, so the mock could not reproduce the one
+        // state where "running: combat-loop" is a lie.
+        this.emit({
+          type: 'scripts',
+          payload: this.scripts.map((name) => ({ name, status: 'paused' })),
+        })
         this.emitStatus()
         this.emit({ type: 'log', line: 'Automation paused.' })
         break
       case 'resume':
         this.character = { ...this.character, activity: 'Ready' }
+        this.emit({
+          type: 'scripts',
+          payload: this.scripts.map((name) => ({ name, status: 'running' })),
+        })
         this.emitStatus()
         this.emit({ type: 'log', line: 'Automation resumed.' })
         break
+
+      // The bridge has answered this since 0.7.0 with a structured file list
+      // and nothing ever asked it to. Mocked so the panel can be seen without
+      // a dr-scripts install, including the broken-file case, which is the one
+      // the panel actually exists for.
+      case 'read_settings': {
+        const who = this.character.name.split(' ')[0]
+        this.emit({
+          type: 'settings',
+          character: this.character.name,
+          files: [
+            {
+              path: 'C:/lich5/scripts/dr-scripts/profiles/base.yaml',
+              name: 'base.yaml',
+              bytes: 41_300,
+              kind: 'defaults',
+              ok: true,
+              count: 8,
+              keys: [
+                'bag',
+                'bag_items',
+                'combat_trainer_badly_wounded_threshold',
+                'dance_skill',
+                'hunting_room_id',
+                'safe_room_id',
+                'training_list',
+                'waggle_sets',
+              ],
+            },
+            {
+              path: `C:/lich5/scripts/dr-scripts/profiles/${who}-setup.yaml`,
+              name: `${who}-setup.yaml`,
+              bytes: 8_940,
+              kind: 'yours',
+              ok: true,
+              count: 4,
+              keys: ['bag', 'hunting_room_id', 'safe_room_id', 'training_list'],
+            },
+            {
+              path: `C:/lich5/scripts/dr-scripts/profiles/${who}-combat.yaml`,
+              name: `${who}-combat.yaml`,
+              bytes: 3_120,
+              kind: 'yours',
+              ok: false,
+              error: 'mapping values are not allowed in this context',
+              line: 41,
+              column: 12,
+            },
+          ],
+        })
+        this.emit({
+          type: 'log',
+          line: 'Settings: one file will not parse, so dr-scripts is running on defaults for it.',
+          level: 'error',
+        })
+        break
+      }
       case 'go_healer': {
         this.character = { ...this.character, activity: 'Evaluating healers…' }
         this.emitStatus()

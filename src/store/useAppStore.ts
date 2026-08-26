@@ -103,7 +103,11 @@ function handleBridgeMessage(
       break
     }
     case 'status': {
-      set({ character: msg.payload })
+      // Stamped on arrival. `roundtime` is a count of seconds measured when
+      // the bridge built the payload, so without knowing when that was the
+      // only honest thing to render is a frozen number, which is the one thing
+      // a countdown must not be. See AppState.characterAt.
+      set({ character: msg.payload, characterAt: Date.now() })
       // Adopt this character's own settings the moment we learn who they are.
       const p = msg.payload
       if (p.name) get().syncProfile(p.name, p.instance, p.guild)
@@ -113,10 +117,21 @@ function handleBridgeMessage(
       set({ inventory: msg.payload })
       break
     case 'scripts':
-      set({ runningScripts: msg.payload.map((s) => s.name) })
+      // Keep the status this time. Dropping it made a paused script
+      // indistinguishable from a working one everywhere it was listed, which
+      // is exactly backwards for somebody checking on an unattended run.
+      set({
+        scriptStates: msg.payload,
+        runningScripts: msg.payload.map((s) => s.name),
+      })
       break
     case 'log':
-      get().addLog(msg.line)
+      get().addLog(msg.line, msg.level)
+      break
+    case 'settings':
+      // The bridge already knew all of this and the switch had no case for it,
+      // so the payload arrived and fell off the end. See SettingsFile.
+      set({ settingsFiles: msg.files, settingsCharacter: msg.character })
       break
     case 'trace':
       get().addTrace(msg.row)
@@ -126,14 +141,14 @@ function handleBridgeMessage(
       // missed: this is the case where the character has been doing something
       // pointless and visible, which is exactly what should not run unwatched.
       set({ runawayReason: msg.reason })
-      get().addLog(`Stopped itself: ${msg.reason}`)
+      get().addLog(`Stopped itself: ${msg.reason}`, 'error')
       break
     case 'intent_ack':
       if (!msg.ok)
-        get().addLog(`Intent failed: ${msg.intent} — ${msg.detail ?? ''}`)
+        get().addLog(`Intent failed: ${msg.intent} — ${msg.detail ?? ''}`, 'error')
       break
     case 'error':
-      get().addLog(`Bridge error: ${msg.message}`)
+      get().addLog(`Bridge error: ${msg.message}`, 'error')
       break
 
     // Geography, answered by Lich's own map rather than by a list we ship.
@@ -177,8 +192,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   uiMode: prefs.uiMode,
   alwaysOnTop: prefs.alwaysOnTop,
   character: null,
+  characterAt: 0,
   inventory: null,
   runningScripts: [],
+  scriptStates: [],
+  settingsFiles: null,
+  settingsCharacter: null,
   logLines: [
     { at: new Date().toLocaleTimeString(), text: 'Companion started.', seq: nextSeq() },
   ],
@@ -231,13 +250,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   setCharacter: (c) => set({ character: c }),
   setInventory: (i) => set({ inventory: i }),
 
-  addLog: (line) =>
+  addLog: (line, level) =>
     set((state) => ({
       logLines: [
         ...state.logLines,
-        { at: new Date().toLocaleTimeString(), text: line, seq: nextSeq() },
+        { at: new Date().toLocaleTimeString(), text: line, seq: nextSeq(), level },
       ].slice(-200),
     })),
+
+  readSettings: () => {
+    set({ settingsFiles: null, settingsCharacter: null })
+    bridge.requestIntent('read_settings' as IntentName)
+  },
 
   clearLog: () => set({ logLines: [], trace: [] }),
 
@@ -277,7 +301,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     bridge.setMode(m)
     savePrefs({ bridgeMode: m })
-    set({ bridgeMode: m, bridgeConnected: false, character: null })
+    set({ bridgeMode: m, bridgeConnected: false, character: null, characterAt: 0, scriptStates: [], runningScripts: [], settingsFiles: null })
     get().addLog(
       m === 'mock' ? 'Switched to mock bridge' : 'Switched to live Lich bridge'
     )
@@ -331,7 +355,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       unsubLiveStatus()
       unsubLiveStatus = null
     }
-    set({ bridgeConnected: false, character: null })
+    set({ bridgeConnected: false, character: null, characterAt: 0, scriptStates: [], runningScripts: [] })
   },
 
   simulateConnect: () => {

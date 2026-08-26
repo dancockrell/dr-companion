@@ -17,6 +17,38 @@ export interface Placed {
   node: React.ReactNode
 }
 
+type Edge = 'n' | 's' | 'e' | 'w'
+
+/**
+ * The grab area on each edge, in pixels.
+ *
+ * Eight is what Windows itself uses for a window border and it is the number
+ * worth copying rather than improving on: it is small enough not to steal
+ * clicks from the panel's own content and large enough to hit without aiming.
+ */
+const GRAB = 8
+
+/**
+ * Eight handles, the way every window on this machine resizes.
+ *
+ * Corners come last so they win where they overlap an edge. Both cover the
+ * same few pixels, and grabbing a corner and getting one axis is the more
+ * annoying of the two possible mistakes.
+ *
+ * The cursors are the standard ones, and they matter more than they look: a
+ * resize edge with no cursor change is an edge nobody discovers.
+ */
+const HANDLES: Array<{ edges: Edge[]; cursor: string; style: React.CSSProperties }> = [
+  { edges: ['n'], cursor: 'cursor-ns-resize', style: { top: 0, left: GRAB, right: GRAB, height: GRAB } },
+  { edges: ['s'], cursor: 'cursor-ns-resize', style: { bottom: 0, left: GRAB, right: GRAB, height: GRAB } },
+  { edges: ['w'], cursor: 'cursor-ew-resize', style: { left: 0, top: GRAB, bottom: GRAB, width: GRAB } },
+  { edges: ['e'], cursor: 'cursor-ew-resize', style: { right: 0, top: GRAB, bottom: GRAB, width: GRAB } },
+  { edges: ['n', 'w'], cursor: 'cursor-nwse-resize', style: { top: 0, left: 0, width: GRAB, height: GRAB } },
+  { edges: ['n', 'e'], cursor: 'cursor-nesw-resize', style: { top: 0, right: 0, width: GRAB, height: GRAB } },
+  { edges: ['s', 'w'], cursor: 'cursor-nesw-resize', style: { bottom: 0, left: 0, width: GRAB, height: GRAB } },
+  { edges: ['s', 'e'], cursor: 'cursor-nwse-resize', style: { bottom: 0, right: 0, width: GRAB, height: GRAB } },
+]
+
 /**
  * Panels go where you put them.
  *
@@ -44,6 +76,8 @@ export function FreeCanvas({
   const [drag, setDrag] = useState<{
     id: PanelId
     mode: 'move' | 'resize'
+    /** Which edges are being pulled. Empty for a move. */
+    edges: Edge[]
     rect: Rect
     startX: number
     startY: number
@@ -81,15 +115,27 @@ export function FreeCanvas({
         if (!d) return d
         const dx = e.clientX - d.startX
         const dy = e.clientY - d.startY
-        const next =
-          d.mode === 'move'
-            ? { ...d.from, x: d.from.x + dx, y: d.from.y + dy }
-            : {
-                ...d.from,
-                w: Math.max(MIN_W, d.from.w + dx),
-                h: Math.max(MIN_H, d.from.h + dy),
-              }
-        return { ...d, rect: next }
+        if (d.mode === 'move') {
+          return { ...d, rect: { ...d.from, x: d.from.x + dx, y: d.from.y + dy } }
+        }
+
+        // Pulling a top or left edge moves the corner as well as the size, and
+        // the minimum has to be applied to the size before the origin follows
+        // it. Doing it the other way round lets a panel dragged past its own
+        // minimum keep walking left while staying the same width, which looks
+        // exactly like the panel escaping the cursor.
+        let { x, y, w, h } = d.from
+        if (d.edges.includes('e')) w = Math.max(MIN_W, d.from.w + dx)
+        if (d.edges.includes('s')) h = Math.max(MIN_H, d.from.h + dy)
+        if (d.edges.includes('w')) {
+          w = Math.max(MIN_W, d.from.w - dx)
+          x = d.from.x + (d.from.w - w)
+        }
+        if (d.edges.includes('n')) {
+          h = Math.max(MIN_H, d.from.h - dy)
+          y = d.from.y + (d.from.h - h)
+        }
+        return { ...d, rect: { x, y, w, h } }
       })
     },
     []
@@ -106,15 +152,29 @@ export function FreeCanvas({
     })
   }, [bounds, onPlace, placed])
 
+  /*
+   * Attached for the life of the component, not for the life of a drag.
+   *
+   * They used to be attached in an effect gated on `drag`, which meant they
+   * did not exist until React had committed the state set during pointerdown.
+   * Every movement before that commit was lost, so a quick grab-and-throw
+   * moved the panel a little or not at all, and the panel appeared to stick.
+   *
+   * Both handlers already no-op when there is no drag in progress, so leaving
+   * them attached costs one pair of listeners and removes the race entirely.
+   * pointercancel is included because a captured pointer taken away by the OS
+   * would otherwise leave a panel following the cursor forever.
+   */
   useEffect(() => {
-    if (!drag) return
     window.addEventListener('pointermove', onPointerMove)
     window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
     return () => {
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
     }
-  }, [drag, onPointerMove, onPointerUp])
+  }, [onPointerMove, onPointerUp])
 
   return (
     <div ref={host} className="relative h-full w-full overflow-hidden">
@@ -148,9 +208,11 @@ export function FreeCanvas({
               className="flex cursor-grab touch-none items-center gap-1 px-1.5 py-1 active:cursor-grabbing"
               onPointerDown={(e) => {
                 e.preventDefault()
+                e.currentTarget.setPointerCapture(e.pointerId)
                 setDrag({
                   id: item.id,
                   mode: 'move',
+                  edges: [],
                   rect: shown,
                   from: shown,
                   startX: e.clientX,
@@ -163,22 +225,38 @@ export function FreeCanvas({
 
             <div className="min-h-0 flex-1 overflow-auto px-2 pb-2">{item.node}</div>
 
-            {/* Resize from the corner, which is where everyone reaches for it. */}
-            <span
-              className="absolute bottom-0 right-0 h-3.5 w-3.5 cursor-nwse-resize touch-none"
-              onPointerDown={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setDrag({
-                  id: item.id,
-                  mode: 'resize',
-                  rect: shown,
-                  from: shown,
-                  startX: e.clientX,
-                  startY: e.clientY,
-                })
-              }}
-            />
+            {/* All eight, the way every window on this machine resizes.
+             *
+             * It used to be the bottom-right corner alone, which is where
+             * people reach first and not where they reach only. A panel at the
+             * bottom of the canvas cannot be made shorter from a corner that
+             * only grows downward, and one at the right edge cannot be made
+             * narrower without first moving it.
+             *
+             * The corners are listed after the edges so they win the overlap:
+             * both cover the same few pixels, and grabbing a corner and getting
+             * one axis is the more annoying of the two mistakes. */}
+            {HANDLES.map(({ edges, cursor, style }) => (
+              <span
+                key={edges.join('')}
+                className={`absolute touch-none ${cursor}`}
+                style={style}
+                onPointerDown={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  e.currentTarget.setPointerCapture(e.pointerId)
+                  setDrag({
+                    id: item.id,
+                    mode: 'resize',
+                    edges,
+                    rect: shown,
+                    from: shown,
+                    startX: e.clientX,
+                    startY: e.clientY,
+                  })
+                }}
+              />
+            ))}
           </div>
         )
       })}

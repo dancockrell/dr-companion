@@ -26,8 +26,16 @@ import { ReportDialog } from './ReportDialog'
 
 type Filter = 'all' | 'problems' | 'game'
 
-/** Trace kinds that mean something went wrong. */
-const PROBLEM_KINDS = new Set(['no_match', 'refused', 'gave_up', 'error'])
+/**
+ * Kinds that mean something went wrong.
+ *
+ * `log_error` is here because the bridge marks its own lines with a level and
+ * the store threw that away, so "this settings file will not parse at line 41"
+ * arrived flagged as an error and rendered in the same grey as "pong". A line
+ * whose sender took the trouble to call it an error should not depend on
+ * somebody spotting it in a scroll.
+ */
+const PROBLEM_KINDS = new Set(['no_match', 'refused', 'gave_up', 'error', 'log_error'])
 
 const KIND_STYLE: Record<string, string> = {
   send: 'text-info',
@@ -36,6 +44,8 @@ const KIND_STYLE: Record<string, string> = {
   no_match: 'text-danger',
   gave_up: 'text-danger',
   error: 'text-danger',
+  log_warn: 'text-warn',
+  log_error: 'text-danger',
 }
 
 export function Console() {
@@ -45,7 +55,7 @@ export function Console() {
   const traceEnabled = useAppStore((s) => s.traceEnabled)
   const setTraceEnabled = useAppStore((s) => s.setTraceEnabled)
   const consoleOpen = useAppStore((s) => s.consoleOpen)
-  const runningScripts = useAppStore((s) => s.runningScripts)
+  const scriptStates = useAppStore((s) => s.scriptStates)
   const setConsoleOpen = useAppStore((s) => s.setConsoleOpen)
 
   const [filter, setFilter] = useState<Filter>('all')
@@ -65,7 +75,9 @@ export function Console() {
   const rows = useMemo(() => {
     const logRows = logLines.map((l) => ({
       key: `log-${l.seq}`,
-      kind: 'log',
+      // The level the bridge sent, folded into the kind so it reaches both the
+      // colour map and the problems filter without a second code path.
+      kind: l.level && l.level !== 'info' ? `log_${l.level}` : 'log',
       text: `${l.at}  ${l.text}`,
       seq: l.seq,
     }))
@@ -80,7 +92,10 @@ export function Console() {
       return all.filter((r) => PROBLEM_KINDS.has(r.kind))
     }
     if (filter === 'game') {
-      return all.filter((r) => r.kind !== 'log')
+      // Every log kind, not just the plain one. Levelled lines are still ours,
+      // and letting log_error slip into the game view would put a Companion
+      // message in the pane that is meant to be only what the game said.
+      return all.filter((r) => !r.kind.startsWith('log'))
     }
     return all
   }, [logLines, trace, filter])
@@ -96,8 +111,13 @@ export function Console() {
   }, [ordered.length, consoleOpen])
 
   const problemCount = useMemo(
-    () => trace.filter((t) => PROBLEM_KINDS.has(t.kind)).length,
-    [trace]
+    () =>
+      trace.filter((t) => PROBLEM_KINDS.has(t.kind)).length +
+      // Error-level log lines count too. They did not before, because the level
+      // never made it into the store, so a bridge that said "error" out loud
+      // still left the badge reading zero problems.
+      logLines.filter((l) => l.level === 'error').length,
+    [trace, logLines]
   )
 
   async function copyAll() {
@@ -130,9 +150,22 @@ export function Console() {
           )}
         </button>
 
-        {runningScripts.length > 0 && (
-          <span className="text-xs text-accent truncate max-w-[40%]">
-            running: {runningScripts.join(', ')}
+        {/* Paused is said out loud rather than being counted as running. The
+            bridge has always sent the status beside each name and the store
+            dropped it, so this line read "running: hunting" while hunting sat
+            paused, which is the opposite of what somebody checking on an
+            unattended character needs to know. */}
+        {scriptStates.length > 0 && (
+          <span className="max-w-[40%] truncate text-xs">
+            {scriptStates.map((s, i) => (
+              <span key={s.name}>
+                {i > 0 && <span className="text-ink-faint">, </span>}
+                <span className={s.status === 'paused' ? 'text-warn' : 'text-accent'}>
+                  {s.name}
+                  {s.status === 'paused' && ' (paused)'}
+                </span>
+              </span>
+            ))}
           </span>
         )}
 

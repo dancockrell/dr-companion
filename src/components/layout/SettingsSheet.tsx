@@ -9,6 +9,7 @@ import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
 import { TRAIN_FOCUS_OPTIONS } from '../../data/training'
 import { HEAL_CITIES } from '../../data/healers'
 import { ProfilesPanel } from './ProfilesPanel'
+import { SettingsFilesPanel } from '../shared/SettingsFilesPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 
@@ -319,6 +320,18 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               </p>
             </section>
           )}
+
+          {/* The bridge has been able to answer this since 0.7.0 and no control
+              ever asked it to, so the feature shipped complete and unreachable.
+              It lives in Settings because a settings file is what it is about,
+              and because it is read once when something is wrong rather than
+              watched. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              dr-scripts settings files
+            </h3>
+            <SettingsFilesPanel />
+          </section>
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">

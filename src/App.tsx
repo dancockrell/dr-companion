@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { SetupWizard } from './components/first-run/SetupWizard'
 import { Dashboard } from './components/dashboard/Dashboard'
 import { RoomColumn } from './components/room/RoomColumn'
+import { Splitter } from './components/layout/Splitter'
 import { AppControls } from './components/layout/AppControls'
 import { SafetyFooter } from './components/layout/SafetyFooter'
 import { SituationBanner } from './components/layout/SituationBanner'
@@ -29,8 +31,31 @@ function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app
   return { kind: 'app' }
 }
 
+const SPLIT_KEY = 'drc.split.v1'
+
 export default function App() {
   const setupComplete = useAppStore((s) => s.setupComplete)
+
+  /**
+   * How the window is divided between the companion and the room.
+   *
+   * Remembered, because a split you have to set again on every launch is one
+   * nobody moves a second time. Kept in localStorage rather than the store: it
+   * is a property of this window on this screen, and it should not follow a
+   * character profile around.
+   */
+  const [split, setSplitState] = useState(() => {
+    const saved = Number(localStorage.getItem(SPLIT_KEY))
+    return Number.isFinite(saved) && saved >= 0.25 && saved <= 0.75 ? saved : 0.5
+  })
+  const setSplit = (v: number) => {
+    setSplitState(v)
+    try {
+      localStorage.setItem(SPLIT_KEY, String(v))
+    } catch {
+      // Private mode. Losing a divider position is not worth an error.
+    }
+  }
 
   // A popped-out panel is the whole window: no header, no console, no setup
   // wizard. The window *is* the panel, and chrome here would be space charged
@@ -62,10 +87,11 @@ export default function App() {
       <main className="flex min-h-0 flex-1 overflow-hidden">
         {setupComplete ? (
           <>
-            <div className="min-w-0 flex-1 overflow-y-auto">
+            <div className="min-w-0 overflow-y-auto" style={{ flex: `${split} 1 0%` }}>
               <Dashboard />
             </div>
-            <div className="min-w-0 flex-1 overflow-hidden border-l border-border">
+            <Splitter value={split} onChange={setSplit} />
+            <div className="min-w-0 overflow-hidden" style={{ flex: `${1 - split} 1 0%` }}>
               <RoomColumn />
             </div>
           </>

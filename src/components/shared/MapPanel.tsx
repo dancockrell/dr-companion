@@ -32,6 +32,8 @@ import { bridge } from '../../bridge'
 import type { IntentName } from '../../bridge/types'
 import { isTauri, invokeTauri } from '../../lib/tauri'
 import { MapCanvas, MapLegend } from './MapCanvas'
+import { PlaceSearch } from './PlaceSearch'
+import type { PlaceHit } from '../../lib/placeSearch'
 
 /**
  * @param plane Fill the height given rather than a fixed box. Set when the map
@@ -128,6 +130,52 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   }
 
   const refresh = () => bridge.requestIntent('map_zone' as IntentName)
+
+  /**
+   * Going where the search says the place is.
+   *
+   * Two things happen and neither of them is walking there. The zone changes
+   * so you can see the answer, and a route is asked for so you can decide
+   * about it. That is the same contract clicking a room already has, and a
+   * search box that moved the character on Enter would be a very different
+   * tool from a map.
+   *
+   * A hit in the character's own zone empties the stack rather than pushing
+   * onto it. Pushing would leave a "← Back" that goes back to where you are
+   * already standing, which is a button that appears to do nothing.
+   */
+  function goToPlace(hit: PlaceHit) {
+    // The route first. It does not care which zone is drawn and it is the part
+    // with a round trip to Lich in it, so it goes out before anything here
+    // waits on a file read.
+    bridge.requestIntent('map_path' as IntentName, { to: hit.room })
+
+    if (hit.zone === zone?.zone) return
+
+    if (hit.zone === liveZone?.zone) {
+      setZoneStack([])
+      return
+    }
+
+    /*
+     * Loaded before it is pushed, which is the opposite of how the gateways do
+     * it and is the fix for something you can watch happen.
+     *
+     * Pushing first leaves `browsing` naming a zone `builtZone` has not caught
+     * up with, and for the length of the fetch `zone` is null: the panel falls
+     * through to its "nothing asked for yet" state and the title, the map and
+     * the search box all blink out together. Picking "Bathhouse, Throne City"
+     * from Crossing showed the header reading MAP with an empty panel under
+     * it. Loading first means the push and the map arrive in the same render.
+     */
+    void loadZone(hit.zone).then((z) => {
+      // No file for that zone means the index is ahead of the cartography.
+      // Staying put is the honest answer; the route was already asked for.
+      if (!z) return
+      setBuiltZone(z)
+      setZoneStack((st) => [...st, hit.zone])
+    })
+  }
 
   if (!connected) {
     return (
@@ -236,6 +284,11 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         </div>
       }
     >
+      {/* Above the map rather than beside the title, because the answer it
+          gives is a place on the map and the two want to be read together.
+          It costs one row and gives back the thing the map could not do. */}
+      <PlaceSearch here={zone.zone} onPick={goToPlace} />
+
       {/* A real height, not a max. `fit` scales the zone into whatever box it
           is given, and a max-height box collapses to the content's own size —
           which for a small zone is a stamp in the corner.
@@ -332,6 +385,20 @@ function Shell({
   right?: React.ReactNode
   plane?: boolean
 }) {
+  /**
+   * Who this map is of.
+   *
+   * It sits here because the portrait box gave up its name line to make room
+   * for the doll, and a name nowhere in the window is a real problem the
+   * moment two characters are logged in: every panel looks the same and
+   * nothing says which one you are driving.
+   *
+   * Read from the store rather than passed down, because every branch of this
+   * panel goes through Shell and threading it through five call sites to say
+   * the same thing five times is how one of them ends up missing it.
+   */
+  const who = useAppStore((s) => s.character)?.name
+
   return (
     <section
       className={`flex flex-col gap-1.5 p-2 ${
@@ -344,7 +411,24 @@ function Shell({
       <header className="flex items-center justify-between gap-2">
         <h3 className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider min-w-0">
           <MapIcon className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">{title ?? 'Map'}</span>
+          {/* Zone first, and it keeps the room. The shrink factors are the
+              whole point: both truncate, but the name gives up width ten times
+              faster, so "Abandoned Mine and Lairocott Brach" stays readable
+              while a long name loses its tail. The map is of a place. */}
+          <span className="min-w-0 shrink truncate">{title ?? 'Map'}</span>
+          {who && (
+            <>
+              <span className="shrink-0" aria-hidden="true">
+                ·
+              </span>
+              {/* Left in its own case. The zone is a heading and shouts; a
+                  character's name is a name, and DAN THE BOLD reads like the
+                  app is addressing him. */}
+              <span className="min-w-0 shrink-[10] truncate normal-case tracking-normal text-ink-muted">
+                {who}
+              </span>
+            </>
+          )}
         </h3>
         <div className="flex items-center gap-2 shrink-0">
           {right}

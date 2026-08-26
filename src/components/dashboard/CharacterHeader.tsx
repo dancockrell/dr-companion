@@ -1,6 +1,7 @@
 import { MapPin } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { Badge } from '../shared/Badge'
+import { RoundtimeMeter } from '../shared/RoundtimeMeter'
 import { cn } from '../../lib/cn'
 import type { CharacterStatus } from '../../types'
 
@@ -37,12 +38,21 @@ export function CharacterStrip({ character }: { character: CharacterStatus }) {
   const setUiMode = useAppStore((s) => s.setUiMode)
 
   const lowHealth = character.vitals.health / character.vitals.healthMax < 0.35
-  const rt = character.roundtime ?? 0
   const hands = character.hands
+
+  // Race, guild and circle were all in every status payload and none of them
+  // was on screen anywhere. Circle in particular is the number a DragonRealms
+  // player would give if you asked how far along a character is, and the app
+  // knew it and never said it. Three fields, one short span, no new row.
+  const who = [character.race, character.guild?.replace(/_/g, ' '), character.circle]
+    .filter((x) => x !== undefined && x !== null && x !== '' && x !== 'unknown')
+    .join(' ')
 
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
       <span className="text-sm font-semibold leading-tight text-ink">{character.name}</span>
+
+      {who && <span className="shrink-0 text-xs capitalize text-ink-muted">{who}</span>}
 
       <span className="flex items-center gap-1">
         <Badge tone="accent">{character.instance}</Badge>
@@ -57,24 +67,31 @@ export function CharacterStrip({ character }: { character: CharacterStatus }) {
         <span className="truncate">{character.location.title}</span>
       </span>
 
-      {/* Hands. In a fight this is the question, and it was not on screen at
-          all — Genie keeps it permanently on its status bar. */}
-      {hands && (hands.right || hands.left) && (
+      {/* Hands. In a fight this is the question, and Genie keeps it permanently
+          on its status bar.
+
+          Shown whenever the bridge reported hands at all, including when both
+          are empty. The earlier version hid the block unless something was
+          held, which made "you are holding nothing" look identical to "we have
+          not been told" - and empty hands is not a null result, it is the
+          answer to why the attack did nothing. Being disarmed is exactly the
+          moment this needs to be readable. */}
+      {hands && (
         <span className="flex min-w-0 items-center gap-2 text-xs">
           <span className="truncate text-ink-muted">
-            <span className="text-ink-faint">R</span> {hands.right ?? 'empty'}
+            <span className="text-ink-faint">R</span>{' '}
+            {hands.right ?? <span className="text-ink-faint">empty</span>}
           </span>
           <span className="truncate text-ink-muted">
-            <span className="text-ink-faint">L</span> {hands.left ?? 'empty'}
+            <span className="text-ink-faint">L</span>{' '}
+            {hands.left ?? <span className="text-ink-faint">empty</span>}
           </span>
         </span>
       )}
 
-      {/* Seconds, not a flag: the difference between waiting and doing
-          something else with the time. */}
-      {rt > 0 && (
-        <span className="text-xs font-medium tabular-nums text-warn">RT {rt.toFixed(1)}s</span>
-      )}
+      {/* Counts down rather than sitting on whatever the last push said.
+          See RoundtimeMeter. */}
+      <RoundtimeMeter />
 
       {character.situation.length > 0 && (
         <span className="flex flex-wrap gap-1">

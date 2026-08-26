@@ -16,17 +16,64 @@ export type BridgeServerMessage =
   | { type: 'hello'; protocol: number; lichVersion: string; bridgeVersion: string }
   | { type: 'status'; payload: CharacterStatus }
   | { type: 'inventory'; payload: InventorySummary }
-  | { type: 'scripts'; payload: { name: string; status: string }[] }
+  | { type: 'scripts'; payload: ScriptState[] }
   | { type: 'log'; line: string; level?: 'info' | 'warn' | 'error' }
   | { type: 'trace'; row: TraceRow }
   | { type: 'runaway'; reason: string }
   | { type: 'intent_ack'; intent: string; ok: boolean; detail?: string }
   | { type: 'error'; message: string }
+  | { type: 'settings'; character: string; files: SettingsFile[] }
   | { type: 'map_here'; payload: MapRoom & { available: boolean } }
   | { type: 'map_tags'; payload: string[] }
   | { type: 'map_nearest'; payload: MapNearest }
   | { type: 'map_path'; payload: MapPath }
   | { type: 'map_zone'; payload: MapZone }
+
+/**
+ * One Lich script, and whether it is actually doing anything.
+ *
+ * The status was in the payload from the first version and the store threw it
+ * away with `.map(s => s.name)`, so a paused script and a running one read the
+ * same in every place that lists them. That is the wrong two things to
+ * conflate: "running: hunting" while hunting sits paused is the console
+ * telling you the opposite of what is true.
+ */
+export interface ScriptState {
+  name: string
+  /** 'running' or 'paused'. A string rather than a union because it comes
+   *  from Lich and an unexpected value must render, not crash. */
+  status: string
+}
+
+/**
+ * One dr-scripts YAML file, as the bridge found it.
+ *
+ * The bridge has read all of this since 0.7.0 — load order, size, how many
+ * settings, every key name, and for a broken file the parse error with its
+ * line and column. All of it was sent, none of it was typed, and the store had
+ * no case for the message, so the whole payload fell off the end of a switch.
+ * What survived was the prose log lines, which cannot be sorted, filtered or
+ * pointed at.
+ *
+ * The parse error is the part that matters most. A YAML syntax error names a
+ * line and a column, and that is the single most useful thing you can tell
+ * somebody who has been editing a settings file by hand and cannot work out
+ * why dr-scripts is ignoring it.
+ */
+export interface SettingsFile {
+  path: string
+  name: string
+  bytes: number
+  /** 'defaults' for base.yaml, 'yours' for a character file that overrides it. */
+  kind: 'defaults' | 'yours' | string
+  ok: boolean
+  /** Top-level setting names, sorted. Present only when the file parsed. */
+  keys?: string[]
+  count?: number
+  error?: string
+  line?: number
+  column?: number
+}
 
 /**
  * A room, as Lich knows it.

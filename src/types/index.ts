@@ -4,7 +4,14 @@ import type { BodyPart, Injury } from '../lib/body'
 import type { SkillState } from '../data/skills'
 import type { CharacterProfile } from '../lib/profiles'
 import type { VersionState } from '../lib/versions'
-import type { MapRoom, MapNearest, MapPath, MapZone } from '../bridge/types'
+import type {
+  MapRoom,
+  MapNearest,
+  MapPath,
+  MapZone,
+  ScriptState,
+  SettingsFile,
+} from '../bridge/types'
 import type { Trail } from '../lib/trail'
 
 export type { SkillState }
@@ -82,6 +89,50 @@ export type SituationFlag =
   | 'bags_full'
   | 'low_health'
   | 'roundtime'
+  /**
+   * The bridge emitted this from the moment it started reading IconPRONE, and
+   * the union never listed it. Nothing crashed, because the only consumer maps
+   * over the strings, but every piece of code that believed it had handled all
+   * ten flags had in fact handled ten of eleven. Prone is not cosmetic: you
+   * are on the ground, most of your defence is gone, and standing up costs
+   * roundtime you probably do not have.
+   */
+  | 'prone'
+  /**
+   * The rest of the indicator hash.
+   *
+   * The game sends one flag set and the bridge was probing five names out of
+   * it. Poisoned and diseased in particular were reachable only by running the
+   * `check_health` intent and reading the sentence it printed to the console,
+   * so a character could be poisoned for an hour with nothing on screen.
+   *
+   * Hidden, invisible and joined are grouped here with the injuries on purpose
+   * even though they are states you wanted: what matters is that they are
+   * true, not that they are bad, and a status board that only shows bad news
+   * cannot tell you your hiding broke.
+   */
+  | 'kneeling'
+  | 'sitting'
+  | 'poisoned'
+  | 'diseased'
+  | 'hidden'
+  | 'invisible'
+  | 'joined'
+
+/**
+ * A spell that is up, and how long it has left.
+ *
+ * The only status in this game that comes with a real clock. Everything in
+ * `SituationFlag` is an icon that is either lit or not, with no magnitude and
+ * no duration behind it, so this is the one place a timer can be honest rather
+ * than invented. dr-scripts maintains the durations from the game's own spell
+ * messaging and the bridge reads them out of DRSpells.active_spells.
+ */
+export interface ActiveSpell {
+  name: string
+  /** Minutes remaining, as dr-scripts counts them. */
+  minutes: number
+}
 
 export interface CharacterStatus {
   name: string
@@ -138,6 +189,11 @@ export interface CharacterStatus {
    */
   injuries?: Partial<Record<BodyPart, Injury>>
   situation: SituationFlag[]
+  /**
+   * Spells up, shortest remaining first. Empty when dr-scripts is not loaded,
+   * which is not the same as no spells and is why the board says which.
+   */
+  spells?: ActiveSpell[]
   activity: string
   connected: boolean
   /** Other players in the room. Hunting grounds are contested. */
@@ -193,6 +249,15 @@ export interface LogRow {
   at: string
   text: string
   seq: number
+  /**
+   * How serious the bridge said this was.
+   *
+   * It has been setting this on the lines that matter since the beginning, and
+   * the store dropped it on the floor: `addLog(msg.line)` took the text and
+   * nothing else. So "this settings file will not parse at line 41" arrived
+   * marked as an error and rendered in the same grey as "pong".
+   */
+  level?: 'info' | 'warn' | 'error'
 }
 
 export interface InventorySummary {
@@ -231,8 +296,37 @@ export interface AppState {
   alwaysOnTop: boolean
 
   character: CharacterStatus | null
+  /**
+   * When the last status landed, by the local clock, in ms.
+   *
+   * Roundtime arrives as a number of seconds measured at the moment the bridge
+   * built the payload. Rendering that number directly means showing "RT 4.0s"
+   * for however long it is until the next push, which on an idle tick is
+   * several seconds, so the one field whose whole value is that it counts down
+   * was displayed frozen. Anything that wants live roundtime subtracts from
+   * here. See components/shared/RoundtimeMeter.tsx.
+   */
+  characterAt: number
   inventory: InventorySummary | null
   runningScripts: string[]
+  /**
+   * Scripts with their status, as the bridge sent them.
+   *
+   * `runningScripts` is kept beside this rather than replaced because several
+   * places only ever wanted the names, and widening their type to get a
+   * distinction they do not use would be churn. This is the honest list.
+   */
+  scriptStates: ScriptState[]
+  /**
+   * dr-scripts settings files, from the `read_settings` intent.
+   *
+   * null until asked. The bridge answers with a structured file list, which
+   * had no type and no case in the store, and the intent that produces it was
+   * never wired to a control, so the feature existed end to end except for
+   * the two lines that would let anybody use it.
+   */
+  settingsFiles: SettingsFile[] | null
+  settingsCharacter: string | null
   logLines: LogRow[]
   /** Command trace from the bridge, for diagnosing broken patterns. */
   trace: TraceRow[]
@@ -269,7 +363,9 @@ export interface AppState {
   setAlwaysOnTop: (v: boolean) => void
   setCharacter: (c: CharacterStatus | null) => void
   setInventory: (i: InventorySummary | null) => void
-  addLog: (line: string) => void
+  addLog: (line: string, level?: LogRow['level']) => void
+  /** Ask the bridge which dr-scripts files apply to this character. */
+  readSettings: () => void
   clearLog: () => void
   addTrace: (row: TraceRow) => void
   setTraceEnabled: (v: boolean) => void

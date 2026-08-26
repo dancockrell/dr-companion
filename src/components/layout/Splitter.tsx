@@ -1,0 +1,139 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+/**
+ * A draggable divider between two columns.
+ *
+ * The companion and the room started at a fixed half each, which is the right
+ * default and the wrong permanent arrangement: someone reading a long room
+ * description wants the right side wider, and someone watching a map through a
+ * hunting loop wants the left. A split you cannot move is a decision taken on
+ * the player's behalf every session.
+ *
+ * Behaves the way a Windows splitter behaves, which is the whole brief. Wide
+ * enough to hit, a resize cursor so it is discoverable, and it keeps the
+ * cursor while you drag even when the pointer runs off the edge of it.
+ */
+export function Splitter({
+  value,
+  onChange,
+  min = 0.25,
+  max = 0.75,
+}: {
+  /** Left column's share, 0 to 1. */
+  value: number
+  onChange: (v: number) => void
+  min?: number
+  max?: number
+}) {
+  const [dragging, setDragging] = useState(false)
+  const host = useRef<HTMLDivElement>(null)
+
+  const shareAt = useCallback(
+    (clientX: number) => {
+      const parent = host.current?.parentElement
+      if (!parent) return null
+      const box = parent.getBoundingClientRect()
+      if (box.width <= 0) return null
+      return Math.min(max, Math.max(min, (clientX - box.left) / box.width))
+    },
+    [max, min]
+  )
+
+  /**
+   * Pointer capture, rather than listeners hung on the window.
+   *
+   * The first version attached pointermove in an effect keyed on a `dragging`
+   * state flag, and lost every movement between the press and React committing
+   * that state. A quick grab-and-throw did nothing at all, which is the exact
+   * thing that makes a divider feel broken.
+   *
+   * Capture also means the events keep arriving when the pointer leaves the
+   * eight pixels of the divider, which it does immediately, and releases
+   * automatically if the pointer is cancelled — so there is no way to end a
+   * drag with the body cursor still overridden.
+   */
+  /**
+   * The pointer currently dragging, held in a ref rather than in state.
+   *
+   * A ref because it has to be readable in the very next event. React state
+   * has not committed by the time the first pointermove arrives, which is what
+   * made a quick grab-and-throw move nothing at all — twice, once with window
+   * listeners and again with a `dragging` flag.
+   *
+   * `hasPointerCapture` would also be synchronous and is not used as the gate,
+   * because capture only exists for a real pointer: it cannot be established
+   * for a synthesised event, so gating on it makes this control untestable
+   * without a physical mouse. The capture is still taken, for the behaviour it
+   * gives real input.
+   */
+  const activePointer = useRef<number | null>(null)
+
+  const start = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    activePointer.current = e.pointerId
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // Not a live pointer, which happens under synthetic events. The ref above
+      // is the gate, so the drag still works without it.
+    }
+    setDragging(true)
+    document.body.style.cursor = 'col-resize'
+    // Otherwise the drag selects whatever text it passes over.
+    document.body.style.userSelect = 'none'
+  }
+
+  const end = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointer.current = null
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId)
+      }
+    } catch {
+      // See above.
+    }
+    setDragging(false)
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }
+
+  // A component unmounted mid-drag would otherwise leave the whole app stuck
+  // showing a resize cursor with text selection disabled.
+  useEffect(
+    () => () => {
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    },
+    []
+  )
+
+  return (
+    <div
+      ref={host}
+      role="separator"
+      aria-orientation="vertical"
+      aria-valuenow={Math.round(value * 100)}
+      tabIndex={0}
+      title="Drag to resize. Double-click to even them up."
+      onPointerDown={start}
+      onPointerMove={(e) => {
+        if (activePointer.current !== e.pointerId) return
+        const next = shareAt(e.clientX)
+        if (next !== null) onChange(next)
+      }}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onDoubleClick={() => onChange(0.5)}
+      // Arrow keys, because a divider that only answers to the mouse is one
+      // more thing that cannot be reached without it.
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowLeft') onChange(Math.max(min, value - 0.02))
+        if (e.key === 'ArrowRight') onChange(Math.min(max, value + 0.02))
+        if (e.key === 'Home') onChange(0.5)
+      }}
+      className={`w-2 shrink-0 cursor-col-resize touch-none border-x transition-colors ${
+        dragging ? 'border-accent bg-accent/25' : 'border-border bg-surface hover:bg-surface-overlay'
+      }`}
+    />
+  )
+}

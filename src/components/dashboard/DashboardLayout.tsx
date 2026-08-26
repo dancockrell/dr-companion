@@ -24,14 +24,18 @@ import type { DeckPref } from '../../lib/layout'
  *
  *   - **The map** takes the main area. It is what players ask for first, and
  *     it is the one thing here that is watched rather than read.
- *   - **You** sit top right: portrait, vitals, body. Identity and damage are
- *     the first questions in a fight and they never move.
+ *   - **You** sit top right: portrait, vitals, body. Damage is the first
+ *     question in a fight and the answer never moves. The name is not in this
+ *     box any more, it reads once beside the zone in the map header, so the
+ *     height it was spending on a header row goes to the portrait and doll.
  *   - **Battle, Objects, People** stack under you, in that order. What is
  *     trying to kill you, what is on the floor worth taking, who else is here.
  *   - **Experience** runs under the map, because it is read between fights
  *     rather than during one, and it wants width more than height.
- *   - **Actions** pin to the bottom. Stop is always on screen. That was the
- *     promise the app was built on.
+ *   - **Actions** pin to the bottom, and the one stop bar sits under them in
+ *     the window frame. Stop is always on screen. That was the promise the app
+ *     was built on, and it held better once there was exactly one of it: the
+ *     panel used to carry its own Stop and Pause alongside the bar's.
  */
 export function DashboardLayout({
   dense,
@@ -112,16 +116,33 @@ export function DashboardLayout({
          * glance became four lines of text you have to read. The doll answers
          * "where am I damaged" without being read at all, and it answers it for
          * every part at once including the ones that are fine. */}
-        <Box title={character?.name ?? 'You'} action={popper('mindstate')}>
-          <div className="flex items-start gap-3">
+        {/* No header on this box, and the thirty pixels it cost go to the art.
+         *
+         * The title was the character's name, which now sits beside the zone
+         * name in the map header, so "who and where" is one line rather than a
+         * word repeated in a box of its own. The pop-out control is gone with
+         * it, which is what would have kept the header row alive: it opened the
+         * mindstate window, and the Experience box above already carries that
+         * same control on the panel it actually belongs to.
+         *
+         * The portrait and the doll take the space rather than it turning into
+         * padding. Both are read at a glance and neither reads well small: the
+         * doll is sixteen rectangles and the wound colour is the whole point of
+         * it.
+         *
+         * The row wraps because the right rail is as narrow as 15rem when the
+         * window is docked beside the game, and three fixed-width children in a
+         * row that cannot wrap overflow instead of stacking. */}
+        <Box>
+          <div className="flex flex-wrap items-start gap-3">
             <Portrait
               character={character?.name ?? 'You'}
               race={character?.race ?? undefined}
-              size={92}
+              size={116}
             />
             <Paperdoll
               injuries={character?.injuries ?? {}}
-              height={92}
+              height={116}
               known={character?.injuries !== undefined}
             />
             <VitalCluster vitals={vitals} height={72} />
@@ -179,7 +200,9 @@ export function DashboardLayout({
         </Box>
       </div>
 
-      {/* Stop, always. */}
+      {/* What to start. Stop, pause and resume are in the bar below this
+          layout, in the window frame, where no arrangement of panels can
+          scroll them off. */}
       <div className="col-span-2 row-start-3">
         <ActionsPanel dense={dense} />
       </div>
