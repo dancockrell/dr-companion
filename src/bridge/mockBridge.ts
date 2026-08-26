@@ -278,6 +278,8 @@ for (const p of Object.values(presets)) {
   p.character.roomCreatures = demoCreatures(level)
   p.character.roomDeadCreatures = level > 30 ? ['a kobold which appears dead'] : []
   p.character.injuries = demoInjuries(level)
+  p.character.roomItems =
+    level > 20 ? ['a kobold skin', 'some copper kronars', 'a rusty dagger'] : []
 }
 
 /**

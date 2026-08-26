@@ -29,7 +29,7 @@ require 'base64'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.5.0'
+  BRIDGE_VERSION = '0.6.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -256,7 +256,11 @@ module Companion
         'roomCreatures' => safe([]) { DRRoom.npcs } || [],
         # Corpses stay reported rather than dropped. A skinnable one with boxes
         # in it is a task the player has not done yet.
-        'roomDeadCreatures' => safe([]) { DRRoom.dead_npcs } || []
+        'roomDeadCreatures' => safe([]) { DRRoom.dead_npcs } || [],
+        # Loose items on the floor. GameObj.loot is the game's own list of
+        # what is lying here, which is not the same as what a script decided
+        # was worth picking up.
+        'roomItems' => safe([]) { GameObj.loot&.map(&:name) } || []
         #
         # There is deliberately no roomAllies here. Lich has no list of
         # creatures fighting on your side: DRRoom.npcs is everything the game

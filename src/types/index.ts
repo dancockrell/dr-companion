@@ -125,6 +125,13 @@ export interface CharacterStatus {
    * with boxes is a task, not a footnote. */
   roomDeadCreatures?: string[]
   /**
+   * Loose items on the ground here, from GameObj.loot.
+   *
+   * Display names as the game wrote them. Separate from inventory on purpose:
+   * what is on the floor is a decision, and what is in your pack is a fact.
+   */
+  roomItems?: string[]
+  /**
    * Summons, pets and familiars fighting on your side.
    *
    * Nothing populates this yet and the bridge does not send it. Lich has

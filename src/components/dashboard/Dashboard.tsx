@@ -19,19 +19,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { useLayout } from '../../lib/useLayout'
-import { clampSplit, type PanelId } from '../../lib/layout'
+import type { PanelId } from '../../lib/layout'
 import { isTauri, invokeTauri } from '../../lib/tauri'
 import { CharacterHeader } from './CharacterHeader'
-import { MapPanel } from '../shared/MapPanel'
+import { DashboardLayout } from './DashboardLayout'
 import { PANEL_CONTENT, PANEL_TITLES } from './panels'
-import { DockView } from './DockView'
 import { FreeCanvas } from './FreeCanvas'
-import { dockOf, without } from '../../lib/dock'
 
 export function Dashboard() {
   const character = useAppStore((s) => s.character)
   const uiMode = useAppStore((s) => s.uiMode)
-  const { layout, setSplit, cycleDeck, dock, place, unplace } = useLayout(uiMode)
+  const { layout, cycleDeck, place, unplace } = useLayout(uiMode)
 
   // Which panel is in the hand, and where it would land. Held here rather than
   // in each Panel so the insertion line can be drawn on a different panel from
@@ -84,39 +82,6 @@ export function Dashboard() {
     if (!el || typeof ResizeObserver === 'undefined') return
   }, [])
 
-  // Live during a drag, so the divider tracks the cursor without writing
-  // localStorage on every mouse move.
-  const [dragSplit, setDragSplit] = useState<number | null>(null)
-  const dragging = useRef(false)
-
-  const onMove = useCallback((e: MouseEvent) => {
-    if (!dragging.current || !hostRef.current) return
-    const box = hostRef.current.getBoundingClientRect()
-    setDragSplit(clampSplit((e.clientX - box.left) / box.width))
-  }, [])
-
-  const onUp = useCallback(() => {
-    if (!dragging.current) return
-    dragging.current = false
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-    setDragSplit((v) => {
-      if (v !== null) setSplit(v)
-      return null
-    })
-  }, [setSplit])
-
-  useEffect(() => {
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-  }, [onMove, onUp])
-
-  // Open by default: orientation is the first thing you look at.
-  const [mapOpen, setMapOpen] = useState(true)
 
   if (!character) {
     return (
@@ -125,8 +90,6 @@ export function Dashboard() {
       </div>
     )
   }
-
-  const split = dragSplit ?? layout.mapSplit
 
   const dense = uiMode === 'power'
 
@@ -145,71 +108,45 @@ export function Dashboard() {
     <div ref={hostRef} className="flex h-full min-h-0 flex-col">
       <CharacterHeader character={character} />
 
-      <div className="flex min-h-0 flex-1">
-        {mapOpen && (
-          <>
-            <div
-              className="min-h-0 shrink-0"
-              style={{ width: `${Math.round(split * 100)}%` }}
-            >
-              <MapPanel plane />
-            </div>
-            <span
-              className="w-px shrink-0 cursor-col-resize bg-border/60 hover:bg-ink-faint"
-              title="Drag to resize"
-              onMouseDown={(e) => {
-                e.preventDefault()
-                dragging.current = true
-                document.body.style.cursor = 'col-resize'
-                document.body.style.userSelect = 'none'
-              }}
-            />
-          </>
+      {layout.freeform ? (
+        <FreeCanvas
+          items={docked.map((id) => ({
+            id,
+            rect: layout.rects[id],
+            node: PANEL_CONTENT[id]?.(dense, false, {
+              deckPrefs: layout.decks,
+              onCycleDeck: cycleDeck,
+            }),
+          }))}
+          onPlace={place}
+          onReflow={unplace}
+        />
+      ) : (
+        <>
+        {out.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 px-2 pt-1 text-xs">
+            <span className="text-ink-faint">In their own windows:</span>
+            {out.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => popBack(id)}
+                title="Bring it back in here"
+                className="rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
+              >
+                {PANEL_TITLES[id] ?? id}
+              </button>
+            ))}
+          </div>
         )}
-
-        {/* One handle, on the edge the drawer comes from, so it reads as the
-            drawer rather than as another panel control. */}
-        <button
-          type="button"
-          onClick={() => setMapOpen((v) => !v)}
-          title={mapOpen ? 'Close the map' : 'Open the map'}
-          className="w-3 shrink-0 border-r border-border/60 text-ink-faint hover:bg-surface-raised hover:text-ink"
-        >
-          {mapOpen ? '‹' : '›'}
-        </button>
-
-        <div className="min-h-0 min-w-0 flex-1">
-          {layout.freeform ? (
-            <FreeCanvas
-              items={docked.map((id) => ({
-                id,
-                rect: layout.rects[id],
-                node: PANEL_CONTENT[id]?.(dense, false, {
-                  deckPrefs: layout.decks,
-                  onCycleDeck: cycleDeck,
-                }),
-              }))}
-              onPlace={place}
-              onReflow={unplace}
-            />
-          ) : (
-          <DockView
-            dock={without(layout.dock ?? dockOf(docked), ['map', 'vitals', ...out])}
-            onChange={dock}
-            title={(id) => PANEL_TITLES[id] ?? id}
-            onPopOut={popOut}
-            out={out}
-            onPopBack={popBack}
-            render={(id) =>
-              PANEL_CONTENT[id]?.(dense, false, {
-                deckPrefs: layout.decks,
-                onCycleDeck: cycleDeck,
-              })
-            }
-          />
-          )}
-        </div>
-      </div>
+        <DashboardLayout
+          dense={dense}
+          deckPrefs={layout.decks}
+          onCycleDeck={cycleDeck}
+          onPopOut={popOut}
+        />
+        </>
+      )}
     </div>
   )
 }
