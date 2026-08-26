@@ -23,11 +23,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, FolderOpen } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { Button } from '../shared/Button'
-import { NoobChecklist } from './NoobChecklist'
 import { Preflight } from './Preflight'
 import { ComponentCard, type CardState } from './ComponentCard'
 import { ConnectGuide } from './ConnectGuide'
-import { bridgeCommand } from '../../lib/frontends'
+import { DependencyStrip, type Dep } from './DependencyStrip'
 import { isTauri } from '../../lib/tauri'
 import {
   planSetup,
@@ -45,11 +44,23 @@ import {
 
 type Phase = 'checking' | 'plan' | 'browser'
 
+/**
+ * What a browser can say about a machine, which is nothing.
+ *
+ * Listed anyway, because the point of this screen is the check and an empty
+ * page communicates less than an honest row of dashes.
+ */
+const BROWSER_DEPS: Dep[] = [
+  { id: 'ruby', label: 'Ruby', state: 'unknown', detail: 'cannot check from a browser' },
+  { id: 'lich', label: 'Lich 5', state: 'unknown', detail: 'cannot check from a browser' },
+  { id: 'bridge', label: 'Companion bridge', state: 'unknown', detail: 'cannot check from a browser' },
+  { id: 'maps', label: 'Map data', state: 'present', detail: '90 zones, 18,490 rooms, built in' },
+]
+
 export function SetupWizard() {
   const setSetupComplete = useAppStore((s) => s.setSetupComplete)
   const simulateConnect = useAppStore((s) => s.simulateConnect)
   const addLog = useAppStore((s) => s.addLog)
-  const frontend = useAppStore((s) => s.frontend)
   // Opened from Settings rather than because something is missing. Changes one
   // thing: it does not skip itself when everything is present.
   const reopened = useAppStore((s) => s.setupReopened)
@@ -263,26 +274,20 @@ export function SetupWizard() {
   const ready = checked && missing.length === 0
 
   return (
-    <div className="min-h-full flex flex-col p-5 gap-4 max-w-lg mx-auto">
+    <div className="flex flex-col p-4 gap-3">
       <header className="space-y-2 pt-1">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
           {phase === 'browser'
-            ? 'Welcome to DR Companion'
+            ? 'DR Companion'
             : !checked
-              ? 'Could not check this machine'
+              ? 'Check failed'
               : ready
                 ? 'Ready'
-                : 'A couple of things are missing'}
+                : 'Missing pieces'}
         </h1>
-        <p className="text-ink-muted text-sm leading-relaxed">
-          {phase === 'browser'
-            ? 'Running in a browser, so there is no way to check your machine or install anything. The demo works fully here. For live play, use the desktop app.'
-            : !checked
-              ? 'The check did not complete, so nothing below is a statement about your machine. The demo still works. Press Check again, or send us the reason above.'
-              : ready
-                ? 'Everything Lich needs is here. Where each piece lives is listed below.'
-                : 'Nothing is downloaded until you ask. Anything we fetch is checked against the checksum GitHub publishes and installed where that software normally lives, so the usual guides and paths still apply.'}
-        </p>
+        {phase !== 'browser' && !checked && (
+          <p className="text-sm text-ink-muted">The check did not finish.</p>
+        )}
       </header>
 
       {checkError && (
@@ -334,10 +339,8 @@ export function SetupWizard() {
             </Button>
           </div>
         </div>
-      )}
-
-      {phase === 'browser' ? (
-        <NoobChecklist />
+      )}      {phase === 'browser' ? (
+        <DependencyStrip deps={BROWSER_DEPS} />
       ) : (
         <section className="space-y-3">
           {plan?.components.map((c) => (
@@ -364,7 +367,7 @@ export function SetupWizard() {
         <ConnectGuide lichPath={lichRbwPath} />
       )}
 
-      <div className="mt-auto pt-2 space-y-2">
+      <div className="pt-2 space-y-2">
         <Button
           size="xl"
           variant={ready && phase !== 'browser' ? 'good' : 'primary'}
@@ -376,11 +379,6 @@ export function SetupWizard() {
               ? 'Continue'
               : 'Open the demo dashboard'}
         </Button>
-        <p className="text-xs text-ink-faint text-center leading-relaxed">
-          {ready && phase !== 'browser'
-            ? `Start the bridge in game with ${bridgeCommand(frontend)}, then switch to Live Lich in Settings.`
-            : 'The demo runs a simulated character and needs none of the above. You can set the rest up whenever.'}
-        </p>
       </div>
     </div>
   )

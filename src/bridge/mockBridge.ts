@@ -24,6 +24,7 @@ import type { GuildId } from '../data/hunting'
 import { ranksOf, type SkillState } from '../data/skills'
 import { effectiveAthletics } from '../data/obstacles'
 import { DEMO_ZONE, demoPath } from '../data/demoMap'
+import { loadZone, DEFAULT_ZONE } from '../lib/mapData'
 
 type Listener = (msg: BridgeServerMessage) => void
 
@@ -494,7 +495,17 @@ export class MockBridge {
       // Map queries, answered from an invented zone. data/demoMap.ts explains
       // why it is invented rather than a copy of real geography.
       case 'map_zone':
-        this.emit({ type: 'map_zone', payload: DEMO_ZONE })
+        // The real Crossing, 1,060 rooms, not a twelve-room sketch. The demo is
+        // where most people meet this app, and a toy map tells them nothing
+        // about whether the real one is any good.
+        void loadZone(DEFAULT_ZONE).then((zone) => {
+          this.emit({
+            type: 'map_zone',
+            payload: zone
+              ? { ...zone, here: zone.rooms?.[0]?.id ?? null }
+              : DEMO_ZONE,
+          })
+        })
         break
 
       case 'map_here': {

@@ -15,6 +15,8 @@
  * not walk anywhere. Moving stays a decision made with the route in view.
  */
 import { useEffect, useMemo, useState } from 'react'
+import { loadZone, DEFAULT_ZONE } from '../../lib/mapData'
+import type { MapZone } from '../../bridge/types'
 import {
   Map as MapIcon,
   RefreshCw,
@@ -36,7 +38,25 @@ import { MapCanvas, MapLegend } from './MapCanvas'
  *   and a fixed height would waste the space it was given.
  */
 export function MapPanel({ plane = false }: { plane?: boolean }) {
-  const zone = useAppStore((s) => s.mapZone)
+  const liveZone = useAppStore((s) => s.mapZone)
+  const [builtZone, setBuiltZone] = useState<MapZone | null>(null)
+
+  // Lich wins when it is connected: it knows where the character actually is
+  // and carries tags the shipped cartography does not. But a map that is blank
+  // until you connect is a map nobody can judge, and the demo is where most
+  // people meet this first, so the built zones stand in.
+  useEffect(() => {
+    if (liveZone?.ok) return
+    let cancelled = false
+    loadZone(DEFAULT_ZONE).then((z) => {
+      if (!cancelled) setBuiltZone(z)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [liveZone?.ok])
+
+  const zone = liveZone?.ok ? liveZone : builtZone
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)

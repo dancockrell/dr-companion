@@ -1,0 +1,452 @@
+[
+ {
+  "id": 1,
+  "name": "Crossing",
+  "rooms": 1060
+ },
+ {
+  "id": 90,
+  "name": "Ratha",
+  "rooms": 880
+ },
+ {
+  "id": 7,
+  "name": "Northern Trade Road",
+  "rooms": 850
+ },
+ {
+  "id": 67,
+  "name": "Shard",
+  "rooms": 807
+ },
+ {
+  "id": 66,
+  "name": "Shard to Gondola Area",
+  "rooms": 765
+ },
+ {
+  "id": 127,
+  "name": "Boar Clan",
+  "rooms": 666
+ },
+ {
+  "id": 69,
+  "name": "Shard West Gate",
+  "rooms": 647
+ },
+ {
+  "id": 30,
+  "name": "Riverhaven",
+  "rooms": 568
+ },
+ {
+  "id": 47,
+  "name": "Muspar'i",
+  "rooms": 561
+ },
+ {
+  "id": 4,
+  "name": "Crossing West Gate",
+  "rooms": 535
+ },
+ {
+  "id": 116,
+  "name": "Hibarnhvidar",
+  "rooms": 513
+ },
+ {
+  "id": 99,
+  "name": "Aesry Surlaenis'a",
+  "rooms": 506
+ },
+ {
+  "id": 108,
+  "name": "M'Riss",
+  "rooms": 442
+ },
+ {
+  "id": 40,
+  "name": "Langenfirth to Therenborough",
+  "rooms": 405
+ },
+ {
+  "id": 42,
+  "name": "Therenborough and Keep",
+  "rooms": 365
+ },
+ {
+  "id": 107,
+  "name": "Mer'Kresh",
+  "rooms": 359
+ },
+ {
+  "id": 98,
+  "name": "Road to Aesry Frostweavers Snow Gobs",
+  "rooms": 336
+ },
+ {
+  "id": 95,
+  "name": "Pokekehekepi",
+  "rooms": 329
+ },
+ {
+  "id": 92,
+  "name": "Reshalia Trade Road",
+  "rooms": 323
+ },
+ {
+  "id": 6,
+  "name": "Crossing North Gate",
+  "rooms": 284
+ },
+ {
+  "id": 61,
+  "name": "Leth Deriel",
+  "rooms": 274
+ },
+ {
+  "id": 123,
+  "name": "Himineldar Shel",
+  "rooms": 272
+ },
+ {
+  "id": 150,
+  "name": "Fang Cove",
+  "rooms": 272
+ },
+ {
+  "id": 13,
+  "name": "Dirge",
+  "rooms": 247
+ },
+ {
+  "id": 41,
+  "name": "Ker'Leor Fornsted and Hraval",
+  "rooms": 246
+ },
+ {
+  "id": 106,
+  "name": "Hara'jaal",
+  "rooms": 225
+ },
+ {
+  "id": 68,
+  "name": "Shard South Gate",
+  "rooms": 224
+ },
+ {
+  "id": null,
+  "name": "Langenfirth to Siksraja",
+  "rooms": 222
+ },
+ {
+  "id": null,
+  "name": "Greater Fist",
+  "rooms": 217
+ },
+ {
+  "id": 62,
+  "name": "Southern Trade Route Part 2",
+  "rooms": 217
+ },
+ {
+  "id": 35,
+  "name": "Throne City",
+  "rooms": 209
+ },
+ {
+  "id": 112,
+  "name": "Ilaya Taipa River Clan",
+  "rooms": 192
+ },
+ {
+  "id": null,
+  "name": "Crossing Temple",
+  "rooms": 190
+ },
+ {
+  "id": 31,
+  "name": "Riverhaven East Gate",
+  "rooms": 188
+ },
+ {
+  "id": 114,
+  "name": "Ain Ghazal",
+  "rooms": 179
+ },
+ {
+  "id": 8,
+  "name": "Crossing East Gate",
+  "rooms": 176
+ },
+ {
+  "id": 60,
+  "name": "Southern Trade Route Part 1",
+  "rooms": 165
+ },
+ {
+  "id": 34,
+  "name": "Mistwood Forest",
+  "rooms": 164
+ },
+ {
+  "id": 11,
+  "name": "Leucros Vipers and Rock Guardians",
+  "rooms": 162
+ },
+ {
+  "id": 32,
+  "name": "Riverhaven North Gate",
+  "rooms": 152
+ },
+ {
+  "id": null,
+  "name": "Sorrow's Reach",
+  "rooms": 144
+ },
+ {
+  "id": 33,
+  "name": "Riverhaven West Gate",
+  "rooms": 138
+ },
+ {
+  "id": null,
+  "name": "Rossman's Landing",
+  "rooms": 136
+ },
+ {
+  "id": 48,
+  "name": "Haizen Cugis",
+  "rooms": 129
+ },
+ {
+  "id": null,
+  "name": "Zaulfung",
+  "rooms": 123
+ },
+ {
+  "id": null,
+  "name": "Maelshyve's Fortress",
+  "rooms": 123
+ },
+ {
+  "id": 10,
+  "name": "Abandoned Mine and Lairocott Brach",
+  "rooms": 121
+ },
+ {
+  "id": 63,
+  "name": "Oshu'ehhrsk Manor",
+  "rooms": 118
+ },
+ {
+  "id": null,
+  "name": "Tiger Clan",
+  "rooms": 116
+ },
+ {
+  "id": null,
+  "name": "Sea Caves",
+  "rooms": 111
+ },
+ {
+  "id": 126,
+  "name": "Hawstkaal Road",
+  "rooms": 103
+ },
+ {
+  "id": null,
+  "name": "Lost Crossing",
+  "rooms": 98
+ },
+ {
+  "id": null,
+  "name": "Crossing Escape Tunnels",
+  "rooms": 96
+ },
+ {
+  "id": 65,
+  "name": "Under the Gondola",
+  "rooms": 93
+ },
+ {
+  "id": null,
+  "name": "Vineyard",
+  "rooms": 91
+ },
+ {
+  "id": null,
+  "name": "Basalt Isle and Jeihrem's Barrow",
+  "rooms": 85
+ },
+ {
+  "id": null,
+  "name": "Sand Sprites and Ochre La'heke",
+  "rooms": 73
+ },
+ {
+  "id": null,
+  "name": "Taisgath",
+  "rooms": 65
+ },
+ {
+  "id": 2,
+  "name": "Lake of Dreams",
+  "rooms": 63
+ },
+ {
+  "id": null,
+  "name": "Misenseor Abbey",
+  "rooms": 62
+ },
+ {
+  "id": null,
+  "name": "Crossing Amusement Pier",
+  "rooms": 59
+ },
+ {
+  "id": 998,
+  "name": "Transports",
+  "rooms": 59
+ },
+ {
+  "id": null,
+  "name": "Moon Mage Guild NTR",
+  "rooms": 57
+ },
+ {
+  "id": null,
+  "name": "Dunshade Manor",
+  "rooms": 57
+ },
+ {
+  "id": 58,
+  "name": "Acenamacra Village",
+  "rooms": 56
+ },
+ {
+  "id": 105,
+  "name": "Soul of Maelshyve",
+  "rooms": 53
+ },
+ {
+  "id": 59,
+  "name": "Boggy Wood",
+  "rooms": 51
+ },
+ {
+  "id": null,
+  "name": "Ice Caves",
+  "rooms": 49
+ },
+ {
+  "id": null,
+  "name": "Road to Therenborough",
+  "rooms": 48
+ },
+ {
+  "id": 50,
+  "name": "Segoltha River",
+  "rooms": 46
+ },
+ {
+  "id": null,
+  "name": "Blackthorn Canyon Lost Ground",
+  "rooms": 46
+ },
+ {
+  "id": null,
+  "name": "Crossing Thief Passages",
+  "rooms": 43
+ },
+ {
+  "id": null,
+  "name": "Crossing Market Plaza",
+  "rooms": 42
+ },
+ {
+  "id": null,
+  "name": "Tethloren Island",
+  "rooms": 41
+ },
+ {
+  "id": null,
+  "name": "Crossing Jadewater Mansion",
+  "rooms": 32
+ },
+ {
+  "id": null,
+  "name": "Muspar'i Thief Passages",
+  "rooms": 30
+ },
+ {
+  "id": null,
+  "name": "The Seacaves of Peri'el",
+  "rooms": 28
+ },
+ {
+  "id": null,
+  "name": "DiSilveron",
+  "rooms": 26
+ },
+ {
+  "id": null,
+  "name": "The Arch (TF)",
+  "rooms": 26
+ },
+ {
+  "id": null,
+  "name": "Shard Thief Passages",
+  "rooms": 23
+ },
+ {
+  "id": null,
+  "name": "Faldesu River",
+  "rooms": 22
+ },
+ {
+  "id": null,
+  "name": "Tref Dinta",
+  "rooms": 20
+ },
+ {
+  "id": null,
+  "name": "Throne City Thief Passages",
+  "rooms": 16
+ },
+ {
+  "id": 999,
+  "name": "Microcosm",
+  "rooms": 16
+ },
+ {
+  "id": null,
+  "name": "Cavern of Fire",
+  "rooms": 14
+ },
+ {
+  "id": null,
+  "name": "Riverhaven Thief Passages",
+  "rooms": 14
+ },
+ {
+  "id": 113,
+  "name": "West Segoltha",
+  "rooms": 13
+ },
+ {
+  "id": null,
+  "name": "The Extreme Shop (TF)",
+  "rooms": 9
+ },
+ {
+  "id": 997,
+  "name": "Wyvern Arena",
+  "rooms": 8
+ },
+ {
+  "id": null,
+  "name": "Belarritaco Bay",
+  "rooms": 4
+ }
+]

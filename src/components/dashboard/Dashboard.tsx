@@ -144,7 +144,7 @@ export function Dashboard() {
   )
 
   const panels = (
-    <div className="flex flex-col gap-2 p-2">
+    <>
       {out.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 px-0.5">
           <span className="text-xs text-ink-faint">In their own windows:</span>
@@ -201,7 +201,7 @@ export function Dashboard() {
           </Panel>
         )
       })}
-    </div>
+    </>
   )
 
   return (
@@ -235,10 +235,10 @@ export function Dashboard() {
             <div className="w-0.5 h-10 rounded-full bg-border group-hover:bg-ink-faint" />
           </div>
 
-          <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">{panels}</div>
+          <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-2 [column-width:--spacing(80)] [column-gap:--spacing(2)] [&>*]:break-inside-avoid [&>*]:mb-2">{panels}</div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto">{panels}</div>
+        <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-2 [column-width:--spacing(80)] [column-gap:--spacing(2)] [&>*]:break-inside-avoid [&>*]:mb-2">{panels}</div>
       )}
     </div>
   )

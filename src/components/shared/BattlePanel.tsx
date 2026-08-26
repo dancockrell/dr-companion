@@ -1,0 +1,106 @@
+import { useAppStore } from '../../store/useAppStore'
+import { CardDeck } from './CardDeck'
+import { Paperdoll } from './Paperdoll'
+import { VitalCluster, type Vital } from './VitalCluster'
+import { fromRoom } from '../../lib/room'
+import type { Deck } from '../../lib/cards'
+import type { DeckPref } from '../../lib/layout'
+
+/**
+ * You on the left, what is trying to kill you on the right.
+ *
+ * The paperdoll and the enemy cards belong side by side because that is the
+ * comparison a fight actually is: how hurt am I against how many of them and
+ * what are they. Split across a header and a panel further down the stack,
+ * neither answers the question, and the eye has to travel to assemble it.
+ *
+ * Allies and people keep their own decks below, because they are context
+ * rather than the fight.
+ */
+export function BattlePanel({
+  deckPrefs,
+  onCycleDeck,
+}: {
+  deckPrefs?: Partial<Record<Deck, DeckPref>>
+  onCycleDeck?: (deck: Deck) => void
+}) {
+  const character = useAppStore((s) => s.character)
+  const cards = fromRoom(character)
+
+  const vitals: Vital[] = character
+    ? [
+        {
+          key: 'health',
+          glyph: 'H',
+          label: 'Health',
+          value: character.vitals.health,
+          max: character.vitals.healthMax,
+          tone: 'health',
+        },
+        {
+          key: 'spirit',
+          glyph: 'S',
+          label: 'Spirit',
+          value: character.vitals.spirit,
+          max: character.vitals.spiritMax,
+          tone: 'spirit',
+        },
+        {
+          key: 'fatigue',
+          glyph: 'F',
+          label: 'Fatigue',
+          value: character.vitals.fatigue,
+          max: character.vitals.fatigueMax,
+          tone: 'stamina',
+        },
+      ]
+    : []
+
+  const hostile = cards.filter((c) => c.deck === 'hostile')
+  const rest = cards.filter((c) => c.deck !== 'hostile')
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-start gap-3">
+        {/* You. Body and vitals together, because a wound in a leg and a
+            health bar at 40% are one situation, not two. */}
+        <div className="flex shrink-0 items-start gap-2">
+          <Paperdoll
+            injuries={character?.injuries ?? {}}
+            height={72}
+            known={character?.injuries !== undefined}
+          />
+          <VitalCluster vitals={vitals} height={54} />
+        </div>
+
+        {/* Them. */}
+        <div className="min-w-0 flex-1">
+          {hostile.length > 0 ? (
+            <CardDeck
+              deck="hostile"
+              cards={hostile}
+              pref={deckPrefs?.hostile ?? 'auto'}
+              onCyclePref={onCycleDeck ? () => onCycleDeck('hostile') : undefined}
+            />
+          ) : (
+            <p className="pt-6 text-sm text-ink-faint">Nothing hostile here.</p>
+          )}
+        </div>
+      </div>
+
+      {rest.length > 0 && (
+        <div className="flex flex-col gap-2 border-t border-border pt-2">
+          {(['allied', 'people'] as Deck[]).map((deck) => (
+            <CardDeck
+              key={deck}
+              deck={deck}
+              cards={rest.filter((c) => c.deck === deck)}
+              pref={deckPrefs?.[deck] ?? 'auto'}
+              onCyclePref={onCycleDeck ? () => onCycleDeck(deck) : undefined}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

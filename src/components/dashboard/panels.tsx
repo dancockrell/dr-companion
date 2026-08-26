@@ -23,7 +23,7 @@ import { TrainingPanel } from '../shared/TrainingPanel'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { RiskBar } from '../shared/RiskBar'
 import { ScriptLauncher } from '../shared/ScriptLauncher'
-import { RoomPanel } from '../shared/RoomPanel'
+import { BattlePanel } from '../shared/BattlePanel'
 import type { Deck } from '../../lib/cards'
 import type { DeckPref } from '../../lib/layout'
 
@@ -35,7 +35,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   risk: 'Risk',
   launcher: 'Activities',
   vitals: 'Vitals',
-  room: 'Room',
+  room: 'Battle',
 }
 
 export const PANEL_ICONS: Record<PanelId, ReactNode> = {
@@ -80,7 +80,7 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
   // that must never be closed by accident.
   vitals: () => null,
   room: (_dense, _filled, ctx) => (
-    <RoomPanel deckPrefs={ctx?.deckPrefs} onCycleDeck={ctx?.onCycleDeck} />
+    <BattlePanel deckPrefs={ctx?.deckPrefs} onCycleDeck={ctx?.onCycleDeck} />
   ),
 }
 

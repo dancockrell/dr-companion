@@ -74,10 +74,10 @@ export type Tier = 'full' | 'compact' | 'row' | 'fan' | 'count'
 
 /** Card width in px at each tier. Row spans the container; count has no card. */
 export const TIER_WIDTH: Record<Tier, number> = {
-  full: 168,
-  compact: 112,
+  full: 132,
+  compact: 76,
   row: 0,
-  fan: 26,
+  fan: 22,
   count: 0,
 }
 
@@ -85,8 +85,16 @@ export const TIER_WIDTH: Record<Tier, number> = {
 const GAP = 8
 /** Below this width a deck gives up on cards and shows its count chip. */
 const MIN_USEFUL = 96
-/** Rows stop being worth their vertical cost past this many cards. */
-const MAX_ROWS = 8
+/**
+ * Rows stop being worth their vertical cost past this many cards.
+ *
+ * Raised from eight after seeing the fan tier in a real panel: six creatures
+ * in a narrow column fanned down to 22px slivers showing one letter each,
+ * which is not information. A row carries the whole name and its status in
+ * 32px of height. Fanning is for when there are more cards than rows can hold,
+ * not for when the panel is merely narrow.
+ */
+const MAX_ROWS = 14
 /** A fan never squeezes tighter than this, it scrolls instead. */
 export const MIN_SLIVER = 10
 
@@ -111,7 +119,7 @@ export function tierFor(width: number, cards: number): Tier {
 
   if (fits(TIER_WIDTH.full)) return 'full'
   if (fits(TIER_WIDTH.compact)) return 'compact'
-  if (cards <= MAX_ROWS && width >= 180) return 'row'
+  if (cards <= MAX_ROWS && width >= 130) return 'row'
   return 'fan'
 }
 

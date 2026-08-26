@@ -24,6 +24,15 @@ import type { MapZone, MapZoneRoom } from '../../bridge/types'
 const HAZARD = /water|swim|drown|underwater|obstacle|climb|roundtime|rt/i
 const SERVICE = /bank|teller|exchange|healer|empath|guild|shop|repair|depart|altar|shrine/i
 
+/**
+ * How many rooms the map draws at once.
+ *
+ * Not a rendering limit for its own sake: past a few hundred boxes the drawing
+ * stops being readable, and Crossing alone is 1,060. What matters is the area
+ * around the character, which is what an automapper is for.
+ */
+const LOCAL_CAP = 220
+
 export type RoomKind = 'here' | 'route' | 'hazard' | 'service' | 'plain'
 
 export function roomKind(
@@ -68,18 +77,39 @@ export function MapCanvas({
   fit?: boolean
 }) {
   const box = 12 * scale
-  const pad = 24 * scale
+  const pad = 6 * scale
 
   // Only this level. Elanthia is not flat — towers, cellars and bridges share
   // x/y with whatever sits above them, and drawing every z at once makes a
   // knot rather than a map.
-  const rooms = useMemo(
-    () =>
-      (zone.rooms ?? []).filter(
-        (r) => (r.z ?? 0) === level && r.x !== null && r.y !== null
-      ),
-    [zone, level]
-  )
+  const rooms = useMemo(() => {
+    const onLevel = (zone.rooms ?? []).filter(
+      (r) => (r.z ?? 0) === level && r.x !== null && r.y !== null
+    )
+    if (onLevel.length <= LOCAL_CAP) return onLevel
+
+    // Walk outward from where the character is standing, breadth first, so
+    // what gets drawn is what is reachable from here rather than whatever
+    // happens to be geometrically close across a wall.
+    const byId = new Map(onLevel.map((r) => [r.id, r]))
+    const start = byId.get(zone.here ?? null) ?? onLevel[0]
+    const seen = new Set([start.id])
+    const out = [start]
+    const queue = [start]
+    while (queue.length && out.length < LOCAL_CAP) {
+      const r = queue.shift() as MapZoneRoom
+      for (const t of r.to ?? []) {
+        if (seen.has(t)) continue
+        const next = byId.get(t)
+        if (!next) continue
+        seen.add(t)
+        out.push(next)
+        queue.push(next)
+        if (out.length >= LOCAL_CAP) break
+      }
+    }
+    return out
+  }, [zone, level])
 
   const view = useMemo(() => {
     if (!rooms.length) return null
@@ -103,6 +133,8 @@ export function MapCanvas({
     )
   }
 
+  const index = new Map(rooms.map((r) => [r.id, r]))
+
   const px = (r: MapZoneRoom) => (r.x as number) * scale - view.minX + pad
   const py = (r: MapZoneRoom) => (r.y as number) * scale - view.minY + pad
 
@@ -117,7 +149,7 @@ export function MapCanvas({
   // and cut off at the bottom — which reads as a broken map rather than a
   // small one.
   const sizing = fit
-    ? { width: '100%', height: '100%', preserveAspectRatio: 'xMidYMid meet' }
+    ? { width: '100%', height: '100%', preserveAspectRatio: 'xMidYMid slice' }
     : { width: view.w, height: view.h }
 
   return (
@@ -125,7 +157,7 @@ export function MapCanvas({
       {/* Links first, so rooms sit on top of them rather than under. */}
       {rooms.map((r) =>
         (r.to ?? []).map((t) => {
-          const other = rooms.find((o) => o.id === t)
+          const other = index.get(t)
           // Both ends must be on this level, and each pair drawn once. A link
           // that leaves the zone or changes floor is real, but drawing it to
           // nowhere would invent a corridor that is not there.

@@ -106,6 +106,7 @@ export function Panel({
       }`}
       onDragOver={(e) => {
         e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
         // Which half the cursor is in decides whether the panel lands above or
         // below this one, so a drop is never ambiguous.
         const box = e.currentTarget.getBoundingClientRect()
@@ -151,7 +152,12 @@ export function Panel({
               or pressing a button inside does not start a drag. */}
           <span
             draggable
-            onDragStart={onDragStart}
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = 'move'
+              // Firefox refuses to start a drag with no payload at all.
+              e.dataTransfer.setData('text/plain', title)
+              onDragStart()
+            }}
             onDragEnd={onDragEnd}
             className="p-0.5 rounded text-ink-faint hover:text-ink cursor-grab active:cursor-grabbing"
             title="Drag to reorder"

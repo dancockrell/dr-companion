@@ -43,7 +43,7 @@ export function CreatureCard({
         type="button"
         onClick={onToggle}
         title={`${card.name}${card.count > 1 ? ` x${card.count}` : ''}`}
-        className={cn(shell, 'h-[132px] w-[26px] shrink-0')}
+        className={cn(shell, 'h-[104px] w-[22px] shrink-0')}
       >
         {band}
         <span className="absolute inset-y-0 left-1 flex w-[18px] flex-col items-center justify-start gap-1 pt-1.5">
@@ -83,7 +83,7 @@ export function CreatureCard({
     <button
       type="button"
       onClick={onToggle}
-      className={cn(shell, 'shrink-0 p-2 pl-3', full ? 'w-[168px]' : 'w-[112px]')}
+      className={cn(shell, 'w-full min-w-0 p-1.5 pl-2.5')}
     >
       {band}
 
@@ -91,30 +91,36 @@ export function CreatureCard({
         name={card.name}
         noun={card.noun}
         lore={card.lore}
-        height={full ? 96 : 56}
-        className="mb-2"
+        height={full ? 72 : 44}
+        className="mb-1"
       />
 
       <div className="flex items-baseline gap-1">
-        <span className="truncate text-sm font-medium text-ink">{card.name}</span>
+        <span className="truncate text-sm font-medium leading-tight text-ink">
+          {card.name}
+        </span>
         {card.count > 1 && <span className="text-xs text-ink-faint">x{card.count}</span>}
       </div>
 
+      {/* Level shares the name's line rather than taking one of its own: it
+          cannot change during a fight, so it does not deserve the height.
+          Where the lore was matched loosely the level is marked, since the
+          noun index only keeps what every candidate agreed on. */}
       {card.lore?.level != null && (
-        <div className="mt-0.5 text-xs text-ink-muted">level {card.lore.level}</div>
-      )}
-
-      {/* Where the lore came from, when it is not certain. The noun index only
-          keeps what every candidate agreed on, so these traits are true of the
-          kind rather than of this one. Saying so costs a word and stops the
-          card overclaiming. */}
-      {full && card.loreApproximate && (
-        <div className="mt-0.5 text-xs text-ink-faint" title="Matched on the noun, not the full name. These traits hold for every creature of this kind that the wiki lists.">
-          typical for the kind
+        <div
+          className="text-xs leading-tight text-ink-muted"
+          title={
+            card.loreApproximate
+              ? 'Matched on the noun rather than the full name, so this holds for the kind.'
+              : undefined
+          }
+        >
+          level {card.lore.level}
+          {card.loreApproximate && <span className="text-ink-faint"> approx</span>}
         </div>
       )}
 
-      <div className="mt-1.5 flex flex-wrap gap-1">
+      <div className="mt-1 flex gap-1 overflow-hidden">
         {card.status === 'stunned' && <Badge tone="warn">stunned</Badge>}
         {dead && <Badge>dead</Badge>}
         {full && card.lore?.castsSpells && <Badge tone="info">casts</Badge>}

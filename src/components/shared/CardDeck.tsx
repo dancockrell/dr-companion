@@ -130,7 +130,7 @@ export function CardDeck({
       ) : tier === 'fan' ? (
         // Overlapped like a hand of cards. Each card sits on top of the one
         // after it, so the exposed sliver is always the left edge.
-        <div className="relative h-[132px] overflow-x-auto">
+        <div className="relative h-[104px] overflow-x-auto">
           {items.map((c, i) => (
             <div
               key={c.id}
@@ -150,7 +150,7 @@ export function CardDeck({
           ))}
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(--spacing(18),1fr))]">
           {items.map((c) => (
             <CreatureCard
               key={c.id}

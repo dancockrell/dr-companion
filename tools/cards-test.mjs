@@ -32,7 +32,10 @@ console.log('-- tier picks the widest thing that fits --')
 check('700px, 3 cards -> full', m.tierFor(700, 3), 'full')
 check('400px, 3 cards -> compact', m.tierFor(400, 3), 'compact')
 check('300px, 6 cards -> row', m.tierFor(300, 6), 'row')
-check('200px, 12 cards -> fan', m.tierFor(200, 12), 'fan')
+// Rows beat fanning while they still fit: a 22px sliver showing one letter is
+// not information, and 14 rows of 32px is.
+check('200px, 12 cards -> row', m.tierFor(200, 12), 'row')
+check('200px, 30 cards -> fan', m.tierFor(200, 30), 'fan')
 check('60px,  6 cards -> count', m.tierFor(60, 6), 'count')
 
 console.log('\n-- the floor: a deck with cards never renders nothing --')
