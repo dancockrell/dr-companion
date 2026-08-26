@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/cn'
 import { CreatureCard } from './CreatureCard'
+import type { DeckPref } from '../../lib/layout'
 import {
   DECK_LABEL,
   DECK_STYLE,
@@ -20,7 +21,18 @@ import {
  * resizable and can be torn into its own window, so the viewport says nothing
  * useful about the space this deck actually has. See DESIGN.md S6.
  */
-export function CardDeck({ deck, cards }: { deck: Deck; cards: RoomCard[] }) {
+export function CardDeck({
+  deck,
+  cards,
+  pref = 'auto',
+  onCyclePref,
+}: {
+  deck: Deck
+  cards: RoomCard[]
+  /** A density the player pinned. Auto lets the width decide. */
+  pref?: DeckPref
+  onCyclePref?: () => void
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
   // Kept per deck and across resizes: collapsing a card visually should not
@@ -41,7 +53,10 @@ export function CardDeck({ deck, cards }: { deck: Deck; cards: RoomCard[] }) {
 
   const items = sortCards(collapse(cards))
   const total = items.reduce((n, c) => n + c.count, 0)
-  const tier: Tier = tierFor(width, items.length)
+  // A pinned density wins over the measured one. Auto is right almost always,
+  // but overruling someone who deliberately pinned a deck is how a tool loses
+  // the players who use it most.
+  const tier: Tier = pref === 'auto' ? tierFor(width, items.length) : pref
   const style = DECK_STYLE[deck]
   // Fans tighten as cards are added; below MIN_SLIVER the deck scrolls.
   const sliver = fanSliver(width, items.length)
@@ -61,6 +76,26 @@ export function CardDeck({ deck, cards }: { deck: Deck; cards: RoomCard[] }) {
           {DECK_LABEL[deck]}
         </span>
         <span className="text-xs text-ink-faint">{total}</span>
+
+        {onCyclePref && (
+          <button
+            type="button"
+            onClick={onCyclePref}
+            title={
+              pref === 'auto'
+                ? `density: auto (now ${tier}). Click to pin.`
+                : `density: pinned to ${pref}. Click for the next.`
+            }
+            className={cn(
+              'ml-auto rounded px-1 text-[10px] leading-4 transition-colors',
+              pref === 'auto'
+                ? 'text-ink-faint hover:text-ink-muted'
+                : 'bg-surface-overlay text-accent'
+            )}
+          >
+            {pref === 'auto' ? 'auto' : pref}
+          </button>
+        )}
       </div>
 
       {tier === 'count' ? (

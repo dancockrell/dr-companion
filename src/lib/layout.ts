@@ -10,6 +10,7 @@
  * the same panels, not the same arrangement at two sizes.
  */
 import type { UiMode } from '../types'
+import { DECKS, type Deck, type Tier } from './cards'
 
 export type PanelId =
   | 'map'
@@ -26,6 +27,16 @@ export interface PanelState {
   /** Body height in pixels. Undefined means the panel sizes to its content. */
   height?: number
 }
+
+/**
+ * A deck density the player pinned, or auto.
+ *
+ * Auto is right almost always, and the reason to allow pinning anyway is that
+ * expertise is the point: someone three hundred hours in knows they always
+ * want the hostile deck fanned, whatever the width says, and a tool that
+ * overrules them every resize is a tool they stop trusting.
+ */
+export type DeckPref = 'auto' | Tier
 
 export interface Layout {
   order: PanelId[]
@@ -45,6 +56,13 @@ export interface Layout {
   mapPlane: boolean
   /** Fraction of the width the map plane takes, 0.25 to 0.75. */
   mapSplit: number
+  /** Per-deck density, pinned by the player. Auto unless they said otherwise. */
+  decks: Record<Deck, DeckPref>
+}
+
+/** Every deck starts on auto. */
+function autoDecks(): Record<Deck, DeckPref> {
+  return Object.fromEntries(DECKS.map((d) => [d, 'auto'])) as Record<Deck, DeckPref>
 }
 
 /**
@@ -60,12 +78,14 @@ const DEFAULTS: Record<UiMode, Layout> = {
     panels: { map: { height: 200 } },
     mapPlane: true,
     mapSplit: 0.5,
+    decks: autoDecks(),
   },
   power: {
     order: ['vitals', 'actions', 'map', 'risk', 'training', 'inventory', 'launcher'],
     panels: { map: { height: 260 } },
     mapPlane: true,
     mapSplit: 0.55,
+    decks: autoDecks(),
   },
 }
 
@@ -81,6 +101,7 @@ export function defaultLayout(mode: UiMode): Layout {
     panels: { ...d.panels },
     mapPlane: d.mapPlane,
     mapSplit: d.mapSplit,
+    decks: { ...d.decks },
   }
 }
 
@@ -109,6 +130,9 @@ export function loadLayout(mode: UiMode): Layout {
       panels: { ...d.panels, ...(parsed.panels ?? {}) },
       mapPlane: parsed.mapPlane ?? d.mapPlane,
       mapSplit: clampSplit(parsed.mapSplit ?? d.mapSplit),
+      // Merged rather than trusted, same as the panels: a deck added later
+      // must not be missing for anyone who already saved a layout.
+      decks: { ...d.decks, ...(parsed.decks ?? {}) },
     }
   } catch {
     return defaultLayout(mode)
@@ -171,4 +195,31 @@ export function setPanel(
     ...layout,
     panels: { ...layout.panels, [id]: { ...layout.panels[id], ...patch } },
   }
+}
+
+/**
+ * The order the header cycles through.
+ *
+ * Auto first so a single click from any pinned state is never more than a few
+ * presses from handing control back.
+ */
+export const DECK_PREFS: DeckPref[] = [
+  'auto', 'full', 'compact', 'row', 'fan', 'count',
+]
+
+export function setDeckPref(layout: Layout, deck: Deck, pref: DeckPref): Layout {
+  return { ...layout, decks: { ...layout.decks, [deck]: pref } }
+}
+
+/**
+ * Advance a deck to the next density.
+ *
+ * A cycling control rather than a menu: it is one target, it shows its own
+ * state, and it costs no space when not in use. A dropdown here would be a
+ * menu opened over the thing it is describing, during a fight.
+ */
+export function cycleDeckPref(layout: Layout, deck: Deck): Layout {
+  const now = layout.decks[deck] ?? 'auto'
+  const next = DECK_PREFS[(DECK_PREFS.indexOf(now) + 1) % DECK_PREFS.length]
+  return setDeckPref(layout, deck, next)
 }

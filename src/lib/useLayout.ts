@@ -17,10 +17,12 @@ import {
   defaultLayout,
   setMapPlane,
   setMapSplit,
+  cycleDeckPref,
   type Layout,
   type PanelId,
   type PanelState,
 } from './layout'
+import type { Deck } from './cards'
 
 export function useLayout(mode: UiMode) {
   const [layout, setLayout] = useState<Layout>(() => loadLayout(mode))
@@ -70,5 +72,10 @@ export function useLayout(mode: UiMode) {
     [commit, layout]
   )
 
-  return { layout, move, reorder, update, reset, setPlane, setSplit }
+  const cycleDeck = useCallback(
+    (deck: Deck) => commit(cycleDeckPref(layout, deck)),
+    [commit, layout]
+  )
+
+  return { layout, move, reorder, update, reset, setPlane, setSplit, cycleDeck }
 }
