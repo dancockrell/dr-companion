@@ -85,6 +85,38 @@ install what is missing. It asks first, downloads nothing without a yes, and
 does not modify a Ruby you already have.
 [docs/SETUP-POLICY.md](docs/SETUP-POLICY.md).
 
+## What this needs that package.json does not mention
+
+None of the following is an npm dependency, so nothing in the repository
+declares them. Written down because someone tidying this machine uninstalled
+Ruby, reasonably, having found nothing anywhere saying the project needed it.
+
+| Needs | Where | Why |
+|---|---|---|
+| **Ruby** | `C:\Ruby4Lich5` | Lich runs on Ruby and this drives Lich. Three test suites are Ruby and fail loudly without it. |
+| **Lich 5** | `C:\Ruby4Lich5\Lich5` | The bridge script is a Lich script. |
+| **Genie 4 maps** | `C:\Genie4\Maps` | 85 XML files, the community cartography every map in the app is built from. The built JSON is committed, so this is only needed to regenerate. |
+| **Node 24+** | | Some suites import TypeScript directly and rely on native type stripping. Older Node silently runs fewer tests. |
+| **ComfyUI** | `127.0.0.1:8188` | Only for generating art. The daemon waits for it rather than exiting, so a missing ComfyUI looks like a daemon running and producing nothing. |
+| **FLUX.1-schnell fp8** | ComfyUI checkpoints | Apache 2.0, which is the entire reason it and not `dev`. See below. |
+
+The checkpoint is a licensing constraint rather than a preference.
+`flux1-schnell-fp8.safetensors` is Apache 2.0 and puts no conditions on what
+it produces, so the art pack can be shipped and given away. `FLUX.1-dev` is
+non-commercial and is also on this machine. Swapping it in would make the
+whole pack legally unusable, so it is pinned in `tools/art-daemon.mjs` and
+`tools/art-run.mjs` and must stay pinned.
+
+Running the tests needs Ruby on PATH:
+
+```
+export PATH="/c/Ruby4Lich5/4.0.6/bin:$PATH"
+npm test
+```
+
+Check the **exit code**, not the output. Without Ruby the run stops early with
+313 passing assertions, zero failures reported, and 90 assertions never run.
+
 ## Scope
 
 Game mechanics come from Elanthipedia and from play. Script code belongs to
