@@ -102,10 +102,14 @@ Ruby, reasonably, having found nothing anywhere saying the project needed it.
 
 The checkpoint is a licensing constraint rather than a preference.
 `flux1-schnell-fp8.safetensors` is Apache 2.0 and puts no conditions on what
-it produces, so the art pack can be shipped and given away. `FLUX.1-dev` is
-non-commercial and is also on this machine. Swapping it in would make the
-whole pack legally unusable, so it is pinned in `tools/art-daemon.mjs` and
-`tools/art-run.mjs` and must stay pinned.
+it produces, so the art pack can be shipped and given away.
+
+`FLUX.1-dev` is the trap. It is the better-known model, it is what most guides
+reach for, and it is **non-commercial**: a single image rendered with it would
+make the pack legally unusable. It was on this machine and was deleted on
+26 Aug 2026 for exactly that reason, so there is currently nothing to swap in
+by accident. The pin in `tools/art-daemon.mjs` and `tools/art-run.mjs` guards
+against someone downloading it again, which is the likely way this goes wrong.
 
 Running the tests needs Ruby on PATH:
 
