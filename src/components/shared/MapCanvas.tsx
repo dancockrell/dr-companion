@@ -94,6 +94,7 @@ export function MapCanvas({
   level,
   onRoute,
   onPick,
+  onZone,
   /** Pixels per map unit. The map's own coordinates are ~20 apart per room. */
   scale = 1,
   /** Room titles alongside the boxes. Only readable once there is room for them. */
@@ -107,6 +108,8 @@ export function MapCanvas({
   level: number
   onRoute: Set<number | null>
   onPick: (id: number) => void
+  /** Following a room that leads out of the zone. Without it, gateways are inert. */
+  onZone?: (zone: string) => void
   scale?: number
   labels?: boolean
   fit?: boolean
@@ -315,7 +318,17 @@ export function MapCanvas({
         const been = r.id != null ? fresh?.get(r.id) : undefined
         const times = r.id != null ? trail?.visits[r.id] : undefined
         return (
-          <g key={r.id} className="cursor-pointer" onClick={() => r.id && onPick(r.id)}>
+          <g
+            key={r.id}
+            className="cursor-pointer"
+            onClick={() => {
+              // A gateway goes through. Routing to a room you are already
+              // looking at is the less useful of the two, and a gate is the
+              // one mark on the chart whose whole point is the far side.
+              if (r.gateway && onZone) onZone(r.gateway.zone)
+              else if (r.id) onPick(r.id)
+            }}
+          >
             {/* A ring on a room you have stood in.
              *
              * The stroke alone is not enough for a circuit: a training loop
@@ -349,11 +362,31 @@ export function MapCanvas({
               height={GRID * scale}
               fill="transparent"
             />
+            {/* A gate is drawn as a doorway rather than a room, because that
+                is what it is: the edge of the sheet, with somewhere else on
+                the other side. 310 rooms carry one and every single zone was
+                an island until now. */}
+            {r.gateway && (
+              <rect
+                x={px(r) - box * 0.85}
+                y={py(r) - box * 0.85}
+                width={box * 1.7}
+                height={box * 1.7}
+                rx={Math.max(2, 3 * scale)}
+                fill="none"
+                stroke="var(--color-accent)"
+                strokeWidth={Math.max(0.7, 0.8 * scale)}
+                strokeDasharray={`${1.6 * scale} ${1.2 * scale}`}
+                opacity={0.75}
+              />
+            )}
             <title>
               {`${r.title ?? 'Unknown'}\nLich room ${r.id}` +
                 (r.uid ? `\ngame uid ${r.uid}` : '') +
                 (r.tags?.length ? `\n${r.tags.join(', ')}` : '') +
-                (times ? `\nvisited ${times === 1 ? 'once' : `${times} times`} this session` : '')}
+                (times ? `\nvisited ${times === 1 ? 'once' : `${times} times`} this session` : '') +
+                (r.gateway ? `\n→ ${r.gateway.name}  (click to follow)` : '') +
+                (r.leaves?.length ? `\nleaves the zone: ${r.leaves.join(', ')}` : '')}
             </title>
             <rect
               x={px(r) - box / 2}

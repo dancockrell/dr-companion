@@ -4,7 +4,7 @@
   "race": "Human",
   "sex": "male",
   "prompt": "A male human of Elanthia., average height and build, unremarkable features, the baseline the other races are described against, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 2452453899,
   "width": 832,
   "height": 1216
@@ -14,7 +14,7 @@
   "race": "Human",
   "sex": "female",
   "prompt": "A female human of Elanthia., average height and build, unremarkable features, the baseline the other races are described against, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 1927258274,
   "width": 832,
   "height": 1216
@@ -24,7 +24,7 @@
   "race": "Elf",
   "sex": "male",
   "prompt": "A male elf of Elanthia., tall, slender, long-limbed, sharply pointed ears, fine features, wavy hair often worn long, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 178886983,
   "width": 832,
   "height": 1216
@@ -34,7 +34,7 @@
   "race": "Elf",
   "sex": "female",
   "prompt": "A female elf of Elanthia., tall, slender, long-limbed, sharply pointed ears, fine features, wavy hair often worn long, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 2194814430,
   "width": 832,
   "height": 1216
@@ -44,7 +44,7 @@
   "race": "Dwarf",
   "sex": "male",
   "prompt": "A male dwarf of Elanthia., short, broad, heavily muscled, square-jawed, thick braided beard and moustache, bushy brows, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 4148997476,
   "width": 832,
   "height": 1216
@@ -54,7 +54,7 @@
   "race": "Dwarf",
   "sex": "female",
   "prompt": "A female dwarf of Elanthia., short, broad, heavily muscled, square-jawed, thick braided beard and moustache, bushy brows, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 3086032861,
   "width": 832,
   "height": 1216
@@ -64,7 +64,7 @@
   "race": "Halfling",
   "sex": "male",
   "prompt": "A male halfling of Elanthia., small, round, soft-featured, curly hair, rosy cheeks, round open face, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint, child, teenager, infant",
   "seed": 3493754401,
   "width": 832,
   "height": 1216
@@ -74,7 +74,7 @@
   "race": "Halfling",
   "sex": "female",
   "prompt": "A female halfling of Elanthia., small, round, soft-featured, curly hair, rosy cheeks, round open face, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint, child, teenager, infant",
   "seed": 978947016,
   "width": 832,
   "height": 1216
@@ -84,7 +84,7 @@
   "race": "Gnome",
   "sex": "male",
   "prompt": "A male gnome of Elanthia., very small, wiry, quick, sharp inquisitive features, unruly hair, tinkerer’s clutter of tools and pouches, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint, child, teenager, infant",
   "seed": 843940800,
   "width": 832,
   "height": 1216
@@ -94,7 +94,7 @@
   "race": "Gnome",
   "sex": "female",
   "prompt": "A female gnome of Elanthia., very small, wiry, quick, sharp inquisitive features, unruly hair, tinkerer’s clutter of tools and pouches, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint, child, teenager, infant",
   "seed": 3561242429,
   "width": 832,
   "height": 1216
@@ -103,9 +103,9 @@
   "source": "race-descriptor",
   "race": "Gor'Tog",
   "sex": "male",
-  "prompt": "A male gor'tog of Elanthia., very tall, massive, powerfully built, the largest of the races, heavy brow, broad blunt features, green-toned skin, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
-  "seed": 3516519103,
+  "prompt": "A male gor'tog of Elanthia., very tall, massive, heavily muscled, broad and solid, the largest of the races, dark green skin, hairless, no hair at all, heavy brow, broad blunt features, wide jaw, dark eyes, rounded ears, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint, pointed ears, long ears, goblin, gaunt, thin, frail, small",
+  "seed": 632149586,
   "width": 832,
   "height": 1216
  },
@@ -113,9 +113,9 @@
   "source": "race-descriptor",
   "race": "Gor'Tog",
   "sex": "female",
-  "prompt": "A female gor'tog of Elanthia., very tall, massive, powerfully built, the largest of the races, heavy brow, broad blunt features, green-toned skin, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
-  "seed": 2487984790,
+  "prompt": "A female gor'tog of Elanthia., very tall, massive, heavily muscled, broad and solid, the largest of the races, dark green skin, hairless, no hair at all, heavy brow, broad blunt features, wide jaw, dark eyes, rounded ears, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint, pointed ears, long ears, goblin, gaunt, thin, frail, small",
+  "seed": 4026130919,
   "width": 832,
   "height": 1216
  },
@@ -124,7 +124,7 @@
   "race": "S'Kra Mur",
   "sex": "male",
   "prompt": "A male s'kra mur of Elanthia., lean, upright, long muscular tail, scaled hide, elongated snout, slitted eyes, ridged crest, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 3815744082,
   "width": 832,
   "height": 1216
@@ -134,7 +134,7 @@
   "race": "S'Kra Mur",
   "sex": "female",
   "prompt": "A female s'kra mur of Elanthia., lean, upright, long muscular tail, scaled hide, elongated snout, slitted eyes, ridged crest, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 2769028327,
   "width": 832,
   "height": 1216
@@ -144,7 +144,7 @@
   "race": "Prydaen",
   "sex": "male",
   "prompt": "A male prydaen of Elanthia., human height, slender, digitigrade, long tail, short smooth fur over the whole body, feline muzzle, slitted eyes, pointed ears, mane, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 1083567751,
   "width": 832,
   "height": 1216
@@ -154,7 +154,7 @@
   "race": "Prydaen",
   "sex": "female",
   "prompt": "A female prydaen of Elanthia., human height, slender, digitigrade, long tail, short smooth fur over the whole body, feline muzzle, slitted eyes, pointed ears, mane, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 1171674398,
   "width": 832,
   "height": 1216
@@ -164,7 +164,7 @@
   "race": "Rakash",
   "sex": "male",
   "prompt": "A male rakash of Elanthia., human build in manskin, heavier and lupine in moonskin, human features most of the month; under a full Katamba, fur, muzzle and tail, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 1839269416,
   "width": 832,
   "height": 1216
@@ -174,7 +174,7 @@
   "race": "Rakash",
   "sex": "female",
   "prompt": "A female rakash of Elanthia., human build in manskin, heavier and lupine in moonskin, human features most of the month; under a full Katamba, fur, muzzle and tail, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 2171788145,
   "width": 832,
   "height": 1216
@@ -184,7 +184,7 @@
   "race": "Kaldar",
   "sex": "male",
   "prompt": "A male kaldar of Elanthia., tall, broad, physically imposing, weathered, strong-boned, hair worn tied back, worked brass and copper ornament, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 4103786815,
   "width": 832,
   "height": 1216
@@ -194,7 +194,7 @@
   "race": "Kaldar",
   "sex": "female",
   "prompt": "A female kaldar of Elanthia., tall, broad, physically imposing, weathered, strong-boned, hair worn tied back, worked brass and copper ornament, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint",
   "seed": 1711080726,
   "width": 832,
   "height": 1216
@@ -204,7 +204,7 @@
   "race": "Elothean",
   "sex": "male",
   "prompt": "A male elothean of Elanthia., very tall and very thin, gaunt, fine-boned, upright and composed, high domed forehead with a far-receding hairline, long narrow face, tilted almond-shaped eyes, straight fine hair worn long and pulled back, or absent from the crown entirely, wrap-front robe closed with a wide sash, layered under-robe, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint, muscular, heavyset, broad",
   "seed": 50789112,
   "width": 832,
   "height": 1216
@@ -214,7 +214,7 @@
   "race": "Elothean",
   "sex": "female",
   "prompt": "A female elothean of Elanthia., very tall and very thin, gaunt, fine-boned, upright and composed, high domed forehead with a far-receding hairline, long narrow face, tilted almond-shaped eyes, straight fine hair worn long and pulled back, or absent from the crown entirely, wrap-front robe closed with a wide sash, layered under-robe, fully clothed in layered travelling garb, high collar, tunic and cloak covering the chest and shoulders, an adult with adult facial proportions, normal human eye size, closely cropped bust, the head and shoulders filling the frame, cut off at the chest, painterly digital illustration, muted naturalistic palette, soft directional light, atmospheric depth, painted texture, head and shoulders portrait, plain dark background, no text, no watermark, consistent fantasy realism",
-  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi",
+  "negative": "nude, nudity, naked, topless, bare chest, bare breasts, exposed skin, cleavage, lingerie, underwear, suggestive, sexualised, text, watermark, signature, logo, frame, border, multiple views, photorealistic, cartoon, anime, cute, chibi, horns, antlers, wings, demon, tiefling, devil, fangs, face paint, muscular, heavyset, broad",
   "seed": 1442407805,
   "width": 832,
   "height": 1216

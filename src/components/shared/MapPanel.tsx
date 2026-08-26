@@ -42,22 +42,36 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const liveZone = useAppStore((s) => s.mapZone)
   const [builtZone, setBuiltZone] = useState<MapZone | null>(null)
 
+  /**
+   * Which zone is on screen, and how you got here.
+   *
+   * A stack rather than a single id, because following gates without a way
+   * back is worse than not following them: three clicks into the trade road
+   * and the only route home is knowing which of 85 zones you started in.
+   * Empty means "wherever the character is", which is the normal state.
+   */
+  const [zoneStack, setZoneStack] = useState<string[]>([])
+  const browsing = zoneStack[zoneStack.length - 1] ?? null
+
   // Lich wins when it is connected: it knows where the character actually is
   // and carries tags the shipped cartography does not. But a map that is blank
   // until you connect is a map nobody can judge, and the demo is where most
   // people meet this first, so the built zones stand in.
   useEffect(() => {
-    if (liveZone?.ok) return
+    // Browsing wins over the live zone. Following a gate is a deliberate act
+    // and the map jumping back the moment Lich sends the next room would make
+    // the gates unusable.
+    if (liveZone?.ok && !browsing) return
     let cancelled = false
-    loadZone(DEFAULT_ZONE).then((z) => {
+    loadZone(browsing ?? DEFAULT_ZONE).then((z) => {
       if (!cancelled) setBuiltZone(z)
     })
     return () => {
       cancelled = true
     }
-  }, [liveZone?.ok])
+  }, [liveZone?.ok, browsing])
 
-  const zone = liveZone?.ok ? liveZone : builtZone
+  const zone = browsing ? builtZone : liveZone?.ok ? liveZone : builtZone
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
@@ -238,9 +252,39 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onRoute={onRoute}
           fit
           onPick={(id) => bridge.requestIntent('map_path' as IntentName, { to: id })}
+          onZone={(id) => setZoneStack((st) => [...st, id])}
           trail={trail}
         />
       </div>
+
+      {/* The way back.
+       *
+       * Only present while browsing, because it is the only state it means
+       * anything in. Two buttons rather than one: back is a step, and "where I
+       * am" is the thing you actually want after wandering four zones out and
+       * realising the character has moved. */}
+      {browsing && (
+        <div className="flex items-center gap-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setZoneStack((st) => st.slice(0, -1))}
+            className="rounded border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
+          >
+            ← Back
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoneStack([])}
+            className="rounded border border-accent/40 bg-accent/10 px-2 py-0.5 text-accent"
+          >
+            Where I am
+          </button>
+          <span className="truncate text-ink-faint">
+            {zone?.name ?? 'Loading'}
+            {zoneStack.length > 1 ? ` — ${zoneStack.length} gates out` : ''}
+          </span>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2">
         <MapLegend

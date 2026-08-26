@@ -88,6 +88,18 @@ export interface MapZoneRoom {
    * entrance is hiding the thing you navigate by.
    */
   links?: Array<{ to: number; kind: 'walk' | 'enter' | 'climb' | 'vertical' }>
+  /**
+   * The zone this room leads into, when it is a door out.
+   *
+   * Genie's arcs only point inside their own file, so every zone was drawn as
+   * an island: you could see the gate and there was nothing beyond it. The
+   * link is in the cartographer's note, whose first segment is the
+   * destination's map filename, resolved to a zone id at build time. 310 rooms
+   * carry one.
+   */
+  gateway?: { zone: string; name: string }
+  /** How you leave the zone from here, as the cartographer wrote the move. */
+  leaves?: string[]
   /** Lich room ids reachable from here. */
   to?: number[]
 }

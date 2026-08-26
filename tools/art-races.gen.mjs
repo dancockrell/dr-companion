@@ -13,7 +13,7 @@
  * this file exists to avoid.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
-import { CLOTHED, NEGATIVE } from './art-safety.mjs'
+import { CLOTHED, NEGATIVE, NOT_A_RACE } from './art-safety.mjs'
 
 /**
  * Adulthood and the crop, in the positive prompt where they work.
@@ -102,7 +102,9 @@ for (const [race, d] of Object.entries(races)) {
       prompt: [`A ${sex} ${race.toLowerCase()} of Elanthia.`, bustOnly(d.prompt), CLOTHED, FRAME, STYLE]
         .filter(Boolean)
         .join(', '),
-      negative: NEGATIVE,
+      // A race may carry its own negative. Pointed ears are right for an Elf
+      // and wrong for a Gor'Tog, so this cannot be one shared clause.
+      negative: [NEGATIVE, NOT_A_RACE, d.negative].filter(Boolean).join(', '),
       // Still derived from the name, so it reproduces. The attempt number is
       // part of the input rather than a random jump, which means a reroll is
       // as repeatable as the draw it replaces.

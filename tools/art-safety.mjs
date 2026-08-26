@@ -48,6 +48,26 @@ export const CLOTHED =
 export const CLOTHED_CREATURE = 'fully clothed, torso covered, no bare chest'
 
 /**
+ * Extra negative terms for the playable races.
+ *
+ * None of the eleven has horns, antlers or wings. That is obvious to a player
+ * and not at all obvious to the model: the Gor'Tog descriptor said
+ * "green-toned skin" and the render came back as a tiefling, with ram horns
+ * and pointed ears, because green skin in a fantasy portrait summons every
+ * horned thing in the training set.
+ *
+ * Tails are deliberately absent from this list. Prydaen, S'Kra Mur and Rakash
+ * in moonskin all have one, and it is a defining feature rather than a
+ * mistake. So is a certain orcishness about the Gor'Tog, which is why "orc" is
+ * not here either: negating it would fight the right answer rather than the
+ * wrong one.
+ *
+ * Portraits only. Plenty of creatures are supposed to be horned, so this
+ * cannot go in the shared negative.
+ */
+export const NOT_A_RACE = 'horns, antlers, wings, demon, tiefling, devil, fangs, face paint'
+
+/**
  * Lowercase words of a string, so membership can be tested without regex.
  *
  * "humanoid size" is removed first. Several spider entries read "the wolf

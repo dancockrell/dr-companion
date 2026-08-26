@@ -28,6 +28,8 @@ interface BuiltRoom {
    * regex that guessed venues from room titles and found 31.
    */
   label?: string
+  gateway?: { zone: string; name: string }
+  leaves?: string[]
   /** Other names the same place goes by, for search rather than drawing. */
   aliases?: string[]
   /** The cartographer's own colour for this room. */
@@ -104,6 +106,8 @@ function toZoneRoom(r: BuiltRoom): MapZoneRoom {
     tags: r.label ? [r.label] : [],
     to: r.exits.map((e) => e.to),
     mapColour: r.color,
+    gateway: r.gateway,
+    leaves: r.leaves,
     links: r.exits.map((e) => ({ to: e.to, kind: kindOfExit(e.dir) })),
   }
 }

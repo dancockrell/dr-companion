@@ -2,6 +2,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { Box } from '../shared/Box'
 import { CardDeck } from '../shared/CardDeck'
 import { MapPanel } from '../shared/MapPanel'
+import { TaskFlowPanel } from './TaskFlowPanel'
 import { MindstateBoard } from '../shared/MindstateBoard'
 import { Paperdoll } from '../shared/Paperdoll'
 import { Portrait } from '../shared/Portrait'
@@ -125,6 +126,16 @@ export function DashboardLayout({
             />
             <VitalCluster vitals={vitals} height={72} />
           </div>
+        </Box>
+
+        {/* Task flows, on the first page.
+         *
+         * This rail held the paperdoll, the room and two lists, and the thing
+         * a player presses most often was not on the page at all - the
+         * Activities panel existed and was registered as a pop-out that the
+         * dashboard never rendered. */}
+        <Box title="Task flows" className="min-h-0">
+          <TaskFlowPanel dense={dense} />
         </Box>
 
         <Box tone="danger" action={popper('room')} className="min-h-0">

@@ -122,6 +122,7 @@ function parseZone(xml) {
     const pos = /<position\b([^>]*)\/>/.exec(body)?.[1] ?? ''
 
     const exits = []
+    const leaves = []
     const arcRe = /<arc\b([^>]*)\/>/g
     let a
     while ((a = arcRe.exec(body))) {
@@ -129,7 +130,18 @@ function parseZone(xml) {
       const to = num(attr(t, 'destination'))
       // An arc with no destination is a one-way the cartographer never
       // followed. Drawing a line to nowhere is worse than drawing nothing.
-      if (to === undefined || Number.isNaN(to)) continue
+      if (to === undefined || Number.isNaN(to)) {
+        // An arc with no destination leaves the zone. Genie has nowhere to
+        // point it because the far side lives in another file, and it was
+        // being dropped as "a one-way the cartographer never followed" -
+        // which is how 810 doors between zones became dead ends on our map.
+        // Five arcs in the game carry neither a move nor an exit. They are
+        // real doors the cartographer never wrote a direction for, and a blank
+        // entry in the tooltip is worse than saying nothing.
+        const how = unescapeXml(attr(t, 'move') || attr(t, 'exit') || '').trim()
+        if (how) leaves.push(how)
+        continue
+      }
       exits.push({
         dir: attr(t, 'exit') ?? '',
         move: unescapeXml(attr(t, 'move') ?? ''),
@@ -142,6 +154,11 @@ function parseZone(xml) {
       id: num(attr(head, 'id')),
       name,
       label: labelOf(attr(head, 'note')),
+      // The raw note, kept only until the second pass resolves gateways. A
+      // note whose first segment is a map filename is a door out of this zone,
+      // and the file it names cannot be turned into a zone id until every file
+      // has been read.
+      note: attr(head, 'note') || undefined,
       aliases: aliasesOf(attr(head, 'note')),
       // The cartographer's own colour. Their classification beats mine.
       color: attr(head, 'color'),
@@ -150,6 +167,8 @@ function parseZone(xml) {
       y: num(attr(pos, 'y')) ?? 0,
       z: num(attr(pos, 'z')) ?? 0,
       exits,
+      // How you leave the zone from here, if you can.
+      leaves: leaves.length ? leaves : undefined,
     })
   }
   return zone
@@ -162,9 +181,52 @@ let rooms = 0
 let arcs = 0
 let tagged = 0
 
+/**
+ * Two passes, because a gateway names a file and the map needs a zone id.
+ *
+ * A room that leads out of its zone carries a note whose first segment is the
+ * destination's filename: "Map31b_Maelshyve's_Fortress.xml|Maelshyve's
+ * Fortress|Therengia". Turning that into something clickable means knowing
+ * which zone id lives inside that file, and that is not known until every file
+ * has been read. So pass one parses and pass two resolves and writes.
+ *
+ * Until now every zone was an island. You could see the door and there was
+ * nothing on the other side of it.
+ */
+const parsed = []
 for (const file of readdirSync(SRC).filter((f) => f.endsWith('.xml'))) {
   const zone = parseZone(readFileSync(join(SRC, file), 'utf8').replace(/^\uFEFF/, ''))
   if (!zone.id || !zone.rooms.length) continue
+  parsed.push({ file, zone })
+}
+
+// Matched without the extension and case-insensitively: the notes and the
+// directory listing do not reliably agree on either.
+const fileKey = (f) => f.replace(/\.xml$/i, '').toLowerCase()
+const byFile = new Map(parsed.map(({ file, zone }) => [fileKey(file), zone]))
+
+let gateways = 0
+let unresolved = 0
+
+for (const { zone } of parsed) {
+  for (const r of zone.rooms) {
+    const first = (r.note ?? '').split('|')[0].trim()
+    delete r.note
+    if (!first || !/\.xml$/i.test(first)) continue
+
+    const target = byFile.get(fileKey(first))
+    if (!target) {
+      // The note names a map this install does not have. Counted rather than
+      // dropped in silence, because it is the difference between "the data has
+      // no gateways" and "this Genie install is missing files".
+      unresolved++
+      continue
+    }
+    if (target.id === zone.id) continue
+
+    r.gateway = { zone: target.id, name: target.name }
+    gateways++
+  }
 
   writeFileSync(join(OUT, `${zone.id}.json`), JSON.stringify(zone))
   rooms += zone.rooms.length
