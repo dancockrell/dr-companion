@@ -15,6 +15,19 @@
  * tool calls, which it did constantly. Half the attempts failed for reasons
  * that had nothing to do with the game. A socket has no focus.
  *
+ * KNOWN GAP, and it shapes how you use this: the plugin sees server text and
+ * nothing else. Genie's own client-side output never reaches IPlugin.ParseText,
+ * so #echo, #reload, #highlight and every other client command come back
+ * silent. Probed directly: "#echo ZQ-PROBE-7731" produced no line on the
+ * socket.
+ *
+ * That means every # command sent through here is fire-and-forget. There is no
+ * acknowledgement, and success and failure are indistinguishable from this
+ * side - the exact shape of bug that has cost the most time on this project.
+ * So: verify a config change by reading the file back, not by sending #reload
+ * and moving on. If something has to be confirmed from inside Genie, it has to
+ * be confirmed by a human looking at the window.
+ *
  * Every subcommand exits on its own. Nothing here holds the connection open
  * across calls, because a session that outlives the command that made it is
  * a session nobody can see the state of.

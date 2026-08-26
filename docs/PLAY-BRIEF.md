@@ -23,6 +23,14 @@ Expect `connected to DR Companion Bridge v0.2.0`.
     node tools/genie.mjs run script.txt 3   one command per line, 3s apart
     node tools/genie.mjs vars charactername health
 
+**The plugin sees server text only.** Genie's own client-side output does not
+reach it. `#echo`, `#reload`, `#highlight` and every other client command
+return nothing on the socket - probed directly, `#echo ZQ-PROBE-7731` produced
+no line at all. So every `#` command you send is fire-and-forget, and success
+and failure look identical from this side. Verify a config change by reading
+the file back. If it has to be confirmed from inside Genie, a human has to look
+at the window.
+
 **Comments in a script file are `//`, not `#`.** Every Genie client command
 starts with `#`, so a `#` comment filter silently strips the whole file, sends
 nothing, and exits 0. That bug cost an evening.
