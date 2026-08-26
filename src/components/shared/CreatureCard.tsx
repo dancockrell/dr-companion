@@ -1,5 +1,6 @@
 import { cn } from '../../lib/cn'
 import { Badge } from './Badge'
+import { CreatureArt } from './CreatureArt'
 import { DECK_STYLE, type RoomCard, type Tier } from '../../lib/cards'
 
 /**
@@ -86,7 +87,13 @@ export function CreatureCard({
     >
       {band}
 
-      <div className={cn('mb-2 w-full rounded bg-surface-overlay', full ? 'h-24' : 'h-14')} />
+      <CreatureArt
+        name={card.name}
+        noun={card.noun}
+        lore={card.lore}
+        height={full ? 96 : 56}
+        className="mb-2"
+      />
 
       <div className="flex items-baseline gap-1">
         <span className="truncate text-sm font-medium text-ink">{card.name}</span>

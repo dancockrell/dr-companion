@@ -30,7 +30,10 @@ const OUT = 'data/art/creature-prompts.json'
  *
  * Consistency is a stated reject condition, so this string is the contract.
  * Changing it means regenerating the whole pack, not patching part of it.
- * See DESIGN.md S4.
+ *
+ * APPROVED 26 August 2026, against a six-creature sample. Do not edit this
+ * string to fix an individual creature: fix that creature's subject text
+ * instead. See DESIGN.md S4.
  */
 const STYLE =
   'painterly digital illustration, muted naturalistic palette, soft directional ' +

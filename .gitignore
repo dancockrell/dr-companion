@@ -29,5 +29,9 @@ src-tauri/gen
 src-tauri/target
 yarn-debug.log*
 yarn-error.log*
+
+# Generated art inputs and outputs. Regenerable from the map data and the
+# bestiary, and room-prompts.json alone is 20 MB.
 data/art/out/
 data/art/manifest.json
+data/art/room-prompts.json

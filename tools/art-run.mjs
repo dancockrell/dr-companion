@@ -55,9 +55,22 @@ function workflow(entry, filenamePrefix) {
       },
     },
     6: { class_type: 'VAEDecode', inputs: { samples: ['5', 0], vae: ['1', 2] } },
+    // WebP rather than PNG, through the animated node with a single frame.
+    // Nothing on this machine can encode WebP (no magick, ffmpeg, cwebp or
+    // sharp) and adding an image library for one conversion is a dependency
+    // the pack does not need. The size difference is not cosmetic: PNG at
+    // 832x1216 is around 680 KB against roughly 180 KB, which across 18,490
+    // rooms is the difference between a 3 GB download and a 12 GB one.
     7: {
-      class_type: 'SaveImage',
-      inputs: { images: ['6', 0], filename_prefix: filenamePrefix },
+      class_type: 'SaveAnimatedWEBP',
+      inputs: {
+        images: ['6', 0],
+        filename_prefix: filenamePrefix,
+        fps: 1,
+        lossless: false,
+        quality: 90,
+        method: 'slowest',
+      },
     },
   }
 }

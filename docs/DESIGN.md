@@ -686,10 +686,12 @@ set:
 | Distinct room names | 8,053 |
 
 The name is a label — "The Crossing, Magen Road" repeats down a whole street.
-**The description is the scene**, and every one of the 23,335 is different. So
+**The description is the scene.** There are 23,335 of them, but only **16,395
+are distinct**: 4,863 are day and night variants of a room already counted, and
+2,077 rooms simply repeat prose another room already uses. So
 the art is keyed to descriptions, not names.
 
-The gap between 18,490 and 23,335 is day and night variants, already in the map
+The gap between 18,490 and 23,335 is mostly day and night variants, already in the map
 data. Roughly 4,800 rooms come with two descriptions, which means **the art can
 change with time of day for free.**
 
@@ -701,7 +703,8 @@ change with time of day for free.**
 2. **Character portrait.** Supplied by the player. Zero generation, entirely
    theirs, and people care more about their own character than about anything we
    could draw.
-3. **Room art.** 23,335 images. The big one, and the one nobody has done.
+3. **Room art.** 18,490 images, or 16,413 if rooms sharing identical prose
+   share an image. The big one, and the one nobody has done.
 
 ### Why this is not decoration
 
@@ -727,7 +730,7 @@ the room, and ideally a shared pack rather than everyone generating their own.
 **Quality.** Bad generated art is worse than none. It needs curation, a way to
 regenerate a room you dislike, and a switch that turns the whole thing off.
 
-**Scale.** 23,335 images is a real job even on good hardware. It runs once,
+**Scale.** 18,490 images is a real job even on good hardware. It runs once,
 offline, and ships as a downloadable pack like the map database — which is
 already the pattern players know from `;repository download-mapdb`.
 
@@ -752,7 +755,7 @@ actually take"**, which is a more demanding standard and a better one:
   Prompt construction, model, seed and settings documented well enough that
   somebody else can regenerate the whole set and get the same images.
 - **Seeds derive from the room**, so regeneration is deterministic and a
-  handover does not mean re-curating 23,335 images.
+  handover does not mean re-curating 18,490 images.
 - **The generation step is separable** from the app. A pack that only works
   inside our panel is worth less to them than a pack.
 - **Local generation still ships**, because it makes the app work on day one
@@ -1399,6 +1402,33 @@ is where players actually spend their time.
 So: **ship the top zones as the starter pack, generate outward from there.**
 A 1.3 GB download is defensible; a 3.2 GB one on first run is not, and most of
 that tail is rooms a given player will never stand in.
+
+
+### A keying problem to settle before any room art is generated
+
+The room prompts are built from `C:\Genie4\Maps`, because **there is no Lich map
+database on this machine**: `Lich5/maps` does not exist and `Lich5/data` holds
+only `effect-list.xml`. The mapdb arrives from `;repository download-mapdb`,
+which has not been run here.
+
+So the 18,490 rooms are currently keyed `zone-node` in Genie's numbering, and
+the app navigates in Lich's. Those are different id spaces, which is the
+distinction that matters: **Companion uses Lich's map, not Genie's.**
+
+This is recoverable rather than wasted. Lich's room records carry `genie_zone`
+and `genie_id`, and `Lich::Common::Map` exposes `by_genie_ref`, so the
+translation exists in exactly the direction needed. But it only exists once the
+mapdb is on disk.
+
+**Therefore: download the mapdb, re-key the prompt file through
+`by_genie_ref`, and only then generate.** Generating 18,490 images against
+Genie ids and translating afterwards would work, but any room where the
+translation fails becomes an orphaned image nobody can look up, and finding
+those after the fact means auditing the whole pack rather than the prompt file.
+
+The prompts themselves are unaffected: the description text is the same
+cartography either way, and the seed is derived from the key, so re-keying
+changes which seed a room gets but not the style or the content.
 
 ### Where generation happens
 
