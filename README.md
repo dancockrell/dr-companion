@@ -91,25 +91,23 @@ None of the following is an npm dependency, so nothing in the repository
 declares them. Written down because someone tidying this machine uninstalled
 Ruby, reasonably, having found nothing anywhere saying the project needed it.
 
-| Needs | Where | Why |
-|---|---|---|
-| **Ruby** | `C:\Ruby4Lich5` | Lich runs on Ruby and this drives Lich. Three test suites are Ruby and fail loudly without it. |
-| **Lich 5** | `C:\Ruby4Lich5\Lich5` | The bridge script is a Lich script. |
-| **Genie 4 maps** | `C:\Genie4\Maps` | 85 XML files, the community cartography every map in the app is built from. The built JSON is committed, so this is only needed to regenerate. |
-| **Node 24+** | | Some suites import TypeScript directly and rely on native type stripping. Older Node silently runs fewer tests. |
-| **ComfyUI** | `127.0.0.1:8188` | Only for generating art. The daemon waits for it rather than exiting, so a missing ComfyUI looks like a daemon running and producing nothing. |
-| **FLUX.1-schnell fp8** | ComfyUI checkpoints | Apache 2.0, which is the entire reason it and not `dev`. See below. |
+**The list is in [DEPENDENCIES.md](DEPENDENCIES.md)**, which is generated from
+a shared database rather than written here. That is deliberate: a table in
+this file and a row in that database would drift, and a warning that has gone
+stale is worse than no warning, because it spends the reader's attention and
+teaches them the file is out of date. This one already did — it claimed a
+model was on this machine an hour after it was deleted.
 
-The checkpoint is a licensing constraint rather than a preference.
+The short version: Ruby, Lich 5, the Genie 4 map XML, Node 24 or newer,
+ComfyUI, and one specific model checkpoint.
+
+That last one is a licensing constraint rather than a preference, and it is
+the only item here where being wrong is expensive.
 `flux1-schnell-fp8.safetensors` is Apache 2.0 and puts no conditions on what
-it produces, so the art pack can be shipped and given away.
-
-`FLUX.1-dev` is the trap. It is the better-known model, it is what most guides
-reach for, and it is **non-commercial**: a single image rendered with it would
-make the pack legally unusable. It was on this machine and was deleted on
-26 Aug 2026 for exactly that reason, so there is currently nothing to swap in
-by accident. The pin in `tools/art-daemon.mjs` and `tools/art-run.mjs` guards
-against someone downloading it again, which is the likely way this goes wrong.
+it produces, so the art pack can be shipped and given away. `FLUX.1-dev` is
+the better-known model, is what most guides reach for, and is
+**non-commercial**: one image rendered with it would make the pack legally
+unusable. It is pinned in `tools/art-daemon.mjs` and `tools/art-run.mjs`.
 
 Running the tests needs Ruby on PATH:
 
