@@ -24,20 +24,40 @@ import { MINDSTATE_LABELS, SKILL_SETS, type SkillState } from '../../data/skills
 const LOCKED = MINDSTATE_LABELS.length - 1
 
 /**
- * One colour, varying only in how much of the cell it covers.
+ * Mindstate as a spectrum, violet through red.
  *
- * The first version ramped through green, amber, orange and red, which made
- * forty cells into a rainbow: every cell lit, nothing standing out, and the
- * names fighting the fill behind them. That is decoration pretending to be
- * information.
+ * The first version used one flat colour, which was a reaction to an earlier
+ * four-step ramp that looked like a rainbow and meant nothing. Flat was the
+ * wrong correction. Mindstate is an ordered scale with **two different
+ * failures at opposite ends**, and a spectrum is exactly the right tool for
+ * that:
  *
- * The signal is emptiness. A pool with room is what you go and train, so a
- * dark cell is the thing worth seeing and the fill is deliberately quiet.
- * Only mind lock gets a colour of its own, because it is the one state that
- * means stop.
+ *   - **Violet, near zero.** The pool is nearly empty and about to fall out of
+ *     mindstate. Whatever is training this skill is about to stop earning from
+ *     it, and the fix is to keep going or come back to it.
+ *   - **Red, at 34.** Mind lock. The pool will not take any more and every
+ *     further pulse into it is thrown away. The fix is to train something else.
+ *
+ * Those are opposite problems and they must not look alike. Everything between
+ * is the healthy middle, where the skill is absorbing and needs no decision.
+ *
+ * Position in the spectrum carries the number as well, so the board can be read
+ * without reading: a wash of green is a character training well, a scatter of
+ * red is an hour being wasted.
  */
-function fill(mindstate: number): string {
-  return mindstate >= LOCKED ? 'bg-danger/25' : 'bg-ink/10'
+const BANDS: Array<{ upTo: number; fill: string; why: string }> = [
+  { upTo: 2, fill: '#8b5cf6', why: 'nearly empty, about to fall out of mindstate' },
+  { upTo: 6, fill: '#6366f1', why: 'low' },
+  { upTo: 12, fill: '#3b82f6', why: 'filling' },
+  { upTo: 20, fill: '#22c55e', why: 'absorbing well' },
+  { upTo: 26, fill: '#eab308', why: 'getting full' },
+  { upTo: 30, fill: '#f97316', why: 'close to lock' },
+  { upTo: 33, fill: '#ef4444', why: 'nearly locked' },
+  { upTo: 34, fill: '#dc2626', why: 'mind lock, further training is wasted' },
+]
+
+function band(mindstate: number) {
+  return BANDS.find((b) => mindstate <= b.upTo) ?? BANDS[BANDS.length - 1]
 }
 
 export function MindstateBoard({
@@ -81,12 +101,19 @@ export function MindstateBoard({
           return (
             <div
               key={s.name}
-              title={`${s.skillset} — ${s.name}: ${MINDSTATE_LABELS[s.mindstate] ?? s.mindstate} (${s.mindstate}/${LOCKED}), rank ${Math.round(s.ranks)}`}
+              title={`${s.skillset} — ${s.name}: ${MINDSTATE_LABELS[s.mindstate] ?? s.mindstate} (${s.mindstate}/${LOCKED}), rank ${Math.round(s.ranks)}
+${band(s.mindstate).why}`}
               className="relative flex items-baseline justify-between gap-1 overflow-hidden rounded-sm px-1 leading-5"
             >
               <span
-                className={cn('absolute inset-y-0 left-0', fill(s.mindstate))}
-                style={{ width: `${(s.mindstate / LOCKED) * 100}%` }}
+                className="absolute inset-y-0 left-0"
+                style={{
+                  width: `${(s.mindstate / LOCKED) * 100}%`,
+                  background: band(s.mindstate).fill,
+                  // Low enough that the skill name reads over it. The band is
+                  // the signal; the text is still the content.
+                  opacity: 0.32,
+                }}
               />
               <span className="relative truncate text-xs text-ink">{s.name}</span>
               <span
