@@ -179,3 +179,24 @@ Detection may come from Lich/Infomon or a user setting; until known, use `unknow
 - A Fallen-only subscription → `instance: 'Fallen'`, `accountTier: 'fallen'`
 - Maps, healers, and routes must be instance-scoped; vault/home/private-area features follow accountTier
 - Never run Prime navigation data against a Fallen session
+
+## Room contents (bridge 0.5.0)
+
+Added to the status payload:
+
+| Field | Source | Notes |
+|---|---|---|
+| `roomCreatures` | `DRRoom.npcs` | Living creatures, display names |
+| `roomDeadCreatures` | `DRRoom.dead_npcs` | Corpses, kept rather than dropped |
+
+Both are arrays of strings, exactly as the game wrote them. The **noun** used
+for art and bestiary lookup is derived client-side rather than sent, because
+`DRRoom` gives strings while `GameObj` gives objects and the two can disagree
+partway through an update.
+
+There is **no `roomAllies`**, deliberately. Lich has no concept of a creature
+fighting on your side. `DRRoom.npcs` is everything the game marked bold,
+`GameObj.type` classifies items rather than allegiance, and `fam_npcs` is the
+familiar looking at another room. Guessing would put a summon and something
+trying to kill you in the same bucket, which is precisely what the three card
+decks exist to prevent.

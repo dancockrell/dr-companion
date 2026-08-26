@@ -124,7 +124,16 @@ export interface CharacterStatus {
   /** Corpses, from DRRoom.dead_npcs. They stay on screen: a skinnable one
    * with boxes is a task, not a footnote. */
   roomDeadCreatures?: string[]
-  /** Summons, pets and familiars fighting on your side. */
+  /**
+   * Summons, pets and familiars fighting on your side.
+   *
+   * Nothing populates this yet and the bridge does not send it. Lich has
+   * no notion of allegiance: DRRoom.npcs is everything the game bolded,
+   * GameObj.type classifies items rather than sides, and fam_npcs is the
+   * familiar remote view of another room. The field and the Allied deck
+   * exist so a real source can be plugged in; until then the deck simply
+   * does not render, which is better than guessing.
+   */
   roomAllies?: string[]
   groupMembers?: string[]
   /**

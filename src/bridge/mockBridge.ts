@@ -271,6 +271,54 @@ for (const p of Object.values(presets)) {
   p.character.circle = Math.max(1, Math.round(level / 3))
   p.character.roomPlayers = level > 80 ? ['Someguy'] : []
   p.character.encumbrance = level > 100 ? 'Somewhat Burdened' : 'Light'
+  // Enough creatures to push the deck through its tiers rather than only ever
+  // showing the roomy case. Names are real DragonRealms creatures at roughly
+  // the right level, so the bestiary lookup has something to find.
+  p.character.roomCreatures = demoCreatures(level)
+  p.character.roomDeadCreatures = level > 30 ? ['a kobold which appears dead'] : []
+  p.character.injuries = demoInjuries(level)
+}
+
+/**
+ * A plausible room for a character of this level.
+ *
+ * Duplicated nouns on purpose: collapsing six identical goblins into one card
+ * with a multiplier is a behaviour worth seeing in the demo, because six
+ * separate cards is a wall rather than information.
+ */
+function demoCreatures(level: number): string[] {
+  if (level < 20) return ['a kobold', 'a kobold', 'a goblin']
+  if (level < 60) {
+    return [
+      'a snarling goblin',
+      'a snarling goblin',
+      'a snarling goblin',
+      'a rock troll',
+      'a wild boar',
+    ]
+  }
+  return [
+    "an Adan'f blood warrior",
+    "an Adan'f blood warrior",
+    "an Adan'f shadow mage",
+    'a rock troll',
+    'a wild boar',
+    'a kobold',
+    'a goblin',
+    'a giant rat',
+  ]
+}
+
+/** A few wounds past the early levels, so the doll is not always blank. */
+function demoInjuries(level: number) {
+  if (level < 20) return {}
+  const injuries: Record<string, { wound: 0 | 1 | 2 | 3; scar: 0 | 1 | 2 | 3 }> = {
+    leftArm: { wound: 1, scar: 0 },
+    chest: { wound: level > 60 ? 2 : 1, scar: 1 },
+  }
+  if (level > 60) injuries.head = { wound: 1, scar: 0 }
+  if (level > 100) injuries.nsys = { wound: 2, scar: 0 }
+  return injuries
 }
 
 export const DEMO_PRESET_LIST = Object.values(presets).map((p) => ({

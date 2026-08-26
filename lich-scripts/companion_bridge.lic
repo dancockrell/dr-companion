@@ -29,7 +29,7 @@ require 'base64'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.4.0'
+  BRIDGE_VERSION = '0.5.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -249,7 +249,21 @@ module Companion
         # See docs/DOMAIN.md section 13.
         'gameTime'    => safe(0) { Time.now.to_i },
         'roomPlayers' => safe([]) { DRRoom.pcs } || [],
-        'groupMembers' => safe([]) { DRRoom.group_members } || []
+        'groupMembers' => safe([]) { DRRoom.group_members } || [],
+        # Creatures, living and dead, as display names. The client derives the
+        # noun for art and bestiary lookup rather than us sending it: DRRoom
+        # gives strings, and the GameObj list can disagree with them mid-update.
+        'roomCreatures' => safe([]) { DRRoom.npcs } || [],
+        # Corpses stay reported rather than dropped. A skinnable one with boxes
+        # in it is a task the player has not done yet.
+        'roomDeadCreatures' => safe([]) { DRRoom.dead_npcs } || []
+        #
+        # There is deliberately no roomAllies here. Lich has no list of
+        # creatures fighting on your side: DRRoom.npcs is everything the game
+        # bolded, GameObj.type classifies items rather than allegiance, and
+        # fam_npcs is the familiar remote view of another room. Sending a guess
+        # would put a summon and a thing trying to kill you in the same bucket,
+        # which is the one mistake the card decks exist to prevent.
       }
     end
 
