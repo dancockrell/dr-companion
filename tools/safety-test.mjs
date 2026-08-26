@@ -20,6 +20,29 @@ import { readFileSync } from 'node:fs'
 import { CLOTHED, CLOTHED_CREATURE, NEGATIVE, isHumanoid } from './art-safety.mjs'
 
 let failed = 0
+
+/**
+ * Assert that nothing in a set is bad, and that the set was not empty.
+ *
+ * "None of them are wrong" is true of nothing at all, and this suite is the
+ * one place that matters most: it runs first in the chain specifically so a
+ * nudity regression fails the build before anything else. Pointed at an empty
+ * prompt file it reported "all 0 carry it", "0 checked", all passed, exit 0.
+ *
+ * That is the same shape as counting FAIL lines in a suite that crashed, and
+ * as a git check against a branch name that does not exist: a check that
+ * reports success because it never ran. The fix in every case is to prove the
+ * work happened, not only that it found nothing.
+ */
+const noneOf = (name, bad, total, atLeast, detail = '') => {
+  if (total < atLeast) {
+    failed++
+    console.log(`FAIL ${name}   only ${total} to check, expected at least ${atLeast}`)
+    return
+  }
+  ok(name, bad === 0, `${total} checked${detail ? `, ${detail}` : ''}`)
+}
+
 const ok = (name, cond, detail = '') => {
   if (!cond) failed++
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${name}${detail ? `   ${detail}` : ''}`)
@@ -79,28 +102,37 @@ ok(
 
 console.log('\n-- every shipped prompt carries the negative --')
 {
-  const files = ['data/art/portrait-prompts.json', 'data/art/creature-prompts.json']
-  for (const f of files) {
+  // The floors are the real counts less a wide margin: 22 portraits and 773
+  // creatures today. They are here to catch the file being empty or truncated,
+  // not to pin the pack size, so they should never need touching when art is
+  // added.
+  const files = [
+    ['data/art/portrait-prompts.json', 20],
+    ['data/art/creature-prompts.json', 700],
+  ]
+  for (const [f, atLeast] of files) {
     const all = Object.values(JSON.parse(readFileSync(f, 'utf8')))
     const missing = all.filter((e) => !String(e.negative ?? '').includes('nude'))
-    ok(`${f}: all ${all.length} carry it`, missing.length === 0, `${missing.length} missing`)
+    noneOf(`${f} all carry it`, missing.length, all.length, atLeast, `${missing.length} missing`)
   }
 }
 
 console.log('\n-- every humanoid prompt states clothing --')
 {
-  const creatures = JSON.parse(readFileSync('data/art/creature-prompts.json', 'utf8'))
-  const wrong = Object.entries(creatures).filter(
-    ([n, v]) => isHumanoid(n, v.lore) && !/fully clothed/.test(v.prompt)
+  const creatures = Object.entries(
+    JSON.parse(readFileSync('data/art/creature-prompts.json', 'utf8'))
   )
-  ok('no humanoid creature is left undressed', wrong.length === 0, wrong.slice(0, 3).map(([n]) => n).join(', '))
+  const humanoids = creatures.filter(([n, v]) => isHumanoid(n, v.lore))
+  const wrong = humanoids.filter(([, v]) => !/fully clothed/.test(v.prompt))
+  // Counted against the humanoids rather than all creatures. If the detector
+  // itself broke and classified nothing as humanoid, "none are undressed"
+  // would be true and meaningless - which is how the fire maiden shipped.
+  noneOf('no humanoid creature is left undressed', wrong.length, humanoids.length, 250,
+    wrong.slice(0, 3).map(([n]) => n).join(', '))
 
   const portraits = Object.values(JSON.parse(readFileSync('data/art/portrait-prompts.json', 'utf8')))
-  ok(
-    'every portrait states clothing',
-    portraits.every((p) => /fully clothed/.test(p.prompt)),
-    `${portraits.length} checked`
-  )
+  const bare = portraits.filter((p) => !/fully clothed/.test(p.prompt))
+  noneOf('every portrait states clothing', bare.length, portraits.length, 20)
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')

@@ -18,6 +18,23 @@ const ok = (name, cond, detail = '') => {
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${name.padEnd(52)}${detail}`)
 }
 
+/**
+ * Nothing in the set is bad, AND the set was not empty.
+ *
+ * "None of them are wrong" is true of nothing at all. Every assertion here is
+ * of that shape, so all of them would pass against a map that failed to build
+ * - which is the state this suite exists to catch. Proving the work happened
+ * is as important as proving it found nothing.
+ */
+const noneOf = (name, bad, total, atLeast, detail = '') => {
+  if (total < atLeast) {
+    failed++
+    console.log(`FAIL ${name.padEnd(52)}only ${total} to check, expected ${atLeast}+`)
+    return
+  }
+  ok(name, bad === 0, `${total} checked${detail ? ', ' + detail : ''}`)
+}
+
 const DIR = 'src/data/map'
 const zones = new Map()
 for (const f of readdirSync(DIR)) {
@@ -36,14 +53,14 @@ ok('gateways were resolved', gates.length > 250, `${gates.length} of ${rooms.len
 console.log('\n-- every gateway points at a zone that exists --')
 {
   const dangling = gates.filter(({ r }) => !zones.has(r.gateway.zone))
-  ok('no gateway points nowhere', dangling.length === 0,
+  noneOf('no gateway points nowhere', dangling.length, gates.length, 250,
     dangling.slice(0, 3).map(({ r }) => `${r.id}->${r.gateway.zone}`).join(', '))
 
   const selfref = gates.filter(({ z, r }) => r.gateway.zone === z.id)
-  ok('no gateway points at its own zone', selfref.length === 0, `${selfref.length}`)
+  noneOf('no gateway points at its own zone', selfref.length, gates.length, 250)
 
   const unnamed = gates.filter(({ r }) => !r.gateway.name)
-  ok('every gateway carries a name to show', unnamed.length === 0, `${unnamed.length}`)
+  noneOf('every gateway carries a name to show', unnamed.length, gates.length, 250)
 }
 
 console.log('\n-- the note is consumed, not shipped --')
@@ -51,10 +68,10 @@ console.log('\n-- the note is consumed, not shipped --')
   // The raw note was a build-time scratch field. Shipping it would put a
   // filename in the app bundle 17,750 times.
   const leaked = rooms.filter(({ r }) => 'note' in r)
-  ok('no room ships its raw note', leaked.length === 0, `${leaked.length}`)
+  noneOf('no room ships its raw note', leaked.length, rooms.length, 17000)
 
   const filenameLabels = rooms.filter(({ r }) => /\.xml/i.test(r.label ?? ''))
-  ok('no room is labelled with a filename', filenameLabels.length === 0, `${filenameLabels.length}`)
+  noneOf('no room is labelled with a filename', filenameLabels.length, rooms.length, 17000)
 }
 
 console.log('\n-- Crossing, which is the zone anyone will check first --')
@@ -88,7 +105,7 @@ console.log('\n-- the leaving exits that identified them are kept --')
   const withLeaves = rooms.filter(({ r }) => r.leaves?.length)
   ok('rooms record how you leave the zone', withLeaves.length > 100, `${withLeaves.length}`)
   const empty = withLeaves.filter(({ r }) => r.leaves.some((x) => !x))
-  ok('no leaving exit is blank', empty.length === 0, `${empty.length}`)
+  noneOf('no leaving exit is blank', empty.length, withLeaves.length, 100)
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
