@@ -32,14 +32,33 @@ import { CLOTHED, NEGATIVE, NOT_A_RACE } from './art-safety.mjs'
  * because "head and shoulders portrait" was buried at the end of a long style
  * clause and read as a genre rather than a crop.
  */
-const FRAME =
-  'an adult with adult facial proportions, normal human eye size, ' +
-  'closely cropped bust, the head and shoulders filling the frame, ' +
-  'cut off at the chest'
+/** What every portrait shares: an adult, not a child, not a doll. */
+const ADULT = 'an adult with adult facial proportions, normal human eye size'
+
+/**
+ * How close the crop is, which is not the same for every race.
+ *
+ * A bust is right for ten of the eleven and wrong for the Gor'Tog, and no
+ * amount of prompt wording fixed that across three attempts. The race is
+ * "very tall, massive, heavily muscled, the largest of the races", and a
+ * head-and-shoulders crop contains nothing for size to be measured against.
+ * There is no frame of reference in a picture of a face, so the model drew a
+ * face, and it drew a slender one.
+ *
+ * Waist-up gives shoulders, chest and arms in proportion to the head, which
+ * is where size actually reads. It costs the tight framing that suits the
+ * other ten, so it is chosen per race rather than applied to all of them.
+ */
+const FRAMES = {
+  bust: 'closely cropped bust, the head and shoulders filling the frame, cut off at the chest',
+  waist:
+    'waist-up, the whole upper body in frame, broad shoulders and heavy arms in ' +
+    'proportion to the head, seen from slightly below so the figure towers',
+}
 
 const STYLE =
   'painterly digital illustration, muted naturalistic palette, soft directional ' +
-  'light, atmospheric depth, painted texture, head and shoulders portrait, ' +
+  'light, atmospheric depth, painted texture, ' +
   'plain dark background, no text, no watermark, consistent fantasy realism'
 
 
@@ -99,7 +118,14 @@ for (const [race, d] of Object.entries(races)) {
       // The descriptor leads. The race name comes after it, because the name
       // alone summons a generic fantasy prior that overwhelms the text — the
       // same failure the creature prompts hit with "kobold".
-      prompt: [`A ${sex} ${race.toLowerCase()} of Elanthia.`, bustOnly(d.prompt), CLOTHED, FRAME, STYLE]
+      prompt: [
+        `A ${sex} ${race.toLowerCase()} of Elanthia.`,
+        bustOnly(d.prompt),
+        CLOTHED,
+        ADULT,
+        FRAMES[d.frame ?? 'bust'],
+        STYLE,
+      ]
         .filter(Boolean)
         .join(', '),
       // A race may carry its own negative. Pointed ears are right for an Elf

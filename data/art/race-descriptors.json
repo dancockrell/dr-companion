@@ -58,15 +58,16 @@
  },
  "Gor'Tog": {
   "build": "very tall, massive, heavily muscled, broad and solid, the largest of the races",
-  "face": "dark green skin, hairless, no hair at all, heavy brow, broad blunt features, wide jaw, dark eyes, rounded ears",
+  "face": "dark green skin, completely smooth bald head, plain rounded skull, unbroken bare scalp, small rounded ears set close against the skull, heavy brow ridge, broad blunt features, wide jaw, dark eyes",
   "note": "few written looks (9); the creation prose carries this one, and it is explicit: tall, well-muscled, dark green skin over a massive hairless frame, dark eyes.",
-  "prompt": "very tall, massive, heavily muscled, broad and solid, the largest of the races, dark green skin, hairless, no hair at all, heavy brow, broad blunt features, wide jaw, dark eyes, rounded ears",
+  "prompt": "very tall, massive, heavily muscled, broad and solid, the largest of the races, dark green skin, completely smooth bald head, plain rounded skull, unbroken bare scalp, small rounded ears set close against the skull, heavy brow ridge, broad blunt features, wide jaw, dark eyes",
   "evidence": {
    "creation": "For a moment, nothing appears to happen. Then, slowly, the Gor'Tog figurine begins to speak in a deep rumbling voice, the words carefully chosen: \"I am Gor'Tog. Gor'Tog is strength. Gor'Tog is endurance. Gor'Tog needs not magic or cleverness, Gor'Tog has much trust in self. Elven are faster, but Gor'Tog does not need fast, Gor'Tog has might. Dwarven are strong but Gor'Tog is stronger. Halfling is clever but Gor'Tog finds the straight way, no need for tricks.\" You gaze at this slow-worded being. Tall and well-muscled, dark green skin covers a massive, hairless frame. Dark eyes look out, lacking sparkle perhaps, but forthright and true in many ways. Like an enduring oak tree or massive boulder, the Gor'Tog radiates a sense of solidity and permanence.",
    "lookSamples": 9,
    "example": "You see Snout Rapper Drevid Thaddom, Troublemaker of The Locksmith Union, a Gor'Tog. He has laugh lines and dark eyes. He has bronze-green skin and an athletic build. He has a tattoo of a red ribbon with the word \"MOM\" stitched onto it on his arm. He is wearing some gargoye-hide leathers tooled with"
   },
-  "negative": "pointed ears, long ears, goblin, gaunt, thin, frail, small"
+  "negative": "pointed ears, long ears, goblin, gaunt, thin, frail, small",
+  "frame": "waist"
  },
  "S'Kra Mur": {
   "build": "lean, upright, long muscular tail",
