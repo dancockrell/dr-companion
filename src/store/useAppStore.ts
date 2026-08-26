@@ -331,7 +331,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().connectBridge()
   },
 
-  requestIntent: (intent: string) => {
+  requestIntent: (intent: string, extraArgs?: Record<string, unknown>) => {
     const { character, addLog, bridgeConnected } = get()
 
     // Stop, pause and escape are never gated. `character.connected` is a flag
@@ -353,7 +353,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
 
-    let args: Record<string, unknown> | undefined
+    // Caller-supplied args first, so a macro can carry its commands. Intents
+    // that build their own below still win, since none of them take args from
+    // the caller today.
+    let args: Record<string, unknown> | undefined = extraArgs
     if (intent === 'start_training') {
       const { trainFocus, huntFavorites, huntMode, selectedHuntId } = get()
       args = {

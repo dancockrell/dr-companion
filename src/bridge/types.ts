@@ -129,6 +129,15 @@ export type IntentName =
   | 'check_toggles'
   | 'reset_runaway'
   | 'read_settings'
+  /**
+   * Send literal game commands, from a macro the player pressed.
+   *
+   * Deliberately an intent like any other rather than a side channel, so it
+   * inherits what intents already have: the bridge refuses it when it cannot
+   * run, roundtime is waited out rather than typed over, and Stop kills it.
+   * args: { commands: string[] }
+   */
+  | 'run_macro'
   // Map queries. All read-only: they answer questions about geography and
   // never move the character. 'map_path' returns a route rather than walking
   // it, so deciding to go stays a separate decision.

@@ -19,6 +19,9 @@
  * Reachable again from Settings once set up, because "it skipped past, what
  * did it find?" is a fair question and there was no way to ask it.
  */
+// Counted from the data rather than typed into a label. The hardcoded figure
+// was wrong within a day of being written.
+import MAP_INDEX from '../../data/map/index.json'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, FolderOpen } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
@@ -50,11 +53,17 @@ type Phase = 'checking' | 'plan' | 'browser'
  * Listed anyway, because the point of this screen is the check and an empty
  * page communicates less than an honest row of dashes.
  */
+function mapSummary(): string {
+  const zones = MAP_INDEX.length
+  const rooms = MAP_INDEX.reduce((n, z) => n + z.rooms, 0)
+  return `${zones} zones, ${rooms.toLocaleString()} rooms, built in`
+}
+
 const BROWSER_DEPS: Dep[] = [
   { id: 'ruby', label: 'Ruby', state: 'unknown', detail: 'cannot check from a browser' },
   { id: 'lich', label: 'Lich 5', state: 'unknown', detail: 'cannot check from a browser' },
   { id: 'bridge', label: 'Companion bridge', state: 'unknown', detail: 'cannot check from a browser' },
-  { id: 'maps', label: 'Map data', state: 'present', detail: '90 zones, 18,490 rooms, built in' },
+  { id: 'maps', label: 'Map data', state: 'present', detail: mapSummary() },
 ]
 
 export function SetupWizard() {

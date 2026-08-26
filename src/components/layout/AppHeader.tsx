@@ -3,6 +3,7 @@ import { Pin, PinOff, Circle, Settings } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { setAlwaysOnTop } from '../../lib/tauri'
 import { SettingsSheet } from './SettingsSheet'
+import { CharacterStrip } from '../dashboard/CharacterHeader'
 
 export function AppHeader() {
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -18,7 +19,7 @@ export function AppHeader() {
 
   return (
     <>
-      <div className="h-9 shrink-0 flex items-center justify-between px-3 border-b border-border bg-surface-raised/80 select-none gap-2">
+      <div className="flex min-h-9 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-surface-raised/80 px-3 py-1 select-none">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-semibold tracking-wide text-ink-muted shrink-0">
             DR Companion
@@ -44,6 +45,10 @@ export function AppHeader() {
             </span>
           )}
         </div>
+
+        {/* Who and where, on the same bar as the connection light. Two bars
+            for this was about 200px of height carrying a dozen words. */}
+        {setupComplete && character && <CharacterStrip character={character} />}
 
         <div className="flex items-center gap-1 shrink-0">
           <button

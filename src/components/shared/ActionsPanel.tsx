@@ -12,16 +12,16 @@ import {
   Pause,
   Heart,
   Navigation,
-  Package,
-  Sparkles,
-  ShieldAlert,
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { Button } from './Button'
+import { MacroBar } from './MacroBar'
+import { useMacroChoice } from '../../lib/useMacroChoice'
 
 export function ActionsPanel({ dense = false }: { dense?: boolean }) {
   const character = useAppStore((s) => s.character)
   const requestIntent = useAppStore((s) => s.requestIntent)
+  const { macroChoice, setMacroChoice } = useMacroChoice()
   if (!character) return null
 
   const lowHealth = character.vitals.health / character.vitals.healthMax < 0.35
@@ -34,12 +34,6 @@ export function ActionsPanel({ dense = false }: { dense?: boolean }) {
       : 'Start Training'
   const primaryIntent = lowHealth ? 'go_healer' : 'start_training'
 
-  const quick = [
-    { id: 'go_healer', label: 'Healer', icon: <Heart className="w-4 h-4" /> },
-    { id: 'loot', label: 'Loot', icon: <Package className="w-4 h-4" /> },
-    { id: 'buffs', label: 'Buffs', icon: <Sparkles className="w-4 h-4" /> },
-    { id: 'escape', label: 'Safe', icon: <ShieldAlert className="w-4 h-4" /> },
-  ]
 
   return (
     <div className="space-y-2">
@@ -84,20 +78,13 @@ export function ActionsPanel({ dense = false }: { dense?: boolean }) {
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {quick.map((q) => (
-          <Button
-            key={q.id}
-            size="sm"
-            variant="ghost"
-            className="flex-col h-auto py-2"
-            icon={q.icon}
-            onClick={() => requestIntent(q.id)}
-          >
-            {q.label}
-          </Button>
-        ))}
-      </div>
+      {/* Twelve macros with variations, in the height four buttons used to
+          take. Right-click a slot to change what it runs. */}
+      <MacroBar
+        choice={macroChoice}
+        onChoose={setMacroChoice}
+        onRun={(commands) => requestIntent('run_macro', { commands })}
+      />
     </div>
   )
 }

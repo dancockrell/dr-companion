@@ -21,7 +21,6 @@ import { useAppStore } from '../../store/useAppStore'
 import { useLayout } from '../../lib/useLayout'
 import type { PanelId } from '../../lib/layout'
 import { isTauri, invokeTauri } from '../../lib/tauri'
-import { CharacterHeader } from './CharacterHeader'
 import { DashboardLayout } from './DashboardLayout'
 import { PANEL_CONTENT, PANEL_TITLES } from './panels'
 import { FreeCanvas } from './FreeCanvas'
@@ -106,7 +105,6 @@ export function Dashboard() {
 
   return (
     <div ref={hostRef} className="flex h-full min-h-0 flex-col">
-      <CharacterHeader character={character} />
 
       {layout.freeform ? (
         <FreeCanvas

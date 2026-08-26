@@ -28,6 +28,7 @@ const CFG = 1.0
 const SOURCES = {
   creatures: 'data/art/creature-prompts.json',
   rooms: 'data/art/room-prompts.json',
+  portraits: 'data/art/portrait-prompts.json',
 }
 
 function workflow(entry, filenamePrefix) {

@@ -50,6 +50,15 @@ export interface Vitals {
   fatigueMax: number
   concentration?: number
   concentrationMax?: number
+  /**
+   * Mana.
+   *
+   * The bridge has been sending this since the beginning and the client had
+   * no field for it, so every update arrived with mana and threw it away.
+   * Genie puts it on the status bar beside health.
+   */
+  mana?: number
+  manaMax?: number
 }
 
 export interface LocationInfo {
@@ -103,6 +112,22 @@ export interface CharacterStatus {
   skillRanks?: number
   location: LocationInfo
   vitals: Vitals
+  /**
+   * What is in each hand.
+   *
+   * In a fight this is the question: whether you are holding your weapon, a
+   * lockpick, or nothing at all. Genie keeps it on the status bar permanently.
+   * The bridge already reads both hands and was only counting them.
+   */
+  hands?: { left: string | null; right: string | null }
+  /**
+   * Seconds left of roundtime, from XMLData.roundtime_end.
+   *
+   * A boolean "in roundtime" tells you that you cannot act. The number tells
+   * you how long, which is the difference between waiting and switching to
+   * something else.
+   */
+  roundtime?: number
   /**
    * Sixteen body parts, each with a wound and a scar, 0-3.
    *
@@ -252,7 +277,8 @@ export interface AppState {
   connectBridge: () => void
   disconnectBridge: () => void
   setBridgeMode: (m: 'mock' | 'live') => void
-  requestIntent: (intent: string) => void
+  /** args carries a macro's literal commands; named intents build their own. */
+  requestIntent: (intent: string, args?: Record<string, unknown>) => void
   demoLowHealth: () => void
   demoCombat: () => void
   demoSafe: () => void

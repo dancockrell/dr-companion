@@ -29,7 +29,7 @@ require 'base64'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.6.0'
+  BRIDGE_VERSION = '0.7.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -260,7 +260,19 @@ module Companion
         # Loose items on the floor. GameObj.loot is the game's own list of
         # what is lying here, which is not the same as what a script decided
         # was worth picking up.
-        'roomItems' => safe([]) { GameObj.loot&.map(&:name) } || []
+        'roomItems' => safe([]) { GameObj.loot&.map(&:name) } || [],
+        # Both hands by name. This was already read to produce a count, which
+        # threw away the only part anyone wanted.
+        'hands' => {
+          'left'  => safe(nil) { GameObj.left_hand&.name },
+          'right' => safe(nil) { GameObj.right_hand&.name }
+        },
+        # Seconds, not a flag. "You cannot act" is less useful than "for four
+        # more seconds", which is the difference between waiting and doing
+        # something else.
+        'roundtime' => safe(0) {
+          [(XMLData.roundtime_end.to_f - Time.now.to_f).round(1), 0].max
+        }
         #
         # There is deliberately no roomAllies here. Lich has no list of
         # creatures fighting on your side: DRRoom.npcs is everything the game

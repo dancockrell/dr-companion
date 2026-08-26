@@ -1,16 +1,28 @@
-/**
- * Who and where. Fixed, not a panel.
- *
- * Identity is the one thing that cannot be moved or closed, because people run
- * several accounts at once — commonly a few free ones for a healer bot or a
- * mule — and with four windows open the first question is always *which one is
- * this*. Getting it wrong sends a command to the wrong character.
- * See docs/DESIGN.md §2.6.
- */
 import { MapPin } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { Badge } from '../shared/Badge'
+import { cn } from '../../lib/cn'
 import type { CharacterStatus } from '../../types'
+
+/**
+ * Who, where, and what is true right now — on one line.
+ *
+ * This was four rows and about 160px: a large name on a line of its own, four
+ * badges on the next, the location on the third, and the single word "Ready"
+ * on the fourth. Perhaps ten words of information, taking height from the map.
+ *
+ * One row now, and the space it frees carries things that were not shown at
+ * all: what is in each hand, and how much roundtime is left. Both are
+ * combat-critical, both were already known to the bridge, and neither had
+ * anywhere to go.
+ *
+ * Connection state is deliberately absent: it lives in the title bar and only
+ * there, so there is one place to look and no chance of two rows disagreeing.
+ *
+ * Identity stays fixed and unclosable because people run several characters at
+ * once and sending a command to the wrong one is the mistake this prevents.
+ * See docs/DESIGN.md 2.6.
+ */
 
 const TIER_LABEL: Record<string, string> = {
   f2p: 'F2P',
@@ -20,101 +32,87 @@ const TIER_LABEL: Record<string, string> = {
   fallen: 'Fallen',
 }
 
-function tierTone(tier: string) {
-  if (tier === 'f2p') return 'warn' as const
-  if (tier === 'premium' || tier === 'platinum') return 'good' as const
-  return 'info' as const
-}
-
-export function CharacterHeader({ character }: { character: CharacterStatus }) {
+export function CharacterStrip({ character }: { character: CharacterStatus }) {
   const uiMode = useAppStore((s) => s.uiMode)
   const setUiMode = useAppStore((s) => s.setUiMode)
 
   const lowHealth = character.vitals.health / character.vitals.healthMax < 0.35
+  const rt = character.roundtime ?? 0
+  const hands = character.hands
 
   return (
-    /* Tight. Identity has to be visible, not spacious — space is spent on the
-       map, the experience board and the pictures, and everything else takes
-       the minimum it needs to be read. See docs/DESIGN.md §2.115. */
-    <header className="px-3 pt-2.5 pb-2 border-b border-border space-y-2 shrink-0">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-ink leading-tight truncate">
-            {character.name}
-          </h1>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <Badge tone="accent">{character.instance}</Badge>
-            {/* Only when it gates something.
-                A pill reading "Basic" sat next to a mode toggle also reading
-                "Basic", and told the player nothing either way: they know what
-                they pay for. F2P is different, because it locks the character
-                to one province and changes what this app is allowed to offer. */}
-            {character.accountTier === 'f2p' && (
-              <Badge tone={tierTone(character.accountTier)}>
-                {TIER_LABEL[character.accountTier] ?? character.accountTier}
-              </Badge>
-            )}
-            <Badge tone={character.connected ? 'good' : 'danger'}>
-              {character.connected ? 'Connected' : 'Offline'}
-            </Badge>
-            {character.location.isTown && <Badge tone="info">Town</Badge>}
-            {character.location.isSafe && <Badge tone="good">Safe</Badge>}
-          </div>
-        </div>
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="text-sm font-semibold leading-tight text-ink">{character.name}</span>
 
-        {/* Two buttons rather than a dropdown. A menu to choose between two
-            things costs a click to discover what the two things are. */}
-        <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
-          {(['basic', 'power'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              className={`text-xs px-2.5 py-1 capitalize ${
-                uiMode === m
-                  ? 'bg-accent/15 text-accent'
-                  : 'text-ink-faint hover:text-ink'
-              }`}
-              onClick={() => setUiMode(m)}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-      </div>
+      <span className="flex items-center gap-1">
+        <Badge tone="accent">{character.instance}</Badge>
+        {character.accountTier === 'f2p' && (
+          <Badge tone="warn">{TIER_LABEL[character.accountTier]}</Badge>
+        )}
+        {character.location.isSafe && <Badge tone="good">Safe</Badge>}
+      </span>
 
-      <div className="flex items-center gap-1.5 text-sm text-ink-muted">
-        <MapPin className="w-3.5 h-3.5 shrink-0 text-accent" />
+      <span className="flex min-w-0 items-center gap-1 text-xs text-ink-muted">
+        <MapPin className="h-3 w-3 shrink-0 text-accent" />
         <span className="truncate">{character.location.title}</span>
-      </div>
+      </span>
+
+      {/* Hands. In a fight this is the question, and it was not on screen at
+          all — Genie keeps it permanently on its status bar. */}
+      {hands && (hands.right || hands.left) && (
+        <span className="flex min-w-0 items-center gap-2 text-xs">
+          <span className="truncate text-ink-muted">
+            <span className="text-ink-faint">R</span> {hands.right ?? 'empty'}
+          </span>
+          <span className="truncate text-ink-muted">
+            <span className="text-ink-faint">L</span> {hands.left ?? 'empty'}
+          </span>
+        </span>
+      )}
+
+      {/* Seconds, not a flag: the difference between waiting and doing
+          something else with the time. */}
+      {rt > 0 && (
+        <span className="text-xs font-medium tabular-nums text-warn">RT {rt.toFixed(1)}s</span>
+      )}
 
       {character.situation.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <span className="flex flex-wrap gap-1">
           {character.situation.map((s) => (
             <Badge
               key={s}
-              tone={
-                s === 'low_health' || s === 'in_combat' || s === 'dead'
-                  ? 'danger'
-                  : 'warn'
-              }
+              tone={s === 'low_health' || s === 'in_combat' || s === 'dead' ? 'danger' : 'warn'}
             >
               {s.replace(/_/g, ' ')}
             </Badge>
           ))}
-        </div>
+        </span>
       )}
 
-      <div className="flex items-center justify-between text-sm">
-        <span
-          className={
-            lowHealth
-              ? 'text-danger font-medium animate-pulse-soft'
-              : 'text-ink font-medium'
-          }
-        >
-          {character.activity}
-        </span>
-      </div>
-    </header>
+      <span
+        className={cn(
+          'ml-auto text-xs font-medium',
+          lowHealth ? 'animate-pulse-soft text-danger' : 'text-ink-muted'
+        )}
+      >
+        {character.activity}
+      </span>
+
+      <span className="flex shrink-0 overflow-hidden rounded border border-border">
+        {(['basic', 'power'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            className={cn(
+              'px-2 py-0.5 text-xs capitalize',
+              uiMode === m ? 'bg-accent/15 text-accent' : 'text-ink-faint hover:text-ink'
+            )}
+            onClick={() => setUiMode(m)}
+          >
+            {m}
+          </button>
+        ))}
+      </span>
+    </div>
   )
 }
