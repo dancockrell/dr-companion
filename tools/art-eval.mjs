@@ -149,10 +149,48 @@ export function measure(img) {
     hist[Math.min(63, v >> 2)]++
   }
   const mean = sum / n
-  const stdev = Math.sqrt(Math.max(0, sumSq / n - mean * mean))
+  const rawStdev = Math.sqrt(Math.max(0, sumSq / n - mean * mean))
+
+  /**
+   * Detail measured on a contrast-stretched copy, not on the raw pixels.
+   *
+   * This exists because the first calibrated scale scored a good picture at
+   * zero. Room 1-218 is a lamp on a table in a dark cellar with figures in the
+   * doorway: composed, atmospheric, entirely intact. It measured stdev 15 and
+   * entropy 3.4 and was rejected outright, while across the set rooms with a
+   * mean below 40 averaged 0.148 against 0.675 for everything else.
+   *
+   * The scale was measuring brightness and calling it quality. A dark scene
+   * has all of its detail compressed into the bottom of the range, so every
+   * absolute detail metric reads low even when the structure is all there —
+   * and half of Elanthia is caves, cellars and night.
+   *
+   * Stretching between the 2nd and 98th percentiles first makes the measures
+   * say what they were meant to say: how much structure is present,
+   * independent of how the scene is lit. The raw values are still recorded,
+   * because "this render is nearly black" is worth knowing; it is just not the
+   * same question as "this render is bad".
+   */
+  const sorted = Float32Array.from(L).sort()
+  const lo = sorted[Math.floor(n * 0.02)]
+  const hi = sorted[Math.min(n - 1, Math.floor(n * 0.98))]
+  const span = Math.max(1, hi - lo)
+  const N = new Float32Array(n)
+  const histN = new Array(64).fill(0)
+  let sumN = 0
+  let sumSqN = 0
+  for (let i = 0; i < n; i++) {
+    const v = Math.min(255, Math.max(0, ((L[i] - lo) / span) * 255))
+    N[i] = v
+    sumN += v
+    sumSqN += v * v
+    histN[Math.min(63, v >> 2)]++
+  }
+  const meanN = sumN / n
+  const stdev = Math.sqrt(Math.max(0, sumSqN / n - meanN * meanN))
 
   let entropy = 0
-  for (const c of hist) {
+  for (const c of histN) {
     if (!c) continue
     const p = c / n
     entropy -= p * Math.log2(p)
@@ -240,8 +278,8 @@ export function measure(img) {
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
       const i = y * w + x
-      const gx = Math.abs(L[i + 1] - L[i - 1])
-      const gy = Math.abs(L[i + w] - L[i - w])
+      const gx = Math.abs(N[i + 1] - N[i - 1])
+      const gy = Math.abs(N[i + w] - N[i - w])
       const e = gx + gy
       edgeSum += e
       // Bottom corners only: signatures land there, and the top corners of a
@@ -271,6 +309,9 @@ export function measure(img) {
     width: w,
     height: h,
     mean,
+    /** Raw spread. Low means dark or flat, which is not the same as bad. */
+    rawStdev,
+    /** Contrast-normalised, and what the scores are built on. */
     stdev,
     entropy,
     coverage,
@@ -383,11 +424,42 @@ export const TARGETS = {
     centreX: [0.3, 0.7, 0.3],
   },
   rooms: {
-    // A room fills its frame; there is no figure and no plain background, so
-    // only the detail measures carry weight.
-    stdev: [24, 95, 30],
-    entropy: [4.2, 6.0, 1.8],
-    edges: [4, 60, 8],
+    /*
+     * Deliberately wide, and deliberately not calibrated yet.
+     *
+     * These were tightened to the measured quartiles of 164 renders and it was
+     * a mistake that took a picture to catch. Room 1-218 is a lamp on a table
+     * in a dark cellar, composed and intact, and it scored zero; across the
+     * set, rooms with a mean below 40 averaged 0.148 against 0.675 for the
+     * rest. The scale had learned brightness and was calling it quality, which
+     * matters because half of Elanthia is caves, cellars and night.
+     *
+     * The measures are contrast-normalised now, which fixes the cause. But
+     * those quartiles were taken from the *raw* numbers, so applying them to
+     * normalised ones is a straight mismatch and would be wrong in a new
+     * direction. They stay wide until there is normalised data to calibrate
+     * against, which the daemon is collecting.
+     *
+     * Wide is the safe failure. It discriminates poorly, so the improvement
+     * pass rarely fires; the tight version discriminated well and threw away
+     * good art, and a scale that destroys work is far worse than one that
+     * merely fails to rank it.
+     */
+    /*
+     * Asymmetric on purpose. The floors come from measured data and the
+     * ceilings stay generous, because the two ends are not the same claim: a
+     * render with no structure is never good, while an unusually busy one may
+     * simply be a market at noon.
+     *
+     * The floors were briefly set below anything the model produces - edges at
+     * 8, against a measured p10 of 21.5 - and a structureless test image beat
+     * a detailed one because it sat closer to that floor than the detailed one
+     * sat to the ceiling. A bound below the whole distribution is not a
+     * lenient bound, it is an absent one.
+     */
+    stdev: [28, 90, 30],
+    entropy: [4.2, 6.2, 1.8],
+    edges: [18, 70, 14],
   },
 }
 
@@ -405,7 +477,10 @@ export const TARGETS = {
  * score, not a rejection.
  */
 export function isBroken(m) {
-  if (m.stdev < 4) return 'flat, one tone'
+  // Raw, deliberately. A stretch of an almost-flat image manufactures a
+  // plausible spread out of nothing, so the broken check has to look at the
+  // pixels as they were.
+  if ((m.rawStdev ?? m.stdev) < 4) return 'flat, one tone'
   if (m.entropy < 0.25) return 'almost no detail'
   if (m.mean < 6) return 'black'
   if (m.mean > 249) return 'white'

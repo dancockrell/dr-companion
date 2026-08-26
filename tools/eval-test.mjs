@@ -218,15 +218,35 @@ console.log('\n-- the scale must separate two acceptable images --')
   // "acceptable" and could not say "better", which meant candidate selection
   // was picking arbitrarily and the improvement pass could never fire.
   const wide = measure(load(room))
-  const tighter = measure(load((x, y) => {
-    // Same picture, less contrast. Plainly the worse of the two.
-    const [r, g, b] = room(x, y)
-    return [90 + (r - 90) * 0.35, 90 + (g - 90) * 0.35, 90 + (b - 90) * 0.35]
+  const detailless = measure(load((x, y) => {
+    // Same palette, almost no structure. Fewer, larger, flatter areas.
+    const v = 60 + 40 * Math.sin(x / 40)
+    return [v, v * 0.9, v * 0.7]
   }))
   const a = score('rooms', wide).score
-  const b = score('rooms', tighter).score
+  const b = score('rooms', detailless).score
   ok('two rooms do not score identically', a !== b, `${a} vs ${b}`)
-  ok('the higher-contrast one wins', a > b, `${a} vs ${b}`)
+  ok('the one with more structure wins', a > b, `${a} vs ${b}`)
+
+  /*
+   * The test that would have caught room 1-218.
+   *
+   * A dark scene must score like a bright one with the same structure. The
+   * first calibrated scale failed this badly: a lamp-lit cellar, composed and
+   * intact, scored zero, and across 164 renders anything with a mean below 40
+   * averaged 0.148 against 0.675 for the rest. The scale had learned
+   * brightness and was calling it quality.
+   *
+   * The cost of the fix is stated rather than hidden: normalising also
+   * forgives a genuinely washed-out render, because stretching puts it back.
+   * Truly flat images are still caught, by isBroken against the raw pixels.
+   */
+  const dark = measure(load((x, y) => room(x, y).map((c) => c * 0.22)))
+  const bright = score('rooms', wide).score
+  const dimmed = score('rooms', dark).score
+  ok('a dark copy is not punished for being dark', Math.abs(bright - dimmed) < 0.12,
+    `bright ${bright} vs dark ${dimmed}`)
+  ok('and it is not called broken', isBroken(dark) === null, isBroken(dark) ?? '')
 
   // And the invariant that makes the interior slope safe: an image at the very
   // edge of acceptable must still beat one outside it. Without it, preferring
