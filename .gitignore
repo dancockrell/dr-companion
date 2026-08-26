@@ -29,3 +29,5 @@ src-tauri/gen
 src-tauri/target
 yarn-debug.log*
 yarn-error.log*
+data/art/out/
+data/art/manifest.json
