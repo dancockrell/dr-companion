@@ -84,7 +84,7 @@ export function ActionsPanel({ dense = false }: { dense?: boolean }) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {quick.map((q) => (
           <Button
             key={q.id}

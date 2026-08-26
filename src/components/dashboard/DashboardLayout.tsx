@@ -78,7 +78,7 @@ export function DashboardLayout({
       </div>
 
       {/* Experience under it: read between fights, wants width not height. */}
-      <Box title="Experience" action={popper('mindstate')} className="col-start-1 row-start-2 max-h-56">
+      <Box title="Experience" action={popper('mindstate')} className="col-start-1 row-start-2 min-h-0">
         <MindstateBoard skills={character?.skills ?? []} dense={dense} />
       </Box>
 
