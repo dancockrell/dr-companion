@@ -130,6 +130,27 @@ a new corner to build in.** In rough order of value:
 3. **Say you are idle.** That is a real answer and more useful than a
    plausible-looking edit nobody asked for.
 
+## A red build here may be somebody's half-finished edit
+
+Before reporting the tree as broken, check whether the failure is *yours* or a
+snapshot of someone mid-way through a multi-file change. A session editing
+`types/index.ts` then `useAppStore.ts` then the component is momentarily
+inconsistent by construction — read it in that window and it looks like a
+landed defect.
+
+This has produced two false reports tonight, both mine:
+
+- `SCRIPT LIBRARY (12)` reported as shipped. Vite serves the **working tree**,
+  so the running app showed an uncommitted panel. `git show HEAD:<file>` said
+  otherwise.
+- A `tsc` error attributed to a commit that turned out to be in-flight work,
+  clean minutes later.
+
+**So: name which state you measured.** "The working tree passes" and "HEAD
+passes" are different claims and they diverge routinely here. If it matters,
+use a worktree (below) — that is the only way to make the question
+well-formed while others are editing.
+
 ## Verifying while other sessions are mid-edit
 
 The shared working tree routinely holds a dozen-plus uncommitted files from
