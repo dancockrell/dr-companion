@@ -53,12 +53,26 @@ fn candidates(leaf: &str) -> Vec<PathBuf> {
 /// segment in it - the app asks for `highlights.cfg`, not for a path.
 #[tauri::command]
 pub fn read_genie_config(leaf: String) -> ConfigFile {
+    // The charset does the work: no '/', no '\', no ':', nothing non-ASCII,
+    // which forecloses separators, absolute paths, drive letters, UNC paths
+    // and alternate data streams in one line.
+    //
+    // Dot-dot is checked as an exact name rather than as a substring. It was a
+    // substring, which would have refused a legitimate `my..config.cfg` - a
+    // false refusal that reads to somebody as a corrupt file. Only the exact
+    // relative-directory names can do anything.
+    //
+    // Reserved device names are refused too. `CON.cfg` and `NUL.cfg` pass any
+    // charset check and Windows resolves them as devices; reading `CON` blocks
+    // on console input, which presents as the app hanging rather than failing.
     if leaf.is_empty()
         || leaf.len() > 64
+        || leaf == ".."
+        || leaf == "."
         || !leaf
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
-        || leaf.contains("..")
+        || crate::sounds::is_reserved_device(&leaf)
     {
         return ConfigFile {
             note: format!("{leaf:?} is not a config file name"),
@@ -123,6 +137,37 @@ mod tests {
                 got.note
             );
         }
+    }
+
+    /// Device names and dot-dot, the same two edges as `sounds.rs`.
+    ///
+    /// `CON.cfg` passes any charset check and Windows resolves it as a device;
+    /// reading `CON` blocks on console input, which presents as the app
+    /// hanging. And `my..config.cfg` is a legitimate filename that a substring
+    /// check for ".." refused - a false refusal reads as a corrupt file.
+    #[test]
+    fn device_names_are_refused_and_inner_dots_are_not() {
+        for device in ["CON.cfg", "nul.cfg", "COM1.cfg", "AUX.cfg"] {
+            let got = read_genie_config(device.into());
+            assert!(!got.found, "{device:?} must not be opened");
+            assert!(
+                got.note.contains("not a config file name"),
+                "{device:?} should be refused by name, got {:?}",
+                got.note
+            );
+        }
+
+        // Refused as directories, not because of the dots.
+        assert!(read_genie_config("..".into()).note.contains("not a config file name"));
+
+        // And a legitimate name with dots in it passes validation. It will not
+        // be found, but the reason must be "no such file", not "bad name".
+        let ok = read_genie_config("my..config.cfg".into());
+        assert!(
+            ok.note.starts_with("No my..config.cfg found"),
+            "a legitimate name was refused by shape: {:?}",
+            ok.note
+        );
     }
 
     /// Not found and found-but-empty are different, and the caller renders

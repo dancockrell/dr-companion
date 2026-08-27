@@ -55,6 +55,36 @@ fn base64(bytes: &[u8]) -> String {
     out
 }
 
+/// Windows device names, which are files everywhere except Windows.
+///
+/// `NUL.wav`, `CON.wav`, `COM1.wav` and `AUX.mp3` all pass an
+/// `[A-Za-z0-9._-]` charset, and Windows resolves a device name with an
+/// extension appended - so these are not caught by any of the checks that
+/// stop traversal. Opening `CON` for reading blocks on console input, which
+/// would be a hang rather than a crash: the worst shape, because it looks
+/// like the app is thinking.
+///
+/// A red-team pass established that `p.is_file()` already stops all of them,
+/// and that the guard is real rather than vacuous - `win.ini` returns true
+/// against the same check, so the falses mean something.
+///
+/// This is here anyway, because "it happens to be safe" and "it cannot happen"
+/// are different, and the thing standing between them is a refactor nobody has
+/// written yet. Rejecting by name survives someone dropping the `is_file`
+/// call; relying on `is_file` does not.
+pub(crate) fn is_reserved_device(name: &str) -> bool {
+    let stem = name
+        .split('.')
+        .next()
+        .unwrap_or("")
+        .to_ascii_uppercase();
+
+    matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || (stem.len() == 4
+            && (stem.starts_with("COM") || stem.starts_with("LPT"))
+            && stem.as_bytes()[3].is_ascii_digit())
+}
+
 /// Big enough for any alert anybody would want, small enough that a mistake
 /// cannot pull a film into memory. The stock Genie sounds are a few kilobytes.
 const MAX_BYTES: u64 = 4 * 1024 * 1024;
@@ -85,12 +115,24 @@ fn sound_dirs() -> Vec<PathBuf> {
 /// which is most of the value.
 #[tauri::command]
 pub fn read_sound(name: String) -> SoundFile {
+    // The charset is what actually forecloses traversal: no '/', no '\', no
+    // ':', nothing non-ASCII, so a path separator, an absolute path, a drive
+    // letter, a UNC path and an alternate data stream are all impossible in
+    // one line.
+    //
+    // The dot-dot rule is therefore belt to those braces, and it used to be
+    // `!name.contains("..")` - which refused a legitimate `my..song.wav`. A
+    // false refusal here reads to a player as a corrupt file. Only the exact
+    // relative-directory names can do anything, and they are rejected by name.
+    let relative_dir = name == ".." || name == ".";
+
     let looks_like_a_name = !name.is_empty()
         && name.len() <= 64
-        && !name.contains("..")
+        && !relative_dir
         && name
             .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
+        && !is_reserved_device(&name);
 
     let is_audio = {
         let lower = name.to_ascii_lowercase();
@@ -203,6 +245,57 @@ mod tests {
         // implementation using char arithmetic goes wrong.
         assert_eq!(base64(&[0xFF, 0xFE, 0xFD]), "//79");
         assert_eq!(base64(&[0x00, 0x00, 0x00]), "AAAA");
+    }
+
+    /// Windows device names, which pass every charset check ever written.
+    ///
+    /// `CON.wav` and `NUL.mp3` are not files on Windows, they are devices, and
+    /// the OS resolves them with an extension appended. Opening `CON` for read
+    /// blocks on console input - a hang rather than a crash, which is the worse
+    /// shape because it looks like the app is thinking.
+    #[test]
+    fn refuses_windows_device_names() {
+        for device in [
+            "CON.wav", "con.wav", "NUL.wav", "PRN.mp3", "AUX.ogg", "COM1.wav", "LPT9.wav",
+            "Con.Wav",
+        ] {
+            assert!(is_reserved_device(device), "{device:?} is a device name");
+            let got = read_sound(device.into());
+            assert!(!got.found, "{device:?} must not be opened");
+        }
+
+        // The control. Without it, "everything returned true" and "the
+        // function returns true for everything" are the same reading - and a
+        // classifier that refuses all input would pass the block above.
+        for ordinary in ["Help.wav", "Chatter.wav", "console.wav", "communicator.mp3", "auxiliary.ogg"] {
+            assert!(
+                !is_reserved_device(ordinary),
+                "{ordinary:?} is an ordinary name and must be allowed"
+            );
+        }
+    }
+
+    /// A dot-dot inside a name is not a traversal, and refusing it reads to
+    /// somebody as a corrupt file.
+    ///
+    /// The check was `contains("..")`, which refused `my..song.wav`. The
+    /// charset already forecloses traversal - there is no separator available -
+    /// so only the exact relative-directory names can do anything.
+    #[test]
+    fn a_dot_dot_inside_a_name_is_not_a_traversal() {
+        // Refused because it is a directory, not because of the dots.
+        assert!(!read_sound("..".into()).found);
+        assert!(!read_sound(".".into()).found);
+
+        // Allowed through validation. It will not be found, because no such
+        // file exists - but the note must be "not in any Sounds folder", not
+        // "is not a sound file name".
+        let got = read_sound("my..song.wav".into());
+        assert!(
+            got.note.contains("not in any Sounds folder"),
+            "a legitimate name was refused by shape: {:?}",
+            got.note
+        );
     }
 
     /// A config naming a sound the player never installed is common and is not
