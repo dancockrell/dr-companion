@@ -315,9 +315,34 @@ end
 # --------------------------------------------------------------------- run --
 
 # A high port, so a real bridge on 7415 does not collide with the test.
-PORT = 7893
+#
+# Overridable because several sessions run this suite on one machine at once,
+# and a fixed port means the second to start silently loses. Three runs were
+# lost to that in one evening before anyone read netstat: the abort below said
+# only 'server would not start', which reads as a broken bridge and sent two
+# sessions hunting a bug in working code.
+PORT = Integer(ENV.fetch('DRC_TEST_PORT', '7893'))
 server = Companion::Server.new(PORT)
-abort 'server would not start' unless server.start
+unless server.start
+  # Which of the two it is. A taken port and a bridge that cannot boot have
+  # identical symptoms and only one is about the code under test. Three
+  # states, not two - an indeterminate result gets said out loud rather than
+  # folded into either answer.
+  in_use = begin
+    TCPServer.new('127.0.0.1', PORT).close
+    false
+  rescue Errno::EADDRINUSE
+    true
+  rescue StandardError
+    nil
+  end
+  reason = case in_use
+           when true  then "port #{PORT} is already in use - another session is probably running this suite. Set DRC_TEST_PORT to a free port."
+           when false then "port #{PORT} is free, so the bridge itself failed to start."
+           else            "could not tell whether port #{PORT} is free."
+           end
+  abort "server would not start: #{reason}"
+end
 
 begin
   puts '-- the handshake a browser actually performs --'
