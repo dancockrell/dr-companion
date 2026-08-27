@@ -62,12 +62,22 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant, SystemTime};
 
-/// How long Lich gets to print its version before we stop waiting.
+/// How long Lich gets to print its version before this gives up and kills it.
 ///
-/// Generous, because the first run on a cold machine loads every gem it has.
-/// Bounded, because a wizard step that never returns is worse than one that
-/// says it could not tell.
-const TIMEOUT: Duration = Duration::from_secs(45);
+/// Was 45 seconds, and that was short enough to be its own bug: Lich's own
+/// `GemCheck` self-heals missing gems on Windows by showing a native consent
+/// dialog and waiting - `CONSENT_TIMEOUT_SECONDS` in `lib/gemcheck.rb`, 120
+/// seconds, implemented as a `WScript.Shell` `Popup` with that same timeout
+/// baked in, so the dialog auto-dismisses itself if nobody answers. A health
+/// check is still a launch as far as Lich is concerned, so this exact
+/// diagnostic call could trigger that dialog - and at 45 seconds, this file
+/// would kill the process out from under a player who was about to click it,
+/// on a check whose entire purpose is to help them get unstuck.
+///
+/// 150 seconds gives Lich's own 120-second dialog room to auto-dismiss on its
+/// own first, so the kill below only fires for a genuine hang - something
+/// with no timeout of its own to have already given up by then.
+const TIMEOUT: Duration = Duration::from_secs(150);
 
 #[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -90,7 +100,9 @@ pub struct LichHealth {
 /// Run a command with a ceiling on how long it may take.
 ///
 /// `std::process::Command` has no timeout, and the honest failure of a health
-/// check is "I could not tell", not "it hung and so did the app".
+/// check is "I could not tell", not "it hung and so did the app". `TIMEOUT`
+/// itself carries the reasoning for why 150 seconds and not less - short
+/// version: Lich's own consent dialog needs the room to auto-dismiss first.
 fn run_bounded(ruby: &str, dir: &Path, args: &[&str]) -> Result<(bool, String), String> {
     let mut child = Command::new(ruby)
         .args(args)
@@ -266,6 +278,12 @@ pub fn lich_health() -> LichHealth {
         Err(why) => LichHealth {
             boots: None,
             note: format!("Not checked: {why}"),
+            remedy: Some(
+                "If a Lich window appeared and then vanished, this may have interrupted a \
+                 first-run gem check - it shows its own dialog and waits up to two minutes \
+                 for an answer. Try again and answer it there if it reappears."
+                    .into(),
+            ),
             ..Default::default()
         },
         Ok((true, text)) => {
