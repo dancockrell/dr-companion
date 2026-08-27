@@ -130,6 +130,53 @@ a new corner to build in.** In rough order of value:
 3. **Say you are idle.** That is a real answer and more useful than a
    plausible-looking edit nobody asked for.
 
+## Verifying while other sessions are mid-edit
+
+The shared working tree routinely holds a dozen-plus uncommitted files from
+several lanes. **Do not test it** — a failure there tells you nothing about
+whose change caused it. Take an isolated checkout of a committed state:
+
+```bash
+git worktree add /c/Users/Admin/dev/drc-verify HEAD --detach
+# ... verify ...
+git worktree remove /c/Users/Admin/dev/drc-verify --force
+```
+
+Measured: the new checkout comes up with 0 modified files while the shared tree
+keeps all of its WIP untouched. Isolation both directions.
+
+**For anything that runs `cargo test`, copy `src-tauri/vendor/` in first.**
+It is gitignored (a 68 MB Ruby4Lich5 bundle), so a fresh worktree does not have
+it and the Rust suite fails with
+
+    resource path vendor\Ruby4Lich5.manifest.json doesn't exist
+
+which reads like a build problem and is not. Copy the directory from the main
+tree rather than re-running `tools/vendor-fetch.mjs`, which would re-download
+68 MB to test something unrelated.
+
+## For whoever gets the next live session
+
+These cannot be answered without a live game. Each is one command; none needs
+a whole session.
+
+1. **`;download-prime-map` produced no file and no visible error.** Call
+   `install_mapdb` through the bridge instead — it runs the same script via
+   Lich's internal `Script.start`, which does not depend on how client input is
+   parsed. Watch what it logs.
+2. **Grep Lich's log for `Invalid settingsInfo XML tags detected`.** If present,
+   this character has never completed a Wrayth handshake, and the channel-tab
+   gap may be the server withholding stream tags until it has. **The meaningful
+   test is then a *second* connection** — retrying on the same one proves
+   nothing.
+3. **Capture `PLAY USAGE` output.** The Bard PLAY work (#12) needs DR's real
+   song and mood catalogue. Nobody has it, and it is deliberately not being
+   invented — a fabricated list of songs would be #5's defect in a new panel.
+4. **Check whether experience skills populate.** The bridge never sends `EXP`,
+   so `DRSkill.list` starts empty and stays empty for anything that has not
+   organically gained experience that session. A seed command is specced in
+   `docs/BRIDGE_CONTRACT.md`.
+
 ## Known broken on live
 
 Checked against the running client, not inferred. Fix or claim these by telling
