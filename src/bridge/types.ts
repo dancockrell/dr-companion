@@ -30,6 +30,17 @@ export type BridgeServerMessage =
       auth?: 'token' | 'origin-only'
       /** Why the token is absent, when it is. Empty otherwise. */
       authNote?: string
+      /**
+       * Which intents `Intents.handle` actually implements.
+       *
+       * Optional for the same reason `auth` is: a bridge older than the
+       * version that ships this sends nothing, and "we cannot tell" is a
+       * third state, not a reason to assume every declared intent works or
+       * that none do. See BRIDGE_CONTRACT.md's "Implemented-intents
+       * contract" — absent means unknown and the UI must not disable
+       * anything on that basis; present means exactly this set is real.
+       */
+      implementedIntents?: string[]
     }
   | { type: 'status'; payload: CharacterStatus }
   | { type: 'inventory'; payload: InventorySummary }
@@ -45,6 +56,7 @@ export type BridgeServerMessage =
   | { type: 'map_nearest'; payload: MapNearest }
   | { type: 'map_path'; payload: MapPath }
   | { type: 'map_zone'; payload: MapZone }
+  | { type: 'script_catalog'; payload: string[] }
 
 /**
  * One Lich script, and whether it is actually doing anything.
@@ -240,6 +252,13 @@ export type IntentName =
   | 'map_path'
   | 'map_zone'
   | 'install_mapdb'
+  // Raw script library access. Distinct from the curated activity intents
+  // above (start_combat, burgle, travel, ...): those name a behaviour and
+  // the bridge decides how to run it; these two name a literal script file.
+  // 'list_scripts' asks what Lich can actually find; 'start_script' launches
+  // one by name, args: { name: string }.
+  | 'list_scripts'
+  | 'start_script'
 
 export interface BridgeConnectionState {
   connected: boolean

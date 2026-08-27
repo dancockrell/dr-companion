@@ -4,12 +4,13 @@
 import { ACTIVITIES, activityToIntent } from '../../data/activities'
 import { listReachable } from '../../data/travelPath'
 import { describeEntryPlan, DEFAULT_HOUSE_ENTRY } from '../../data/houseEntry'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 
 export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
   const requestIntent = useAppStore((s) => s.requestIntent)
   const character = useAppStore((s) => s.character)
   const addLog = useAppStore((s) => s.addLog)
+  const bridgeIntents = useAppStore((s) => s.bridgeIntents)
 
   const list = compact
     ? ACTIVITIES.filter((a) =>
@@ -29,7 +30,10 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
         Activities
       </h2>
       <div className="grid grid-cols-1 gap-2">
-        {list.map((a) => (
+        {list.map((a) => {
+          const intent = activityToIntent(a.id)
+          const available = isIntentImplemented(bridgeIntents, intent)
+          return (
           <div
             key={a.id}
             className="rounded-xl border border-border bg-surface-raised p-2.5 space-y-1.5"
@@ -45,14 +49,16 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
               </div>
               <button
                 type="button"
-                className="shrink-0 text-xs font-semibold rounded-lg px-2.5 py-1.5 bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25"
+                disabled={!available}
+                className="shrink-0 text-xs font-semibold rounded-lg px-2.5 py-1.5 bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-accent/15"
+                title={available ? undefined : 'Not yet implemented in the connected bridge.'}
                 onClick={() => {
                   if (a.id === 'burgle') {
                     describeEntryPlan(DEFAULT_HOUSE_ENTRY, character?.guild).forEach(
                       (line) => addLog(`Entry: ${line}`)
                     )
                   }
-                  requestIntent(activityToIntent(a.id))
+                  requestIntent(intent)
                 }}
               >
                 Start
@@ -86,7 +92,8 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
               <p className="text-xs text-ink-faint leading-snug">{a.detail}</p>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )

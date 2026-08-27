@@ -26,8 +26,58 @@ import { effectiveAthletics } from '../data/obstacles'
 import { DEMO_ZONE, demoPath } from '../data/demoMap'
 import { loadZone, DEFAULT_ZONE } from '../lib/mapData'
 import { loadPrefs, savePrefs } from '../lib/persistence'
+import { EXPECTED_BRIDGE_VERSION } from '../lib/versions'
 
 type Listener = (msg: BridgeServerMessage) => void
+
+/**
+ * Every intent `IntentName` (src/bridge/types.ts) declares, as a runtime
+ * array — the type itself erases at compile time, so the mock's advertised
+ * set has to be listed again here rather than derived. Keep in sync with
+ * types.ts when adding an intent; a mismatch only affects the mock's own
+ * demo of the disable behaviour, never a real bridge.
+ */
+const MOCK_ALL_INTENTS: string[] = [
+  'stop_all', 'pause', 'resume', 'start_combat', 'burgle', 'travel',
+  'escape_heal', 'go_healer', 'town_run', 'start_training', 'loot', 'buffs',
+  'escape', 'stow_all', 'check_health', 'check_toggles', 'reset_runaway',
+  'read_settings', 'run_macro', 'map_here', 'map_tags', 'map_nearest',
+  'map_path', 'map_zone', 'install_mapdb',
+]
+
+/**
+ * Declared in types.ts, unimplemented in `companion_bridge.lic` — measured
+ * for issue #30 by diffing `IntentName` against `Intents.handle`'s `when`
+ * labels. See BRIDGE_CONTRACT.md's "Implemented-intents contract".
+ */
+const MOCK_UNIMPLEMENTED_INTENTS: string[] = [
+  'buffs', 'burgle', 'escape', 'escape_heal', 'go_healer', 'loot',
+  'start_combat', 'start_training', 'town_run', 'travel',
+]
+
+/**
+ * A small stand-in for the 200+ real .lic/.rb/.cmd/.wiz files Lich would
+ * report from `list_scripts`. Just enough variety to exercise search and
+ * launch in the library panel without a live bridge — not a copy of the real
+ * catalogue, which the mock has no way to keep in sync with anyway.
+ */
+const MOCK_SCRIPT_CATALOG = [
+  'afk',
+  'alchemy',
+  'bankbot',
+  'buff',
+  'burgle',
+  'combat-trainer',
+  'first-aid',
+  'go2',
+  'healme',
+  'hunting-buddy',
+  'inventory-manager',
+  'map',
+  'sell-loot',
+  'stow_all',
+  'train',
+]
 
 /**
  * Build a plausible skill spread for a demo character.
@@ -544,6 +594,32 @@ export class MockBridge {
     this.authMode = mode
   }
 
+  /**
+   * Which intents the mock claims to implement, settable for the same reason
+   * `authMode` is: so every branch of BRIDGE_CONTRACT.md's "Implemented-
+   * intents contract" can be looked at without a live bridge, which is the
+   * only reason issue #30 is checkable at all tonight.
+   *
+   * 'current' is the default and matches `companion_bridge.lic` v0.9.0 as
+   * measured for issue #30: everything `IntentName` declares except the
+   * eleven that fall through to its `else` branch. 'unknown' simulates a
+   * bridge older than the field entirely (nothing disabled). 'all' simulates
+   * a future bridge that has implemented everything (nothing disabled,
+   * different reason) - useful for confirming the UI doesn't hardcode the
+   * current gap once the Ruby side closes it.
+   */
+  private intentMode: 'current' | 'unknown' | 'all' = 'current'
+
+  setIntentMode(mode: 'current' | 'unknown' | 'all') {
+    this.intentMode = mode
+  }
+
+  private implementedIntents(): string[] | undefined {
+    if (this.intentMode === 'unknown') return undefined
+    if (this.intentMode === 'all') return [...MOCK_ALL_INTENTS]
+    return MOCK_ALL_INTENTS.filter((i) => !MOCK_UNIMPLEMENTED_INTENTS.includes(i))
+  }
+
   private character: CharacterStatus = { ...presets[MockBridge.initial()].character }
   private inventory: InventorySummary = structuredClone(presets[MockBridge.initial()].inventory)
   private scripts: string[] = []
@@ -557,13 +633,17 @@ export class MockBridge {
       type: 'hello',
       protocol: 1,
       lichVersion: '5.20.1-mock',
-      bridgeVersion: '0.1.0',
+      // Tracks the app's own expectation rather than a second hardcoded
+      // number, so switching to mock mode does not open every session with a
+      // false stale-bridge warning that has nothing to do with a real bridge.
+      bridgeVersion: EXPECTED_BRIDGE_VERSION,
       // Reported, because a mock that cannot reach a state means that state is
       // unreachable in development. The origin-only branch existed for an hour
       // with no way to see it outside a real bridge that had failed to write a
       // token - which is not a thing anybody can arrange on demand.
       auth: this.authMode,
       authNote: this.authMode === 'origin-only' ? 'mock: token withheld' : '',
+      implementedIntents: this.implementedIntents(),
     })
     this.emitStatus()
     this.emit({ type: 'inventory', payload: this.inventory })
@@ -1235,6 +1315,37 @@ export class MockBridge {
       case 'buffs':
         this.emit({ type: 'log', line: 'Buff routine (mock).' })
         break
+      case 'list_scripts':
+        this.emit({ type: 'script_catalog', payload: MOCK_SCRIPT_CATALOG })
+        break
+      case 'start_script': {
+        const name = String(_args?.name ?? '')
+        if (!name || !MOCK_SCRIPT_CATALOG.includes(name)) {
+          this.emit({
+            type: 'intent_ack',
+            intent,
+            ok: false,
+            detail: name ? `no script named '${name}'` : 'no script name given',
+          })
+          break
+        }
+        if (this.scripts.includes(name)) {
+          this.emit({
+            type: 'intent_ack',
+            intent,
+            ok: false,
+            detail: `'${name}' is already running`,
+          })
+          break
+        }
+        this.scripts = [...this.scripts, name]
+        this.emit({
+          type: 'scripts',
+          payload: this.scripts.map((n) => ({ name: n, status: 'running' })),
+        })
+        this.emit({ type: 'log', line: `${name} started (mock)` })
+        break
+      }
       default:
         this.emit({ type: 'log', line: `Intent received: ${intent}` })
     }

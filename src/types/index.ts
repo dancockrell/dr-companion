@@ -333,6 +333,16 @@ export interface AppState {
    */
   scriptStates: ScriptState[]
   /**
+   * Every script Lich can actually launch, from `list_scripts`.
+   *
+   * null until asked — distinct from an empty catalogue, which would mean
+   * Lich searched its script directories and found nothing. Names only; any
+   * category or grouping is a cosmetic label applied on top in the UI, never
+   * a filter, so a real script never disappears just because nobody has
+   * classified it yet.
+   */
+  scriptCatalog: string[] | null
+  /**
    * The task flow running, if one is, as a sentence.
    *
    * Kept in the store rather than only in the panel because the safety bar has
@@ -371,6 +381,18 @@ export interface AppState {
   bridgeAuth: AuthMode
   /** Why the token is absent, when the bridge said. Empty otherwise. */
   bridgeAuthNote: string
+  /**
+   * The intents the connected bridge actually implements, or `null`.
+   *
+   * `null` covers two cases that must behave identically: no bridge connected
+   * yet, and a connected bridge older than the version that advertises this.
+   * Either way it means "unknown" rather than "none" — a control gated on
+   * this must render enabled, not disabled, when it is null. Only a non-null
+   * array is grounds to disable anything. See BRIDGE_CONTRACT.md's
+   * "Implemented-intents contract" and `isIntentImplemented` in
+   * useAppStore.ts.
+   */
+  bridgeIntents: string[] | null
   bridgeMode: 'mock' | 'live'
   trainFocus: string[]
   autoSuggestHealer: boolean
@@ -432,4 +454,8 @@ export interface AppState {
   setHouseEntryMethod: (m: 'rope' | 'lockpick' | 'lockpick_ring') => void
   setHouseEntryMaxSearches: (n: number) => void
   setHouseEntryHide: (v: boolean) => void
+  /** Ask the bridge what it can launch. Populates scriptCatalog. */
+  listScripts: () => void
+  /** Launch a script by its bare name (no extension, no arguments). */
+  startScript: (name: string) => void
 }

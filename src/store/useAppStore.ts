@@ -74,6 +74,30 @@ let unsubLiveStatus: (() => void) | null = null
 /** Intents that must never be blocked by game state. See docs/DOMAIN.md. */
 const SAFETY_INTENTS = ['stop_all', 'pause', 'resume', 'escape']
 
+/**
+ * Whether a control offering this intent should be enabled, given what the
+ * connected bridge has said it implements.
+ *
+ * Three states, matching `bridgeIntents`' own three states:
+ * - `null` (never told, or told by a bridge too old to say) → enabled. An
+ *   unknown answer is not evidence of absence; disabling on it would brick
+ *   every control against every bridge that predates this field.
+ * - array present, intent listed → enabled.
+ * - array present, intent absent → disabled, except a safety intent, which
+ *   is never gated on this (see SAFETY_INTENTS and SafetyFooter's own note
+ *   on why Stop cannot depend on a signal that can go stale).
+ *
+ * See BRIDGE_CONTRACT.md's "Implemented-intents contract" for the wire side.
+ */
+export function isIntentImplemented(
+  bridgeIntents: string[] | null,
+  intent: string
+): boolean {
+  if (SAFETY_INTENTS.includes(intent)) return true
+  if (bridgeIntents === null) return true
+  return bridgeIntents.includes(intent)
+}
+
 function handleBridgeMessage(
   msg: BridgeServerMessage,
   set: (
@@ -111,6 +135,14 @@ function handleBridgeMessage(
       const auth: AuthMode =
         msg.auth === 'token' || msg.auth === 'origin-only' ? msg.auth : 'unknown'
       set({ bridgeAuth: auth, bridgeAuthNote: msg.authNote ?? '' })
+
+      // Same three-state shape as auth, immediately above: absent means
+      // unknown, never "none implemented" - see isIntentImplemented.
+      set({
+        bridgeIntents: Array.isArray(msg.implementedIntents)
+          ? msg.implementedIntents
+          : null,
+      })
 
       if (auth === 'origin-only') {
         get().addLog(
@@ -152,6 +184,9 @@ function handleBridgeMessage(
         scriptStates: msg.payload,
         runningScripts: msg.payload.map((s) => s.name),
       })
+      break
+    case 'script_catalog':
+      set({ scriptCatalog: msg.payload })
       break
     case 'log':
       get().addLog(msg.line, msg.level)
@@ -224,6 +259,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   inventory: null,
   runningScripts: [],
   scriptStates: [],
+  scriptCatalog: null,
   activeFlow: null,
   settingsFiles: null,
   settingsCharacter: null,
@@ -245,6 +281,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Unknown until a bridge says otherwise, never assumed good.
   bridgeAuth: 'unknown' as AuthMode,
   bridgeAuthNote: '',
+  // null = unknown, same reasoning as bridgeAuth above. Never "none".
+  bridgeIntents: null,
   bridgeMode: prefs.bridgeMode,
   trainFocus: prefs.trainFocus,
   autoSuggestHealer: prefs.autoSuggestHealer,
@@ -303,6 +341,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     bridge.requestIntent('read_settings' as IntentName)
   },
 
+  listScripts: () => {
+    bridge.requestIntent('list_scripts' as IntentName)
+  },
+
+  startScript: (name: string) => {
+    bridge.requestIntent('start_script' as IntentName, { name })
+  },
+
   setActiveFlow: (v) => set({ activeFlow: v }),
 
   clearLog: () => set({ logLines: [], trace: [] }),
@@ -343,7 +389,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     bridge.setMode(m)
     savePrefs({ bridgeMode: m })
-    set({ bridgeMode: m, bridgeConnected: false, bridgeAuth: 'unknown', bridgeAuthNote: '', character: null, characterAt: 0, scriptStates: [], runningScripts: [], settingsFiles: null })
+    set({ bridgeMode: m, bridgeConnected: false, bridgeAuth: 'unknown', bridgeAuthNote: '', bridgeIntents: null, character: null, characterAt: 0, scriptStates: [], runningScripts: [], scriptCatalog: null, settingsFiles: null })
     get().addLog(
       m === 'mock' ? 'Switched to mock bridge' : 'Switched to live Lich bridge'
     )
@@ -397,7 +443,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       unsubLiveStatus()
       unsubLiveStatus = null
     }
-    set({ bridgeConnected: false, character: null, characterAt: 0, scriptStates: [], runningScripts: [] })
+    set({ bridgeConnected: false, character: null, characterAt: 0, scriptStates: [], runningScripts: [], scriptCatalog: null })
   },
 
   simulateConnect: () => {

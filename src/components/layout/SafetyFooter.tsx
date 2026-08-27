@@ -21,7 +21,7 @@
  * them used to mean looking somewhere else.
  */
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
 export function SafetyFooter() {
@@ -33,6 +33,7 @@ export function SafetyFooter() {
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
   const bridgeAuth = useAppStore((s) => s.bridgeAuth)
   const bridgeAuthNote = useAppStore((s) => s.bridgeAuthNote)
+  const bridgeIntents = useAppStore((s) => s.bridgeIntents)
 
   // A script list the bridge sent is a fact. Matching activity strings against
   // a whitelist was a guess, and it guessed wrong in the direction that says
@@ -71,24 +72,33 @@ export function SafetyFooter() {
   const inCombat = character?.situation.includes('in_combat') ?? false
   const primaryLabel = lowHealth ? 'Healer' : inCombat ? 'Assist' : 'Start Training'
   const primaryIntent = lowHealth ? 'go_healer' : 'start_training'
+  // See isIntentImplemented: null bridgeIntents (unknown bridge) never
+  // disables anything, so this button stays live against every bridge that
+  // predates the field.
+  const primaryAvailable = isIntentImplemented(bridgeIntents, primaryIntent)
+  const townRunAvailable = isIntentImplemented(bridgeIntents, 'town_run')
+  const NOT_IMPLEMENTED_NOTE = 'Not yet implemented in the connected bridge.'
 
   return (
     <footer className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border bg-surface-raised/90 px-3 py-2">
       {character && (
         <button
           type="button"
+          disabled={!primaryAvailable}
           className={cn(
-            'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold',
+            'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40',
             lowHealth
               ? 'bg-danger/90 text-white hover:bg-danger'
               : 'bg-accent text-surface hover:bg-accent-soft'
           )}
           title={
-            lowHealth
-              ? 'Health is low. Walk to a healer.'
-              : inCombat
-                ? 'Help with the fight in progress'
-                : 'Begin the training loop'
+            !primaryAvailable
+              ? NOT_IMPLEMENTED_NOTE
+              : lowHealth
+                ? 'Health is low. Walk to a healer.'
+                : inCombat
+                  ? 'Help with the fight in progress'
+                  : 'Begin the training loop'
           }
           onClick={() => requestIntent(primaryIntent)}
         >
@@ -104,8 +114,9 @@ export function SafetyFooter() {
       {character && (
         <button
           type="button"
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink"
-          title="Bank, repair, restock"
+          disabled={!townRunAvailable}
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+          title={townRunAvailable ? 'Bank, repair, restock' : NOT_IMPLEMENTED_NOTE}
           onClick={() => requestIntent('town_run')}
         >
           <Navigation className="h-4 w-4" />

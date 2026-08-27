@@ -200,3 +200,264 @@ fighting on your side. `DRRoom.npcs` is everything the game marked bold,
 familiar looking at another room. Guessing would put a summon and something
 trying to kill you in the same bucket, which is precisely what the three card
 decks exist to prevent.
+
+## Injuries contract (spec — not yet implemented, issue #4)
+
+Written by the panels/data session (`downloads-69`) for `companion_bridge.lic`'s
+owner to implement, per Prime's ruling: one owner for this file, a contract
+written down rather than described in chat. Do not treat this section as done
+until the Ruby side actually sends the field — it is a spec, not a changelog.
+
+**The gap today.** `DRCH.check_health` (`lib/dragonrealms/commons/common-healing.rb`)
+already sends `HEALTH`, parses the reply, and returns a `HealthResult` with a
+real per-part wound list. The bridge's `check_health` intent
+(`companion_bridge.lic:1543`) calls it, but only ever turns the result into a
+console log line and an ack string — the structured data is thrown away. The
+client's `CharacterStatus.injuries` field has existed since before this spec,
+the `Paperdoll` component already renders a correct three-state doll (unhurt /
+hurt / **could not determine**, via its `known` prop), and both call sites
+(`DashboardLayout.tsx`, `BattlePanel.tsx`) already pass
+`known={character?.injuries !== undefined}`. **The honest-unknown state Prime
+asked to ship first is already live** — that's why the doll reads as
+permanently, correctly, dim: nothing has ever populated `injuries`. This spec
+is the second half: making it populate with real data.
+
+**Wire format.** Add `injuries` to the existing `status` payload rather than a
+new message type — `CharacterStatus.injuries` already has the field and both
+consumers already read `character.injuries`, so nothing on the client changes:
+
+```ts
+{ type: 'status', payload: CharacterStatus }  // .injuries now populated
+```
+
+`injuries` is `Partial<Record<BodyPart, { wound: 0|1|2|3, scar: 0|1|2|3 }>>` —
+see `src/lib/body.ts`. Absent field or absent key both mean "not known", same
+as today. Once populated, keep it in the bridge's held status state and
+resend it on every status tick until the next successful `check_health`
+overwrites it — do not blank it back to unknown between polls, and do not
+silently invent zeros for parts `check_health` didn't mention this time
+(a part not in `HealthResult#wounds` this poll is "still whatever it was last
+poll," not "healed").
+
+**Severity mapping, 13 → 4.** `DRCH::WOUND_SEVERITY` is 1 ("insignificant") to
+13 ("useless"); the client's `Severity` is `0 | 1 | 2 | 3` and the paperdoll's
+three non-zero tones are deliberately coarse (color + opacity + a number, see
+`Paperdoll.tsx`'s doc comment). Widening the client type is out of scope for
+this fix — it would touch color logic, the severity labels, and every caller.
+Bucket instead:
+
+| DRCH severity | 1–4 | 5–8 | 9–13 |
+|---|---|---|---|
+| Client `Severity` | 1 (minor) | 2 (serious) | 3 (severe) |
+
+A `Wound` with `is_scar: true` and no live wound severity maps to
+`{ wound: 0, scar: <bucketed severity> }` — a scar is history, not a current
+injury, and the paperdoll already draws the two differently (hatch vs fill).
+Where the same body part carries both a live wound and a scar in the same
+poll, bucket each independently.
+
+**Body part mapping.** `Wound#body_part` is a downcased free string
+(`"head"`, `"neck"`, `"chest"`, `"abdomen"`, `"back"`, `"arm"`/`"hand"`/`"leg"`
+with separate left/right laterality carried elsewhere in the matched text,
+`"eye"` likewise, plus rarer `"tail"` and generic `"skin"`) — see
+`WOUND_BODY_PART_REGEX` and the match table in `common-healing-data.rb`. The
+client's `BodyPart` (`src/lib/body.ts`) has no slot for `tail` or a bare
+`skin`. **Do not silently drop them and do not silently fold them into the
+nearest limb** — that is exactly the "the check reports success on data it
+never looked at" failure this codebase has hit before. Log unmapped parts
+once per poll (`server.log("unmapped wound body part: #{part}", 'warn')`) so
+a Gor'Tog's tail or a skin condition is visible as a gap, not silently eaten,
+and flag it back here so the client side can decide whether to add a slot.
+`nsys` (nervous system) has no known DR wound source in this file at all —
+leave it unset rather than fabricating a mapping; if that's wrong, the
+existing dim/`unhurt` rendering is honest until someone corrects it.
+
+**When to poll.** `check_health` sends a real game command and blocks on the
+reply — this is not free, and DR has no passive wound stream to subscribe to
+instead. Recommend **on-demand only for v1**: keep it behind the existing
+`check_health` intent (already exposed to the UI), populate `injuries` in that
+same handler, and leave a timed auto-poll for later rather than adding a new
+standing command loop as part of this fix — matches Prime's note that a new
+command surface should stay minimal until reviewed. If a caller wants fresher
+data they press "Check health" (already wired to the intent per
+`ActionsPanel`/`InventoryPanel` conventions); the paperdoll simply shows
+whatever the last successful poll said, honestly, until the next one.
+
+**Acceptance check, so this can be verified without trusting the diff:** run a
+live `check_health` while genuinely injured, confirm the app's paperdoll
+lights up the correct body part at the correct rough severity band, and
+confirm a part that heals between polls holds its last-known state rather
+than flashing to unknown.
+
+### Addendum: bleeding magnitude (issue #10)
+
+`StatusBoard.tsx` deliberately shows no magnitude for `stunned`, `webbed`,
+`poisoned` or `diseased` — checked against `DRCH`'s source, all four are real
+booleans in DR with no severity behind them, so that's correct as shipped,
+not a gap. `bleeding` is the one exception: `HealthResult#bleeders` (same
+`check_health` call as the injuries above) carries a real `Wound#bleeding_rate`
+per wound — a string like the game's own description, not invented. Piggyback
+it on the same payload rather than opening a separate poll: add
+`bleeding?: { part: BodyPart | null, rate: string }[]` to the `check_health`
+response alongside `injuries`, mapped through the same body-part table above
+(same caveats about unmapped parts apply). The client side of this (reading it
+into `StatusBoard`'s bleeding chip) is mine to do once the field exists —
+nothing to build on the Ruby side beyond exposing what `check_health` already
+parsed.
+
+**Correction, from Prime verifying this against `common-healing-data.rb`:**
+this is three states, not a toggle. `'clotted'` is `severity: 2, bleeding:
+false` — a wound can be present and tended without still bleeding. Send the
+rate string as-is (`'clotted'`, `'slight'`, `'light'`, `'moderate'`, …) rather
+than pre-collapsing it to a boolean on the Ruby side; the client decides how
+to render "wounded but not bleeding" vs "actively bleeding" from the string
+and its own `bleeding` flag in the same data, not from a pre-flattened bit
+that has already thrown the distinction away.
+
+## Container contents contract (spec — not yet implemented, issue #5)
+
+Same author, same file-ownership rule, same status as the section above: a
+spec for `companion_bridge.lic`'s owner, not a description of what already
+ships.
+
+**The bug is worse than the filed issue says.** #5 reads as "capacity is
+hardcoded to 0" — true against the mock bridge (`mockBridge.ts` invents
+plausible `used`/`capacity` pairs for demo purposes), but **on a live bridge
+the containers list is not just wrong, it is always empty.**
+`companion_bridge.lic:438` calls `DRCI.get_worn_containers`, and that method
+does not exist anywhere in Lich, dr-scripts commons, or anything installed on
+this machine — confirmed with `grep -rn get_worn_containers` across all of
+`/c/Ruby4Lich5/Lich5`, the only two hits are the call site itself and its own
+`.bak`. It raises `NoMethodError`, `safe([]) { ... }` on line 437 swallows it,
+and every live status tick reports zero containers. This is exactly the "a
+check that cannot fail is not a check" trap: `safe` was written for *this*
+purpose (never crash the bridge over a cosmetic field) and it is currently
+hiding a total feature failure behind a plausible-looking empty state, not a
+degraded one.
+
+**There is no `capacity` in Lich for DR, full stop.** Searched
+`common-items.rb` and the rest of `lib/dragonrealms` for any container
+capacity/weight-limit concept — nothing. DR containers have a real physical
+limit in-game but Lich does not compute or expose a number for it anywhere.
+Do not invent one (e.g. by guessing from item type) — that reproduces #5 with
+extra steps. The client's `InventoryPanel.tsx` has already been changed
+(this session) to only draw the used/capacity bar when `capacity > 0`, and to
+show "contents unknown" otherwise, so sending real *item counts* without a
+capacity is fine and will render honestly — a capacity field is not a
+blocker for shipping counts.
+
+**What's actually gettable, and the concrete replacement:**
+
+1. **Discover worn containers.** No enumeration method exists; the nearest
+   real primitive is Lich core's `GameObj.inv` (top-level inventory) filtered
+   to items that behave as containers. `DRCI.open_container?`/`close_container?`
+   already exist and work against a named container, so a reasonable
+   approach: take `GameObj.inv`, and for anything not obviously a weapon or
+   wearable, probe with `look_in_container` — see `common-items.rb:1631`
+   (`look_in_container`) — which already parses "you see nothing" vs a real
+   item list without needing a capacity to interpret. Whatever the actual
+   detection method ends up being, it needs to run without opening/closing
+   things the player is mid-use of — flag the safety question to Prime before
+   wiring it into a periodic status tick.
+2. **Count contents.** `list_container_contents`/`rummage_container`
+   (`common-items.rb:1654`, `1612`) already return the real item list per
+   container. `used` should be that list's length — a real, gettable number —
+   not a fabricated one.
+3. **Send `used` with no `capacity`.** Given point 2 is achievable and point
+   1 (capacity) is not, ship `{ name, used, capacity: 0 }` honestly — the
+   client already treats `capacity === 0` as "not reported" and hides the bar,
+   showing the count differently is a client-side follow-up once real `used`
+   values exist, not a blocker here.
+4. **`pressure` should be dropped from this payload, not fixed.** The client
+   no longer reads `inventory.pressure` — it reads `character.encumbrance`
+   (`DRStats.encumbrance`, already sent, already real) for the header
+   indicator instead. Leave `pressure` in the wire type for older-client
+   compatibility if that matters, but there is no need to compute a real
+   value for it; nothing consumes it anymore.
+
+**Cost note, matching the injuries section's caution:** opening/rummaging
+every worn container to count contents is a real in-game action with
+roundtime and message-log cost, same shape as `check_health`'s `HEALTH`
+command. Recommend the same answer: on-demand behind the existing
+`get_inventory`/`subscribe inventory` path or a dedicated intent the UI
+triggers deliberately (e.g. the existing "Loot pass"/"Stow all" buttons
+already touch inventory), not a background poll, until Prime signs off on
+the safety surface.
+
+**Acceptance check:** with a live bridge, wear at least two containers with
+different known content counts, confirm `inventory.containers` reports the
+right names and the right `used` count for each (not `[]`, not `0`), and
+confirm the header now shows a real encumbrance word instead of a hardcoded
+"Space OK".
+
+## Implemented-intents contract (spec — not yet implemented, issue #30)
+
+Written by the Activities/Battle session (`downloads-ca`) for
+`companion_bridge.lic`'s owner (`GUI features 1`) to implement, per Prime's
+ruling: one owner for this file, a contract written down rather than
+described in chat. Do not treat this section as done until the Ruby side
+actually sends the field — it is a spec, not a changelog.
+
+**The gap today.** `IntentName` in `src/bridge/types.ts` declares 22 intents.
+`Intents.handle` in `companion_bridge.lic` implements 11 of them; the other 11
+(`buffs`, `burgle`, `escape`, `escape_heal`, `get_status`, `go_healer`,
+`loot`, `start_combat`, `start_training`, `town_run`, `travel`) fall through
+to the `else` branch at `companion_bridge.lic:1262` and come back
+`"'<intent>' is not implemented in bridge v0.9.0 yet."` Two of those are live
+buttons in the footer today (`start_training`, `town_run`), so the app ships
+controls that look live and are not. See issue #30 for the full diff and
+reproduction.
+
+**Direction chosen:** stop offering what the bridge cannot do, rather than
+racing to implement all eleven. The bridge advertises what it actually
+implements; the UI disables anything absent. That makes a declared-but-unbuilt
+intent render disabled instead of shipping as a dead button — structurally,
+not by anyone remembering to update a checklist.
+
+**Wire format.** Add one optional field to the existing `hello` frame:
+
+```ts
+{ type: 'hello', protocol, lichVersion, bridgeVersion, auth?, authNote?,
+  implementedIntents?: string[] }
+```
+
+`implementedIntents` is the literal set of case labels `Intents.handle`
+actually matches — read it off the dispatch table itself (e.g. collect the
+`when '...'` labels at load time) rather than hand-maintaining a second list
+next to the first. A hand-maintained list is exactly the class of defect this
+field exists to close: it would drift the same way `IntentName` did.
+
+**Three states, not two — this is the same shape as `auth`/`authNote` on this
+same frame, and for the same reason:**
+
+- **Field absent** (bridge older than whatever version ships this) → unknown
+  whether an intent is implemented. The UI must **not** disable anything on
+  this basis. An old bridge that has never advertised its intent set is not
+  evidence any given intent is missing, and defaulting absence to "disable
+  everything" would brick every control against every bridge shipped before
+  this field — a much worse failure than the one being fixed.
+- **Field present, intent listed** → implemented. Enable normally.
+- **Field present, intent NOT listed** → not implemented. Disable the
+  control, and say why in its `title`/tooltip rather than just greying it out
+  silently.
+
+Safety intents (`stop_all`, `pause`, `resume`, `escape` — see
+`SAFETY_INTENTS` in `useAppStore.ts`) are exempt from disabling on this basis
+regardless of what the list says. They already bypass every other gate in the
+store for the same reason: a stale signal must never be the thing standing
+between a player and Stop.
+
+**The mock bridge must be able to produce every branch of this**, including
+the disabled one — a state the fixture cannot reach is a state nobody sees
+until a live bridge is the first place it happens. `mockBridge.ts`'s `hello`
+emit should send an `implementedIntents` list matching the real bridge's
+current 11 (everything except the eleven above), so the dev build shows the
+honest disabled state on `start_training`/`town_run`/etc. today rather than
+only after a live bridge update ships.
+
+**Acceptance check:** connect to a live (or updated mock) bridge, confirm
+`start_training` and `town_run` render disabled with a tooltip explaining why
+when the bridge is v0.9.0 (no field), confirm they render enabled once the
+bridge advertises them, and confirm Stop/Pause/Resume/Escape are never
+disabled by this regardless of what the list says or whether it's present at
+all.
