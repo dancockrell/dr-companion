@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { SetupWizard } from './components/first-run/SetupWizard'
 import { Dashboard } from './components/dashboard/Dashboard'
 import { RoomColumn } from './components/room/RoomColumn'
@@ -44,7 +44,32 @@ const MIN_PX = 80
 
 export default function App() {
   const setupComplete = useAppStore((s) => s.setupComplete)
+  const connectBridge = useAppStore((s) => s.connectBridge)
   const hostRef = useRef<HTMLElement | null>(null)
+
+  /*
+   * Connect the bridge when the app opens.
+   *
+   * Nothing did. `connectBridge()` was reachable only from the settings sheet
+   * and from the popped-out map window, so a normal launch never dialled it -
+   * the dashboard, the map, the room panel and the channel tabs all stayed
+   * empty, and the only hint was a small "Bridge down" badge in the footer.
+   *
+   * Found against a live DragonRealms session, which is the only way it could
+   * have been found: the game pane was full of real text the whole time,
+   * because that is a separate TCP link to Lich's detachable client, not the
+   * bridge. So the app looked half-alive - genuine game output beside a
+   * character panel reading "Waiting for a character" - and the natural
+   * reading was that the character panels were broken rather than that
+   * nothing had ever asked the bridge for data.
+   *
+   * The popped-out map window connecting on mount is what makes this
+   * definitely a miss rather than a decision: the same call, in the same
+   * shape, exists one component away.
+   */
+  useEffect(() => {
+    connectBridge()
+  }, [connectBridge])
 
   /**
    * The columns are fixed widths in pixels, not shares of the window.

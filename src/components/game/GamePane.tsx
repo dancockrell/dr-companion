@@ -58,6 +58,39 @@ const WINDOW = 400
 /** How many more to add each time the reader reaches the top. */
 const STEP = 400
 
+/**
+ * The port this app opens when it launches Lich itself, and so the sensible
+ * first guess for a Lich somebody else started. Not a constraint - see the
+ * port input in the header for why it has to be editable.
+ */
+const DEFAULT_PORT = '11024'
+
+const PORT_KEY = 'drc.attach-port.v1'
+
+/**
+ * A port is a number in the range the OS will actually let something bind.
+ *
+ * Checked before enabling Attach rather than after pressing it, because the
+ * failure otherwise arrives from Rust as a connection error and reads like
+ * "Lich is not running" - sending somebody to debug the game when they have
+ * simply typed 1102 or 110244.
+ */
+function validPort(v: string): boolean {
+  const n = Number(v)
+  return Number.isInteger(n) && n >= 1 && n <= 65535
+}
+
+/** Remembered, because a port you retype every launch is barely better than a fixed one. */
+function loadPort(): string {
+  try {
+    const saved = localStorage.getItem(PORT_KEY)
+    return saved && validPort(saved) ? saved : DEFAULT_PORT
+  } catch {
+    // Private mode. Losing a remembered port is not worth failing the pane.
+    return DEFAULT_PORT
+  }
+}
+
 export function GamePane() {
   // The version, not the array: the buffer is mutated in place, so its
   // identity never changes. This worked only because gameState() below is
@@ -70,6 +103,15 @@ export function GamePane() {
   const dropped = useSyncExternalStore(subscribeGame, gameDropped, gameDropped)
 
   const [shown, setShown] = useState(WINDOW)
+  const [port, setPortState] = useState<string>(loadPort)
+  const setPort = (v: string) => {
+    setPortState(v)
+    try {
+      if (validPort(v)) localStorage.setItem(PORT_KEY, v)
+    } catch {
+      // Private mode; the value still works for this session.
+    }
+  }
   const [command, setCommand] = useState('')
 
   /**
@@ -288,15 +330,38 @@ export function GamePane() {
               Detach
             </button>
           ) : (
-            <button
-              type="button"
-              className="rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-accent"
-              onClick={() => void attachGame(11024)}
-              title="Attach to a Lich running with --detachable-client=11024"
-              disabled={!isTauri()}
-            >
-              Attach
-            </button>
+            <>
+              {/* The port is editable, and it needs to be.
+                *
+                * This was hardcoded to 11024, which is right for a Lich this
+                * app launched itself and wrong for every other case: a Lich
+                * someone started by hand on another port, a second character
+                * on a second port, or the replay fixture, which now defaults
+                * to 11124 specifically so it stops squatting on the real one.
+                * With a fixed button none of those was reachable - the pane
+                * said "nothing yet" and there was no way to tell it where to
+                * look. */}
+              <input
+                type="text"
+                inputMode="numeric"
+                value={port}
+                onChange={(e) =>
+                  setPort(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))
+                }
+                className="w-14 rounded border border-border bg-surface px-1 py-0.5 text-center tabular-nums text-ink-muted"
+                title="The port Lich opened with --detachable-client. 11024 is what this app uses when it launches Lich itself."
+                disabled={!isTauri()}
+              />
+              <button
+                type="button"
+                className="rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-accent disabled:opacity-40"
+                onClick={() => void attachGame(Number(port))}
+                title={`Attach to a Lich running with --detachable-client=${port}`}
+                disabled={!isTauri() || !validPort(port)}
+              >
+                Attach
+              </button>
+            </>
           )}
         </span>
       </div>
@@ -319,7 +384,7 @@ export function GamePane() {
         {lines.length === 0 && (
           <p className="p-2 text-xs leading-relaxed text-ink-faint">
             Nothing yet. Start Lich with{' '}
-            <code className="text-ink">--detachable-client=11024</code> and press Attach,
+            <code className="text-ink">--detachable-client={port}</code> and press Attach,
             and this becomes the client rather than a panel beside one.
           </p>
         )}

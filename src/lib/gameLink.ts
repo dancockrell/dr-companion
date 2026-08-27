@@ -131,7 +131,27 @@ function wire() {
       buffer = buffer.slice(-MAX_LINES)
     }
     version++
-    state = { ...state, lines: nextSeq }
+
+    // A line arriving is proof the socket is open.
+    //
+    // This used to be `{ ...state, lines: nextSeq }`, which carried the old
+    // `connected` forward - so once the frontend believed the link was down,
+    // it believed it forever while game text poured into the pane behind the
+    // words "not attached". Caught against a live DragonRealms session: Rust
+    // reported `connected: true, lines: 270`, real game text was rendering,
+    // and the header still offered an Attach button that then refused with
+    // "Already attached".
+    //
+    // Not an inference. `game:line` is emitted only by the reader thread, and
+    // only while it is running - the event cannot arrive from a closed
+    // socket. Deriving `connected` from it is reading a fact, and it makes
+    // the state self-healing rather than dependent on never missing an event.
+    state = {
+      ...state,
+      connected: true,
+      lines: nextSeq,
+      note: state.connected ? state.note : '',
+    }
     notify()
   })
 
@@ -193,9 +213,32 @@ export function gameDropped(): number {
 
 export async function attachGame(port: number, host?: string): Promise<LinkState> {
   wire()
-  state = (await invokeTauri('game_attach', { host: host ?? null, port })) as LinkState
-  notify()
-  return state
+  try {
+    state = (await invokeTauri('game_attach', { host: host ?? null, port })) as LinkState
+    notify()
+    return state
+  } catch (e) {
+    // A refusal is information about the real state, so use it rather than
+    // dropping it on the floor.
+    //
+    // The backend refuses a second attach with "Already attached to host:port"
+    // - which means it is connected, and the only reason this call happened is
+    // that the frontend thought otherwise. Left as a bare throw, the two sides
+    // stayed disagreeing: the UI kept offering Attach, every press was refused,
+    // and the only way out was restarting the app - which on a live session
+    // means dropping the character's connection to fix a display bug.
+    //
+    // Asking the backend what is actually true costs one call and turns a
+    // dead end into a correction.
+    try {
+      state = (await invokeTauri('game_status')) as LinkState
+      notify()
+    } catch {
+      // The status call failed too, so the backend is genuinely unreachable.
+      // Let the original error stand rather than inventing a state.
+    }
+    throw e
+  }
 }
 
 export async function detachGame(): Promise<LinkState> {

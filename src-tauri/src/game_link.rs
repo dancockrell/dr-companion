@@ -252,6 +252,27 @@ pub fn game_attach(
 
     let st = state_of(Some(&handle), "");
     *link.inner.lock().unwrap() = Some(handle);
+
+    // Announced, not just returned.
+    //
+    // Returning the state tells whoever called; emitting tells everyone. Those
+    // are different, and the difference showed up on the first real login:
+    // attaching through anything other than the TypeScript wrapper - the
+    // script API, a devtools call, a second window - left the pane streaming
+    // live game text under a header that still read "not attached", because
+    // only the caller's own local copy was updated.
+    //
+    // Worse, it was unrecoverable from the UI: pressing Attach then hit the
+    // "Already attached" guard above, which fails, so the frontend's state was
+    // never corrected and the button could not fix what the button appeared to
+    // be for. A dev-mode HMR reload reaches the same state honestly, with the
+    // Rust side still attached and a freshly-mounted pane that has forgotten.
+    //
+    // The disconnect paths in the reader thread already emit `game:state` for
+    // exactly this reason. Connecting is the same kind of event and was the
+    // one that did not say so.
+    let _ = app.emit("game:state", st.clone());
+
     Ok(st)
 }
 
@@ -280,7 +301,7 @@ pub fn game_send(link: State<'_, GameLink>, command: String) -> Result<(), Strin
 }
 
 #[tauri::command]
-pub fn game_detach(link: State<'_, GameLink>) -> LinkState {
+pub fn game_detach(app: AppHandle, link: State<'_, GameLink>) -> LinkState {
     let mut guard = link.inner.lock().unwrap();
     if let Some(h) = guard.as_ref() {
         h.running.store(false, Ordering::Relaxed);
@@ -291,7 +312,15 @@ pub fn game_detach(link: State<'_, GameLink>) -> LinkState {
     }
     std::thread::sleep(Duration::from_millis(50));
     *guard = None;
-    state_of(None, "Detached.")
+
+    let st = state_of(None, "Detached.");
+    // Same reasoning as attach: a detach initiated anywhere other than the
+    // TypeScript wrapper - a script, another window - has to reach every
+    // listener, or a pane sits showing a live-looking header over a socket
+    // that is gone. The reader thread cannot cover this one, because a clean
+    // detach is the case where it exits without an error to report.
+    let _ = app.emit("game:state", st.clone());
+    st
 }
 
 #[cfg(test)]
