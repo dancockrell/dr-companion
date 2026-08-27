@@ -28,6 +28,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { Button } from '../shared/Button'
 import { Preflight } from './Preflight'
 import { ComponentCard, type CardState } from './ComponentCard'
+import { NoobChecklist } from './NoobChecklist'
 import { ConnectGuide } from './ConnectGuide'
 import { DependencyStrip, type Dep } from './DependencyStrip'
 import { isTauri } from '../../lib/tauri'
@@ -375,6 +376,21 @@ export function SetupWizard() {
       {phase !== 'browser' && lichPresent && (
         <ConnectGuide lichPath={lichRbwPath} />
       )}
+
+      {/* What to sort out in the game itself, as opposed to on this machine.
+        *
+        * Thirteen items of new-player guidance that have been sitting in
+        * data/noobChecklist.ts since it was written, rendered by a component
+        * nothing mounted. Its own header said "Companion SetupWizard /
+        * Standard mode can surface these", so the intent was written down and
+        * simply never happened - which is the same failure as the hands
+        * display, and the reason tools/mounted-test.mjs now exists.
+        *
+        * Here rather than on the dashboard because this is the one screen
+        * somebody reads before they start, and every item is a thing you do
+        * once. On the dashboard it would be permanent furniture for a player
+        * who sorted all of it out months ago. */}
+      <NoobChecklist />
 
       <div className="pt-2 space-y-2">
         <Button
