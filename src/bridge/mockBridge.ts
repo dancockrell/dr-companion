@@ -65,8 +65,8 @@ const MOCK_ALL_INTENTS: string[] = [
  * downloads-37's audit + Prime, not by this file. See #34.
  */
 const MOCK_UNIMPLEMENTED_INTENTS: string[] = [
-  'buffs', 'burgle', 'escape', 'escape_heal', 'go_healer', 'loot',
-  'run_macro', 'start_combat', 'start_training', 'town_run', 'travel',
+  'buffs', 'burgle', 'escape_heal', 'go_healer', 'loot',
+  'start_combat', 'start_training', 'town_run', 'travel',
 ]
 
 /**

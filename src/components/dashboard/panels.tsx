@@ -15,6 +15,7 @@ import {
   Package,
   ShieldAlert,
   ListChecks,
+  ListTree,
 } from 'lucide-react'
 import type { PanelId } from '../../lib/layout'
 import { ActionsPanel } from '../shared/ActionsPanel'
@@ -25,6 +26,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { RiskBar } from '../shared/RiskBar'
 import { ScriptLauncher } from '../shared/ScriptLauncher'
+import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel'
 import { BattlePanel } from '../shared/BattlePanel'
 import type { Deck } from '../../lib/cards'
 import type { DeckPref } from '../../lib/layout'
@@ -39,6 +41,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   vitals: 'Vitals',
   mindstate: 'Mindstate',
   room: 'Battle',
+  scripts: 'Script Library',
 }
 
 export const PANEL_ICONS: Record<PanelId, ReactNode> = {
@@ -51,6 +54,7 @@ export const PANEL_ICONS: Record<PanelId, ReactNode> = {
   vitals: <Zap className="w-3.5 h-3.5" />,
   mindstate: <Brain className="w-3.5 h-3.5" />,
   room: <Users className="w-3.5 h-3.5" />,
+  scripts: <ListTree className="w-3.5 h-3.5" />,
 }
 
 /**
@@ -87,6 +91,9 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
   room: (_dense, _filled, ctx) => (
     <BattlePanel deckPrefs={ctx?.deckPrefs} onCycleDeck={ctx?.onCycleDeck} />
   ),
+  // No categoryOf/filter yet — UX-3's scriptCatalog.ts hasn't landed in this
+  // tree. Follow-up wiring, not a reason to leave the panel unmounted.
+  scripts: (dense) => <ScriptLibraryPanel dense={dense} />,
 }
 
 export function panelTitle(id: PanelId): string {

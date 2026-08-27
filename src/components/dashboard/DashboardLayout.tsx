@@ -13,6 +13,7 @@ import { ActionsPanel } from '../shared/ActionsPanel'
 import { TrainingPanel } from '../shared/TrainingPanel'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { RiskBar } from '../shared/RiskBar'
+import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { fromRoom } from '../../lib/room'
 import type { Deck } from '../../lib/cards'
@@ -280,6 +281,23 @@ export function DashboardLayout({
             ) : (
               <p className="text-xs text-ink-faint">Nobody else here.</p>
             )}
+          </PanelBoundary>
+        </Box>
+
+        {/* Script Library, last in the rail on purpose. It is the whole Lich
+            script library, not something read during a fight — everything
+            above it answers "what's happening right now"; this answers "what
+            else could I run". Same orphan risk as Risk/Training/Inventory
+            above: built and registered in panels.tsx, invisible until seated
+            here by hand.
+
+            No categoryOf/filter yet — that's UX-3's scriptCatalog.ts, not
+            landed in this tree yet. Mounted bare rather than waiting, so it
+            is not another built-and-invisible panel; wiring the curated
+            taxonomy in is a follow-up, not a blocker on being seen at all. */}
+        <Box className="min-h-0">
+          <PanelBoundary label="Script Library">
+            <ScriptLibraryPanel dense={dense} />
           </PanelBoundary>
         </Box>
       </div>

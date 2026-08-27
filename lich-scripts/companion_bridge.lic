@@ -1251,6 +1251,8 @@ module Companion
         [true, 'reset']
       when 'pause'    then pause_all(server)
       when 'resume'   then resume_all(server)
+      when 'escape'   then escape(server)
+      when 'run_macro' then run_macro(args, server)
       when 'check_health' then check_health(server)
       when 'stow_all'     then stow_all(server)
       when 'trace_on'
@@ -1761,6 +1763,53 @@ module Companion
       end
       server.log("Resumed: #{resumed.join(', ')}") unless resumed.empty?
       [true, "resumed #{resumed.size}"]
+    end
+
+    # Emergency exit to safety. Declared a safety intent on the client
+    # (SAFETY_INTENTS, alongside stop_all/pause/resume) with nothing behind it
+    # here until now - the promise that this "always works" was never backed
+    # by a handler, which is worse than not promising it at all.
+    #
+    # Deliberately narrow: flee is DragonRealms' own built-in escape, not a
+    # composed routine of retreats and heals. A safety command earns "always
+    # works" by doing one well-understood thing, not by getting cleverer.
+    def escape(server)
+      Runaway.reset
+      line = Cmd.exec(
+        'flee',
+        expect: [/You have fled|You can't flee|nowhere to flee|too hurt|You gather yourself/i],
+        timeout: 6
+      )
+      server.log("Escape: #{line || 'no response from flee'}", line ? 'info' : 'warn')
+      [true, line || 'flee sent, no response seen']
+    end
+
+    # Send literal game commands, from a macro or task-flow step the player
+    # configured. Not sanitised or whitelisted the way start_script is -
+    # these are commands the player wrote themselves, the same trust level as
+    # typing them into Lich directly, and the type this intent exists for
+    # (see bridge/types.ts) is exactly the words a player already trusted the
+    # macro bar with.
+    #
+    # Runs the same way stow_all does: sequentially, in this thread, each
+    # command waiting real roundtime through Cmd.exec. That means a Stop sent
+    # while a long macro is mid-run queues behind it rather than pre-empting
+    # it - a limitation this shares with every other multi-step intent here,
+    # not something new. Flagged to prime rather than solved here: fixing it
+    # needs the connection made non-blocking, which is a bigger change than
+    # "make run_macro exist."
+    MAX_MACRO_COMMANDS = 50
+
+    def run_macro(args, server)
+      raw = args.is_a?(Hash) ? args['commands'] : nil
+      return [false, 'no commands given'] unless raw.is_a?(Array)
+
+      commands = raw.map(&:to_s).map(&:strip).reject(&:empty?).first(MAX_MACRO_COMMANDS)
+      return [false, 'no commands given'] if commands.empty?
+
+      commands.each { |command| Cmd.exec(command, label: 'macro') }
+
+      [true, "#{commands.size} command(s) sent"]
     end
   end
 
