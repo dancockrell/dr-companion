@@ -65,10 +65,35 @@ TEST_LICH_DIR = File.join(Dir.tmpdir, "drc-bridge-test-#{Process.pid}")
 FileUtils.mkdir_p(File.join(TEST_LICH_DIR, 'scripts'))
 at_exit { FileUtils.rm_rf(TEST_LICH_DIR) }
 
+# Script.running had no stub at all - undefined, so State.safe([]) {
+# Script.running } silently returned [] in every test that has ever run,
+# including every stop_all/pause/resume check tonight. That happened to be
+# the right answer for "is anything running" (nothing was), but it also
+# meant pause_all/resume_all's actual loop - find a running unpaused
+# script, call Script.pause on it, report it - has never executed a single
+# iteration in this suite. $fake_running_scripts stays empty by default so
+# every existing test keeps seeing "nothing was running"; only the pause
+# test below populates it, on purpose, to prove the loop body runs.
+FakeRunningScript = Struct.new(:name, :paused) do
+  def paused? = paused
+end
+$fake_running_scripts = []
+
 class FakeScript
   def self.current = new
   def path = File.join(TEST_LICH_DIR, 'scripts', 'companion_bridge.lic')
   def self.at_exit(&_blk) = nil
+  def self.running = $fake_running_scripts
+
+  def self.pause(name)
+    s = $fake_running_scripts.find { |x| x.name == name }
+    s.paused = true if s
+  end
+
+  def self.unpause(name)
+    s = $fake_running_scripts.find { |x| x.name == name }
+    s.paused = false if s
+  end
 end
 Script = FakeScript
 
@@ -1211,6 +1236,108 @@ begin
     Companion::Runaway.tripped == false,
     Companion::Runaway.tripped
   )
+
+  # ------------------------------------------------------------------------
+  # trace_on / trace_off / trace_dump: the diagnostic console
+  # (useAppStore.ts's setTraceEnabled, rendered by Console.tsx), reachable
+  # only through `as IntentName` casts until prime lands the type fix
+  # tonight. Real intents, Trace had zero test coverage at any level before
+  # this - not module-level, not wiring. Each check proves the actual
+  # module state changed, not just that an ack came back, the same
+  # discipline reset_runaway's test above was written to enforce.
+  puts ''
+  puts '-- trace_on genuinely enables tracing, not just acks --'
+  Companion::Trace.enable(false)
+  check('floor: tracing is genuinely off before this test proceeds',
+        Companion::Trace.enabled? == false, Companion::Trace.enabled?)
+  c.send_json(type: 'intent', intent: 'trace_on')
+  msgs = collect(c, 4)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('acked ok', ack && ack['ok'] == true, ack.inspect)
+  check('and tracing is actually enabled, not just acknowledged',
+        Companion::Trace.enabled? == true, Companion::Trace.enabled?)
+
+  puts ''
+  puts '-- trace_off genuinely disables tracing, not just acks --'
+  c.send_json(type: 'intent', intent: 'trace_off')
+  msgs = collect(c, 4)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('acked ok', ack && ack['ok'] == true, ack.inspect)
+  check('and tracing is actually disabled, not just acknowledged',
+        Companion::Trace.enabled? == false, Companion::Trace.enabled?)
+
+  puts ''
+  puts '-- trace_dump replays the real recorded rows, not an empty tail --'
+  # Recent rows are kept even while tracing is off (Trace.event's own
+  # comment: "so a tester who turns it on after something went wrong still
+  # has the last few lines"), and trace_dump reads them directly rather
+  # than through the live sink - the floor below is what proves this test
+  # is exercising real recorded history, not an artifact of tracing having
+  # just been turned on above.
+  #
+  # Enabled explicitly false here, not assumed from the trace_off test
+  # above: Trace.event also fires the live sink when enabled, which would
+  # broadcast each event a second time and double the row count this test
+  # reads back - a failure that would look like this test's own bug but
+  # actually be trace_off's, entangling two independent checks. Making
+  # every precondition this test needs true here, rather than inherited
+  # from test order, is what keeps sabotaging trace_off from also
+  # reddening this section.
+  Companion::Trace.enable(false)
+  Companion::Trace.instance_variable_set(:@recent, [])
+  Companion::Trace.event(:send, 'test command one')
+  Companion::Trace.event(:reply, 'test reply one')
+  check('floor: two real rows are recorded before this test proceeds',
+        Companion::Trace.recent.size == 2, Companion::Trace.recent.size)
+  c.send_json(type: 'intent', intent: 'trace_dump')
+  msgs = collect(c, 6)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  trace_rows = msgs.select { |m| m['type'] == 'trace' }
+  check('acked with the real count, not a guess', ack && ack['detail'] == '2 rows', ack.inspect)
+  check('and both real rows actually reached the wire', trace_rows.size == 2, trace_rows.inspect)
+  check(
+    'carrying the real recorded detail text, not placeholders',
+    trace_rows.any? { |r| r['row']['detail'] == 'test command one' } &&
+      trace_rows.any? { |r| r['row']['detail'] == 'test reply one' },
+    trace_rows.inspect
+  )
+
+  puts ''
+  puts '-- pause genuinely pauses a running script, not just acks --'
+  # Zero dispatches anywhere in this suite before this test, while resume
+  # had five - and pause is in ALWAYS, one of the three intents that must
+  # work whenever the socket is open no matter what the game looks like. A
+  # safety-classed intent untested at every level was the worst gap left
+  # once the wiring batch closed.
+  #
+  # The check below is deliberately not "was Script.pause called" - it is
+  # "does the thing pause_all was pausing actually read as paused
+  # afterwards", the same shape as the client-side fix that made pause work
+  # for real: clearing the timer, not setting a flag a later path ignores
+  # or walks past. A test that only checked the ack, or only checked that
+  # pause_all's own local `paused` array grew, would pass against a bridge
+  # that pauses nothing anyone else can observe.
+  $fake_running_scripts = [FakeRunningScript.new('hunting-buddy', false)]
+  check('floor: a real running, unpaused script exists before this test proceeds',
+        $fake_running_scripts.first.paused? == false, $fake_running_scripts.inspect)
+  c.send_json(type: 'intent', intent: 'pause')
+  msgs = collect(c, 4)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('acked ok, naming the real count', ack && ack['detail'] == 'paused 1', ack.inspect)
+  check(
+    'and the script is actually paused, observable from outside the intent handler',
+    $fake_running_scripts.first.paused? == true,
+    $fake_running_scripts.inspect
+  )
+
+  puts ''
+  puts '-- resume genuinely unpauses it back, closing the loop --'
+  c.send_json(type: 'intent', intent: 'resume')
+  msgs = collect(c, 4)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('acked ok, naming the real count', ack && ack['detail'] == 'resumed 1', ack.inspect)
+  check('and the script is actually unpaused', $fake_running_scripts.first.paused? == false, $fake_running_scripts.inspect)
+  $fake_running_scripts = []
 
   c.close
 ensure
