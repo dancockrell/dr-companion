@@ -354,5 +354,63 @@ console.log('\n-- Pause called back from inside send() does not runaway-resend -
   ok('  and says why', typeof notList.note, 'string')
 }
 
+// ---------------------------------------------------------------------------
+// A verdict about Lich must survive a status refresh that does not carry one.
+//
+// `game_status` builds its answer from whether a handle exists, so once the
+// reader thread is gone it reports `lich: "unknown"` regardless of what the
+// probe found afterwards. `refreshGameState()` runs on every GamePane mount,
+// so a pop-out or a layout change would otherwise replace "Lich has exited"
+// with silence - the field read once and then thrown away, which is this
+// codebase's recurring defect one layer out.
+{
+  console.log('\n-- a Lich verdict is not downgraded by a blind status refresh --')
+  const { adoptLink } = await import('../src/lib/gameLink.ts')
+
+  const base = { connected: false, host: '127.0.0.1', port: 11024, lines: 0, note: '' }
+  const held = { ...base, lich: 'gone' }
+
+  ok(
+    'a blind refresh while detached keeps the verdict',
+    adoptLink(held, { ...base, lich: 'unknown' }).lich,
+    'gone'
+  )
+  ok(
+    'and an absent field counts as blind, not as a new answer',
+    adoptLink(held, { ...base }).lich,
+    'gone'
+  )
+
+  // The deliberate second emit - unknown resolving into a verdict - must still
+  // land, or the whole two-emit design stops working.
+  ok(
+    'unknown is still upgraded to gone',
+    adoptLink({ ...base, lich: 'unknown' }, { ...base, lich: 'gone' }).lich,
+    'gone'
+  )
+  ok(
+    'and a verdict may be replaced by a different verdict',
+    adoptLink(held, { ...base, lich: 'alive' }).lich,
+    'alive'
+  )
+
+  // Re-attaching lifts the hold, so a stale verdict cannot outlive the
+  // disconnect it describes.
+  ok(
+    'reconnecting clears the hold',
+    adoptLink(held, { ...base, connected: true, lich: 'unknown' }).lich,
+    'unknown'
+  )
+
+  // Control: everything else on the state passes through untouched. Without
+  // this, an adopt() that returned the held state wholesale would satisfy
+  // every assertion above.
+  ok(
+    'the rest of the state is the new one, not the old',
+    adoptLink({ ...held, port: 1 }, { ...base, port: 2, note: 'x', lich: 'unknown' }),
+    { ...base, port: 2, note: 'x', lich: 'gone' }
+  )
+}
+
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

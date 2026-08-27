@@ -14,8 +14,8 @@
  *
  * See docs/ENGINE.md.
  */
-import { listenTauri, invokeTauri, isTauri } from './tauri'
-import { feed, newStreamState, looksTagged } from './gameStream'
+import { listenTauri, invokeTauri, isTauri } from './tauri.ts'
+import { feed, newStreamState, looksTagged } from './gameStream.ts'
 
 export interface GameLine {
   seq: number
@@ -202,7 +202,7 @@ function wire() {
   })
 
   listenTauri<LinkState>('game:state', (s) => {
-    state = s
+    state = adopt(s)
     notify()
   })
 }
@@ -270,10 +270,44 @@ function asLinkState(v: unknown): LinkState | null {
   return v && typeof v === 'object' && 'connected' in v ? (v as LinkState) : null
 }
 
+/**
+ * Take a new link state without throwing away a verdict it does not carry.
+ *
+ * `game_status` builds its answer from whether a handle exists, so once the
+ * reader thread has gone it reports `lich: "unknown"` and `note: "Not
+ * attached."` - correct about the handle, and blind to the probe that ran
+ * afterwards. Any call to it while detached would therefore overwrite "Lich
+ * has exited" with silence, and `refreshGameState()` runs on every GamePane
+ * mount, so a pop-out or a layout change is enough to trigger it.
+ *
+ * The rule is narrow on purpose: **never downgrade a definite verdict to
+ * unknown while still detached.** An upgrade is exactly what the deliberate
+ * second `game:state` emit is for - unknown becoming gone or alive - so that
+ * must still pass through. And re-attaching sets `connected`, which lifts the
+ * hold, so a stale verdict cannot outlive the disconnect it describes.
+ *
+ * Found as a could-not-determine lead rather than a reproduction: the app was
+ * being hot-reloaded during the measurement, and a reload produces the same
+ * three symptoms. The code answers it whether or not that observation did.
+ */
+export function adoptLink(prev: LinkState, next: LinkState): LinkState {
+  const incoming = next.lich ?? 'unknown'
+  const held = prev.lich
+  if (!next.connected && incoming === 'unknown' && held && held !== 'unknown') {
+    return { ...next, lich: held }
+  }
+  return next
+}
+
+/** Module-state wrapper, so callers do not each have to remember to pass `state`. */
+function adopt(next: LinkState): LinkState {
+  return adoptLink(state, next)
+}
+
 export async function attachGame(port: number, host?: string): Promise<LinkState> {
   wire()
   try {
-    state = asLinkState(await invokeTauri('game_attach', { host: host ?? null, port })) ?? state
+    state = adopt(asLinkState(await invokeTauri('game_attach', { host: host ?? null, port })) ?? state)
     notify()
     return state
   } catch (e) {
@@ -290,7 +324,7 @@ export async function attachGame(port: number, host?: string): Promise<LinkState
     // Asking the backend what is actually true costs one call and turns a
     // dead end into a correction.
     try {
-      state = asLinkState(await invokeTauri('game_status')) ?? state
+      state = adopt(asLinkState(await invokeTauri('game_status')) ?? state)
       notify()
     } catch {
       // The status call failed too, so the backend is genuinely unreachable.
@@ -312,7 +346,7 @@ export async function sendGame(command: string): Promise<void> {
 
 export async function refreshGameState(): Promise<LinkState> {
   wire()
-  state = asLinkState(await invokeTauri('game_status')) ?? state
+  state = adopt(asLinkState(await invokeTauri('game_status')) ?? state)
   notify()
   return state
 }

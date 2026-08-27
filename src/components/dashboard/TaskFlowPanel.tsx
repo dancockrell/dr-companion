@@ -224,6 +224,20 @@ function FlowEditor({
   const [draft, setDraft] = useState<TaskFlow>(flow)
   const known = DEFAULT_FLOWS.some((f) => f.id === flow.id)
 
+  /**
+   * The first step that would make `loadCustomFlows()` reject this whole flow,
+   * or null.
+   *
+   * Held here rather than inlined into `disabled` so the same answer drives
+   * both the gate and the message beside it. Two conditions that mean the same
+   * thing drift, and the drift this replaces was exactly that: the gate asked
+   * whether *some* step had commands while the loader required *every* step to.
+   */
+  const emptyStep = (() => {
+    const i = draft.steps.findIndex((s) => s.commands.filter((c) => c.trim()).length === 0)
+    return i === -1 ? null : i
+  })()
+
   const setStep = (i: number, patch: Partial<TaskFlow['steps'][number]>) =>
     setDraft((d) => ({
       ...d,
@@ -302,12 +316,32 @@ function FlowEditor({
         + Step
       </button>
 
+      {/* Named, not just disabled. Save going dead with no reason given is its
+          own small mystery, and "+ Step" produces an empty step by design, so
+          this is the ordinary state of a half-finished edit rather than an
+          error the player has to have made. */}
+      {emptyStep !== null && (
+        <span className="text-xs text-warn">
+          Step {emptyStep + 1} sends nothing. Give it a command, or remove it.
+        </span>
+      )}
+
       <div className="flex gap-1">
         <button
           type="button"
-          // A flow with no commands in it would start, report progress and do
-          // nothing, which is the exact failure this panel exists to remove.
-          disabled={!draft.steps.some((s) => s.commands.length)}
+          // `every`, not `some`. A flow with one empty step among several saves
+          // happily and is then rejected wholesale by loadCustomFlows(), which
+          // requires every step to send something - so the player adds a step,
+          // gets distracted, saves, sees the flow in the list, and finds the
+          // whole thing gone on next launch. The loss is logged, but from where
+          // they were standing the save worked.
+          //
+          // Repairing it instead - dropping empty steps on save - was the other
+          // option and is the wrong one here: an empty step is a decision about
+          // what the flow does, and this app's rule is repair what cannot reach
+          // the game, reject what can. Rejecting in front of the player beats
+          // discarding behind them.
+          disabled={emptyStep !== null}
           onClick={() => onSave(draft)}
           className="flex-1 rounded border border-accent/40 bg-accent/15 px-2 py-1 font-semibold text-accent disabled:opacity-40"
         >
