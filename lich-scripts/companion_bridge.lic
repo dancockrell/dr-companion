@@ -164,18 +164,45 @@ module Companion
       t.nil? || t.to_s.empty? ? 'unknown' : t.to_s
     end
 
+    # A maximum for a pool the game has not reported yet.
+    #
+    # Only reached before the first vitals tick, when there is genuinely no
+    # answer to give. It is 100 because four of the five pools really are
+    # percentages, so on those it is not a guess at all.
+    VITAL_MAX_FALLBACK = 100
+
+    def vital_max(reported)
+      m = reported.to_i
+      m > 0 ? m : VITAL_MAX_FALLBACK
+    end
+
+    # Every maximum here used to be the literal 100, and for four of the five
+    # that is very nearly right: DragonRealms sends health, mana, stamina and
+    # spirit as percentages, so their maximum is 100 and always will be.
+    #
+    # Concentration is not a percentage. Lich parses "330/330" out of the same
+    # XML attribute and keeps both halves - XMLData.concentration and
+    # XMLData.max_concentration - and a Circle 1 Bard has 330 of it. So a Bard
+    # was reported as 330 out of 100: a bar drawn a long way past its own end
+    # and a number that is simply false. Bards spend concentration the way
+    # other guilds spend mana, which made it the pool that mattered most to the
+    # guild this app was already worst at.
+    #
+    # Reading the real maximum for all five rather than special-casing the one
+    # we happened to catch. The same mistake is waiting in any pool that turns
+    # out not to be a percentage, and this closes it for all of them at once.
     def vitals
       {
         'health'           => safe(0) { DRStats.health.to_i },
-        'healthMax'        => 100,
+        'healthMax'        => safe(VITAL_MAX_FALLBACK) { vital_max(XMLData.max_health) },
         'spirit'           => safe(0) { DRStats.spirit.to_i },
-        'spiritMax'        => 100,
+        'spiritMax'        => safe(VITAL_MAX_FALLBACK) { vital_max(XMLData.max_spirit) },
         'fatigue'          => safe(0) { DRStats.fatigue.to_i },
-        'fatigueMax'       => 100,
+        'fatigueMax'       => safe(VITAL_MAX_FALLBACK) { vital_max(XMLData.max_stamina) },
         'concentration'    => safe(0) { DRStats.concentration.to_i },
-        'concentrationMax' => 100,
+        'concentrationMax' => safe(VITAL_MAX_FALLBACK) { vital_max(XMLData.max_concentration) },
         'mana'             => safe(0) { DRStats.mana.to_i },
-        'manaMax'          => 100
+        'manaMax'          => safe(VITAL_MAX_FALLBACK) { vital_max(XMLData.max_mana) }
       }
     end
 

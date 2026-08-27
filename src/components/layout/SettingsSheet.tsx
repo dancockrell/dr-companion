@@ -12,6 +12,7 @@ import { ProfilesPanel } from './ProfilesPanel'
 import { SettingsFilesPanel } from '../shared/SettingsFilesPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
+import { DEMO_PRESET_LIST } from '../../bridge'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -39,6 +40,12 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const character = useAppStore((s) => s.character)
   const preferredHealCity = useAppStore((s) => s.preferredHealCity)
   const setPreferredHealCity = useAppStore((s) => s.setPreferredHealCity)
+  const loadPreset = useAppStore((s) => s.loadPreset)
+
+  // Which preset is showing. Local because the bridge is the thing that holds
+  // it and does not report it back; the select would otherwise sit on its
+  // default while the app showed somebody else.
+  const [demoPreset, setDemoPreset] = useState('basic_prime')
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-3">
@@ -120,6 +127,47 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             <p className="text-xs text-ink-faint">
               Live uses ws://127.0.0.1:7415/companion
             </p>
+
+            {/* Which invented character Mock is pretending to be.
+             *
+             * This control already existed, in `PresetBar`, which nothing has
+             * ever mounted. So for the whole life of the project there was no
+             * way to reach any preset but the first, and five of the six had
+             * been seen only by whoever wrote them.
+             *
+             * Not a cosmetic gap. The reachable demo character is a barbarian
+             * with a sword, and every guild-shaped hole in this app stayed
+             * invisible precisely because that was the only character anybody
+             * ever looked at. A chooser nobody can reach is the same as no
+             * chooser, and this one cost more than a missing feature would
+             * have.
+             *
+             * It lives under Bridge because that is where Mock is turned on,
+             * and it is only meaningful while Mock is the source. */}
+            {bridgeMode === 'mock' && (
+              <label className="block space-y-1 pt-1">
+                <span className="text-xs text-ink-muted">Demo character</span>
+                <select
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-2 py-1.5 text-xs text-ink"
+                  value={demoPreset}
+                  onChange={(e) => {
+                    setDemoPreset(e.target.value)
+                    loadPreset(e.target.value)
+                  }}
+                >
+                  {DEMO_PRESET_LIST.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="block text-xs leading-snug text-ink-faint">
+                  They disagree with each other on purpose. Bard · Circle 1 is a
+                  real character read off a live session, and it is the one that
+                  shows what this app does badly.
+                </span>
+              </label>
+            )}
           </section>
 
           {/* Applied to the root font size, so every rem-based size in the app

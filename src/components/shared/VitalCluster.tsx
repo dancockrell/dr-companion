@@ -174,10 +174,33 @@ export function VitalCluster({
         const pct = Math.round(share * 100)
         const b = band(share)
 
+        /**
+         * Percentages for the pools that are percentages, real numbers for the
+         * pools that are not.
+         *
+         * Four of the five arrive from the game already as a percentage, so
+         * their maximum is 100 and this column is both the value and the
+         * share. Concentration is not one of them: the game sends it as a
+         * quantity, and a Circle 1 Bard has 330 of it.
+         *
+         * Rendered as a percentage, a full Bard read "100" - true, useless,
+         * and indistinguishable from health. Bards spend concentration in
+         * fixed amounts per song, so the question being asked of this row is
+         * *how much have I got*, not *what fraction is left*. A percentage
+         * cannot answer that; the number answers both, because the bar beside
+         * it already draws the share.
+         *
+         * The test is the maximum, not the guild and not the key. A pool whose
+         * maximum is 100 is a percentage and says so; anything else is a
+         * quantity. That keeps this right for whichever pool turns out next
+         * not to be a percentage, with no list for anybody to maintain.
+         */
+        const shown = v.max === 100 ? pct : v.value
+
         return (
           <div
             key={v.key}
-            className="grid grid-cols-[3.5rem_1fr_1.75rem] items-center gap-1.5"
+            className="grid grid-cols-[3.5rem_1fr_2.5rem] items-center gap-1.5"
             title={`${v.label}: ${v.value} of ${v.max}, ${b.why}. It ${MEANS[v.key] ?? 'is a pool'}.`}
           >
             <span className="truncate text-xs leading-none text-ink-muted">{v.label}</span>
@@ -190,7 +213,7 @@ export function VitalCluster({
             </span>
 
             <span className={cn('text-right text-xs leading-none tabular-nums', b.ink)}>
-              {pct}
+              {shown}
             </span>
           </div>
         )

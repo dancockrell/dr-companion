@@ -81,7 +81,7 @@ function demoSkills(level: number): SkillState[] {
   }))
 }
 
-export type DemoPresetId = 'basic_prime' | 'f2p_prime' | 'fallen_sub' | 'premium_prime' | 'platinum_fallen'
+export type DemoPresetId = 'basic_prime' | 'f2p_prime' | 'fallen_sub' | 'premium_prime' | 'platinum_fallen' | 'bard_prime'
 
 interface DemoPreset {
   id: DemoPresetId
@@ -314,13 +314,125 @@ const presets: Record<DemoPresetId, DemoPreset> = {
       pressure: 'ok',
     },
   },
+
+  /**
+   * A real character, and the reason this preset exists is that the other five
+   * are not.
+   *
+   * Every one of them hits things for a living. Barbarian, necromancer,
+   * paladin, and levels from 55 to 150 - a spread that looks varied and is
+   * one shape. So the app quietly assumed for its whole life that a
+   * DragonRealms character is somebody with weapon skills and a mana pool, and
+   * nothing on screen ever disagreed.
+   *
+   * One evening on a live Bard found four things that had been invisible the
+   * entire time: training is modelled as combat only, so a guild that trains
+   * Performance in a town street has nothing to press; concentration was
+   * reported out of a hardcoded 100 when this character has 330; PLAY is
+   * unmodelled despite the game stating a clean 32-song by 18-mood difficulty
+   * grid; and a worn helm silently penalises wind instruments with no message
+   * anywhere.
+   *
+   * A mock is not neutral scaffolding. It is a design assumption with a face
+   * on it, and this one is here to disagree with the other five rather than to
+   * replace them. Numbers below are Phemius as observed on 27 Aug 2026, not
+   * invented: Circle 1, 330 concentration, 27 TDPs, and the 1146 Kronar
+   * character-creation debt that every new character carries and almost none
+   * of them notice.
+   */
+  bard_prime: {
+    id: 'bard_prime',
+    label: 'Bard · Circle 1',
+    character: {
+      name: 'Phemius',
+      instance: 'Prime',
+      accountTier: 'basic',
+      guild: 'bard',
+      // Circle 1. The lowest number any preset has carried by a wide margin,
+      // which is the point: the app had never rendered a beginner.
+      skillRanks: 5,
+      location: {
+        title: 'Crossing – Firulf Vista',
+        zone: 'Crossing',
+        province: 'Zoluren',
+        isTown: true,
+        isSafe: true,
+      },
+      vitals: {
+        // Four percentages and one pool that is not one. Concentration is the
+        // whole reason this preset's vitals are worth reading: 330 against a
+        // max of 330, where the bridge used to report every maximum as 100.
+        health: 100,
+        healthMax: 100,
+        spirit: 100,
+        spiritMax: 100,
+        fatigue: 96,
+        fatigueMax: 100,
+        mana: 100,
+        manaMax: 100,
+        concentration: 330,
+        concentrationMax: 330,
+      },
+      // A wind instrument, which is what makes the helm penalty visible.
+      hands: { right: 'a cocobolo txistu', left: null },
+
+      /**
+       * Its own spread, because a level cannot tell you a guild.
+       *
+       * Performance is the observed one, verbatim off the EXP window:
+       *
+       *   Performance:      5 07% perusing       (2/34)
+       *
+       * Five ranks, mindstate 2 of 34, gained in a town street with an
+       * instrument out of the character's own pack. No creature, no weapon.
+       * That row is the whole argument for issue 11: a third of the guilds
+       * train on skills the app has no concept of, and this is what one looks
+       * like.
+       *
+       * The rest are plausible for Circle 1 rather than observed, and are here
+       * so the training board has a spread to sort rather than a single row.
+       * If somebody reads real numbers off a live Bard, replace them.
+       */
+      skills: [
+        { name: 'Performance', skillset: 'Lore', ranks: 5, mindstate: 2 },
+        { name: 'Appraisal', skillset: 'Lore', ranks: 1, mindstate: 0 },
+        { name: 'Scholarship', skillset: 'Lore', ranks: 2, mindstate: 1 },
+        { name: 'Small Edged', skillset: 'Weapon', ranks: 1, mindstate: 0 },
+        { name: 'Light Armor', skillset: 'Armor', ranks: 1, mindstate: 0 },
+        { name: 'Evasion', skillset: 'Survival', ranks: 2, mindstate: 3 },
+        { name: 'Perception', skillset: 'Survival', ranks: 1, mindstate: 0 },
+        { name: 'Athletics', skillset: 'Survival', ranks: 1, mindstate: 0 },
+        { name: 'Primary Magic', skillset: 'Magic', ranks: 2, mindstate: 4 },
+        { name: 'Elemental Magic', skillset: 'Magic', ranks: 1, mindstate: 0 },
+      ],
+
+      spells: [],
+      roundtime: 0,
+      situation: [],
+      activity: 'Ready',
+      connected: true,
+    },
+    inventory: {
+      containers: [{ name: 'carpetbag', used: 3, capacity: 20 }],
+      wornCount: 4,
+      looseCount: 0,
+      pressure: 'ok',
+    },
+  },
 }
 
 // Give every preset a skill spread and a favor count, derived from its level,
 // so the demo exercises the same code paths the live bridge will.
+//
+// A preset may bring its own spread instead. `demoSkills` derives one from a
+// level alone, and a level does not know what guild it belongs to: below 40 it
+// hands back Small Edged, Large Edged, Parry Ability and Shield Usage to
+// whoever asks. That is a fine beginner warrior and a completely wrong Bard,
+// and handing a Bard a weapon spread is precisely the assumption this preset
+// was added to break.
 for (const p of Object.values(presets)) {
   const level = p.character.skillRanks ?? 50
-  p.character.skills = demoSkills(level)
+  p.character.skills = p.character.skills ?? demoSkills(level)
   p.character.favors = Math.max(0, Math.round(level / 8))
   p.character.circle = Math.max(1, Math.round(level / 3))
   p.character.roomPlayers = level > 80 ? ['Someguy'] : []
