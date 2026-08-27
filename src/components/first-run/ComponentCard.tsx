@@ -293,6 +293,31 @@ export function ComponentCard({
                         {o.note}
                       </p>
 
+                      {/* BSD-3-Clause requires attribution and the licence
+                        * text to travel with a redistributed binary - see
+                        * docs/ENGINE.md's licence note. The installer shows
+                        * its own licence page when run; this is dr-companion's
+                        * own disclosure that it is shipping someone else's
+                        * software, in the one place a player actually meets
+                        * that fact rather than a separate About screen
+                        * nobody opens. */}
+                      {o.bundled && (
+                        <p className="text-xs text-ink-faint leading-snug pl-3.5">
+                          Ruby4Lich5 is the{' '}
+                          <a
+                            href="https://github.com/elanthia-online/lich-5"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-info hover:underline"
+                          >
+                            Lich project&apos;s
+                          </a>{' '}
+                          own installer, BSD-3-Clause licensed, included with this
+                          app under those terms. Its own installer shows the
+                          licence when it runs.
+                        </p>
+                      )}
+
                       <button
                         type="button"
                         onClick={() =>
@@ -305,14 +330,22 @@ export function ComponentCard({
                             showDetail === o.id ? 'rotate-180' : ''
                           }`}
                         />
-                        {showDetail === o.id ? 'Hide' : 'Where this comes from'}
+                        {showDetail === o.id
+                          ? 'Hide'
+                          : o.bundled
+                            ? 'Where this actually is'
+                            : 'Where this comes from'}
                       </button>
 
                       {showDetail === o.id && (
                         <div className="space-y-1 pl-3.5 text-xs font-mono break-all">
                           <div>
-                            <span className="text-ink-faint">from </span>
-                            <span className="text-info">{o.url}</span>
+                            <span className="text-ink-faint">
+                              {o.bundled ? 'source ' : 'from '}
+                            </span>
+                            <span className={o.bundled ? 'text-ink-muted' : 'text-info'}>
+                              {o.url}
+                            </span>
                           </div>
                           <div>
                             <span className="text-ink-faint">sha256 </span>
@@ -329,9 +362,11 @@ export function ComponentCard({
                             <span className="text-ink-muted">{o.dest}</span>
                           </div>
                           <p className="font-sans text-ink-faint leading-snug pt-0.5">
-                            {o.sha256
-                              ? 'The checksum comes from the same release API as the link. We verify the file against it and delete it if it does not match.'
-                              : 'This project publishes no checksum for this file. We can confirm it came from their releases over HTTPS, but not check the contents against a published hash.'}
+                            {o.bundled
+                              ? 'Verified twice: once when this build was made, and again now, by hashing the file on this machine and comparing it to what was verified at build time. Nothing is downloaded for this option.'
+                              : o.sha256
+                                ? 'The checksum comes from the same release API as the link. We verify the file against it and delete it if it does not match.'
+                                : 'This project publishes no checksum for this file. We can confirm it came from their releases over HTTPS, but not check the contents against a published hash.'}
                           </p>
                         </div>
                       )}
@@ -361,10 +396,14 @@ export function ComponentCard({
                             disabled={state.busy}
                           >
                             {state.busy
-                              ? 'Working…'
-                              : o.after === 'extract'
-                                ? 'Download and install'
-                                : 'Download'}
+                              ? o.bundled
+                                ? 'Verifying…'
+                                : 'Working…'
+                              : o.bundled
+                                ? 'Install'
+                                : o.after === 'extract'
+                                  ? 'Download and install'
+                                  : 'Download'}
                           </Button>
                         )}
                         {done && o.after === 'installer' && state.downloadedPath && (
