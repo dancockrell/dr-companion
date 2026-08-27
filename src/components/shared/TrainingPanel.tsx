@@ -8,7 +8,7 @@
  */
 import { useMemo, useState } from 'react'
 import { Brain, Music } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import {
   MINDSTATE_MAX,
   mindstateLabel,
@@ -76,11 +76,18 @@ function SkillRow({ skill, dense }: { skill: SkillState; dense?: boolean }) {
 function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
   const requestIntent = useAppStore((s) => s.requestIntent)
   const addLog = useAppStore((s) => s.addLog)
+  const bridgeIntents = useAppStore((s) => s.bridgeIntents)
   const [song, setSong] = useState(PLAY_SONGS[0].id)
   const [mood, setMood] = useState('')
   const [instrument, setInstrument] = useState(instrumentGuess)
 
   const difficulty = mood ? moodDifficulty(mood) : 'neutral'
+  // run_macro has no handler in companion_bridge.lic as of this writing (see
+  // MOCK_UNIMPLEMENTED_INTENTS in mockBridge.ts, #34) - this button sends
+  // literal commands through it, so it is exactly as unreal against a live
+  // bridge as Start Training until #34 lands. Gated the same way SafetyFooter
+  // and ScriptLauncher gate everything else in #30.
+  const macroAvailable = isIntentImplemented(bridgeIntents, 'run_macro')
 
   return (
     <div className="mt-2 space-y-1.5 rounded-lg border border-border/60 bg-surface px-2.5 py-2">
@@ -134,7 +141,8 @@ function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
         </span>
         <button
           type="button"
-          disabled={!instrument.trim()}
+          disabled={!instrument.trim() || !macroAvailable}
+          title={macroAvailable ? undefined : 'Not yet implemented in the connected bridge.'}
           onClick={() => {
             const cmd = buildPlayCommand(song, mood, instrument)
             addLog(`Practicing: ${cmd}`)
@@ -145,6 +153,12 @@ function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
           Practice
         </button>
       </div>
+      {!macroAvailable && (
+        <p className="text-xs text-warn leading-snug">
+          The connected bridge doesn't run commands yet (run_macro isn't implemented) — this builds the
+          right command but can't send it until that lands.
+        </p>
+      )}
     </div>
   )
 }

@@ -34,25 +34,39 @@ type Listener = (msg: BridgeServerMessage) => void
  * Every intent `IntentName` (src/bridge/types.ts) declares, as a runtime
  * array — the type itself erases at compile time, so the mock's advertised
  * set has to be listed again here rather than derived. Keep in sync with
- * types.ts when adding an intent; a mismatch only affects the mock's own
- * demo of the disable behaviour, never a real bridge.
+ * types.ts when adding an intent — `node tools/intent-drift-test.mjs`
+ * (also wired into `npm run build`) fails loudly if this drifts from either
+ * types.ts or the real bridge, so a stale entry here breaks the build
+ * instead of shipping a silent lie the way `run_macro` did below.
  */
 const MOCK_ALL_INTENTS: string[] = [
   'stop_all', 'pause', 'resume', 'start_combat', 'burgle', 'travel',
   'escape_heal', 'go_healer', 'town_run', 'start_training', 'loot', 'buffs',
   'escape', 'stow_all', 'check_health', 'check_toggles', 'reset_runaway',
   'read_settings', 'run_macro', 'map_here', 'map_tags', 'map_nearest',
-  'map_path', 'map_zone', 'install_mapdb',
+  'map_path', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
 ]
 
 /**
- * Declared in types.ts, unimplemented in `companion_bridge.lic` — measured
- * for issue #30 by diffing `IntentName` against `Intents.handle`'s `when`
- * labels. See BRIDGE_CONTRACT.md's "Implemented-intents contract".
+ * Declared in types.ts, unimplemented in `companion_bridge.lic` — re-measured
+ * 27 Aug 2026 (~22:15) against the live file with
+ * `awk '/def handle\(intent, args, server\)/{flag=1} flag{print} flag && /^\s*else$/{exit}'
+ * lich-scripts/companion_bridge.lic | grep -oE "when '[a-z_]+'"`, the same
+ * extraction `tools/intent-drift-test.mjs` runs on every build.
+ *
+ * **`run_macro` was missing from this list for its entire existence until
+ * now.** It has no handler anywhere in `Intents.handle` — confirmed with
+ * `grep -n run_macro lich-scripts/companion_bridge.lic`, zero matches — so
+ * the mock advertised it as implemented while every Task Flow, every quick
+ * action, and the Bard PLAY picker sent it. All three worked flawlessly in
+ * mock and would have silently done nothing against a real bridge: the exact
+ * failure #30's whole disable-mechanism exists to prevent, defeated by this
+ * fixture claiming a capability the real system doesn't have. Caught by
+ * downloads-37's audit + Prime, not by this file. See #34.
  */
 const MOCK_UNIMPLEMENTED_INTENTS: string[] = [
   'buffs', 'burgle', 'escape', 'escape_heal', 'go_healer', 'loot',
-  'start_combat', 'start_training', 'town_run', 'travel',
+  'run_macro', 'start_combat', 'start_training', 'town_run', 'travel',
 ]
 
 /**

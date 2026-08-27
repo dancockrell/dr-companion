@@ -11,7 +11,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node tools/intent-drift-test.mjs && tsc -b && vite build",
+    "check-intents": "node tools/intent-drift-test.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
     "mock-lich": "node tools/mock-lich-server.mjs",

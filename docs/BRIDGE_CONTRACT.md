@@ -486,12 +486,30 @@ the disabled one — a state the fixture cannot reach is a state nobody sees
 until a live bridge is the first place it happens. `mockBridge.ts`'s `hello`
 emit (shipped alongside this spec, `intentMode: 'current' | 'unknown' |
 'all'`, default `'current'`) hand-lists the real bridge's implemented set as
-of when it was written — the same drift risk the Ruby side is being refactored
-away from, just less costly here because it only affects the mock's own demo
-of the disabled state. **When the Hash-dispatch refactor above ships, update
-`MOCK_ALL_INTENTS`/`MOCK_UNIMPLEMENTED_INTENTS` in `mockBridge.ts` to match
-`Intents::HANDLERS.keys` at that point** rather than leaving the mock's list
-to go stale the way this document's own prose count already did once.
+of when it was written.
+
+**Correction, 27 Aug ~22:15: this was not "less costly," it was worse than
+the case/when drift above.** `run_macro` sat in the mock's implemented list
+from the start while having no handler anywhere in `companion_bridge.lic` —
+found by downloads-37's audit, confirmed by prime. Every Task Flow, every
+`ActionsPanel` quick-action macro, and `TrainingPanel`'s PLAY picker route
+through `run_macro`, so this one stale entry made #30's entire disable
+mechanism report "working" for the app's primary way of making the character
+*do* anything, in the one environment everyone develops against. A fixture
+claiming a capability the real system lacks is the same shape as a check
+that cannot fail — it doesn't just fail to catch the bug, it manufactures
+confidence that the bug doesn't exist. See #34.
+
+**This is now enforced, not just documented.** `tools/intent-drift-test.mjs`
+parses `IntentName`, `Intents.handle`'s real `when` labels, and
+`MOCK_UNIMPLEMENTED_INTENTS` from their three source files and fails loudly
+on any disagreement between them — wired into `npm run build` (also runnable
+directly as `npm run check-intents`), so a stale mock entry breaks the build
+instead of shipping a silent lie. **When the Hash-dispatch refactor above
+ships, run `npm run check-intents` (or just `npm run build`) — it will tell
+you exactly what changed** rather than relying on anyone remembering to
+update `MOCK_ALL_INTENTS`/`MOCK_UNIMPLEMENTED_INTENTS` in `mockBridge.ts` by
+hand.
 
 **Acceptance check:** connect to a live (or updated mock) bridge, confirm
 `start_training` and `town_run` render disabled with a tooltip explaining why
