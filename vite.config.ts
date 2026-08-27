@@ -64,9 +64,34 @@ export default defineConfig({
      * down without warning. Measured on this machine, not assumed: the
      * crash log names data/art/comfy-venv specifically as what was still
      * being reloaded in the seconds before it went down.
+     *
+     * # Anchored to the project root, and that is not a detail
+     *
+     * The first version was an unanchored double-star glob around `data`, and
+     * that also matches **`src/data/`** - 23 source files including
+     * `taskFlows.ts`,
+     * `scriptCatalog.ts`, `macros.ts`, `demoMap.ts` and the bestiary. Editing
+     * any of them stopped triggering a reload, silently, while every other
+     * source file kept working normally.
+     *
+     * The failure it produced was nothing like its cause. An export added to
+     * `src/data/taskFlows.ts` never reached the dev server, its importer asked
+     * for a name the served module did not have, that threw a `SyntaxError`
+     * during module evaluation, React never mounted, and **the app opened as a
+     * blank white window**. The production build was clean throughout, because
+     * the build does not use the watcher at all.
+     *
+     * Measured rather than reasoned: picomatch returns true for
+     * `src/data/taskFlows.ts` against that glob. Anchoring to `root` keeps the
+     * fix that was
+     * intended (the whole top-level `data/`, venv included) and stops it
+     * reaching into `src/`.
      */
     watch: {
-      ignored: ['**/src-tauri/**', '**/data/**'],
+      ignored: [
+        path.resolve(root, 'src-tauri') + '/**',
+        path.resolve(root, 'data') + '/**',
+      ],
     },
   },
   clearScreen: false,
