@@ -1,7 +1,21 @@
 /**
  * A Lich that is not there, so the client can be built before the game is up.
  *
- *   node tools/fake-lich.mjs [--port 11024] [--speed 1]
+ *   node tools/fake-lich.mjs [--port 11124] [--speed 1]
+ *
+ * # Why the default is 11124, not the real Lich port
+ *
+ * It used to default to 11024 - the same port `src-tauri/src/lich.rs`'s
+ * `DETACHABLE_PORT` opens a real `--headless` Lich on, and the same one the
+ * app's own Attach button defaults to. A copy of this fixture was left
+ * running for hours during real development (27 Aug 2026), silently holding
+ * that port, so when a real Lich later tried to open `--headless=11024` it
+ * simply could not, and Attach would have happily connected to this replay
+ * instead - indistinguishable from the real thing, since it speaks the exact
+ * same wire protocol on purpose and replays real captured game text.
+ *
+ * Pass `--port 11024` explicitly if a collision is genuinely what you want to
+ * test. The default no longer makes that mistake free.
  *
  * Lich's `--detachable-client=PORT` opens a TCPServer and hands the accepted
  * socket to `$_CLIENT_`: it writes game output to it and reads player commands
@@ -30,7 +44,7 @@ const arg = (name, fallback) => {
   return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback
 }
 
-const PORT = Number(arg('port', 11024))
+const PORT = Number(arg('port', 11124))
 const SPEED = Number(arg('speed', 1))
 
 /**
