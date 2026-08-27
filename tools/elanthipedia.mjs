@@ -181,9 +181,19 @@ function flatten(printouts) {
   const out = {}
   for (const [key, vals] of Object.entries(printouts ?? {})) {
     if (!Array.isArray(vals) || vals.length === 0) continue
-    const clean = vals.map((v) =>
-      v && typeof v === 'object' ? (v.fulltext ?? v.item ?? String(v)) : v
-    )
+    const clean = vals.map((v) => {
+      if (!v || typeof v !== 'object') return v
+      if (v.fulltext !== undefined) return v.fulltext
+      if (v.item !== undefined) return v.item
+      // SMW's `_qty` type (used by "Appraised cost is") comes back as
+      // {value, unit} rather than {fulltext|item}, so it fell through to
+      // String(v) and every one of these landed in the committed JSON as
+      // the literal text "[object Object]" — see issue #29. Checked live
+      // against the API rather than guessed: a weapon's cost printout is
+      // {"value":50000,"unit":"Kronars"}.
+      if (v.value !== undefined) return v.unit ? `${v.value} ${v.unit}` : v.value
+      return String(v)
+    })
     out[key] = clean.length === 1 ? clean[0] : clean
   }
   return out
