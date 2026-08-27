@@ -121,10 +121,34 @@ pub fn run() {
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_title("DR Companion");
+
+                // Wide enough for the layout it actually has.
+                //
+                // It opened at 520 wide, from when this was one narrow column
+                // docked beside the game. It is three columns now - map,
+                // dashboard, room - and at 520 the third is entirely off the
+                // right edge, the character panel is a sliver reading "Health"
+                // and "Stamina" with no numbers, and the chat cannot be seen at
+                // all. The first thing anyone saw on opening the app was a
+                // broken one.
+                //
+                // 1180 is the map column at its 300 default, the dashboard at
+                // its 420, the two dividers, and enough left for the room
+                // column to be worth having. Anyone who wants it narrow can
+                // drag it narrow - the columns are theirs to set. The point is
+                // that the default is not a shape the app cannot render.
                 let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
-                    width: 520.0,
-                    height: 780.0,
+                    width: 1180.0,
+                    height: 820.0,
                 }));
+
+                // Below this the layout stops being able to show its own
+                // content rather than merely being cramped. Nothing prevents
+                // resizing above it.
+                let _ = window.set_min_size(Some(tauri::Size::Logical(tauri::LogicalSize {
+                    width: 720.0,
+                    height: 480.0,
+                })));
             }
             Ok(())
         })

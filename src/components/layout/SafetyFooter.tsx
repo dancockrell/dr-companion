@@ -20,7 +20,7 @@
  * Those are what you read before deciding whether to press Stop, and reading
  * them used to mean looking somewhere else.
  */
-import { Square, Pause, Play } from 'lucide-react'
+import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
@@ -50,8 +50,67 @@ export function SafetyFooter() {
   // still cannot act is worse than saying one.
   const rt = Math.ceil(character?.roundtime ?? 0)
 
+  /**
+   * Start lives here too, because Start and Stop are one decision.
+   *
+   * The primary action was in the Actions panel inside the dashboard while
+   * Stop was down here in the window frame, so beginning a thing and ending it
+   * sat in different containers, at different weights, with unrelated controls
+   * between them. Nobody looks in two places for the on and the off of one
+   * switch.
+   *
+   * The panel is also inside a scrolling column, so the button that starts
+   * everything could be scrolled off screen while the button that stops it
+   * never could. This bar is part of the window, which is the promise the app
+   * was built on and the reason Stop is here at all.
+   */
+  const lowHealth =
+    character != null && character.vitals.health / character.vitals.healthMax < 0.35
+  const inCombat = character?.situation.includes('in_combat') ?? false
+  const primaryLabel = lowHealth ? 'Healer' : inCombat ? 'Assist' : 'Start Training'
+  const primaryIntent = lowHealth ? 'go_healer' : 'start_training'
+
   return (
     <footer className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border bg-surface-raised/90 px-3 py-2">
+      {character && (
+        <button
+          type="button"
+          className={cn(
+            'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold',
+            lowHealth
+              ? 'bg-danger/90 text-white hover:bg-danger'
+              : 'bg-accent text-surface hover:bg-accent-soft'
+          )}
+          title={
+            lowHealth
+              ? 'Health is low. Walk to a healer.'
+              : inCombat
+                ? 'Help with the fight in progress'
+                : 'Begin the training loop'
+          }
+          onClick={() => requestIntent(primaryIntent)}
+        >
+          {lowHealth ? (
+            <Heart className="h-4 w-4" />
+          ) : (
+            <Play className="h-3.5 w-3.5 fill-current" />
+          )}
+          {primaryLabel}
+        </button>
+      )}
+
+      {character && (
+        <button
+          type="button"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink"
+          title="Bank, repair, restock"
+          onClick={() => requestIntent('town_run')}
+        >
+          <Navigation className="h-4 w-4" />
+          Town Run
+        </button>
+      )}
+
       <button
         type="button"
         className="flex min-w-[7.5rem] flex-1 items-center justify-center gap-1.5 rounded-lg bg-danger/90 px-3 py-2 text-sm font-semibold text-white hover:bg-danger"
