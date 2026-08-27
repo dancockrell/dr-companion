@@ -150,7 +150,9 @@ FakeHealthResult = Struct.new(:wounds, :bleeders, :poisoned, :diseased)
 # "there is genuinely nothing here"? Both currently produce the identical
 # empty shape through the same `safe` default, so the state below has to be
 # able to simulate each on purpose rather than the test guessing.
-GameObjItem = Struct.new(:id, :name)
+GameObjItem = Struct.new(:id, :name, :noun) do
+  def noun = self[:noun] || name
+end
 $gameobj_raise = false
 $gameobj_loot = []
 $gameobj_left_hand = nil
@@ -854,6 +856,51 @@ begin
     broken_inv['worn'] == empty_inv['worn'] && broken_inv['wornCount'] == empty_inv['wornCount'],
     { broken: broken_inv.slice('worn', 'wornCount'), empty: empty_inv.slice('worn', 'wornCount') }.inspect
   )
+
+  puts ''
+  puts '-- stow_all: a held item reaches the game, by its noun, not its full name --'
+  # stow_all sends `item.noun`, not `item.name` - the two-word "a serrated
+  # broadsword" would never match anything the game accepts. Deliberately
+  # giving noun and name different values here so a bridge regression that
+  # swapped one for the other would be caught, not coincidentally pass.
+  # Floor: prove the honest no-op path first, so the populated case that
+  # follows is shown against a real empty baseline rather than assumed.
+  $gameobj_raise = false
+  $gameobj_right_hand = nil
+  $gameobj_left_hand = nil
+  $dothis_log = []
+  c.send_json(type: 'intent', intent: 'stow_all')
+  ack = c.read_until('intent_ack')
+  check('floor: empty hands take the honest no-op path', ack && ack['detail'] == 'nothing to stow', ack.inspect)
+  check('floor: and nothing was sent to the game for it', $dothis_log.empty?, $dothis_log.inspect)
+
+  $gameobj_right_hand = GameObjItem.new(201, 'a serrated broadsword', 'broadsword')
+  $dothis_log = []
+  $dothis_reply = 'You put the broadsword in your pack.'
+  c.send_json(type: 'intent', intent: 'stow_all')
+  ack = c.read_until('intent_ack')
+  check('one held item is reported stowed', ack && ack['detail'] == 'stowed 1', ack.inspect)
+  check(
+    'and the game was actually asked, by noun rather than the full display name',
+    $dothis_log.include?('stow broadsword'),
+    $dothis_log.inspect
+  )
+  $dothis_reply = nil
+
+  puts ''
+  puts '-- stow_all: both hands full reaches the game for both --'
+  $gameobj_right_hand = GameObjItem.new(201, 'a serrated broadsword', 'broadsword')
+  $gameobj_left_hand = GameObjItem.new(202, 'a round shield', 'shield')
+  $dothis_log = []
+  $dothis_reply = 'You put it in your pack.'
+  c.send_json(type: 'intent', intent: 'stow_all')
+  ack = c.read_until('intent_ack')
+  check('both held items are reported stowed', ack && ack['detail'] == 'stowed 2', ack.inspect)
+  check('the right-hand item reached the game', $dothis_log.include?('stow broadsword'), $dothis_log.inspect)
+  check('the left-hand item also reached the game', $dothis_log.include?('stow shield'), $dothis_log.inspect)
+  $dothis_reply = nil
+  $gameobj_right_hand = nil
+  $gameobj_left_hand = nil
 
   c.close
 ensure
