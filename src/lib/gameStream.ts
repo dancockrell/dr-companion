@@ -236,11 +236,23 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
         // Possibly a tag split across reads: keep it and wait, rather than
         // rendering half a tag as text.
         //
-        // But only while it could still become one. Past MAX_TAG with no '>',
-        // this is a literal '<' and waiting for more bytes would hold back
-        // text the player should be reading - and on a quiet connection, hold
-        // it back indefinitely.
-        if (state.buffer.length - i > MAX_TAG) {
+        // But only while it could still become one. Two things end that.
+        //
+        // A newline after the '<' settles it immediately, and this is the
+        // same rule `notATag` above already applies to a *closed* tag - a tag
+        // never spans a line. Without it, a line like
+        //
+        //   the sign reads < and nothing closes it
+        //
+        // was held back waiting for MAX_TAG bytes that a quiet connection may
+        // never send, so the whole line vanished and the game looked like it
+        // had gone silent. Found by a red-team pass, and the comment that used
+        // to sit here named that exact failure - "on a quiet connection, hold
+        // it back indefinitely" - while only guarding the length half of it.
+        const rest = state.buffer.slice(i)
+        const lineEnded = rest.includes('\n') || rest.includes('\r')
+
+        if (lineEnded || state.buffer.length - i > MAX_TAG) {
           state.partial += ch
           state.afterPrompt = false
           i++
@@ -286,6 +298,27 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
           // Anything pending is real text that the prompt interrupted.
           if (state.partial) emit()
           state.inPrompt = true
+
+          // A prompt means the game is back at top level, so an unclosed
+          // stream is over whether or not anyone sent `<popStream/>`.
+          //
+          // This is the exit from a desync, and it was missing. The rule above
+          // that stops a stray '<' in game text from swallowing a real
+          // `<popStream/>` closes one route *into* an orphaned stack, but a
+          // Lich script that pushes a stream and dies before popping needs no
+          // stray bracket at all - and on a live server that is routine rather
+          // than exotic. Without this, every subsequent line is labelled
+          // `thoughts` forever: "someone attacks you" delivered to a pane the
+          // player is not watching, with full confidence and no error.
+          //
+          // Confirmed against this parser before fixing, from a red-team
+          // report - stack `["thoughts"]` before the prompt and `["thoughts"]`
+          // after, with the two following lines both mislabelled.
+          //
+          // Safe because a prompt cannot legitimately appear inside a stream:
+          // it is the game's own "your turn" marker, which is top-level by
+          // definition.
+          if (state.stack.length > 0) state.stack.length = 0
         }
       } else if (name === 'clearstream') {
         // Not our business to clear anything: a client that dropped

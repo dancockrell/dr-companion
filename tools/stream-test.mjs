@@ -169,6 +169,54 @@ console.log('\n-- a literal < in game text cannot capture a real tag --')
   )
 }
 
+console.log('\n-- a prompt resyncs an orphaned stream stack --')
+{
+  // The exit from a desync, which the '<'-in-text fix above does not provide.
+  // That fix closes one route *into* an orphaned stack; this covers the route
+  // that needs no stray bracket at all - a Lich script that pushes a stream
+  // and dies before popping, which on a live server is routine.
+  //
+  // Reported by a red-team pass and confirmed against this parser before
+  // fixing: the stack stayed ["thoughts"] across a prompt, so every later line
+  // was labelled `thoughts` forever. "someone attacks you" in a pane nobody is
+  // watching, with full confidence and no error - the same shape as the bug
+  // above, arriving by a different door.
+  const s = newStreamState()
+  feed(s, "<pushStream id='thoughts'/>a thought whose script died before popping\r\n")
+  ok('control: the stack really is orphaned first', s.stack.length === 1, JSON.stringify(s.stack))
+
+  const after = feed(
+    s,
+    '<prompt time="123">&gt;</prompt>\r\nyou are standing in a room\r\nsomeone attacks you\r\n'
+  )
+  ok('the prompt cleared it', s.stack.length === 0, JSON.stringify(s.stack))
+  eq('and the lines that follow are unlabelled', after.map((l) => l.stream), ['', ''])
+  ok(
+    'so combat is not delivered to the thoughts pane',
+    !after.some((l) => l.stream === 'thoughts'),
+    JSON.stringify(after.map((l) => [l.stream, l.text]))
+  )
+}
+
+console.log('\n-- an unclosed < does not swallow its line --')
+{
+  // A tag never spans a line, which `feed` already applies to a *closed* tag
+  // and did not apply here: an unclosed '<' was held waiting for MAX_TAG bytes
+  // that a quiet connection may never send, so a complete line simply vanished
+  // and the game looked like it had gone silent.
+  const s = newStreamState()
+  const got = feed(s, 'the sign reads < and nothing closes it\r\n')
+  eq('the line arrives', got.map((l) => l.text), ['the sign reads < and nothing closes it'])
+
+  // And a genuine tag split across two reads must still be waited for, or this
+  // fix would have traded one bug for the one it was written to avoid.
+  const t = newStreamState()
+  const half = feed(t, "<pushStream id='de")
+  ok('a real split tag is still held', half.length === 0, `${half.length}`)
+  const rest = feed(t, "ath'/>Someone was just killed<popStream/>\r\n")
+  eq('and resolves when the rest arrives', rest[0]?.stream, 'death')
+}
+
 console.log('\n-- the stream stack has a ceiling --')
 {
   // Unbounded, 50,000 pushes cost 20 bytes each on the wire and grow the array
