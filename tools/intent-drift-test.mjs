@@ -34,7 +34,15 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 function readAt(relPath) {
   const path = join(ROOT, relPath)
   try {
-    return readFileSync(path, 'utf8')
+    // Normalised to LF before any regex sees it. types.ts and mockBridge.ts
+    // are unpinned in .gitattributes, so on a machine with core.autocrlf=true
+    // (the default this repo is developed on) they check out as CRLF while
+    // this script's boundary regex hardcodes a bare '\n\n' — found by running
+    // a clean `git worktree add` from origin/main and watching declaredIntents
+    // throw "could not locate the IntentName union" against an unmodified
+    // file. .lic files are pinned `eol=lf` for the opposite reason already
+    // documented in .gitattributes, so this is a no-op for companion_bridge.lic.
+    return readFileSync(path, 'utf8').replace(/\r\n/g, '\n')
   } catch (e) {
     throw new Error(`intent-drift-test: could not read ${relPath}: ${e.message}`)
   }
