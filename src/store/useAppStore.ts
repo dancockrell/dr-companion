@@ -350,20 +350,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   readSettings: () => {
     set({ settingsFiles: null, settingsCharacter: null })
-    bridge.requestIntent('read_settings' as IntentName)
+    bridge.requestIntent('read_settings')
   },
 
   listScripts: () => {
-    bridge.requestIntent('list_scripts' as IntentName)
+    bridge.requestIntent('list_scripts')
   },
 
   startScript: (name: string) => {
-    bridge.requestIntent('start_script' as IntentName, { name })
+    bridge.requestIntent('start_script', { name })
   },
 
   installMapdb: () => {
     set({ mapdbInstall: { status: 'starting' } })
-    bridge.requestIntent('install_mapdb' as IntentName)
+    bridge.requestIntent('install_mapdb')
   },
 
   setActiveFlow: (v) => set({ activeFlow: v }),
@@ -379,8 +379,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setTraceEnabled: (v: boolean) => {
     set({ traceEnabled: v })
-    bridge.requestIntent((v ? 'trace_on' : 'trace_off') as IntentName)
-    if (v) bridge.requestIntent('trace_dump' as IntentName)
+    // No casts. These are declared in IntentName now - see the note there.
+    // The `as IntentName` that used to be on these two lines was the reason
+    // three implemented intents were invisible to the type system and to
+    // intent-drift-test for as long as the feature existed.
+    bridge.requestIntent(v ? 'trace_on' : 'trace_off')
+    if (v) bridge.requestIntent('trace_dump')
   },
 
   setConsoleOpen: (v: boolean) => {
@@ -395,7 +399,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   clearRunaway: () => {
     set({ runawayReason: null })
-    bridge.requestIntent('reset_runaway' as IntentName)
+    bridge.requestIntent('reset_runaway')
   },
 
   setBridgeMode: (m: 'mock' | 'live') => {
@@ -509,7 +513,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     if (intent.startsWith('travel:')) {
       args = { destination: intent.split(':')[1] || 'crossing' }
-      bridge.requestIntent('travel' as IntentName, args)
+      bridge.requestIntent('travel', args)
       return
     }
     if (intent === 'go_healer' || intent === 'escape_heal') {

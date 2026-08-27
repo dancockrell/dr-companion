@@ -31,7 +31,6 @@ import {
 import { describeTrail } from '../../lib/trail'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
-import type { IntentName } from '../../bridge/types'
 import { isTauri, invokeTauri } from '../../lib/tauri'
 import { MapCanvas, MapLegend } from './MapCanvas'
 import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
@@ -108,7 +107,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   }, [])
 
   useEffect(() => {
-    if (connected) bridge.requestIntent('map_zone' as IntentName)
+    if (connected) bridge.requestIntent('map_zone')
   }, [connected, hereId])
 
   const levels = useMemo(() => {
@@ -144,7 +143,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     }
   }
 
-  const refresh = () => bridge.requestIntent('map_zone' as IntentName)
+  const refresh = () => bridge.requestIntent('map_zone')
 
   /**
    * Zoomed in, the box scrolls, and it stays centred on where you are.
@@ -194,7 +193,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     // The route first. It does not care which zone is drawn and it is the part
     // with a round trip to Lich in it, so it goes out before anything here
     // waits on a file read.
-    bridge.requestIntent('map_path' as IntentName, { to: hit.room })
+    bridge.requestIntent('map_path', { to: hit.room })
 
     if (hit.zone === zone?.zone) return
 
@@ -424,7 +423,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             level={z}
             onRoute={onRoute}
             fit
-            onPick={(id) => bridge.requestIntent('map_path' as IntentName, { to: id })}
+            onPick={(id) => bridge.requestIntent('map_path', { to: id })}
             onZone={(id) => setZoneStack((st) => [...st, id])}
             trail={trail}
           />

@@ -259,6 +259,20 @@ export type IntentName =
   // one by name, args: { name: string }.
   | 'list_scripts'
   | 'start_script'
+  // The diagnostic trace behind the Console's toggle. 'trace_on' and
+  // 'trace_off' set whether the bridge records what it is doing; 'trace_dump'
+  // asks for what it already holds, so switching the toggle on shows history
+  // rather than starting from an empty pane.
+  //
+  // These were reachable only through `as IntentName` casts in useAppStore,
+  // and the cast is precisely what stopped the compiler from mentioning they
+  // were not in this union. So the bridge implemented three intents the type
+  // system said did not exist, and `intent-drift-test.mjs` - which reads this
+  // union as its declared set - could not see them either. Declared here so
+  // they are compared like everything else.
+  | 'trace_on'
+  | 'trace_off'
+  | 'trace_dump'
 
 export interface BridgeConnectionState {
   connected: boolean

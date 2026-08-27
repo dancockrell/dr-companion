@@ -15,7 +15,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
-import type { IntentName } from '../bridge/types'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
 import { useMapDock, setMapDock } from '../lib/mapDock'
 
@@ -49,7 +48,7 @@ export function MapWindow() {
   }, [connectBridge])
 
   useEffect(() => {
-    if (connected) bridge.requestIntent('map_zone' as IntentName)
+    if (connected) bridge.requestIntent('map_zone')
   }, [connected])
 
   const levels = useMemo(() => {
@@ -142,7 +141,7 @@ export function MapWindow() {
             type="button"
             className="p-1 rounded border border-border text-ink-faint hover:text-ink"
             title="Ask Lich for this zone again"
-            onClick={() => bridge.requestIntent('map_zone' as IntentName)}
+            onClick={() => bridge.requestIntent('map_zone')}
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -157,7 +156,7 @@ export function MapWindow() {
             onRoute={onRoute}
             scale={zoom}
             labels={labels}
-            onPick={(id) => bridge.requestIntent('map_path' as IntentName, { to: id })}
+            onPick={(id) => bridge.requestIntent('map_path', { to: id })}
             trail={trail}
           />
         ) : (
