@@ -160,6 +160,15 @@ export interface CharacterStatus {
    */
   skills?: SkillState[]
   /**
+   * False while DRInfomon's post-login startup (~1s) is still filling in
+   * skills — an empty `skills` during that window means "not asked yet", not
+   * "no skills". Undefined for a bridge or mock that predates this field;
+   * treat that the same as true, the old always-ready behaviour, rather than
+   * as a third "unknown" state — this flag exists to catch one specific race,
+   * not to become another thing every reader has to branch on.
+   */
+  skillsReady?: boolean
+  /**
    * @deprecated A single number cannot represent a character, because the
    * whole mechanic is that skills differ. Derived from `skills` when present.
    * Kept so older mock payloads still render.

@@ -345,9 +345,32 @@ module Companion
          .sort_by { |s| s['minutes'] }
     end
 
+    # Whether DRInfomon has finished asking the game for skills yet.
+    #
+    # DRInfomon.startup_script fires four commands after login (info, played,
+    # exp all 0, ability) and DRSkill.list only fills in as their output
+    # parses, which takes about a second. A status query that lands in that
+    # window sees a genuinely empty list that has nothing to do with the
+    # character's guild - a quiet Bard reads exactly like a fresh login. The
+    # skill table then stays current on its own via BriefExp as the game
+    # plays, so this is a one-time gate on the read, not something to poll.
+    #
+    # Defaults to true (ready) if the check itself is unavailable, rather than
+    # to false: a Lich build without DRInfomon's flag should fall back to the
+    # old always-read behaviour, not get stuck reporting "not ready" forever.
+    def skills_ready?
+      safe(true) { DRInfomon.startup_complete? }
+    end
+
     # Skills with their mindstate. This is the payload the training view needs:
     # ranks alone cannot answer "what should I train", mindstate can.
+    #
+    # Empty during the startup window above, same as always - the caller
+    # tells the two apart using status's 'skillsReady' flag, not by reading
+    # meaning into an empty array.
     def skills
+      return [] unless skills_ready?
+
       list = safe([]) { DRSkill.list } || []
       list.map do |s|
         name = safe(nil) { s.name } or next nil
@@ -376,6 +399,10 @@ module Companion
         # The only status with a clock on it. See State.spells.
         'spells'      => spells,
         'skills'      => skills,
+        # False during DRInfomon's ~1s post-login startup window. See
+        # skills_ready? above - an empty 'skills' during that window means
+        # "not asked yet", not "this character has no skills".
+        'skillsReady' => skills_ready?,
         'activity'    => activity,
         'connected'   => true,
         # Liveness. A live socket does not mean a live game: if this clock
