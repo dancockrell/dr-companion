@@ -614,6 +614,38 @@ module Companion
     # Same room for this long while still issuing movement.
     STUCK_SECONDS = 180
 
+    # Reachable from two threads at once since per-message dispatch landed:
+    # stop_all calls reset from its own thread, deliberately outside
+    # CMD_LOCK (a Stop must never wait on that lock), while observe is
+    # called from inside Cmd.exec by whichever command-sending intent
+    # currently holds it. Investigated rather than left as folklore, per
+    # DR Prime's request after downloads-8a flagged it unverified.
+    #
+    # Determined benign. Every operation here is a plain ivar read/write or
+    # an Array method call, each atomic under MRI's GVL individually, so
+    # there is no torn-write or corruption path - only two races, and both
+    # land on the side that already matches this module's own intent:
+    #
+    #   - reset reassigns @recent to a fresh array while observe is
+    #     mid-sequence on the old one (append, then trim). Ruby resolves the
+    #     ivar fresh at each statement, so observe's trailing
+    #     `@recent.shift while @recent.size > ...` reads whichever array
+    #     `reset` left behind. Worst case: the command observe just appended
+    #     is silently lost with the old array object, which just means one
+    #     dropped sample in the loop detector at the exact moment a human
+    #     already intervened manually - a Stop is a more decisive signal
+    #     than an automatic one it happens to overlap.
+    #   - reset's `@tripped = false` can land a moment after observe's own
+    #     `trip` set it true, un-tripping a detection that fired in the same
+    #     instant as the Stop. stop_all's own comment already states the
+    #     intended behaviour: "a deliberate stop clears the loop detector:
+    #     whatever happens next is a fresh decision by the player." A
+    #     manual Stop winning that race is correct, not a bug.
+    #
+    # No exception path exists in either method that this can trigger, and
+    # nothing here is read by code that assumes a stronger consistency
+    # guarantee than "reflects some recent state." If CMD_LOCK's scope ever
+    # changes, re-check this reasoning rather than assuming it still holds.
     @recent = []
     @last_room = nil
     @room_since = Time.now
