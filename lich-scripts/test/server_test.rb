@@ -97,10 +97,35 @@ end
 # so a test that wants a specific reply has to say so and cannot mistake "we
 # stubbed it" for "the game responded".
 $dothis_log = []
+# nil by default so every existing call site keeps behaving exactly as it did
+# before this was made controllable - a test that wants a real-looking reply
+# has to set this itself, on purpose, and reset it after.
+$dothis_reply = nil
 def dothistimeout(cmd, _timeout, _regex)
   $dothis_log << cmd
-  nil
+  $dothis_reply
 end
+
+# DRCH.check_health had no stub at all - undefined, not merely returning
+# nil - so check_health's primary path always raised, was swallowed by its
+# own `rescue StandardError; nil; end`, and every call fell through to the
+# Cmd.exec fallback above. `:raise` is the default because that is what
+# "undefined" actually behaves like; a test that wants the primary path has
+# to hand this a real-shaped Hash on purpose.
+$drch_reply = :raise
+module DRCH
+  def self.check_health
+    raise 'DRCH unavailable' if $drch_reply == :raise
+
+    $drch_reply
+  end
+end
+
+# A wound/bleeder entry only needs to answer .body_part - check_health calls
+# nothing else on it. A Struct rather than a Hash, because the real objects
+# are not Hashes either and a Hash would let a `w['body_part']` typo in the
+# bridge pass silently.
+DRCHWound = Struct.new(:body_part)
 
 # Load everything except the trailing command-line section, which would start a
 # server on the default port and then sleep forever.
@@ -627,6 +652,77 @@ begin
 
   c.send_json(type: 'intent', intent: 'resume')
   c.read_until('intent_ack')
+
+  puts ''
+  puts '-- check_health: DRCH available, real wound counts --'
+  # The success path never touches Cmd.exec at all - it reads DRCH.check_health
+  # directly. Floor below proves that: if a future edit made the success path
+  # fall through to the game command too, this test would still pass on the
+  # ack alone, so the floor is what actually catches that regression.
+  $dothis_log = []
+  $drch_reply = {
+    'wounds' => { 'moderate' => [Object.new, Object.new], 'minor' => [Object.new] },
+    'bleeders' => { 'light' => [DRCHWound.new('right arm')] },
+    'poisoned' => false,
+    'diseased' => false
+  }
+  c.send_json(type: 'intent', intent: 'check_health')
+  ack = c.read_until('intent_ack')
+  check('reports the real counts from DRCH', ack && ack['detail'] == '3 wounds, 1 bleeding', ack.inspect)
+  check(
+    'floor: the success path never reached the game at all',
+    $dothis_log.empty?,
+    $dothis_log.inspect
+  )
+  $drch_reply = :raise
+
+  puts ''
+  puts '-- check_health: DRCH unavailable, the fallback reads the game and succeeds --'
+  $dothis_log = []
+  $dothis_reply = 'You have a moderate bruise on your right arm.'
+  c.send_json(type: 'intent', intent: 'check_health')
+  ack = c.read_until('intent_ack')
+  check('reports the fallback-success detail, not the DRCH-success shape', ack && ack['detail'] == 'health read', ack.inspect)
+  check(
+    'and it took the fallback for the stated reason: the game was actually asked',
+    $dothis_log.include?('health'),
+    $dothis_log.inspect
+  )
+  $dothis_reply = nil
+
+  puts ''
+  puts '-- check_health: DRCH unavailable, the fallback also gets nothing back --'
+  $dothis_log = []
+  c.send_json(type: 'intent', intent: 'check_health')
+  ack = c.read_until('intent_ack')
+  check('reports ok:false rather than a fabricated success', ack && ack['ok'] == false, ack.inspect)
+  check('and the message names what happened', ack && ack['detail'] == 'Could not read health.', ack.inspect)
+  check(
+    'floor: this is a real "asked and got nothing," not a default that never asked',
+    $dothis_log.include?('health'),
+    $dothis_log.inspect
+  )
+
+  puts ''
+  puts '-- check_toggles reaches both game commands it depends on --'
+  # check_room_id_flag is called from inside check_toggles, not from the
+  # dispatch table - a second, easy-to-miss command in the same intent. The
+  # floor here is that specific: not "check_toggles ran something", but that
+  # both named commands specifically reached the game.
+  $dothis_log = []
+  c.send_json(type: 'intent', intent: 'check_toggles')
+  ack = c.read_until('intent_ack')
+  check('check_toggles is acked', !ack.nil?, ack.inspect)
+  check(
+    'floor: the toggle command reached the game',
+    $dothis_log.include?('toggle'),
+    $dothis_log.inspect
+  )
+  check(
+    'floor: the nested flags command also reached the game - the one that would go silent first',
+    $dothis_log.include?('flags'),
+    $dothis_log.inspect
+  )
 
   c.close
 ensure
