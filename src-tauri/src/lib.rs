@@ -124,6 +124,7 @@ pub fn run() {
             setup::extract_archive,
             setup::install_bundle,
             setup::install_bridge_script,
+            setup::bridge_install_status,
             setup::reveal_file,
             setup::run_installer,
             app_data_path,

@@ -8,3 +8,19 @@
 *.cmd text eol=crlf
 *.bat text eol=crlf
 *.ps1 text eol=crlf
+
+# Lich scripts must keep LF, for the opposite reason to the block above.
+#
+# `.lic` files are Ruby, loaded by the Ruby interpreter rather than cmd.exe,
+# so nothing here mis-parses LF - the copy Lich is running right now is pure
+# LF, 2,035 lines, zero CR bytes, measured rather than assumed.
+#
+# Without a rule they inherit whatever `core.autocrlf` each machine happens to
+# have, which is `true` on this one. That cost a real half-hour on 27 Aug 2026:
+# the same commit checked out as 74,410 bytes on one clone and 76,445 on
+# another, and the 2,035-byte gap - exactly one CR per line - was read as a
+# stale install and "fixed" by overwriting a current file with itself in CRLF.
+#
+# Pinning it makes the checkout deterministic, so two machines comparing this
+# file are comparing its content rather than each other's git settings.
+*.lic text eol=lf

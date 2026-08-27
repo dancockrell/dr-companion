@@ -1918,6 +1918,188 @@ pub fn copy_bridge_to_lich(src: &Path) -> Result<String, String> {
     Ok(pretty_path(&dest))
 }
 
+// -------------------------------------------------------- bridge staleness --
+//
+// Whether the script sitting in Lich's folder is the one this build ships.
+//
+// # Why the version constant cannot answer this
+//
+// `companion_bridge.lic` declares `BRIDGE_VERSION`, and the obvious check is
+// to compare it against what we expect. That does not work, and it failed in
+// exactly the way that matters on 27 Aug 2026: two copies of the file both
+// declared `'0.9.0'` while differing by roughly 15 KB of content. One had the
+// Origin check and token authentication; the other had neither. A reader
+// comparing version strings would have found them equal and concluded the
+// install was current, while the installed copy was the one any web page
+// could drive.
+//
+// The constant only moves when somebody remembers to move it. The content
+// moves whenever anybody edits the file. So the content is what gets hashed,
+// and the version is reported alongside for a human to read but never
+// consulted for the verdict.
+//
+// # Why the comparison is normalised
+//
+// This repo has `core.autocrlf=true`, so a checkout on Windows can land CRLF
+// in the working tree while the same file elsewhere is LF. Measured today:
+// the same content read 74,410 bytes one place and 76,445 the other, purely
+// from line endings. A raw byte hash calls that stale and sends somebody
+// reinstalling a file that was already correct - a check that cries wolf,
+// which section 1 of the working agreements rates as no better than one that
+// never fires. Carriage returns are stripped before hashing, so the question
+// asked is "is this the same script", not "was it written on the same OS".
+//
+// # Why against the bundled copy rather than the repo
+//
+// A shipped build has no repo to compare against. `install_bridge_script`
+// already resolves the authoritative copy through `BaseDirectory::Resource`,
+// which is what it installs from, so that is the only honest thing to compare
+// an install against at runtime.
+
+/// What the installed bridge script is, in the three answers this can have.
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct BridgeInstall {
+    /// True when the installed script is the one this build ships.
+    ///
+    /// `None` means we could not determine it - no Lich folder, no bundled
+    /// copy, an unreadable file. Never collapse `None` into `false`: telling
+    /// somebody their install is stale when we simply could not look sends
+    /// them to fix a thing that may not be broken.
+    pub current: Option<bool>,
+    /// Where the installed copy is, when there is one.
+    pub installed_path: Option<String>,
+    /// `BRIDGE_VERSION` as each copy declares it. Reported for a human to
+    /// read. Deliberately not what `current` is computed from - see the note
+    /// above for why these can agree while the files do not.
+    pub installed_version: Option<String>,
+    pub bundled_version: Option<String>,
+    /// Plain English for whatever the fields above cannot say alone.
+    pub note: String,
+}
+
+/// The `BRIDGE_VERSION = '...'` a script declares, if it declares one.
+///
+/// Deliberately narrow: this reads a display string, and a file that has been
+/// mangled such that this cannot be found is not thereby stale - the hash
+/// decides that. Returning `None` here costs a label, not a verdict.
+fn declared_bridge_version(text: &str) -> Option<String> {
+    let line = text
+        .lines()
+        .find(|l| l.trim_start().starts_with("BRIDGE_VERSION"))?;
+    let start = line.find(['\'', '"'])?;
+    let quote = line.as_bytes()[start] as char;
+    let rest = &line[start + 1..];
+    let end = rest.find(quote)?;
+    Some(rest[..end].to_string())
+}
+
+/// Content hash with line endings normalised away. See the section note.
+fn bridge_fingerprint(bytes: &[u8]) -> String {
+    let normalised: Vec<u8> = bytes.iter().copied().filter(|b| *b != b'\r').collect();
+    format!("{:x}", Sha256::digest(&normalised))
+}
+
+/// Compare two scripts, given their bytes. Split from the command so it can
+/// be tested without a Tauri app or a Lich install - the comparison is the
+/// part with the bug in it, not the file lookup.
+fn compare_bridge(installed: &[u8], bundled: &[u8]) -> bool {
+    bridge_fingerprint(installed) == bridge_fingerprint(bundled)
+}
+
+#[tauri::command]
+pub fn bridge_install_status<R: tauri::Runtime>(app: AppHandle<R>) -> BridgeInstall {
+    use tauri::Manager;
+
+    let bundled_path = match app.path().resolve(
+        "lich-scripts/companion_bridge.lic",
+        tauri::path::BaseDirectory::Resource,
+    ) {
+        Ok(p) => p,
+        Err(e) => {
+            return BridgeInstall {
+                note: format!("Not checked: could not locate this build's own copy ({e})."),
+                ..Default::default()
+            }
+        }
+    };
+
+    let bundled = match std::fs::read(&bundled_path) {
+        Ok(b) => b,
+        Err(e) => {
+            return BridgeInstall {
+                note: format!(
+                    "Not checked: this build's own copy could not be read ({e}). \
+                     Nothing can be said about the installed one without it."
+                ),
+                ..Default::default()
+            }
+        }
+    };
+    let bundled_version = declared_bridge_version(&String::from_utf8_lossy(&bundled));
+
+    let Some(dir) = bridge_target_dir() else {
+        return BridgeInstall {
+            bundled_version,
+            note: "Not checked: no Lich scripts folder found, so there is nothing installed \
+                   to compare against."
+                .into(),
+            ..Default::default()
+        };
+    };
+
+    let installed_path = dir.join("companion_bridge.lic");
+    if !installed_path.exists() {
+        // Absent, not unknown - we looked in the right place and it is not
+        // there. That is a real answer and a different one from "stale".
+        return BridgeInstall {
+            current: Some(false),
+            bundled_version,
+            note: "The bridge script is not installed yet.".into(),
+            ..Default::default()
+        };
+    }
+
+    let installed = match std::fs::read(&installed_path) {
+        Ok(b) => b,
+        Err(e) => {
+            return BridgeInstall {
+                installed_path: Some(pretty_path(&installed_path)),
+                bundled_version,
+                note: format!("Not checked: the installed script could not be read ({e})."),
+                ..Default::default()
+            }
+        }
+    };
+
+    let installed_version = declared_bridge_version(&String::from_utf8_lossy(&installed));
+    let current = compare_bridge(&installed, &bundled);
+
+    // The note says which way the version constant fell, because a stale
+    // install whose version *matches* is the case worth naming out loud - it
+    // is the one somebody would otherwise talk themselves out of.
+    let note = if current {
+        "The installed bridge script matches this build.".to_string()
+    } else if installed_version.is_some() && installed_version == bundled_version {
+        format!(
+            "The installed bridge script differs from this build, even though both declare \
+             version {}. The version constant does not move on every edit, so it cannot be \
+             trusted to tell them apart - this compares the file contents instead. Reinstall it.",
+            bundled_version.clone().unwrap_or_default()
+        )
+    } else {
+        "The installed bridge script differs from this build. Reinstall it.".to_string()
+    };
+
+    BridgeInstall {
+        current: Some(current),
+        installed_path: Some(pretty_path(&installed_path)),
+        installed_version,
+        bundled_version,
+        note,
+    }
+}
+
 // ------------------------------------------------------------- repo bundles --
 //
 // Genie's plugins and maps ship as files committed to a repo, not as release
@@ -2228,5 +2410,94 @@ mod vendor_tests {
         assert_eq!(opt.version, "5.20.1");
         assert_eq!(opt.bytes, 68_000_000);
         assert_eq!(opt.after, "installer", "still needs its own separate consent to run");
+    }
+}
+
+#[cfg(test)]
+mod bridge_staleness_tests {
+    use super::*;
+
+    /// The case this whole check exists for, and it is not hypothetical.
+    ///
+    /// On 27 Aug 2026 two copies of `companion_bridge.lic` both declared
+    /// `BRIDGE_VERSION = '0.9.0'` while differing by roughly 15 KB: one had
+    /// the Origin check and token authentication, the other had neither.
+    /// Anything comparing version strings would have called them equal.
+    #[test]
+    fn same_version_constant_does_not_mean_same_file() {
+        let with_security = b"BRIDGE_VERSION = '0.9.0'\nALLOWED_ORIGINS = ['tauri://localhost']\ndef authenticate(sock)\n  # token check\nend\n";
+        let without = b"BRIDGE_VERSION = '0.9.0'\n# no origin check, no token\n";
+
+        assert_eq!(
+            declared_bridge_version(&String::from_utf8_lossy(with_security)),
+            declared_bridge_version(&String::from_utf8_lossy(without)),
+            "the premise: the version constant agrees"
+        );
+        assert!(
+            !compare_bridge(with_security, without),
+            "and the content check must still catch it - this is the bug the version constant hid"
+        );
+    }
+
+    /// Line endings are not content. This repo has `core.autocrlf=true`, and
+    /// the same script measured 74,410 bytes one place and 76,445 the other
+    /// purely from CRLF. Calling that stale would send somebody to reinstall
+    /// a file that was already correct.
+    #[test]
+    fn crlf_and_lf_of_the_same_script_are_the_same_script() {
+        let lf = b"BRIDGE_VERSION = '0.9.0'\nrespond 'hello'\n";
+        let crlf = b"BRIDGE_VERSION = '0.9.0'\r\nrespond 'hello'\r\n";
+
+        assert_ne!(lf.len(), crlf.len(), "test premise: the byte counts do differ");
+        assert!(
+            compare_bridge(lf, crlf),
+            "a raw byte hash would call these different; they are the same script"
+        );
+    }
+
+    /// The ordinary pass, so the assertions above are not the only thing
+    /// keeping this honest - a comparison that always returns false would
+    /// satisfy both of them.
+    #[test]
+    fn an_identical_script_compares_equal() {
+        let script = b"BRIDGE_VERSION = '0.9.0'\nrespond 'hello'\n";
+        assert!(compare_bridge(script, script));
+    }
+
+    /// A real edit with the version left alone is the everyday version of the
+    /// first test - somebody changes behaviour and forgets to bump.
+    #[test]
+    fn a_content_edit_is_caught_even_with_the_version_untouched() {
+        let before = b"BRIDGE_VERSION = '0.9.0'\nMAX_CLIENTS = 1\n";
+        let after = b"BRIDGE_VERSION = '0.9.0'\nMAX_CLIENTS = 99\n";
+        assert!(!compare_bridge(before, after));
+    }
+
+    #[test]
+    fn the_version_constant_is_read_in_the_shapes_the_script_uses() {
+        // Single quotes, which is what the real file uses.
+        assert_eq!(
+            declared_bridge_version("  BRIDGE_VERSION = '0.9.0'\n"),
+            Some("0.9.0".into())
+        );
+        // Double quotes, in case it is ever rewritten.
+        assert_eq!(
+            declared_bridge_version("BRIDGE_VERSION = \"1.2.3\"\n"),
+            Some("1.2.3".into())
+        );
+        // Found among other lines rather than only on the first.
+        assert_eq!(
+            declared_bridge_version("module Companion\n  BRIDGE_VERSION = '0.9.0'\n  X = 1\n"),
+            Some("0.9.0".into())
+        );
+    }
+
+    /// A missing or mangled version constant costs a label, never a verdict.
+    /// The hash decides staleness; this only decides what gets displayed.
+    #[test]
+    fn an_unreadable_version_is_none_rather_than_a_guess() {
+        assert_eq!(declared_bridge_version("no version here\n"), None);
+        assert_eq!(declared_bridge_version("BRIDGE_VERSION = nope\n"), None);
+        assert_eq!(declared_bridge_version(""), None);
     }
 }
