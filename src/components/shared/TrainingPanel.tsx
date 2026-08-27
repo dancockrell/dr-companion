@@ -215,7 +215,7 @@ export function TrainingPanel({ dense = false }: { dense?: boolean }) {
   )
   const skills = rawSkills ?? []
   const targetActivity = target ? activityTrainingFor(target.skill.name) : null
-  const instrumentGuess = character?.hands.right ?? character?.hands.left ?? ''
+  const instrumentGuess = character?.hands?.right ?? character?.hands?.left ?? ''
 
   if (!character) return null
 
