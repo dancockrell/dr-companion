@@ -212,7 +212,23 @@ if (failed.length) {
 
 if (notRun.length) {
   console.log(`\n${notRun.length} suite(s) NOT RUN - neither passed nor failed:`)
-  for (const r of notRun) console.log(`  ${r.name.padEnd(22)} ${r.why}`)
+  for (const r of notRun) {
+    console.log(`  ${r.name.padEnd(22)} ${r.why}`)
+    // The last few lines of what it actually said.
+    //
+    // Without this a NOT RUN was a dead end: the classification told you the
+    // suite could not execute and nothing told you why, so diagnosing it meant
+    // running it by hand and hoping it failed the same way. It did not - a
+    // suite that would not start under this runner passed six times out of six
+    // standalone, and the reason was only ever in the output being discarded
+    // here. A report that says "something went wrong" and drops the evidence
+    // is most of the way to no report at all.
+    const tail = r.output
+      .split(/\r?\n/)
+      .filter((l) => l.trim())
+      .slice(-6)
+    for (const line of tail) console.log(`      ${line}`)
+  }
 }
 
 console.log(
