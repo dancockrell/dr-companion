@@ -83,6 +83,53 @@ read `null` as either. Compares content, not `BRIDGE_VERSION`: two copies both
 declared `0.9.0` while differing by 15 KB, one with the Origin check and token
 auth and one without.
 
+## Who owns what
+
+Claimed as of 27 Aug 2026, ~21:45. **Check with prime before taking anything
+here** — this table is the one thing in this file that cannot be verified by a
+command, so it is the one most likely to be stale.
+
+| Lane | Session | Files |
+|---|---|---|
+| `list_scripts` / `start_script` intents, raw launcher | GUI features 1 | **owns `lich-scripts/companion_bridge.lic`**, `ScriptLibraryPanel.tsx` |
+| Script curation, taxonomy | UX iteration 3 | `src/data/scriptCatalog.ts` |
+| Data panels — #4, #5, #6, #10 | downloads-69 | `Paperdoll.tsx`, `InventoryPanel.tsx` |
+| Live-vs-demo gaps — channel tabs, experience skills | downloads-8a | `gameLink.ts` (read), diagnosis |
+| Cross-panel layout coherence | downloads-37 | `components/layout/`, `components/dashboard/` |
+| Activities surface — #30, #11, #12 | downloads-ca | TaskFlow buttons, intent manifest UI |
+| Sound verification | downloads-94 | read-only on the corpus |
+| Sound authoring, corpus writes | second sounds session | `dr-genie-settings/Config/`, `Sounds/` |
+| Art generation | downloads-0f | `data/art/`, `public/rooms/` |
+| Map database | prime | — |
+
+### `companion_bridge.lic` has exactly one owner
+
+Three lanes need changes to it — script launching, injury reporting, the
+intent manifest. **Only GUI features 1 edits it.** Everyone else writes a
+contract and hands it over. Two sessions wrote the installed copy minutes
+apart tonight and one silently overwrote the other with an older version;
+that file lives outside any git tree and has no collision protection.
+
+When it does change: edit the repo copy, install via the app's own
+`install_bridge_script`, verify with `bridge_install_status`.
+
+### This repo is oversubscribed
+
+Nine-plus sessions have been pointed at one small app, several with the same
+brief verbatim. There is not enough distinct non-colliding work for all of
+them, and inventing lanes to keep everyone busy produces collisions rather
+than throughput.
+
+If you arrive and every lane above is taken, **the useful thing is not to find
+a new corner to build in.** In rough order of value:
+
+1. **Verify somebody else's work against the fixture.** Read-only, collides
+   with nothing, and this repo's recurring defect is checks that cannot fail.
+2. **Take an unclaimed issue** — #7 (Gor'Tog ears), #8 (art distribution,
+   `needs-decision`), #12 (PLAY two-axis model).
+3. **Say you are idle.** That is a real answer and more useful than a
+   plausible-looking edit nobody asked for.
+
 ## Known broken on live
 
 Checked against the running client, not inferred. Fix or claim these by telling
@@ -95,10 +142,32 @@ floods with `--- Lich: error: no map database found`.
 ls /c/Ruby4Lich5/Lich5/data/DR/map-*.json 2>/dev/null || echo "MISSING"
 ```
 
-Lich searches `DATA_DIR/<game>/map-<digits>.json` (`lib/common/map/map_base.rb`,
-`json_map_files`). `scripts/download-prime-map.lic` is the official downloader;
-invoking it as `;download-prime-map` did not produce a file, and the reason is
-not yet established.
+Established, so nobody re-derives it:
+
+- Lich searches `DATA_DIR/<game>/map-<digits>.json` — `lib/common/map/map_base.rb`,
+  `json_map_files`. `data/DR/` exists and holds only `Phemius/`.
+- `scripts/download-prime-map.lic` is the official downloader: TLS to
+  `repo.lichproject.org:7157` with a pinned CA. It is Lich's own, not ours.
+- **The bridge already has an `install_mapdb` intent** (`companion_bridge.lic`,
+  `def install_mapdb`). It runs the same script through Lich's internal
+  `Script.start` and returns immediately without waiting, on purpose — it is a
+  large network fetch and blocking the bridge thread would freeze every panel.
+  **This is the path to use.** It is more reliable than sending a command down
+  the client socket, because it does not depend on how client input is parsed.
+
+Ruled out, with the evidence:
+
+- **Not a wrong command character.** `main.rb:58` sets
+  `$clean_lich_char = Frontend.client.eql?('genie') ? ',' : ';'`, and this app
+  declares `--stormfront`, so `;` is correct.
+- **Not the trust system.** Trust is automatic — `script.rb:148` sets it from
+  `script_obj.labels.length <= 1` rather than requiring a manual `;trust`.
+
+**Still open:** invoking `;download-prime-map` through the client socket
+produced no file and no visible error, and the reason is not established. It
+cannot be chased without a live Lich, because the script only runs inside one.
+Next person with a live session: call `install_mapdb` through the bridge rather
+than repeating the socket command, and watch for what it logs.
 
 **2. Channel tabs stay empty on live** despite `--stormfront` declaring the
 `streams` capability. `isTaggedStream()` in `gameLink.ts` is the discriminator
