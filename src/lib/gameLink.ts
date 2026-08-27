@@ -211,10 +211,23 @@ export function gameDropped(): number {
   return dropped
 }
 
+/**
+ * `invokeTauri` returns `undefined` outside a Tauri shell (a plain `vite`
+ * dev server has no `game_attach`/`game_status` backend to call). Casting
+ * that straight into `state` used to leave it `undefined`, and every reader
+ * of `gameState()` assumes a full `LinkState` and reads `.connected`
+ * unguarded — so the whole app failed to render, not just the game pane.
+ * Keep the last known state (initially the disconnected default above)
+ * rather than inventing a connected one or leaving state absent.
+ */
+function asLinkState(v: unknown): LinkState | null {
+  return v && typeof v === 'object' && 'connected' in v ? (v as LinkState) : null
+}
+
 export async function attachGame(port: number, host?: string): Promise<LinkState> {
   wire()
   try {
-    state = (await invokeTauri('game_attach', { host: host ?? null, port })) as LinkState
+    state = asLinkState(await invokeTauri('game_attach', { host: host ?? null, port })) ?? state
     notify()
     return state
   } catch (e) {
@@ -231,7 +244,7 @@ export async function attachGame(port: number, host?: string): Promise<LinkState
     // Asking the backend what is actually true costs one call and turns a
     // dead end into a correction.
     try {
-      state = (await invokeTauri('game_status')) as LinkState
+      state = asLinkState(await invokeTauri('game_status')) ?? state
       notify()
     } catch {
       // The status call failed too, so the backend is genuinely unreachable.
@@ -242,7 +255,7 @@ export async function attachGame(port: number, host?: string): Promise<LinkState
 }
 
 export async function detachGame(): Promise<LinkState> {
-  state = (await invokeTauri('game_detach')) as LinkState
+  state = asLinkState(await invokeTauri('game_detach')) ?? state
   notify()
   return state
 }
@@ -253,7 +266,7 @@ export async function sendGame(command: string): Promise<void> {
 
 export async function refreshGameState(): Promise<LinkState> {
   wire()
-  state = (await invokeTauri('game_status')) as LinkState
+  state = asLinkState(await invokeTauri('game_status')) ?? state
   notify()
   return state
 }
