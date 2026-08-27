@@ -243,5 +243,32 @@ console.log('\n-- Resume with nothing paused is a no-op that says so --')
     logs.some((l) => /nothing is paused/i.test(l)), true)
 }
 
+console.log('\n-- Pause called back from inside send() does not runaway-resend --')
+{
+  // Found by an independent harness (downloads-6f's pause-demo.mjs), not by
+  // this file: a `send` hook that calls pause() before returning — this
+  // project's real hook never does, but nothing enforced that — landed the
+  // driver on a status other than 'running' just before push() reached
+  // scheduleAdvance(), which armed a timer anyway. waiting() no-ops on a
+  // non-running status, so the timer fired regardless, advance() no-opped on
+  // 'paused' too, and push() resent the exact same commands — forever, once
+  // per settle period. A control that reacts to its own trigger by resending
+  // what it was meant to hold is worse than not pausing at all.
+  const sent = []
+  const driver = new FlowDriver({
+    send: (commands) => {
+      sent.push(commands)
+      if (sent.length === 1) driver.pause() // press Pause the instant step one goes out
+      return true
+    },
+    onChange: () => {},
+    log: () => {},
+  })
+  driver.start(looping)
+  await new Promise((resolve) => setTimeout(resolve, 2500)) // several settle periods, if it were runaway
+  ok('driver reports paused', driver.current()?.status, 'paused')
+  ok('exactly one step sent, no runaway resend', sent, [['a']])
+}
+
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

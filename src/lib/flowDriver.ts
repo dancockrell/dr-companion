@@ -159,6 +159,18 @@ export class FlowDriver {
    */
   private scheduleAdvance(step: ReturnType<typeof currentStep>): void {
     if (!step || !this.state) return
+    // Guards a race `hooks.send` can trigger: if it calls pause()/stop() back
+    // into this driver before returning (this test harness does exactly that,
+    // to press Pause the instant a step goes out — a real bridge never does,
+    // but nothing enforces that), state is no longer 'running' by the time
+    // push() reaches here. Without this check, a timer got armed anyway:
+    // waiting() no-ops on a non-running status, so the timer's own callback
+    // later found the flow still on the same step, `advance()` no-opped too
+    // (paused/stopped/failed all refuse to move), and push() resent the exact
+    // same commands — forever, once every settle period. Pause reacting to
+    // its own trigger by resending what it was meant to hold is worse than
+    // never pausing at all.
+    if (this.state.status !== 'running') return
     // The bridge waits out roundtime for the commands themselves, so the only
     // wait owned here is the step's own settle time. A floor of 600ms keeps a
     // loop of instant steps from spinning faster than the game can answer.
