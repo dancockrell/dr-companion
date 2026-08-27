@@ -26,13 +26,76 @@ require 'socket'
 require 'json'
 require 'digest/sha1'
 require 'base64'
+require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.8.0'
+  BRIDGE_VERSION = '0.9.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+
+  # ------------------------------------------------------------- who may talk --
+  #
+  # Binding to loopback is not a security boundary, and until 0.9.0 this script
+  # behaved as though it were.
+  #
+  # **The same-origin policy does not restrict WebSockets.** Any page on any
+  # origin can open ws://127.0.0.1:7415/companion with no preflight and no CORS
+  # block; refusing a foreign origin is the server's job and nothing here did
+  # it. The handshake required a path and a Sec-WebSocket-Key, which is exactly
+  # what a browser sends anyway, so a web page open in the player's browser
+  # while Lich ran could connect and issue intents.
+  #
+  # What that reached is the part that matters: `stop_all` is in ALWAYS,
+  # ungated on purpose because a Stop button must work no matter what the game
+  # looks like. Correct for the player, and it meant an attacker got it
+  # unconditionally too - a character standing still mid-combat. Plus pause,
+  # stow_all, install_mapdb, and a continuous feed of status and inventory to
+  # whoever had the tab open.
+  #
+  # The old test suite asserted "the wrong path is refused, so a stray browser
+  # tab cannot attach", which is the false confidence in one line: the path was
+  # doing security work it is not capable of. It is a substring match, so
+  # /x/companion/y passed too.
+  #
+  # Two independent gates now, because they stop different attackers.
+
+  # 1. ORIGIN. Stops every web page. A browser always sends Origin and cannot
+  #    forge it; nothing else is required to make this effective.
+  #
+  #    `nil` is allowed deliberately: a missing Origin is what a non-browser
+  #    sends, which is the test suite, a CLI client, and any tool somebody
+  #    writes later. Allowing it costs nothing against the browser attack and
+  #    keeps the door open for things that were never the threat.
+  ALLOWED_ORIGINS = [
+    # Tauri's webview. The scheme differs by platform and Tauri version, so
+    # every form is listed rather than guessed at - and the refusal logs the
+    # origin it saw, so a version that invents a new one is a one-line fix
+    # rather than a mystery.
+    'tauri://localhost',
+    'https://tauri.localhost',
+    'http://tauri.localhost',
+    # The dev server, so `npm run tauri:dev` works against a live bridge.
+    'http://localhost:1420',
+    'http://127.0.0.1:1420'
+  ].freeze
+
+  # 2. TOKEN. Stops a hostile local process, which Origin cannot: anything that
+  #    can open a socket can also omit an Origin header.
+  #
+  #    Written on startup to a file beside this script, readable only by the
+  #    user who is running Lich. A client has one second to present it, and the
+  #    connection is dropped if it does not - a slow client is indistinguishable
+  #    from one that is waiting to see what it can get away with.
+  #
+  #    This is the weaker half deliberately. Any process running as this user
+  #    can read the file, so the token is a boundary against *other software*,
+  #    not against something that has already got the user's privileges. Said
+  #    plainly rather than implied, because a boundary people overestimate is
+  #    worse than one they know the shape of.
+  TOKEN_FILE = 'companion_bridge.token'
+  TOKEN_GRACE_SECONDS = 1.0
 
   # ---------------------------------------------------------------- framing --
 
@@ -1013,6 +1076,77 @@ module Companion
     respond "[companion] #{msg}"
   end
 
+  # ------------------------------------------------------------------ token --
+
+  # Where the token lives: beside this script, in Lich's own scripts folder.
+  #
+  # Beside the script rather than somewhere tidier because that is the one
+  # directory both halves can find without being told - Lich knows where its
+  # scripts are, and the app already locates the Lich install to install this
+  # file in the first place.
+  def self.token_path
+    dir = begin
+      File.dirname(Script.current.path.to_s)
+    rescue StandardError
+      nil
+    end
+    dir = File.join($lich_dir.to_s, 'scripts') if dir.nil? || dir.empty?
+    File.join(dir, TOKEN_FILE)
+  end
+
+  # Generated once per start, so a token that leaked yesterday is worthless.
+  def self.generate_token
+    SecureRandom.hex(32)
+  rescue StandardError
+    # SecureRandom missing is not a reason to run without a token, it is a
+    # reason to say so. Falling back to `rand` would produce something that
+    # looks exactly like a token and is guessable, which is worse than none
+    # because it invites trust it has not earned.
+    nil
+  end
+
+  def self.auth_token
+    @auth_token
+  end
+
+  # Written with the narrowest permissions the platform offers.
+  #
+  # 0600 is honoured on Unix and largely ignored on Windows, which is stated
+  # rather than glossed: on Windows this file is readable by anything running
+  # as this user. That is the boundary the token actually draws - other
+  # software, not other privilege - and pretending otherwise would be the kind
+  # of overstated guarantee that gets somebody hurt.
+  def self.write_token!
+    @auth_token = generate_token
+    if @auth_token.nil?
+      log_error('SecureRandom unavailable: running WITHOUT a token, origin check only')
+      return nil
+    end
+
+    path = token_path
+    File.open(path, File::WRONLY | File::CREAT | File::TRUNC, 0o600) { |f| f.write(@auth_token) }
+    log_error("token written to #{path}")
+    path
+  rescue StandardError => e
+    # Could not write it: run with the origin check alone rather than refusing
+    # every client. A bridge nobody can connect to is not safer, it is just
+    # broken, and the origin check still stops the browser attack.
+    @auth_token = nil
+    log_error("could not write a token (#{e.message}): origin check only")
+    nil
+  end
+
+  # Constant-time compare, so the answer does not leak by how long it took.
+  def self.same_secret?(a, b)
+    a = a.to_s
+    b = b.to_s
+    return false unless a.bytesize == b.bytesize
+
+    diff = 0
+    a.bytes.each_with_index { |byte, i| diff |= byte ^ b.getbyte(i) }
+    diff.zero?
+  end
+
   # ---------------------------------------------------------------- intents --
 
   module Intents
@@ -1496,6 +1630,11 @@ module Companion
         return false
       end
       @running = true
+
+      # A fresh token per start, so one that leaked yesterday is worthless.
+      # Before the accept loop, or the first client could beat it.
+      Companion.write_token!
+
       respond "[companion] bridge v#{BRIDGE_VERSION} listening on ws://127.0.0.1:#{@port}#{PATH}"
 
       Trace.sink = ->(row) { trace(row) }
@@ -1552,6 +1691,22 @@ module Companion
     def serve(sock)
       return unless handshake(sock)
 
+      # The token, before anything is sent and before the socket joins the
+      # client list.
+      #
+      # Order matters and is the whole design. An unauthenticated socket never
+      # reaches `@clients`, so it never receives a broadcast - which means an
+      # attacker who gets as far as the handshake still learns nothing about
+      # the character while failing. Authenticate first, then say hello.
+      unless authenticate(sock)
+        begin
+          sock.close
+        rescue StandardError
+          nil
+        end
+        return
+      end
+
       @lock.synchronize { @clients << sock }
       send_to(sock, type: 'hello', protocol: PROTOCOL,
                     lichVersion: (defined?(LICH_VERSION) ? LICH_VERSION.to_s : 'unknown'),
@@ -1585,6 +1740,57 @@ module Companion
       end
     end
 
+    # The first frame must be `{"type":"auth","token":"..."}`, within a second.
+    #
+    # A deadline rather than a wait, because a client that has not
+    # authenticated is a client that might be probing, and "how long will it
+    # let me sit here" is a question with no good answer. One second is
+    # generous for a local socket and short enough that a scan gets nothing.
+    #
+    # Comparison is constant-time. The window is small and the attacker is
+    # local, so a timing attack here is a stretch - but the cost is four lines
+    # and the alternative is arguing about how much of a stretch, which is a
+    # conversation about the wrong thing.
+    def authenticate(sock)
+      expected = Companion.auth_token
+      return true if expected.nil? || expected.empty?
+
+      deadline = Time.now + TOKEN_GRACE_SECONDS
+      while Time.now < deadline
+        ready = IO.select([sock], nil, nil, 0.1)
+        next unless ready
+
+        frame = WS.read_frame(sock)
+        return false if frame.nil?
+
+        opcode, payload = frame
+        next unless [0x1, 0x2].include?(opcode)
+
+        msg = begin
+          JSON.parse(payload)
+        rescue StandardError
+          nil
+        end
+        offered = msg.is_a?(Hash) && msg['type'] == 'auth' ? msg['token'].to_s : nil
+        return true if offered && Companion.same_secret?(offered, expected)
+
+        # One attempt. A client that sent the wrong thing does not get to keep
+        # guessing inside the grace window.
+        Companion.log_error('refused a connection: bad or missing token')
+        begin
+          sock.write(WS.encode(JSON.generate(type: 'error', message: 'unauthorised')))
+        rescue StandardError
+          nil
+        end
+        return false
+      end
+
+      Companion.log_error('refused a connection: no token within the grace period')
+      false
+    rescue StandardError
+      false
+    end
+
     def handshake(sock)
       request = +''
       # Read headers, bounded so a non-WebSocket client cannot hang a thread.
@@ -1605,6 +1811,21 @@ module Companion
       request_line = request.lines.first.to_s
       unless request_line.include?(PATH)
         sock.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n")
+        return false
+      end
+
+      # Origin, before the key, because a caller who should not be here is not
+      # made acceptable by having sent a well-formed key.
+      #
+      # Absent is allowed: that is what a non-browser sends. Present and
+      # unlisted is refused, which is every web page in the world.
+      origin = request[/^Origin:\s*(\S+)/i, 1]
+      if origin && !ALLOWED_ORIGINS.include?(origin)
+        # Logged with the origin it saw. A refusal that does not name what it
+        # refused is a bug report nobody can act on, and if a Tauri version
+        # invents a new scheme this line is the whole diagnosis.
+        Companion.log_error("refused a connection from origin #{origin.inspect}")
+        sock.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n")
         return false
       end
 

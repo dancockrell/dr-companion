@@ -1,3 +1,4 @@
+pub mod bridge_token;
 pub mod config_import;
 pub mod game_link;
 pub mod lich;
@@ -104,6 +105,7 @@ fn panel_windows(app: tauri::AppHandle) -> Vec<String> {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            bridge_token::read_bridge_token,
             config_import::read_genie_config,
             sounds::read_sound,
             game_link::game_status,

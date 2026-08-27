@@ -18,6 +18,14 @@ require 'json'
 require 'digest/sha1'
 require 'base64'
 require 'timeout'
+# The harness evaluates only the `module Companion` body, so the requires at the
+# top of the script never run and anything they provide has to be supplied here.
+#
+# SecureRandom was missing, `generate_token` rescued to nil, and the token
+# quietly did not exist - so the token tests skipped themselves and the run
+# reported no failure. A harness gap that disables a security test looks
+# exactly like a passing run.
+require 'securerandom'
 
 SRC = ARGV[0] or abort 'usage: server_test.rb <path to companion_bridge.lic>'
 
@@ -63,7 +71,11 @@ end
 class Client
   attr_reader :accept_header
 
-  def initialize(port, path = Companion::PATH)
+  # `authenticate:` false leaves the token unsent, so the refusal paths can be
+  # tested. Sending no Origin at all is on purpose: that is what a non-browser
+  # client does, and the point of the origin check is that it does not break
+  # them.
+  def initialize(port, path = Companion::PATH, authenticate: true)
     @sock = TCPSocket.new('127.0.0.1', port)
     @key  = Base64.strict_encode64(Array.new(16) { rand(256) }.pack('C*'))
     @sock.write(
@@ -77,7 +89,26 @@ class Client
     @head, rest = @buf.split("\r\n\r\n", 2)
     @rest = rest.to_s.dup
     @accept_header = @head[/Sec-WebSocket-Accept:\s*(\S+)/i, 1]
+
+    send_json(type: 'auth', token: Companion.auth_token) if authenticate && @head.include?('101')
   end
+
+  # Whether the server has hung up. Used to assert that a client which never
+  # authenticates gets dropped rather than tolerated indefinitely.
+  def dead?
+    return true if @sock.closed?
+
+    ready = IO.select([@sock], nil, nil, 0.2)
+    return false unless ready
+
+    @sock.read_nonblock(1).nil?
+  rescue EOFError, IOError, Errno::ECONNRESET
+    true
+  rescue IO::WaitReadable
+    false
+  end
+
+  def closed? = @sock.closed?
 
   def status_line = @head.lines.first.to_s.strip
 
@@ -207,6 +238,75 @@ begin
   check('answered with an error', !err.nil?, err && err['message'])
   check('server still running', server.running?)
   bad.close
+
+  puts ''
+  puts '-- a foreign origin is refused, which is the whole browser attack --'
+  # The same-origin policy does not restrict WebSockets. Any page on any origin
+  # can open ws://127.0.0.1:7415/companion with no preflight and no CORS block,
+  # so refusing a foreign origin is the server's job and nothing else's.
+  #
+  # Until 0.9.0 this passed. The handshake wanted a path and a key, which is
+  # exactly what a browser sends, and reaching `intent` from there gets
+  # `stop_all` - ungated by design, correct for a Stop button, and
+  # unconditional for an attacker too.
+  evil = TCPSocket.new('127.0.0.1', PORT)
+  evil.write("GET #{Companion::PATH} HTTP/1.1\r\nHost: 127.0.0.1:#{PORT}\r\n" \
+             "Upgrade: websocket\r\nConnection: Upgrade\r\n" \
+             "Origin: https://evil.example\r\n" \
+             # Generated rather than pasted. The RFC's own sample nonce is a
+             # base64 blob with enough entropy that the secret scanner flags it
+             # as a leaked key, and teaching anyone to pass --no-verify to get
+             # past that is a worse habit than the inconvenience it saves.
+             "Sec-WebSocket-Key: #{Base64.strict_encode64(Array.new(16) { rand(256) }.pack('C*'))}\r\n" \
+             "Sec-WebSocket-Version: 13\r\n\r\n")
+  evil_head = +''
+  begin
+    Timeout.timeout(5) { evil_head << evil.readpartial(1024) until evil_head.include?("\r\n\r\n") }
+  rescue Timeout::Error, EOFError
+    nil
+  end
+  check('403 for a foreign origin', evil_head.include?('403'), evil_head.lines.first.to_s.strip)
+  check('and definitely not 101', !evil_head.include?('101'), evil_head.lines.first.to_s.strip)
+  evil.close
+
+  puts ''
+  puts '-- an absent origin is allowed, because that is what a non-browser sends --'
+  # Deliberate. The test suite, a CLI client and anything written later send no
+  # Origin at all, and refusing them costs real usefulness while stopping
+  # nothing: a hostile local process can simply omit the header. That attacker
+  # is the token's job, not this check's.
+  check('the ordinary client still connected', c.status_line.include?('101'), c.status_line)
+
+  puts ''
+  puts '-- the token is required, and one guess is all anyone gets --'
+  # Asserted rather than skipped. A SKIP here is indistinguishable from a pass,
+  # and it guards the half of the boundary that stops a local process - exactly
+  # the thing nobody would notice was missing.
+  check('a token was generated at startup', !Companion.auth_token.to_s.empty?,
+        $respond_log.grep(/token/).join('; '))
+
+  if Companion.auth_token.to_s.empty?
+    puts 'SKIP no token, so the rest of this section cannot run'
+  else
+    bad_token = Client.new(PORT, authenticate: false)
+    bad_token.send_json(type: 'auth', token: 'not-the-token')
+    refused = begin
+      bad_token.read_until('error', tries: 3)
+    rescue StandardError
+      nil
+    end
+    check('a wrong token is told so', !refused.nil? || bad_token.closed?,
+          refused && refused['message'])
+    # The important half: it never joined the client list, so it never received
+    # a status broadcast. An attacker who fails must learn nothing on the way.
+    check('and never received a status push', refused.nil? || refused['type'] != 'status')
+    bad_token.close
+
+    silent = Client.new(PORT, authenticate: false)
+    sleep 1.4 # past TOKEN_GRACE_SECONDS
+    check('a client that never authenticates is dropped', silent.dead?)
+    silent.close
+  end
 
   puts ''
   puts '-- the wrong path is refused, so a stray browser tab cannot attach --'

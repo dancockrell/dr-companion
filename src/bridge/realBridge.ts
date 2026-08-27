@@ -4,6 +4,7 @@
  * Falls back cleanly when Lich is not running.
  */
 
+import { invokeTauri } from '../lib/tauri'
 import type { BridgeClientMessage, BridgeServerMessage } from './types'
 
 export type RealBridgeStatus =
@@ -45,6 +46,9 @@ export class RealBridge {
   // DOM — so the one piece of the app that cannot be wrong, the transport to
   // Lich, was also the one piece that could not be tested outside a browser.
   // It went unexercised for exactly that long.
+  /** The bridge token for this attempt, read before the socket opens. */
+  private token = ''
+
   private staleTimer: ReturnType<typeof setInterval> | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private shouldReconnect = false
@@ -77,6 +81,42 @@ export class RealBridge {
     }
     this.shouldReconnect = true
     this.setStatus('connecting')
+
+    // The token is fetched BEFORE the socket opens, and this ordering is the
+    // whole of it.
+    //
+    // The first version read it inside `onopen`, which is asynchronous - so
+    // `subscribe` and `get_status` went out synchronously first, the bridge
+    // read `subscribe` as the first frame, and refused the connection. The
+    // client reconnected forever and reported "is Lich running?", which is a
+    // true-sounding message about entirely the wrong thing.
+    //
+    // Read per attempt rather than cached: the bridge writes a fresh token
+    // each time it starts, so a cached one is exactly wrong in the case that
+    // matters - reconnecting after Lich restarted.
+    void this.readToken().then((token) => {
+      if (!this.shouldReconnect) return
+      this.token = token
+      this.openSocket()
+    })
+  }
+
+  /**
+   * Ask Tauri for the token beside the bridge script.
+   *
+   * Never throws. No Tauri (a browser) or no token file are both ordinary,
+   * and in either case the empty string is sent as nothing and the bridge
+   * decides - which keeps that decision in the one place with all the facts.
+   */
+  private async readToken(): Promise<string> {
+    try {
+      return ((await invokeTauri('read_bridge_token')) as string) ?? ''
+    } catch {
+      return ''
+    }
+  }
+
+  private openSocket() {
     try {
       const ws = new WebSocket(this.url)
       this.ws = ws
@@ -84,6 +124,18 @@ export class RealBridge {
       ws.onopen = () => {
         this.reconnectAttempts = 0
         this.setStatus('connected')
+
+        // The token, first, and synchronously, so nothing can overtake it.
+        //
+        // The bridge writes a fresh one beside its own script on startup and
+        // drops any connection whose first frame is not this. That is the half
+        // of the boundary that stops a hostile local process - the Origin
+        // check stops web pages, and anything that can open a socket can
+        // simply omit an Origin header.
+        if (this.token) {
+          this.send({ type: 'auth', token: this.token } as unknown as BridgeClientMessage)
+        }
+
         this.send({
           type: 'subscribe',
           channels: ['status', 'inventory', 'scripts', 'log'],

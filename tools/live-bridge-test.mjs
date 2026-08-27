@@ -50,11 +50,19 @@ writeFileSync(
     "require 'json'",
     "require 'digest/sha1'",
     "require 'base64'",
+    // Only the Companion module body is sliced out below, so the requires at
+    // the top of the script never run and anything they provide has to be
+    // supplied here. Without SecureRandom the bridge cannot generate a token,
+    // runs on the origin check alone, and this test silently stops covering
+    // authentication at all.
+    "require 'securerandom'",
     'def respond(m) = warn("[lich] #{m}")',
     "LICH_VERSION = '5.20.1'",
     'class FakeScript',
     '  def self.current = new',
-    "  def path = 'stub'",
+    // A path inside the temp directory, so the token lands somewhere this
+    // test owns rather than in whatever the working directory happens to be.
+    `  def path = ${JSON.stringify(join(dir, 'companion_bridge.lic'))}`,
     '  def self.at_exit(&_b) = nil',
     'end',
     'Script = FakeScript',
@@ -67,6 +75,11 @@ writeFileSync(
 )
 
 const rubyExe = process.env.DRC_RUBY || 'ruby'
+// Where the bridge will write its token, so the stub above can find it. Set
+// before the bridge starts, because the stub is read at connect time and the
+// bridge writes the file during start.
+process.env.DRC_TEST_TOKEN_FILE = join(dir, 'companion_bridge.token')
+
 const ruby = spawn(rubyExe, [runner], { stdio: ['ignore', 'pipe', 'pipe'] })
 
 const cleanup = () => {
@@ -141,8 +154,41 @@ if (!emitted) {
   console.log(`FAIL tsc reported success but emitted no realBridge.js under ${outDir}`)
   process.exit(1)
 }
+// Stand in for the Tauri bridge the client uses to read the connection token.
+//
+// realBridge now asks Tauri for the token the moment the socket opens, because
+// the bridge requires one. There is no Tauri here, so the import is rewritten
+// to a stub that reads the token the bridge just wrote - which makes this test
+// exercise the real authentication path rather than route around it.
+//
+// Rewriting the specifier rather than planting a file at ../lib/tauri: an ESM
+// import has to name an exact file, and a stub whose name matches the real
+// module would be one rename away from being picked up somewhere it should not
+// be.
+const stubPath = join(outDir, 'tauri-stub.mjs')
+writeFileSync(
+  stubPath,
+  [
+    "import { readFileSync } from 'node:fs'",
+    'export function isTauri() { return true }',
+    'export async function invokeTauri(cmd) {',
+    "  if (cmd === 'read_bridge_token') {",
+    '    try {',
+    "      return readFileSync(process.env.DRC_TEST_TOKEN_FILE, 'utf8').trim()",
+    '    } catch { return %EMPTY% }',
+    '  }',
+    '  return null',
+    '}',
+  ]
+    .join('\n')
+    .replace('%EMPTY%', "''")
+)
+
 const modPath = join(outDir, 'realBridge.mjs')
-writeFileSync(modPath, readFileSync(emitted, 'utf8'))
+writeFileSync(
+  modPath,
+  readFileSync(emitted, 'utf8').replace(/(['"])\.\.\/lib\/tauri\1/g, "'./tauri-stub.mjs'")
+)
 
 function findFile(root, name) {
   for (const entry of readdirSync(root, { withFileTypes: true })) {
