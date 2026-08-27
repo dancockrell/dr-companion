@@ -16,6 +16,8 @@ import {
   currentStep,
   fail,
   isFinished,
+  pause as pauseFlow,
+  resume as resumeFlow,
   stop,
   waiting,
   type FlowState,
@@ -74,6 +76,40 @@ export class FlowDriver {
     this.hooks.onChange(this.state)
   }
 
+  /**
+   * Held on the step it is on, without resending it.
+   *
+   * The step was already sent — pause always lands during the "waiting out
+   * settle time" window, never mid-send, since that window is the only time
+   * a timer is outstanding to interrupt. So this only ever needs to clear
+   * that timer; there is nothing in flight to abort.
+   */
+  pause(): void {
+    if (!this.state || isFinished(this.state) || this.state.status === 'paused') return
+    this.clearTimer()
+    this.state = pauseFlow(this.state)
+    this.hooks.log(`Flow: ${this.state.flow.title} paused`)
+    this.hooks.onChange(this.state)
+  }
+
+  /**
+   * Carries on from the step pause held, re-arming its settle wait rather
+   * than resending its commands or skipping straight to the next step. A
+   * resume with nothing paused says so rather than reading as a success that
+   * did not happen — the same shape of lie Stop all used to tell.
+   */
+  resume(): void {
+    if (!this.state || this.state.status !== 'paused') {
+      this.hooks.log('Resume: nothing is paused.')
+      return
+    }
+    const step = currentStep(this.state)
+    this.state = resumeFlow(this.state)
+    this.hooks.log(`Flow: ${this.state.flow.title} resumed`)
+    this.hooks.onChange(this.state)
+    if (step) this.scheduleAdvance(step)
+  }
+
   current(): FlowState | null {
     return this.state
   }
@@ -110,9 +146,24 @@ export class FlowDriver {
       return
     }
 
+    this.scheduleAdvance(step)
+  }
+
+  /**
+   * Wait out a step's settle time, then move past it and send the next one.
+   *
+   * Split out of push() so resume() can re-arm this same wait for the step
+   * pause held, without going through the "send" half again — the commands
+   * already went out before pause interrupted the wait, and resuming must
+   * not send them a second time.
+   */
+  private scheduleAdvance(step: ReturnType<typeof currentStep>): void {
+    if (!step || !this.state) return
     // The bridge waits out roundtime for the commands themselves, so the only
     // wait owned here is the step's own settle time. A floor of 600ms keeps a
     // loop of instant steps from spinning faster than the game can answer.
+    // A resume restarts this floor rather than the exact remainder pause
+    // interrupted — simpler, and the cost is at most one settle period.
     const delay = Math.max(600, (step.settle ?? 0) * 1000)
     this.state = waiting(this.state)
     this.timer = setTimeout(() => {

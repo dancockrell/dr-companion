@@ -8,7 +8,7 @@ import {
   type TaskFlow,
 } from '../../data/taskFlows'
 import { FlowDriver } from '../../lib/flowDriver'
-import { onStopAll } from '../../lib/flowStop'
+import { onStopAll, onPauseAll, onResumeAll } from '../../lib/flowStop'
 import { describeFlow, isFinished, type FlowState } from '../../lib/flowRunner'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
@@ -72,6 +72,13 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   // panel kept reporting it as active. A player's stop, not the bridge going
   // away, so `stop()` and not `interrupt()`.
   useEffect(() => onStopAll(() => driver.current?.stop()), [])
+
+  // Same reasoning as Stop all, for the other two buttons that claimed to
+  // reach this driver and never did: "Hold automation where it is" held
+  // nothing, and "Carry on from where it paused" had nothing to carry on
+  // from, because nothing client-side had a pause/resume at all.
+  useEffect(() => onPauseAll(() => driver.current?.pause()), [])
+  useEffect(() => onResumeAll(() => driver.current?.resume()), [])
 
   // The timer outlives the component otherwise, and a popped-out panel
   // unmounts while a hunting loop is mid-pass.

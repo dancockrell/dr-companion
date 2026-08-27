@@ -22,7 +22,7 @@
  */
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
-import { requestStopAll } from '../../lib/flowStop'
+import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop'
 import { cn } from '../../lib/cn'
 
 export function SafetyFooter() {
@@ -145,7 +145,12 @@ export function SafetyFooter() {
         type="button"
         className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink"
         title="Hold automation where it is"
-        onClick={() => requestIntent('pause')}
+        onClick={() => {
+          requestIntent('pause')
+          // Same gap as Stop all had: the bridge pauses its own scripts, but
+          // a client-side Task Flow's timer never heard "pause" at all.
+          requestPauseAll()
+        }}
       >
         <Pause className="h-4 w-4" />
         Pause
@@ -154,7 +159,10 @@ export function SafetyFooter() {
         type="button"
         className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink"
         title="Carry on from where it paused"
-        onClick={() => requestIntent('resume')}
+        onClick={() => {
+          requestIntent('resume')
+          requestResumeAll()
+        }}
       >
         <Play className="h-4 w-4" />
         Resume

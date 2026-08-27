@@ -18,7 +18,7 @@ export interface FlowState {
   step: number
   /** Completed passes. Only meaningful for a looping flow. */
   pass: number
-  status: 'running' | 'waiting' | 'done' | 'stopped' | 'failed'
+  status: 'running' | 'waiting' | 'paused' | 'done' | 'stopped' | 'failed'
   /** Why it stopped, when that was not the player's doing. */
   reason?: string
   /** Steps sent this run, for the progress line. */
@@ -77,6 +77,25 @@ export function waiting(s: FlowState): FlowState {
   return s.status === 'running' ? { ...s, status: 'waiting' } : s
 }
 
+/**
+ * Held on the step it is on. Only from running or waiting — pausing a
+ * flow that already finished, or is already paused, changes nothing.
+ */
+export function pause(s: FlowState): FlowState {
+  if (s.status !== 'running' && s.status !== 'waiting') return s
+  return { ...s, status: 'paused' }
+}
+
+/**
+ * Carries on from the step it was held on. A no-op on anything that was not
+ * paused — the caller (FlowDriver) is what turns that into "nothing to
+ * resume" rather than this function pretending something happened.
+ */
+export function resume(s: FlowState): FlowState {
+  if (s.status !== 'paused') return s
+  return { ...s, status: 'running' }
+}
+
 export const isFinished = (s: FlowState) =>
   s.status === 'done' || s.status === 'stopped' || s.status === 'failed'
 
@@ -94,5 +113,9 @@ export function describeFlow(s: FlowState): string {
 
   const step = s.flow.steps[s.step]
   const where = `${step?.label ?? 'working'} (${s.step + 1} of ${s.flow.steps.length})`
-  return s.flow.loops ? `${where}, pass ${s.pass + 1}` : where
+  const line = s.flow.loops ? `${where}, pass ${s.pass + 1}` : where
+  // Paused reads as its own thing rather than indistinguishable from running
+  // — the whole point of the bug this fixes is a bar that cannot tell the
+  // player which one is actually true.
+  return s.status === 'paused' ? `${line} — paused` : line
 }

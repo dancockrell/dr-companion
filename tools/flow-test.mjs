@@ -13,11 +13,20 @@ import {
   describeFlow,
   fail,
   isFinished,
+  pause,
+  resume,
   stop,
 } from '../src/lib/flowRunner.ts'
 import { DEFAULT_FLOWS } from '../src/data/taskFlows.ts'
 import { FlowDriver } from '../src/lib/flowDriver.ts'
-import { onStopAll, requestStopAll } from '../src/lib/flowStop.ts'
+import {
+  onStopAll,
+  requestStopAll,
+  onPauseAll,
+  requestPauseAll,
+  onResumeAll,
+  requestResumeAll,
+} from '../src/lib/flowStop.ts'
 
 let failed = 0
 const ok = (name, got, want) => {
@@ -70,6 +79,26 @@ console.log('\n-- Stop wins from anywhere --')
   let s = begin(looping)
   s = run(s, 500)
   ok('still stoppable after 500 steps', stop(s).status, 'stopped')
+}
+
+console.log('\n-- Pause holds, Resume continues from the same step --')
+{
+  const midFlow = advance(begin(looping)) // on step two, pass 0
+  const paused = pause(midFlow)
+  ok('pause holds the flow', paused.status, 'paused')
+  ok('pause keeps the step it was on', paused.step, midFlow.step)
+  ok('a paused flow does not advance', advance(paused).status, 'paused')
+  // Unlike done/stopped/failed, paused is not a "nothing left" state — it is
+  // holding one specific step, and FlowDriver.resume() reads exactly this
+  // value, while status is still 'paused', to know what to re-arm the wait
+  // for. Returning null here would silently break resume().
+  ok('a paused flow still reports the step it is held on', currentStep(paused)?.label, 'two')
+  ok('resume carries on', resume(paused).status, 'running')
+  ok('resume lands back on the held step', resume(paused).step, midFlow.step)
+  ok('resuming something not paused changes nothing', resume(midFlow), midFlow)
+  ok('pausing something already finished changes nothing', pause(stop(begin(finite))).status, 'stopped')
+  ok('pausing something already paused changes nothing', pause(paused), paused)
+  ok('the progress line says paused', describeFlow(paused), 'two (2 of 2), pass 1 — paused')
 }
 
 console.log('\n-- a failure stops the sequence rather than skipping on --')
@@ -158,6 +187,60 @@ console.log('\n-- an unsubscribed driver does not react to a later Stop all --')
   // straight to waiting out its settle time, so this is the same status an
   // untouched, still-running flow would show at this instant.
   ok('kept going: unsubscribed driver ignores Stop all', driver.current()?.status, 'waiting')
+}
+
+console.log('\n-- Pause all reaches a running flow driver, and holds the timer --')
+{
+  // The property: once paused, no further step is sent even after the
+  // settle window that would otherwise have fired one — a flag the timer
+  // ignores would pass "driver reports paused" while still sending.
+  const sent = []
+  const driver = new FlowDriver({
+    send: (commands) => { sent.push(commands); return true },
+    onChange: () => {},
+    log: () => {},
+  })
+  const unsub = onPauseAll(() => driver.pause())
+  driver.start(looping) // sends step 'one' synchronously, schedules 'two'
+  requestPauseAll()
+  await new Promise((resolve) => setTimeout(resolve, 900)) // past the 600ms settle floor
+  unsub()
+  ok('driver reports paused', driver.current()?.status, 'paused')
+  ok('no step sent while paused', sent, [['a']])
+}
+
+console.log('\n-- Resume all continues from the held step, not from the start --')
+{
+  const sent = []
+  const driver = new FlowDriver({
+    send: (commands) => { sent.push(commands); return true },
+    onChange: () => {},
+    log: () => {},
+  })
+  const unsubPause = onPauseAll(() => driver.pause())
+  const unsubResume = onResumeAll(() => driver.resume())
+  driver.start(looping) // sends 'one' ['a'], schedules 'two'
+  requestPauseAll()
+  ok('paused before resuming', driver.current()?.status, 'paused')
+  requestResumeAll()
+  ok('resumed, still on the held step, not resent', sent, [['a']])
+  ok('driver is waiting out the held step again, not re-running from the top', driver.current()?.status, 'waiting')
+  await new Promise((resolve) => setTimeout(resolve, 900)) // let the re-armed wait fire
+  unsubPause()
+  unsubResume()
+  ok('the next step went out exactly once, after resuming', sent, [['a'], ['b']])
+}
+
+console.log('\n-- Resume with nothing paused is a no-op that says so --')
+{
+  const logs = []
+  const driver = new FlowDriver({ send: () => true, onChange: () => {}, log: (line) => logs.push(line) })
+  driver.start(looping)
+  const before = driver.current()
+  driver.resume()
+  ok('state is unchanged', driver.current(), before)
+  ok('the log says nothing was paused, rather than staying silent',
+    logs.some((l) => /nothing is paused/i.test(l)), true)
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
