@@ -48,6 +48,41 @@ const PORT = Number(arg('port', 11124))
 const SPEED = Number(arg('speed', 1))
 
 /**
+ * Ports a real Lich needs, which this fixture must never take by accident.
+ *
+ * Moving the default off 11024 (above) made the mistake un-free. It did not
+ * make it impossible, and on 27 Aug 2026 the un-free version happened anyway:
+ * a copy left running on 11024 was still holding it hours later, and was found
+ * only because somebody went looking for why a real Lich would not start.
+ *
+ * 11024 is `DETACHABLE_PORT` in src-tauri/src/lich.rs - the game socket.
+ * 7415 is the companion bridge. A fixture on either is worse than a fixture
+ * that fails to start, because it answers: it speaks the same wire protocol
+ * on purpose, so Attach connects and replays captured text that looks exactly
+ * like a live game.
+ */
+const RESERVED_PORTS = new Map([
+  [11024, 'the real Lich game socket (DETACHABLE_PORT in src-tauri/src/lich.rs)'],
+  [7415, 'the companion bridge'],
+])
+
+/** Deliberate collision testing is still allowed - it just has to be said out loud. */
+const FORCE_REAL_PORT = process.argv.includes('--force-real-port')
+
+/**
+ * How long this fixture may live before it stops on its own.
+ *
+ * The forgotten-fixture failure is not that starting one is risky; it is that
+ * nothing ever ends one. A test tool has no business outliving the test, and
+ * the cost of it doing so is paid much later by somebody debugging a port
+ * they cannot bind, with no reason to suspect a fixture at all.
+ *
+ * `--max-minutes 0` disables the limit, for the rare case of genuinely wanting
+ * a long-lived replay. That is a decision someone makes, not a default.
+ */
+const MAX_MINUTES = Number(arg('max-minutes', 30))
+
+/**
  * Send the tagged stream an xml-capable frontend receives, rather than plain
  * text.
  *
@@ -210,10 +245,45 @@ const server = createServer((socket) => {
   })()
 })
 
+// Checked before listen(), so a refusal costs nothing and cannot leave a
+// half-bound socket behind. Exits non-zero and names the port, the owner and
+// the override: a guard that fires without saying how to proceed just gets
+// worked around by the next person in a hurry.
+const reservedFor = RESERVED_PORTS.get(PORT)
+if (reservedFor && !FORCE_REAL_PORT) {
+  console.error(`fake-lich: refusing to bind ${PORT} - that is ${reservedFor}.`)
+  console.error(
+    'A fixture here does not fail loudly, it ANSWERS: it speaks the same wire'
+  )
+  console.error(
+    'protocol, so Attach connects to replayed text and reports a healthy game.'
+  )
+  console.error(
+    `Use the default (11124), or pass --force-real-port if colliding is the point.`
+  )
+  process.exit(2)
+}
+
 server.listen(PORT, '127.0.0.1', () => {
   console.error(`fake Lich listening on 127.0.0.1:${PORT} (speed ${SPEED}x)`)
   console.error(
     `this is a fixture of captured DragonRealms text, not a game` +
       ` (${TAGGED ? 'tagged stream' : 'plain text'}${SPLIT ? ', split across reads' : ''})`
   )
+  if (reservedFor) {
+    console.error(
+      `WARNING: bound ${PORT}, which is ${reservedFor}. A real Lich cannot start while this runs.`
+    )
+  }
+
+  if (MAX_MINUTES > 0) {
+    console.error(`this fixture will stop on its own in ${MAX_MINUTES} minutes (--max-minutes 0 to disable)`)
+    // unref() so the timer never keeps the process alive by itself - this is
+    // a deadline, not a reason to exist. Without it a fixture whose server
+    // had closed would linger until the timer fired.
+    setTimeout(() => {
+      console.error(`fake-lich: ${MAX_MINUTES} minute limit reached, exiting so this port is not held for ever.`)
+      process.exit(0)
+    }, MAX_MINUTES * 60_000).unref()
+  }
 })
