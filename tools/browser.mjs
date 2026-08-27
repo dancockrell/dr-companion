@@ -63,7 +63,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
  * and the obvious fix (delete it) would have removed a real protection while
  * every visible symptom improved.
  */
-const REQUEST_TIMEOUT_MS = Number(process.env.DRC_CDP_TIMEOUT_MS || 30000)
+export const DEFAULT_REQUEST_TIMEOUT_MS = 30000
+
+/**
+ * The deadline used when a caller does not ask for one.
+ *
+ * The environment variable is an operator's escape hatch - useful when
+ * something is misbehaving and you want every call to give up sooner. It is
+ * deliberately not how the tests reach this branch: a test that depends on its
+ * caller's environment exercises whatever that environment happened to be, and
+ * that is how the deadline case ended up taking its full thirty seconds inside
+ * a suite that otherwise runs in seconds. Tests pass `requestTimeoutMs` per
+ * call instead - a seam that cannot be accidentally left unset.
+ */
+const REQUEST_TIMEOUT_MS = Number(
+  process.env.DRC_CDP_TIMEOUT_MS || DEFAULT_REQUEST_TIMEOUT_MS
+)
 
 /**
  * Wait for the debugger to answer, rather than sleeping a guessed amount.
@@ -157,12 +172,12 @@ export async function launch({ width = 1280, height = 860, headless = true } = {
  * is a blank page with none of the app in it, and it would render perfectly
  * and mean nothing.
  */
-export async function attach({ port = 9223, timeoutMs = 5000, pick = null } = {}) {
+export async function attach({ port = 9223, timeoutMs = 5000, pick = null, requestTimeoutMs = REQUEST_TIMEOUT_MS } = {}) {
   const wsUrl = await debuggerUrl(port, timeoutMs)
-  return session(wsUrl, { target: 'first-page', pick })
+  return session(wsUrl, { target: 'first-page', pick, requestTimeoutMs })
 }
 
-async function session(wsUrl, { target = 'new', cleanup = null, pick = null } = {}) {
+async function session(wsUrl, { target = 'new', cleanup = null, pick = null, requestTimeoutMs = REQUEST_TIMEOUT_MS } = {}) {
   const ws = new WebSocket(wsUrl)
   await new Promise((resolve, reject) => {
     ws.onopen = resolve
@@ -215,9 +230,9 @@ async function session(wsUrl, { target = 'new', cleanup = null, pick = null } = 
       const timer = setTimeout(() => {
         if (pending.has(id)) {
           pending.delete(id)
-          reject(new Error(`${method} timed out after ${REQUEST_TIMEOUT_MS}ms with no reply`))
+          reject(new Error(`${method} timed out after ${requestTimeoutMs}ms with no reply`))
         }
-      }, REQUEST_TIMEOUT_MS)
+      }, requestTimeoutMs)
       pending.set(id, { resolve, reject, timer })
       ws.send(JSON.stringify({ id, method, params, sessionId }))
     })

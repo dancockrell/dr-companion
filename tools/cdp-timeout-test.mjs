@@ -18,9 +18,16 @@
  * and removed a real protection. Hence both tests: one proves the deadline
  * still fires, the other proves it stops existing once answered.
  *
- * `DRC_CDP_TIMEOUT_MS` exists so the first is testable in a second and a half
- * rather than thirty. A branch that can only be reached by waiting out a real
- * failure is one nobody exercises.
+ * The deadline case asks for its own timeout through `requestTimeoutMs`, so it
+ * takes a second and a half rather than thirty. A branch that can only be
+ * reached by waiting out a real failure is one nobody exercises.
+ *
+ * It used to read `DRC_CDP_TIMEOUT_MS` instead, which meant the test's runtime
+ * depended on whether its caller happened to set a variable - thirty seconds
+ * inside a suite that otherwise runs in seconds. The environment variable
+ * survives as an operator's escape hatch; a parameter is the right seam for a
+ * test, because it cannot be accidentally left unset. The shipped default is
+ * asserted separately, without waiting for it.
  */
 import { createServer } from 'node:http'
 import { createHash } from 'node:crypto'
@@ -151,7 +158,7 @@ async function answeringEndpoint(port) {
   return srv
 }
 
-const { attach } = await import(`file://${join(HERE, 'browser.mjs').replace(/\\/g, '/')}`)
+const { attach, DEFAULT_REQUEST_TIMEOUT_MS } = await import(`file://${join(HERE, 'browser.mjs').replace(/\\/g, '/')}`)
 
 console.log('-- the deadline still fires against a target that never answers --')
 {
@@ -160,28 +167,44 @@ console.log('-- the deadline still fires against a target that never answers --'
   // real might want is its own class of bug.
   const PORT = 9934
   const srv = await silentEndpoint(PORT)
+  // Driven by the parameter, not by the environment. Reading
+  // `DRC_CDP_TIMEOUT_MS` here made this case take its full thirty seconds
+  // whenever the suite ran without that variable set - a 30s test inside a run
+  // that is otherwise seconds, and one whose duration depended on who invoked
+  // it rather than on anything about the test. Asking for the deadline
+  // explicitly is faster and makes it a fixed fact about this test.
+  const DEADLINE = 1500
   const t0 = Date.now()
   let message = ''
   let resolved = false
   try {
-    await attach({ port: PORT, timeoutMs: 3000 })
+    await attach({ port: PORT, timeoutMs: 3000, requestTimeoutMs: DEADLINE })
     resolved = true
   } catch (e) {
     message = e.message
   }
   const ms = Date.now() - t0
-  srv.sockets?.forEach(x => x.destroy()); srv.unref?.()
+  srv.sockets?.forEach((x) => x.destroy())
+  srv.unref?.()
 
   ok('it rejects rather than hanging', !resolved && /timed out/.test(message), message.slice(0, 60))
 
-  // The denominator for this test: if the override were ignored the check
-  // above would still pass, thirty seconds later, and nobody would notice the
-  // branch had become untestable.
-  const budget = Number(process.env.DRC_CDP_TIMEOUT_MS || 30000) + 3000
+  // The denominator: without this, the check above would still pass thirty
+  // seconds later and nobody would notice the parameter had stopped being
+  // honoured.
   ok(
-    'and within the configured deadline, not the default',
-    ms < budget,
-    `${ms}ms against a ${budget}ms budget`
+    'and within the deadline it was given, not the default',
+    ms < DEADLINE + 2000,
+    `${ms}ms against a ${DEADLINE + 2000}ms budget`
+  )
+
+  // The shipped default still gets covered, without waiting for it. A test
+  // that only ever exercises an overridden value would not notice the default
+  // being changed to something absurd.
+  ok(
+    'and the shipped default is unchanged',
+    DEFAULT_REQUEST_TIMEOUT_MS === 30000,
+    `${DEFAULT_REQUEST_TIMEOUT_MS}ms`
   )
 }
 
