@@ -270,5 +270,89 @@ console.log('\n-- Pause called back from inside send() does not runaway-resend -
   ok('exactly one step sent, no runaway resend', sent, [['a']])
 }
 
+// ---------------------------------------------------------------------------
+// Saved flows are untrusted input, and one of them can reach the game.
+//
+// `loadCustomFlows()` reads whatever is in localStorage: what an older version
+// of this app wrote, what a player hand-edited, and whatever a future
+// import-a-flow feature accepts. It used to check `Array.isArray` and trust
+// every element, so a flow with no `steps` threw out of `driver.start()` -
+// which is called from an onClick, making it a dead panel rather than a logged
+// failure.
+//
+// The case that matters most is the quietest: `commands` holding a bare string
+// rather than a list. Nothing throws, nothing is empty, and an unintended
+// command goes to a live character. The harness that first found this scored
+// it as PASSING, because it was checking for exceptions and empty strings
+// rather than asking whether what went out was what the player meant.
+{
+  console.log('\n-- saved flows are validated, not trusted --')
+
+  let store = {}
+  globalThis.localStorage = {
+    getItem: (k) => (k in store ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v) },
+    removeItem: (k) => { delete store[k] },
+  }
+  const KEY = 'drc.flows.v1'
+  const load = async (value) => {
+    store = { [KEY]: typeof value === 'string' ? value : JSON.stringify(value) }
+    const m = await import('../src/data/taskFlows.ts?' + Math.random())
+    return { flows: m.loadCustomFlows(), note: m.customFlowNote() }
+  }
+
+  const good = {
+    id: 'mine', title: 'Mine', summary: 's',
+    steps: [{ label: 'One', commands: ['look'], settle: 1 }],
+  }
+
+  // The control. Without it, every rejection below would pass just as happily
+  // against a loader that rejects everything - which is the same shape as the
+  // defect being tested for.
+  const base = await load([good])
+  ok('control: a well-formed flow loads', base.flows.length, 1)
+  ok('and nothing is reported as dropped', base.note, null)
+  ok('and it is marked custom', base.flows[0]?.custom, true)
+
+  const bad = [
+    ['steps missing entirely', { id: 'a', title: 'A', summary: '' }],
+    ['steps is not a list', { id: 'b', title: 'B', summary: '', steps: 'look' }],
+    ['steps is empty', { id: 'c', title: 'C', summary: '', steps: [] }],
+    ['a step has no commands', { id: 'd', title: 'D', summary: '', steps: [{ label: 'x' }] }],
+    // The dangerous one: iterable, truthy, and passes every cheaper check.
+    ['commands is a bare string', { id: 'e', title: 'E', summary: '', steps: [{ label: 'x', commands: 'attack' }] }],
+    ['a command is blank', { id: 'f', title: 'F', summary: '', steps: [{ label: 'x', commands: [''] }] }],
+    ['a command is not text', { id: 'g', title: 'G', summary: '', steps: [{ label: 'x', commands: [7] }] }],
+    ['not an object at all', 'nonsense'],
+  ]
+
+  for (const [what, flow] of bad) {
+    const r = await load([flow])
+    ok(`rejected: ${what}`, r.flows.length, 0)
+    ok(`  and says so rather than silently dropping it`, typeof r.note, 'string')
+  }
+
+  // Cosmetic fields are repaired, not rejected: a caption cannot reach the
+  // game, so substituting one loses nothing. See validFlow()'s note.
+  const untitled = await load([{ id: 'h', steps: [{ commands: ['look'] }] }])
+  ok('kept: a flow with no title', untitled.flows.length, 1)
+  ok('  title falls back to the id', untitled.flows[0]?.title, 'h')
+  ok('  and the step gets a label', untitled.flows[0]?.steps[0].label, 'Step 1')
+  ok('  with nothing reported as dropped', untitled.note, null)
+
+  // One corrupt entry must not cost the player the others.
+  const mixed = await load([good, { id: 'bad', steps: 'nope' }, { ...good, id: 'mine2' }])
+  ok('a bad flow does not take the good ones with it', mixed.flows.map((f) => f.id), ['mine', 'mine2'])
+  ok('  and the loss is reported', mixed.note?.includes('bad'), true)
+
+  const junk = await load('{not json')
+  ok('unparseable storage yields no flows', junk.flows.length, 0)
+  ok('  and says the flows could not be read', typeof junk.note, 'string')
+
+  const notList = await load({ id: 'x' })
+  ok('storage that is not a list yields no flows', notList.flows.length, 0)
+  ok('  and says why', typeof notList.note, 'string')
+}
+
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DEFAULT_FLOWS,
   allFlows,
+  customFlowNote,
   loadCustomFlows,
   newFlow,
   saveCustomFlows,
@@ -37,7 +38,14 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const [state, setState] = useState<FlowState | null>(null)
   const [editing, setEditing] = useState<TaskFlow | null>(null)
 
-  useEffect(() => setCustom(loadCustomFlows()), [])
+  // Said out loud rather than left as a flow that quietly is not in the list.
+  // A rejected flow and a flow that was never saved look identical from here,
+  // and they need different things from the player. See customFlowNote().
+  useEffect(() => {
+    setCustom(loadCustomFlows())
+    const note = customFlowNote()
+    if (note) addLog(note, 'warn')
+  }, [addLog])
 
   const driver = useRef<FlowDriver | null>(null)
   if (!driver.current) {

@@ -156,16 +156,125 @@ export const DEFAULT_FLOWS: TaskFlow[] = [
 
 const KEY = 'drc.flows.v1'
 
-/** The player's own flows, kept beside the built-ins rather than replacing them. */
+/**
+ * What the last `loadCustomFlows()` had to throw away, and why.
+ *
+ * A guard that silently returns fewer flows than were saved is the failure
+ * this whole codebase keeps finding: the player sees a flow missing from the
+ * list and has no way to learn it was rejected rather than never saved. Read
+ * by TaskFlowPanel and put in the log.
+ */
+let loadNote: string | null = null
+
+/** Null when the last load took everything it found. */
+export function customFlowNote(): string | null {
+  return loadNote
+}
+
+/**
+ * Where the line is drawn between repairing and rejecting.
+ *
+ * **Repair what cannot reach the game; reject what can.** A missing `title` is
+ * a caption, and substituting one costs nothing and loses nothing. A malformed
+ * `commands` is a decision about what this app types into a live character's
+ * session, and guessing at that is not a repair, it is an invention.
+ *
+ * The case that fixes the line in place: `commands` holding a bare string
+ * rather than an array. It throws nothing, produces no empties, and looks
+ * entirely healthy from outside — and it puts an unintended command on the
+ * wire. It was scored as *passing* by the harness that found it, because that
+ * harness was checking for exceptions and empty strings rather than asking
+ * whether what went out was what the player meant.
+ */
+function validFlow(f: unknown): TaskFlow | string {
+  if (typeof f !== 'object' || f === null) return 'not an object'
+  const o = f as Record<string, unknown>
+
+  const id = typeof o.id === 'string' && o.id.trim() ? o.id : null
+  if (!id) return 'no id'
+
+  if (!Array.isArray(o.steps)) return `"${id}": steps is not a list`
+  if (o.steps.length === 0) return `"${id}": no steps`
+
+  const steps: FlowStep[] = []
+  for (const [i, raw] of o.steps.entries()) {
+    if (typeof raw !== 'object' || raw === null) return `"${id}": step ${i + 1} is not an object`
+    const s = raw as Record<string, unknown>
+
+    // The whole reason this function exists. A string here is iterable and
+    // truthy, so every cheaper check waves it through.
+    if (!Array.isArray(s.commands)) return `"${id}": step ${i + 1} commands is not a list`
+
+    const commands = s.commands.filter(
+      (c): c is string => typeof c === 'string' && c.trim().length > 0
+    )
+    if (commands.length !== s.commands.length) {
+      return `"${id}": step ${i + 1} has a command that is blank or not text`
+    }
+    if (commands.length === 0) return `"${id}": step ${i + 1} sends nothing`
+
+    // Cosmetic, so repaired rather than rejected - see this function's note.
+    const label = typeof s.label === 'string' && s.label.trim() ? s.label : `Step ${i + 1}`
+    const settle =
+      typeof s.settle === 'number' && Number.isFinite(s.settle) && s.settle >= 0
+        ? s.settle
+        : undefined
+
+    steps.push(settle === undefined ? { label, commands } : { label, commands, settle })
+  }
+
+  return {
+    id,
+    title: typeof o.title === 'string' && o.title.trim() ? o.title : id,
+    summary: typeof o.summary === 'string' ? o.summary : '',
+    steps,
+    loops: o.loops === true,
+    custom: true,
+  }
+}
+
+/**
+ * The player's own flows, kept beside the built-ins rather than replacing them.
+ *
+ * Everything here came out of `localStorage`, which is to say out of whatever
+ * a previous version of this app wrote, whatever a player hand-edited, and
+ * whatever a future import-a-flow feature accepts. It was previously trusted
+ * on `Array.isArray` alone, and a flow with no `steps` threw straight out of
+ * `driver.start()` - which is called from an onClick, so the result was a dead
+ * panel rather than a logged failure.
+ *
+ * Bad flows are dropped individually rather than failing the whole load: one
+ * corrupt entry must not cost a player the other six.
+ */
 export function loadCustomFlows(): TaskFlow[] {
+  loadNote = null
+  let parsed: unknown
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return []
-    const parsed = JSON.parse(raw) as TaskFlow[]
-    return Array.isArray(parsed) ? parsed.map((f) => ({ ...f, custom: true })) : []
+    parsed = JSON.parse(raw)
   } catch {
+    loadNote = 'Saved flows could not be read and were not loaded.'
     return []
   }
+
+  if (!Array.isArray(parsed)) {
+    loadNote = 'Saved flows were not a list and were not loaded.'
+    return []
+  }
+
+  const good: TaskFlow[] = []
+  const bad: string[] = []
+  for (const f of parsed) {
+    const r = validFlow(f)
+    if (typeof r === 'string') bad.push(r)
+    else good.push(r)
+  }
+
+  if (bad.length) {
+    loadNote = `${bad.length} saved flow${bad.length === 1 ? '' : 's'} could not be loaded: ${bad.join('; ')}`
+  }
+  return good
 }
 
 export function saveCustomFlows(flows: TaskFlow[]): void {
