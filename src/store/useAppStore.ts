@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AppState, SetupComponent, UiMode, GameInstance } from '../types'
+import type { AppState, SetupComponent, UiMode, GameInstance, AuthMode } from '../types'
 import { bridge } from '../bridge'
 import type { IntentName, BridgeServerMessage } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
@@ -95,6 +95,34 @@ function handleBridgeMessage(
       get().addLog(
         `Bridge v${msg.bridgeVersion} on Lich ${msg.lichVersion}, protocol ${msg.protocol}`
       )
+
+      /**
+       * Which gates the bridge has up, in three states rather than two.
+       *
+       * A missing field is `unknown`, not `token`. A bridge older than 0.9.0
+       * sends nothing, and defaulting that to "fine" would be the exact
+       * mistake this field exists to fix: a reassuring value standing in for
+       * an answer nobody has.
+       *
+       * Said in the log rather than only stored, because the bridge already
+       * carried this and the app not reading it meant the signal had simply
+       * moved from one place nobody looks to another.
+       */
+      const auth: AuthMode =
+        msg.auth === 'token' || msg.auth === 'origin-only' ? msg.auth : 'unknown'
+      set({ bridgeAuth: auth, bridgeAuthNote: msg.authNote ?? '' })
+
+      if (auth === 'origin-only') {
+        get().addLog(
+          `Bridge is running WITHOUT a connection token${
+            msg.authNote ? ` (${msg.authNote})` : ''
+          }. Web pages are still blocked; other programs on this machine are not.`
+        )
+      } else if (auth === 'unknown') {
+        get().addLog(
+          `Bridge v${msg.bridgeVersion} does not report whether it requires a token. Update it to be sure.`
+        )
+      }
       // Version mismatch is the largest time sink in this ecosystem's support.
       // Say it now and loudly, rather than letting someone spend a week
       // filing reports against a script that was fixed two releases ago.
@@ -214,6 +242,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   consoleOpen: prefs.consoleOpen ?? false,
   runawayReason: null,
   bridgeConnected: false,
+  // Unknown until a bridge says otherwise, never assumed good.
+  bridgeAuth: 'unknown' as AuthMode,
+  bridgeAuthNote: '',
   bridgeMode: prefs.bridgeMode,
   trainFocus: prefs.trainFocus,
   autoSuggestHealer: prefs.autoSuggestHealer,
@@ -312,7 +343,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     bridge.setMode(m)
     savePrefs({ bridgeMode: m })
-    set({ bridgeMode: m, bridgeConnected: false, character: null, characterAt: 0, scriptStates: [], runningScripts: [], settingsFiles: null })
+    set({ bridgeMode: m, bridgeConnected: false, bridgeAuth: 'unknown', bridgeAuthNote: '', character: null, characterAt: 0, scriptStates: [], runningScripts: [], settingsFiles: null })
     get().addLog(
       m === 'mock' ? 'Switched to mock bridge' : 'Switched to live Lich bridge'
     )

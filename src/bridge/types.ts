@@ -13,7 +13,24 @@ import type { CharacterStatus, InventorySummary, TraceRow } from '../types'
 
 /** Messages Lich → Companion */
 export type BridgeServerMessage =
-  | { type: 'hello'; protocol: number; lichVersion: string; bridgeVersion: string }
+  | {
+      type: 'hello'
+      protocol: number
+      lichVersion: string
+      bridgeVersion: string
+      /**
+       * Which gates the bridge actually has up.
+       *
+       * Optional, and that is the point rather than laziness: a bridge older
+       * than 0.9.0 does not send it, and "we cannot tell" is a third state.
+       * Collapsing it into 'token' would be the same mistake this field was
+       * added to fix, one level up - a reassuring default standing in for an
+       * answer nobody has.
+       */
+      auth?: 'token' | 'origin-only'
+      /** Why the token is absent, when it is. Empty otherwise. */
+      authNote?: string
+    }
   | { type: 'status'; payload: CharacterStatus }
   | { type: 'inventory'; payload: InventorySummary }
   | { type: 'scripts'; payload: ScriptState[] }

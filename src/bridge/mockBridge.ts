@@ -534,6 +534,16 @@ export class MockBridge {
     return saved && saved in presets ? (saved as DemoPresetId) : 'basic_prime'
   }
 
+  /**
+   * Which gates the mock claims. Settable so the degraded state can be looked
+   * at without breaking a real bridge to produce it.
+   */
+  private authMode: 'token' | 'origin-only' = 'token'
+
+  setAuthMode(mode: 'token' | 'origin-only') {
+    this.authMode = mode
+  }
+
   private character: CharacterStatus = { ...presets[MockBridge.initial()].character }
   private inventory: InventorySummary = structuredClone(presets[MockBridge.initial()].inventory)
   private scripts: string[] = []
@@ -548,6 +558,12 @@ export class MockBridge {
       protocol: 1,
       lichVersion: '5.20.1-mock',
       bridgeVersion: '0.1.0',
+      // Reported, because a mock that cannot reach a state means that state is
+      // unreachable in development. The origin-only branch existed for an hour
+      // with no way to see it outside a real bridge that had failed to write a
+      // token - which is not a thing anybody can arrange on demand.
+      auth: this.authMode,
+      authNote: this.authMode === 'origin-only' ? 'mock: token withheld' : '',
     })
     this.emitStatus()
     this.emit({ type: 'inventory', payload: this.inventory })

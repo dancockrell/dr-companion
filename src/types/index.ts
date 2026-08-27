@@ -41,6 +41,9 @@ export type SetupComponentId =
 
 export type SetupStatus = 'ready' | 'missing' | 'checking' | 'installing' | 'error'
 
+/** What the bridge reports about its own connection gates. */
+export type AuthMode = 'token' | 'origin-only' | 'unknown'
+
 export interface SetupComponent {
   id: SetupComponentId
   label: string
@@ -358,6 +361,16 @@ export interface AppState {
   /** Set when the bridge stopped itself for looping. */
   runawayReason: string | null
   bridgeConnected: boolean
+  /**
+   * Which gates the bridge has up: both, origin only, or not reported.
+   *
+   * Three states on purpose. 'unknown' is a bridge too old to say, and it must
+   * not be rendered as 'token' - a reassuring default standing in for an
+   * answer nobody has is the failure this whole field exists to fix.
+   */
+  bridgeAuth: AuthMode
+  /** Why the token is absent, when the bridge said. Empty otherwise. */
+  bridgeAuthNote: string
   bridgeMode: 'mock' | 'live'
   trainFocus: string[]
   autoSuggestHealer: boolean

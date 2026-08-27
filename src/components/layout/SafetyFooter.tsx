@@ -31,6 +31,8 @@ export function SafetyFooter() {
   const activeFlow = useAppStore((s) => s.activeFlow)
   const character = useAppStore((s) => s.character)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
+  const bridgeAuth = useAppStore((s) => s.bridgeAuth)
+  const bridgeAuthNote = useAppStore((s) => s.bridgeAuthNote)
 
   // A script list the bridge sent is a fact. Matching activity strings against
   // a whitelist was a guess, and it guessed wrong in the direction that says
@@ -150,6 +152,35 @@ export function SafetyFooter() {
             title="Nothing reaches Lich while the bridge is down. Stop scripts in Lich itself."
           >
             Bridge down
+          </span>
+        )}
+
+        {/* The bridge's own account of which gates it has up.
+          *
+          * Shown only when it is not both, because a badge that is always
+          * there is furniture and gets skimmed on the day it changes.
+          *
+          * This is the third place this signal has lived. It started in
+          * Lich's log, which the app never reads. Then it moved to a field on
+          * the hello frame, which the app also never read - the type did not
+          * mention it, the store did not lift it out, and a grep for it across
+          * the whole TypeScript tree returned nothing. The signal had moved
+          * from one place nobody looks to another.
+          *
+          * A field nobody reads is not an improvement on a log nobody reads.
+          * It is the same absence with more steps. */}
+        {bridgeConnected && bridgeAuth !== 'token' && (
+          <span
+            className="shrink-0 rounded border border-warn/40 bg-warn/15 px-1.5 py-0.5 font-semibold text-warn"
+            title={
+              bridgeAuth === 'origin-only'
+                ? `The bridge is running without a connection token${
+                    bridgeAuthNote ? ` (${bridgeAuthNote})` : ''
+                  }. Web pages are still blocked. Other programs on this machine are not.`
+                : 'This bridge is too old to say whether it requires a token. Update it from Setup to be sure.'
+            }
+          >
+            {bridgeAuth === 'origin-only' ? 'No token' : 'Auth unknown'}
           </span>
         )}
 
