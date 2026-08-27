@@ -65,6 +65,111 @@ pub struct LinkState {
     pub lines: u64,
     /// Why it is not connected, when it is not. Empty while connected.
     pub note: String,
+    /// Whether Lich itself is still there, which is a different question from
+    /// whether we still have a socket to it.
+    ///
+    /// Lich exits when the game server hangs up - observed 27 Aug 2026:
+    ///
+    /// ```text
+    /// info: shutdown requested reason=game_eof source=game_reader
+    /// info: exiting...
+    /// ```
+    ///
+    /// `game_eof` is the upstream socket to the game ending, and Lich then
+    /// tears down and takes this port with it. From in here that is
+    /// indistinguishable from our own socket dropping while Lich runs on, and
+    /// the two need opposite actions: press Attach again, versus restart Lich
+    /// first. Reporting both as "Connection lost" sends people to retry
+    /// something that cannot work.
+    ///
+    /// Three states, never two:
+    ///
+    /// - `"alive"`  - the port accepted a connection, so Lich is up and we
+    ///                lost only our socket.
+    /// - `"gone"`   - the connection was refused, so nothing is listening.
+    /// - `"unknown"` - the probe could not answer: it timed out, failed for
+    ///                its own reasons, or was never run.
+    ///
+    /// The third is the point. Folding "could not determine" into "gone"
+    /// would tell somebody to restart a Lich that is running perfectly, which
+    /// is the mirror image of the bug this field exists to fix.
+    pub lich: String,
+}
+
+/// Ask the port directly whether Lich is still there.
+///
+/// A fact obtained from outside, rather than an inference from why our own
+/// read ended - which matters, because the read ending tells us about *our
+/// socket* and says nothing about whether the process behind it has finished
+/// exiting, or was ever the thing that closed.
+///
+/// # Why a blocking connect, and not `connect_timeout`
+///
+/// `connect_timeout` was the obvious choice and it cannot do this job on
+/// Windows. Measured here 27 Aug 2026: connecting to a *closed* loopback port
+/// returns `kind=TimedOut, raw_os=None`, not `ConnectionRefused` - so a probe
+/// built on it can never say "gone", only "unknown", and the whole field
+/// silently degrades to a constant. The negative case in this module's test is
+/// what caught that; a test that only checked the alive path would have passed
+/// and shipped an inert feature.
+///
+/// A plain `connect` does discriminate - `ConnectionRefused`, raw OS 10061 -
+/// at the cost of about **2 seconds** on a closed port, against 119µs when
+/// something is listening. That cost is why this must not run inline; see
+/// `emit_disconnect`.
+///
+/// This does open a connection to the detachable-client port when Lich is up.
+/// That is the same thing the Attach button does a moment later, and it only
+/// runs once our own reader has already stopped, so there is no live client
+/// session for it to disturb. It is dropped immediately.
+fn probe_lich(host: &str, port: u16) -> &'static str {
+    match TcpStream::connect((host, port)) {
+        Ok(_) => "alive",
+        // Refused is the one error that actually means "nothing is listening".
+        // Every other kind - timed out, unreachable, permission, a host that
+        // will not resolve - is the probe failing to answer, and must not be
+        // reported as an answer.
+        Err(e) if e.kind() == std::io::ErrorKind::ConnectionRefused => "gone",
+        Err(_) => "unknown",
+    }
+}
+
+/// Report a disconnect at once, then say what became of Lich when we know.
+///
+/// Two emits on purpose. The probe costs ~2s to establish "gone" (see
+/// `probe_lich`), and making the pane wait that long before it admits the
+/// connection dropped would trade a real, immediate fact for a refinement of
+/// it. So the first emit carries `lich: "unknown"` - honest, since at that
+/// instant nothing has been asked - and a second follows with the answer.
+///
+/// The probe runs on its own thread because this is called from the reader
+/// thread as it winds down, and nothing about shutting down should wait on a
+/// socket that is by definition not answering.
+///
+/// A consumer must therefore expect `lich` to change after a disconnect, and
+/// must not treat the first value as final.
+fn emit_disconnect(app: &AppHandle, host: String, port: u16, lines: u64, note: String) {
+    let mut st = LinkState {
+        connected: false,
+        host: host.clone(),
+        port,
+        lines,
+        note,
+        lich: "unknown".into(),
+    };
+    let _ = app.emit("game:state", st.clone());
+
+    let app2 = app.clone();
+    std::thread::spawn(move || {
+        let verdict = probe_lich(&host, port);
+        // Nothing new to say - do not emit a second identical state and make
+        // the UI think something changed.
+        if verdict == "unknown" {
+            return;
+        }
+        st.lich = verdict.into();
+        let _ = app2.emit("game:state", st);
+    });
 }
 
 #[derive(Default)]
@@ -85,19 +190,30 @@ struct LinkHandle {
 
 fn state_of(h: Option<&LinkHandle>, note: &str) -> LinkState {
     match h {
-        Some(h) => LinkState {
-            connected: h.running.load(Ordering::Relaxed),
-            host: h.host.clone(),
-            port: h.port,
-            lines: h.lines.load(Ordering::Relaxed),
-            note: note.to_string(),
-        },
+        Some(h) => {
+            let connected = h.running.load(Ordering::Relaxed);
+            LinkState {
+                connected,
+                host: h.host.clone(),
+                port: h.port,
+                lines: h.lines.load(Ordering::Relaxed),
+                note: note.to_string(),
+                // While connected we hold an open socket to it, so no probe is
+                // needed or wanted. While not, this path has no idea - the
+                // reader thread's own disconnect paths are what probe, and
+                // this is reached by polling and by a deliberate detach.
+                lich: if connected { "alive" } else { "unknown" }.into(),
+            }
+        }
         None => LinkState {
             connected: false,
             host: String::new(),
             port: 0,
             lines: 0,
             note: note.to_string(),
+            // Never attached, so there is no host to ask and nothing to
+            // report. "unknown" rather than "gone": we have not looked.
+            lich: "unknown".into(),
         },
     }
 }
@@ -194,15 +310,15 @@ pub fn game_attach(
                         // Clean EOF: Lich closed. Not an error, and not
                         // silence either - the UI has to be able to tell.
                         running.store(false, Ordering::Relaxed);
-                        let _ = app.emit(
-                            "game:state",
-                            LinkState {
-                                connected: false,
-                                host: host_for_thread.clone(),
-                                port,
-                                lines: lines.load(Ordering::Relaxed),
-                                note: "Lich closed the connection.".into(),
-                            },
+                        // A clean EOF is what both "Lich exited" and "Lich
+                        // dropped us" look like from here. Only the port can
+                        // tell them apart, and it is asked off this thread.
+                        emit_disconnect(
+                            &app,
+                            host_for_thread.clone(),
+                            port,
+                            lines.load(Ordering::Relaxed),
+                            "Lich closed the connection.".into(),
                         );
                         break;
                     }
@@ -225,15 +341,12 @@ pub fn game_attach(
                     }
                     Err(e) => {
                         running.store(false, Ordering::Relaxed);
-                        let _ = app.emit(
-                            "game:state",
-                            LinkState {
-                                connected: false,
-                                host: host_for_thread.clone(),
-                                port,
-                                lines: lines.load(Ordering::Relaxed),
-                                note: format!("Connection lost: {e}"),
-                            },
+                        emit_disconnect(
+                            &app,
+                            host_for_thread.clone(),
+                            port,
+                            lines.load(Ordering::Relaxed),
+                            format!("Connection lost: {e}"),
                         );
                         break;
                     }
@@ -404,6 +517,44 @@ mod tests {
             String::from_utf8_lossy(&second).trim_end_matches(['\n', '\r']),
             "still here",
             "the reader kept going after the bad byte"
+        );
+    }
+
+    /// The probe has to be able to say all three things, and be *right* about
+    /// which - a two-state probe would send somebody to restart a Lich that
+    /// is running fine, which is the failure it exists to prevent.
+    ///
+    /// Run against a population where the wrong answer is available: a real
+    /// listener, a port with nothing on it, and a host that cannot resolve.
+    /// A probe tested only against the alive case would confirm that a
+    /// chooser with one option chooses it.
+    #[test]
+    fn probe_tells_alive_from_gone_from_cannot_tell() {
+        // Alive: something is actually listening.
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        assert_eq!(
+            probe_lich("127.0.0.1", port),
+            "alive",
+            "a bound port must read as alive"
+        );
+
+        // Gone: same port, after the listener is dropped. Same address as the
+        // alive case on purpose, so the only thing that changed is the fact
+        // being measured.
+        drop(listener);
+        assert_eq!(
+            probe_lich("127.0.0.1", port),
+            "gone",
+            "a refused connection is the one error that means nothing is there"
+        );
+
+        // Cannot tell: resolution fails, which is not evidence of absence.
+        // This must NOT come back "gone".
+        let verdict = probe_lich("no-such-host.invalid", 11024);
+        assert_eq!(
+            verdict, "unknown",
+            "a probe that could not answer must say so, not guess gone"
         );
     }
 }
