@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.9.0'
+  BRIDGE_VERSION = '0.10.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1257,6 +1257,8 @@ module Companion
       when 'map_path' then map_path(args, server)
       when 'map_zone' then map_zone(args, server)
       when 'install_mapdb' then install_mapdb(server)
+      when 'list_scripts' then list_scripts(server)
+      when 'start_script' then start_script(args, server)
 
       else
         [false, "'#{intent}' is not implemented in bridge v#{BRIDGE_VERSION} yet. " \
@@ -1355,6 +1357,72 @@ module Companion
       # and blocking the bridge thread on it would freeze every other panel.
       # The map panel notices the database the next time it asks for a zone.
       [true, "#{script} started. The map will fill in once it finishes."]
+    end
+
+    # ---------------------------------------------------------------- scripts --
+    #
+    # Lich already knows how to watch, pause, resume and stop whatever is
+    # running (State.other_scripts, stop_all, pause_all, resume_all). It had
+    # no way to start something new, which made every script in the library
+    # invisible to the app except by typing its name straight into Lich. These
+    # two close that gap without growing a second copy of Lich's own resolver.
+
+    # Every launchable file, wherever Lich would actually find it.
+    #
+    # Mirrors Script.__find_script_file's search order (custom/ root, each
+    # custom/<subdir>/, then SCRIPT_DIR) and its accepted extensions
+    # (lic/rb/cmd/wiz, optionally gz/Z-compressed) rather than a flat *.lic
+    # glob, which would silently have hidden every custom script and every
+    # non-.lic one — including anything a player wrote themselves. Excludes
+    # this script by name, the same way State.other_scripts excludes it from
+    # the running list: a control that starts a second bridge racing for the
+    # same port is not a script anyone meant to offer.
+    def list_scripts(server)
+      exts = /\.(?:lic|rb|cmd|wiz)(?:\.(?:gz|Z))?\z/i
+      me = State.safe(nil) { Script.current.name.to_s.downcase }
+
+      names = State.safe([]) do
+        custom_base = File.join(SCRIPT_DIR, 'custom')
+        custom_dirs = File.directory?(custom_base) ? [custom_base] + Dir.glob(File.join(custom_base, '*/')).map { |p| p.chomp('/') } : []
+
+        (custom_dirs.flat_map { |dir| Dir.children(dir) } + Dir.children(SCRIPT_DIR))
+          .select { |f| f =~ exts }
+          .map { |f| f.sub(exts, '') }
+          .uniq { |n| n.downcase }
+          .reject { |n| n.downcase == me }
+          .sort
+      end
+
+      server.broadcast(type: 'script_catalog', payload: names)
+      [true, "#{names.size} scripts"]
+    end
+
+    # Launch one, by name only — no arguments reach the script in this
+    # version. That is deliberate: the map intents above document why client
+    # input should never become text a script or the game interprets, and a
+    # script's own argument parsing is exactly that surface one layer further
+    # away. Add arguments later only after reviewing what a specific
+    # launchable script does with them.
+    def start_script(args, server)
+      name = args.is_a?(Hash) ? args['name'].to_s : args.to_s
+      return [false, 'no script name given'] if name.empty?
+      return [false, "'#{name}' is not a valid script name"] unless name =~ /\A[\w.\-]+\z/
+
+      return [false, "no script named '#{name}'"] unless State.safe(false) { Script.exists?(name) }
+
+      # Best-effort, not a guarantee: another client can start the same
+      # script between this check and Script.start below. Script.start
+      # refuses a true duplicate on its own (Lich tracks that by name in its
+      # own registry), so the race costs at most a less specific error
+      # message here, never a double-started script.
+      already = State.other_scripts.any? { |s| s['name'].to_s.casecmp?(name) }
+      return [false, "'#{name}' is already running"] if already
+
+      started = State.safe(false) { Script.start(name) }
+      return [false, "could not start '#{name}'"] unless started
+
+      server.log("started #{name}")
+      [true, "#{name} started"]
     end
 
     def map_zone(args, server)

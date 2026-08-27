@@ -49,6 +49,8 @@ Accepts:
 | `check_health` | Polls HEALTH and reports wounds and bleeders. Read-only. |
 | `stow_all` | Puts what is in your hands away |
 | `pause` / `resume` | Pauses and unpauses them |
+| `list_scripts` | Reports every script Lich can actually find — `custom/` and its subdirs, then the scripts directory, any of `.lic`/`.rb`/`.cmd`/`.wiz` (gz/Z-compressed included), this bridge excluded |
+| `start_script` | Launches one by name. Name only — no arguments reach the script yet. Refuses a name that doesn't resolve to a real file and refuses a script already running |
 | `get_status`, `get_inventory`, `subscribe`, `ping` | Working |
 | everything else | Acked `ok:false` with a reason |
 

@@ -20,7 +20,7 @@
  */
 
 /** The bridge version this build of the app ships and expects. */
-export const EXPECTED_BRIDGE_VERSION = '0.9.0'
+export const EXPECTED_BRIDGE_VERSION = '0.10.0'
 
 export const APP_VERSION = '0.1.0'
 
