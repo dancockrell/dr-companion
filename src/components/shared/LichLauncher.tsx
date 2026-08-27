@@ -232,26 +232,52 @@ export function LichLauncher() {
                 in that window refuses with &ldquo;No supported frontend is
                 available.&rdquo;
               </p>
-              {/* The way out is a one-time command, and it is deliberately not
-                * a button. It needs an account password as an argument, which
-                * this app does not take, does not store and does not put on a
-                * command line - see the module header. Showing the command
-                * lets the player run it in their own shell, where the secret
-                * stays theirs. */}
+              {/* This used to print a `--account/--password/--save` command
+                * to run in a terminal. It was wrong and it was worse than
+                * useless, so the retraction is recorded here rather than
+                * quietly deleted.
+                *
+                * Those flags parse, which is what made them look like a
+                * supported path. They are not one. Lich dispatches on
+                * `if ARGV.include?('--login')` with exactly one `elsif` for
+                * the GUI (`main.rb:112`/`:195`); a command with credentials
+                * and no `--login` matches neither. `argv_options[:save]` is
+                * assigned at `argv_options.rb:103` and read nowhere in the
+                * tree, and `[:account]` is read only under `--login NEW`,
+                * the character generator.
+                *
+                * Run for real with junk credentials, it did not fail
+                * cleanly: it fell into a proxy mode, printed "pretending to
+                * be dr.simutronics.net", bound port 11024 - the exact port a
+                * real Lich needs - and hung until killed, creating no entry
+                * file. Anyone following that instruction would have ended up
+                * in the state this panel exists to explain.
+                *
+                * The honest answer is that there is no CLI route to a saved
+                * entry, so the way forward is a frontend that can actually
+                * launch Lich. Genie is already installed and already
+                * configured to do it. */}
               <p className="text-xs leading-snug text-ink-muted">
-                One-time fix, run in your own terminal so the password stays
-                yours - it saves the character, and after that this app starts
-                it by name with no password anywhere:
+                There is no command-line way to save a character either - Lich
+                only creates entries through that window. What does work is
+                launching <span className="text-ink">Genie</span>, which starts
+                Lich itself using the settings it already has:
               </p>
-              {/* Wraps rather than scrolls. A scrolling `pre` forces its own
-                * min-content width onto this column, and this column is
-                * narrow - the first version clipped every paragraph beside
-                * it and put a horizontal scrollbar under the whole panel.
-                * This is a command to select and copy, not a code sample to
-                * read in columns, so wrapping costs nothing. */}
               <pre className="whitespace-pre-wrap break-all rounded bg-surface p-1.5 text-xs leading-relaxed text-ink-faint">
-{`ruby lich.rbw --account=YOURACCOUNT --password=YOURPASSWORD --character=YourCharacter --dragonrealms --stormfront --save --without-frontend --detachable-client=11024`}
+{`#config {lichpath} {c:\\ruby4lich5\\lich5\\lich.rbw}
+#config {licharguments} {--genie --dragonrealms}
+#config {lichport} {11024}`}
               </pre>
+              <p className="text-xs leading-snug text-ink-muted">
+                Sign in through Genie as usual. It brings Lich up with those
+                arguments, and the bridge connects on its own.
+              </p>
+              <p className="text-xs leading-snug text-ink-faint">
+                One trade-off, so it is not a surprise later: that route uses{' '}
+                <code>--genie</code>, which Lich does not give the streams
+                capability, so the channel tabs stay empty. Everything else
+                works.
+              </p>
             </div>
           )}
 
@@ -270,7 +296,7 @@ export function LichLauncher() {
           <p className="text-xs leading-snug text-ink-faint">
             {status.guiLoginUsable
               ? "Your password is typed into Lich's own window and stays there. This app never sees it, and starting a saved character needs only the name."
-              : 'This app never sees your password either way. The command above runs in your terminal, not here, and once a character is saved this app starts it by name alone.'}
+              : 'This app never sees your password either way. It is typed into Genie, which is where it already lives, and never passes through here.'}
           </p>
 
           {/* Always offered, not only after a failed launch. A character
