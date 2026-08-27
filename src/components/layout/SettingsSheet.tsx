@@ -1,6 +1,6 @@
 /**
  * Lightweight settings sheet — mode, bridge, pin, about.
- * Opened from AppHeader gear.
+ * Opened from the gear in AppControls.
  */
 import { useState } from 'react'
 import { X } from 'lucide-react'

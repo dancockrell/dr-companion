@@ -348,8 +348,15 @@ const presets: Record<DemoPresetId, DemoPreset> = {
       instance: 'Prime',
       accountTier: 'basic',
       guild: 'bard',
-      // Circle 1. The lowest number any preset has carried by a wide margin,
-      // which is the point: the app had never rendered a beginner.
+      // Kaldar, observed. Not the Gor'Tog the loop hands to every other preset
+      // for portrait-matching: this one is a real character and its race is a
+      // fact rather than a convenient default.
+      race: 'Kaldar',
+      // Circle 1, observed. The loop would derive 2 from the rank count, and
+      // this preset exists precisely so the app renders a real beginner.
+      circle: 1,
+      // The lowest rank count any preset has carried by a wide margin, which
+      // is also the point: the app had never rendered a beginner.
       skillRanks: 5,
       location: {
         title: 'Crossing – Firulf Vista',
@@ -443,7 +450,11 @@ for (const p of Object.values(presets)) {
   const level = p.character.skillRanks ?? 50
   p.character.skills = p.character.skills ?? demoSkills(level)
   p.character.favors = Math.max(0, Math.round(level / 8))
-  p.character.circle = Math.max(1, Math.round(level / 3))
+  // Derived from the level, unless the preset knows better. It was
+  // unconditional, which quietly overwrote an observed Circle 1 with a
+  // computed 2 - and a fabricated number that looks plausible is worse than an
+  // obviously missing one, because nothing about it invites checking.
+  p.character.circle = p.character.circle ?? Math.max(1, Math.round(level / 3))
   p.character.roomPlayers = level > 80 ? ['Someguy'] : []
   p.character.encumbrance = level > 100 ? 'Somewhat Burdened' : 'Light'
   // Enough creatures to push the deck through its tiers rather than only ever

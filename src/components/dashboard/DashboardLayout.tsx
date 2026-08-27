@@ -6,6 +6,7 @@ import { MindstateBoard } from '../shared/MindstateBoard'
 import { Paperdoll } from '../shared/Paperdoll'
 import { Portrait } from '../shared/Portrait'
 import { GearNotice } from '../shared/GearNotice'
+import { HandsRow } from '../shared/HandsRow'
 import { VitalCluster, vitalsFor } from '../shared/VitalCluster'
 import { StatusBoard } from '../shared/StatusBoard'
 import { ActionsPanel } from '../shared/ActionsPanel'
@@ -152,6 +153,11 @@ export function DashboardLayout({
            * holding you together have left. That is what you act on, and none
            * of it was on screen anywhere. */}
           <StatusBoard />
+
+          {/* Who you are and what you are holding. Both were written into
+            * CharacterStrip, which nothing mounts, so neither had ever been on
+            * screen. See HandsRow. */}
+          <HandsRow character={character ?? null} />
 
           <GearNotice />
         </Box>
