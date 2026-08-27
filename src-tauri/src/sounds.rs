@@ -1,0 +1,221 @@
+//! The sound files a highlight names.
+//!
+//! Genie's config says `{Help.wav}` and means a file in the directory
+//! `#config {sounddir}` points at. The webview cannot open a file off the disk,
+//! so the bytes come through here and are played in the page.
+//!
+//! # Why bytes rather than a file URL
+//!
+//! Tauri can serve local files through an asset protocol, which would be less
+//! code and would mean granting the webview a path into the filesystem that is
+//! open for the life of the process. These are six small WAVs read once and
+//! cached in the page. Handing over a directory to avoid reading six files is
+//! a poor trade.
+//!
+//! # Read-only, and only sounds
+//!
+//! Same rule as `config_import`: the player's Genie install is another
+//! program's data. This reads, never writes, and refuses anything that is not
+//! a plain audio filename - the name arrives from the webview and is joined
+//! onto a directory, so it does not get to be a path.
+
+use std::path::PathBuf;
+
+use serde::Serialize;
+
+use crate::setup::genie_install_dir;
+
+/// Base64, by hand.
+///
+/// The crate is in the lock file transitively but is not a direct dependency,
+/// and adding one to encode six small files is a poor trade - especially on a
+/// machine where the linker is already fragile. Twenty lines with a test
+/// against the RFC 4648 vectors is cheaper than a supply chain.
+fn base64(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] =
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let b = [
+            chunk[0],
+            *chunk.get(1).unwrap_or(&0),
+            *chunk.get(2).unwrap_or(&0),
+        ];
+        let n = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
+
+        out.push(ALPHABET[(n >> 18) as usize & 63] as char);
+        out.push(ALPHABET[(n >> 12) as usize & 63] as char);
+        // The tail is padded rather than truncated. A decoder given an
+        // unpadded stream is entitled to reject it, and a data: URL that some
+        // browsers accept and others do not is the worst kind of bug.
+        out.push(if chunk.len() > 1 { ALPHABET[(n >> 6) as usize & 63] as char } else { '=' });
+        out.push(if chunk.len() > 2 { ALPHABET[n as usize & 63] as char } else { '=' });
+    }
+    out
+}
+
+/// Big enough for any alert anybody would want, small enough that a mistake
+/// cannot pull a film into memory. The stock Genie sounds are a few kilobytes.
+const MAX_BYTES: u64 = 4 * 1024 * 1024;
+
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SoundFile {
+    pub found: bool,
+    /// A `data:` URL ready for an `Audio`. Empty when not found.
+    pub data_url: String,
+    pub path: String,
+    pub note: String,
+}
+
+fn sound_dirs() -> Vec<PathBuf> {
+    let mut out = vec![genie_install_dir().join("Sounds")];
+    for root in ["C:\\Genie4", "C:\\Genie"] {
+        out.push(PathBuf::from(root).join("Sounds"));
+    }
+    out
+}
+
+/// A named sound, as a data URL, or an honest account of not finding it.
+///
+/// A missing sound is not an error worth interrupting anybody over. A config
+/// naming a file the player never installed is common, and the right answer is
+/// a quiet note rather than a dialog - the highlight still colours the line,
+/// which is most of the value.
+#[tauri::command]
+pub fn read_sound(name: String) -> SoundFile {
+    let looks_like_a_name = !name.is_empty()
+        && name.len() <= 64
+        && !name.contains("..")
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
+
+    let is_audio = {
+        let lower = name.to_ascii_lowercase();
+        lower.ends_with(".wav") || lower.ends_with(".mp3") || lower.ends_with(".ogg")
+    };
+
+    if !looks_like_a_name || !is_audio {
+        return SoundFile {
+            note: format!("{name:?} is not a sound file name"),
+            ..Default::default()
+        };
+    }
+
+    for dir in sound_dirs() {
+        let p = dir.join(&name);
+        if !p.is_file() {
+            continue;
+        }
+
+        // Checked before reading, not after. Reading first and then deciding
+        // it was too big means the memory is already gone.
+        match std::fs::metadata(&p) {
+            Ok(m) if m.len() > MAX_BYTES => {
+                return SoundFile {
+                    path: p.to_string_lossy().into_owned(),
+                    note: format!("{name} is {} bytes, larger than an alert should be", m.len()),
+                    ..Default::default()
+                }
+            }
+            Ok(_) => {}
+            Err(e) => {
+                return SoundFile {
+                    path: p.to_string_lossy().into_owned(),
+                    note: format!("{name} could not be read: {e}"),
+                    ..Default::default()
+                }
+            }
+        }
+
+        let Ok(bytes) = std::fs::read(&p) else {
+            continue;
+        };
+
+        let mime = if name.to_ascii_lowercase().ends_with(".mp3") {
+            "audio/mpeg"
+        } else if name.to_ascii_lowercase().ends_with(".ogg") {
+            "audio/ogg"
+        } else {
+            "audio/wav"
+        };
+
+        return SoundFile {
+            found: true,
+            data_url: format!("data:{mime};base64,{}", base64(&bytes)),
+            path: p.to_string_lossy().into_owned(),
+            note: String::new(),
+        };
+    }
+
+    SoundFile {
+        note: format!("{name} is named by a highlight but is not in any Sounds folder"),
+        ..Default::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The name is joined onto a directory, so it does not get to be a path,
+    /// and it does not get to be an executable either.
+    #[test]
+    fn refuses_anything_that_is_not_a_plain_audio_name() {
+        for bad in [
+            "../../../Windows/System32/calc.exe",
+            "..\\Config\\entry.yaml",
+            "sub/Help.wav",
+            "sub\\Help.wav",
+            "Help.exe",
+            "entry.yaml",
+            "",
+        ] {
+            let got = read_sound(bad.into());
+            assert!(!got.found, "{bad:?} must not be read");
+            assert!(
+                got.note.contains("not a sound file name"),
+                "{bad:?} should be refused by name, got {:?}",
+                got.note
+            );
+        }
+    }
+
+    /// Against the RFC 4648 vectors, including every padding case.
+    ///
+    /// Worth testing rather than eyeballing: an encoder that gets the tail
+    /// wrong produces a data URL that plays in one browser and is silently
+    /// rejected in another, which presents as "sounds do not work on my
+    /// machine" and is close to undebuggable from a bug report.
+    #[test]
+    fn base64_matches_the_standard_vectors() {
+        assert_eq!(base64(b""), "");
+        assert_eq!(base64(b"f"), "Zg==");
+        assert_eq!(base64(b"fo"), "Zm8=");
+        assert_eq!(base64(b"foo"), "Zm9v");
+        assert_eq!(base64(b"foob"), "Zm9vYg==");
+        assert_eq!(base64(b"fooba"), "Zm9vYmE=");
+        assert_eq!(base64(b"foobar"), "Zm9vYmFy");
+
+        // Bytes above 127, which is most of a WAV and the place a sloppy
+        // implementation using char arithmetic goes wrong.
+        assert_eq!(base64(&[0xFF, 0xFE, 0xFD]), "//79");
+        assert_eq!(base64(&[0x00, 0x00, 0x00]), "AAAA");
+    }
+
+    /// A config naming a sound the player never installed is common and is not
+    /// an error. It has to say which file, though, or the note is useless.
+    #[test]
+    fn a_missing_sound_names_itself() {
+        let got = read_sound("NotInstalled9f3a.wav".into());
+        assert!(!got.found);
+        assert!(got.data_url.is_empty());
+        assert!(
+            got.note.contains("NotInstalled9f3a.wav"),
+            "the note must name the file: {:?}",
+            got.note
+        );
+    }
+}

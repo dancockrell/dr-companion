@@ -2,6 +2,7 @@ pub mod config_import;
 pub mod game_link;
 pub mod lich;
 pub mod setup;
+pub mod sounds;
 
 use tauri::{Manager, WebviewWindow};
 
@@ -104,6 +105,7 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             config_import::read_genie_config,
+            sounds::read_sound,
             game_link::game_status,
             game_link::game_attach,
             game_link::game_send,

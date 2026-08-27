@@ -31,7 +31,7 @@
  * is the next thing to build.
  */
 import { memo, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Send, Plug, PlugZap } from 'lucide-react'
+import { Send, Plug, PlugZap, Volume2, VolumeX } from 'lucide-react'
 import {
   attachGame,
   clearGame,
@@ -46,6 +46,7 @@ import {
 } from '../../lib/gameLink'
 import { invokeTauri, isTauri } from '../../lib/tauri'
 import { parseHighlights, paint, segments, type Highlight } from '../../lib/highlights'
+import { playAlert, setAlertsMuted, alertsMuted } from '../../lib/alertSound'
 import { cn } from '../../lib/cn'
 
 /** How many lines are in the DOM at once. */
@@ -155,6 +156,48 @@ export function GamePane() {
   useEffect(() => {
     void refreshGameState()
   }, [])
+
+  /**
+   * Alerts fire on arrival, not on render.
+   *
+   * A row re-renders whenever React decides to - a resize, a parent update,
+   * the window growing as somebody scrolls up - and playing a sound from
+   * render would replay alerts for text that arrived ten minutes ago. Only
+   * the arrival of a new line is an event.
+   *
+   * The high-water mark is a ref rather than state: it must not cause a
+   * render of its own, and it has to be correct on the very next line rather
+   * than after React commits.
+   */
+  const soundedUpTo = useRef(0)
+  useEffect(() => {
+    if (!highlights.length || !lines.length) return
+    const newest = lines[lines.length - 1].seq
+    if (newest <= soundedUpTo.current) return
+
+    // Only lines this component has not already considered. On the first
+    // render after attaching, that is the whole buffer - so the mark starts at
+    // whatever is already there rather than playing the backlog.
+    const fresh = lines.filter((l) => l.seq > soundedUpTo.current)
+    soundedUpTo.current = newest
+
+    for (const l of fresh) {
+      for (const s of paint(l.text, highlights).sounds) playAlert(s)
+    }
+  }, [lines, highlights])
+
+  // Anything already in the buffer when the config loads is history, not news.
+  useEffect(() => {
+    if (highlights.length && lines.length) {
+      soundedUpTo.current = Math.max(soundedUpTo.current, lines[lines.length - 1].seq)
+    }
+    // Deliberately keyed on the config alone: this is about adopting a
+    // starting point, and re-running it on every line would silence
+    // everything.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlights])
+
+  const [muted, setMuted] = useState(alertsMuted())
 
   /**
    * Follow the bottom, unless the reader has deliberately scrolled away.
@@ -273,6 +316,28 @@ export function GamePane() {
         )}
 
         <span className="ml-auto flex items-center gap-1">
+          {/* Mute, and it is a real control rather than a courtesy.
+            *
+            * The corpus is deliberately quiet - 13 of 57 entries make a sound -
+            * because a client that pings constantly gets muted at the operating
+            * system, and a client muted there has no alerts at all including
+            * the idle warning that costs a session. A mute inside the app is
+            * how somebody turns it down for an hour instead of forever. */}
+          <button
+            type="button"
+            className={cn(
+              'rounded px-1.5 py-0.5',
+              muted ? 'text-warn' : 'text-ink-faint hover:text-ink'
+            )}
+            onClick={() => {
+              const next = !muted
+              setMuted(next)
+              setAlertsMuted(next)
+            }}
+            title={muted ? 'Alerts are muted' : 'Mute alerts'}
+          >
+            {muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+          </button>
           <button
             type="button"
             className="rounded px-1.5 py-0.5 text-ink-faint hover:text-ink"
