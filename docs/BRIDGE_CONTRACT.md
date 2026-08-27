@@ -398,21 +398,33 @@ ruling: one owner for this file, a contract written down rather than
 described in chat. Do not treat this section as done until the Ruby side
 actually sends the field — it is a spec, not a changelog.
 
-**The gap today.** `IntentName` in `src/bridge/types.ts` declares 22 intents.
-`Intents.handle` in `companion_bridge.lic` implements 11 of them; the other 11
-(`buffs`, `burgle`, `escape`, `escape_heal`, `get_status`, `go_healer`,
-`loot`, `start_combat`, `start_training`, `town_run`, `travel`) fall through
-to the `else` branch at `companion_bridge.lic:1262` and come back
-`"'<intent>' is not implemented in bridge v0.9.0 yet."` Two of those are live
-buttons in the footer today (`start_training`, `town_run`), so the app ships
-controls that look live and are not. See issue #30 for the full diff and
-reproduction.
+**The gap today.** `IntentName` in `src/bridge/types.ts` declares more intents
+than `Intents.handle` in `companion_bridge.lic` implements; anything not
+matched falls through to the `else` branch and comes back
+`"'<intent>' is not implemented in bridge v0.9.0 yet."` Two of the gaps are
+live buttons in the footer today (`start_training`, `town_run`), so the app
+ships controls that look live and are not. See issue #30 for the original
+reproduction — but do not trust its counts as current. Reproduce fresh instead:
+
+```bash
+grep -n "IntentName" -A 40 src/bridge/types.ts | grep -oE "'[a-z_]+'" | tr -d "'" | sort -u > /tmp/declared.txt
+grep -oE "when '[a-z_]+'" lich-scripts/companion_bridge.lic | sed "s/when '//;s/'//" | sort -u > /tmp/impl.txt
+comm -23 /tmp/declared.txt /tmp/impl.txt
+```
+
+This section originally cited "11 of 22 declared." That was already wrong by
+the time it was checked: `downloads-69` counted 20 `when` branches against a
+live copy of the file, not 11 — map queries, `install_mapdb`, `list_scripts`
+and `start_script` all landed in roughly one evening of concurrent work on
+this same file. **Any specific count written in prose here will be stale
+before the next session reads it. Use the command above, not this paragraph,
+to find the current gap.**
 
 **Direction chosen:** stop offering what the bridge cannot do, rather than
-racing to implement all eleven. The bridge advertises what it actually
-implements; the UI disables anything absent. That makes a declared-but-unbuilt
-intent render disabled instead of shipping as a dead button — structurally,
-not by anyone remembering to update a checklist.
+racing to implement everything still missing. The bridge advertises what it
+actually implements; the UI disables anything absent. That makes a
+declared-but-unbuilt intent render disabled instead of shipping as a dead
+button — structurally, not by anyone remembering to update a checklist.
 
 **Wire format.** Add one optional field to the existing `hello` frame:
 
@@ -421,11 +433,33 @@ not by anyone remembering to update a checklist.
   implementedIntents?: string[] }
 ```
 
-`implementedIntents` is the literal set of case labels `Intents.handle`
-actually matches — read it off the dispatch table itself (e.g. collect the
-`when '...'` labels at load time) rather than hand-maintaining a second list
-next to the first. A hand-maintained list is exactly the class of defect this
-field exists to close: it would drift the same way `IntentName` did.
+**Correction, 2026-08-27:** this section originally said to derive the list
+by having the bridge "collect the `when '...'` labels at load time." That is
+not implementable as written — `downloads-69` checked against the live
+source: a plain Ruby `case/when` gives the interpreter no runtime reflection
+over its own literals, so there is nothing in `Intents.handle` a script could
+introspect to build this list. The two real options were (a) have the script
+parse its own source text for `when '...'` patterns, or (b) refactor the
+dispatch itself into something enumerable at runtime. **(a) is ruled out** —
+a script reading its own text to drive safety-adjacent logic is fragile in
+exactly the way this field exists to prevent (a `when` pattern sitting in a
+comment or a string would lie to it, silently, the same way the original
+hand-maintained-list failure mode would). **Prime ruled (b).**
+
+Concretely: replace `Intents.handle`'s `case intent when '...' then ...`
+body with a `Hash` mapping each intent name to its handler (a method symbol
+dispatched via `send`, or a `proc`/lambda where the existing branch is inline
+rather than a named method — implementer's call, this file has one owner).
+`implementedIntents` is then that hash's `.keys`, a genuine runtime
+enumeration with the same zero-drift property `auth`/`authNote` already have
+on this frame: it is impossible for the advertised list and the real dispatch
+table to disagree, because they are the same object. This is a bigger change
+than "add one field to hello," and that is the point — a hand-maintained
+array parked next to the case statement would already have been stale by the
+time this correction was written (see the 11-vs-20 count above), and a stale
+manifest here does not degrade gracefully: it disables a button that actually
+works, which is worse than the enabled-but-broken state issue #30 exists to
+fix.
 
 **Three states, not two — this is the same shape as `auth`/`authNote` on this
 same frame, and for the same reason:**
@@ -450,10 +484,14 @@ between a player and Stop.
 **The mock bridge must be able to produce every branch of this**, including
 the disabled one — a state the fixture cannot reach is a state nobody sees
 until a live bridge is the first place it happens. `mockBridge.ts`'s `hello`
-emit should send an `implementedIntents` list matching the real bridge's
-current 11 (everything except the eleven above), so the dev build shows the
-honest disabled state on `start_training`/`town_run`/etc. today rather than
-only after a live bridge update ships.
+emit (shipped alongside this spec, `intentMode: 'current' | 'unknown' |
+'all'`, default `'current'`) hand-lists the real bridge's implemented set as
+of when it was written — the same drift risk the Ruby side is being refactored
+away from, just less costly here because it only affects the mock's own demo
+of the disabled state. **When the Hash-dispatch refactor above ships, update
+`MOCK_ALL_INTENTS`/`MOCK_UNIMPLEMENTED_INTENTS` in `mockBridge.ts` to match
+`Intents::HANDLERS.keys` at that point** rather than leaving the mock's list
+to go stale the way this document's own prose count already did once.
 
 **Acceptance check:** connect to a live (or updated mock) bridge, confirm
 `start_training` and `town_run` render disabled with a tooltip explaining why
