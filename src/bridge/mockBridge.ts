@@ -414,6 +414,15 @@ const presets: Record<DemoPresetId, DemoPreset> = {
     },
     inventory: {
       containers: [{ name: 'carpetbag', used: 3, capacity: 20 }],
+      // Observed on Phemius, and the helm is the reason this list exists: worn
+      // with a wind instrument in hand, it silently slows Performance and the
+      // game says so exactly once, when you play.
+      worn: [
+        'a coarse onyx-hide helm',
+        'a sleek cinnabar brigandine hauberk riveted with rose gold studs',
+        'a divine charm',
+        'a carved wooden amulet',
+      ],
       wornCount: 4,
       looseCount: 0,
       pressure: 'ok',

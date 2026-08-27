@@ -377,6 +377,30 @@ module Companion
       containers = [] unless containers.is_a?(Array)
       {
         'containers' => containers,
+
+        # What is worn, by name and not only by count.
+        #
+        # GameObj.inv has carried the names since the first version of this
+        # script and `.size` threw all of them away, which meant the app knew a
+        # character was wearing eleven things and could not say what any of
+        # them were. That is the same shape as the vitals maximums: the data
+        # arrives every tick and the bridge discards it on the way past.
+        #
+        # It matters because some worn items charge you for something
+        # unrelated, and the game does not always say so. Observed on a Bard:
+        #
+        #   The armor on your head makes playing your cocobolo txistu more
+        #   difficult.
+        #
+        # Nothing else announces that, there is no message when the hat comes
+        # off, and it is documented nowhere. Knowing what is worn and what is
+        # held is the whole cross-check.
+        #
+        # Capped, because this is sent on every inventory push and a hoarder
+        # with two hundred items would put that on the wire every time for no
+        # reading anybody wants. The count above stays authoritative for "how
+        # much", so a truncated list never becomes a wrong total.
+        'worn'       => safe([]) { GameObj.inv.to_a.map(&:name).compact.first(60) },
         'wornCount'  => safe(0) { GameObj.inv.to_a.size },
         'looseCount' => safe(0) { GameObj.right_hand.id ? 1 : 0 } +
                         safe(0) { GameObj.left_hand.id ? 1 : 0 },

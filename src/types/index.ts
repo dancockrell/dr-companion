@@ -262,6 +262,18 @@ export interface LogRow {
 
 export interface InventorySummary {
   containers: { name: string; used: number; capacity: number }[]
+  /**
+   * What is worn, by name.
+   *
+   * Optional because an older bridge does not send it, and absent has to stay
+   * distinguishable from empty: no list means nothing is known about what is
+   * worn, an empty list means nothing is worn. Anything reading this to decide
+   * whether to warn about gear must treat the two differently or it will tell
+   * a fully dressed character they are fine.
+   *
+   * Capped by the bridge. `wornCount` stays authoritative for how many.
+   */
+  worn?: string[]
   wornCount: number
   looseCount: number
   pressure: 'ok' | 'high' | 'full'

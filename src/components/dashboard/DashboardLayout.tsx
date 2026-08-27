@@ -5,6 +5,7 @@ import { TaskFlowPanel } from './TaskFlowPanel'
 import { MindstateBoard } from '../shared/MindstateBoard'
 import { Paperdoll } from '../shared/Paperdoll'
 import { Portrait } from '../shared/Portrait'
+import { GearNotice } from '../shared/GearNotice'
 import { VitalCluster, vitalsFor } from '../shared/VitalCluster'
 import { StatusBoard } from '../shared/StatusBoard'
 import { ActionsPanel } from '../shared/ActionsPanel'
@@ -151,6 +152,8 @@ export function DashboardLayout({
            * holding you together have left. That is what you act on, and none
            * of it was on screen anywhere. */}
           <StatusBoard />
+
+          <GearNotice />
         </Box>
 
         {/* Task flows, on the first page.
