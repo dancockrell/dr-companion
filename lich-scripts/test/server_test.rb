@@ -429,6 +429,14 @@ begin
     puts 'SKIP no non-loopback address on this machine'
   end
 
+  # A latched Stop now survives past the intent that set it (that's the whole
+  # point, see the persistence test below), including the 'stop is not gated
+  # on anything' stop_all a few lines up. Clear it before each test that
+  # needs a fresh, unstopped bridge to actually exercise command-sending -
+  # this is exercising the real resume path, not working around the latch.
+  c.send_json(type: 'intent', intent: 'resume')
+  c.read_until('intent_ack')
+
   puts ''
   puts '-- stop pre-empts a running macro instead of queuing behind it --'
   # Before per-message threading, handle_message ran inline in serve()'s read
@@ -466,6 +474,12 @@ begin
   check('at least one command ran before the stop landed', $fput_log.size >= 1, $fput_log.inspect)
   $fput_delay = 0
 
+  # The previous test's stop_all is still latched. Clear it before racing two
+  # fresh macros, or both would be refused outright and this test would pass
+  # vacuously (two empty logs are trivially "not interleaved").
+  c.send_json(type: 'intent', intent: 'resume')
+  c.read_until('intent_ack')
+
   puts ''
   puts '-- two command-sending intents queue instead of interleaving --'
   # The mutex this guards: without it, per-message threading (added for the
@@ -497,6 +511,57 @@ begin
   $fput_delay = 0
   a_client.close
   b_client.close
+
+  # Not latched by the previous test, but cleared anyway so this test does
+  # not depend on that being true - it asserts the latch's own persistence,
+  # so it has to start from a known, deliberately-established clean state.
+  c.send_json(type: 'intent', intent: 'resume')
+  c.read_until('intent_ack')
+
+  puts ''
+  puts '-- a Stop survives into the next macro the client sends --'
+  # The actual bug in the first version of this fix: run_macro/stow_all
+  # cleared the stop flag on entry, after acquiring CMD_LOCK. So a Stop
+  # pressed mid-flow aborted the current step correctly, and then FlowDriver's
+  # own timer sent the next step's run_macro, which wiped the flag before its
+  # loop even started and ran to completion - Stop silently absorbed by
+  # exactly the surface it exists to interrupt. No racing needed to prove
+  # this one: once latched, it must stay latched across any gap, however
+  # long, until resume.
+  $fput_log = []
+  c.send_json(type: 'intent', intent: 'run_macro', args: { commands: ['s1'] })
+  ack1 = c.read_until('intent_ack')
+  check('the first macro completed normally', ack1 && ack1['ok'] == true, ack1.inspect)
+
+  c.send_json(type: 'intent', intent: 'stop_all')
+  stop_ack = c.read_until('intent_ack')
+  check('stop_all acked', stop_ack && stop_ack['intent'] == 'stop_all', stop_ack.inspect)
+
+  c.send_json(type: 'intent', intent: 'run_macro', args: { commands: %w[n1 n2 n3] })
+  ack2 = c.read_until('intent_ack')
+  check(
+    'no commands ran after the Stop',
+    ($fput_log & %w[n1 n2 n3]).empty?,
+    "commands sent after Stop: #{$fput_log.inspect}"
+  )
+  # Condition 5: a refusal must be reported as a refusal. ok:true with
+  # "stopped after 0 of 3" reads identically to success on the client
+  # (useAppStore.ts only logs on ok:false) - the exact silent-success shape
+  # this whole fix exists to close, one layer up.
+  check('the refused macro is acked ok:false, not a silent success', ack2 && ack2['ok'] == false, ack2.inspect)
+  check('and says to resume', ack2 && ack2['detail'].to_s.include?('Resume'), ack2 && ack2['detail'])
+
+  puts ''
+  puts '-- resume clears the latch, and only resume does --'
+  c.send_json(type: 'intent', intent: 'resume')
+  resume_ack = c.read_until('intent_ack')
+  check('resume acked', resume_ack && resume_ack['intent'] == 'resume', resume_ack.inspect)
+
+  $fput_log = []
+  c.send_json(type: 'intent', intent: 'run_macro', args: { commands: ['after-resume'] })
+  ack3 = c.read_until('intent_ack')
+  check('a macro after resume is accepted', ack3 && ack3['ok'] == true, ack3.inspect)
+  check('and actually ran', $fput_log.include?('after-resume'), $fput_log.inspect)
 
   c.close
 ensure

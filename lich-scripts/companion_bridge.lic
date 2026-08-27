@@ -403,6 +403,15 @@ module Companion
         # skills_ready? above - an empty 'skills' during that window means
         # "not asked yet", not "this character has no skills".
         'skillsReady' => skills_ready?,
+        # True once stop_all has been pressed and stays true until resume -
+        # see Intents.@stop_requested. Published so a client can show this
+        # before the player finds out the hard way: pressing a macro-bar
+        # button while it's true does nothing, and used to do nothing with
+        # no explanation anywhere except a bridge log line nobody reads.
+        # Absent-safe: an older bridge simply doesn't send it, and false is
+        # the correct read for "this bridge doesn't have the concept yet",
+        # not a state that needs distinguishing from "known and not latched".
+        'stopLatched' => safe(false) { Intents.stop_requested? },
         'activity'    => activity,
         'connected'   => true,
         # Liveness. A live socket does not mean a live game: if this clock
@@ -1260,6 +1269,17 @@ module Companion
     # note on serve() for why this only works now and not before: stop_all
     # runs on its own thread per incoming message, so it can actually reach
     # this flag while a macro is mid-run instead of queuing behind it.
+    #
+    # Cleared only by resume, not by run_macro/stow_all on entry - that was
+    # the bug in the first version of this. FlowDriver sends one run_macro per
+    # Task Flow step on its own timer, with nothing wiring stop_all to
+    # driver.stop() on the client side. Clearing on entry meant a Stop pressed
+    # mid-flow aborted the current step and then got silently wiped the moment
+    # the driver's next run_macro arrived, and the flow continued as though
+    # nothing had happened - Stop absorbed by exactly the surface it exists to
+    # interrupt. Latching until a human decision resumes things, rather than
+    # until the next command happens to arrive, is the whole fix. A bare
+    # run_macro from the macro bar does not count as that decision.
     @stop_requested = false
 
     def request_stop!
@@ -1731,7 +1751,11 @@ module Companion
     # Put loose items away. Small, reversible, and a good first thing to let
     # the panel actually do: it touches inventory and nothing else.
     def stow_all(server)
-      clear_stop!
+      if stop_requested?
+        server.log('Stow refused: Stop is latched. Press Resume first.', 'warn')
+        return [false, 'stopped — press Resume']
+      end
+
       moved = []
       hands = %w[right left]
       stopped_early = false
@@ -1817,6 +1841,10 @@ module Companion
     end
 
     def resume_all(server)
+      # The one place a latched Stop clears. See the note on @stop_requested
+      # above: resuming is the human decision that means "continue", not the
+      # next run_macro/stow_all that happens to arrive.
+      clear_stop!
       resumed = []
       me = State.safe(nil) { Script.current.name }
       State.safe([]) { Script.running }.each do |s|
@@ -1872,7 +1900,18 @@ module Companion
       commands = raw.map(&:to_s).map(&:strip).reject(&:empty?).first(MAX_MACRO_COMMANDS)
       return [false, 'no commands given'] if commands.empty?
 
-      clear_stop!
+      # Refused outright, not "stopped after 0 of N" - a latch already up
+      # before this macro even started is a different event from one that
+      # started and got interrupted mid-flight, and ok:true made them read
+      # identically. The client only logs on ok:false (useAppStore.ts), so
+      # "stopped after 0 of 3" at ok:true was a Stop that pressing a
+      # macro-bar button afterwards could silently absorb with no trace
+      # anywhere but a bridge log line nobody reads.
+      if stop_requested?
+        server.log('Macro refused: Stop is latched. Press Resume first.', 'warn')
+        return [false, 'stopped — press Resume']
+      end
+
       ran = 0
       commands.each do |command|
         if stop_requested?
