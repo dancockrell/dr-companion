@@ -341,6 +341,40 @@ nothing.
 **4. Experience skills read 0.** May be correct — Phemius is a Bard and trains
 Performance. Verify against the game before "fixing" it.
 
+## `read_until` answers a type, not your question
+
+Four defects in one evening had this single root, across two sessions and
+three different tests, so it is written here rather than fixed once and
+forgotten.
+
+`read_until('status')` in `lich-scripts/test/server_test.rb` returns **the
+first message of that type**, which on a server that broadcasts is very often
+not the message answering the request you just sent. A stale broadcast
+`status` arriving one tick ahead of your own `get_status` is indistinguishable
+from the reply, and the test then asserts against somebody else's payload
+while looking entirely healthy.
+
+The instances: a leak at line 345, and `downloads-8a` hitting it twice on
+`get_status` from opposite directions.
+
+It is this file's recurring shape in a new place. A test that reads the wrong
+message and a test that reads the right one produce identical output, because
+nothing in the frame says which request it answers.
+
+**Before trusting any assertion built on `read_until`, ask what else emits
+that type.** If anything does — and `status` is broadcast on every tick — the
+read needs to be correlated to the request rather than matched on type alone.
+Until the harness carries a correlation id, the workable check is to drain
+pending frames of that type first and only then send the request, and to say
+in the test why the drain is there so nobody tidies it away.
+
+The check that establishes whether a type is broadcast, rather than a claim
+about which ones are:
+
+```
+grep -n "broadcast" lich-scripts/companion_bridge.lic
+```
+
 ## Do not redo
 
 - **Python scripting API** — `python/dr_companion.py`, `docs/PYTHON_API.md`.
