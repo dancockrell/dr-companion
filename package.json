@@ -59,7 +59,8 @@
     "test:mapdock": "node tools/mapdock-test.mjs",
     "test:gamelines": "node tools/gamelines-test.mjs",
     "test:subscribe": "node tools/subscribe-test.mjs",
-    "test:verified-claim": "node tools/verified-claim-test.mjs"
+    "test:verified-claim": "node tools/verified-claim-test.mjs",
+    "test:all": "node tools/run-tests.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
