@@ -24,6 +24,8 @@ lerna-debug.log*
 logs
 node_modules
 npm-debug.log*
+__pycache__/
+*.pyc
 pnpm-debug.log*
 src-tauri/gen
 src-tauri/target

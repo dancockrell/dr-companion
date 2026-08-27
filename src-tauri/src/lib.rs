@@ -3,6 +3,7 @@ pub mod config_import;
 pub mod game_link;
 pub mod lich;
 pub mod lich_health;
+pub mod script_api;
 pub mod setup;
 pub mod sounds;
 
@@ -129,10 +130,22 @@ pub fn run() {
             set_always_on_top,
             open_panel_window,
             close_panel_window,
-            panel_windows
+            panel_windows,
+            script_api::script_api_info
         ])
         .manage(game_link::GameLink::default())
         .setup(|app| {
+            // The Python scripting socket. Started here rather than lazily on
+            // first use, so a script waiting for the app to open does not
+            // also have to guess whether it has finished starting - the token
+            // and port files exist by the time the window does.
+            if let Err(e) = script_api::start(app.handle().clone()) {
+                // Not fatal: the rest of the app works without it, and a
+                // player who never scripts should not lose the client over a
+                // port bind failure.
+                eprintln!("warning: script API did not start: {e}");
+            }
+
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_title("DR Companion");
 

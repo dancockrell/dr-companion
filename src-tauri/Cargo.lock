@@ -720,6 +720,7 @@ dependencies = [
 name = "dr-companion"
 version = "0.1.1"
 dependencies = [
+ "getrandom 0.2.17",
  "reqwest 0.12.28",
  "serde",
  "serde_json",

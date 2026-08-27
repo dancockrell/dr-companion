@@ -131,11 +131,26 @@ commands; it does not reach into `DRStats`. That boundary is what lets the
 Ruby side be replaced later without breaking every Python script, and it is
 what makes a Python script testable without a game.
 
-**Open:** whether Python runs in-process (embedded, e.g. PyO3 on the Rust side)
-or out-of-process against the same socket. In-process is faster and shares
-lifetime; out-of-process cannot take the client down with it, which for a
-scripting language users write in matters more than speed. Leaning
-out-of-process. Not yet decided.
+**Decided 27 Aug 2026: out-of-process.** A Python script is its own process,
+talking to the app over a loopback socket - the same shape `game_link.rs`
+already uses for Lich, a listener and a line reader. A script that
+divide-by-zeros, infinite-loops, or imports something that segfaults takes
+down its own process and nothing else, which for a language users write
+scripts in matters more than the latency an embedded interpreter would save.
+
+Built: `src-tauri/src/script_api.rs` (the server, started from `lib.rs`'s
+`.setup()`), `python/dr_companion.py` (the client library, pure standard
+library - no `pip install` between a script idea and running it), and
+`docs/PYTHON_API.md` (the documented API this section calls for).
+
+**Known gap, not hidden:** a script receives the same raw wire chunks
+`game_link.rs` reads before `src/lib/gameStream.ts` parses them into clean
+lines with a channel and a bold flag - so `<pushStream id='thoughts'/>`
+markup reaches Python as text today. That parser exists only in TypeScript and
+is hardened by several rounds of real bugs found in it; porting it to Rust
+untested against the same fixtures would risk a second, silently-disagreeing
+parser, which is worse than a documented absence. Stream/bold extraction for
+scripts is future work, not something faked in the meantime.
 
 ## Display: 1080p, 1440p, 2160p
 
@@ -174,7 +189,8 @@ is not room for four.
    `dr-genie-settings` so nothing is retyped.
 5. **Streams to panes.** Thoughts, deaths, arrivals, room - the thing named
    windows are for.
-6. **Python scripting.**
+6. **Python scripting.** Done 27 Aug 2026 - the transport, the client library
+   and one working example. See the section above for the gap it ships with.
 7. **Vendor Lich** and make launching it invisible.
 
 Vendoring is last on purpose. Until the frontend works against a Lich somebody
@@ -182,7 +198,6 @@ installed, bundling one only makes the failures harder to see.
 
 ## What is not decided
 
-- In-process or out-of-process Python.
 - Text pane as third column or fourth.
 - Whether the bridge script survives at all. As a frontend the app gets
   everything raw, so the script's summaries may be redundant - but they are

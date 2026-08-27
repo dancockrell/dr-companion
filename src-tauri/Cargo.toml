@@ -30,6 +30,10 @@ reqwest = { version = "0.12", default-features = false, features = [
 sha2 = "0.10"
 # git blob hashing, to verify files that ship in a repo rather than a release
 sha1 = "0.10"
+# One thing: OS randomness for the script API's connection token
+# (script_api.rs). Tiny, audited, no_std-friendly - not pulling in a full
+# `rand` for one call to getrandom().
+getrandom = "0.2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 # `macros` only, for tokio::join!. Tauri already supplies the runtime.
 tokio = { version = "1", default-features = false, features = ["macros"] }
