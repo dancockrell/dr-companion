@@ -19,7 +19,7 @@ import {
   stop,
   waiting,
   type FlowState,
-} from './flowRunner'
+} from './flowRunner.ts'
 import type { TaskFlow } from '../data/taskFlows'
 
 export interface FlowDriverHooks {

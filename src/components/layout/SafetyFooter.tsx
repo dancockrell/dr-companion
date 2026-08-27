@@ -22,6 +22,7 @@
  */
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
+import { requestStopAll } from '../../lib/flowStop'
 import { cn } from '../../lib/cn'
 
 export function SafetyFooter() {
@@ -128,7 +129,14 @@ export function SafetyFooter() {
         type="button"
         className="flex min-w-[7.5rem] flex-1 items-center justify-center gap-1.5 rounded-lg bg-danger/90 px-3 py-2 text-sm font-semibold text-white hover:bg-danger"
         title="Stop every script the Companion started"
-        onClick={() => requestIntent('stop_all')}
+        onClick={() => {
+          requestIntent('stop_all')
+          // The bridge half stops scripts; this half stops a client-side
+          // Task Flow, which has its own timer the bridge cannot see or
+          // cancel. Without it, Stop all aborted the in-flight step while
+          // the flow's own schedule kept firing the next one.
+          requestStopAll()
+        }}
       >
         <Square className="h-3.5 w-3.5 fill-current" />
         Stop all

@@ -8,6 +8,7 @@ import {
   type TaskFlow,
 } from '../../data/taskFlows'
 import { FlowDriver } from '../../lib/flowDriver'
+import { onStopAll } from '../../lib/flowStop'
 import { describeFlow, isFinished, type FlowState } from '../../lib/flowRunner'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
@@ -63,6 +64,14 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   useEffect(() => {
     if (!connected) driver.current?.interrupt('the bridge went down')
   }, [connected])
+
+  // SafetyFooter's Stop all lives outside this panel and has no reference to
+  // this driver — see flowStop.ts. Without this, pressing it aborted the
+  // in-flight step at the bridge while the driver's own timer, none the
+  // wiser, fired the next one on schedule: the flow kept running and the
+  // panel kept reporting it as active. A player's stop, not the bridge going
+  // away, so `stop()` and not `interrupt()`.
+  useEffect(() => onStopAll(() => driver.current?.stop()), [])
 
   // The timer outlives the component otherwise, and a popped-out panel
   // unmounts while a hunting loop is mid-pass.

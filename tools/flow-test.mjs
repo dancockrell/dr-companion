@@ -16,6 +16,8 @@ import {
   stop,
 } from '../src/lib/flowRunner.ts'
 import { DEFAULT_FLOWS } from '../src/data/taskFlows.ts'
+import { FlowDriver } from '../src/lib/flowDriver.ts'
+import { onStopAll, requestStopAll } from '../src/lib/flowStop.ts'
 
 let failed = 0
 const ok = (name, got, want) => {
@@ -114,6 +116,48 @@ console.log('\n-- the shipped flows are well formed --')
   const runs = DEFAULT_FLOWS.filter((f) => !f.loops)
     .map((f) => run(begin(f), f.steps.length).status)
   ok('every finite flow reaches done', [...new Set(runs)], ['done'])
+}
+
+console.log('\n-- Stop all reaches a running flow driver, not just its own button --')
+{
+  // The property that matters: after Stop all fires, no further step goes
+  // out. Asserting "the driver has a stop method" would pass on a wiring
+  // that calls the wrong thing, or nothing at all, at the exact moment that
+  // matters — the driver's own timer firing on schedule regardless.
+  const sent = []
+  const driver = new FlowDriver({
+    send: (commands) => { sent.push(commands); return true },
+    onChange: () => {},
+    log: () => {},
+  })
+  const unsub = onStopAll(() => driver.stop())
+  driver.start(looping) // sends step 'one' synchronously, schedules 'two'
+  requestStopAll()
+  await new Promise((resolve) => setTimeout(resolve, 900)) // past the 600ms settle floor
+  unsub()
+  ok('driver reports stopped', driver.current()?.status, 'stopped')
+  ok('no step sent after Stop all', sent, [['a']])
+}
+
+console.log('\n-- an unsubscribed driver does not react to a later Stop all --')
+{
+  // Confirms unsubscribe (on unmount, in TaskFlowPanel) actually detaches —
+  // a leftover subscription would stop a flow driver whose panel is gone,
+  // which is a different bug in the same neighbourhood.
+  const sent = []
+  const driver = new FlowDriver({
+    send: (commands) => { sent.push(commands); return true },
+    onChange: () => {},
+    log: () => {},
+  })
+  const unsub = onStopAll(() => driver.stop())
+  unsub()
+  driver.start(looping)
+  requestStopAll()
+  // 'waiting' (not 'stopped') is the point: start() sends step one and moves
+  // straight to waiting out its settle time, so this is the same status an
+  // untouched, still-running flow would show at this instant.
+  ok('kept going: unsubscribed driver ignores Stop all', driver.current()?.status, 'waiting')
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
