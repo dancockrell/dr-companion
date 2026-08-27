@@ -37,14 +37,13 @@ import {
   clearGame,
   detachGame,
   gameDropped,
-  gameLines,
-  gameVersion,
   gameState,
   refreshGameState,
   sendGame,
   subscribeGame,
   type GameLine,
 } from '../../lib/gameLink'
+import { useGameLines } from '../../lib/useGameLines'
 import { isTauri } from '../../lib/tauri'
 import { paint } from '../../lib/highlights'
 import { useHighlights } from '../../lib/useHighlights'
@@ -105,12 +104,12 @@ function loadPort(): string {
 }
 
 export function GamePane() {
-  // The version, not the array: the buffer is mutated in place, so its
-  // identity never changes. This worked only because gameState() below is
-  // rebuilt on every chunk and pulled the render along with it. See
-  // gameVersion().
-  const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
-  const lines = gameLines()
+  // Subscribes and returns an array whose identity changes when the buffer
+  // does, so `[lines]` in a dep array below is simply correct. This used to be
+  // a raw `gameLines()` read sitting beside a separate version subscription,
+  // and keeping those two things separate is what went wrong three times.
+  // See useGameLines.ts's header.
+  const lines = useGameLines()
   const link = useSyncExternalStore(subscribeGame, gameState, gameState)
   const dropped = useSyncExternalStore(subscribeGame, gameDropped, gameDropped)
 
@@ -171,16 +170,13 @@ export function GamePane() {
     for (const l of fresh) {
       for (const s of paint(l.text, highlights).sounds) playAlert(s)
     }
-    // `version`, not `lines`: gameLink.ts's gameVersion() doc explains why -
-    // `buffer.push` mutates in place, so `lines` is the same array reference
-    // forever and this effect would never re-run on new lines. It did not:
-    // measured against the replay fixture, sound-carrying lines streamed
-    // through for 25s straight and playAlert was never called once, even
-    // though calling it directly played the file correctly. `version` is the
-    // counter built for exactly this - see gameVersion()'s comment, which
-    // documents the same defect already having silenced the channel tabs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [version, highlights])
+    // `[lines]` is honest now that useGameLines() gives it a fresh identity
+    // per version. It was not always: with a raw gameLines() read this effect
+    // never re-ran, and sound-carrying lines streamed past the replay fixture
+    // for 25s straight with playAlert never called once, while calling it
+    // directly played the file correctly. That is the third occurrence of the
+    // same defect, and the reason the hook exists rather than another comment.
+  }, [lines, highlights])
 
   // Anything already in the buffer when the config loads is history, not news.
   useEffect(() => {

@@ -29,19 +29,13 @@
  * not sent one, which is a different thing from the client having lost it.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  gameLinesFrom,
-  gameStreams,
-  gameVersion,
-  subscribeGame,
-  type GameLine,
-} from '../../lib/gameLink'
+import { type GameLine } from '../../lib/gameLink'
+import { useGameLines, useGameStreams } from '../../lib/useGameLines'
 import { GameLineRow } from './GameLineRow'
 import type { Highlight } from '../../lib/highlights'
 import { useAppStore } from '../../store/useAppStore'
 import { CHANNELS, linesFor, type Channel } from '../../lib/chatChannels'
 import { cn } from '../../lib/cn'
-import { useSyncExternalStore } from 'react'
 
 /**
  * Tabs over the companion own log, kept from the component this replaces.
@@ -81,13 +75,13 @@ const LABELS: Record<string, string> = {
 }
 
 export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
-  // The version, not the array. See gameVersion() - subscribing to the array
-  // is the arrangement that left this component reading "no channels yet"
-  // while 924 lines of labelled game text sat in the buffer behind it.
-  const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
+  // Both of these subscribe, and both hand back a fresh identity when the
+  // buffer changes - see useGameLines.ts. Reading the raw buffer instead is
+  // the arrangement that left this component showing "no channels yet" while
+  // 924 lines of labelled game text sat behind it.
+  const allLines = useGameLines()
+  const streams = useGameStreams()
   const logLines = useAppStore((s) => s.logLines)
-
-  const streams = useMemo(() => gameStreams(), [version])
   const [tab, setTab] = useState<string>(LOG_PREFIX + 'all')
 
   /**
@@ -111,8 +105,8 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
   }, [streams, tab])
 
   const shown: GameLine[] = useMemo(
-    () => (isLogTab(tab) ? [] : gameLinesFrom(tab)),
-    [tab, version]
+    () => (isLogTab(tab) ? [] : allLines.filter((l) => l.stream === tab)),
+    [tab, allLines]
   )
 
   // Mark the open tab read whenever new lines land in it.
@@ -127,9 +121,14 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
     if (el && atBottom.current) el.scrollTop = el.scrollHeight
   }, [shown, logLines, tab])
 
+  // From the subscribed array rather than a fresh read of the buffer. A raw
+  // read here would be correct today - it happens during render, so it sees
+  // current data - and would silently stop being correct the moment somebody
+  // moved it into a memo or an effect. There is no reason to leave that edge
+  // lying about when the subscribed copy is already in hand.
   const unreadFor = (id: string) => {
     const mark = seen[id] ?? 0
-    return gameLinesFrom(id).filter((l) => l.seq > mark).length
+    return allLines.filter((l) => l.stream === id && l.seq > mark).length
   }
 
   return (
