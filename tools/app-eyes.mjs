@@ -40,7 +40,7 @@
  * pretending otherwise would produce a timeout that reads like a crash.
  */
 import { spawn, execFileSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { attach } from './browser.mjs'
 
 export const PORT = 9223
@@ -197,9 +197,53 @@ if (cmd) {
       case 'shot': {
         const b = await eyes()
         const path = arg ?? 'app.png'
+        const size = await b.eval('JSON.stringify({w: innerWidth, h: innerHeight})')
         await b.screenshot(path)
         await b.close()
         console.log(path)
+
+        // A minimized window screenshots as a blank frame, and says nothing
+        // about it.
+        //
+        // Found the hard way: a capture of the app at 3072x1658 came back
+        // pure white while the DOM had 3,576 characters of text in it and
+        // `body` computed to rgb(13,12,10). Nothing errored. The window was
+        // simply minimized, and `Page.captureScreenshot` handed back an empty
+        // frame rather than refusing - so the honest reading of that image
+        // would have been "the app renders blank at 4K", which is a bug
+        // report about the wrong thing entirely.
+        //
+        // `document.hidden` does not help: WebView2 reports `visible` and
+        // `visibilityState: "visible"` for a minimized window. Measured.
+        //
+        // What does separate them is how well the PNG compresses, because a
+        // uniform frame compresses to almost nothing. Calibrated against real
+        // captures from this same tool:
+        //
+        //   blank, minimized   3072x1658   28,208 B   0.0055 B/px
+        //   real dashboard     2105x945   411,292 B   0.207  B/px
+        //   real, sparser      2105x945   110,791 B   0.056  B/px
+        //
+        // A tenfold gap between the blank and the least detailed real capture,
+        // so the threshold sits well clear of both. This warns rather than
+        // failing: a legitimately near-empty screen is possible, and the point
+        // is that nobody reads a blank image as evidence without being told.
+        try {
+          const { w, h } = JSON.parse(size)
+          const bytes = statSync(path).size
+          const perPixel = bytes / (w * h)
+          if (w * h > 0 && perPixel < 0.02) {
+            console.error(
+              `\nWARNING: ${bytes} bytes for ${w}x${h} is ${perPixel.toFixed(4)} bytes/pixel.\n` +
+                '  That is the signature of a blank frame, not a rendered one. The window is\n' +
+                '  most likely minimized - restore it and capture again. Do not read this\n' +
+                '  image as evidence of what the app looks like.'
+            )
+          }
+        } catch {
+          // Size check is a courtesy, not the job. A screenshot that was
+          // written is still worth having if this cannot measure it.
+        }
         break
       }
 
