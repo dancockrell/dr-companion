@@ -127,6 +127,16 @@ end
 # bridge pass silently.
 DRCHWound = Struct.new(:body_part)
 
+# What DRCH.check_health actually returns on success -
+# lib/dragonrealms/commons/common-healing.rb:405's HealthResult, attr_reader
+# only, no Hash ancestor and no `[]`. A Struct rather than a Hash for the
+# same reason as DRCHWound above, and it matters more here: a Hash-shaped
+# stub let a real bug (`data.is_a?(Hash)` false against the true return
+# type, `data['wounds']` undefined on it even if the gate somehow passed)
+# sit uncaught behind a green "DRCH available" test. This is the fixture
+# fix that goes with that bridge fix, not a separate cleanup.
+FakeHealthResult = Struct.new(:wounds, :bleeders, :poisoned, :diseased)
+
 # GameObj had no stub at all - not even one that returns nil, undefined
 # entirely. It appears 12 times in companion_bridge.lic, almost all of them
 # in the status/inventory payloads (roomItems, hands, worn, wornCount,
@@ -705,12 +715,12 @@ begin
   # fall through to the game command too, this test would still pass on the
   # ack alone, so the floor is what actually catches that regression.
   $dothis_log = []
-  $drch_reply = {
-    'wounds' => { 'moderate' => [Object.new, Object.new], 'minor' => [Object.new] },
-    'bleeders' => { 'light' => [DRCHWound.new('right arm')] },
-    'poisoned' => false,
-    'diseased' => false
-  }
+  $drch_reply = FakeHealthResult.new(
+    { 'moderate' => [Object.new, Object.new], 'minor' => [Object.new] },
+    { 'light' => [DRCHWound.new('right arm')] },
+    false,
+    false
+  )
   c.send_json(type: 'intent', intent: 'check_health')
   ack = c.read_until('intent_ack')
   check('reports the real counts from DRCH', ack && ack['detail'] == '3 wounds, 1 bleeding', ack.inspect)

@@ -193,10 +193,41 @@ module Companion
   module State
     module_function
 
-    def safe(default = nil)
+    # Swallow anything the game module throws and hand back a usable default.
+    #
+    # `as:` names the payload field this call is producing, and is what makes a
+    # swallowed failure visible instead of silent. Optional on purpose: there
+    # are over a hundred safe() call sites and most produce values whose
+    # emptiness is unambiguous. Only the fields where "empty" and "could not
+    # read" are indistinguishable need naming - see degraded_fields.
+    def safe(default = nil, as: nil)
       yield
     rescue StandardError
+      note_degraded(as) if as
       default
+    end
+
+    # Which payload fields had a read fail, for the request being served now.
+    #
+    # Thread-local rather than module state, and that is not defensive
+    # tidiness: serve() spawns a thread per incoming message, so two status
+    # builds genuinely overlap. A shared array would attribute one request's
+    # failures to another's payload, which is worse than not reporting them -
+    # it would name a field that read perfectly well on the request being
+    # answered.
+    def reset_degraded!
+      Thread.current[:drc_degraded] = []
+    end
+
+    def note_degraded(field)
+      list = Thread.current[:drc_degraded]
+      # Nil when a safe(as:) runs outside a payload build. Recording nothing is
+      # right there - there is no payload for it to travel on.
+      list << field.to_s if list && !list.include?(field.to_s)
+    end
+
+    def degraded_fields
+      (Thread.current[:drc_degraded] || []).dup
     end
 
     def char_name
@@ -430,12 +461,12 @@ module Companion
         # Loose items on the floor. GameObj.loot is the game's own list of
         # what is lying here, which is not the same as what a script decided
         # was worth picking up.
-        'roomItems' => safe([]) { GameObj.loot&.map(&:name) } || [],
+        'roomItems' => safe([], as: 'roomItems') { GameObj.loot&.map(&:name) } || [],
         # Both hands by name. This was already read to produce a count, which
         # threw away the only part anyone wanted.
         'hands' => {
-          'left'  => safe(nil) { GameObj.left_hand&.name },
-          'right' => safe(nil) { GameObj.right_hand&.name }
+          'left'  => safe(nil, as: 'hands.left') { GameObj.left_hand&.name },
+          'right' => safe(nil, as: 'hands.right') { GameObj.right_hand&.name }
         },
         # Seconds, not a flag. "You cannot act" is less useful than "for four
         # more seconds", which is the difference between waiting and doing
@@ -499,10 +530,10 @@ module Companion
         # with two hundred items would put that on the wire every time for no
         # reading anybody wants. The count above stays authoritative for "how
         # much", so a truncated list never becomes a wrong total.
-        'worn'       => safe([]) { GameObj.inv.to_a.map(&:name).compact.first(60) },
-        'wornCount'  => safe(0) { GameObj.inv.to_a.size },
-        'looseCount' => safe(0) { GameObj.right_hand.id ? 1 : 0 } +
-                        safe(0) { GameObj.left_hand.id ? 1 : 0 },
+        'worn'       => safe([], as: 'worn') { GameObj.inv.to_a.map(&:name).compact.first(60) },
+        'wornCount'  => safe(0, as: 'wornCount') { GameObj.inv.to_a.size },
+        'looseCount' => safe(0, as: 'looseCount') { GameObj.right_hand.id ? 1 : 0 } +
+                        safe(0, as: 'looseCount') { GameObj.left_hand.id ? 1 : 0 },
         'pressure'   => 'ok'
       }
     end
@@ -1741,7 +1772,20 @@ module Companion
         nil
       end
 
-      unless data.is_a?(Hash)
+      # DRCH.check_health returns a HealthResult
+      # (lib/dragonrealms/commons/common-healing.rb:405) on success - a
+      # plain class, attr_reader only, no Hash ancestor and no `[]`. Checked
+      # by interface (respond_to?) rather than by class name so this
+      # doesn't care whether Lich renames or wraps the type, as long as
+      # whatever comes back still answers .wounds. This used to be
+      # `data.is_a?(Hash)`, which is never true for the real return type -
+      # every successful call fell through to the fallback below, and the
+      # accessors past this point used to be `data['wounds']` etc., Hash
+      # subscript syntax that would have raised NoMethodError on a
+      # HealthResult the moment the gate was fixed without also fixing
+      # them. Both bugs found together; a gate that can never pass had
+      # been hiding a broken body the whole time nobody could reach it.
+      unless data.respond_to?(:wounds)
         # Fall back to reading the raw reply ourselves rather than giving up.
         line = Cmd.exec('health', expect: [/You have|You feel/i], timeout: 8)
         return [false, 'Could not read health.'] if line.nil?
@@ -1749,10 +1793,10 @@ module Companion
         return [true, 'health read']
       end
 
-      wounds    = data['wounds'] || {}
-      bleeders  = data['bleeders'] || {}
-      poisoned  = data['poisoned']
-      diseased  = data['diseased']
+      wounds    = data.wounds || {}
+      bleeders  = data.bleeders || {}
+      poisoned  = data.poisoned
+      diseased  = data.diseased
 
       count = wounds.values.flatten.size
       bleed = bleeders.values.flatten.size
