@@ -96,8 +96,27 @@ export function Dashboard() {
      * setup first" is not useful advice to someone who already did.
      */
     return (
-      <div className="flex h-full flex-col items-start justify-center gap-3 p-6">
-        <div className="max-w-lg">
+      <div className="flex h-full min-w-0 flex-col items-start justify-center gap-3 p-6">
+        {/* `w-full` matters as much as the cap beside it.
+         *
+         * `items-start` makes a flex child shrink-to-fit, so this box sized to
+         * its own content rather than to the column - and its content includes
+         * a `pre` holding a Windows path that cannot wrap. That set a hard
+         * 315px floor the column could not go below, the `overflow-x-auto` on
+         * the `pre` never got a chance to engage, and the surrounding prose was
+         * cut off mid-word with a scrollbar under it instead.
+         *
+         * Measured at three window sizes rather than reasoned about: the
+         * content wanted 339px at all of them, while the column was given 281
+         * at 1180x820 and 221 at 1000x700. At 1522x1610 it fits and looks
+         * perfect - which is why this was invisible to everyone developing on a
+         * large window, and why it was found by opening the app rather than by
+         * reading the layout code.
+         *
+         * `w-full` lets it take the column's width; `max-w-lg` still stops it
+         * running to a silly measure on a wide one.
+         */}
+        <div className="w-full max-w-lg">
           <p className="text-sm text-ink">Waiting for a character.</p>
 
           {bridgeConnected ? (

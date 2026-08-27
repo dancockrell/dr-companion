@@ -73,7 +73,22 @@ function Line({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
   return (
     <div className="flex items-center gap-1.5">
-      <code className="flex-1 text-xs font-mono bg-surface border border-border rounded-md px-2 py-1.5 text-ink-muted overflow-x-auto whitespace-nowrap">
+      {/* `min-w-0` is doing real work here, and its absence was visible.
+       *
+       * A flex item defaults to `min-width: auto`, which means it will not
+       * shrink below its own content. These lines are `whitespace-nowrap`
+       * Windows paths - `#config lichpath C:\Ruby4Lich5\Lich5\lich.rbw` - so
+       * their content width is fixed and large, the `overflow-x-auto` beside
+       * it never got a chance to engage, and the floor propagated all the way
+       * out to the column.
+       *
+       * Measured: the whole connect column wanted 339px however narrow the
+       * window got. At 1180x820 it was given 281 and at 1000x700 it was given
+       * 221, so sentences in the surrounding prose were cut off mid-word with
+       * a horizontal scrollbar under them. Nothing about the layout code
+       * looked wrong; it was only visible in a render.
+       */}
+      <code className="min-w-0 flex-1 text-xs font-mono bg-surface border border-border rounded-md px-2 py-1.5 text-ink-muted overflow-x-auto whitespace-nowrap">
         {text}
       </code>
       <button
