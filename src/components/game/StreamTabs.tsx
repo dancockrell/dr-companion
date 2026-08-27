@@ -30,9 +30,9 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  gameLines,
   gameLinesFrom,
   gameStreams,
+  gameVersion,
   subscribeGame,
   type GameLine,
 } from '../../lib/gameLink'
@@ -81,10 +81,13 @@ const LABELS: Record<string, string> = {
 }
 
 export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
-  const lines = useSyncExternalStore(subscribeGame, gameLines, gameLines)
+  // The version, not the array. See gameVersion() - subscribing to the array
+  // is the arrangement that left this component reading "no channels yet"
+  // while 924 lines of labelled game text sat in the buffer behind it.
+  const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
   const logLines = useAppStore((s) => s.logLines)
 
-  const streams = useMemo(() => gameStreams(), [lines])
+  const streams = useMemo(() => gameStreams(), [version])
   const [tab, setTab] = useState<string>(LOG_PREFIX + 'all')
 
   /**
@@ -109,7 +112,7 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
 
   const shown: GameLine[] = useMemo(
     () => (isLogTab(tab) ? [] : gameLinesFrom(tab)),
-    [tab, lines]
+    [tab, version]
   )
 
   // Mark the open tab read whenever new lines land in it.

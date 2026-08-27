@@ -130,6 +130,7 @@ function wire() {
       dropped += buffer.length - MAX_LINES
       buffer = buffer.slice(-MAX_LINES)
     }
+    version++
     state = { ...state, lines: nextSeq }
     notify()
   })
@@ -144,6 +145,38 @@ export function subscribeGame(fn: () => void): () => void {
   wire()
   listeners.add(fn)
   return () => listeners.delete(fn)
+}
+
+/**
+ * A number that changes whenever the buffer does.
+ *
+ * This is what React subscribes to; `gameLines()` is a plain read taken after
+ * it. The obvious arrangement - subscribing to the array itself - does not
+ * work here, and it fails silently, which is why this exists.
+ *
+ * `buffer.push(...)` mutates in place, so `gameLines()` hands back the same
+ * array reference forever. `useSyncExternalStore` compares snapshots with
+ * Object.is and sees no change, and a `useMemo(..., [lines])` never recomputes.
+ * The game pane appeared to work regardless, because it also subscribes to
+ * `gameState()`, which is rebuilt on every chunk and dragged the re-render
+ * along behind it. The channel tabs subscribe only to the lines. They never
+ * appeared at all.
+ *
+ * Measured in the running app rather than reasoned about: attached to the
+ * replay fixture, 924 lines received, the text of the `thoughts`, `death` and
+ * `talk` channels all visibly on screen, and the tab row still reading "no
+ * channels yet". The one feature this client is built around did not work, and
+ * every test passed, because the tests call the parser directly and no test
+ * renders a component.
+ *
+ * A counter rather than copying the array on each change: a room description is
+ * four lines arriving together, and at 20,000 lines a copy per chunk is real
+ * work to produce a value nothing keeps.
+ */
+let version = 0
+
+export function gameVersion(): number {
+  return version
 }
 
 export function gameLines(): GameLine[] {
@@ -186,6 +219,7 @@ export async function refreshGameState(): Promise<LinkState> {
 export function clearGame() {
   buffer = []
   dropped = 0
+  version++
   notify()
 }
 

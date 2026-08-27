@@ -38,6 +38,7 @@ import {
   detachGame,
   gameDropped,
   gameLines,
+  gameVersion,
   gameState,
   refreshGameState,
   sendGame,
@@ -58,7 +59,13 @@ const WINDOW = 400
 const STEP = 400
 
 export function GamePane() {
-  const lines = useSyncExternalStore(subscribeGame, gameLines, gameLines)
+  // The version, not the array: the buffer is mutated in place, so its
+  // identity never changes. This worked only because gameState() below is
+  // rebuilt on every chunk and pulled the render along with it. See
+  // gameVersion().
+  const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
+  const lines = gameLines()
+  void version
   const link = useSyncExternalStore(subscribeGame, gameState, gameState)
   const dropped = useSyncExternalStore(subscribeGame, gameDropped, gameDropped)
 
