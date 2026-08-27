@@ -15,6 +15,6 @@ fn main() {
     // dev checkout (run from a bare `cargo run`, no window) has nothing
     // bundled anyway. `None` here is exactly what an unbundled checkout
     // answers for real.
-    let plan = rt.block_on(dr_companion_lib::setup::plan_setup_inner(None));
+    let plan = rt.block_on(dr_companion_lib::setup::plan_setup_inner(None, None));
     println!("{}", serde_json::to_string_pretty(&plan).unwrap());
 }

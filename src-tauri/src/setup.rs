@@ -942,10 +942,26 @@ pub fn install_bundled_ruby4lich5<R: tauri::Runtime>(app: AppHandle<R>) -> Resul
 /// app at all, real or mocked.
 #[tauri::command]
 pub async fn plan_setup<R: tauri::Runtime>(app: AppHandle<R>) -> SetupPlan {
-    plan_setup_inner(bundled_ruby4lich5(&app)).await
+    // Read here rather than inside, for the same reason the vendored Ruby is:
+    // resolving a bundled resource needs a real app, and everything else in
+    // the plan is plain detection that should stay runnable without one.
+    let bundled_bridge = {
+        use tauri::Manager;
+        app.path()
+            .resolve(
+                "lich-scripts/companion_bridge.lic",
+                tauri::path::BaseDirectory::Resource,
+            )
+            .ok()
+            .and_then(|p| std::fs::read(p).ok())
+    };
+    plan_setup_inner(bundled_ruby4lich5(&app), bundled_bridge).await
 }
 
-pub async fn plan_setup_inner(bundled_ruby_in: Option<(PathBuf, VendorManifest)>) -> SetupPlan {
+pub async fn plan_setup_inner(
+    bundled_ruby_in: Option<(PathBuf, VendorManifest)>,
+    bundled_bridge: Option<Vec<u8>>,
+) -> SetupPlan {
     // Three lookups, one round trip each, run together.
     let (release, genie5, genie4) = tokio::join!(
         latest_lich_release(),
@@ -1293,18 +1309,44 @@ pub async fn plan_setup_inner(bundled_ruby_in: Option<(PathBuf, VendorManifest)>
     script_dirs.extend(dirs.iter().cloned());
     let bridge = first_existing(&script_dirs, "companion_bridge.lic");
 
+    // Installed is not the same as current, and the gap is not cosmetic: an
+    // installed-but-stale bridge is how a copy *without* the Origin check and
+    // token authentication ends up serving on 7415 while every row on this
+    // screen reads green. That exact pair existed on this machine today, both
+    // declaring `BRIDGE_VERSION = '0.9.0'`, so the constant cannot tell them
+    // apart and the content is compared instead - see the bridge staleness
+    // section for why.
+    //
+    // `None` means we could not check: no bundled copy resolved, or a caller
+    // outside a Tauri app such as `examples/plan.rs`. That stays `Present`
+    // rather than becoming `Outdated`, because telling somebody their script
+    // is stale when we merely failed to look sends them to reinstall a file
+    // that may be perfectly current.
+    let bridge_stale = match (&bridge, &bundled_bridge) {
+        (Some(path), Some(bundled)) => match std::fs::read(path) {
+            Ok(installed) => Some(!compare_bridge(&installed, bundled)),
+            // Present but unreadable is the third answer again, not a verdict.
+            Err(_) => None,
+        },
+        _ => None,
+    };
+
     components.push(ComponentPlan {
         id: "bridge".into(),
         label: "Companion bridge script".into(),
-        presence: if bridge.is_some() {
-            Presence::Present
-        } else {
-            Presence::Missing
+        presence: match (&bridge, bridge_stale) {
+            (None, _) => Presence::Missing,
+            (Some(_), Some(true)) => Presence::Outdated,
+            (Some(_), _) => Presence::Present,
         },
-        detail: match &bridge {
-            Some(_) => "Installed in Lich's scripts folder".into(),
-            None if lich_found.is_some() => "Ready to install".into(),
-            None => "Waiting on Lich".into(),
+        detail: match (&bridge, bridge_stale) {
+            (Some(_), Some(true)) => {
+                "Installed, but not the copy this build ships - reinstall it".into()
+            }
+            (Some(_), Some(false)) => "Installed, and matches this build".into(),
+            (Some(_), None) => "Installed in Lich's scripts folder".into(),
+            (None, _) if lich_found.is_some() => "Ready to install".into(),
+            (None, _) => "Waiting on Lich".into(),
         },
         path: bridge.as_ref().map(|p| p.to_string_lossy().into_owned()),
         required: true,
@@ -2499,5 +2541,34 @@ mod bridge_staleness_tests {
         assert_eq!(declared_bridge_version("no version here\n"), None);
         assert_eq!(declared_bridge_version("BRIDGE_VERSION = nope\n"), None);
         assert_eq!(declared_bridge_version(""), None);
+    }
+
+    /// The three states the setup screen's bridge row can be in, over the same
+    /// `(installed, bundled)` shape `plan_setup_inner` branches on.
+    ///
+    /// The third case is the one worth a test. When there is no bundled copy
+    /// to compare against, the row must stay `Present` rather than turning
+    /// `Outdated` - reporting "stale" because the check could not run would
+    /// send somebody to reinstall a file that may be perfectly current, and an
+    /// alarm that fires when it does not know is the failure this whole area
+    /// exists to avoid.
+    #[test]
+    fn the_bridge_row_tells_stale_apart_from_could_not_check() {
+        let current = b"BRIDGE_VERSION = '0.9.0'\nALLOWED_ORIGINS = []\n";
+        let stale = b"BRIDGE_VERSION = '0.9.0'\n# no origin check\n";
+
+        // Both present and equal: current.
+        let verdict = Some(current.as_slice()).map(|b| !compare_bridge(current, b));
+        assert_eq!(verdict, Some(false));
+
+        // Both present and different: stale, at the same declared version.
+        let verdict = Some(stale.as_slice()).map(|b| !compare_bridge(current, b));
+        assert_eq!(verdict, Some(true), "same version, different content, must read stale");
+
+        // No reference copy: no verdict. `plan_setup_inner` only computes one
+        // when both sides are `Some`, and this stands in for that arm.
+        let bundled: Option<&[u8]> = None;
+        let verdict = bundled.map(|b| !compare_bridge(current, b));
+        assert_eq!(verdict, None, "a missing reference must not become a verdict");
     }
 }

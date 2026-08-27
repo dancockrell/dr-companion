@@ -58,7 +58,7 @@ fn main() {
 async fn download_from_plan(component_id: &str, option_id: &str) {
     // plan_setup_inner, not plan_setup - see its doc comment. This dev
     // checkout has nothing bundled either way, so `None` is the true answer.
-    let plan = plan_setup_inner(None).await;
+    let plan = plan_setup_inner(None, None).await;
     let Some(c) = plan.components.iter().find(|c| c.id == component_id) else {
         die(&format!("no component {component_id} in the plan"));
     };
@@ -107,7 +107,7 @@ async fn download_from_plan(component_id: &str, option_id: &str) {
 /// Every file is checked against the git blob hash GitHub publishes before
 /// anything is written, and one mismatch aborts the whole thing.
 async fn bundle(component_id: &str) {
-    let plan = plan_setup_inner(None).await;
+    let plan = plan_setup_inner(None, None).await;
     let Some(c) = plan.components.iter().find(|c| c.id == component_id) else {
         die(&format!("no component {component_id} in the plan"));
     };
