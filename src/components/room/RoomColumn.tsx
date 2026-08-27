@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RoomScene } from './RoomScene'
 import { ChatTabs } from './ChatTabs'
+import { GamePane } from '../game/GamePane'
 import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
 
@@ -87,7 +88,21 @@ export function RoomColumn() {
         )}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col rounded border border-border bg-surface-raised">
+      {/* The game itself, above the channels.
+        *
+        * This is the pane that turns the app from a companion into a client:
+        * every line the game sends, and the line you type back. The channel
+        * tabs below it stay, because speech and combat are worth pulling out
+        * of the firehose - but the firehose has to exist first, and until now
+        * it did not.
+        *
+        * Given the larger share of the column because it is the thing being
+        * read continuously. See docs/ENGINE.md. */}
+      <div className="flex min-h-0 flex-[3] flex-col overflow-hidden rounded border border-border bg-surface-raised">
+        <GamePane />
+      </div>
+
+      <div className="flex min-h-0 flex-[2] flex-col rounded border border-border bg-surface-raised">
         <ChatTabs />
       </div>
     </div>

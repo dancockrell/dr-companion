@@ -1,3 +1,4 @@
+pub mod game_link;
 pub mod lich;
 pub mod setup;
 
@@ -101,6 +102,10 @@ fn panel_windows(app: tauri::AppHandle) -> Vec<String> {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            game_link::game_status,
+            game_link::game_attach,
+            game_link::game_send,
+            game_link::game_detach,
             lich::lich_status,
             lich::launch_lich,
             setup::plan_setup,
@@ -118,6 +123,7 @@ pub fn run() {
             close_panel_window,
             panel_windows
         ])
+        .manage(game_link::GameLink::default())
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_title("DR Companion");
