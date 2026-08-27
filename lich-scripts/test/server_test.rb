@@ -74,6 +74,19 @@ Script = FakeScript
 
 $lich_dir = "#{TEST_LICH_DIR}/"
 
+# For the concurrency tests below: run_macro/stow_all reach Cmd.exec, which
+# calls fput directly (no `expect:` given, so dothistimeout is never reached).
+# A real sleep, not a mock that returns instantly, is the point - proving
+# pre-emption needs a command that is still "in flight" long enough to race a
+# Stop against, the same way a real DragonRealms roundtime would be.
+$fput_log = []
+$fput_delay = 0
+def fput(cmd)
+  $fput_log << cmd
+  sleep($fput_delay) if $fput_delay.positive?
+  true
+end
+
 # Load everything except the trailing command-line section, which would start a
 # server on the default port and then sleep forever.
 src = File.read(SRC)
@@ -415,6 +428,75 @@ begin
   else
     puts 'SKIP no non-loopback address on this machine'
   end
+
+  puts ''
+  puts '-- stop pre-empts a running macro instead of queuing behind it --'
+  # Before per-message threading, handle_message ran inline in serve()'s read
+  # loop: a stop_all sent while run_macro was mid-flight sat unread in the OS
+  # receive buffer until the blocking macro call returned, so a flag "set on
+  # arrival" could never arrive early enough to matter. This proves the fix
+  # rather than asserting it - a real elapsed delay per command, a Stop sent
+  # partway through, and a count of how many commands actually reached fput.
+  $fput_log = []
+  $fput_delay = 0.3
+  c.send_json(type: 'intent', intent: 'run_macro', args: { commands: %w[one two three four five] })
+  sleep 0.15 # land inside the first command's fput delay, before it returns
+  c.send_json(type: 'intent', intent: 'stop_all')
+
+  acks = {}
+  20.times do
+    break if acks['run_macro'] && acks['stop_all']
+    msg = begin
+      c.read_json(timeout: 3)
+    rescue StandardError
+      nil
+    end
+    break if msg.nil?
+    acks[msg['intent']] = msg if msg['type'] == 'intent_ack'
+  end
+
+  check('stop_all was acked', !acks['stop_all'].nil?)
+  check('run_macro was acked', !acks['run_macro'].nil?)
+  check(
+    'run_macro reports it stopped early, not "5 command(s) sent"',
+    acks['run_macro'] && acks['run_macro']['detail'].to_s.include?('stopped after'),
+    acks['run_macro'] && acks['run_macro']['detail']
+  )
+  check('fewer than all 5 commands reached fput', $fput_log.size < 5, $fput_log.inspect)
+  check('at least one command ran before the stop landed', $fput_log.size >= 1, $fput_log.inspect)
+  $fput_delay = 0
+
+  puts ''
+  puts '-- two command-sending intents queue instead of interleaving --'
+  # The mutex this guards: without it, per-message threading (added for the
+  # test above) would let two run_macro calls both reach fput at once, and
+  # DragonRealms would see interleaved commands from what the player experiences
+  # as two sequential requests. This has to actually race them, not just call
+  # the methods back to back, or a bug here would pass by construction.
+  $fput_log = []
+  $fput_delay = 0.15
+  a_client = Client.new(PORT)
+  a_client.read_until('hello')
+  b_client = Client.new(PORT)
+  b_client.read_until('hello')
+
+  a_client.send_json(type: 'intent', intent: 'run_macro', args: { commands: %w[a1 a2 a3] })
+  sleep 0.05 # give a_client's macro the lock first, deterministically
+  b_client.send_json(type: 'intent', intent: 'run_macro', args: { commands: %w[b1 b2 b3] })
+
+  # Generous: 6 commands at 0.15s each under mutual exclusion, plus overhead.
+  sleep 1.5
+
+  groups = $fput_log.chunk { |cmd| cmd[0] }.map(&:first)
+  check(
+    'commands ran as two clean blocks, not interleaved',
+    groups == %w[a b] || groups == %w[b a],
+    $fput_log.inspect
+  )
+  check('all six commands ran', $fput_log.size == 6, $fput_log.inspect)
+  $fput_delay = 0
+  a_client.close
+  b_client.close
 
   c.close
 ensure

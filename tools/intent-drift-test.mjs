@@ -57,14 +57,51 @@ function declaredIntents(typesSrc) {
  * doesn't get counted as an intent.
  */
 function implementedIntents(bridgeSrc) {
-  const start = bridgeSrc.indexOf('def handle(intent, args, server)')
-  if (start === -1) throw new Error("intent-drift-test: could not find 'def handle(intent, args, server)' in companion_bridge.lic — did Intents.handle get renamed or restructured? This script needs updating to match, not silencing.")
-  const elseIdx = bridgeSrc.indexOf('\n      else\n', start)
-  const end = elseIdx === -1 ? bridgeSrc.indexOf('\nend', start) : elseIdx
-  if (end === -1 || end <= start) throw new Error('intent-drift-test: found handle() but could not find its else/end boundary — the method body extraction is broken, not the file.')
-  const body = bridgeSrc.slice(start, end)
-  const names = [...body.matchAll(/when\s+'([a-z_]+)'/g)].map((x) => x[1])
-  if (names.length === 0) throw new Error('intent-drift-test: found handle()\'s body but extracted zero when-branches — the regex is broken, not the file.')
+  // `Intents.handle` is now a thin wrapper: it decides whether an intent
+  // needs CMD_LOCK (added for run_macro/stow_all pre-emption — a Stop must
+  // be dispatchable while one of those is mid-flight, not queued behind it)
+  // and calls `dispatch`, which is where the actual case/when or hash lives.
+  // Checked both names rather than one, for the same reason this file
+  // already accepts two dispatch shapes: a rename shouldn't make a
+  // momentary two-method read look like structural damage.
+  const start = bridgeSrc.indexOf('def dispatch(intent, args, server)')
+  const startHandle = start === -1 ? bridgeSrc.indexOf('def handle(intent, args, server)') : -1
+  const anchor = start !== -1 ? start : startHandle
+  if (anchor === -1) throw new Error("intent-drift-test: could not find 'def dispatch(intent, args, server)' or 'def handle(intent, args, server)' in companion_bridge.lic — did Intents' dispatch get renamed or restructured? This script needs updating to match, not silencing.")
+  const elseIdx = bridgeSrc.indexOf('\n      else\n', anchor)
+  const end = elseIdx === -1 ? bridgeSrc.indexOf('\nend', anchor) : elseIdx
+  if (end === -1 || end <= anchor) throw new Error('intent-drift-test: found the dispatch method but could not find its else/end boundary — the method body extraction is broken, not the file.')
+  const body = bridgeSrc.slice(anchor, end)
+
+  // Two dispatch shapes, on purpose.
+  //
+  // `Intents.handle` is being converted from `case/when` to a hash of
+  // `{'intent_name' => :method}`, because Ruby cannot enumerate a case
+  // statement's literals at runtime, and a hand-maintained list beside a
+  // twenty-branch dispatch would drift — which is the exact failure this
+  // script exists to catch.
+  //
+  // Accepting both rather than swapping one for the other is deliberate.
+  // Swapping would mean the refactor and this parser had to land in the same
+  // commit, or every build in between is red. Three false alarms tonight
+  // already came from sessions reading the shared tree mid-edit; a parser
+  // that knows both shapes stays quiet through that window instead of crying
+  // wolf at whoever happens to run a build.
+  const names = [
+    ...body.matchAll(/when\s+'([a-z_]+)'/g),
+    ...body.matchAll(/'([a-z_]+)'\s*=>/g),
+  ].map((x) => x[1])
+
+  if (names.length === 0) {
+    throw new Error(
+      "intent-drift-test: found handle()'s body but extracted zero intents. " +
+        'Either the extraction is broken, or the dispatch has legitimately ' +
+        "changed shape (this script knows `when 'name'` and `'name' => :method`). " +
+        'Check which before assuming companion_bridge.lic is damaged — the ' +
+        'previous wording asserted the regex was at fault, which would be ' +
+        'exactly wrong after a deliberate restructure.'
+    )
+  }
   return new Set(names)
 }
 

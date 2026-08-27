@@ -1242,7 +1242,52 @@ module Companion
     # Stop button.
     ALWAYS = %w[stop_all pause resume].freeze
 
+    # Every intent that sends a game command through Cmd.exec/send_raw.
+    # Serialized against each other on CMD_LOCK below - never against
+    # anything in ALWAYS, which is the entire point.
+    #
+    # Two reasons this list exists rather than locking inside Cmd.exec
+    # itself: it has to cover Runaway's shared @recent/@last_room state too,
+    # which nothing inside Cmd.exec touches directly, and a lock taken here
+    # is visible at the one place that decides whether an intent may run
+    # concurrently with a Stop, rather than buried in a helper three calls
+    # deep.
+    COMMAND_SENDING = %w[check_toggles check_health stow_all escape run_macro].freeze
+    CMD_LOCK = Mutex.new
+
+    # Set by stop_all, checked between iterations by anything in
+    # COMMAND_SENDING that loops (stow_all, run_macro). See the threading
+    # note on serve() for why this only works now and not before: stop_all
+    # runs on its own thread per incoming message, so it can actually reach
+    # this flag while a macro is mid-run instead of queuing behind it.
+    @stop_requested = false
+
+    def request_stop!
+      @stop_requested = true
+    end
+
+    def stop_requested?
+      @stop_requested
+    end
+
+    def clear_stop!
+      @stop_requested = false
+    end
+
+    # serve() now spawns a thread per incoming message (see below), so two
+    # intents can genuinely be mid-flight at once. Everything that sends a
+    # game command queues behind CMD_LOCK instead of interleaving with
+    # another one; everything in ALWAYS - and every read-only query - never
+    # touches the lock, so it is never stuck behind a long-running macro.
     def handle(intent, args, server)
+      if COMMAND_SENDING.include?(intent)
+        CMD_LOCK.synchronize { dispatch(intent, args, server) }
+      else
+        dispatch(intent, args, server)
+      end
+    end
+
+    def dispatch(intent, args, server)
       case intent
       when 'stop_all' then stop_all(server)
       when 'reset_runaway'
@@ -1686,8 +1731,17 @@ module Companion
     # Put loose items away. Small, reversible, and a good first thing to let
     # the panel actually do: it touches inventory and nothing else.
     def stow_all(server)
+      clear_stop!
       moved = []
-      %w[right left].each do |hand|
+      hands = %w[right left]
+      stopped_early = false
+
+      hands.each do |hand|
+        if stop_requested?
+          stopped_early = true
+          break
+        end
+
         item = begin
           hand == 'right' ? GameObj.right_hand : GameObj.left_hand
         rescue StandardError
@@ -1712,6 +1766,11 @@ module Companion
         end
       end
 
+      if stopped_early
+        server.log("Stow stopped: #{moved.size} put away before Stop.", 'warn')
+        return [true, "stopped, #{moved.size} stowed first"]
+      end
+
       if moved.empty?
         server.log('Nothing loose in hand to stow.')
         [true, 'nothing to stow']
@@ -1722,6 +1781,12 @@ module Companion
     end
 
     def stop_all(server)
+      # Signalled immediately, before anything else - this is what a macro or
+      # stow_all mid-flight is watching for. Deliberately not behind CMD_LOCK:
+      # the whole point is that Stop must reach here while one of those is
+      # still holding it.
+      request_stop!
+
       # A deliberate stop clears the loop detector: whatever happens next is
       # a fresh decision by the player, not a continuation.
       Runaway.reset
@@ -1807,9 +1872,18 @@ module Companion
       commands = raw.map(&:to_s).map(&:strip).reject(&:empty?).first(MAX_MACRO_COMMANDS)
       return [false, 'no commands given'] if commands.empty?
 
-      commands.each { |command| Cmd.exec(command, label: 'macro') }
+      clear_stop!
+      ran = 0
+      commands.each do |command|
+        if stop_requested?
+          server.log("Macro stopped: #{ran} of #{commands.size} step(s) ran.", 'warn')
+          return [true, "stopped after #{ran} of #{commands.size}"]
+        end
+        Cmd.exec(command, label: 'macro')
+        ran += 1
+      end
 
-      [true, "#{commands.size} command(s) sent"]
+      [true, "#{ran} command(s) sent"]
     end
   end
 
@@ -1933,7 +2007,21 @@ module Companion
         when 0x9 # ping
           @lock.synchronize { sock.write(WS.encode(payload, 0xA)) rescue nil }
         when 0x1, 0x2
-          handle_message(sock, payload)
+          # A thread per message, not a call inline. Before this, the loop
+          # blocked on handle_message until it returned - so a stop_all sent
+          # while run_macro was mid-flight sat unread in the OS receive
+          # buffer, because reading it is this same loop coming back around,
+          # which a blocking macro call prevented. Intents.handle's CMD_LOCK
+          # is what keeps this safe: two command-sending intents now queue
+          # behind that lock instead of running concurrently, while stop_all
+          # and every read-only query never touch it and so never wait.
+          Thread.new(payload) do |p|
+            begin
+              handle_message(sock, p)
+            rescue StandardError => e
+              Companion.log_error("message handler raised: #{e.message}")
+            end
+          end
         end
       end
     rescue StandardError
