@@ -127,6 +127,51 @@ end
 # bridge pass silently.
 DRCHWound = Struct.new(:body_part)
 
+# GameObj had no stub at all - not even one that returns nil, undefined
+# entirely. It appears 12 times in companion_bridge.lic, almost all of them
+# in the status/inventory payloads (roomItems, hands, worn, wornCount,
+# looseCount), every one wrapped in `safe(...)`. With GameObj undefined,
+# every call raises, safe swallows it, and every field has returned its
+# empty default ([], nil, 0) in every test run that has ever existed - the
+# suite has never once observed a populated inventory.
+#
+# $gameobj_raise, separate from the values below, exists to answer a
+# specific question: can the payload tell "GameObj is broken" apart from
+# "there is genuinely nothing here"? Both currently produce the identical
+# empty shape through the same `safe` default, so the state below has to be
+# able to simulate each on purpose rather than the test guessing.
+GameObjItem = Struct.new(:id, :name)
+$gameobj_raise = false
+$gameobj_loot = []
+$gameobj_left_hand = nil
+$gameobj_right_hand = nil
+$gameobj_inv = []
+module GameObj
+  def self.loot
+    raise 'GameObj unavailable' if $gameobj_raise
+
+    $gameobj_loot
+  end
+
+  def self.left_hand
+    raise 'GameObj unavailable' if $gameobj_raise
+
+    $gameobj_left_hand
+  end
+
+  def self.right_hand
+    raise 'GameObj unavailable' if $gameobj_raise
+
+    $gameobj_right_hand
+  end
+
+  def self.inv
+    raise 'GameObj unavailable' if $gameobj_raise
+
+    $gameobj_inv
+  end
+end
+
 # Load everything except the trailing command-line section, which would start a
 # server on the default port and then sleep forever.
 src = File.read(SRC)
@@ -722,6 +767,82 @@ begin
     'floor: the nested flags command also reached the game - the one that would go silent first',
     $dothis_log.include?('flags'),
     $dothis_log.inspect
+  )
+
+  # Every intent test above triggered a `broadcast(type: 'status', ...)`, so
+  # several stale status pushes are sitting in the socket ahead of anything
+  # this section sends - read_until returns the first match it finds, which
+  # would be one of those, generated before any GameObj fixture below was
+  # set. Drain them first so "send get_status, read status" actually reads
+  # the fresh one rather than silently agreeing with whichever backlog entry
+  # happened to be first in the queue.
+  begin
+    loop { c.read_json(timeout: 0.2) }
+  rescue Timeout::Error
+    nil
+  end
+
+  puts ''
+  puts '-- a populated inventory produces a populated payload, not just an empty default --'
+  # The floor that matters most here: a suite that only ever sees the empty
+  # case cannot tell a working GameObj from a broken one, because the empty
+  # case IS the default `safe(...)` falls back to. Prove the mechanism can
+  # report something real before trusting it to report nothing.
+  $gameobj_raise = false
+  $gameobj_loot = [GameObjItem.new(101, 'a rusty dagger'), GameObjItem.new(102, 'some copper kronars')]
+  $gameobj_right_hand = GameObjItem.new(201, 'a serrated broadsword')
+  $gameobj_left_hand = nil
+  $gameobj_inv = [GameObjItem.new(301, 'a leather cap'), GameObjItem.new(302, 'a wool cloak')]
+
+  c.send_json(type: 'get_status')
+  status = c.read_until('status')
+  payload = status['payload']
+  check('roomItems carries real names', payload['roomItems'] == ['a rusty dagger', 'some copper kronars'], payload['roomItems'].inspect)
+  check('hands.right carries the real item', payload['hands']['right'] == 'a serrated broadsword', payload['hands'].inspect)
+  check('hands.left stays nil for a genuinely empty hand', payload['hands']['left'].nil?, payload['hands'].inspect)
+
+  c.send_json(type: 'get_inventory')
+  inv = c.read_until('inventory')
+  ipayload = inv['payload']
+  check('worn carries the real names', ipayload['worn'] == ['a leather cap', 'a wool cloak'], ipayload['worn'].inspect)
+  check('wornCount matches', ipayload['wornCount'] == 2, ipayload['wornCount'])
+  check('looseCount counts only the occupied hand', ipayload['looseCount'] == 1, ipayload['looseCount'])
+
+  puts ''
+  puts '-- a legitimately empty inventory reports empty, honestly --'
+  $gameobj_loot = []
+  $gameobj_right_hand = nil
+  $gameobj_left_hand = nil
+  $gameobj_inv = []
+  c.send_json(type: 'get_status')
+  empty_status = c.read_until('status')['payload']
+  c.send_json(type: 'get_inventory')
+  empty_inv = c.read_until('inventory')['payload']
+  check('roomItems is really empty, not raised-and-defaulted', empty_status['roomItems'] == [], empty_status['roomItems'].inspect)
+  check('worn is really empty, not raised-and-defaulted', empty_inv['worn'] == [], empty_inv['worn'].inspect)
+
+  puts ''
+  puts '-- what safe() hides: can the payload tell "GameObj is broken" from "nothing is here" --'
+  # Not fixing this - per Prime, if the answer is "no, they are indistinguishable",
+  # that is a finding about the bridge's own design and belongs to GUI-1, not
+  # a thing to invent a workaround for here.
+  $gameobj_raise = true
+  c.send_json(type: 'get_status')
+  broken_status = c.read_until('status')['payload']
+  c.send_json(type: 'get_inventory')
+  broken_inv = c.read_until('inventory')['payload']
+  $gameobj_raise = false
+
+  check(
+    'FINDING, not a bug in this test: a broken GameObj and an empty room ' \
+    'produce byte-identical status fields — the payload cannot tell them apart',
+    broken_status['roomItems'] == empty_status['roomItems'] && broken_status['hands'] == empty_status['hands'],
+    { broken: broken_status.slice('roomItems', 'hands'), empty: empty_status.slice('roomItems', 'hands') }.inspect
+  )
+  check(
+    'FINDING, not a bug in this test: same for the inventory payload',
+    broken_inv['worn'] == empty_inv['worn'] && broken_inv['wornCount'] == empty_inv['wornCount'],
+    { broken: broken_inv.slice('worn', 'wornCount'), empty: empty_inv.slice('worn', 'wornCount') }.inspect
   )
 
   c.close
