@@ -46,6 +46,7 @@ import {
   type SetupPlan,
   type DownloadOption,
 } from '../../lib/setup'
+import { wasChecked } from '../../lib/downloadVerification'
 
 type Phase = 'checking' | 'plan' | 'browser'
 
@@ -200,7 +201,9 @@ export function SetupWizard() {
             busy: false,
             downloadedFor: o.id,
             downloadedPath: res.path,
-            done: `Verified and saved to ${res.path}`,
+            done: wasChecked(o)
+              ? `Verified and saved to ${res.path}`
+              : `Saved to ${res.path} - source only, no published checksum to verify against`,
           },
         }))
       }

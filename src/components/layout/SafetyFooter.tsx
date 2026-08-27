@@ -9,8 +9,14 @@
  *
  * Stop is never gated on `character.connected`. That flag is set by the game
  * side, and a stale false disabled the button at exactly the moment someone was
- * hammering it. The store sends stop, pause, resume and escape whenever the
- * transport is up, and this bar adds no gate of its own.
+ * hammering it. The store sends stop, pause and resume whenever the transport
+ * is up, and this bar adds no gate of its own.
+ *
+ * `escape` is declared alongside these three as a SAFETY_INTENT in the store
+ * (never gated, same as stop/pause/resume), but nothing in this bar - or
+ * anywhere else in src/ - actually sends it. This comment used to claim it
+ * did; that was false, not aspirational. See issue tracking the intent's own
+ * unreachability before adding an Escape control here.
  *
  * The readout to the right used to be one word, Active or Idle, decided by
  * testing the reported activity against a list of four values known to mean

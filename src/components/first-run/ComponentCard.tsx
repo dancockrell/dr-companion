@@ -28,6 +28,7 @@ import {
   type DownloadOption,
   type Progress,
 } from '../../lib/setup'
+import { wasChecked } from '../../lib/downloadVerification'
 
 function Icon({ presence }: { presence: ComponentPlan['presence'] }) {
   if (presence === 'present')
@@ -429,9 +430,9 @@ export function ComponentCard({
 
                       {done && o.after === 'installer' && (
                         <p className="text-xs text-ink-faint leading-snug pl-3.5">
-                          Verified and saved. It has not been run. Opening it
-                          starts that project’s own installer, which asks its own
-                          questions.
+                          {wasChecked(o) ? 'Verified and saved' : 'Saved'}. It
+                          has not been run. Opening it starts that project’s
+                          own installer, which asks its own questions.
                         </p>
                       )}
                     </>
