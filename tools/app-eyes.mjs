@@ -33,6 +33,27 @@
  *   node tools/app-eyes.mjs shot out.png           screenshot the real window
  *   node tools/app-eyes.mjs text                   the window's visible text
  *   node tools/app-eyes.mjs eval "<expression>"    ask the real page a question
+ *   node tools/app-eyes.mjs identity               which document is loaded now
+ *
+ * # Measurements that span more than one call
+ *
+ * The app is hot-reloaded constantly while people work on it - four different
+ * pids inside twenty minutes was measured. So a value set in one call can be
+ * gone by the next, and nothing about the second call distinguishes "the page
+ * reloaded underneath you" from "the value was never there". Somebody lost a
+ * real test to exactly that.
+ *
+ * Bracket anything that spans calls:
+ *
+ *   id=$(node tools/app-eyes.mjs identity)
+ *   node tools/app-eyes.mjs eval "window.__probe = measure()" --require-doc "$id"
+ *   node tools/app-eyes.mjs eval "window.__probe"              --require-doc "$id"
+ *
+ * `--require-doc` works on every command that reads the app. If the document
+ * or the process changed, the call exits non-zero saying so rather than
+ * returning a number from somewhere else - a refusal, because the measurement
+ * genuinely did not happen and any value would be a reading of a different
+ * document.
  *
  * `start` stops a running instance first. There is deliberately no "attach to
  * the one already running without a port", because there is no such thing: a
@@ -149,15 +170,52 @@ export async function start({ quiet = false } = {}) {
  *
  * So the page says what it is before anything is measured on it.
  */
-export async function eyes({ require = true } = {}) {
+export async function eyes({ require = true, requireDoc = null } = {}) {
   if (!(await seeing())) await start({ quiet: true })
   const b = await attach({ port: PORT, timeoutMs: 8000 })
 
-  const where = await b.eval(
-    'JSON.stringify({ href: location.href, ready: document.readyState, roots: document.querySelectorAll("#root").length })'
-  )
-  const at = JSON.parse(where)
+  // Stamp the document with an identity, and pair it with the process id.
+  //
+  // This exists because the app is hot-reloaded constantly - four different
+  // `dr-companion` pids inside twenty minutes, measured while somebody was
+  // trying to take one reading. A value set on `window` in one call was gone
+  // by the next, and nothing distinguished that from the value having been
+  // null all along. A reload mid-measurement read exactly like a result.
+  //
+  // A property on `window`, which is exactly the lifetime wanted: it survives
+  // an HMR module swap, because that replaces modules without navigating and
+  // is not a new document, and it does not survive a reload, because that is.
+  //
+  // The first version used `sessionStorage` on the reasoning that it was the
+  // more durable choice. That was backwards, and the test caught it: reloading
+  // the page left the identity unchanged and the guard passed, so a
+  // measurement spanning a genuine reload was waved through as a result -
+  // precisely the failure this was written to stop. `sessionStorage` survives
+  // reloads by design; that is what it is for. Durability was the wrong axis.
+  // What is wanted is a marker whose lifetime *is* the document's.
+  //
+  // The pid covers the other half - the whole process restarting, where a
+  // fresh document would otherwise look like ordinary continuity.
+  const idJson = await b.eval(`(() => {
+    if (!window.__drcEyesDoc) {
+      window.__drcEyesDoc = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 10);
+    }
+    return JSON.stringify({
+      doc: window.__drcEyesDoc,
+      href: location.href,
+      ready: document.readyState,
+      roots: document.querySelectorAll('#root').length
+    });
+  })()`)
+
+  const at = JSON.parse(idJson)
+  const pids = running()
+  // Exactly one instance, or no answer. Two instances means any pid we pick is
+  // a guess, and a guessed identity is worse than an absent one.
+  at.pid = pids.length === 1 ? pids[0] : null
+  at.identity = at.doc && at.pid ? `${at.pid}:${at.doc}` : null
   b.where = at
+  b.identity = at.identity
 
   if (require && (at.href.startsWith('chrome-error:') || at.roots === 0)) {
     await b.close()
@@ -168,10 +226,46 @@ export async function eyes({ require = true } = {}) {
         '  http://127.0.0.1:1420/ and run `npx vite` if nothing answers.'
     )
   }
+
+  // The whole point: a caller that says which document it expects gets a hard
+  // failure when the target moved underneath it, rather than a number from
+  // somewhere else. Refusing to answer is the correct result here - the
+  // measurement genuinely did not happen, and any value returned would be a
+  // reading of a different process.
+  if (requireDoc) {
+    if (!at.identity) {
+      await b.close()
+      throw new Error(
+        `TARGET CHANGED: expected ${requireDoc}, but the current target has no stable identity\n` +
+          `  (doc=${at.doc ?? 'unavailable'}, ${pids.length} app processes running)\n` +
+          '  This is not a result. Re-take the whole measurement.'
+      )
+    }
+    if (at.identity !== requireDoc) {
+      await b.close()
+      throw new Error(
+        `TARGET CHANGED: expected ${requireDoc}, now ${at.identity}\n` +
+          '  The app reloaded or restarted between calls, so anything measured\n' +
+          '  across them came from two different documents. This is not a result.'
+      )
+    }
+  }
+
   return b
 }
 
-const [, , cmd, arg] = process.argv
+const argv = process.argv.slice(2)
+
+/**
+ * `--require-doc <id>` - refuse to answer unless the target is still the
+ * document that id came from. Pulled out of the positional arguments so it can
+ * be added to any command without changing its shape.
+ */
+const requireDocIdx = argv.indexOf('--require-doc')
+const REQUIRE_DOC = requireDocIdx >= 0 ? argv[requireDocIdx + 1] : null
+if (requireDocIdx >= 0) argv.splice(requireDocIdx, 2)
+
+const [cmd, arg] = argv
 
 if (cmd) {
   const run = async () => {
@@ -188,6 +282,33 @@ if (cmd) {
         break
       }
 
+      /**
+       * The identity of the document currently loaded, for bracketing a
+       * measurement that spans several calls:
+       *
+       *   id=$(node tools/app-eyes.mjs identity)
+       *   node tools/app-eyes.mjs eval "..." --require-doc "$id"
+       *   node tools/app-eyes.mjs eval "..." --require-doc "$id"
+       *
+       * If the app reloads or restarts anywhere in that sequence, the next
+       * call exits non-zero saying so instead of returning a number measured
+       * on a different document.
+       */
+      case 'identity': {
+        const b = await eyes({ requireDoc: REQUIRE_DOC })
+        await b.close()
+        if (!b.identity) {
+          console.error(
+            'no stable identity available: ' +
+              `doc=${b.where.doc ?? 'unavailable'}, ${running().length} app processes running`
+          )
+          process.exitCode = 1
+          break
+        }
+        console.log(b.identity)
+        break
+      }
+
       case 'start': {
         const info = await start()
         console.log(`app up with eyes open on ${PORT}: ${info.Browser}`)
@@ -195,7 +316,7 @@ if (cmd) {
       }
 
       case 'shot': {
-        const b = await eyes()
+        const b = await eyes({ requireDoc: REQUIRE_DOC })
         const path = arg ?? 'app.png'
         const size = await b.eval('JSON.stringify({w: innerWidth, h: innerHeight})')
         await b.screenshot(path)
@@ -248,7 +369,7 @@ if (cmd) {
       }
 
       case 'text': {
-        const b = await eyes()
+        const b = await eyes({ requireDoc: REQUIRE_DOC })
         console.log(await b.eval('document.body.innerText'))
         await b.close()
         break
@@ -256,7 +377,7 @@ if (cmd) {
 
       case 'click': {
         if (!arg) throw new Error('click needs a CSS selector')
-        const b = await eyes()
+        const b = await eyes({ requireDoc: REQUIRE_DOC })
         // Through the real input pipeline, so a control that is off screen or
         // covered fails here exactly as it fails for a person. That matters
         // more in the app than in a browser: the window is a fixed size and
@@ -269,7 +390,7 @@ if (cmd) {
 
       /** Everything that has escaped the window, which a screenshot cannot show. */
       case 'overflow': {
-        const b = await eyes()
+        const b = await eyes({ requireDoc: REQUIRE_DOC })
         const found = await b.run(`
           const W = innerWidth, H = innerHeight, out = [];
           for (const el of document.querySelectorAll('button, input, a, [role="tab"], h1, h2, h3')) {
@@ -311,7 +432,7 @@ if (cmd) {
 
       case 'eval': {
         if (!arg) throw new Error('eval needs an expression')
-        const b = await eyes()
+        const b = await eyes({ requireDoc: REQUIRE_DOC })
         const v = await b.eval(arg)
         await b.close()
         console.log(typeof v === 'string' ? v : JSON.stringify(v, null, 1))
