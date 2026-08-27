@@ -64,13 +64,16 @@ export const ZOOM_MAX = 6
 export const WINDOW_ZOOM_MIN = 0.4
 export const WINDOW_ZOOM_MAX = 6
 
+/** Narrow enough to be a sliver, wide enough to still be grabbable. */
+export const MIN_WIDTH_PX = 80
+
 function read(): MapDock {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null')
     if (!raw || typeof raw !== 'object') return DEFAULT
     return {
       docked: typeof raw.docked === 'boolean' ? raw.docked : DEFAULT.docked,
-      width: Number.isFinite(raw.width) ? Math.max(80, raw.width) : DEFAULT.width,
+      width: Number.isFinite(raw.width) ? Math.max(MIN_WIDTH_PX, raw.width) : DEFAULT.width,
       zoom: Number.isFinite(raw.zoom)
         ? Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, raw.zoom))
         : DEFAULT.zoom,
@@ -114,7 +117,7 @@ function subscribe(fn: () => void) {
 
 export function setMapDock(patch: Partial<MapDock>) {
   const next = { ...current, ...patch }
-  next.width = Math.max(80, next.width)
+  next.width = Math.max(MIN_WIDTH_PX, next.width)
   next.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next.zoom))
   next.windowZoom = Math.min(WINDOW_ZOOM_MAX, Math.max(WINDOW_ZOOM_MIN, next.windowZoom))
   if (

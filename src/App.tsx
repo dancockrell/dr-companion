@@ -11,6 +11,7 @@ import { Console } from './components/layout/Console'
 import { MapWindow } from './components/MapWindow'
 import { PanelWindow } from './components/PanelWindow'
 import { useMapDock, setMapDock } from './lib/mapDock'
+import { fitColumns } from './lib/columns'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 
@@ -96,7 +97,24 @@ export default function App() {
     return () => ro.disconnect()
   }, [setupComplete])
 
-  const mapW = dock.docked ? dock.width : 0
+  /*
+   * The widths the columns are given, which are not always the ones they asked
+   * for.
+   *
+   * They used to be the same thing, each column bounded below and not above
+   * and neither aware of the other, and the app was found unusable because of
+   * it: a stored map width of 1201.6px in an 1180px window put every game
+   * control several hundred pixels past an edge that does not scroll. See
+   * src/lib/columns.ts, which carries the measurements.
+   */
+  const fit = fitColumns({
+    hostW,
+    mapWant: dock.width,
+    dashWant: dashW,
+    mapDocked: dock.docked,
+    splitW: SPLIT_W,
+  })
+  const mapW = fit.map
   const mapSplit = dock.docked ? SPLIT_W : 0
 
   /** Small enough to keep a column grabbable, and no opinion beyond that. */
@@ -110,10 +128,9 @@ export default function App() {
    * while a near divider is being adjusted, which is what made the earlier
    * share-based version feel like the layout was arguing back.
    *
-   * Nothing is prevented from being dragged small except vanishing outright.
-   * If someone wants the map at nine tenths of the window and the rest
-   * slivers, that is a legitimate thing to want, and the content scrolls
-   * rather than the layout refusing.
+   * A column can be dragged down to a sliver. It cannot be dragged over the
+   * top of the rest of the app - that used to be allowed on the reasoning that
+   * the content would scroll, and it does not.
    */
   const moveMapEdge = (share: number) => setMapDock({ width: atLeastVisible(share * hostW) })
   const moveDashEdge = (share: number) =>
@@ -168,11 +185,11 @@ export default function App() {
                 />
               </>
             )}
-            <div className="min-w-0 shrink-0 overflow-auto" style={{ width: dashW }}>
+            <div className="min-w-0 shrink-0 overflow-auto" style={{ width: fit.dash }}>
               <Dashboard />
             </div>
             <Splitter
-              value={hostW > 0 ? (mapW + mapSplit + dashW) / hostW : 0.66}
+              value={hostW > 0 ? (mapW + mapSplit + fit.dash) / hostW : 0.66}
               onChange={moveDashEdge}
               min={0}
               max={1}

@@ -105,6 +105,52 @@ export async function launch({ width = 1280, height = 860, headless = true } = {
     throw e
   })
 
+  return session(wsUrl, {
+    target: 'new',
+    async cleanup() {
+      proc.kill()
+      // Chrome writes to the profile as it exits, so removing it immediately
+      // races and throws on Windows. Best effort, and a temp directory the OS
+      // will clear anyway.
+      await sleep(300)
+      try {
+        rmSync(profile, { recursive: true, force: true })
+      } catch {
+        // Left for the OS. Failing a layout check over a temp folder would be
+        // the tool making its own housekeeping somebody else's problem.
+      }
+    },
+  })
+}
+
+/**
+ * Attach to an engine that is already running, and drive the page it has.
+ *
+ * This is the half that was missing, and it was the half that mattered. Every
+ * check written against `launch()` renders the app in Chrome, which is not
+ * where the app runs: the desktop app is a WebView2 with a Rust process behind
+ * it, and everything interesting about this client - the socket to Lich, the
+ * config reads, the channels the game labels - lives on that side. A Chrome
+ * render can tell you a button is clipped. It cannot tell you what the channel
+ * pane looks like with twelve live channels in it, because in Chrome there is
+ * no socket and there are never any channels.
+ *
+ * Start the app with
+ *
+ *   WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9223
+ *
+ * and this attaches to it. `tools/app-eyes.mjs` does that part.
+ *
+ * `target: 'first-page'` rather than creating one: a fresh target in WebView2
+ * is a blank page with none of the app in it, and it would render perfectly
+ * and mean nothing.
+ */
+export async function attach({ port = 9223, timeoutMs = 5000 } = {}) {
+  const wsUrl = await debuggerUrl(port, timeoutMs)
+  return session(wsUrl, { target: 'first-page' })
+}
+
+async function session(wsUrl, { target = 'new', cleanup = null } = {}) {
   const ws = new WebSocket(wsUrl)
   await new Promise((resolve, reject) => {
     ws.onopen = resolve
@@ -141,7 +187,32 @@ export async function launch({ width = 1280, height = 860, headless = true } = {
     })
 
   // One tab, attached, with a session we can talk to.
-  const { targetId } = await send('Target.createTarget', { url: 'about:blank' })
+  let targetId
+  if (target === 'new') {
+    ;({ targetId } = await send('Target.createTarget', { url: 'about:blank' }))
+  } else {
+    const { targetInfos } = await send('Target.getTargets')
+    const pages = targetInfos.filter((t) => t.type === 'page')
+    if (pages.length === 0) {
+      // Said out loud rather than throwing something about `undefined`. In
+      // WebView2 this means the app is running without a debugging port, which
+      // is a setup problem with a one-line fix, not a bug in the page.
+      throw new Error(
+        'the engine is listening but has no page target - is this the app, and was it started with --remote-debugging-port?'
+      )
+    }
+    // The app's own page, not devtools or an extension. If more than one is
+    // open, name them, because silently picking the first is how a check ends
+    // up reporting on the wrong window - the same shape as choosing between
+    // two identically titled sessions and never noticing there were two.
+    if (pages.length > 1) {
+      console.error(
+        `note: ${pages.length} page targets; using the first\n` +
+          pages.map((p) => `  ${p.url}`).join('\n')
+      )
+    }
+    targetId = pages[0].targetId
+  }
   const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
   const call = (method, params) => send(method, params, sessionId)
 
@@ -266,23 +337,21 @@ export async function launch({ width = 1280, height = 860, headless = true } = {
         .map((e) => e.params?.exceptionDetails?.exception?.description ?? 'exception')
     },
 
+    /**
+     * Let go.
+     *
+     * Only a launched browser gets killed. Attaching to the running app and
+     * then killing it on the way out would mean every look at the app closed
+     * the app, so `cleanup` is supplied by whoever started something and
+     * absent for whoever merely borrowed it.
+     */
     async close() {
       try {
         ws.close()
       } catch {
-        // Already gone; the kill below is what actually matters.
+        // Already gone; the cleanup below is what actually matters.
       }
-      proc.kill()
-      // Chrome writes to the profile as it exits, so removing it immediately
-      // races and throws on Windows. Best effort, and a temp directory the OS
-      // will clear anyway.
-      await sleep(300)
-      try {
-        rmSync(profile, { recursive: true, force: true })
-      } catch {
-        // Left for the OS. Failing a layout check over a temp folder would be
-        // the tool making its own housekeeping somebody else's problem.
-      }
+      if (cleanup) await cleanup()
     },
   }
 
