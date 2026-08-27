@@ -51,9 +51,22 @@ export default defineConfig({
      * This exclusion is in Tauri's own Vite template and was missing here.
      * Together with the host binding above it is the second of two reasons
      * `tauri dev` had never produced a window on this machine.
+     *
+     * `data/` needs the same treatment, for the same reason with a worse
+     * outcome. It holds the art pipeline's vendored ComfyUI venv
+     * (`data/art/comfy-venv`, tens of thousands of files under
+     * site-packages - torch, setuptools, comfy_angle) which `art-daemon.mjs`
+     * writes into continuously. Watching it unignored crashed a dev server
+     * outright: chokidar held the whole tree open, the daemon kept touching
+     * files under it, and the process ran out of heap and died with
+     * "JavaScript heap out of memory" after about 74 minutes - not a hang, a
+     * hard crash that took the dev server, and whatever was attached to it,
+     * down without warning. Measured on this machine, not assumed: the
+     * crash log names data/art/comfy-venv specifically as what was still
+     * being reloaded in the seconds before it went down.
      */
     watch: {
-      ignored: ['**/src-tauri/**'],
+      ignored: ['**/src-tauri/**', '**/data/**'],
     },
   },
   clearScreen: false,

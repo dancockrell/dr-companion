@@ -65,7 +65,7 @@ const STEP = 400
  */
 const DEFAULT_PORT = '11024'
 
-const PORT_KEY = 'drc.attach-port.v1'
+const PORT_KEY = 'drc.attach-port.v2'
 
 /**
  * A port is a number in the range the OS will actually let something bind.
@@ -80,9 +80,22 @@ function validPort(v: string): boolean {
   return Number.isInteger(n) && n >= 1 && n <= 65535
 }
 
-/** Remembered, because a port you retype every launch is barely better than a fixed one. */
+/**
+ * Remembered, because a port you retype every launch is barely better than a
+ * fixed one - and because remembering it wrong is worse than not remembering
+ * it at all. A value saved here during fixture testing is indistinguishable
+ * from a real one until Attach is pressed against a live Lich and fails, and
+ * that failure presents as "Lich is not running" rather than "this app is
+ * pointed at a replay". `v1` shipped with no way to tell a fixture port from
+ * a real one apart once stored, and got stuck on 11124 on this machine for
+ * exactly that reason. The key is versioned rather than special-cased on the
+ * fixture's port number, because this app has no business knowing that port
+ * exists - a version bump abandons every value stored under the old
+ * contract, honestly, rather than trying to guess which old values are safe.
+ */
 function loadPort(): string {
   try {
+    localStorage.removeItem('drc.attach-port.v1')
     const saved = localStorage.getItem(PORT_KEY)
     return saved && validPort(saved) ? saved : DEFAULT_PORT
   } catch {
@@ -98,7 +111,6 @@ export function GamePane() {
   // gameVersion().
   const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
   const lines = gameLines()
-  void version
   const link = useSyncExternalStore(subscribeGame, gameState, gameState)
   const dropped = useSyncExternalStore(subscribeGame, gameDropped, gameDropped)
 
@@ -159,7 +171,16 @@ export function GamePane() {
     for (const l of fresh) {
       for (const s of paint(l.text, highlights).sounds) playAlert(s)
     }
-  }, [lines, highlights])
+    // `version`, not `lines`: gameLink.ts's gameVersion() doc explains why -
+    // `buffer.push` mutates in place, so `lines` is the same array reference
+    // forever and this effect would never re-run on new lines. It did not:
+    // measured against the replay fixture, sound-carrying lines streamed
+    // through for 25s straight and playAlert was never called once, even
+    // though calling it directly played the file correctly. `version` is the
+    // counter built for exactly this - see gameVersion()'s comment, which
+    // documents the same defect already having silenced the channel tabs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [version, highlights])
 
   // Anything already in the buffer when the config loads is history, not news.
   useEffect(() => {
