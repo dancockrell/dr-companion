@@ -6,8 +6,8 @@
  * have room". This panel answers that from live state.
  * See docs/DOMAIN.md section 1.
  */
-import { useMemo } from 'react'
-import { Brain } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Brain, Music } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import {
   MINDSTATE_MAX,
@@ -18,6 +18,8 @@ import {
   type SkillState,
   type TrainingUrgency,
 } from '../../data/skills'
+import { activityTrainingFor } from '../../data/activityTraining'
+import { PLAY_SONGS, PLAY_MOODS, moodDifficulty, buildPlayCommand } from '../../data/performance'
 
 const URGENCY_BAR: Record<TrainingUrgency, string> = {
   ideal: 'bg-good',
@@ -62,6 +64,125 @@ function SkillRow({ skill, dense }: { skill: SkillState; dense?: boolean }) {
   )
 }
 
+/**
+ * The PLAY picker (issue #12).
+ *
+ * Song and mood are the game's own two difficulty axes (see data/performance
+ * for the source), not a guess dressed up as a control. Instrument defaults
+ * to whatever the character is holding, since a Bard training Performance is
+ * playing an instrument by definition — see the Bard preset's held txistu.
+ * Nothing is sent until Practice is pressed; this only builds the command.
+ */
+function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
+  const requestIntent = useAppStore((s) => s.requestIntent)
+  const addLog = useAppStore((s) => s.addLog)
+  const [song, setSong] = useState(PLAY_SONGS[0].id)
+  const [mood, setMood] = useState('')
+  const [instrument, setInstrument] = useState(instrumentGuess)
+
+  const difficulty = mood ? moodDifficulty(mood) : 'neutral'
+
+  return (
+    <div className="mt-2 space-y-1.5 rounded-lg border border-border/60 bg-surface px-2.5 py-2">
+      <div className="flex gap-1.5">
+        <select
+          value={song}
+          onChange={(e) => setSong(e.target.value)}
+          className="min-w-0 flex-1 rounded border border-border bg-surface-raised px-1.5 py-1 text-xs text-ink"
+          title="Song — easiest first"
+        >
+          {PLAY_SONGS.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+              {s.percussionLabel ? ` (${s.percussionLabel} on percussion)` : ''}
+            </option>
+          ))}
+        </select>
+        <select
+          value={mood}
+          onChange={(e) => setMood(e.target.value)}
+          className="min-w-0 flex-1 rounded border border-border bg-surface-raised px-1.5 py-1 text-xs text-ink"
+          title="Mood — off-key/halting are easier, confident/masterful are harder"
+        >
+          <option value="">(no mood)</option>
+          {PLAY_MOODS.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
+      <input
+        value={instrument}
+        onChange={(e) => setInstrument(e.target.value)}
+        placeholder="Instrument (e.g. lute)"
+        className="w-full rounded border border-border bg-surface-raised px-1.5 py-1 text-xs text-ink"
+      />
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={`text-xs ${
+            difficulty === 'easier'
+              ? 'text-good'
+              : difficulty === 'harder'
+                ? 'text-warn'
+                : 'text-ink-faint'
+          }`}
+        >
+          {difficulty === 'easier' && 'Easier than plain'}
+          {difficulty === 'harder' && 'Harder than plain'}
+          {difficulty === 'neutral' && (mood ? 'No stated effect on difficulty' : ' ')}
+        </span>
+        <button
+          type="button"
+          disabled={!instrument.trim()}
+          onClick={() => {
+            const cmd = buildPlayCommand(song, mood, instrument)
+            addLog(`Practicing: ${cmd}`)
+            requestIntent('run_macro', { commands: [cmd] })
+          }}
+          className="shrink-0 rounded border border-accent/40 bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Practice
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The card shown instead of "Start Training" for a skill that trains through
+ * a repeated action rather than a fight (issue #11). `start_training` bakes
+ * in hunting-ground selection, which has no meaning for a Bard's Performance
+ * or a crafter's CRAFT recipes — offering it here would be the same "control
+ * that looks live and does something else" defect issue #30 exists to close,
+ * just from the other direction.
+ */
+function ActivityTrainingCard({
+  skillName,
+  instrumentGuess,
+}: {
+  skillName: string
+  instrumentGuess: string
+}) {
+  const training = activityTrainingFor(skillName)
+  if (!training) return null
+
+  return (
+    <div className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 mb-2">
+      <div className="flex items-start gap-2">
+        <Music className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+        <div className="min-w-0">
+          <div className="text-sm text-ink font-medium leading-tight">
+            {skillName} trains by {training.verb ?? 'a non-combat action'}, not by fighting
+          </div>
+          <div className="text-xs text-ink-muted leading-snug">{training.note}</div>
+        </div>
+      </div>
+      {training.verb === 'PLAY' && <PlayPicker instrumentGuess={instrumentGuess} />}
+    </div>
+  )
+}
+
 export function TrainingPanel({ dense = false }: { dense?: boolean }) {
   const character = useAppStore((s) => s.character)
   const trainFocus = useAppStore((s) => s.trainFocus)
@@ -79,6 +200,8 @@ export function TrainingPanel({ dense = false }: { dense?: boolean }) {
     [rawSkills, trainFocus]
   )
   const skills = rawSkills ?? []
+  const targetActivity = target ? activityTrainingFor(target.skill.name) : null
+  const instrumentGuess = character?.hands.right ?? character?.hands.left ?? ''
 
   if (!character) return null
 
@@ -111,7 +234,9 @@ export function TrainingPanel({ dense = false }: { dense?: boolean }) {
         )}
       </div>
 
-      {target ? (
+      {target && targetActivity ? (
+        <ActivityTrainingCard skillName={target.skill.name} instrumentGuess={instrumentGuess} />
+      ) : target ? (
         <div className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 mb-2 flex items-start gap-2">
           <Brain className="w-4 h-4 text-accent shrink-0 mt-0.5" />
           <div className="min-w-0">
