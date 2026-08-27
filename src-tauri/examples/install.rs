@@ -56,7 +56,9 @@ fn main() {
 /// The point is to prove the plan is usable, not to prove a download works. A
 /// hardcoded URL here would pass while the plan handed the UI something wrong.
 async fn download_from_plan(component_id: &str, option_id: &str) {
-    let plan = plan_setup().await;
+    // plan_setup_inner, not plan_setup - see its doc comment. This dev
+    // checkout has nothing bundled either way, so `None` is the true answer.
+    let plan = plan_setup_inner(None).await;
     let Some(c) = plan.components.iter().find(|c| c.id == component_id) else {
         die(&format!("no component {component_id} in the plan"));
     };
@@ -105,7 +107,7 @@ async fn download_from_plan(component_id: &str, option_id: &str) {
 /// Every file is checked against the git blob hash GitHub publishes before
 /// anything is written, and one mismatch aborts the whole thing.
 async fn bundle(component_id: &str) {
-    let plan = plan_setup().await;
+    let plan = plan_setup_inner(None).await;
     let Some(c) = plan.components.iter().find(|c| c.id == component_id) else {
         die(&format!("no component {component_id} in the plan"));
     };

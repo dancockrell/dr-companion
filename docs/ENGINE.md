@@ -191,10 +191,49 @@ is not room for four.
    windows are for.
 6. **Python scripting.** Done 27 Aug 2026 - the transport, the client library
    and one working example. See the section above for the gap it ships with.
-7. **Vendor Lich** and make launching it invisible.
+7. **Vendor Lich** and make launching it invisible. Done 27 Aug 2026, its
+   precondition finally met the same day: the frontend now works end to end
+   against a Lich it launches itself.
 
-Vendoring is last on purpose. Until the frontend works against a Lich somebody
-installed, bundling one only makes the failures harder to see.
+Vendoring was last on purpose. Until the frontend worked against a Lich
+somebody installed, bundling one would only have made the failures harder to
+see - and today's session found three real ones the slow way first (missing
+gems, missing source files, the `--genie`/streams bug) before this was safe
+to build.
+
+**Decided: bundle, and offer an update from the same mechanism that already
+downloads one.** Dan's call, given the actual number: Ruby4Lich5.exe is
+65 MB. `tools/vendor-fetch.mjs` fetches and verifies it into
+`src-tauri/vendor/` (gitignored - 65 MB does not belong in git history
+forever, the same reasoning `public/rooms/` already states) before a release
+build; `tauri.conf.json`'s `bundle.resources` ships whatever is there.
+`npm run tauri:build` runs the fetch first automatically, so this cannot be
+silently skipped.
+
+At runtime, `setup::bundled_ruby4lich5` resolves the bundled copy through
+Tauri's own resource directory and re-verifies its SHA-256 against a manifest
+the fetch script wrote - not because the fetch script's own check could not
+be trusted, but because that check ran at build time and this runs whenever a
+player presses install, and nothing enforces those two moments being close
+together. Same "verify before use" rule the network path already followed,
+applied at the point it actually matters. The Ruby row in `plan_setup` offers
+the bundled copy first (no download, works offline) and the live GitHub
+release alongside it only when the versions actually differ, framed as an
+update - two rows for identical bytes is not a real choice.
+
+Verified against the real Tauri app, not just the unit tests: fetched a real
+65 MB release asset, restarted the app, called `install_bundled_ruby4lich5`
+through the running app's own IPC, and independently re-hashed the file it
+produced outside the app entirely - the SHA-256 matched byte for byte. A
+`cargo test` pass alone would not have caught whether `BaseDirectory::Resource`
+actually resolves correctly in this app's dev-mode layout; only asking the
+real running app did.
+
+**Not yet done:** the BSD-3-Clause license text is not shown anywhere in
+dr-companion's own UI for the bundled copy - the installer itself has its own
+license page, but that is Ruby4Lich5's disclosure, not this app's. Worth a
+line in an About screen before this ships in dr-companion's own release,
+not before.
 
 ## What is not decided
 

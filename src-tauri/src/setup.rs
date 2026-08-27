@@ -494,6 +494,12 @@ pub struct DownloadOption {
     pub note: String,
     /// True when we suggest this one by default.
     pub recommended: bool,
+    /// True when this option is a copy shipped inside this app, not a
+    /// network fetch. The frontend calls `install_bundled_ruby4lich5`
+    /// instead of `download_component` for one of these - see that command's
+    /// doc comment for why the two are not the same code path.
+    #[serde(default)]
+    pub bundled: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -758,6 +764,7 @@ fn option_from(
         why: why.into(),
         note: note.into(),
         recommended,
+        bundled: false,
     }
 }
 
@@ -769,9 +776,176 @@ fn digest_hex(a: &GhAsset) -> String {
         .to_string()
 }
 
-/// Look at the machine and report. Downloads nothing, changes nothing.
+// ------------------------------------------------------------- vendored --
+//
+// Decided 27 Aug 2026: bundle Ruby4Lich5 inside this app's own installer, so
+// a first run needs no network for the one dependency too large to fetch
+// quietly - 65 MB, checked against the live GitHub release the day this was
+// written. Everything above this comment still applies to it: the bundled
+// copy is verified before use exactly like a downloaded one, and running the
+// installer is still a separate, explicit consent - bundling removes the
+// network step, not the "we do not silently run installers" rule.
+//
+// What is NOT here: the 65 MB file itself. It is not committed to this repo,
+// matching the same reasoning `public/rooms/` already states in .gitignore -
+// a binary that large belongs beside the release it ships in, not in git
+// history forever. `tools/vendor-fetch.mjs` fetches and verifies it into
+// `src-tauri/vendor/` (gitignored) before a release build; `tauri.conf.json`
+// bundles whatever is there into the installer's own resources.
+//
+// So there are two states a build can be in, and both are legitimate: run
+// from a fresh checkout without ever running the fetch script, and there is
+// nothing to bundle - `bundled_ruby4lich5` returns `None`, the Ruby row falls
+// back to the network option exactly as it always has, and nothing breaks.
+// Run the fetch script first, and the resulting installer needs no network
+// for this dependency at all.
+
+/// What `vendor-fetch.mjs` records beside the file it fetched, so this file
+/// never has to re-derive facts a build script already established.
+#[derive(Deserialize)]
+pub struct VendorManifest {
+    version: String,
+    sha256: String,
+    bytes: u64,
+}
+
+/// A vendored Ruby4Lich5, verified against its own manifest.
+///
+/// `None` covers three states this file deliberately does not distinguish,
+/// because none of them changes what the caller should do: no fetch script
+/// has ever run (an ordinary dev checkout), the manifest is missing or will
+/// not parse, or the exe's actual bytes do not match what the manifest
+/// claims. The third case matters most to get right - a mismatch means the
+/// exe on disk is not the one the manifest was written for, and handing it
+/// out as "verified" would be worse than not offering it at all.
+fn bundled_ruby4lich5<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<(PathBuf, VendorManifest)> {
+    use tauri::Manager;
+
+    let exe_path = app
+        .path()
+        .resolve("vendor/Ruby4Lich5.exe", tauri::path::BaseDirectory::Resource)
+        .ok()?;
+    let manifest_path = app
+        .path()
+        .resolve(
+            "vendor/Ruby4Lich5.manifest.json",
+            tauri::path::BaseDirectory::Resource,
+        )
+        .ok()?;
+
+    verify_vendor_bundle(&exe_path, &manifest_path).map(|m| (exe_path, m))
+}
+
+/// The part of `bundled_ruby4lich5` that touches only the filesystem, split
+/// out so it can be tested with a plain temp directory rather than a running
+/// Tauri app - resolving `BaseDirectory::Resource` needs the latter, and
+/// nothing about verifying a manifest against a file actually requires it.
+fn verify_vendor_bundle(exe_path: &Path, manifest_path: &Path) -> Option<VendorManifest> {
+    let manifest_text = std::fs::read_to_string(manifest_path).ok()?;
+    let manifest: VendorManifest = serde_json::from_str(&manifest_text).ok()?;
+
+    let bytes = std::fs::read(exe_path).ok()?;
+    if bytes.len() as u64 != manifest.bytes {
+        return None;
+    }
+    let got = format!("{:x}", Sha256::digest(&bytes));
+    if !got.eq_ignore_ascii_case(&manifest.sha256) {
+        return None;
+    }
+
+    Some(manifest)
+}
+
+/// The Ruby row's bundled option, when there is one to offer.
+fn bundled_option(manifest: &VendorManifest) -> DownloadOption {
+    DownloadOption {
+        id: "ruby4lich5-bundled".into(),
+        label: "Ruby4Lich5 — included with this app".into(),
+        // Not a fetchable URL - the frontend never downloads this one. Kept
+        // human-readable rather than empty so a stray render of this field
+        // says something true.
+        url: "(bundled with this installer)".into(),
+        bytes: manifest.bytes,
+        sha256: manifest.sha256.clone(),
+        version: manifest.version.clone(),
+        dest: downloads_dir()
+            .join("Ruby4Lich5.exe")
+            .to_string_lossy()
+            .into_owned(),
+        after: "installer".into(),
+        prerelease: false,
+        why: "Already here - installs with no download".into(),
+        note: "Shipped inside this app and verified against the copy that was bundled. \
+               It does not run until you ask separately, and it asks its own questions."
+            .into(),
+        recommended: true,
+        bundled: true,
+    }
+}
+
+/// Copy the bundled Ruby4Lich5 out to where a downloaded one would have
+/// landed, verifying it again on the way - not because `bundled_ruby4lich5`
+/// did not already, but because that check ran when the plan was built and
+/// this runs when the user actually presses install, and nothing enforces
+/// those happening close together in time or even in the same process
+/// launch. Cheap, and it is the same "verify before use" rule the network
+/// path follows applied at the point it actually matters.
+///
+/// A separate command from `download_component` rather than teaching that
+/// one to accept a `file://` URL: `download_component` is reachable from the
+/// webview with whatever arguments it is given, and a URL scheme that reads
+/// local files on request is a path-traversal primitive waiting to be found.
+/// This command takes no path from its caller at all - it resolves the
+/// bundled location itself, the only place resource paths are computed for
+/// this whole feature.
 #[tauri::command]
-pub async fn plan_setup() -> SetupPlan {
+pub fn install_bundled_ruby4lich5<R: tauri::Runtime>(app: AppHandle<R>) -> Result<DownloadResult, String> {
+    let (src, manifest) = bundled_ruby4lich5(&app)
+        .ok_or_else(|| "no verified bundled copy is present in this build".to_string())?;
+
+    let dest = downloads_dir().join("Ruby4Lich5.exe");
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::copy(&src, &dest).map_err(|e| e.to_string())?;
+
+    let _ = app.emit(
+        "setup://progress",
+        Progress {
+            id: "ruby4lich5-bundled".into(),
+            received: manifest.bytes,
+            total: manifest.bytes,
+            phase: "verified".into(),
+        },
+    );
+
+    Ok(DownloadResult {
+        path: dest.to_string_lossy().into_owned(),
+        bytes: manifest.bytes,
+        sha256: manifest.sha256,
+        verified: true,
+    })
+}
+
+/// Look at the machine and report. Downloads nothing, changes nothing.
+///
+/// The only thing here that needs a real Tauri app is resolving where a
+/// bundled Ruby4Lich5 would be - everything else is plain detection and
+/// network calls. Split out so `plan_setup_inner` stays callable without one:
+/// `examples/plan.rs` and `examples/install.rs` print a real plan against
+/// this machine from a bare `cargo run`, with no window, and Tauri's own
+/// `mock_app()` turned out not to be a working substitute here - linking the
+/// `test` feature into a standalone example binary produced
+/// `STATUS_ENTRYPOINT_NOT_FOUND` at *run* time, past the point where
+/// `cargo build`/`cargo test` say everything is fine. Passing the one
+/// AppHandle-dependent value in as a plain argument sidesteps needing an
+/// app at all, real or mocked.
+#[tauri::command]
+pub async fn plan_setup<R: tauri::Runtime>(app: AppHandle<R>) -> SetupPlan {
+    plan_setup_inner(bundled_ruby4lich5(&app)).await
+}
+
+pub async fn plan_setup_inner(bundled_ruby_in: Option<(PathBuf, VendorManifest)>) -> SetupPlan {
     // Three lookups, one round trip each, run together.
     let (release, genie5, genie4) = tokio::join!(
         latest_lich_release(),
@@ -851,6 +1025,14 @@ pub async fn plan_setup() -> SetupPlan {
     // working for whatever else uses it. Someone who would rather do it
     // themselves still has the link.
     let ruby_needed = ruby_presence != Presence::Present;
+
+    // Checked first, and it needs no network: a build with a verified copy of
+    // Ruby4Lich5 bundled in (see the "vendored" section above) can offer this
+    // regardless of whether GitHub could be reached, which is the actual
+    // point of bundling it. Resolved by the caller - see `plan_setup_inner`'s
+    // own doc comment for why.
+    let bundled_ruby = bundled_ruby_in.filter(|_| ruby_needed);
+
     let ruby4lich5 = release
         .as_ref()
         .filter(|_| ruby_needed)
@@ -871,32 +1053,68 @@ pub async fn plan_setup() -> SetupPlan {
                  community supports and troubleshoots. We fetch it, check it against \
                  the checksum GitHub publishes, and hand it to you. It does not run \
                  until you ask separately, and it asks its own questions.",
-                true,
+                // Recommended only when there is no bundled copy to prefer
+                // instead - two rows both marked "recommended" reads as the
+                // app having no opinion, which defeats the point of marking
+                // one at all.
+                bundled_ruby.is_none(),
             )
         });
 
-    let ruby_offers_bundle = ruby4lich5.is_some();
+    let ruby_offers_bundle = ruby4lich5.is_some() || bundled_ruby.is_some();
 
-    let ruby_remedy = match (&ruby_presence, ruby4lich5) {
-        (Presence::Present, _) => Remedy::None,
-        (_, Some(option)) => Remedy::Choose {
-            options: vec![option],
-            note: if ruby_presence == Presence::Outdated {
-                "Lich 5 needs Ruby 4.0 or newer and refuses to start on anything older, so \
-                 the Ruby on this machine will not run it. This installs the current one \
-                 in its own folder, leaving your old one in place. It does put itself \
-                 first on your PATH, so `ruby` at a prompt will mean the new one \
-                 afterwards. Prefer to install Ruby 4 yourself? Do that and press Check \
-                 again."
-                    .into()
-            } else {
-                "Lich is written in Ruby, so Ruby comes along. This is the Lich project's \
-                 own bundle of the two, installed into its own folder."
-                    .into()
+    let mut ruby_options: Vec<DownloadOption> = Vec::new();
+    if let Some((_, manifest)) = &bundled_ruby {
+        ruby_options.push(bundled_option(manifest));
+    }
+    if let Some(opt) = ruby4lich5 {
+        // Worth a second row only when the versions actually differ. Two
+        // rows offering the identical bytes - one that needs no download and
+        // one that does - is not a real choice, and pointing someone at the
+        // slower path to what they already have bundled is not one either.
+        let same_as_bundled = bundled_ruby
+            .as_ref()
+            .is_some_and(|(_, m)| m.version == opt.version);
+        if !same_as_bundled {
+            ruby_options.push(opt);
+        }
+    }
+
+    let ruby_remedy = match &ruby_presence {
+        Presence::Present => Remedy::None,
+        _ if !ruby_options.is_empty() => Remedy::Choose {
+            options: ruby_options,
+            note: match (bundled_ruby.is_some(), release.is_some()) {
+                (true, _) if ruby_presence == Presence::Outdated => {
+                    "Lich 5 needs Ruby 4.0 or newer and refuses to start on anything older. \
+                     The version included with this app installs with no download; a newer \
+                     one may be listed too if the one bundled has fallen behind."
+                        .into()
+                }
+                (true, _) => {
+                    "Lich is written in Ruby, so Ruby comes along. The copy included with \
+                     this app installs offline; a newer one is listed too if one is \
+                     available."
+                        .into()
+                }
+                (false, _) if ruby_presence == Presence::Outdated => {
+                    "Lich 5 needs Ruby 4.0 or newer and refuses to start on anything older, so \
+                     the Ruby on this machine will not run it. This installs the current one \
+                     in its own folder, leaving your old one in place. It does put itself \
+                     first on your PATH, so `ruby` at a prompt will mean the new one \
+                     afterwards. Prefer to install Ruby 4 yourself? Do that and press Check \
+                     again."
+                        .into()
+                }
+                (false, _) => {
+                    "Lich is written in Ruby, so Ruby comes along. This is the Lich project's \
+                     own bundle of the two, installed into its own folder."
+                        .into()
+                }
             },
         },
-        // No release info, so we cannot price or verify a download. Say what
-        // to do rather than showing a button that cannot work.
+        // No bundled copy and no release info, so there is nothing to offer
+        // that could be priced, verified, or installed without a network.
         _ => Remedy::Manual {
             instructions: "Lich 5 needs Ruby 4.0 or newer. Could not reach GitHub to offer the \
                  download, so either check your connection and press Check again, or \
@@ -1882,4 +2100,133 @@ pub async fn install_bundle(
         },
     );
     Ok(res)
+}
+
+#[cfg(test)]
+mod vendor_tests {
+    use super::*;
+
+    fn temp(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(name);
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    fn write_bundle(dir: &Path, exe_bytes: &[u8], manifest_json: &str) -> (PathBuf, PathBuf) {
+        let exe = dir.join("Ruby4Lich5.exe");
+        let manifest = dir.join("Ruby4Lich5.manifest.json");
+        std::fs::write(&exe, exe_bytes).unwrap();
+        std::fs::write(&manifest, manifest_json).unwrap();
+        (exe, manifest)
+    }
+
+    fn manifest_json(bytes: &[u8], version: &str) -> String {
+        let sha = format!("{:x}", Sha256::digest(bytes));
+        format!(r#"{{"version":"{version}","sha256":"{sha}","bytes":{}}}"#, bytes.len())
+    }
+
+    /// The case a real build is in whenever `vendor-fetch.mjs` ran and wrote
+    /// matching bytes and a matching manifest - this is what makes the
+    /// bundled Ruby row appear at all.
+    #[test]
+    fn a_correctly_fetched_bundle_verifies() {
+        let dir = temp("drc-vendor-good");
+        let payload = b"pretend this is Ruby4Lich5.exe";
+        let (exe, manifest) = write_bundle(&dir, payload, &manifest_json(payload, "5.20.1"));
+
+        let got = verify_vendor_bundle(&exe, &manifest).expect("should verify");
+        assert_eq!(got.version, "5.20.1");
+        assert_eq!(got.bytes, payload.len() as u64);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A dev checkout that never ran the fetch script. This is the common
+    /// case - most builds have no vendor directory at all - and it must be
+    /// silent, not an error: the Ruby row just falls back to the network
+    /// option exactly as it always has.
+    #[test]
+    fn a_missing_bundle_is_none_not_an_error() {
+        let dir = temp("drc-vendor-missing");
+        let got = verify_vendor_bundle(&dir.join("nope.exe"), &dir.join("nope.json"));
+        assert!(got.is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The exe on disk does not match what the manifest claims - a partial
+    /// fetch, a manually dropped-in file, or bytes from a different release
+    /// than the manifest describes. Refused rather than trusted, the same
+    /// "verify before use" rule the network path already follows.
+    #[test]
+    fn a_tampered_or_mismatched_exe_is_refused() {
+        let dir = temp("drc-vendor-tampered");
+        let real_payload = b"the real installer bytes";
+        let manifest = manifest_json(real_payload, "5.20.1");
+        // Same length as `real_payload`, different content - deliberately not
+        // a different length, which is `a_size_mismatch_is_refused_before_hashing`
+        // below and would let this pass without ever reaching the hash
+        // comparison. Caught by a sabotage run: with the hash check itself
+        // commented out, the original version of this test (different-length
+        // payload) still failed on size alone and reported a pass, meaning
+        // the SHA-256 comparison was never actually exercised.
+        let tampered = b"the fake installer bytes";
+        assert_eq!(
+            real_payload.len(),
+            tampered.len(),
+            "test bug: the two payloads must match in length to isolate the hash check"
+        );
+        let (exe, manifest_path) = write_bundle(&dir, tampered, &manifest);
+
+        assert!(
+            verify_vendor_bundle(&exe, &manifest_path).is_none(),
+            "a hash mismatch must not verify"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The declared size is checked before the hash is even computed - cheap
+    /// insurance that also catches a manifest written for one file being
+    /// paired with a differently-sized one, which a hash mismatch alone would
+    /// also catch, but slower and less directly.
+    #[test]
+    fn a_size_mismatch_is_refused_before_hashing() {
+        let dir = temp("drc-vendor-wrong-size");
+        let payload = b"short";
+        let mut manifest = manifest_json(payload, "5.20.1");
+        manifest = manifest.replace(&payload.len().to_string(), "999999");
+        let (exe, manifest_path) = write_bundle(&dir, payload, &manifest);
+
+        assert!(verify_vendor_bundle(&exe, &manifest_path).is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Malformed JSON - a fetch script that died mid-write, or a manifest
+    /// from a future format this build predates - must not panic the setup
+    /// screen. `None`, same as "never fetched".
+    #[test]
+    fn unparseable_manifest_is_none_not_a_panic() {
+        let dir = temp("drc-vendor-bad-json");
+        let (exe, manifest_path) = write_bundle(&dir, b"bytes", "{ not json");
+        assert!(verify_vendor_bundle(&exe, &manifest_path).is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// `bundled_option`'s shape - the fields the frontend actually branches
+    /// on, asserted directly rather than trusted from reading the code.
+    #[test]
+    fn bundled_option_is_marked_bundled_and_recommended() {
+        let manifest = VendorManifest {
+            version: "5.20.1".into(),
+            sha256: "abc123".into(),
+            bytes: 68_000_000,
+        };
+        let opt = bundled_option(&manifest);
+        assert!(opt.bundled, "the frontend uses this to route to the right install command");
+        assert!(opt.recommended);
+        assert_eq!(opt.version, "5.20.1");
+        assert_eq!(opt.bytes, 68_000_000);
+        assert_eq!(opt.after, "installer", "still needs its own separate consent to run");
+    }
 }

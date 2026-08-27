@@ -119,6 +119,7 @@ pub fn run() {
             lich_health::lich_health,
             setup::plan_setup,
             setup::download_component,
+            setup::install_bundled_ruby4lich5,
             setup::extract_lich,
             setup::extract_archive,
             setup::install_bundle,

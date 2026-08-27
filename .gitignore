@@ -29,6 +29,12 @@ __pycache__/
 pnpm-debug.log*
 src-tauri/gen
 src-tauri/target
+
+# Ruby4Lich5.exe, 65 MB and rebuilt by upstream on their own schedule -
+# belongs beside the release it ships in, not in git history forever. Same
+# reasoning as public/rooms/ below. tools/vendor-fetch.mjs populates this
+# before a release build; src-tauri/tauri.conf.json bundles whatever is here.
+src-tauri/vendor/
 yarn-debug.log*
 yarn-error.log*
 

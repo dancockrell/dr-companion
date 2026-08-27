@@ -35,6 +35,7 @@ import { isTauri } from '../../lib/tauri'
 import {
   planSetup,
   downloadComponent,
+  installBundledRuby4Lich5,
   extractArchive,
   installBridgeScript,
   installBundle,
@@ -151,17 +152,29 @@ export function SetupWizard() {
       ...c,
       [componentId]: { ...c[componentId], busy: true, error: undefined },
     }))
-    addLog(`Downloading ${o.label} ${o.version} from ${o.url}`)
-    if (!o.sha256) {
-      addLog(`Note: ${o.label} publishes no checksum. Verifying source only.`)
+    if (o.bundled) {
+      addLog(`Installing ${o.label} ${o.version} - included with this app, no download needed`)
+    } else {
+      addLog(`Downloading ${o.label} ${o.version} from ${o.url}`)
+      if (!o.sha256) {
+        addLog(`Note: ${o.label} publishes no checksum. Verifying source only.`)
+      }
     }
 
     try {
-      const res = await downloadComponent(key, o.url, o.sha256, o.dest)
+      // Bundled copies never touch the network path: a different command
+      // resolves the file's location itself rather than trusting whatever
+      // url/dest this option carries - see installBundledRuby4Lich5's doc
+      // comment for why that boundary matters.
+      const res = o.bundled
+        ? await installBundledRuby4Lich5()
+        : await downloadComponent(key, o.url, o.sha256, o.dest)
       addLog(
-        o.sha256
-          ? `Verified ${o.label}: sha256 ${res.sha256.slice(0, 16)}…`
-          : `Downloaded ${o.label}: sha256 ${res.sha256.slice(0, 16)}… (ours, not upstream's)`
+        o.bundled
+          ? `Verified the bundled copy: sha256 ${res.sha256.slice(0, 16)}…`
+          : o.sha256
+            ? `Verified ${o.label}: sha256 ${res.sha256.slice(0, 16)}…`
+            : `Downloaded ${o.label}: sha256 ${res.sha256.slice(0, 16)}… (ours, not upstream's)`
       )
 
       if (o.after === 'extract') {

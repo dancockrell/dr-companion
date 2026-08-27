@@ -24,6 +24,9 @@ export interface DownloadOption {
   why: string
   note: string
   recommended: boolean
+  /** Shipped inside this app - install via `installBundledRuby4Lich5`, not
+   * `downloadComponent`. `url` is not a fetchable address on one of these. */
+  bundled: boolean
 }
 
 /** One file inside a bundle, pinned by its git blob hash. */
@@ -110,6 +113,20 @@ export async function downloadComponent(
     dest,
   })) as DownloadResult | undefined
   if (!res) throw new Error('download did not complete')
+  return res
+}
+
+/**
+ * Copy the bundled Ruby4Lich5 out to where a download would have landed,
+ * verifying it again on the way. Takes no path or URL - unlike
+ * `downloadComponent`, which is reachable from this same webview with
+ * whatever arguments it is given, this command resolves the bundled location
+ * itself, so there is nothing here for a compromised or buggy caller to
+ * redirect. See `install_bundled_ruby4lich5`'s own doc comment in setup.rs.
+ */
+export async function installBundledRuby4Lich5(): Promise<DownloadResult> {
+  const res = (await invokeTauri('install_bundled_ruby4lich5')) as DownloadResult | undefined
+  if (!res) throw new Error('install did not complete')
   return res
 }
 
