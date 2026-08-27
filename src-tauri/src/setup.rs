@@ -274,7 +274,7 @@ fn candidate_dirs(names: &[&str]) -> Vec<PathBuf> {
 ///
 /// `canonicalize` returns the real casing but prefixes `\\?\`, which is
 /// correct and unreadable, so it comes back off.
-fn pretty_path(p: &Path) -> String {
+pub(crate) fn pretty_path(p: &Path) -> String {
     let text = std::fs::canonicalize(p)
         .map(|c| c.to_string_lossy().into_owned())
         .unwrap_or_else(|_| p.to_string_lossy().into_owned());
@@ -352,7 +352,7 @@ fn lich_dirs() -> Vec<PathBuf> {
 /// Lich of unknown vintage that happens to sort earlier in a list, which is no
 /// basis for a decision. Seen here: with both present the app picked `C:\Lich5`
 /// over the install the bundle had just laid down beside its own Ruby.
-fn rank_lich_installs(ruby_path: Option<&str>) -> Vec<PathBuf> {
+pub(crate) fn rank_lich_installs(ruby_path: Option<&str>) -> Vec<PathBuf> {
     let mut installs: Vec<PathBuf> = lich_dirs()
         .into_iter()
         .filter(|d| d.join("lich.rbw").exists() || d.join("lich.rb").exists())
@@ -385,7 +385,7 @@ fn parse_ruby_major(version_text: &str) -> Option<u32> {
 /// Returns (version string, path). The disk search exists because a Ruby
 /// installed after this process started will not be on our PATH, and telling
 /// someone to install Ruby when they just did is the worst possible answer.
-fn detect_ruby() -> (Option<String>, Option<String>) {
+pub(crate) fn detect_ruby() -> (Option<String>, Option<String>) {
     if let Some(v) = run_capture("ruby", &["--version"]) {
         let p = run_capture("where", &["ruby"])
             .and_then(|s| s.lines().next().map(|l| l.trim().to_string()));

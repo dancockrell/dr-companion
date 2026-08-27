@@ -1,3 +1,4 @@
+pub mod lich;
 pub mod setup;
 
 use tauri::{Manager, WebviewWindow};
@@ -100,6 +101,8 @@ fn panel_windows(app: tauri::AppHandle) -> Vec<String> {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            lich::lich_status,
+            lich::launch_lich,
             setup::plan_setup,
             setup::download_component,
             setup::extract_lich,

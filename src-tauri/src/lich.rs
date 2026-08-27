@@ -1,0 +1,394 @@
+//! Starting Lich, so the app is not permanently parked on somebody else doing
+//! it by hand.
+//!
+//! Lich sits between Genie and the game. Without it running there is no bridge,
+//! no live data, and the whole companion is a demo of itself - which is what it
+//! had been, for as long as launching Lich was a manual step somebody had to
+//! remember and get the arguments right for.
+//!
+//! # The password never comes through here
+//!
+//! This is the constraint the whole design is bent around, so it is stated
+//! first rather than buried.
+//!
+//! Lich accepts `--account=`, `--password=` and `--character=` on the command
+//! line. This module does not use them and must not. A password on a command
+//! line is visible in the process list to every other program on the machine,
+//! and lands in crash dumps and parent-process logs; it is the wrong place for
+//! a credential no matter how briefly it is there.
+//!
+//! So there are two paths and neither carries one:
+//!
+//!   - **First time**, when Lich has no saved character: launch Lich's own
+//!     window and stop. The player types their account details into
+//!     Simutronics' and Lich's own dialog, which is the software that is
+//!     supposed to have them, and Lich saves the entry itself.
+//!   - **Every time after**: `--login <character>`, which names a saved entry
+//!     and carries no secret at all.
+//!
+//! The app therefore never reads, stores, holds in memory, or passes on a
+//! password. Reading the saved-entry file is deliberately narrow for the same
+//! reason - see `saved_characters`.
+
+use serde::Serialize;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use crate::setup::{detect_ruby, pretty_path, rank_lich_installs};
+
+/// What we know about Lich, in the three answers a status can have.
+///
+/// Every "is it there" field here has a matching "did we actually look"
+/// alongside it, because absent and unknown are different and this project has
+/// been bitten by conflating them more than once. A launcher that reports "no
+/// saved characters" when it merely failed to read the file sends the player
+/// through a first-time setup they already did.
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct LichStatus {
+    /// The Lich folder holding `lich.rbw`.
+    pub install_dir: Option<String>,
+    /// The script itself.
+    pub launcher: Option<String>,
+    /// The interpreter that runs it. `rubyw` where available, so launching does
+    /// not leave a console window sitting on the desktop.
+    pub ruby: Option<String>,
+    /// Where Lich keeps saved logins. Present only if the folder exists.
+    pub data_dir: Option<String>,
+    /// Characters Lich has saved. Meaningful only when `characters_known`.
+    pub characters: Vec<String>,
+    /// Whether the list above is an answer. False means we could not read the
+    /// entry file, which is not the same as it being empty and must never be
+    /// rendered as "you have no characters".
+    pub characters_known: bool,
+    /// A Ruby process is running with `lich` in its command line.
+    pub running: bool,
+    /// Whether the check above could be performed at all.
+    pub running_known: bool,
+    /// Plain English for whatever the fields above cannot say on their own.
+    pub note: String,
+}
+
+fn lich_launcher(dir: &Path) -> Option<PathBuf> {
+    for leaf in ["lich.rbw", "lich.rb"] {
+        let p = dir.join(leaf);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+    None
+}
+
+/// `rubyw.exe` beside `ruby.exe`, falling back to `ruby.exe`.
+///
+/// `rubyw` is the windowed interpreter. Launching a GUI script with plain
+/// `ruby` leaves a console window open behind Lich for the whole session,
+/// which looks like something went wrong and which people close - taking Lich
+/// with it.
+fn windowed_ruby(ruby_exe: &str) -> String {
+    let p = PathBuf::from(ruby_exe);
+    if let Some(dir) = p.parent() {
+        let w = dir.join("rubyw.exe");
+        if w.exists() {
+            return w.to_string_lossy().into_owned();
+        }
+    }
+    ruby_exe.to_string()
+}
+
+/// The names of saved characters, and nothing else from that file.
+///
+/// `entry.yaml` holds the account password beside the character names, in
+/// plaintext or encrypted depending on how Lich was set up. So this does not
+/// deserialize the file into a structure: it scans for `char_name:` lines and
+/// takes those, and there is no code path here through which a password can
+/// reach a struct, a log line, an error message or the webview.
+///
+/// That is a deliberate choice of a narrower tool over a better one. A real
+/// YAML parse would be more correct about quoting and more robust to layout,
+/// and it would also put the password one field access away from anything that
+/// later wants to debug-print this. A line scanner cannot leak what it never
+/// reads.
+///
+/// Returns `None` when the file could not be read at all, so the caller can
+/// tell "no characters" from "no answer".
+fn saved_characters(data_dir: &Path) -> Option<Vec<String>> {
+    let text = std::fs::read_to_string(data_dir.join("entry.yaml")).ok()?;
+    let mut names = Vec::new();
+    for line in text.lines() {
+        let t = line.trim();
+        let Some(rest) = t.strip_prefix("char_name:") else {
+            continue;
+        };
+        let name = rest.trim().trim_matches(['"', '\'']).to_string();
+        if !name.is_empty() && !names.contains(&name) {
+            names.push(name);
+        }
+    }
+    Some(names)
+}
+
+/// Is a Lich already running?
+///
+/// Launching a second one is not harmless. Lich binds a local port for the
+/// frontend to connect to, and a second instance either fails to bind or takes
+/// the connection the first one was holding. The same mistake with Genie
+/// disconnected a live session on this machine twice.
+///
+/// Returns `None` when the check itself could not run, rather than `false`.
+/// "We could not ask" and "nothing is running" lead to opposite actions.
+fn lich_running() -> Option<bool> {
+    let out = Command::new("tasklist")
+        .args(["/FI", "IMAGENAME eq rubyw.exe", "/FO", "CSV", "/NH"])
+        .output()
+        .ok()?;
+    let listed = String::from_utf8_lossy(&out.stdout);
+    if listed.trim().is_empty() {
+        // tasklist prints an informational line when nothing matches, so an
+        // entirely empty stdout is more likely a broken call than a clean no.
+        return None;
+    }
+    Some(listed.to_lowercase().contains("rubyw.exe"))
+}
+
+/// A character name that is safe to put on a command line.
+///
+/// Not a defence against a hostile user - it is their own machine and their own
+/// Lich. It is a defence against a name that Lich would read as an option
+/// rather than a value, which is what a leading dash does, and against the
+/// quoting mess that anything more exotic turns into once it crosses a process
+/// boundary on Windows.
+///
+/// Apostrophes and spaces are allowed because DragonRealms names have them.
+///
+/// Its own function so it can be tested. Left inline it was unreachable from a
+/// test without spawning a process, and an unreachable branch is one nobody can
+/// prove they fixed.
+fn valid_character_name(name: &str) -> bool {
+    !name.is_empty()
+        && !name.starts_with('-')
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '\'' || c == '-' || c == ' ')
+}
+
+#[tauri::command]
+pub fn lich_status() -> LichStatus {
+    let mut s = LichStatus::default();
+
+    let (_ruby_version, ruby) = detect_ruby();
+    s.ruby = ruby.as_deref().map(windowed_ruby);
+
+    let installs = rank_lich_installs(ruby.as_deref());
+    if let Some(dir) = installs.first() {
+        s.install_dir = Some(pretty_path(dir));
+        s.launcher = lich_launcher(dir).map(|p| p.to_string_lossy().into_owned());
+
+        let data = dir.join("data");
+        if data.exists() {
+            s.data_dir = Some(pretty_path(&data));
+            match saved_characters(&data) {
+                Some(names) => {
+                    s.characters_known = true;
+                    s.characters = names;
+                }
+                None => {
+                    // No entry.yaml is the normal state of a fresh install, and
+                    // it is a real answer: Lich has not saved anyone yet.
+                    s.characters_known = !data.join("entry.yaml").exists();
+                }
+            }
+        } else {
+            // Lich makes this on first run. Its absence means the same thing as
+            // an absent entry file, and it is equally an answer.
+            s.characters_known = true;
+        }
+    }
+
+    match lich_running() {
+        Some(r) => {
+            s.running = r;
+            s.running_known = true;
+        }
+        None => s.running_known = false,
+    }
+
+    s.note = if s.launcher.is_none() {
+        "Lich is not installed where the app can find it.".into()
+    } else if s.ruby.is_none() {
+        "Lich is here but Ruby is not, and Lich is a Ruby program.".into()
+    } else if s.running {
+        "Lich is already running.".into()
+    } else if !s.characters_known {
+        "Lich is installed. Whether it has a saved character could not be read, so this is unknown rather than none.".into()
+    } else if s.characters.is_empty() {
+        "Lich is installed with no saved character yet. Its own login window handles that, and this app never sees the password.".into()
+    } else {
+        "Ready to start.".into()
+    };
+
+    s
+}
+
+/// Start Lich.
+///
+/// With a character name this is a silent, complete launch: Lich logs in using
+/// the entry it saved earlier, connects DragonRealms for Genie, and starts the
+/// companion bridge script so the app has data without a second manual step.
+///
+/// Without one it opens Lich's own launcher and stops there, because that is
+/// the screen where credentials belong. See the module header.
+#[tauri::command]
+pub fn launch_lich(character: Option<String>) -> Result<String, String> {
+    let s = lich_status();
+
+    let launcher = s.launcher.ok_or("Could not find lich.rbw")?;
+    let ruby = s.ruby.ok_or("Could not find Ruby, which Lich needs to run")?;
+
+    // Refuse rather than race. A second Lich takes the port the first one is
+    // holding, and the failure shows up later as the game disconnecting, which
+    // is very hard to trace back to a button press.
+    //
+    // Only when we actually know. An unreadable process list is not permission
+    // to start a second one, but it is not a reason to refuse forever either -
+    // the message says which it was.
+    if s.running_known && s.running {
+        return Err("Lich looks like it is already running. Close it first, or use the one that is up.".into());
+    }
+
+    let mut args: Vec<String> = vec![launcher.clone()];
+
+    match character.as_deref().map(str::trim).filter(|c| !c.is_empty()) {
+        Some(name) => {
+            // A character name reaches a command line, so it is checked. This
+            // is not defence against a hostile user - it is their own machine -
+            // it is defence against a name with a quote or a switch-looking
+            // prefix in it turning into an argument Lich reads as an option.
+            if !valid_character_name(name) {
+                return Err(format!("{name:?} does not look like a character name"));
+            }
+            args.push("--login".into());
+            args.push(name.into());
+            args.push("--dragonrealms".into());
+            args.push("--genie".into());
+            // The bridge, started by Lich rather than by hand. Without this the
+            // app connects to nothing and the player is told the bridge is
+            // missing, having just watched the thing that hosts it start up.
+            args.push("--start-scripts=companion_bridge".into());
+        }
+        None => {
+            // Deliberately bare. Lich's own launcher asks for the game, the
+            // frontend and the account, and the account is the part this app
+            // must not be in the middle of.
+        }
+    }
+
+    Command::new(&ruby)
+        .args(&args)
+        .current_dir(
+            PathBuf::from(&launcher)
+                .parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_else(|| PathBuf::from(".")),
+        )
+        .spawn()
+        .map_err(|e| format!("Could not start Lich: {e}"))?;
+
+    Ok(match character {
+        Some(name) => format!("Starting Lich for {name}."),
+        None => "Opened Lich's login window. Sign in there and it will remember the character.".into(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The whole point of the narrow parse, asserted rather than described.
+    ///
+    /// `entry.yaml` holds the account password beside the character names. This
+    /// test writes a realistic one and checks two things: that the names come
+    /// out, and that nothing resembling the password does. The second assertion
+    /// is the one that matters, and it is the reason this reads lines rather
+    /// than deserializing the file.
+    #[test]
+    fn reads_names_and_never_the_password() {
+        let dir = std::env::temp_dir().join("drc-lich-entry-test");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let secret = "hunter2-do-not-leak";
+        std::fs::write(
+            dir.join("entry.yaml"),
+            format!(
+                "---\nencryption_mode: plaintext\naccounts:\n  DANCOCKRELL:\n    password: {secret}\n    characters:\n    - char_name: Phemius\n      game_code: DR\n      frontend: genie\n    - char_name: \"Dan the Bold\"\n      game_code: DR\n"
+            ),
+        )
+        .unwrap();
+
+        let names = saved_characters(&dir).expect("file is readable");
+        assert_eq!(names, vec!["Phemius", "Dan the Bold"]);
+
+        // Not "the password is not in position 0". Nothing anywhere in the
+        // output may contain it, however the file is laid out.
+        assert!(
+            !names.iter().any(|n| n.contains(secret)),
+            "a password reached the character list"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Absent is not empty. A missing file has to be distinguishable from a
+    /// file with no characters in it, because the caller renders them
+    /// differently and one of the two sends a returning player back through
+    /// first-time setup.
+    #[test]
+    fn missing_file_is_unknown_not_empty() {
+        let dir = std::env::temp_dir().join("drc-lich-missing-test");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        assert!(saved_characters(&dir).is_none(), "no file must not read as no characters");
+
+        std::fs::write(dir.join("entry.yaml"), "---\naccounts: {}\n").unwrap();
+        assert_eq!(saved_characters(&dir), Some(vec![]), "an empty file is an answer");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn character_names_that_would_become_options_are_refused() {
+        assert!(valid_character_name("Phemius"));
+        assert!(valid_character_name("Dan the Bold"));
+        assert!(valid_character_name("D'Vare"));
+
+        // The ones that matter: anything Lich would parse as a switch, and
+        // anything that turns into a second argument or a shell surprise.
+        assert!(!valid_character_name("--password=hunter2"));
+        assert!(!valid_character_name("-s"));
+        assert!(!valid_character_name(""));
+        assert!(!valid_character_name("Phemius\" --password=x"));
+        assert!(!valid_character_name("Phemius; calc"));
+        assert!(!valid_character_name("Phem\nius"));
+    }
+
+    /// rubyw over ruby, so no console window is left behind Lich.
+    #[test]
+    fn prefers_the_windowed_interpreter_when_present() {
+        let dir = std::env::temp_dir().join("drc-ruby-pick-test").join("bin");
+        let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+        std::fs::create_dir_all(&dir).unwrap();
+        let ruby = dir.join("ruby.exe");
+        std::fs::write(&ruby, b"").unwrap();
+
+        // Without rubyw beside it, it must hand back what it was given rather
+        // than inventing a path that does not exist.
+        assert_eq!(windowed_ruby(&ruby.to_string_lossy()), ruby.to_string_lossy());
+
+        std::fs::write(dir.join("rubyw.exe"), b"").unwrap();
+        assert!(windowed_ruby(&ruby.to_string_lossy()).ends_with("rubyw.exe"));
+
+        let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+    }
+}

@@ -17,6 +17,7 @@
  * decided we are worth against the game window next to it. See §2.115.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { LichLauncher } from '../shared/LichLauncher'
 import { useAppStore } from '../../store/useAppStore'
 import { useLayout } from '../../lib/useLayout'
 import type { PanelId } from '../../lib/layout'
@@ -135,6 +136,16 @@ export function Dashboard() {
                 Then <code className="text-ink">,companion_bridge</code> in the game.
                 This panel fills in on its own.
               </p>
+
+              {/* Or press the button, which is the point.
+                *
+                * The four config lines above stay, because they are what a
+                * player needs when Genie is already open and they would rather
+                * not restart it. But telling somebody the procedure is not the
+                * same as doing it for them, and for as long as that was all
+                * this screen offered, the honest description of this app was
+                * "works, once you go and do something else first". */}
+              <LichLauncher />
             </>
           )}
         </div>
