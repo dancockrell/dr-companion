@@ -65,3 +65,7 @@ data/art/daemon-status.json
 data/art/daemon.lock
 data/art/daemon.stop
 data/art/failures.json
+
+# Account credentials for tools/save-lich-entry.rb. Never committed, never
+# printed by that script, and deletable the moment the Lich entry is saved.
+tools/lich-credentials.txt
