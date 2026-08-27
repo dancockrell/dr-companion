@@ -10,6 +10,10 @@ import { HandsRow } from '../shared/HandsRow'
 import { VitalCluster, vitalsFor } from '../shared/VitalCluster'
 import { StatusBoard } from '../shared/StatusBoard'
 import { ActionsPanel } from '../shared/ActionsPanel'
+import { TrainingPanel } from '../shared/TrainingPanel'
+import { InventoryPanel } from '../shared/InventoryPanel'
+import { RiskBar } from '../shared/RiskBar'
+import { PanelBoundary } from '../shared/PanelBoundary'
 import { fromRoom } from '../../lib/room'
 import type { Deck } from '../../lib/cards'
 import type { DeckPref } from '../../lib/layout'
@@ -38,6 +42,31 @@ import type { DeckPref } from '../../lib/layout'
  *     the window frame. Stop is always on screen. That was the promise the app
  *     was built on, and it held better once there was exactly one of it: the
  *     panel used to carry its own Stop and Pause alongside the bar's.
+ *   - **Risk, Training and Inventory** sit in the right rail now. All three
+ *     were registered panels with real state behind them and no way to ever
+ *     see them: `layout.ts`'s default `order` lists them, but this file never
+ *     read `order` for anything, and the only other rendering path
+ *     (`FreeCanvas`, freeform placement) can only be entered by dragging a
+ *     panel that is already on screen — nothing in the app ever turns
+ *     freeform on, so it was a locked door with no handle on either side.
+ *     Seated here by hand rather than by wiring up `order`, because this file
+ *     is deliberately fixed rather than assembled from a registry (see above).
+ *
+ *     That leaves two sources of truth for "what panels exist" — this grid,
+ *     and `layout.order` / `PANEL_CONTENT` in `panels.tsx`, which still feeds
+ *     `FreeCanvas` and pop-out windows. **This file is authoritative for what
+ *     a player sees by default.** `layout.order` only matters again if
+ *     freeform ever becomes reachable. Filed as an issue rather than unified
+ *     tonight, because deleting or rewiring that plumbing while several other
+ *     sessions are mid-build against it is the kind of cleanup that deletes
+ *     what somebody else needed next.
+ *
+ *   Every box below is wrapped in a `PanelBoundary`. Before this there was no
+ *   error boundary anywhere in the app, and one panel throwing — `<GamePane>`
+ *   reading connection state before it was guarded — took the entire window
+ *   to blank white, Stop button included. A box that crashes now says so in
+ *   words and offers Retry; it does not vanish, because a vanished box and an
+ *   empty one must never look the same.
  */
 export function DashboardLayout({
   dense,
@@ -101,7 +130,9 @@ export function DashboardLayout({
        * of its own now, so the board that Dan gives nearly full screen height
        * to in Genie can finally have it here. */}
       <Box title="Experience" action={popper('mindstate')} className="col-start-1 row-start-1 min-h-0">
-        <MindstateBoard skills={character?.skills ?? []} dense={dense} />
+        <PanelBoundary label="Experience">
+          <MindstateBoard skills={character?.skills ?? []} dense={dense} />
+        </PanelBoundary>
       </Box>
 
       {/* You, and then the room, down the right. */}
@@ -131,35 +162,49 @@ export function DashboardLayout({
          * window is docked beside the game, and three fixed-width children in a
          * row that cannot wrap overflow instead of stacking. */}
         <Box>
-          <div className="flex flex-wrap items-start gap-3">
-            <Portrait
-              character={character?.name ?? 'You'}
-              race={character?.race ?? undefined}
-              size={116}
-            />
-            <Paperdoll
-              injuries={character?.injuries ?? {}}
-              height={116}
-              known={character?.injuries !== undefined}
-            />
-            <VitalCluster vitals={vitals} height={72} />
-          </div>
+          <PanelBoundary label="You">
+            <div className="flex flex-wrap items-start gap-3">
+              <Portrait
+                character={character?.name ?? 'You'}
+                race={character?.race ?? undefined}
+                size={116}
+              />
+              <Paperdoll
+                injuries={character?.injuries ?? {}}
+                height={116}
+                known={character?.injuries !== undefined}
+              />
+              <VitalCluster vitals={vitals} height={72} />
+            </div>
 
-          {/* What is currently happening to you, under what you are made of.
-           *
-           * This is the half of the pane that was missing. The bars say how
-           * much health is left; the statuses say whether you are bleeding,
-           * stunned, webbed, poisoned or hidden, and how long the spells
-           * holding you together have left. That is what you act on, and none
-           * of it was on screen anywhere. */}
-          <StatusBoard />
+            {/* What is currently happening to you, under what you are made of.
+             *
+             * This is the half of the pane that was missing. The bars say how
+             * much health is left; the statuses say whether you are bleeding,
+             * stunned, webbed, poisoned or hidden, and how long the spells
+             * holding you together have left. That is what you act on, and none
+             * of it was on screen anywhere. */}
+            <StatusBoard />
 
-          {/* Who you are and what you are holding. Both were written into
-            * CharacterStrip, which nothing mounts, so neither had ever been on
-            * screen. See HandsRow. */}
-          <HandsRow character={character ?? null} />
+            {/* Who you are and what you are holding. Both were written into
+              * CharacterStrip, which nothing mounts, so neither had ever been on
+              * screen. See HandsRow. */}
+            <HandsRow character={character ?? null} />
 
-          <GearNotice />
+            <GearNotice />
+          </PanelBoundary>
+        </Box>
+
+        {/* Risk, right under the vitals it qualifies.
+         *
+         * Registered as a panel since its own file was written and never
+         * seated anywhere a player could see it - see the note at the top of
+         * this file. Favors and burden are read the same way vitals are, in
+         * passing, so it sits beside them rather than lower in the rail. */}
+        <Box className="min-h-0">
+          <PanelBoundary label="Risk">
+            <RiskBar />
+          </PanelBoundary>
         </Box>
 
         {/* Task flows, on the first page.
@@ -169,47 +214,73 @@ export function DashboardLayout({
          * Activities panel existed and was registered as a pop-out that the
          * dashboard never rendered. */}
         <Box title="Task flows" className="min-h-0">
-          <TaskFlowPanel dense={dense} />
+          <PanelBoundary label="Task flows">
+            <TaskFlowPanel dense={dense} />
+          </PanelBoundary>
+        </Box>
+
+        {/* Training, same reason as Risk above: built, live-wired, and dark
+            until now. Sits after Task flows because it is the next thing you
+            check once you are not mid-fight, not something read continuously. */}
+        <Box className="min-h-0">
+          <PanelBoundary label="Training">
+            <TrainingPanel dense={dense} />
+          </PanelBoundary>
         </Box>
 
         <Box tone="danger" action={popper('room')} className="min-h-0">
-          {hostile.length ? (
-            <CardDeck
-              deck="hostile"
-              cards={hostile}
-              pref={deckPrefs?.hostile ?? 'auto'}
-              onCyclePref={onCycleDeck ? () => onCycleDeck('hostile') : undefined}
-            />
-          ) : (
-            <p className="text-xs text-ink-faint">Nothing hostile here.</p>
-          )}
+          <PanelBoundary label="Battle">
+            {hostile.length ? (
+              <CardDeck
+                deck="hostile"
+                cards={hostile}
+                pref={deckPrefs?.hostile ?? 'auto'}
+                onCyclePref={onCycleDeck ? () => onCycleDeck('hostile') : undefined}
+              />
+            ) : (
+              <p className="text-xs text-ink-faint">Nothing hostile here.</p>
+            )}
+          </PanelBoundary>
         </Box>
 
         <Box title="Objects" count={items.length}>
-          {items.length ? (
-            <ul className="flex flex-col gap-0.5">
-              {items.map((name) => (
-                <li key={name} className="truncate text-xs text-ink-muted">
-                  {name}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-ink-faint">Floor is clear.</p>
-          )}
+          <PanelBoundary label="Objects">
+            {items.length ? (
+              <ul className="flex flex-col gap-0.5">
+                {items.map((name) => (
+                  <li key={name} className="truncate text-xs text-ink-muted">
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-ink-faint">Floor is clear.</p>
+            )}
+          </PanelBoundary>
+        </Box>
+
+        {/* Inventory, third of the three orphaned panels. Sits beside Objects
+            because both answer "what do I have or could have" - what's carried
+            versus what's on the floor. */}
+        <Box className="min-h-0">
+          <PanelBoundary label="Inventory">
+            <InventoryPanel dense={dense} />
+          </PanelBoundary>
         </Box>
 
         <Box title="People" count={people.length}>
-          {people.length ? (
-            <CardDeck
-              deck="people"
-              cards={people}
-              pref={deckPrefs?.people ?? 'auto'}
-              onCyclePref={onCycleDeck ? () => onCycleDeck('people') : undefined}
-            />
-          ) : (
-            <p className="text-xs text-ink-faint">Nobody else here.</p>
-          )}
+          <PanelBoundary label="People">
+            {people.length ? (
+              <CardDeck
+                deck="people"
+                cards={people}
+                pref={deckPrefs?.people ?? 'auto'}
+                onCyclePref={onCycleDeck ? () => onCycleDeck('people') : undefined}
+              />
+            ) : (
+              <p className="text-xs text-ink-faint">Nobody else here.</p>
+            )}
+          </PanelBoundary>
         </Box>
       </div>
 
@@ -217,7 +288,9 @@ export function DashboardLayout({
           layout, in the window frame, where no arrangement of panels can
           scroll them off. */}
       <div className="col-span-2 row-start-2">
-        <ActionsPanel dense={dense} />
+        <PanelBoundary label="Actions">
+          <ActionsPanel dense={dense} />
+        </PanelBoundary>
       </div>
     </div>
   )

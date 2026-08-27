@@ -10,6 +10,7 @@ import { SituationBanner } from './components/layout/SituationBanner'
 import { Console } from './components/layout/Console'
 import { MapWindow } from './components/MapWindow'
 import { PanelWindow } from './components/PanelWindow'
+import { PanelBoundary } from './components/shared/PanelBoundary'
 import { useMapDock, setMapDock } from './lib/mapDock'
 import { fitColumns } from './lib/columns'
 import type { PanelId } from './lib/layout'
@@ -200,7 +201,9 @@ export default function App() {
                   className="min-w-0 shrink-0 overflow-hidden border-r border-border"
                   style={{ width: mapW }}
                 >
-                  <MapColumn />
+                  <PanelBoundary label="Map">
+                    <MapColumn />
+                  </PanelBoundary>
                 </div>
                 <Splitter
                   value={hostW > 0 ? mapW / hostW : 0.33}
@@ -211,7 +214,9 @@ export default function App() {
               </>
             )}
             <div className="min-w-0 shrink-0 overflow-auto" style={{ width: fit.dash }}>
-              <Dashboard />
+              <PanelBoundary label="Dashboard">
+                <Dashboard />
+              </PanelBoundary>
             </div>
             <Splitter
               value={hostW > 0 ? (mapW + mapSplit + fit.dash) / hostW : 0.66}

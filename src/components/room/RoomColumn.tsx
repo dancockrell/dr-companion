@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { RoomScene } from './RoomScene'
 import { StreamTabs } from '../game/StreamTabs'
 import { GamePane } from '../game/GamePane'
+import { PanelBoundary } from '../shared/PanelBoundary'
 import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
 import { useHighlights } from '../../lib/useHighlights'
@@ -60,13 +61,15 @@ export function RoomColumn() {
      * because its parent had already collapsed.
      */
     <div className="flex h-full min-h-0 flex-col gap-2 p-2">
-      <RoomScene
-        zone={zone}
-        room={room ?? 0}
-        title={title}
-        text={text?.text}
-        height={170}
-      />
+      <PanelBoundary label="Scene">
+        <RoomScene
+          zone={zone}
+          room={room ?? 0}
+          title={title}
+          text={text?.text}
+          height={170}
+        />
+      </PanelBoundary>
 
       <div className="max-h-40 shrink-0 overflow-y-auto rounded border border-border bg-surface-raised p-2">
         {text?.text ? (
@@ -101,11 +104,15 @@ export function RoomColumn() {
         * Given the larger share of the column because it is the thing being
         * read continuously. See docs/ENGINE.md. */}
       <div className="flex min-h-0 flex-[3] flex-col overflow-hidden rounded border border-border bg-surface-raised">
-        <GamePane />
+        <PanelBoundary label="Game">
+          <GamePane />
+        </PanelBoundary>
       </div>
 
       <div className="flex min-h-0 flex-[2] flex-col rounded border border-border bg-surface-raised">
-        <StreamTabs highlights={highlights} />
+        <PanelBoundary label="Channels">
+          <StreamTabs highlights={highlights} />
+        </PanelBoundary>
       </div>
     </div>
   )
