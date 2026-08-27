@@ -54,6 +54,18 @@ export function findBrowser() {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /**
+ * How long one DevTools request may go unanswered before it gives up.
+ *
+ * Overridable so the timeout branch can be exercised deliberately. A deadline
+ * that only fires when something is genuinely broken is a branch nobody can
+ * trigger, and a branch nobody can trigger is one nobody can prove they fixed
+ * - which matters here, because this timer was the source of a real defect
+ * and the obvious fix (delete it) would have removed a real protection while
+ * every visible symptom improved.
+ */
+const REQUEST_TIMEOUT_MS = Number(process.env.DRC_CDP_TIMEOUT_MS || 30000)
+
+/**
  * Wait for the debugger to answer, rather than sleeping a guessed amount.
  *
  * Chrome writes its WebSocket URL to a file once it is listening. Polling that
@@ -164,8 +176,11 @@ async function session(wsUrl, { target = 'new', cleanup = null, pick = null } = 
   ws.onmessage = (m) => {
     const msg = JSON.parse(m.data)
     if (msg.id && pending.has(msg.id)) {
-      const { resolve, reject } = pending.get(msg.id)
+      const { resolve, reject, timer } = pending.get(msg.id)
       pending.delete(msg.id)
+      // Cancel the deadline now the answer is in. Without this the timer
+      // survives the request it was guarding - see `send`.
+      clearTimeout(timer)
       if (msg.error) reject(new Error(`${msg.error.message} (${msg.method ?? ''})`))
       else resolve(msg.result)
     } else if (msg.method) {
@@ -173,33 +188,78 @@ async function session(wsUrl, { target = 'new', cleanup = null, pick = null } = 
     }
   }
 
+  /**
+   * One request, with a deadline that is cancelled when the answer arrives.
+   *
+   * The deadline used to be a bare `setTimeout` that nothing ever cleared. It
+   * did its job - a request that never answers still rejects - and it also
+   * kept the Node event loop alive for the full thirty seconds afterwards,
+   * because a pending timer is a live handle whether or not anybody still
+   * cares about it.
+   *
+   * So every `app-eyes` call took thirty seconds. Not the eval: that returned
+   * in 277ms with the right answer, and the command exited 0. The process
+   * simply could not leave until the last leaked timer fired. Asking Node
+   * directly after `close()` showed six `Timeout` handles still alive - one
+   * per request in a normal attach - which is what turned "it feels slow" into
+   * a cause.
+   *
+   * It survived an entire evening of heavy use by three sessions because
+   * every symptom pointed elsewhere: the output was correct, the exit code was
+   * 0, and thirty seconds of silence is indistinguishable from a busy machine.
+   * One session nearly filed it against the GPU.
+   */
   const send = (method, params = {}, sessionId) =>
     new Promise((resolve, reject) => {
       const id = nextId++
-      pending.set(id, { resolve, reject })
-      ws.send(JSON.stringify({ id, method, params, sessionId }))
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (pending.has(id)) {
           pending.delete(id)
-          reject(new Error(`${method} timed out`))
+          reject(new Error(`${method} timed out after ${REQUEST_TIMEOUT_MS}ms with no reply`))
         }
-      }, 30000)
+      }, REQUEST_TIMEOUT_MS)
+      pending.set(id, { resolve, reject, timer })
+      ws.send(JSON.stringify({ id, method, params, sessionId }))
     })
+
+  /**
+   * Everything between here and a usable session can throw: no page target,
+   * an ambiguous one, a request that times out. Each of those left the
+   * WebSocket open with nobody holding a reference able to close it, so the
+   * socket and its pending timers outlived the failed attach. On Windows that
+   * surfaced as a libuv assertion at process exit, which points nowhere near
+   * the cause.
+   *
+   * A failed setup has to leave nothing behind, exactly as a successful
+   * `close()` does.
+   */
+  const failSetup = (e) => {
+    for (const [id, p] of pending) {
+      clearTimeout(p.timer)
+      pending.delete(id)
+    }
+    try {
+      ws.close()
+    } catch {
+      // Already gone; the timers above were the part that mattered.
+    }
+    throw e
+  }
 
   // One tab, attached, with a session we can talk to.
   let targetId
   if (target === 'new') {
     ;({ targetId } = await send('Target.createTarget', { url: 'about:blank' }))
   } else {
-    const { targetInfos } = await send('Target.getTargets')
+    const { targetInfos } = await send('Target.getTargets').catch(failSetup)
     const pages = targetInfos.filter((t) => t.type === 'page')
     if (pages.length === 0) {
       // Said out loud rather than throwing something about `undefined`. In
       // WebView2 this means the app is running without a debugging port, which
       // is a setup problem with a one-line fix, not a bug in the page.
-      throw new Error(
+      failSetup(new Error(
         'the engine is listening but has no page target - is this the app, and was it started with --remote-debugging-port?'
-      )
+      ))
     }
     // Which page, decided rather than guessed.
     //
@@ -226,18 +286,18 @@ async function session(wsUrl, { target = 'new', cleanup = null, pick = null } = 
     const candidates = pick ? pages.filter((p) => pick(p)) : pages
 
     if (candidates.length === 0) {
-      throw new Error(
+      failSetup(new Error(
         `no page target matched. ${pages.length} page(s) available:\n` +
           pages.map((p) => `  ${p.url}`).join('\n')
-      )
+      ))
     }
     if (candidates.length > 1) {
-      throw new Error(
+      failSetup(new Error(
         `AMBIGUOUS: ${candidates.length} page targets matched, refusing to pick one by position.\n` +
           candidates.map((p) => `  ${p.url}`).join('\n') +
           '\n  Narrow it with `pick`, or close the windows you are not measuring.\n' +
           '  Picking arbitrarily here measures a different window and reads as a result.'
-      )
+      ))
     }
     targetId = candidates[0].targetId
   }
@@ -374,6 +434,15 @@ async function session(wsUrl, { target = 'new', cleanup = null, pick = null } = 
      * absent for whoever merely borrowed it.
      */
     async close() {
+      // Anything still in flight is abandoned here, and its deadline would
+      // otherwise outlive the session and hold the process open exactly as
+      // the uncleared ones did. Rejected rather than dropped, so a caller
+      // awaiting one gets an error instead of a promise that never settles.
+      for (const [id, p] of pending) {
+        clearTimeout(p.timer)
+        p.reject(new Error('the browser session was closed before this replied'))
+        pending.delete(id)
+      }
       try {
         ws.close()
       } catch {
