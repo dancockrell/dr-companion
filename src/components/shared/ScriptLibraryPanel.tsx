@@ -137,7 +137,7 @@ export function ScriptLibraryPanel({
         <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
           {grouped.map(([category, names]) => (
             <div key={category}>
-              <div className="text-[11px] font-medium text-ink-faint/80 uppercase tracking-wide mb-1">
+              <div className="text-xs font-medium text-ink-faint/80 uppercase tracking-wide mb-1">
                 {category}
               </div>
               <div className="space-y-1">
@@ -155,8 +155,8 @@ export function ScriptLibraryPanel({
                           <span
                             className={
                               status === 'paused'
-                                ? 'text-[10px] text-warn shrink-0'
-                                : 'text-[10px] text-good shrink-0'
+                                ? 'text-xs text-warn shrink-0'
+                                : 'text-xs text-good shrink-0'
                             }
                           >
                             {status}
@@ -168,7 +168,7 @@ export function ScriptLibraryPanel({
                         variant={running ? 'ghost' : 'secondary'}
                         disabled={running}
                         onClick={() => startScript(name)}
-                        className="shrink-0 text-[11px] px-2 py-1"
+                        className="shrink-0 text-xs px-2 py-1"
                       >
                         {running ? 'Running' : 'Start'}
                       </Button>
