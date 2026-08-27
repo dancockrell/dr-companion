@@ -28,6 +28,7 @@ import { RiskBar } from '../shared/RiskBar'
 import { ScriptLauncher } from '../shared/ScriptLauncher'
 import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel'
 import { BattlePanel } from '../shared/BattlePanel'
+import { getScriptCatalogEntry } from '../../data/scriptCatalog'
 import type { Deck } from '../../lib/cards'
 import type { DeckPref } from '../../lib/layout'
 
@@ -91,9 +92,13 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
   room: (_dense, _filled, ctx) => (
     <BattlePanel deckPrefs={ctx?.deckPrefs} onCycleDeck={ctx?.onCycleDeck} />
   ),
-  // No categoryOf/filter yet — UX-3's scriptCatalog.ts hasn't landed in this
-  // tree. Follow-up wiring, not a reason to leave the panel unmounted.
-  scripts: (dense) => <ScriptLibraryPanel dense={dense} />,
+  scripts: (dense) => (
+    <ScriptLibraryPanel
+      dense={dense}
+      filter={(n) => getScriptCatalogEntry(n).tier === 'standard'}
+      categoryOf={(n) => getScriptCatalogEntry(n).category}
+    />
+  ),
 }
 
 export function panelTitle(id: PanelId): string {

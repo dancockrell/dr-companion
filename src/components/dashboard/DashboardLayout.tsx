@@ -14,6 +14,7 @@ import { TrainingPanel } from '../shared/TrainingPanel'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { RiskBar } from '../shared/RiskBar'
 import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel'
+import { getScriptCatalogEntry } from '../../data/scriptCatalog'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { fromRoom } from '../../lib/room'
 import type { Deck } from '../../lib/cards'
@@ -291,13 +292,17 @@ export function DashboardLayout({
             above: built and registered in panels.tsx, invisible until seated
             here by hand.
 
-            No categoryOf/filter yet — that's UX-3's scriptCatalog.ts, not
-            landed in this tree yet. Mounted bare rather than waiting, so it
-            is not another built-and-invisible panel; wiring the curated
-            taxonomy in is a follow-up, not a blocker on being seen at all. */}
+            categoryOf/filter come from scriptCatalog.ts: hidden (Lich's own
+            tooling, including our bridge) never renders, and promoted (a
+            script with a real dedicated control elsewhere) doesn't get a
+            second, redundant raw button here. */}
         <Box className="min-h-0">
           <PanelBoundary label="Script Library">
-            <ScriptLibraryPanel dense={dense} />
+            <ScriptLibraryPanel
+              dense={dense}
+              filter={(n) => getScriptCatalogEntry(n).tier === 'standard'}
+              categoryOf={(n) => getScriptCatalogEntry(n).category}
+            />
           </PanelBoundary>
         </Box>
       </div>
