@@ -249,16 +249,21 @@ begin
   # exactly what a browser sends, and reaching `intent` from there gets
   # `stop_all` - ungated by design, correct for a Stop button, and
   # unconditional for an attacker too.
+  # Generated rather than pasted. The RFC's own sample nonce is a base64 blob
+  # with enough entropy that the secret scanner flags it as a leaked key, and
+  # teaching anyone to reach for --no-verify is a worse habit than the
+  # inconvenience it saves.
+  #
+  # Bound to a name first: a comment cannot live inside a backslash
+  # continuation, and putting one there is a syntax error that reads as a
+  # perfectly ordinary line.
+  evil_key = Base64.strict_encode64(Array.new(16) { rand(256) }.pack('C*'))
+
   evil = TCPSocket.new('127.0.0.1', PORT)
   evil.write("GET #{Companion::PATH} HTTP/1.1\r\nHost: 127.0.0.1:#{PORT}\r\n" \
              "Upgrade: websocket\r\nConnection: Upgrade\r\n" \
              "Origin: https://evil.example\r\n" \
-             # Generated rather than pasted. The RFC's own sample nonce is a
-             # base64 blob with enough entropy that the secret scanner flags it
-             # as a leaked key, and teaching anyone to pass --no-verify to get
-             # past that is a worse habit than the inconvenience it saves.
-             "Sec-WebSocket-Key: #{Base64.strict_encode64(Array.new(16) { rand(256) }.pack('C*'))}\r\n" \
-             "Sec-WebSocket-Version: 13\r\n\r\n")
+             "Sec-WebSocket-Key: #{evil_key}\r\nSec-WebSocket-Version: 13\r\n\r\n")
   evil_head = +''
   begin
     Timeout.timeout(5) { evil_head << evil.readpartial(1024) until evil_head.include?("\r\n\r\n") }
