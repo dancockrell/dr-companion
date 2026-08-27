@@ -64,6 +64,44 @@ app saw only what `companion_bridge.lic` decided to forward. The helm-versus-
 wind-instrument warning, the highlight corpus, the mindstate ladder - all of
 that was reaching through a straw for text that was on the wire the whole time.
 
+## Genie is capability-limited at this boundary. We do not have to be.
+
+Found 27 Aug 2026 in `lib/common/front-end.rb`, and it changes what "beat
+Genie" means from a UI ambition into a protocol fact.
+
+Lich decides what to send a frontend from a registered capability set:
+
+| frontend | capabilities |
+|---|---|
+| `stormfront` (Wrayth) | `xml` `streams` `mono` `room_window` |
+| `profanity` | `xml` `streams` |
+| `genie` | `xml` `mono` |
+| `frostbite` | `xml` |
+| `wizard` | `gsl` |
+
+**Genie does not get streams and does not get a room window.** Lich has them
+and does not send them, because Genie cannot use them. Identify as the richest
+frontend and the same Lich, on the same port, sends strictly more.
+
+That is not a trick played on Lich. `register` is a public API taking a
+capability list, and since Lich is vendored here, `drcompanion` can be a
+registered frontend in its own right rather than borrowing Wrayth's name. That
+is the honest end state; declaring `--stormfront` is the way to get the full
+stream today, before any of Lich is modified.
+
+Streams are the feature this unlocks and it is the one Genie users build named
+windows by hand to fake: the game tags thoughts, deaths, speech and room
+content as *separate channels*, and a client that receives them does not have
+to guess from the text which is which. Every regexp in `dr-genie-settings` that
+identifies an arrival or a departure is pattern-matching for something the
+protocol already labels.
+
+**Consequence for the parser:** a frontend claiming `xml` receives a tagged
+stream, not plain lines. The pane currently renders raw text, which is correct
+for what the fixture sends and wrong for what a real Lich will send. Parsing
+that stream is the next piece, and the fixture needs an XML mode so it is
+testable before a live login.
+
 ## Scripting: Python
 
 Ruby stays under the hood because Lich is Ruby and dr-scripts are Ruby, and
