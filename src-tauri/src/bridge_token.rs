@@ -33,6 +33,7 @@
 //! running as the player can read the token, and could equally read Lich's
 //! saved account file.
 
+use std::io::Read as _;
 use std::path::PathBuf;
 
 use crate::setup::bridge_target_dir;
@@ -52,11 +53,33 @@ pub fn read_bridge_token() -> String {
     read_token_from(&dir)
 }
 
+/// Read at most this much before deciding.
+///
+/// 128 hex characters is the largest token accepted, and the rest is room for
+/// a trailing newline and whatever a text editor added. Anything longer
+/// truncates into something that fails the length check anyway.
+const MAX_READ: u64 = 256;
+
 fn read_token_from(dir: &PathBuf) -> String {
     let path = dir.join("companion_bridge.token");
-    let Ok(text) = std::fs::read_to_string(&path) else {
+
+    // Bounded before the read, not after.
+    //
+    // This was `read_to_string`, which materialises the whole file and only
+    // then applies the 128-character limit - so a token file of any size was
+    // read in full before being rejected for being too long. Found by a
+    // red-team pass. The threat model is the same as everywhere else here
+    // (something already running as the player), so this is not a hole so
+    // much as a question that costs two lines to stop having.
+    let Ok(file) = std::fs::File::open(&path) else {
         return String::new();
     };
+
+    let mut text = String::new();
+    if file.take(MAX_READ).read_to_string(&mut text).is_err() {
+        // Not valid UTF-8, or unreadable. Either way there is no token here.
+        return String::new();
+    }
 
     let token = text.trim();
 

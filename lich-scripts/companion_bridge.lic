@@ -1116,10 +1116,34 @@ module Companion
   # as this user. That is the boundary the token actually draws - other
   # software, not other privilege - and pretending otherwise would be the kind
   # of overstated guarantee that gets somebody hurt.
+  # Which gates are actually up: 'token' or 'origin-only'.
+  #
+  # Reported to every client in the hello frame, because the alternative is a
+  # boundary that quietly halves itself and nothing in the system can see it.
+  # A red-team pass named this precisely: an unannounced reduction from two
+  # gates to one that nothing can observe. The notice went to Lich's log, which
+  # the app never reads, and a client presenting a stale token got `true` from
+  # line two of `authenticate` without the token being compared to anything -
+  # so the *most* broken state looked the most normal.
+  def self.auth_mode
+    @auth_token.nil? || @auth_token.empty? ? 'origin-only' : 'token'
+  end
+
+  # Why the token is absent, when it is. Empty when it is not.
+  def self.auth_note
+    @auth_note.to_s
+  end
+
   def self.write_token!
+    @auth_note = ''
     @auth_token = generate_token
+
     if @auth_token.nil?
+      # An environment missing SecureRandom is deficient through nobody's
+      # doing, and continuing on the origin check is clearly right.
+      @auth_note = 'SecureRandom unavailable'
       log_error('SecureRandom unavailable: running WITHOUT a token, origin check only')
+      clear_stale_token!
       return nil
     end
 
@@ -1128,12 +1152,46 @@ module Companion
     log_error("token written to #{path}")
     path
   rescue StandardError => e
-    # Could not write it: run with the origin check alone rather than refusing
-    # every client. A bridge nobody can connect to is not safer, it is just
-    # broken, and the origin check still stops the browser attack.
+    # Could not write it. A different case from the one above, and they were
+    # collapsed until a red-team pass pointed out that only one of them had
+    # been argued for: this one means something else is holding the file, and
+    # "something is interested in my token file" is a better reason to refuse
+    # than to continue.
+    #
+    # Still continuing, and the reason is evidence rather than optimism.
+    # Something on this machine deleted two source files out of a Cargo crate
+    # on 26 Aug and left the rest alone - antivirus or a cleanup pass. File
+    # interference here is demonstrably not a sign of an attacker, and bricking
+    # the bridge on it would make the app unusable for the common cause while
+    # protecting against the rare one. A bridge nobody can connect to is not
+    # safer, it is broken.
+    #
+    # What changes is that it is no longer silent: the mode goes out in the
+    # hello frame, so the app can say so where somebody is looking.
     @auth_token = nil
+    @auth_note = "could not write the token file (#{e.message})"
     log_error("could not write a token (#{e.message}): origin check only")
+    clear_stale_token!
     nil
+  end
+
+  # Remove a token left by a previous run.
+  #
+  # The nastiest of the three failure states: the write fails, an old token is
+  # still on disk, the client reads it, and it passes every shape check the app
+  # applies. It is sent, `authenticate` returns true at line two because
+  # `expected` is nil, and the token is never compared to anything. That looks
+  # *more* normal than a missing file, because a token was presented.
+  #
+  # Deleting it makes the origin-only state look like the origin-only state.
+  def self.clear_stale_token!
+    path = token_path
+    return unless File.exist?(path)
+
+    File.delete(path)
+    log_error("removed a stale token file at #{path}")
+  rescue StandardError => e
+    log_error("a stale token file could not be removed (#{e.message}): #{token_path}")
   end
 
   # Constant-time compare, so the answer does not leak by how long it took.
@@ -1710,7 +1768,12 @@ module Companion
       @lock.synchronize { @clients << sock }
       send_to(sock, type: 'hello', protocol: PROTOCOL,
                     lichVersion: (defined?(LICH_VERSION) ? LICH_VERSION.to_s : 'unknown'),
-                    bridgeVersion: BRIDGE_VERSION)
+                    bridgeVersion: BRIDGE_VERSION,
+                    # Which gates are up, so a halved boundary is visible
+                    # somewhere a person actually looks rather than only in
+                    # Lich's log, which the app never reads.
+                    auth: Companion.auth_mode,
+                    authNote: Companion.auth_note)
       send_to(sock, type: 'status', payload: State.status)
       send_to(sock, type: 'inventory', payload: State.inventory)
       send_to(sock, type: 'scripts', payload: State.other_scripts)

@@ -314,6 +314,48 @@ begin
   end
 
   puts ''
+  puts '-- the hello frame says which gates are actually up --'
+  # A red-team pass named this: if the token cannot be written, the bridge
+  # silently drops from two gates to one and nothing in the system can see it.
+  # The notice went to Lich's log, which the app never reads.
+  fresh = Client.new(PORT)
+  hello2 = fresh.read_until('hello')
+  check('hello carries the auth mode', !hello2.nil? && !hello2['auth'].to_s.empty?,
+        hello2 && hello2['auth'])
+  check('and it says token, because one was written', hello2 && hello2['auth'] == 'token',
+        hello2 && hello2['auth'])
+  check('with no note, because nothing went wrong', hello2 && hello2['authNote'].to_s.empty?,
+        hello2 && hello2['authNote'])
+  fresh.close
+
+  puts ''
+  puts '-- a failed write is announced, and takes the stale token with it --'
+  # The nastiest state of the three: the write fails, an old token is still on
+  # disk, the client reads it, it passes every shape check, it is sent, and
+  # `authenticate` returns true at line two without comparing it to anything.
+  # That looks MORE normal than a missing file, because a token was presented.
+  begin
+    token_file = Companion.token_path
+    File.write(token_file, 'a' * 64) unless File.exist?(token_file)
+
+    # Force the write to fail the way a lock or a read-only file would, by
+    # making generate_token unavailable. Same branch, no filesystem games.
+    Companion.singleton_class.send(:alias_method, :real_generate_token, :generate_token)
+    Companion.singleton_class.send(:define_method, :generate_token) { nil }
+    Companion.write_token!
+
+    check('the mode drops to origin-only', Companion.auth_mode == 'origin-only',
+          Companion.auth_mode)
+    check('and says why', !Companion.auth_note.to_s.empty?, Companion.auth_note)
+    check('the stale token file is gone', !File.exist?(token_file), token_file)
+  ensure
+    Companion.singleton_class.send(:alias_method, :generate_token, :real_generate_token)
+    Companion.write_token!
+    check('and a real token is back for the rest of the run',
+          Companion.auth_mode == 'token', Companion.auth_mode)
+  end
+
+  puts ''
   puts '-- the wrong path is refused, so a stray browser tab cannot attach --'
   wrong = TCPSocket.new('127.0.0.1', PORT)
   wrong.write("GET /nope HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\n" \
