@@ -172,7 +172,32 @@ export async function start({ quiet = false } = {}) {
  */
 export async function eyes({ require = true, requireDoc = null } = {}) {
   if (!(await seeing())) await start({ quiet: true })
-  const b = await attach({ port: PORT, timeoutMs: 8000 })
+
+  // Say which window, rather than taking whichever came back first.
+  //
+  // This app routinely has several page targets: it opens panel windows
+  // (`?view=panel&id=...`) and a map window (`?view=map`), each its own
+  // WebView. So "the main window" has to be stated, not assumed. Measured with
+  // two open, the HTTP target list put `about:blank` first and the app second
+  // while `Target.getTargets` returned the reverse in the same moment - so
+  // position was never a rule, only a coin flip that had been landing right.
+  //
+  // The main window is the app root with no `view` parameter. `about:blank`,
+  // devtools and the popped-out windows all fail that, and `attach` refuses
+  // outright if this matches none or more than one rather than picking by
+  // position.
+  const b = await attach({
+    port: PORT,
+    timeoutMs: 8000,
+    pick: (t) => {
+      if (!t.url.startsWith('http')) return false
+      try {
+        return !new URL(t.url).searchParams.has('view')
+      } catch {
+        return false
+      }
+    },
+  })
 
   // Stamp the document with an identity, and pair it with the process id.
   //

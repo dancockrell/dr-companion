@@ -145,12 +145,12 @@ export async function launch({ width = 1280, height = 860, headless = true } = {
  * is a blank page with none of the app in it, and it would render perfectly
  * and mean nothing.
  */
-export async function attach({ port = 9223, timeoutMs = 5000 } = {}) {
+export async function attach({ port = 9223, timeoutMs = 5000, pick = null } = {}) {
   const wsUrl = await debuggerUrl(port, timeoutMs)
-  return session(wsUrl, { target: 'first-page' })
+  return session(wsUrl, { target: 'first-page', pick })
 }
 
-async function session(wsUrl, { target = 'new', cleanup = null } = {}) {
+async function session(wsUrl, { target = 'new', cleanup = null, pick = null } = {}) {
   const ws = new WebSocket(wsUrl)
   await new Promise((resolve, reject) => {
     ws.onopen = resolve
@@ -201,17 +201,45 @@ async function session(wsUrl, { target = 'new', cleanup = null } = {}) {
         'the engine is listening but has no page target - is this the app, and was it started with --remote-debugging-port?'
       )
     }
-    // The app's own page, not devtools or an extension. If more than one is
-    // open, name them, because silently picking the first is how a check ends
-    // up reporting on the wrong window - the same shape as choosing between
-    // two identically titled sessions and never noticing there were two.
-    if (pages.length > 1) {
-      console.error(
-        `note: ${pages.length} page targets; using the first\n` +
+    // Which page, decided rather than guessed.
+    //
+    // This used to take `pages[0]` and print a note to stderr when there were
+    // several. That is a chooser whose wrong answer was never available to the
+    // test: with one target it cannot be wrong, and one target was the only
+    // case anybody had run it against.
+    //
+    // Several is the *normal* state of this app, not an edge case - it opens
+    // panel windows and a map window, each its own WebView target. Measured
+    // with two open: the HTTP target list returned `about:blank` first and the
+    // real app second, while `Target.getTargets` returned them the other way
+    // round in the same moment. So the order is not something to rely on, and
+    // `pages[0]` was a coin flip that happened to be landing right. A check
+    // that is correct by accident teaches the wrong lesson, and the failure it
+    // produces - measuring a different window - is silent and looks exactly
+    // like a result.
+    //
+    // So: a caller that knows which window it wants says so, and ambiguity is
+    // refused rather than resolved by position. Refusing is right because
+    // there is no answer here that is better than half correct, and a wrong
+    // window is indistinguishable downstream from a reload, a stale value, or
+    // a genuine reading.
+    const candidates = pick ? pages.filter((p) => pick(p)) : pages
+
+    if (candidates.length === 0) {
+      throw new Error(
+        `no page target matched. ${pages.length} page(s) available:\n` +
           pages.map((p) => `  ${p.url}`).join('\n')
       )
     }
-    targetId = pages[0].targetId
+    if (candidates.length > 1) {
+      throw new Error(
+        `AMBIGUOUS: ${candidates.length} page targets matched, refusing to pick one by position.\n` +
+          candidates.map((p) => `  ${p.url}`).join('\n') +
+          '\n  Narrow it with `pick`, or close the windows you are not measuring.\n' +
+          '  Picking arbitrarily here measures a different window and reads as a result.'
+      )
+    }
+    targetId = candidates[0].targetId
   }
   const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
   const call = (method, params) => send(method, params, sessionId)
