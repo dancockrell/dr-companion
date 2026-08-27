@@ -38,6 +38,15 @@ export class RealBridge {
   private url: string
   private status: RealBridgeStatus = 'disconnected'
   private reconnectAttempts = 0
+
+  /**
+   * A connect is in flight but has no socket yet.
+   *
+   * Set synchronously in `connect()`, cleared when the token read settles.
+   * Exists because `this.ws` cannot answer "are we already connecting" during
+   * the async gap before `openSocket()` runs - see `connect()`.
+   */
+  private connectPending = false
   private lastGameTime: number | null = null
   private lastGameTimeAt = 0
   // `ReturnType<typeof setTimeout>` rather than `number`, because the timers
@@ -76,9 +85,22 @@ export class RealBridge {
   }
 
   connect() {
-    if (this.ws && (this.status === 'connected' || this.status === 'connecting')) {
-      return
-    }
+    // Guarded on a flag set synchronously, not on `this.ws`.
+    //
+    // `this.ws` is assigned inside `openSocket()`, which only runs after the
+    // token read below resolves. So between entering this method and that
+    // callback firing, `this.ws` is still null while the status is already
+    // 'connecting' - and the old guard, which required `this.ws` to be
+    // truthy, let a second caller straight through that window. Two token
+    // reads, two sockets, two subscriptions.
+    //
+    // Reachable because `connectBridge()` is called from five places: App's
+    // mount effect, the settings sheet twice, and both pop-out windows. Seen
+    // in a screenshot as two "Live bridge: connecting" lines stamped the same
+    // second.
+    if (this.connectPending || this.status === 'connected') return
+
+    this.connectPending = true
     this.shouldReconnect = true
     this.setStatus('connecting')
 
@@ -94,11 +116,20 @@ export class RealBridge {
     // Read per attempt rather than cached: the bridge writes a fresh token
     // each time it starts, so a cached one is exactly wrong in the case that
     // matters - reconnecting after Lich restarted.
-    void this.readToken().then((token) => {
-      if (!this.shouldReconnect) return
-      this.token = token
-      this.openSocket()
-    })
+    void this.readToken()
+      .then((token) => {
+        if (!this.shouldReconnect) return
+        this.token = token
+        this.openSocket()
+      })
+      .finally(() => {
+        // Cleared in `finally`, not on the success path. A token read that
+        // throws would otherwise leave this latched true forever and every
+        // later connect would return silently - a worse bug than the double
+        // connect it replaces, and one that looks like the bridge simply
+        // never trying.
+        this.connectPending = false
+      })
   }
 
   /**
