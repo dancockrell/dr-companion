@@ -41,6 +41,7 @@ import {
   refreshGameState,
   sendGame,
   subscribeGame,
+  lichNote,
   type GameLine,
 } from '../../lib/gameLink'
 import { useGameLines } from '../../lib/useGameLines'
@@ -290,6 +291,22 @@ export function GamePane() {
 
         {link.connected && (
           <span className="tabular-nums text-ink-faint">{link.lines} lines</span>
+        )}
+
+        {/* "Connection lost" was the same sentence whether our socket dropped
+            or Lich exited underneath us, and those need opposite actions -
+            press Attach, or restart Lich first. Lich exits by itself when the
+            game server hangs up, so this is the common case, not the exotic
+            one. Only shown while detached, and silent when the probe could not
+            answer: an unproven claim about Lich would send somebody to restart
+            a process that is running fine. See lichNote(). */}
+        {!link.connected && lichNote(link.lich) && (
+          <span
+            className={cn(link.lich === 'gone' ? 'text-warn' : 'text-ink-faint')}
+            title="Checked by probing the port, not inferred from the disconnect"
+          >
+            {lichNote(link.lich)}
+          </span>
         )}
 
         {/* Said out loud, because "my highlights are not working" is otherwise

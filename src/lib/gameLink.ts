@@ -33,12 +33,44 @@ export interface GameLine {
   bold: boolean
 }
 
+/**
+ * Whether Lich itself is still there, which is not the same question as
+ * whether we are attached to it.
+ *
+ * Lich exits when the game server hangs up - `reason=game_eof` in its own log -
+ * and takes its listening ports with it. Before this field the app reported
+ * that as `Connection lost`, byte-identical to an attach simply dropping. So
+ * every instinct says press Attach, Attach cannot possibly work, and the
+ * player goes looking for a fault in the client. It also accounts for the
+ * disconnections nobody on this machine could explain tonight.
+ *
+ * Three states, not two, and the third is the point: a probe that could not
+ * answer must not be reported as either. Calling an unreachable Lich "gone"
+ * sends somebody to restart a process that is running perfectly, which is the
+ * exact mistake inverted.
+ */
+export type LichPresence = 'alive' | 'gone' | 'unknown'
+
 export interface LinkState {
   connected: boolean
   host: string
   port: number
   lines: number
   note: string
+  /**
+   * Set by a probe of the port, on the Rust side. **Expect it to change after
+   * a disconnect**: establishing "gone" on Windows takes a plain `connect` and
+   * about two seconds, against 119µs when something is listening, so the
+   * disconnect is emitted at once as `unknown` and a second `game:state`
+   * follows when the probe knows. Rendering the first event immediately and
+   * letting the second refine it is deliberate - it reads as the app finding
+   * out, which is what happened. See src-tauri/src/game_link.rs.
+   *
+   * Optional here rather than required, because a hot-reloaded frontend can
+   * outrun the Rust binary it is talking to, and an absent field is exactly
+   * the "could not determine" case the type already has a name for.
+   */
+  lich?: LichPresence
 }
 
 /**
@@ -66,6 +98,20 @@ let state: LinkState = {
   port: 0,
   lines: 0,
   note: 'Not attached.',
+  lich: 'unknown',
+}
+
+/**
+ * What the UI should say about Lich, given the probe.
+ *
+ * Kept here rather than in the component so there is one wording of it, and
+ * so the `unknown` case cannot quietly acquire a claim later: it returns
+ * `null`, and a caller with nothing to add says nothing about Lich at all.
+ */
+export function lichNote(lich: LichPresence | undefined): string | null {
+  if (lich === 'gone') return 'Lich has exited — restart Lich, then Attach.'
+  if (lich === 'alive') return 'Lich is still running — press Attach to reconnect.'
+  return null
 }
 
 /**
