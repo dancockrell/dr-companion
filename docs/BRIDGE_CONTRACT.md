@@ -780,3 +780,120 @@ confirm Stop reaches whatever `Script.start` process it launched — the same
 uses. `burgle` should still read disabled-with-tooltip after this batch
 ships, not enabled — its absence from `implementedIntents` is the whole
 point.
+
+## `check_health`: the one genuinely dead-data intent, and a live test that can't see the bug
+
+Prime's initial scan of "implemented but no caller in `src/`" also named
+`get_favors` and `check_toggles`. Both retracted after closer checking:
+`favors` is already live end-to-end (`status.favors`, consumed by
+`RiskBar.tsx` and `accountCapabilities.ts`'s "no favors, death costs full
+price" gate) — `get_favors` the *intent* has no caller, but the data it
+would return is not dead, it already flows through `status` and is read.
+`check_toggles` is prime 1's question to resolve (whether `status` already
+covers it). Only `check_health` has wound data with no route into the
+client by any path — confirmed by checking every occurrence of `wounds` in
+`src/`, which turns up a mock comment and unrelated catalogue text, nothing
+that consumes it.
+
+```
+grep -n "def check_health" -A45 lich-scripts/companion_bridge.lic
+```
+
+Calls `DRCH.check_health`, wrapped in `rescue StandardError; nil; end`, then
+gates on `data.is_a?(Hash)`.
+
+**That gate is never true against a real Lich install, and this is a bug,
+not a documented limitation.** `DRCH.check_health`
+(`lib/dragonrealms/commons/common-healing.rb:22`) returns a `HealthResult`
+instance on success — a plain class (`grep -n "class HealthResult"
+lib/dragonrealms/commons/common-healing.rb` → not `< Hash`, no `Hash`
+ancestor), not a `Hash`. `HealthResult#[]` is defined for backward
+compatibility (`data['wounds']` would actually resolve, since `[]` forwards
+to `send(:wounds)`) — but the bridge's own `unless data.is_a?(Hash)` check
+rejects it before that method is ever called. **Every successful
+`DRCH.check_health` call is routed into the same fallback branch as a
+failed one**, which sends a raw `HEALTH` command and, at best, logs its raw
+text with no structured data at all (`[true, 'health read']`, nothing
+parsed). The wound/bleeder/poisoned/diseased branch below the `is_a?(Hash)`
+check — the one issue #4's injuries spec (above, in this file) is written
+against — is currently dead code. `downloads-8a` found the symptom (the
+harness always takes the fallback, because `DRCH` was unstubbed); this is
+the root cause, and it is not a harness artifact — an unstubbed test and a
+real Lich install hit the exact same branch for the same reason.
+
+**`64cd112`'s new "DRCH available" test does not close this, and could not
+have caught it.** Read after landing, per prime's instruction that it pins
+the behaviour down — it doesn't, for this one specific case, because its
+stub returns the wrong shape:
+
+```
+grep -n "\$drch_reply = {" -A5 lich-scripts/test/server_test.rb
+```
+
+`$drch_reply` is set to a plain Ruby `Hash` literal (`{'wounds' => ...,
+'bleeders' => ..., 'poisoned' => false, 'diseased' => false}`). Against
+that stub, `data.is_a?(Hash)` is **true**, the bridge takes the real
+parsing branch, and the test correctly asserts `'3 wounds, 1 bleeding'`.
+The test is well-built — floor included, sabotage-checked — for a
+`DRCH.check_health` that returns a `Hash`. It doesn't, so the test is
+green for a scenario the real Lich API cannot produce, and the actual
+always-false gate has no coverage failing on it: the suite is fully green
+and the bug is still there. Same shape as this repo's other instrument-vs-
+subject misses tonight (the drift test's parser, the harness's missing
+`dothistimeout` stub before `5f71859`), just found on the read-through
+this section asked for rather than by running anything new.
+
+**Not fixed here, deliberately**, same reasoning as before this correction:
+the one-line fix (`data.respond_to?(:wounds)` in place of
+`data.is_a?(Hash)`) is trivial, but issue #4's spec above already claims
+this exact code path for a larger piece of work — persisting injuries
+across polls, the 13→4 severity bucketing, wiring into `status.injuries`.
+Changing the gate in isolation would make `check_health` start logging
+real wound text without doing any of that. **Whoever picks up #4 should
+also fix `$drch_reply`'s shape in the same pass** — a `HealthResult`-like
+double (respond_to `:wounds`/`:bleeders`/etc., not a `Hash`) or the
+success test will keep passing for a code path production still can't
+reach.
+
+```
+grep -n "def check_health" -A45 lich-scripts/companion_bridge.lic
+```
+
+Calls `DRCH.check_health`, wrapped in `rescue StandardError; nil; end`, then
+gates on `data.is_a?(Hash)`.
+
+**That gate is never true against a real Lich install, and this is a bug,
+not a documented limitation.** `DRCH.check_health`
+(`lib/dragonrealms/commons/common-healing.rb:22`) returns a `HealthResult`
+instance on success — a plain class (`grep -n "class HealthResult"
+lib/dragonrealms/commons/common-healing.rb` → not `< Hash`, no `Hash`
+ancestor), not a `Hash`. `HealthResult#[]` is defined for backward
+compatibility (`data['wounds']` would actually resolve, since `[]` forwards
+to `send(:wounds)`) — but the bridge's own `unless data.is_a?(Hash)` check
+rejects it before that method is ever called. **Every successful
+`DRCH.check_health` call is routed into the same fallback branch as a
+failed one**, which sends a raw `HEALTH` command and, at best, logs its raw
+text with no structured data at all (`[true, 'health read']`, nothing
+parsed). The wound/bleeder/poisoned/diseased branch below the `is_a?(Hash)`
+check — the one issue #4's injuries spec (above, in this file) is written
+against — is currently dead code. `downloads-8a` found the symptom (the
+harness always takes the fallback, because `DRCH` was unstubbed); this is
+the root cause, and it is not a harness artifact — an unstubbed test and a
+real Lich install hit the exact same branch for the same reason.
+
+**Not fixed here**, deliberately: the one-line fix (`data.respond_to?(:wounds)`
+in place of `data.is_a?(Hash)`) is trivial, but issue #4's spec above already
+claims this exact code path for a larger piece of work — persisting
+injuries across polls, the 13→4 severity bucketing, wiring into
+`status.injuries`. Changing the gate in isolation would make `check_health`
+start logging real wound text without doing any of that, which is a
+different, smaller change than #4 describes and could conflict with
+whoever implements it. Recording the finding here so #4's implementer
+starts from the right place instead of re-discovering that the primary
+path never ran.
+
+**`HealthResult` also exposes fields the bridge has never read even in the
+dead code**: `parasites`, `lodged`, `score`, `dead`, `vitality`, plus
+`injured?`/`bleeding?`/`has_tendable_bleeders?` convenience predicates
+(`lib/dragonrealms/commons/common-healing.rb:405-439`). Worth having in view
+for #4's implementer, not a gap this note is asking anyone to close.
