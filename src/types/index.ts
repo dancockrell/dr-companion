@@ -305,6 +305,17 @@ export interface AppState {
   mapNearest: MapNearest | null
   mapPath: MapPath | null
   mapZone: MapZone | null
+  /**
+   * The install_mapdb intent's own lifecycle, distinct from the map's.
+   *
+   * `install_mapdb` returns as soon as the bridge has started the download
+   * script — it does not wait for the fetch to finish, because that would
+   * block the bridge thread and freeze every other panel. So "started" is a
+   * real, distinct state from "done": the map staying absent right after a
+   * successful start is expected, not a sign the button failed. `null` is
+   * "never asked", not "no map" — see mapZone for that half of the picture.
+   */
+  mapdbInstall: { status: 'starting' | 'started' | 'failed'; detail?: string } | null
 
   setupComplete: boolean
   /**
@@ -467,4 +478,10 @@ export interface AppState {
   listScripts: () => void
   /** Launch a script by its bare name (no extension, no arguments). */
   startScript: (name: string) => void
+  /**
+   * Ask the bridge to fetch Lich's map database (runs download-prime-map or
+   * repository, whichever is installed). Fire-and-forget on the wire; see
+   * mapdbInstall for how the UI should read the reply.
+   */
+  installMapdb: () => void
 }

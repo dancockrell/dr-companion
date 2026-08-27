@@ -29,7 +29,7 @@ import {
   ZoomOut,
 } from 'lucide-react'
 import { describeTrail } from '../../lib/trail'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
 import type { IntentName } from '../../bridge/types'
 import { isTauri, invokeTauri } from '../../lib/tauri'
@@ -80,6 +80,16 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
+  /**
+   * The character's own idea of where it is (`DRRoom`/`Room.current`, on
+   * every status tick) versus the map's (`map_here`, a separate query). They
+   * are supposed to be the same Lich room id and nothing has ever checked —
+   * see issue #6. Only compare when both sides actually know something; a
+   * missing value on either side is silence, not a mismatch.
+   */
+  const characterRoomId = useAppStore((s) => s.character?.location.roomId ?? null)
+  const roomMismatch =
+    hereId !== null && characterRoomId !== null && String(hereId) !== characterRoomId
 
   const [level, setLevel] = useState<number | null>(null)
   const [tall, setTall] = useState(false)
@@ -267,6 +277,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         <p className="text-xs text-warn leading-relaxed">
           {zone.reason ?? 'Lich has no map for where you are.'}
         </p>
+        <MapdbInstallControl />
       </Shell>
     )
   }
@@ -356,6 +367,34 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           gives is a place on the map and the two want to be read together.
           It costs one row and gives back the thing the map could not do. */}
       <PlaceSearch here={zone.zone} onPick={goToPlace} />
+
+      {/*
+       * This is the common shape of "no map database", not the `!zone.ok`
+       * branch above. That branch only fires when even the shipped built-in
+       * cartography fails to load — but the built-in zone loads successfully
+       * almost always, so `zone` here is quietly the bundled Crossing data,
+       * not live Lich geography, and nothing said so. Checking `liveZone`
+       * directly rather than the merged `zone` is what actually catches it:
+       * connected, asked, and told no. Verified against a running mock by
+       * forcing mapZone to {ok:false} — the merged `zone` still rendered the
+       * full built-in Crossing map with no visible sign anything was wrong.
+       */}
+      {connected && liveZone !== null && !liveZone.ok && (
+        <div className="rounded border border-warn/30 bg-warn/5 px-2 py-1.5">
+          <p className="text-xs text-warn leading-snug">
+            {liveZone.reason ?? 'Lich has no map for where you are.'} Showing
+            the built-in Crossing map below instead — it is not where you are.
+          </p>
+          <MapdbInstallControl />
+        </div>
+      )}
+
+      {roomMismatch && (
+        <p className="text-xs text-warn leading-snug" title={`Map says room ${hereId}; character reports room ${characterRoomId}`}>
+          Map and character disagree about the room — the map may be drawing
+          the wrong place.
+        </p>
+      )}
 
       {/* A real height, not a max. `fit` scales the zone into whatever box it
           is given, and a max-height box collapses to the content's own size —
@@ -538,5 +577,53 @@ function Shell({
       </header>
       {children}
     </section>
+  )
+}
+
+/**
+ * The fix for "Lich has no map for where you are", right where that message
+ * is read. `install_mapdb` runs download-prime-map (or repository) through
+ * Lich's own Script.start and answers as soon as the script has started, not
+ * when the download finishes — so this has to track its own started/failed
+ * state rather than borrowing the map's present/absent state, and it must
+ * never claim the map is fixed just because the request was accepted.
+ */
+function MapdbInstallControl() {
+  const bridgeIntents = useAppStore((s) => s.bridgeIntents)
+  const install = useAppStore((s) => s.mapdbInstall)
+  const installMapdb = useAppStore((s) => s.installMapdb)
+
+  // A bridge too old to say what it implements is treated as able to, same
+  // as every other intent — see isIntentImplemented. Only an explicit "no"
+  // hides the control.
+  if (!isIntentImplemented(bridgeIntents, 'install_mapdb')) return null
+
+  if (install?.status === 'started') {
+    return (
+      <p className="mt-1.5 text-xs text-ink-faint leading-relaxed">
+        {install.detail ??
+          'Started. The map will fill in once Lich finishes the download — this can take a minute.'}
+      </p>
+    )
+  }
+
+  return (
+    <div className="mt-1.5 flex items-start gap-2">
+      <button
+        type="button"
+        disabled={install?.status === 'starting'}
+        onClick={installMapdb}
+        className="shrink-0 text-xs rounded border border-border px-2 py-1 text-ink-muted hover:text-ink disabled:opacity-50"
+      >
+        {install?.status === 'starting'
+          ? 'Asking Lich…'
+          : install?.status === 'failed'
+            ? 'Try again'
+            : 'Fetch the map database'}
+      </button>
+      {install?.status === 'failed' && (
+        <p className="text-xs text-warn leading-relaxed">{install.detail}</p>
+      )}
+    </div>
   )
 }

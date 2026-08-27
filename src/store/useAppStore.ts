@@ -207,6 +207,17 @@ function handleBridgeMessage(
       get().addLog(`Stopped itself: ${msg.reason}`, 'error')
       break
     case 'intent_ack':
+      // install_mapdb's ack means "started", never "done" — the bridge
+      // returns before the fetch completes on purpose (BRIDGE_CONTRACT.md),
+      // so its own state is tracked separately from the generic log line
+      // below rather than folded into it.
+      if (msg.intent === 'install_mapdb') {
+        set({
+          mapdbInstall: msg.ok
+            ? { status: 'started', detail: msg.detail }
+            : { status: 'failed', detail: msg.detail ?? 'refused with no reason given' },
+        })
+      }
       if (!msg.ok)
         get().addLog(`Intent failed: ${msg.intent} — ${msg.detail ?? ''}`, 'error')
       break
@@ -244,6 +255,7 @@ function handleBridgeMessage(
 export const useAppStore = create<AppState>((set, get) => ({
   mapHere: null,
   mapTrail: emptyTrail(),
+  mapdbInstall: null,
   mapTags: [],
   mapNearest: null,
   mapPath: null,
@@ -347,6 +359,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   startScript: (name: string) => {
     bridge.requestIntent('start_script' as IntentName, { name })
+  },
+
+  installMapdb: () => {
+    set({ mapdbInstall: { status: 'starting' } })
+    bridge.requestIntent('install_mapdb' as IntentName)
   },
 
   setActiveFlow: (v) => set({ activeFlow: v }),
