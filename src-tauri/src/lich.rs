@@ -29,12 +29,49 @@
 //! The app therefore never reads, stores, holds in memory, or passes on a
 //! password. Reading the saved-entry file is deliberately narrow for the same
 //! reason - see `saved_characters`.
+//!
+//! # The frontend flag has to be `--stormfront`, not `--genie`
+//!
+//! Found 27 Aug 2026, the same day the channel tabs shipped, and it would have
+//! made them permanently silent against a real game. Lich's frontend registry
+//! (`front-end.rb`) gives each declared frontend a fixed capability set, and
+//! `messaging.rb` gates every `<pushStream>`/`<popStream>` tag behind
+//! `Frontend.supports_streams?`. `--genie`'s capabilities are `[xml, mono]` -
+//! no `streams` - because the real Genie plugin never asked for them, which is
+//! the entire reason StreamTabs exists: Genie users build named windows out of
+//! highlight patterns because Lich never gives them the game's own labels.
+//! Declaring `--genie` here would have reproduced exactly that limitation on
+//! purpose, silently, and only the replay fixture (which emits tags without
+//! any capability check) made the feature look like it worked.
+//!
+//! `--stormfront` carries `[xml, streams, mono, room_window]`, is a real
+//! `-s`/`--stormfront` flag Lich's argument parser accepts, and combined with
+//! `--headless <port>` never launches an actual Wrayth/StormFront process -
+//! `--headless` expands to `--without-frontend --detachable-client=PORT`,
+//! and `--without-frontend` sets `$_CLIENT_ = nil` before any launcher adapter
+//! runs (`lib/main/main.rb`). So the frontend identity governs the protocol
+//! Lich speaks; `--without-frontend` governs whether it tries to open a
+//! window. The two are independent, and this app wants the first without the
+//! second.
+//!
+//! `--headless <port>` is also what actually opens the socket
+//! `src-tauri/src/game_link.rs` connects to. Its absence here was a second,
+//! separate gap: without it Lich resolves to the `session` role and expects to
+//! spawn a real frontend, so this app's own launch button would start Lich
+//! into a state its own TCP client could never attach to.
 
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::setup::{detect_ruby, pretty_path, rank_lich_installs};
+
+/// The port Lich is asked to open with `--headless`, and the port the app's
+/// own TCP client (`game_link.rs`) and its "Attach" button both default to.
+/// One number in one place: the frontend hardcodes this same value in four
+/// spots (the Genie config example, the connect guide, and the Attach
+/// button), and a mismatch here would launch a Lich nothing could reach.
+pub const DETACHABLE_PORT: u16 = 11024;
 
 /// What we know about Lich, in the three answers a status can have.
 ///
@@ -239,6 +276,57 @@ pub fn lich_status() -> LichStatus {
     s
 }
 
+/// The arguments `launch_lich` hands to Ruby, separated out so they can be
+/// asserted on without spawning a real process.
+///
+/// This is the function that would have caught both bugs fixed here on
+/// 27 Aug 2026 in a test rather than by reading the source after the app
+/// failed to work: `--genie` in place of `--stormfront` (silently drops the
+/// `streams` capability the channel tabs depend on) and a missing
+/// `--headless=<port>` (Lich never opens the socket this app's own TCP client
+/// connects to). Neither made `launch_lich` return an error - Lich still
+/// started - so nothing short of asserting the argument list itself would
+/// have caught either one.
+fn launch_args(launcher: &str, character: Option<&str>) -> Result<Vec<String>, String> {
+    let mut args: Vec<String> = vec![launcher.to_string()];
+
+    match character.map(str::trim).filter(|c| !c.is_empty()) {
+        Some(name) => {
+            // A character name reaches a command line, so it is checked. This
+            // is not defence against a hostile user - it is their own machine -
+            // it is defence against a name with a quote or a switch-looking
+            // prefix in it turning into an argument Lich reads as an option.
+            if !valid_character_name(name) {
+                return Err(format!("{name:?} does not look like a character name"));
+            }
+            args.push("--login".into());
+            args.push(name.into());
+            args.push("--dragonrealms".into());
+            // `--stormfront`, not `--genie` - see the module note. This is
+            // the frontend Lich believes it is talking to for capability
+            // purposes (streams, so the channel tabs have something to read),
+            // and `--headless` below is what stops it from trying to launch
+            // an actual one.
+            args.push("--stormfront".into());
+            // Opens the socket `game_link.rs` connects to, and stops Lich
+            // from expecting to spawn a frontend process it would then find
+            // was never installed.
+            args.push(format!("--headless={DETACHABLE_PORT}"));
+            // The bridge, started by Lich rather than by hand. Without this the
+            // app connects to nothing and the player is told the bridge is
+            // missing, having just watched the thing that hosts it start up.
+            args.push("--start-scripts=companion_bridge".into());
+        }
+        None => {
+            // Deliberately bare. Lich's own launcher asks for the game, the
+            // frontend and the account, and the account is the part this app
+            // must not be in the middle of.
+        }
+    }
+
+    Ok(args)
+}
+
 /// Start Lich.
 ///
 /// With a character name this is a silent, complete launch: Lich logs in using
@@ -265,32 +353,7 @@ pub fn launch_lich(character: Option<String>) -> Result<String, String> {
         return Err("Lich looks like it is already running. Close it first, or use the one that is up.".into());
     }
 
-    let mut args: Vec<String> = vec![launcher.clone()];
-
-    match character.as_deref().map(str::trim).filter(|c| !c.is_empty()) {
-        Some(name) => {
-            // A character name reaches a command line, so it is checked. This
-            // is not defence against a hostile user - it is their own machine -
-            // it is defence against a name with a quote or a switch-looking
-            // prefix in it turning into an argument Lich reads as an option.
-            if !valid_character_name(name) {
-                return Err(format!("{name:?} does not look like a character name"));
-            }
-            args.push("--login".into());
-            args.push(name.into());
-            args.push("--dragonrealms".into());
-            args.push("--genie".into());
-            // The bridge, started by Lich rather than by hand. Without this the
-            // app connects to nothing and the player is told the bridge is
-            // missing, having just watched the thing that hosts it start up.
-            args.push("--start-scripts=companion_bridge".into());
-        }
-        None => {
-            // Deliberately bare. Lich's own launcher asks for the game, the
-            // frontend and the account, and the account is the part this app
-            // must not be in the middle of.
-        }
-    }
+    let args = launch_args(&launcher, character.as_deref())?;
 
     Command::new(&ruby)
         .args(&args)
@@ -312,6 +375,47 @@ pub fn launch_lich(character: Option<String>) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The `streams` capability, not the frontend that lacks it. `--genie`
+    /// shipped here first and was wrong in a way nothing else in this file
+    /// would have caught - Lich still starts, `launch_lich` still returns Ok,
+    /// and the only symptom is a feature elsewhere in the app receiving
+    /// nothing, forever, from a real game.
+    #[test]
+    fn declares_stormfront_for_streams_not_genie() {
+        let args = launch_args("lich.rbw", Some("Phemius")).unwrap();
+        assert!(args.iter().any(|a| a == "--stormfront"), "{args:?}");
+        assert!(!args.iter().any(|a| a == "--genie"), "{args:?}");
+    }
+
+    /// The socket `game_link.rs` connects to has to actually be opened, or
+    /// this app's own launch button starts a Lich its own client cannot
+    /// attach to.
+    #[test]
+    fn opens_the_detachable_client_port() {
+        let args = launch_args("lich.rbw", Some("Phemius")).unwrap();
+        assert!(
+            args.iter().any(|a| a == &format!("--headless={DETACHABLE_PORT}")),
+            "{args:?}"
+        );
+        // And not the older two-token form Lich also accepts - a mismatch
+        // here would silently pass Lich's own parser and still be wrong.
+        assert!(!args.iter().any(|a| a.starts_with("--detachable-client")), "{args:?}");
+    }
+
+    /// The bare launch (no character) must stay bare. Adding a frontend or
+    /// port here would have Lich decide those things instead of asking, on
+    /// the screen where credentials belong.
+    #[test]
+    fn a_bare_launch_carries_no_extra_arguments() {
+        let args = launch_args("lich.rbw", None).unwrap();
+        assert_eq!(args, vec!["lich.rbw".to_string()]);
+    }
+
+    #[test]
+    fn a_hostile_looking_name_is_refused_before_it_reaches_a_command_line() {
+        assert!(launch_args("lich.rbw", Some("--account=x")).is_err());
+    }
 
     /// The whole point of the narrow parse, asserted rather than described.
     ///

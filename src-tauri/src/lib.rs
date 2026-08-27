@@ -2,6 +2,7 @@ pub mod bridge_token;
 pub mod config_import;
 pub mod game_link;
 pub mod lich;
+pub mod lich_health;
 pub mod setup;
 pub mod sounds;
 
@@ -114,6 +115,7 @@ pub fn run() {
             game_link::game_detach,
             lich::lich_status,
             lich::launch_lich,
+            lich_health::lich_health,
             setup::plan_setup,
             setup::download_component,
             setup::extract_lich,

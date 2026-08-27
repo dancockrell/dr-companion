@@ -201,6 +201,18 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
             </p>
             <Line text={`#lichconnect YourCharacter${cfg.suffix}`} />
           </div>
+
+          {/* Genie's own config always carries --genie, which is the correct
+            * flag for Genie and the wrong one for this app's channel tabs -
+            * see the same note in Dashboard.tsx. Not repeated per game
+            * variant above; the limitation is about the flag, not the game. */}
+          <p className="text-xs text-warn leading-snug">
+            This keeps Genie as your window. The channel tabs in this app stay
+            empty either way, because Lich only sends the game's channel
+            labels to a frontend that asks for them, and{' '}
+            <code className="text-ink-muted">--genie</code> does not. Use "Open
+            Lich to sign in" on the dashboard instead if you want those.
+          </p>
         </div>
       ) : (
         <div className="space-y-2">

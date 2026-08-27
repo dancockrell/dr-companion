@@ -45,11 +45,33 @@ interface LichStatus {
   note: string
 }
 
+/**
+ * Whether Lich can actually start, found out by starting it.
+ *
+ * Distinct from `LichStatus`, which only says whether the pieces are present.
+ * On this machine every piece was present - Ruby, `lich.rbw`, every gem in
+ * the Gemfile named as a requirement - and Lich still would not boot, for two
+ * unrelated reasons: none of its gems were installed, and 24 of its own
+ * source files were missing from the tree. A presence check is silent about
+ * both; running `--version` and reading what it actually says is not.
+ */
+interface LichHealth {
+  boots: boolean | null
+  version: string | null
+  problem: string | null
+  diagnosis: string | null
+  remedy: string | null
+  note: string
+}
+
 export function LichLauncher() {
   const [status, setStatus] = useState<LichStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const [said, setSaid] = useState<string | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
+
+  const [health, setHealth] = useState<LichHealth | null>(null)
+  const [checkingHealth, setCheckingHealth] = useState(false)
 
   const refresh = async () => {
     if (!isTauri()) return
@@ -57,6 +79,30 @@ export function LichLauncher() {
       setStatus((await invokeTauri('lich_status')) as LichStatus)
     } catch (e) {
       setFailed(String(e))
+    }
+  }
+
+  /**
+   * Actually try to start it, rather than inferring from the pieces being
+   * present. Slower than reading `status` - it runs a real Ruby process - so
+   * this is called deliberately (after a launch that did not take, or on
+   * request) rather than on every mount.
+   */
+  const checkHealth = async () => {
+    setCheckingHealth(true)
+    try {
+      setHealth((await invokeTauri('lich_health')) as LichHealth)
+    } catch (e) {
+      setHealth({
+        boots: null,
+        version: null,
+        problem: null,
+        diagnosis: null,
+        remedy: null,
+        note: `Not checked: ${String(e)}`,
+      })
+    } finally {
+      setCheckingHealth(false)
     }
   }
 
@@ -83,6 +129,7 @@ export function LichLauncher() {
     setBusy(true)
     setSaid(null)
     setFailed(null)
+    setHealth(null)
     try {
       setSaid((await invokeTauri('launch_lich', { character: character ?? null })) as string)
     } catch (e) {
@@ -93,7 +140,16 @@ export function LichLauncher() {
       // created, which is not the same as Lich being up - it can exit a second
       // later on a bad argument and this panel would still be congratulating
       // itself.
-      setTimeout(() => void refresh(), 1200)
+      setTimeout(async () => {
+        await refresh()
+        // A process that spawned and then was not found running a moment
+        // later did not fail loudly - it fell over during boot. That is
+        // exactly the shape the character-name login window cannot explain,
+        // because it never got that far. Worth the cost of actually starting
+        // Lich a second time to find out why.
+        const now = (await invokeTauri('lich_status')) as LichStatus
+        if (!now.running) void checkHealth()
+      }, 1200)
     }
   }
 
@@ -168,6 +224,41 @@ export function LichLauncher() {
             app never sees it, and starting a saved character needs only the
             name.
           </p>
+
+          {/* Always offered, not only after a failed launch. A character
+            * whose entry has quietly gone stale, or a Lich install with a
+            * missing gem, will otherwise sit here forever looking identical
+            * to "not attached yet". */}
+          <button
+            type="button"
+            disabled={checkingHealth}
+            onClick={() => void checkHealth()}
+            className="text-xs text-ink-faint underline decoration-dotted hover:text-ink disabled:opacity-50"
+          >
+            {checkingHealth ? 'Starting Lich to check…' : "Why won't it start?"}
+          </button>
+        </div>
+      )}
+
+      {health && (
+        <div
+          className={`mt-2 rounded border p-2 text-xs leading-snug ${
+            health.boots === true
+              ? 'border-good/40 bg-good/10 text-good'
+              : health.boots === false
+                ? 'border-danger/40 bg-danger/10 text-danger'
+                : 'border-border text-ink-faint'
+          }`}
+        >
+          <p>{health.note}</p>
+          {health.diagnosis && <p className="mt-1 text-ink-muted">{health.diagnosis}</p>}
+          {health.remedy && <p className="mt-1 text-ink-muted">{health.remedy}</p>}
+          {/* The raw line, always, when there is one - even once diagnosed.
+            * A diagnosis can be wrong; the line Lich actually printed cannot
+            * be, and it is what to paste into a bug report or a search. */}
+          {health.problem && (
+            <p className="mt-1 break-all font-mono text-xs text-ink-faint">{health.problem}</p>
+          )}
         </div>
       )}
 

@@ -136,6 +136,28 @@ export function Dashboard() {
                 Then <code className="text-ink">,companion_bridge</code> in the game.
                 This panel fills in on its own.
               </p>
+              {/*
+               * Said plainly rather than left for someone to discover by
+               * watching an empty tab row forever. `--genie` and the channel
+               * tabs are mutually exclusive: Lich gates every pushStream tag
+               * behind a capability the real Genie plugin never asked for,
+               * because Genie users build named windows out of highlight
+               * patterns instead of receiving the game's own labels. That is
+               * true of this exact config block, not a caveat that happens to
+               * apply here - same Lich, same flag, same missing capability,
+               * whoever launches it.
+               *
+               * The button below launches Lich directly with --stormfront,
+               * which does have it. This block stays for someone who wants to
+               * keep the real Genie window open too, and that combination
+               * costs the channel tabs specifically - nothing else.
+               */}
+              <p className="mt-2 text-xs text-warn">
+                This keeps Genie as your window, and it means the channel tabs
+                below stay empty - Lich only sends the game's channel labels to
+                a frontend that asks for them, and Genie's own config does not.
+                Use "Open Lich to sign in" instead if you want those.
+              </p>
 
               {/* Or press the button, which is the point.
                 *
