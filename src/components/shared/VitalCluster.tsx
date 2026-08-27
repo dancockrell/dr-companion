@@ -168,7 +168,28 @@ export function VitalCluster({
   height?: number
 }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+    /*
+     * A floor, so this wraps instead of collapsing.
+     *
+     * It was `min-w-0 flex-1`, which in the dashboard's right rail meant the
+     * portrait and the paperdoll took 232px of a 240px column and the vitals
+     * were squeezed into what was left. The row is `flex-wrap` and would have
+     * wrapped them onto their own line - but `min-w-0` tells flexbox this may
+     * shrink to nothing, so it shrank rather than wrapped.
+     *
+     * On screen that was five labels sliced to "Heal", "Man", "Stam" with
+     * every number cut off entirely. Health, mana, stamina, spirit and
+     * concentration, all invisible, on the panel whose whole job is to say how
+     * much of each you have left.
+     *
+     * It survived because `innerText` still reported the numbers, so every
+     * check that read text passed. It took rendering the page and looking at
+     * it. See tools/look.mjs.
+     *
+     * 8.5rem is the width of the widest row this draws: a 3.5rem label, a
+     * 2.5rem number, the gaps, and enough bar left to read as a bar.
+     */
+    <div className="flex min-w-[8.5rem] flex-1 flex-col gap-0.5">
       {vitals.map((v) => {
         const share = v.max > 0 ? Math.max(0, Math.min(1, v.value / v.max)) : 0
         const pct = Math.round(share * 100)

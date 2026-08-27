@@ -231,7 +231,13 @@ export function CreatureArt({
         </svg>
       ) : (
         <span
-          className="text-2xl font-semibold leading-none text-ink-faint opacity-60"
+          // leading-[1.2] rather than leading-none. `leading-none` sets the
+          // line box to exactly the font size, which is less than the glyph
+          // needs: at 24px the letter wanted 28px, and the difference came off
+          // the top and bottom of the character. Small, and invisible unless
+          // something goes looking - tools/look.mjs reported "28px of text in
+          // 24px" at this element.
+          className="text-2xl font-semibold leading-[1.2] text-ink-faint opacity-60"
           aria-hidden="true"
         >
           {/* The noun, not the name: every second creature in the game is

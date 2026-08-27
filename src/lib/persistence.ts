@@ -34,6 +34,16 @@ export interface PersistedPrefs {
   frontend?: string
   houseEntryMethod?: 'rope' | 'lockpick' | 'lockpick_ring'
   houseEntryMaxSearches?: number
+  /**
+   * Which invented character Mock is playing.
+   *
+   * Remembered because it was not, and the app went back to the barbarian on
+   * every reload - so anyone testing against a different guild reset their
+   * own setup several times a minute. It is also what lets the dashboard be
+   * rendered without a person clicking through to it, which is how it gets
+   * looked at rather than described.
+   */
+  demoPreset?: string
   houseEntryHide?: boolean
   /**
    * Whether first-run setup has been through once.
@@ -59,6 +69,7 @@ const defaults: PersistedPrefs = {
   consoleOpen: false,
   typeScale: 1,
   frontend: 'genie',
+  demoPreset: 'basic_prime',
   houseEntryMethod: 'lockpick_ring',
   houseEntryMaxSearches: 3,
   houseEntryHide: true,

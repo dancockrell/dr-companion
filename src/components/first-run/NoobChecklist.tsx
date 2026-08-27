@@ -6,7 +6,18 @@ export function NoobChecklist() {
       <h3 className="text-xs font-semibold text-ink uppercase tracking-wider">
         Before serious training (noob checklist)
       </h3>
-      <ul className="space-y-1.5 max-h-40 overflow-y-auto">
+      {/* No height cap.
+        *
+        * It was `max-h-40 overflow-y-auto`, which showed seven of thirteen
+        * items in a scrolling box, on a page with about four hundred pixels of
+        * empty space underneath it. Content squeezed into a scroller while the
+        * page it sits on is half blank.
+        *
+        * Invisible in the source and obvious in a render, which is the reason
+        * tools/look.mjs exists. A cap is right when a container has a fixed
+        * height to defend; the setup wizard scrolls as a page, so this has
+        * nothing to defend and the list should just be the list. */}
+      <ul className="space-y-1.5">
         {NOOB_CHECKLIST.map((item) => (
           <li key={item.id} className="text-xs leading-snug">
             <span

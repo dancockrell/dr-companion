@@ -13,6 +13,7 @@ import { SettingsFilesPanel } from '../shared/SettingsFilesPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
+import { loadPrefs } from '../../lib/persistence'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -45,7 +46,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Which preset is showing. Local because the bridge is the thing that holds
   // it and does not report it back; the select would otherwise sit on its
   // default while the app showed somebody else.
-  const [demoPreset, setDemoPreset] = useState('basic_prime')
+  const [demoPreset, setDemoPreset] = useState(() => loadPrefs().demoPreset ?? 'basic_prime')
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-3">

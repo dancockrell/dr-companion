@@ -16,6 +16,45 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
+    /**
+     * The address Tauri actually polls.
+     *
+     * Without this, Vite binds `localhost`, which on a machine with IPv6
+     * enabled resolves to `::1`. `tauri.conf.json` sets devUrl to
+     * `http://127.0.0.1:1420` - a different address - so `tauri dev` printed
+     * "Waiting for your frontend dev server to start" forever and no window
+     * ever appeared. The dev server was up the whole time, answering on
+     * localhost.
+     *
+     * That is the entire desktop app unable to start, presenting as a hang
+     * rather than an error: the log line is literally true and reads like
+     * patience. It stayed hidden because a browser and the browser pane both
+     * use `localhost`, so everything anyone actually looked at worked.
+     *
+     * Bound explicitly rather than set to `true`. `true` listens on every
+     * interface, which puts a dev server on the local network that nobody
+     * asked for.
+     */
+    host: '127.0.0.1',
+
+    /**
+     * Do not watch the Rust build directory.
+     *
+     * Vite watches the whole project root, which includes
+     * `src-tauri/target` - tens of thousands of files that Cargo is writing
+     * while the app builds. On Windows the watcher opens a handle on a
+     * `.dll` Cargo currently has locked, throws `EBUSY`, and takes the dev
+     * server down with it. Tauri then reports only that its
+     * `beforeDevCommand` exited non-zero, which says nothing about a file
+     * watcher.
+     *
+     * This exclusion is in Tauri's own Vite template and was missing here.
+     * Together with the host binding above it is the second of two reasons
+     * `tauri dev` had never produced a window on this machine.
+     */
+    watch: {
+      ignored: ['**/src-tauri/**'],
+    },
   },
   clearScreen: false,
 })

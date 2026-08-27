@@ -25,6 +25,7 @@ import { ranksOf, type SkillState, SKILLS_BY_SET, SKILL_SETS } from '../data/ski
 import { effectiveAthletics } from '../data/obstacles'
 import { DEMO_ZONE, demoPath } from '../data/demoMap'
 import { loadZone, DEFAULT_ZONE } from '../lib/mapData'
+import { loadPrefs, savePrefs } from '../lib/persistence'
 
 type Listener = (msg: BridgeServerMessage) => void
 
@@ -520,8 +521,21 @@ export const DEMO_PRESET_LIST = Object.values(presets).map((p) => ({
 
 export class MockBridge {
   private listeners = new Set<Listener>()
-  private character: CharacterStatus = { ...presets.basic_prime.character }
-  private inventory: InventorySummary = structuredClone(presets.basic_prime.inventory)
+  /**
+   * Whoever was chosen last, not always the barbarian.
+   *
+   * Read at construction rather than applied later, so the first status the app
+   * ever sees is already the right character. Applying it after connect made
+   * the dashboard render one character and then swap, which looks like a bug
+   * and briefly is one - every panel reading the first payload gets it wrong.
+   */
+  private static initial(): DemoPresetId {
+    const saved = loadPrefs().demoPreset
+    return saved && saved in presets ? (saved as DemoPresetId) : 'basic_prime'
+  }
+
+  private character: CharacterStatus = { ...presets[MockBridge.initial()].character }
+  private inventory: InventorySummary = structuredClone(presets[MockBridge.initial()].inventory)
   private scripts: string[] = []
   private connected = false
   private timer: number | null = null
@@ -567,6 +581,7 @@ export class MockBridge {
   loadPreset(id: DemoPresetId) {
     const p = presets[id]
     if (!p) return
+    savePrefs({ demoPreset: id })
     this.character = { ...p.character, connected: this.connected }
     this.inventory = structuredClone(p.inventory)
     this.scripts = []

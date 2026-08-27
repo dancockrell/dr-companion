@@ -116,7 +116,16 @@ fn saved_characters(data_dir: &Path) -> Option<Vec<String>> {
     let text = std::fs::read_to_string(data_dir.join("entry.yaml")).ok()?;
     let mut names = Vec::new();
     for line in text.lines() {
-        let t = line.trim();
+        // The leading "- " matters and its absence was a real bug. Characters
+        // are a YAML *list*, so the line is `- char_name: Phemius`, and a
+        // prefix check for `char_name:` alone matched nothing. Every install
+        // would have reported no saved characters forever, which is the
+        // failure this function's own doc comment warns about at length.
+        //
+        // It was not caught by reading, and it could not be caught by running
+        // the test, because linking was broken on this machine at the time. It
+        // was found the moment the test could run.
+        let t = line.trim().trim_start_matches("- ").trim();
         let Some(rest) = t.strip_prefix("char_name:") else {
             continue;
         };
