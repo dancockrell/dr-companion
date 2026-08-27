@@ -789,6 +789,10 @@ Prime's initial scan of "implemented but no caller in `src/`" also named
 `RiskBar.tsx` and `accountCapabilities.ts`'s "no favors, death costs full
 price" gate) — `get_favors` the *intent* has no caller, but the data it
 would return is not dead, it already flows through `status` and is read.
+**`get_favors` itself has since been deleted** (ratified by prime 1): a
+capability nobody could invoke, duplicating a route that already works,
+was surface with no upside. If this section is being read as a reason to
+re-add it, don't — `status.favors` is the live route, and always was.
 `check_toggles` is prime 1's question to resolve (whether `status` already
 covers it). Only `check_health` has wound data with no route into the
 client by any path — confirmed by checking every occurrence of `wounds` in

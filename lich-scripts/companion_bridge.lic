@@ -1413,8 +1413,6 @@ module Companion
         [true, "#{rows.size} rows"]
       when 'read_settings' then read_settings(server)
       when 'check_toggles' then check_toggles(server)
-      when 'get_favors'
-        [true, "favors: #{State.safe(0) { DRStats.favors.to_i }}"]
 
       # --- map queries, all read-only -------------------------------------
       #
