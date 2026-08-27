@@ -184,11 +184,87 @@ module GameObj
   end
 end
 
+# read_settings needs a character name to glob <name>-*.yaml files. DRStats
+# had no stub at all before this, so State.char_name (State.safe('') {
+# DRStats.name.to_s }) silently returned '' in every run - which happened to
+# still exercise base.yaml, but never the per-character file, and never
+# proved the bridge was asking for *this* character's files rather than
+# getting lucky on an empty name matching nothing.
+module DRStats
+  def self.name = 'Testchar'
+end
+
+# Real files on disk, not a stubbed Yaml.profile_dirs override - read_settings
+# is being tested through the socket as an intent, and Yaml.files_for's own
+# logic (load order, base.yaml first) is already covered directly in
+# yaml_test.rb. What's untested is the wiring: does the intent actually reach
+# Yaml.files_for with this character's name and report what it finds.
+PROFILE_DIR = File.join(TEST_LICH_DIR, 'scripts', 'dr-scripts', 'profiles')
+FileUtils.mkdir_p(PROFILE_DIR)
+File.write(File.join(PROFILE_DIR, 'base.yaml'), "throttle: true\n")
+File.write(File.join(PROFILE_DIR, 'Testchar-setup.yaml'), "guild: bard\n")
+
+# A one-room world, StubRoom/StubMap mirroring Lich::Common::Map's interface
+# (id vs uid, title as an array, wayto, tags, path_to,
+# find_nearest_by_tag) exactly as map_test.rb's stub does, for the same
+# reason: MapInfo.klass resolves the real class by name and the bridge
+# script has to be tricked the same way in both suites, not tested against a
+# different double in each.
+class StubRoom
+  attr_reader :id, :uid, :title, :location, :climate, :terrain, :tags, :wayto,
+              :genie_zone, :genie_pos
+
+  def initialize(id, uid, title, location, tags, wayto)
+    @id = id
+    @uid = [uid]
+    @title = ["[#{title}]"]
+    @location = location
+    @climate = 'temperate'
+    @terrain = 'stone'
+    @tags = tags
+    @wayto = wayto
+    @genie_zone = '1'
+    @genie_pos = { 'x' => id * 10, 'y' => 0, 'z' => 0 }
+  end
+
+  def path_to(dest) = StubMap.route(@id, dest.to_i)
+  def find_nearest_by_tag(tag) = StubMap.list.compact.find { |r| r.tags.include?(tag) }&.id
+end
+
+module StubMap
+  ROUTES = { [1, 2] => [2] }.freeze
+
+  def self.list
+    @list ||= begin
+      rooms = [
+        StubRoom.new(1, 9001, 'Town Square', 'Crossing', [], { 2 => 'east' }),
+        StubRoom.new(2, 9002, 'Bank Lobby', 'Crossing', ['bank'], { 1 => 'west' })
+      ]
+      arr = [nil]
+      rooms.each { |r| arr[r.id] = r }
+      arr
+    end
+  end
+
+  def self.route(from, to) = ROUTES[[from, to]]
+  def self.current = list[1]
+  def self.tags = %w[bank]
+end
+
 # Load everything except the trailing command-line section, which would start a
 # server on the default port and then sleep forever.
 src = File.read(SRC)
 body = src[/module Companion.*?\n^end\b/m] or abort 'could not find the Companion module'
 eval(body, TOPLEVEL_BINDING, SRC)
+
+# MapInfo resolves Lich's class at call time (State.safe(nil) {
+# Lich::Common::Map } || State.safe(nil) { Map }), which is what lets it be
+# swapped here rather than needing a real constant defined - same technique
+# map_test.rb uses against the same module. $map_klass toggles between the
+# stub and nil so a single test file can exercise both "map loaded" and
+# "no map" without redefining anything mid-run.
+$map_klass = StubMap
+Companion::MapInfo.define_singleton_method(:klass) { $map_klass }
 
 # ------------------------------------------------------------------ harness --
 
@@ -198,6 +274,24 @@ def check(label, ok, detail = '')
   puts "#{ok ? 'OK  ' : 'FAIL'} #{label}#{detail.to_s.empty? ? '' : ": #{detail}"}"
   $fails += 1 unless ok
   ok
+end
+
+# Reads `count` messages into an array and lets the caller pick out what it
+# needs by type, rather than calling read_until once per type in sequence.
+# read_until discards everything that doesn't match while it searches, so
+# asking for 'intent_ack' before a broadcast that was sent first (map_here's
+# own payload push happens inside dispatch, before handle_message gets to
+# send the ack) silently eats the broadcast the very first call, and the
+# second read_until then hangs forever waiting for a message that already
+# came and went. Collecting first and filtering after is order-independent.
+def collect(client, count, timeout: 3)
+  Array.new(count) do
+    begin
+      client.read_json(timeout: timeout)
+    rescue StandardError
+      nil
+    end
+  end.compact
 end
 
 # A minimal client. Masks its frames, because the spec requires clients to and
@@ -994,6 +1088,129 @@ begin
   check('floor: the field is emitted at all, or the two checks above are vacuous',
         dstat.key?('degraded') && dinv.key?('degraded'),
         [dstat.key?('degraded'), dinv.key?('degraded')].inspect)
+
+  # ------------------------------------------------------------------------
+  # Wiring tests: map_here, map_tags, map_nearest, map_path, map_zone,
+  # read_settings, reset_runaway.
+  #
+  # All seven have their underlying logic tested directly elsewhere -
+  # MapInfo in map_test.rb, Yaml.files_for in yaml_test.rb, Runaway.reset
+  # exercised (never asserted on) as scaffolding in runaway_test.rb between
+  # cases. None of that proves the *intent* reaches that logic: the right
+  # args parsed out of the message, the right broadcast type sent back, the
+  # right ack. A renamed intent, a broken args['tag'] vs args[:tag], or a
+  # payload key typo would pass every existing test and fail here first.
+  # Tested through the socket as intents, deliberately, not by calling
+  # MapInfo/Yaml/Runaway directly - that would test the module a second
+  # time and the wiring not at all.
+  puts ''
+  puts '-- map_here reaches MapInfo and reports this stub room, not a default --'
+  c.send_json(type: 'intent', intent: 'map_here')
+  msgs = collect(c, 4)
+  here_ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  here_msg = msgs.find { |m| m['type'] == 'map_here' }
+  check('acked ok', here_ack && here_ack['ok'] == true, here_ack.inspect)
+  check('id is the stub room, not nil/0', here_msg && here_msg['payload']['id'] == 1, here_msg.inspect)
+  check('uid is separate from id', here_msg && here_msg['payload']['uid'] == 9001, here_msg.inspect)
+  check('title has the brackets stripped', here_msg && here_msg['payload']['title'] == 'Town Square', here_msg.inspect)
+  check(
+    'floor: available is true - a broken wire would show the same shape as "no map"',
+    here_msg && here_msg['payload']['available'] == true,
+    here_msg.inspect
+  )
+
+  puts ''
+  puts '-- map_tags reaches MapInfo and reports this map\'s real tag vocabulary --'
+  c.send_json(type: 'intent', intent: 'map_tags')
+  msgs = collect(c, 4)
+  tags_msg = msgs.find { |m| m['type'] == 'map_tags' }
+  check('reports exactly the stub\'s tags, not an empty or invented list',
+        tags_msg && tags_msg['payload'] == ['bank'], tags_msg.inspect)
+
+  puts ''
+  puts '-- map_nearest parses the tag argument and finds the tagged room --'
+  c.send_json(type: 'intent', intent: 'map_nearest', args: { tag: 'bank' })
+  msgs = collect(c, 4)
+  nearest_ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  nearest_msg = msgs.find { |m| m['type'] == 'map_nearest' }
+  check('acked ok', nearest_ack && nearest_ack['ok'] == true, nearest_ack.inspect)
+  check('found the room actually tagged bank, not room 1', nearest_msg && nearest_msg['payload']['id'] == 2, nearest_msg.inspect)
+  check('floor: ok is true, not the "nothing tagged" shape', nearest_msg && nearest_msg['payload']['ok'] == true, nearest_msg.inspect)
+
+  puts ''
+  puts '-- map_path parses the destination argument and returns the real route --'
+  c.send_json(type: 'intent', intent: 'map_path', args: { to: 2 })
+  msgs = collect(c, 4)
+  path_ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  path_msg = msgs.find { |m| m['type'] == 'map_path' }
+  check('acked ok', path_ack && path_ack['ok'] == true, path_ack.inspect)
+  check('reports the one-step route from the stub, not an invented length',
+        path_msg && path_msg['payload']['steps'] == 1, path_msg.inspect)
+  check('floor: ok is true, not the "no route" shape', path_msg && path_msg['payload']['ok'] == true, path_msg.inspect)
+
+  puts ''
+  puts '-- map_zone reaches MapInfo and reports both rooms in this zone --'
+  c.send_json(type: 'intent', intent: 'map_zone')
+  msgs = collect(c, 4)
+  zone_ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  zone_msg = msgs.find { |m| m['type'] == 'map_zone' }
+  check('acked ok', zone_ack && zone_ack['ok'] == true, zone_ack.inspect)
+  check('reports both stub rooms, not one or zero', zone_msg && zone_msg['payload']['total'] == 2, zone_msg.inspect)
+  check('floor: ok is true, not the "no zone" shape', zone_msg && zone_msg['payload']['ok'] == true, zone_msg.inspect)
+
+  puts ''
+  puts '-- map queries report "no map" honestly when MapInfo.klass is unavailable --'
+  # The other half of the wiring: not just "does it work when the map is
+  # there" but "does it say so, honestly, when it is not" - the exact
+  # distinction map_test.rb's own doc comment calls out ("no bank nearby"
+  # vs "I cannot see a map" must not look alike).
+  $map_klass = nil
+  c.send_json(type: 'intent', intent: 'map_here')
+  msgs = collect(c, 3)
+  no_map_ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('refused, not a fabricated success', no_map_ack && no_map_ack['ok'] == false, no_map_ack.inspect)
+  check('names the real reason', no_map_ack && no_map_ack['detail'].to_s.include?('No Lich map'), no_map_ack && no_map_ack['detail'])
+  $map_klass = StubMap
+
+  puts ''
+  puts '-- read_settings reaches Yaml.files_for with this character\'s name --'
+  c.send_json(type: 'intent', intent: 'read_settings')
+  # More than the others: read_settings logs a line per file before the
+  # settings broadcast and the ack, so with two fixture files the ack sits
+  # behind 3-4 'log' messages in the queue.
+  msgs = collect(c, 8)
+  settings_ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  settings_msg = msgs.find { |m| m['type'] == 'settings' }
+  check('acked ok', settings_ack && settings_ack['ok'] == true, settings_ack.inspect)
+  check('reports this character\'s name, not empty', settings_msg && settings_msg['character'] == 'Testchar', settings_msg.inspect)
+  file_names = settings_msg && settings_msg['files'].map { |f| f['name'] }
+  check('base.yaml is included', file_names && file_names.include?('base.yaml'), file_names.inspect)
+  check(
+    'floor: the character-specific file is also included - proves the name reached the glob, not just a fixed base.yaml lookup',
+    file_names && file_names.include?('Testchar-setup.yaml'),
+    file_names.inspect
+  )
+
+  puts ''
+  puts '-- reset_runaway actually clears Runaway state, not just acks --'
+  # Runaway.reset appears throughout runaway_test.rb, but only as scaffolding
+  # between cases - called to clean up, never itself asserted on. A function
+  # whose only appearance in a suite is as setup reads as covered to anyone
+  # grepping the file, and is not tested at all: the inverse of a check that
+  # cannot fail, a call that cannot fail because nothing is looking at it.
+  Companion::Runaway.instance_variable_set(:@tripped, true)
+  Companion::Runaway.instance_variable_set(:@recent, %w[go go go go go go])
+  check('floor: Runaway is genuinely tripped before this test proceeds',
+        Companion::Runaway.tripped == true, Companion::Runaway.tripped)
+  c.send_json(type: 'intent', intent: 'reset_runaway')
+  msgs = collect(c, 3)
+  reset_ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('acked ok', reset_ack && reset_ack['ok'] == true, reset_ack.inspect)
+  check(
+    'and Runaway is actually cleared, not just acknowledged',
+    Companion::Runaway.tripped == false,
+    Companion::Runaway.tripped
+  )
 
   c.close
 ensure
