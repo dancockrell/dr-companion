@@ -70,11 +70,22 @@ Ruby stays under the hood because Lich is Ruby and dr-scripts are Ruby, and
 those keep working untouched. Python is the language *this project* offers for
 new work.
 
-**This means two runtimes ship, and that is a real cost.** Naming it rather
-than discovering it later: the installer grows a Python, memory grows a second
-interpreter, and there are two places a script can live. The trade is worth it
-because the alternative is either writing new automation in Ruby - which is not
-what was asked for - or abandoning dr-scripts, which is the ecosystem.
+**Three runtimes ship: Ruby, Python and the app itself.** Decided 27 Aug 2026,
+after the cost was put in front of Dan rather than discovered later. Ruby
+because Lich is Ruby and 229 scripts in the local library are Ruby. Python
+because that is the language this project offers. The installer carries both.
+
+The alternative was writing new automation in Ruby, or abandoning dr-scripts.
+The first is not what was asked for and the second is the ecosystem.
+
+**Old scripts get a port path rather than a museum.** A Ruby script that still
+works is not a problem to solve, but a player who wants to *change* one should
+not have to learn Ruby to do it. So the direction is: Ruby scripts keep
+running untouched under Lich, and there is a route to bring one across to
+Python rather than a wall. What that route is - a translator, a compatibility
+shim over the same API, or a documented rewrite guide - is not decided, and
+picking it before there is a Python API to port *to* would be deciding the
+answer before the question.
 
 Python talks to the game through a documented API rather than by being spliced
 into Lich's globals. A Python script asks the engine for state and sends

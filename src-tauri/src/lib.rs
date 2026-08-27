@@ -1,3 +1,4 @@
+pub mod config_import;
 pub mod game_link;
 pub mod lich;
 pub mod setup;
@@ -102,6 +103,7 @@ fn panel_windows(app: tauri::AppHandle) -> Vec<String> {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            config_import::read_genie_config,
             game_link::game_status,
             game_link::game_attach,
             game_link::game_send,
