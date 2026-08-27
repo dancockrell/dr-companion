@@ -415,7 +415,8 @@ module Companion
     end
 
     def status
-      {
+      reset_degraded!
+      payload = {
         'name'        => char_name,
         'instance'    => instance,
         'accountTier' => account_tier,
@@ -482,6 +483,9 @@ module Companion
         # would put a summon and a thing trying to kill you in the same bucket,
         # which is the one mistake the card decks exist to prevent.
       }
+      d = degraded_fields
+      payload['degraded'] = d unless d.empty?
+      payload
     end
 
     def activity
@@ -505,7 +509,8 @@ module Companion
         DRCI.get_worn_containers.map { |c| { 'name' => c, 'used' => 0, 'capacity' => 0 } }
       end
       containers = [] unless containers.is_a?(Array)
-      {
+      reset_degraded!
+      payload = {
         'containers' => containers,
 
         # What is worn, by name and not only by count.
@@ -532,10 +537,18 @@ module Companion
         # much", so a truncated list never becomes a wrong total.
         'worn'       => safe([], as: 'worn') { GameObj.inv.to_a.map(&:name).compact.first(60) },
         'wornCount'  => safe(0, as: 'wornCount') { GameObj.inv.to_a.size },
-        'looseCount' => safe(0, as: 'looseCount') { GameObj.right_hand.id ? 1 : 0 } +
-                        safe(0, as: 'looseCount') { GameObj.left_hand.id ? 1 : 0 },
+        # &.id, not .id: an empty hand is nil, and nil.id raised - which
+        # safe() swallowed into the correct answer 0, so nothing ever looked
+        # wrong. It only surfaced when `degraded` started naming what was
+        # swallowed and an empty pair of hands reported itself as an
+        # unreadable field. Its two neighbours above already use &.
+        'looseCount' => safe(0, as: 'looseCount') { GameObj.right_hand&.id ? 1 : 0 } +
+                        safe(0, as: 'looseCount') { GameObj.left_hand&.id ? 1 : 0 },
         'pressure'   => 'ok'
       }
+      d = degraded_fields
+      payload['degraded'] = d unless d.empty?
+      payload
     end
   end
 

@@ -846,13 +846,13 @@ begin
   $gameobj_raise = false
 
   check(
-    'FINDING, not a bug in this test: a broken GameObj and an empty room ' \
-    'produce byte-identical status fields — the payload cannot tell them apart',
+    'the six field VALUES stay identical broken-vs-empty, by design - ' \
+    'degraded is what tells them apart, not a changed shape',
     broken_status['roomItems'] == empty_status['roomItems'] && broken_status['hands'] == empty_status['hands'],
     { broken: broken_status.slice('roomItems', 'hands'), empty: empty_status.slice('roomItems', 'hands') }.inspect
   )
   check(
-    'FINDING, not a bug in this test: same for the inventory payload',
+    'same for the inventory payload: values identical, degraded is the signal',
     broken_inv['worn'] == empty_inv['worn'] && broken_inv['wornCount'] == empty_inv['wornCount'],
     { broken: broken_inv.slice('worn', 'wornCount'), empty: empty_inv.slice('worn', 'wornCount') }.inspect
   )
@@ -901,6 +901,74 @@ begin
   $dothis_reply = nil
   $gameobj_right_hand = nil
   $gameobj_left_hand = nil
+
+  puts ''
+  puts '-- degraded: a swallowed read is named, a legitimately empty one is not --'
+  # The whole point of the field. safe() turns any exception into the same
+  # empty default the honest case produces, so the VALUES cannot distinguish
+  # them and are not meant to - `degraded` carries what safe() swallowed.
+  #
+  # The second half matters more than the first: a field that read fine must
+  # never appear here. An indicator that fires on an empty room is an
+  # indicator nobody looks at on the night GameObj actually breaks.
+  # Drain first, same reason as the section above: read_until returns the
+  # first message of a matching type, which is not the same as the message
+  # answering your request. Without this, the status read below silently
+  # picks up a broadcast generated before $gameobj_raise was set - and
+  # reports degraded as nil while the bridge is emitting it correctly.
+  begin
+    loop { c.read_json(timeout: 0.2) }
+  rescue Timeout::Error
+    nil
+  end
+  $gameobj_raise = true
+  c.send_json(type: 'get_status')
+  dstat = c.read_until('status')['payload']
+  c.send_json(type: 'get_inventory')
+  dinv = c.read_until('inventory')['payload']
+  $gameobj_raise = false
+
+  check('a broken GameObj names the status fields it could not read',
+        (dstat['degraded'] || []).sort == ['hands.left', 'hands.right', 'roomItems'],
+        dstat['degraded'].inspect)
+  check('and the inventory fields, with dotted paths as the payload nests them',
+        (dinv['degraded'] || []).sort == ['looseCount', 'worn', 'wornCount'],
+        dinv['degraded'].inspect)
+
+  # The cry-wolf condition, and the reason this is two checks and not one.
+  # This is what caught GameObj.right_hand.id missing its safe-navigation:
+  # an empty hand raised NoMethodError, safe() turned it into the correct
+  # answer 0, and nothing looked wrong until degraded started naming what had
+  # been swallowed and a pair of empty hands reported itself unreadable.
+  $gameobj_loot = []
+  $gameobj_right_hand = nil
+  $gameobj_left_hand = nil
+  $gameobj_inv = []
+  # Drain first, same reason as the section above: read_until returns the
+  # first message of a matching type, which is not the same as the message
+  # answering your request. Without this, the status read below silently
+  # picks up a broadcast generated before $gameobj_raise was set - and
+  # reports degraded as nil while the bridge is emitting it correctly.
+  begin
+    loop { c.read_json(timeout: 0.2) }
+  rescue Timeout::Error
+    nil
+  end
+  c.send_json(type: 'get_status')
+  clean = c.read_until('status')['payload']
+  c.send_json(type: 'get_inventory')
+  clean_inv = c.read_until('inventory')['payload']
+  check('an empty room does NOT appear as degraded (absent, not [])',
+        !clean.key?('degraded'), clean['degraded'].inspect)
+  check('nor an empty inventory',
+        !clean_inv.key?('degraded'), clean_inv['degraded'].inspect)
+
+  # Floor. Without it, both checks above pass against a bridge that never
+  # emits the field at all - which is exactly what an older bridge does, and
+  # exactly what happened on the red run before this fix existed.
+  check('floor: the field is emitted at all, or the two checks above are vacuous',
+        dstat.key?('degraded') && dinv.key?('degraded'),
+        [dstat.key?('degraded'), dinv.key?('degraded')].inspect)
 
   c.close
 ensure
