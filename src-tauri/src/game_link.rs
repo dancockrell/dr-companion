@@ -158,7 +158,7 @@ pub fn game_attach(
 
         std::thread::spawn(move || {
             let mut reader = BufReader::new(read_half);
-            let mut raw: Vec<u8> = Vec::with_capacity(512);
+            let mut raw: Vec<u8> = Vec::with_capacity(4096);
 
             loop {
                 if !running.load(Ordering::Relaxed) {
@@ -172,6 +172,23 @@ pub fn game_attach(
                 // the first time a stray byte arrives. A client that dies on
                 // one bad character is worse than one that shows a replacement
                 // character in a creature name.
+                //
+                // Still split on newlines here, and this is a deliberate
+                // choice rather than the obvious one.
+                //
+                // A frontend claiming the `xml` capability receives tagged
+                // output, and tags do not respect line endings: a
+                // `<pushStream>` can arrive in one packet and its text in the
+                // next. So the *parser* must see a byte stream, not lines,
+                // and `src/lib/gameStream.ts` is written that way.
+                //
+                // What is emitted from here is therefore a **chunk**, not a
+                // line, and the newline is only a convenient place to stop
+                // reading - it bounds latency without the parser caring where
+                // the boundary fell. The chunk carries its own terminator so
+                // the parser can tell "the line ended here" from "the packet
+                // ended here", which is exactly the distinction a line-first
+                // design destroys.
                 match reader.read_until(b'\n', &mut raw) {
                     Ok(0) => {
                         // Clean EOF: Lich closed. Not an error, and not
@@ -190,9 +207,14 @@ pub fn game_attach(
                         break;
                     }
                     Ok(_) => {
-                        let text = String::from_utf8_lossy(&raw)
-                            .trim_end_matches(['\n', '\r'])
-                            .to_string();
+                        // The terminator is KEPT, not trimmed.
+                        //
+                        // It used to be stripped here, which threw away the
+                        // one bit of information the parser cannot recover:
+                        // whether the text ended because the line ended or
+                        // because the packet did. Strip it and a tag split
+                        // across two reads becomes two lines of nonsense.
+                        let text = String::from_utf8_lossy(&raw).to_string();
 
                         let seq = lines.fetch_add(1, Ordering::Relaxed) + 1;
 
