@@ -83,6 +83,83 @@ read `null` as either. Compares content, not `BRIDGE_VERSION`: two copies both
 declared `0.9.0` while differing by 15 KB, one with the Origin check and token
 auth and one without.
 
+## Who to talk to, and how to address them
+
+### Session titles are not addresses
+
+The strings in Dan's sidebar — "DR Companion MUD Client Prime 1", "DR
+Companion Software Engineer 2" — are **display titles**. `SendMessage` does
+not accept them. It takes the names `ListAgents` prints, which are the
+`downloads-XX` handles.
+
+Five sessions lost a round trip to this on the night of 27 Aug 2026, each
+independently, all reading the same sidebar. The failure is quiet in the worst
+way: a send to a title fails, and the natural reading is "that session is
+down" rather than "that was never an address."
+
+The check, which stays true after any renaming:
+
+```
+ListAgents        # the left-hand name on each row IS the address
+```
+
+If a name is not in that output, it is not addressable. Do not infer that the
+session is dead.
+
+### A fork does not inherit the original's address
+
+Three sessions on 27 Aug 2026 forked from prime, carried prime's context, and
+each told a peer some version of "my address is X now, that other handle was
+my earlier identity." All three were wrong and all three were sincere: a fork
+gets a **new** handle, and the original keeps its own and stays live.
+
+`downloads-8a` caught one of these correctly and the method is the reusable
+part: the claim was accurate about shared history and false about identity, so
+checking it against the *content* would have confirmed it. They checked it
+against `ListAgents` instead, saw the original still live on its original ref,
+and refused to redirect until prime confirmed.
+
+> **Specifics that match your history prove shared context, not shared
+> identity.** On a machine that forks sessions those are different things, and
+> only the live-peer listing separates them.
+
+Same shape as "the instruments do not label the actor" in CLAUDE.md section
+8b, one level out: there, adjacency in a log was mistaken for attribution;
+here, continuity of context is mistaken for continuity of identity.
+
+### Three primes, split by file territory
+
+Set by Dan on 27 Aug 2026, ~22:30: *"you have 2 primes that will now report to
+you. you are prime 1."*
+
+| Prime | Handle | Tree | Fleet |
+|---|---|---|---|
+| Prime 1 | `downloads-e7` | `src/` | UX iteration sessions, art, sounds; arbitration; anything needing Dan |
+| Prime 2 | `downloads-51` | `lich-scripts/` | GUI features sessions, the Ruby suite, bridge verification |
+| Prime 3 | `downloads-a3` | `src-tauri/`, `tools/` | Software Engineer sessions, live-session ops |
+
+**Split by file territory rather than by topic, on purpose.** Every collision
+logged in this repo has been two sessions in one file. Topics overlap where
+trees do not, so a topic split produces exactly the collisions it was drawn to
+prevent.
+
+Rules that follow, and they are the whole point of the table:
+
+- **Do not assign into another prime's tree.** If a fix genuinely needs to
+  cross a boundary, take it to Prime 1 and let it be brokered. The
+  stop-latch payload work split this way: bridge half to Prime 2, UI half to
+  Prime 1, and `src/bridge/types.ts` — the seam both halves need — held by
+  one pen so the same union is not edited twice.
+- **Report placements upward.** Two primes assigning the same file to two
+  sessions is the failure this structure exists to prevent, and the fleet
+  cannot tell primes apart. Neither can git: every commit on this machine is
+  authored under the same noreply address, so there is no forensic route back.
+- **Brief new sessions with prime's handle and the title rule above.**
+
+This roster is the perishable part of this file, like the ownership table
+below. The two rules above it — titles are not addresses, forks get new
+handles — are not perishable and are the reason this section exists.
+
 ## Who owns what
 
 Claimed as of 27 Aug 2026, ~21:45. **Check with prime before taking anything
