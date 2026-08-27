@@ -517,3 +517,266 @@ when the bridge is v0.9.0 (no field), confirm they render enabled once the
 bridge advertises them, and confirm Stop/Pause/Resume/Escape are never
 disabled by this regardless of what the list says or whether it's present at
 all.
+
+## Activity intents batch contract (spec — not yet implemented)
+
+Written by `downloads-2e` per Prime's ruling, batched deliberately: nine
+sequential contract handoffs for one file with one owner would serialise the
+rest of the night more than one reviewed batch. `companion_bridge.lic` is
+`GUI features 1`'s file; nothing here is implemented and nothing in this
+section should be treated as done until the Ruby side has real handlers.
+Reproduce the gap fresh rather than trusting a count written here (see the
+`comm -23` recipe above) — as of `HEAD` at write time, none of these nine have
+a `when` branch in `Intents.handle`: `buffs`, `burgle`, `escape_heal`,
+`go_healer`, `loot`, `start_combat`, `start_training`, `town_run`, `travel`.
+
+These are exactly the intents the Activities panel and Task Flows were built
+around (`src/data/activities.ts`), so this is the gap between "the app can
+read state and stop scripts" and "the app can make the character do things,"
+per the existing `else` branch's own honest wording.
+
+**Shape reference, so each entry below doesn't repeat it:** two existing
+handlers are the two shapes everything here fits into. `run_macro`
+(`companion_bridge.lic:1803`) sends a sequence of raw game commands through
+`Cmd.exec`, each waiting real roundtime — the shape for anything that's just
+"type these commands." `start_script` (`:1435`) launches a named `.lic` file
+with `Script.start(name, *args)` and returns immediately without waiting —
+the shape for anything that's a standing loop or multi-minute process a
+player would otherwise type `;scriptname` for. Nothing below needs a third
+shape.
+
+### `buffs`
+
+**What already does this:** `scripts/buff.lic` (`class Waggle`) — accepts
+`set=<name>` (a named spell set from the character's own settings,
+`get_settings.waggle_sets`), `force` (recast even if active), `strict` (keep
+retrying until it sticks). No enumeration of what a "waggle set" contains is
+possible from outside the character's settings file — it's player-configured.
+
+**Shape:** `Script.start`. `Script.start('buff', "set=#{set}")` if an
+explicit set name is given, otherwise `Script.start('buff')` and let the
+script fall back to its own default set from settings.
+
+**What it needs to know:** an optional `set` argument (string, the set's
+configured name). **Cannot verify what a given character's sets are named**
+without reading that character's own settings file — this bridge already has
+`read_settings`, so the args validation this needs (does the named set
+exist?) can reuse that rather than trusting the client to have typed it
+correctly. If the client doesn't have a set name to send, don't guess one;
+launch with none and let `buff.lic`'s own default apply.
+
+**Safety:** none beyond what casting spells at yourself already carries in
+DR. Not flagged.
+
+### `start_training`
+
+**What already does this:** `scripts/training-manager.lic` (`class
+TrainingManager`) — hometown-aware (`get_data('town')`, `@settings.hometown`),
+handles harvesting/mining, hunting priority, periodic repair
+(`@repair_every`), loot selling (`@sell_loot`), and favor-altar use. This is
+the settings-driven "go train" loop `src/data/activities.ts`'s `train`
+activity describes almost verbatim ("Picks a ground for your ranks and
+guild").
+
+**Shape:** `Script.start`. `Script.start('training-manager')`, no args needed
+— everything it varies on comes from the character's own settings file, same
+as `buffs`.
+
+**What it needs to know:** nothing from the client. It reads its own
+settings.
+
+**Safety:** none beyond ordinary attended training. Not flagged.
+
+### `start_combat`
+
+**What already does this:** `scripts/combat-trainer.lic` — `SetupProcess`
+handles stance/defense-priority setup from settings
+(`stance_override`, `priority_defense`), and the file's whole purpose is an
+attended fight/retreat loop, matching `activities.ts`'s description exactly:
+"Fights, loots what you allow, and withdraws when your health drops."
+
+**Open question, not resolved here — flag to Prime before building:** the
+client already has a working "Hunt cycle" Task Flow (`DashboardLayout`'s
+task-flow list) built from `run_macro` steps — attack, loot, skin, tend,
+repeated. If `start_combat` is meant to be a *different, more capable*
+standing loop (real retreat-on-health-threshold logic, stance management)
+rather than the same behavior the Task Flow already provides via macros, say
+so explicitly when this ships, because a player will otherwise have two
+buttons that both claim to do "fight" with no visible difference. **I'm not
+resolving which one this should be** — that's a product call, not something
+derivable from source.
+
+**Shape:** `Script.start`. `Script.start('combat-trainer')`.
+
+**What it needs to know:** nothing from the client if settings-driven, same
+pattern as training-manager.
+
+**Safety:** a standing combat loop is the highest-consequence thing on this
+list short of `burgle`. `combat-trainer.lic` already has its own
+health-based retreat logic; the bridge doesn't need to duplicate it, but
+Stop must reach it the same way it reaches every other `Script.start`ed
+process — confirm this against `State.other_scripts`/`stop_all` before
+shipping, don't assume.
+
+### `town_run`
+
+**No single script does all of this — it's a composition, and I could not
+find a curated "town run" script under that name.** What exists:
+
+- **Selling:** `scripts/sell-loot.lic` (`class SellLoot`) — accepts an
+  optional `town=` override, and `amount=`/`type=` for how many coins of
+  which currency to keep. This is the real match for the "sell" step.
+- **Banking:** no dedicated script found (`bankbot.lic` is a porter-tip
+  ledger, unrelated). Depositing/withdrawing in DR is a single game command
+  at a bank window — this is a `run_macro`-shape step (`Cmd.exec('deposit
+  all', ...)`), not a script launch.
+- **Repair:** `scripts/repair.lic` and `scripts/crossing-repair.lic` exist as
+  separate scripts; `training-manager.lic` also has its own internal repair
+  logic (`@repair_every`) — worth checking whether reusing
+  `training-manager`'s repair path is preferable to launching a third script,
+  but that's implementer's call, not something I'm deciding here.
+- **Travel between stops:** `scripts/go2.lic` — the curated general movement
+  script (`;go2 <tag or destination>`), which already resolves tags like
+  `bank`, `general store`, `guild` per-hometown. `DRCT.walk_to`
+  (`lib/dragonrealms/commons/common-travel.rb:178`) is the lower-level
+  primitive `go2` itself is likely built on, if a script launch per hop is
+  too heavy.
+
+**Client-side, this already exists and is real, not a stub:** `mockBridge.ts`
+already has account-tier-gated `planTownRun` logic (vault skipped without a
+vault, bank 10p cap respected) producing a step list with reasons. That
+capability-aware planning is a genuine client-side asset — the Ruby side's
+job is to *execute* a plan, not redecide it. Whether the client sends the
+already-decided step list as args, or the bridge re-derives the same gating
+from `accountTier`/`instance` independently, is a design choice for whoever
+implements this; both are defensible, but implementing it twice
+independently is how the two silently drift, so pick one and say which.
+
+**Shape:** mixed — `Script.start('sell-loot', ...)` for selling,
+`run_macro`-shape `Cmd.exec` for banking, `Script.start` for repair, `go2` for
+travel between them. This is the one intent in this batch that is genuinely
+several steps chained, not one script or one command sequence.
+
+**Safety:** none beyond ordinary town chores. Not flagged, but see the
+tier-gating note above — sending a vault-tier player to try a vault step
+that F2P can't use is the exact bug the existing capability-aware rule in
+this document was written to prevent.
+
+### `go_healer`
+
+**What already does this, partially:** `scripts/go2.lic` resolves the map
+tag `npchealer` (confirmed in its own destination-tag list,
+`go2.lic` line ~1008) and there's a parallel `empath` tag for player-Empath
+healing. Getting *to* a healer is a solved `go2`/`DRCT.walk_to` problem.
+**Choosing *which* healer is not solved anywhere in Lich** — there is no
+capability-aware healer-selection logic in dr-scripts or Lich core.
+
+**That scoring already exists, client-side, and is real work worth reusing
+rather than re-deriving in Ruby:** `chooseHealer`/`scoreHealers`/
+`pickBestHealer` (referenced from `mockBridge.ts`'s `go_healer` handler) are
+genuine capability-aware logic — instance, account tier, mobility from
+Athletics/burden, `preferredCity` override. **Recommend the bridge not
+reimplement this scoring in Ruby at all.** Have the client compute the
+destination (it already does, today, in the mock) and send it as an arg —
+`args: { destinationTag: 'npchealer' }` or a resolved room/uid via the
+existing `map_nearest`/`map_path` read-only intents — and have the Ruby side
+do only the travel: `Script.start('go2', tag_or_id)`, or `DRCT.walk_to` if a
+resolved room id is sent instead of a tag. Reimplementing the scoring
+Ruby-side would be a second copy of logic that already works and is already
+tested against the mock; that's the kind of drift this codebase has been
+paying for all night in other files.
+
+**What it needs to know:** a destination (tag, room id, or uid — client's
+choice, but say which in the implementation, matching the existing
+`MapRoom`/`id`-vs-`uid` distinction this doc already documents above).
+
+**Safety:** moves the character while presumably hurt. Ordinary movement
+risk, same as any `go2` use; not the `burgle`-class concern.
+
+### `escape_heal`
+
+**This is a composition of two things that already exist separately, not a
+new primitive.** `escape` (`companion_bridge.lic:1776`) already sends `flee`
+and resets runaway detection. `go_healer` (above, once built) already gets
+the character to an appropriate healer. `escape_heal` reads as exactly
+"do both, in order" — flee first, then run the same healer-selection-and-
+travel path `go_healer` uses.
+
+**Shape:** compose the two existing/spec'd handlers rather than writing a
+third implementation: call `escape`'s logic, then `go_healer`'s, sequentially.
+
+**What it needs to know:** same as `go_healer` — an optional destination
+preference. Nothing additional for the flee half.
+
+**Safety:** the higher-consequence of the two composed intents is `escape`
+itself (fleeing combat), already shipped and presumably already reviewed;
+composing it with a travel step doesn't add new risk beyond what `go_healer`
+above already carries.
+
+### `travel`
+
+**What already does this:** `scripts/go2.lic`, directly —
+`Script.start('go2', destination)` where `destination` is whatever `go2`
+itself accepts (a tag, a room id, a `u<uid>`, or a named alias). This is the
+most direct mapping in the whole batch; nothing to compose, nothing missing.
+
+**What it needs to know:** the destination string, from `args.destination`
+(matches the existing client shape — see `mockBridge.ts`'s `travel` handler,
+`(_args?.destination as string)`).
+
+**Safety:** ordinary movement risk. Not flagged. Same capability-aware
+caution as `go_healer`/`town_run` applies if the destination is
+instance/tier-gated (e.g. a premium-only zone) — `go2` itself does not know
+about account tiers, so refusing an out-of-reach destination is either the
+client's job (before sending the intent) or needs a check added here; **not
+resolved which, flagging rather than guessing.**
+
+### `loot`
+
+**Likely overlaps with something that already works, and I'm not confident
+this needs new Ruby code at all.** The `Loot pass`/`Take all` quick actions
+(`InventoryPanel.tsx`, `ActionsPanel`) already send `get all` via the
+existing macro/quick-action path (the same `run_macro`/`Cmd.exec` shape
+everything else in this doc uses). If the `loot` *intent* specifically is
+meant to be a standing, selective loot pass — whitelist/blacklist by item,
+matching the pattern `burgle.lic`'s `loot_type` option
+(`drop`/`keep`/`pawn`/`bin`/`trashcan`) already uses elsewhere in this
+library — that's a real, separate thing worth building, but **I could not
+find a standalone curated script for "selective loot pass" distinct from the
+plain `get all` already wired up.** Flagging this one plainly per the
+instruction to say so rather than guess: either (a) `loot` is redundant with
+the existing quick action and should be reconsidered rather than
+implemented, or (b) it's meant to carry real per-item preferences the client
+doesn't currently send anywhere, in which case the wire format needs those
+preferences specified before this can be built. Not deciding between them.
+
+### `burgle` — **blocked on Dan, not spec'd**
+
+Per instruction: this is a product/policy decision
+([[dr-companion-project]] memory: the house-entry feature "is the feature
+that will draw fire in official channels regardless of framing... a
+positioning call Dan should make deliberately"), not an engineering gap.
+
+**What exists, for when/if this is unblocked, so the research isn't lost:**
+`scripts/burgle.lic` (`class Burgle`) is a real, complete, already-written
+script — requires an explicit `start` arg (its own built-in typo/safety
+guard), takes `entry` (`lockpick`/`rope`/`cycle`/`prioritylockpick`/
+`priorityrope`), `roomid` override, `loot_type`
+(`drop`/`keep`/`pawn`/`bin`/`trashcan`), `hometown`, and a `follow` mode. It
+already matches `mockBridge.ts`'s `burgle` handler shape (`method`,
+`maxSearches`, `hide` args) closely enough that the mock was clearly written
+against this real script.
+
+**Do not implement a handler for this intent.** The disabled-with-tooltip
+state issue #30 already ships is the correct current behavior. This entry
+exists so the next person doesn't re-derive "yes, `burgle.lic` exists and
+would work" and mistake that for permission to wire it up.
+
+**Acceptance check for this batch, once any of the above lands:** for each
+implemented intent, confirm `implementedIntents` (from the #30 contract
+above) includes it, confirm the corresponding button/Task Flow enables, and
+confirm Stop reaches whatever `Script.start` process it launched — the same
+`State.other_scripts`/`stop_all` path every other standing script already
+uses. `burgle` should still read disabled-with-tooltip after this batch
+ships, not enabled — its absence from `implementedIntents` is the whole
+point.
