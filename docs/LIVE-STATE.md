@@ -169,9 +169,27 @@ cannot be chased without a live Lich, because the script only runs inside one.
 Next person with a live session: call `install_mapdb` through the bridge rather
 than repeating the socket command, and watch for what it logs.
 
-**2. Channel tabs stay empty on live** despite `--stormfront` declaring the
-`streams` capability. `isTaggedStream()` in `gameLink.ts` is the discriminator
-— if that is false, tagged output is not arriving at all.
+**2. Channel tabs stay empty on live.** `isTaggedStream()` in `gameLink.ts` is
+the discriminator — if false, tagged output is not arriving at all.
+
+**Correction, 27 Aug ~22:00.** This file previously said "despite `--stormfront`
+declaring the `streams` capability", and prime repeated that to several
+sessions. **It is not what happens.** `login_helpers.rb:578`
+`resolve_headless_frontend` only special-cases `--saga` and `--genie`; our
+launch falls through to the `'profanity'` default, so `Frontend.client` is
+`profanity` on every session this app starts. Filed as **#31**.
+
+`profanity` also carries `:streams`, so this is not by itself the explanation —
+worth stating plainly, because it looks like a smoking gun and is not. What is
+actually lost is `:room_window` and `:mono`.
+
+The current best hypothesis for the channel gap is `games.rb:1065-1078` plus
+`gameloader.rb:68-77`: Lich patches a malformed `settingsInfo` for characters
+that have never logged in with a Wrayth client, and seeds a client record so
+the server sends a proper one *on future connects*. **Test next live session:**
+grep Lich's log for `Invalid settingsInfo XML tags detected`. If present, the
+meaningful test is a **second** connection — retrying on the same one proves
+nothing.
 
 **3. Console reports problems.** Unread; nobody has looked.
 
