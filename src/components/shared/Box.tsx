@@ -41,6 +41,13 @@ export function Box({
     >
       {(title || count !== undefined || action) && (
       <header className="flex shrink-0 items-baseline gap-2 px-2 pt-1.5">
+        {/* A heading with no text is worse to a screen reader than no
+         * heading at all - "heading level 2, blank" is a landmark that
+         * promises content and delivers nothing. `title` being omitted is
+         * deliberate (see the doc comment above): count or action alone can
+         * still open this header, so the h2 has to be conditional on title
+         * by itself, not on whatever triggered the header to show. */}
+        {title && (
         <h2
           className={cn(
             'text-xs font-medium uppercase tracking-wide',
@@ -49,6 +56,7 @@ export function Box({
         >
           {title}
         </h2>
+        )}
         {count !== undefined && (
           <span className="text-xs tabular-nums text-ink-faint">{count}</span>
         )}
