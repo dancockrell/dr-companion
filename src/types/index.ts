@@ -208,6 +208,28 @@ export interface CharacterStatus {
   spells?: ActiveSpell[]
   activity: string
   connected: boolean
+  /**
+   * The bridge is refusing game commands until Resume is pressed.
+   *
+   * Set by `stop_all` and cleared only by `resume` — deliberately not by the
+   * next macro, so a Stop survives whatever was already queued behind it. The
+   * defect this exists to surface: before the latch, a macro arriving after a
+   * Stop cleared the flag on entry and ran in full, and the Task Flow driver
+   * sends one automatically on its own timer.
+   *
+   * On the wire so the safety bar can say "stopped, press Resume" *before*
+   * somebody presses a macro button, rather than only refusing them
+   * afterwards. The refusal itself is honest now (`ok: false`, "stopped —
+   * press Resume"), but a control that explains itself only when pressed is
+   * still a control that looks available and is not.
+   *
+   * Two states, not three, for the same reason as `skillsReady` above:
+   * undefined means a bridge that predates the field, and `false` is the
+   * correct read for one — its behaviour is exactly the pre-latch behaviour.
+   * A separate "unknown" would be a third branch for every reader to handle
+   * and would describe nothing that happens.
+   */
+  stopLatched?: boolean
   /** Other players in the room. Hunting grounds are contested. */
   roomPlayers?: string[]
   /**
