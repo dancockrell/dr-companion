@@ -40,14 +40,39 @@ def respond(m) = $respond_log << m.to_s
 
 LICH_VERSION = '5.20.1'
 
+# A temporary directory, not the real Lich install.
+#
+# These pointed at C:/Ruby4Lich5/Lich5 - a real installed Lich on the machine
+# running the tests - so every run wrote a live `companion_bridge.token` into
+# the actual scripts folder, on top of whatever a running bridge had put there.
+# It looked harmless because nothing ever failed. It was found when a peer
+# session deleted an orphaned token, saw a fresh one appear minutes later with
+# no bridge running and no ruby process, and reported it rather than deleting
+# it again.
+#
+# Two problems, and the second is the one that bites. A test that mutates the
+# machine's real install can break the thing it is testing. And a token file
+# with no bridge behind it is exactly the stale-token state the bridge's own
+# `clear_stale_token!` cannot cover - that fires when a write fails, not when
+# a test wrote one on the bridge's behalf.
+#
+# Nothing here needs the real install: the path only has to exist and be
+# writable so `token_path` resolves somewhere.
+require 'tmpdir'
+require 'fileutils'
+
+TEST_LICH_DIR = File.join(Dir.tmpdir, "drc-bridge-test-#{Process.pid}")
+FileUtils.mkdir_p(File.join(TEST_LICH_DIR, 'scripts'))
+at_exit { FileUtils.rm_rf(TEST_LICH_DIR) }
+
 class FakeScript
   def self.current = new
-  def path = 'C:/Ruby4Lich5/Lich5/scripts/companion_bridge.lic'
+  def path = File.join(TEST_LICH_DIR, 'scripts', 'companion_bridge.lic')
   def self.at_exit(&_blk) = nil
 end
 Script = FakeScript
 
-$lich_dir = 'C:/Ruby4Lich5/Lich5/'
+$lich_dir = "#{TEST_LICH_DIR}/"
 
 # Load everything except the trailing command-line section, which would start a
 # server on the default port and then sleep forever.
