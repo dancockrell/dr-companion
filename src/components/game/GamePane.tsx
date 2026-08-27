@@ -30,7 +30,7 @@
  * said an hour ago pages back to it, which is what a search is for anyway and
  * is the next thing to build.
  */
-import { memo, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Send, Plug, PlugZap, Volume2, VolumeX } from 'lucide-react'
 import {
   attachGame,
@@ -44,8 +44,10 @@ import {
   subscribeGame,
   type GameLine,
 } from '../../lib/gameLink'
-import { invokeTauri, isTauri } from '../../lib/tauri'
-import { parseHighlights, paint, segments, type Highlight } from '../../lib/highlights'
+import { isTauri } from '../../lib/tauri'
+import { paint } from '../../lib/highlights'
+import { useHighlights } from '../../lib/useHighlights'
+import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsMuted, alertsMuted } from '../../lib/alertSound'
 import { cn } from '../../lib/cn'
 
@@ -54,42 +56,6 @@ const WINDOW = 400
 
 /** How many more to add each time the reader reaches the top. */
 const STEP = 400
-
-/**
- * One line, painted.
- *
- * Its own component and memoised, because the pane re-renders on every arriving
- * line and repainting four hundred rows to add one is the difference between a
- * client that keeps up with a busy room and one that stutters. The props are a
- * line and the highlight list, and neither changes for a row once it exists.
- */
-const GameRow = memo(function GameRow({
-  line,
-  highlights,
-}: {
-  line: GameLine
-  highlights: Highlight[]
-}) {
-  if (line.text === '') return <div className="font-mono text-xs leading-snug"> </div>
-
-  const painted = paint(line.text, highlights)
-  const pieces = segments(line.text, painted)
-
-  return (
-    /* Monospace, because the game aligns things with spaces - the experience
-       window is a column layout made of padding, and a proportional font turns
-       it into a ragged mess. `whitespace-pre-wrap` for the same reason: runs
-       of spaces are meaningful, and long lines still have to wrap rather than
-       force a horizontal scrollbar across the pane. */
-    <div className="whitespace-pre-wrap break-words font-mono text-xs leading-snug text-ink-muted">
-      {pieces.map((piece, i) => (
-        <span key={i} style={piece.colour ? { color: piece.colour } : undefined}>
-          {piece.text}
-        </span>
-      ))}
-    </div>
-  )
-})
 
 export function GamePane() {
   const lines = useSyncExternalStore(subscribeGame, gameLines, gameLines)
@@ -111,47 +77,7 @@ export function GamePane() {
   const scroller = useRef<HTMLDivElement | null>(null)
   const atBottom = useRef(true)
 
-  /**
-   * The player's own highlights, read from the config they already have.
-   *
-   * Loaded once. Re-parsing 57 entries per line would be the whole cost of
-   * this feature, and the config does not change while the game is running -
-   * when reloading is wanted it will be a button, not a poll.
-   */
-  const [highlights, setHighlights] = useState<Highlight[]>([])
-  const [hlNote, setHlNote] = useState<string>('')
-
-  useEffect(() => {
-    if (!isTauri()) return
-    void (async () => {
-      try {
-        const cfg = (await invokeTauri('read_genie_config', { leaf: 'highlights.cfg' })) as {
-          found: boolean
-          path: string
-          text: string
-          note: string
-        }
-        if (!cfg.found) {
-          // Not a failure. A player with no config yet is a normal state, and
-          // saying so beats plain grey text with no explanation.
-          setHlNote(cfg.note)
-          return
-        }
-        const { entries, skipped } = parseHighlights(cfg.text)
-        setHighlights(entries)
-        // Genie drops malformed entries in silence, which is the single
-        // failure dr-genie-settings/validate.mjs exists to catch. Inheriting
-        // the format is not a reason to inherit the bug.
-        setHlNote(
-          skipped.length
-            ? `${entries.length} highlights, ${skipped.length} skipped`
-            : `${entries.length} highlights`
-        )
-      } catch (e) {
-        setHlNote(String(e))
-      }
-    })()
-  }, [])
+  const { highlights, note: hlNote } = useHighlights()
 
   useEffect(() => {
     void refreshGameState()
@@ -380,7 +306,7 @@ export function GamePane() {
         )}
 
         {visible.map((l) => (
-          <GameRow key={l.seq} line={l} highlights={highlights} />
+          <GameLineRow key={l.seq} line={l} highlights={highlights} />
         ))}
 
         {lines.length === 0 && (

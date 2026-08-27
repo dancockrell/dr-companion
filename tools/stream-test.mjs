@@ -122,13 +122,84 @@ console.log('\n-- a malformed tag cannot wedge the parser forever --')
   ok('and kept the real text', after.some((l) => l.text.includes('and then real text')))
 }
 
+console.log('\n-- a literal < in game text cannot capture a real tag --')
+{
+  // The worst failure this parser had, found by a red-team pass. The game
+  // sends a literal '<' in ordinary text - a sign reading "<NO ENTRY" - and
+  // the tag search ran to the next '>' however far away, swallowing a real
+  // <popStream/> and its newline. Two lines merged, and the stream stack kept
+  // 'thoughts' forever.
+  //
+  // Not garbled text: correct text delivered to the wrong channel with full
+  // confidence. A combat message in the thoughts pane is one the player is not
+  // looking at, in the situation where not looking costs the character.
+
+  // The control first. Without it, "the stack is empty" proves nothing,
+  // because a parser that never pushes also ends with an empty stack.
+  {
+    const s = newStreamState()
+    const got = feed(s, "<pushStream id='thoughts'/>a private thought<popStream/>\r\nback in the room\r\n")
+    eq('control: balanced push and pop', got.map((l) => [l.stream, l.text]),
+      [['thoughts', 'a private thought'], ['', 'back in the room']])
+    eq('control: the stack came back empty', s.stack, [])
+  }
+
+  const s = newStreamState()
+  const got = feed(
+    s,
+    "<pushStream id='thoughts'/>the sign reads <NO ENTRY\r\n" +
+      '<popStream/>back in the room\r\nthe guard nods\r\n'
+  )
+
+  ok('the popStream survived', s.stack.length === 0, JSON.stringify(s.stack))
+  ok(
+    'the guard is not in the thoughts channel',
+    got.find((l) => l.text.includes('guard'))?.stream === '',
+    got.find((l) => l.text.includes('guard'))?.stream
+  )
+  ok(
+    'and the two lines did not merge',
+    got.some((l) => l.text.includes('NO ENTRY')) && got.some((l) => l.text.includes('back in the room')),
+    JSON.stringify(got.map((l) => l.text))
+  )
+  ok(
+    'the literal bracket is shown, because that is what the sign says',
+    got.some((l) => l.text.includes('<NO ENTRY')),
+    JSON.stringify(got.map((l) => l.text))
+  )
+}
+
+console.log('\n-- the stream stack has a ceiling --')
+{
+  // Unbounded, 50,000 pushes cost 20 bytes each on the wire and grow the array
+  // without limit. A real stack is one or two deep.
+  const s = newStreamState()
+  feed(s, "<pushStream id='x'/>".repeat(5000))
+  ok('depth is capped', s.stack.length <= 32, `${s.stack.length}`)
+  // And it still works afterwards rather than being wedged.
+  const after = feed(s, 'still here\r\n')
+  ok('and the parser still emits', after.length === 1, JSON.stringify(after.map((l) => l.text)))
+}
+
 console.log('\n-- telling a tagged stream from plain text --')
 {
   ok('tagged is detected', looksTagged("<pushStream id='thoughts'/>hello"))
   ok('a prompt counts', looksTagged('<prompt time="1">&gt;</prompt>'))
   ok('plain text is not', !looksTagged('[The Crossing, Firulf Vista]\nObvious paths: east.'))
-  // A creature name with an angle bracket must not read as markup.
-  ok('a stray bracket is not markup', !looksTagged('You see a <thing you cannot parse'))
+  // Renamed. It read "a stray bracket is not markup", which describes a
+  // property of `feed()` while asserting one of `looksTagged()` - so a reader
+  // scanning the output had every reason to believe the parser case was
+  // covered, and it was not. A red-team pass nearly skipped the whole area
+  // because of that line, and the bug above was sitting in it.
+  //
+  // Same shape as "grep the consuming side": the name was written about the
+  // property, the assertion about whatever function was convenient. When a
+  // test name states a general property, check it is asserted against the
+  // thing that needs it. The real coverage is in the section above.
+  ok(
+    'looksTagged: a stray bracket does not look tagged',
+    !looksTagged('You see a <thing you cannot parse')
+  )
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')

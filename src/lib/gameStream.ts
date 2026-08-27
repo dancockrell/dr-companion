@@ -83,12 +83,43 @@ export interface StreamState {
    * followed by real text cannot swallow the start of it.
    */
   afterPrompt: boolean
+  /**
+   * A tag boundary just ended a line, and its newline has not arrived.
+   *
+   * The game writes `<pushStream id='x'/>text<popStream/>` and then a
+   * newline. The popStream already ended the line, so that newline terminates
+   * something already emitted - and without this it produced an extra blank
+   * line after every stream block. Cleared by any real text, so a stream
+   * followed straight by more text does not lose its line ending.
+   */
+  afterTagBreak: boolean
   /** Text of the line being built. */
   partial: string
 }
 
+/**
+ * The longest a tag may be before it is treated as literal text.
+ *
+ * The real ones are far shorter: the longest the game sends is a
+ * `<pushStream id='...'/>` or a `<prompt time='1756300060'>`. Generous enough
+ * that a tag with several attributes still parses, small enough that a stray
+ * '<' in a sign cannot swallow a real tag downstream.
+ */
+const MAX_TAG = 256
+
+/**
+ * How deep the stream stack may go.
+ *
+ * Unbounded, 50,000 pushes cost 20 bytes each on the wire and grow the array
+ * without limit. A real stack is one or two deep - the game pushes a channel,
+ * writes, and pops. Anything past this is a malformed stream rather than a
+ * nesting nobody anticipated, so the push is dropped and the depth holds
+ * rather than the client growing until it stops.
+ */
+const MAX_STREAM_DEPTH = 32
+
 export function newStreamState(): StreamState {
-  return { buffer: '', stack: [], boldDepth: 0, partialBold: false, inPrompt: false, afterPrompt: false, partial: '' }
+  return { buffer: '', stack: [], boldDepth: 0, partialBold: false, inPrompt: false, afterPrompt: false, afterTagBreak: false, partial: '' }
 }
 
 /**
@@ -154,10 +185,67 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
 
     if (ch === '<') {
       const close = state.buffer.indexOf('>', i)
+
+      // A '<' whose '>' is far away is not a tag.
+      //
+      // This searched the whole buffer, and a red-team pass showed what that
+      // costs. The game can send a literal '<' in ordinary text - a sign
+      // reading "<NO ENTRY" - and the search then ran on to the next '>'
+      // however distant, swallowing everything between as one bogus tag. That
+      // ate a real <popStream/> and the newline with it, so two lines merged
+      // AND the stream stack kept 'thoughts' forever.
+      //
+      // The result is the worst failure this parser has: not garbled text, but
+      // correct text delivered to the wrong channel with full confidence. A
+      // combat message in the thoughts pane is a message the player is not
+      // looking at, in the one situation where not looking costs the
+      // character. The docstring promises the label is the game's own rather
+      // than an inference - after a stray '<' it was worse than an inference,
+      // because an inference does not claim authority.
+      //
+      // A real tag is tens of characters. `<pushStream id='...'/>` and
+      // `<prompt time='1756300060'>` are both well inside this.
+      // What actually distinguishes a tag from a stray bracket is not length.
+      //
+      // A length bound alone was not enough, and the test proved it: in
+      // "the sign reads <NO ENTRY\r\n<popStream/>", the run from the stray '<'
+      // to the next '>' is about twenty characters, well inside any sane
+      // limit, and it still swallowed the real <popStream/>.
+      //
+      // Two things a real tag in this protocol never contains:
+      //
+      //   a newline - tags do not span lines, only the text between them does
+      //   another '<' - a second opening bracket means the first was text
+      //
+      // The second is the one that settles the case above, and it generalises:
+      // whenever two '<' appear before a '>', the earlier one cannot have been
+      // a tag, because the later one would have to be inside it.
+      const body = close >= 0 ? state.buffer.slice(i + 1, close) : ''
+      const notATag =
+        close >= 0 &&
+        (close - i > MAX_TAG || body.includes('<') || body.includes('\n') || body.includes('\r'))
+
+      if (notATag) {
+        state.partial += ch
+        state.afterPrompt = false
+        i++
+        continue
+      }
+
       if (close < 0) {
-        // A tag split across reads. Keep it and wait, rather than rendering
-        // half a tag as text - which is what a line-first design does and why
-        // it produces "<pushStrea" in somebody's scrollback.
+        // Possibly a tag split across reads: keep it and wait, rather than
+        // rendering half a tag as text.
+        //
+        // But only while it could still become one. Past MAX_TAG with no '>',
+        // this is a literal '<' and waiting for more bytes would hold back
+        // text the player should be reading - and on a quiet connection, hold
+        // it back indefinitely.
+        if (state.buffer.length - i > MAX_TAG) {
+          state.partial += ch
+          state.afterPrompt = false
+          i++
+          continue
+        }
         break
       }
 
@@ -169,10 +257,13 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
 
       if (name === 'pushstream') {
         // A push ends the current line: the stream's content starts fresh.
-        if (state.partial) emit()
-        state.stack.push(attrs(tag).id ?? '')
+        if (state.partial) { emit(); state.afterTagBreak = true }
+        // Dropped rather than pushed past the ceiling. Keeping the current
+        // channel is a better wrong answer than unbounded growth, and a
+        // stream nested 32 deep is not something the game does.
+        if (state.stack.length < MAX_STREAM_DEPTH) state.stack.push(attrs(tag).id ?? '')
       } else if (name === 'popstream') {
-        if (state.partial) emit()
+        if (state.partial) { emit(); state.afterTagBreak = true }
         state.stack.pop()
       } else if (name === 'pushbold' || (name === 'b' && !closing)) {
         state.boldDepth++
@@ -216,8 +307,10 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
       // A newline inside a prompt, or the one immediately after it, is part
       // of the punctuation rather than a line of its own.
       if (state.inPrompt || state.afterPrompt) discard()
+      else if (state.afterTagBreak) discard()
       else emit()
       state.afterPrompt = false
+      state.afterTagBreak = false
       i++
       continue
     }
@@ -226,6 +319,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
     // pending any more. Without this, a prompt followed straight by text
     // would swallow that text's line ending.
     state.afterPrompt = false
+    state.afterTagBreak = false
 
     state.partial += ch
     // Recorded as the text is added, not read when the line ends. The game
@@ -241,11 +335,20 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
   // '>' ever arriving would otherwise grow the buffer without bound and the
   // pane would silently stop updating - the worst failure available here,
   // because it looks exactly like a quiet game.
+  // A buffer this large means a '<' that never closed, which the MAX_TAG rule
+  // above should now prevent. Kept as a backstop, because an unbounded buffer
+  // makes the pane stop updating and that looks exactly like a quiet game.
+  //
+  // The content is re-fed rather than appended as literal text. Appending it
+  // turned any complete tag inside the salvaged region into characters - the
+  // same loss the tag bound exists to prevent, in a larger unit.
   if (state.buffer.length > 64 * 1024) {
-    const salvage = state.buffer.replace(/<[^>]*$/, '')
-    state.partial += unescape(salvage)
+    const salvage = state.buffer
     state.buffer = ''
-    emit()
+    // The leading '<' is consumed as text so the re-feed cannot take the same
+    // path again and recurse.
+    state.partial += salvage[0] === '<' ? '<' : ''
+    out.push(...feed(state, salvage.slice(salvage[0] === '<' ? 1 : 0)))
   }
 
   return out.map((l) => ({ ...l, text: unescape(l.text) }))

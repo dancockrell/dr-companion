@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { RoomScene } from './RoomScene'
-import { ChatTabs } from './ChatTabs'
+import { StreamTabs } from '../game/StreamTabs'
 import { GamePane } from '../game/GamePane'
 import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
+import { useHighlights } from '../../lib/useHighlights'
 
 /**
  * The right half of the window: where you are, and what is being said.
@@ -20,6 +21,7 @@ import { useAppStore } from '../../store/useAppStore'
  * pushes the text you are reading off the bottom.
  */
 export function RoomColumn() {
+  const { highlights } = useHighlights()
   const here = useAppStore((s) => s.mapHere)
   const zoneLive = useAppStore((s) => s.mapZone)
 
@@ -103,7 +105,7 @@ export function RoomColumn() {
       </div>
 
       <div className="flex min-h-0 flex-[2] flex-col rounded border border-border bg-surface-raised">
-        <ChatTabs />
+        <StreamTabs highlights={highlights} />
       </div>
     </div>
   )
