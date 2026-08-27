@@ -29,8 +29,9 @@ Generated from the shared memory database. Edit there, not here:
 
 ### Genie4
 
-- Location: `C:/Genie4`
-- Why: ONLY the Maps subdirectory matters. dr-companion does not talk to Genie and does not run alongside it; it reads C:\Genie4\Maps, which is 85 XML files of community cartography covering 17,750 rooms and 42,866 exits. The Genie client itself is unused by this project. Deleting Maps breaks nothing on the day you do it, because the built JSON is committed to the repository. It means the map can never be rebuilt or corrected again, and that failure surfaces months later. No package manager can restore these; they ship with the Genie client.
+- Location: `C:/Genie4/Maps`
+- Why: ONLY the Maps subdirectory matters: 85 XML files of twenty years of hand cartography that no package manager can restore. Deleting it breaks nothing today because the built JSON is committed - it means the map can never be rebuilt or corrected. Silent, months later.
+- Verify: `ls "C:/Genie4/Maps"/*.xml | wc -l   # expect 85`
 
 ### Node 24 or newer
 
@@ -42,7 +43,8 @@ Generated from the shared memory database. Edit there, not here:
 
 - Location: `C:/Ruby4Lich5`
 - Source: https://github.com/elanthia-online/lich-5/releases
-- Why: Lich runs on Ruby and dr-companion drives Lich. Not an npm or Cargo dependency, so no manifest in that project could have declared it. The runtime is in 4.0.6\; Lich itself and companion_bridge.lic are in Lich5\. Three test suites are Ruby and fail loudly without it. Beware how you check: without Ruby on PATH, npm test exits 1 having reported 313 passing assertions and ZERO failures, with ninety assertions never run. Read the exit code. Recoverable: dr-companion's setup wizard reinstalls Ruby, Lich, Genie and maps, and asks before downloading.
+- Why: Lich runs on Ruby; dr-companion automates Lich. Captured in no manifest.
+- Verify: `ls "C:/Ruby4Lich5/4.0.6/bin/ruby.exe" && echo PRESENT`
 
 ## Optional
 
