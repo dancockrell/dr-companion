@@ -87,6 +87,21 @@ def fput(cmd)
   true
 end
 
+# Cmd.exec only calls fput when no `expect:` is given (empty patterns, see
+# companion_bridge.lic's Cmd.exec). Any command sent WITH an expect pattern —
+# escape's 'flee', check_health's 'health', stow_all's 'stow <item>' — goes
+# through dothistimeout instead, which had no stub at all until now. Every
+# such command was invisible to this entire suite: a check asserting one of
+# them never happened, or always happened, could not have failed either way.
+# Returns nil (no match, like a timeout) rather than echoing the pattern back,
+# so a test that wants a specific reply has to say so and cannot mistake "we
+# stubbed it" for "the game responded".
+$dothis_log = []
+def dothistimeout(cmd, _timeout, _regex)
+  $dothis_log << cmd
+  nil
+end
+
 # Load everything except the trailing command-line section, which would start a
 # server on the default port and then sleep forever.
 src = File.read(SRC)
@@ -333,16 +348,34 @@ begin
   else
     bad_token = Client.new(PORT, authenticate: false)
     bad_token.send_json(type: 'auth', token: 'not-the-token')
-    refused = begin
-      bad_token.read_until('error', tries: 3)
-    rescue StandardError
-      nil
+    # Collect everything this socket is sent, not just the first message that
+    # happens to be type 'error'. read_until('error') would silently discard
+    # a leaked 'status' push while searching past it for the error - so the
+    # check below, which used to read straight off read_until's result,
+    # could never see a leak even when one happened. It was structurally
+    # unable to fail.
+    seen = []
+    3.times do
+      msg = begin
+        bad_token.read_json(timeout: 2)
+      rescue StandardError
+        nil
+      end
+      break if msg.nil?
+      seen << msg
     end
+    refused = seen.find { |m| m['type'] == 'error' }
     check('a wrong token is told so', !refused.nil? || bad_token.closed?,
           refused && refused['message'])
-    # The important half: it never joined the client list, so it never received
-    # a status broadcast. An attacker who fails must learn nothing on the way.
-    check('and never received a status push', refused.nil? || refused['type'] != 'status')
+    # The important half: it never joined the client list, so it never
+    # received a status broadcast. An attacker who fails must learn nothing
+    # on the way - checked against everything this socket was sent, not
+    # against whichever one message read_until happened to hand back.
+    check(
+      'and never received a status push, among everything it was sent',
+      seen.none? { |m| m['type'] == 'status' },
+      seen.map { |m| m['type'] }.inspect
+    )
     bad_token.close
 
     silent = Client.new(PORT, authenticate: false)
@@ -562,6 +595,38 @@ begin
   ack3 = c.read_until('intent_ack')
   check('a macro after resume is accepted', ack3 && ack3['ok'] == true, ack3.inspect)
   check('and actually ran', $fput_log.include?('after-resume'), $fput_log.inspect)
+
+  puts ''
+  puts '-- escape reaches the game even while Stop is latched --'
+  # Fleeing is the one thing you most need right after pressing Stop on a
+  # fight going wrong. escape sits in COMMAND_SENDING (so it still queues
+  # behind CMD_LOCK rather than interleaving with another command-sending
+  # intent) but deliberately does not check stop_requested? the way
+  # run_macro/stow_all do. The latch blocks automation continuing on its
+  # own; it must not also block the one manual safety action that exists
+  # for exactly the moment right after Stop.
+  c.send_json(type: 'intent', intent: 'stop_all')
+  c.read_until('intent_ack')
+
+  # Floor: prove the latch is genuinely up before testing that escape
+  # ignores it. Without this, a bug that broke the latch entirely (so
+  # nothing was ever refused) would pass this test for the wrong reason -
+  # escape would "work while latched" because nothing was latched at all.
+  status_after_stop = c.read_until('status')
+  check(
+    'floor: the bridge reports the latch is up before this test proceeds',
+    status_after_stop && status_after_stop['payload']['stopLatched'] == true,
+    status_after_stop && status_after_stop['payload']
+  )
+
+  $dothis_log = []
+  c.send_json(type: 'intent', intent: 'escape')
+  escape_ack = c.read_until('intent_ack')
+  check('escape is accepted while latched, not refused', escape_ack && escape_ack['ok'] == true, escape_ack.inspect)
+  check('and flee actually reached the game', $dothis_log.include?('flee'), $dothis_log.inspect)
+
+  c.send_json(type: 'intent', intent: 'resume')
+  c.read_until('intent_ack')
 
   c.close
 ensure
