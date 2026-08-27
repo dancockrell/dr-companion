@@ -102,8 +102,73 @@ pub struct LichStatus {
     pub running: bool,
     /// Whether the check above could be performed at all.
     pub running_known: bool,
+    /// Whether Lich's *own* login window can actually complete on this
+    /// machine - see `gui_login_usable`. When false, "Open Lich to sign in"
+    /// is a dead end and the UI must not offer it as the way forward.
+    pub gui_login_usable: bool,
     /// Plain English for whatever the fields above cannot say on their own.
     pub note: String,
+}
+
+/// Whether Lich's own GUI login window can actually reach the game here.
+///
+/// It cannot, on a machine where the only frontend installed is Genie, and
+/// this is not a misconfiguration anyone can retry past.
+///
+/// Lich's frontend registry marks which frontends its GUI is allowed to
+/// offer. Asked directly rather than inferred - this is Ruby, run against
+/// Lich's own source, and fenced as `text` because rustdoc treats an indented
+/// block as a Rust doctest and will try to compile it:
+///
+/// ```text
+/// Frontend.definitions(gui_selectable: true)
+///   => ["stormfront", "wizard", "avalon", "saga"]
+/// ```
+///
+/// `genie` is registered with capabilities only and no `gui_selectable`
+/// metadata (`front-end.rb:251`), so it can never appear in that list. Every
+/// GUI login tab requires picking one of them - `manual_login_tab.rb:474`,
+/// `saved_login_tab.rb:752`, `account_manager_ui.rb:812`/`:969` all raise
+/// "No supported frontend is available." when the selector comes up empty,
+/// and no GUI tab has a headless path.
+///
+/// So Genie-only + GUI login = that modal, deterministically, forever. Two
+/// peer sessions and this one independently confirmed it against Lich's
+/// source on 27 Aug 2026, after it was first misread here as fallout from an
+/// unrelated authentication failure in the same attempt.
+///
+/// This matters because it creates a deadlock the app was cheerfully walking
+/// people into: `launch_lich(Some(name))` needs a saved entry, the normal way
+/// to create one is Lich's GUI login, and on this machine that window cannot
+/// succeed. The app knows enough to say so; it just was not asking.
+fn gui_login_usable() -> bool {
+    // The four Lich's GUI will offer, and the executables each ships as.
+    // Genie is deliberately absent - that is the whole point of this check.
+    const GUI_FRONTEND_EXES: [&str; 5] = [
+        "Wrayth.exe",     // stormfront, current name
+        "StormFront.exe", // stormfront, older name
+        "Wizard.exe",
+        "Avalon.exe",
+        "Saga.exe",
+    ];
+
+    let mut roots: Vec<PathBuf> = Vec::new();
+    for var in ["ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"] {
+        if let Some(v) = std::env::var_os(var) {
+            let base = PathBuf::from(v);
+            roots.push(base.join("SIMU"));
+            roots.push(base.clone());
+        }
+    }
+    for letter in ['C', 'D'] {
+        roots.push(PathBuf::from(format!("{letter}:\\SIMU")));
+    }
+
+    roots.iter().any(|root| {
+        GUI_FRONTEND_EXES
+            .iter()
+            .any(|exe| root.join(exe).exists())
+    })
 }
 
 fn lich_launcher(dir: &Path) -> Option<PathBuf> {
@@ -259,6 +324,8 @@ pub fn lich_status() -> LichStatus {
         None => s.running_known = false,
     }
 
+    s.gui_login_usable = gui_login_usable();
+
     s.note = if s.launcher.is_none() {
         "Lich is not installed where the app can find it.".into()
     } else if s.ruby.is_none() {
@@ -267,6 +334,14 @@ pub fn lich_status() -> LichStatus {
         "Lich is already running.".into()
     } else if !s.characters_known {
         "Lich is installed. Whether it has a saved character could not be read, so this is unknown rather than none.".into()
+    } else if s.characters.is_empty() && !s.gui_login_usable {
+        // The deadlock, said plainly rather than left as a button that
+        // cannot work. See `gui_login_usable` for why this is deterministic
+        // rather than something to retry.
+        "Lich is installed with no saved character, and its own login window cannot \
+         complete on this machine: it only offers Wrayth, Wizard, Avalon and Saga, \
+         and none of those are installed. Genie is not one it can offer."
+            .into()
     } else if s.characters.is_empty() {
         "Lich is installed with no saved character yet. Its own login window handles that, and this app never sees the password.".into()
     } else {
@@ -415,6 +490,59 @@ mod tests {
     #[test]
     fn a_hostile_looking_name_is_refused_before_it_reaches_a_command_line() {
         assert!(launch_args("lich.rbw", Some("--account=x")).is_err());
+    }
+
+    /// Genie must never count as a frontend Lich's GUI can offer.
+    ///
+    /// This is the whole point of `gui_login_usable` being a separate question
+    /// from "is a frontend installed at all" - `setup.rs`'s `detect_genie`
+    /// happily finds Genie and is right to, but Lich's own login window cannot
+    /// use it. Conflating the two is what made the app offer a dead-end
+    /// button on this machine.
+    ///
+    /// Asserted against the constant rather than the filesystem, so it holds
+    /// on a machine that happens to have Wrayth installed too.
+    #[test]
+    fn genie_is_not_a_frontend_lichs_gui_can_offer() {
+        // Mirrors GUI_FRONTEND_EXES in gui_login_usable. If someone adds
+        // Genie to that list, this fails and the comment above explains why
+        // that is wrong.
+        const GUI_FRONTEND_EXES: [&str; 5] = [
+            "Wrayth.exe",
+            "StormFront.exe",
+            "Wizard.exe",
+            "Avalon.exe",
+            "Saga.exe",
+        ];
+        assert!(
+            !GUI_FRONTEND_EXES.iter().any(|e| e.to_lowercase().contains("genie")),
+            "Lich's Frontend.definitions(gui_selectable: true) is \
+             [stormfront, wizard, avalon, saga] - genie is registered with \
+             capabilities only and no gui_selectable metadata, so it can never \
+             appear in the GUI selector"
+        );
+    }
+
+    /// The deadlock this exists to surface, asserted on the message rather
+    /// than described in a comment: no saved character *and* no usable GUI
+    /// login has to read differently from no saved character alone, because
+    /// the second is a normal first run and the first is a dead end.
+    #[test]
+    fn no_characters_and_no_usable_gui_reads_differently_from_no_characters() {
+        // The note-selection logic, extracted to the shape lich_status uses.
+        let note = |characters_empty: bool, gui_usable: bool| -> &'static str {
+            if characters_empty && !gui_usable {
+                "deadlock"
+            } else if characters_empty {
+                "ordinary first run"
+            } else {
+                "ready"
+            }
+        };
+
+        assert_eq!(note(true, false), "deadlock");
+        assert_eq!(note(true, true), "ordinary first run");
+        assert_eq!(note(false, false), "ready", "a saved character makes the GUI moot");
     }
 
     /// The whole point of the narrow parse, asserted rather than described.

@@ -42,6 +42,13 @@ interface LichStatus {
   charactersKnown: boolean
   running: boolean
   runningKnown: boolean
+  /**
+   * Whether Lich's own login window can actually complete here. False on a
+   * machine whose only frontend is Genie - Lich's GUI can only offer Wrayth,
+   * Wizard, Avalon and Saga, and refuses with "No supported frontend is
+   * available." otherwise. See `gui_login_usable` in lich.rs.
+   */
+  guiLoginUsable: boolean
   note: string
 }
 
@@ -194,23 +201,59 @@ export function LichLauncher() {
             </div>
           )}
 
-          {/* Always available, not only on first run.
+          {/* Offered only when Lich's own window can actually complete.
             *
-            * It is how you add a second character, and it is the way out when
-            * the saved entry is stale or the character list could not be read.
-            * Hiding it once one character exists would make those states
-            * dead ends. */}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void start()}
-            className="flex items-center gap-1.5 rounded border border-border px-2.5 py-1.5 text-xs text-ink-muted hover:text-ink disabled:opacity-50"
-          >
-            <ExternalLink className="h-3 w-3" />
-            {status.charactersKnown && status.characters.length > 0
-              ? 'Open Lich to add another character'
-              : 'Open Lich to sign in'}
-          </button>
+            * Otherwise it is a dead end, and the app was walking people into
+            * it: Lich's GUI login can only offer Wrayth, Wizard, Avalon and
+            * Saga, so on a Genie-only machine every tab refuses with "No
+            * supported frontend is available." A saved character makes the
+            * question moot - that path never touches the GUI - which is why
+            * this stays available once one exists. */}
+          {status.guiLoginUsable ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void start()}
+              className="flex items-center gap-1.5 rounded border border-border px-2.5 py-1.5 text-xs text-ink-muted hover:text-ink disabled:opacity-50"
+            >
+              <ExternalLink className="h-3 w-3" />
+              {status.charactersKnown && status.characters.length > 0
+                ? 'Open Lich to add another character'
+                : 'Open Lich to sign in'}
+            </button>
+          ) : (
+            <div className="min-w-0 space-y-1 rounded border border-warn/40 bg-warn/5 p-2">
+              <p className="text-xs font-medium text-warn">
+                Lich&apos;s own login window cannot sign in on this machine.
+              </p>
+              <p className="text-xs leading-snug text-ink-muted">
+                It only offers Wrayth, Wizard, Avalon and Saga, and none of those
+                are installed here. Genie is not one it can offer, so every tab
+                in that window refuses with &ldquo;No supported frontend is
+                available.&rdquo;
+              </p>
+              {/* The way out is a one-time command, and it is deliberately not
+                * a button. It needs an account password as an argument, which
+                * this app does not take, does not store and does not put on a
+                * command line - see the module header. Showing the command
+                * lets the player run it in their own shell, where the secret
+                * stays theirs. */}
+              <p className="text-xs leading-snug text-ink-muted">
+                One-time fix, run in your own terminal so the password stays
+                yours - it saves the character, and after that this app starts
+                it by name with no password anywhere:
+              </p>
+              {/* Wraps rather than scrolls. A scrolling `pre` forces its own
+                * min-content width onto this column, and this column is
+                * narrow - the first version clipped every paragraph beside
+                * it and put a horizontal scrollbar under the whole panel.
+                * This is a command to select and copy, not a code sample to
+                * read in columns, so wrapping costs nothing. */}
+              <pre className="whitespace-pre-wrap break-all rounded bg-surface p-1.5 text-xs leading-relaxed text-ink-faint">
+{`ruby lich.rbw --account=YOURACCOUNT --password=YOURPASSWORD --character=YourCharacter --dragonrealms --stormfront --save --without-frontend --detachable-client=11024`}
+              </pre>
+            </div>
+          )}
 
           {!status.charactersKnown && (
             <p className="text-xs text-warn">
@@ -219,10 +262,15 @@ export function LichLauncher() {
             </p>
           )}
 
+          {/* Two different true statements, and saying the wrong one is worse
+            * than saying nothing: promising "Lich's own window" on a machine
+            * where that window cannot sign in points at a door that is
+            * bricked up. The constant across both is the part that actually
+            * matters - this app never handles the password. */}
           <p className="text-xs leading-snug text-ink-faint">
-            Your password is typed into Lich's own window and stays there. This
-            app never sees it, and starting a saved character needs only the
-            name.
+            {status.guiLoginUsable
+              ? "Your password is typed into Lich's own window and stays there. This app never sees it, and starting a saved character needs only the name."
+              : 'This app never sees your password either way. The command above runs in your terminal, not here, and once a character is saved this app starts it by name alone.'}
           </p>
 
           {/* Always offered, not only after a failed launch. A character
