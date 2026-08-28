@@ -66,6 +66,15 @@ export interface StreamVitals {
   mana?: StreamVital
   spirit?: StreamVital
   stamina?: StreamVital
+  /**
+   * What a Bard spends to cast, and only a Bard sees it - Lich's own comment
+   * on the bridge-fed equivalent of this field says a Circle 1 Bard has 330
+   * of it. Found missing here by downloads-c3: the parser's allowlist had
+   * four ids, this stream carries five, and a four-bar vitals panel for a
+   * Bard character omits the resource they actually manage, with nothing
+   * erroring to say so.
+   */
+  concentration?: StreamVital
 }
 
 /**

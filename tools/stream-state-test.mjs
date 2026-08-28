@@ -52,6 +52,21 @@ console.log('\n-- all four bars DragonRealms sends --')
   eq('stamina', v.stamina, { current: 96, max: 100 })
 }
 
+console.log("\n-- the fifth bar: a Bard's concentration --")
+{
+  // Every DR character sends four bars. A Bard also sends this one - Lich's
+  // own comment on the bridge-fed equivalent says a Circle 1 Bard has 330 of
+  // it. The parser's allowlist shipped with only the first four and was
+  // silently wrong for a Bard, with nothing erroring to say a bar was
+  // missing. Found by downloads-c3, checking the allowlist against the
+  // bridge's own field list rather than assuming four was the whole set.
+  const s = newStreamState()
+  feed(s, "<progressBar id='concentration' value='0' text='concentration 250/330'/>\r\n")
+  const v = characterState(s).vitals.value.concentration
+  ok('concentration reads from text, same as the other four', v?.current === 250, JSON.stringify(v))
+  ok('and the maximum comes through', v?.max === 330)
+}
+
 console.log('\n-- a bar this does not understand is left out, not guessed --')
 {
   // One number is not "a vital with an unknown maximum". Inventing a max

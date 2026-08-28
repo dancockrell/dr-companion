@@ -519,12 +519,22 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
         }
       } else if (name === 'progressbar') {
         // State, not text. See vitalFromText for why this reads `text` and
-        // never `value`, and types/stream.ts for why only these four ids
-        // matter to a DragonRealms client.
+        // never `value`, and types/stream.ts for why only these five ids
+        // matter to a DragonRealms client - four for everyone, plus
+        // concentration for a Bard. This allowlist shipped with four and was
+        // silently wrong for a Bard character until downloads-c3 checked it
+        // against the bridge's own field list and found the gap.
         const a = attrs(tag)
         const id = (a.id ?? '').toLowerCase()
         const vital = vitalFromText(a.text)
-        if (vital && (id === 'health' || id === 'mana' || id === 'spirit' || id === 'stamina')) {
+        if (
+          vital &&
+          (id === 'health' ||
+            id === 'mana' ||
+            id === 'spirit' ||
+            id === 'stamina' ||
+            id === 'concentration')
+        ) {
           state.character.vitals = {
             value: { ...state.character.vitals.value, [id]: vital },
             from: 'stream',
