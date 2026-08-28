@@ -48,6 +48,8 @@ import { useGameLines } from '../../lib/useGameLines'
 import { isTauri } from '../../lib/tauri'
 import { paint } from '../../lib/highlights'
 import { useHighlights } from '../../lib/useHighlights'
+import { useAliases } from '../../lib/useAliases'
+import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsMuted, alertsMuted } from '../../lib/alertSound'
 import { setZone, setAmbienceMuted, ambienceMuted } from '../../lib/ambientSound'
@@ -141,6 +143,10 @@ export function GamePane() {
   const atBottom = useRef(true)
 
   const { highlights, note: hlNote } = useHighlights()
+  const { aliases, note: aliasNote } = useAliases()
+
+  /** What the last typed line expanded to, or empty. Cleared by the next send. */
+  const [expansion, setExpansion] = useState('')
 
   useEffect(() => {
     void refreshGameState()
@@ -245,9 +251,37 @@ export function GamePane() {
   const send = () => {
     const text = command.trim()
     if (!text) return
-    void sendGame(text).catch(() => {
+
+    /**
+     * Aliases expand here, at the one place a typed line becomes a game
+     * command.
+     *
+     * Shown, never silent. `appc sword` reaching the game as `appraise sword
+     * careful` is the whole point of the feature, and a player who cannot see
+     * what was actually sent has no way to find a wrong alias - the game
+     * simply does something they did not ask for. So the expansion stays on
+     * screen until the next line is typed.
+     *
+     * `capped` means a cycle or the depth limit. The partly-expanded text
+     * still goes out, because refusing to send is a worse surprise than
+     * sending something the player can see, but the chain is named so they
+     * can find which alias is looping.
+     */
+    const { text: outgoing, expanded, chain, capped } = expandAlias(text, aliases)
+    setExpansion(
+      capped
+        ? `${text} → ${outgoing} (chain stopped: ${chain.join(' → ')})`
+        : expanded
+          ? `${text} → ${outgoing}`
+          : ''
+    )
+
+    void sendGame(outgoing).catch(() => {
       /* The link reports its own failure; a toast here would be a second one. */
     })
+    // History keeps what was typed, not what was sent. Up-arrow is for
+    // retyping your own line, and handing back the expansion would make the
+    // alias unrecoverable after one press.
     setHistory((h) => (h[h.length - 1] === text ? h : [...h, text].slice(-500)))
     setHistoryAt(-1)
     setCommand('')
@@ -328,6 +362,13 @@ export function GamePane() {
         {hlNote && (
           <span className="truncate text-ink-faint" title={hlNote}>
             {hlNote}
+          </span>
+        )}
+
+        {/* The alias count carries its denominator - see useAliases. */}
+        {aliasNote && (
+          <span className="truncate text-ink-faint" title={aliasNote}>
+            {aliases.length} aliases
           </span>
         )}
 
@@ -455,6 +496,19 @@ export function GamePane() {
           </p>
         )}
       </div>
+
+      {/* What the last line actually became, when an alias changed it.
+          Directly above the input, because that is where the player is
+          looking, and it is the only way to tell a wrong alias from the game
+          misbehaving. */}
+      {expansion && (
+        <div
+          className="shrink-0 truncate border-t border-border px-2 py-0.5 font-mono text-xs text-ink-faint"
+          title={expansion}
+        >
+          {expansion}
+        </div>
+      )}
 
       <div className="flex shrink-0 items-center gap-1 border-t border-border p-1.5">
         <input
