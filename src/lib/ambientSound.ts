@@ -21,12 +21,14 @@
  * looked up by the zone's biome in zone-biomes.json. It has broad coverage
  * because every zone has a biome.
  *
- * Music (music.*) is the zone's own theme, one file per zone id, tried at
- * `/audio/zone/<id>.mp3` by convention rather than looked up anywhere - the
- * same "try it, degrade if it is not installed" shape as `roomArtUrl` in
- * roomText.ts. Most zones do not have one yet; a missing file 404s inside
- * the `<audio>` element and simply never starts, which is silence, not an
- * error - correct for a layer whose whole job is to be optional.
+ * Music (music.*) is the zone's own theme - not one file but a *playlist*,
+ * same shape as radio: `manifest.json`'s `zone` object maps a zone id to a
+ * list of track ids (reusing the same pool of tracks radio stations draw
+ * from - there is no separate zone-only file set), built to run roughly an
+ * hour before it loops (Dan's ask, 28 Aug 2026 - one-hour region playlists,
+ * aware of what the zone actually is rather than only its biome). A zone
+ * with no playlist plays ambience only, which is silence in the music slot,
+ * not an error - correct for a layer whose whole job is optional.
  *
  * # Radio is a third track, not a mode - and a station, not a track
  *
@@ -88,6 +90,18 @@ export const RADIO_STATIONS: RadioStation[] = (() => {
 
 const RADIO_FILES: Record<string, string> = Object.fromEntries(
   (manifest.radio ?? []).map((r) => [r.id, `/audio/${r.file}`])
+)
+
+interface ZoneManifestEntry {
+  tracks?: string[]
+  character?: string
+}
+
+const ZONE_MANIFEST = manifest.zone as Record<string, ZoneManifestEntry>
+
+/** Zone id -> the track ids its playlist names, in the order authored. */
+const ZONE_TRACKS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(ZONE_MANIFEST).map(([zoneId, z]) => [zoneId, z.tracks ?? []])
 )
 
 function shuffled<T>(items: T[]): T[] {
@@ -229,7 +243,7 @@ class RadioPlayer {
     this.stationId = stationId
 
     if (!stationId) {
-      music.play(currentZone ? `/audio/zone/${currentZone}.mp3` : null, 0.4)
+      zoneMusic.select(currentZone)
       return
     }
 
@@ -239,7 +253,7 @@ class RadioPlayer {
     // single-track lookup did.
     if (!station || !station.tracks.length) {
       this.stationId = null
-      music.play(currentZone ? `/audio/zone/${currentZone}.mp3` : null, 0.4)
+      zoneMusic.select(currentZone)
       return
     }
 
@@ -266,6 +280,54 @@ class RadioPlayer {
   }
 }
 
+/**
+ * Walks the current zone's playlist, same shape as `RadioPlayer` - shuffle
+ * on entry, advance on `ended`, reshuffle rather than repeat the identical
+ * order when the list loops. A zone with no playlist plays nothing in the
+ * music slot; `setZone`'s no-op-on-unchanged-id guard is what already stops
+ * this from restarting on every room, so this player only has to care about
+ * zone *changes*, never room changes within one.
+ */
+class ZoneMusicPlayer {
+  private zoneId: string | null = null
+  private queue: string[] = []
+  private pos = 0
+
+  select(zoneId: string | null) {
+    this.zoneId = zoneId
+    const ids = zoneId ? (ZONE_TRACKS[zoneId] ?? []) : []
+    if (!ids.length) {
+      music.play(null)
+      return
+    }
+    this.queue = shuffled(ids)
+    this.pos = 0
+    this.playCurrent()
+  }
+
+  private playCurrent() {
+    const id = this.queue[this.pos]
+    const file = id ? RADIO_FILES[id] : undefined
+    if (!file) return
+    music.play(file, 0.4, { loop: false, onEnded: () => this.advance() })
+  }
+
+  private advance() {
+    // `Layer.play()` pauses the outgoing element before the new one starts,
+    // which stops a superseded track's `ended` from firing under normal use
+    // - this guard is defense against the case where it does anyway (a zone
+    // left to no playlist at all), not a claim the race is fully closed.
+    if (this.zoneId === null) return
+    this.pos++
+    if (this.pos >= this.queue.length) {
+      this.queue = shuffled(this.queue)
+      this.pos = 0
+    }
+    this.playCurrent()
+  }
+}
+
+const zoneMusic = new ZoneMusicPlayer()
 const radio = new RadioPlayer()
 
 /** Does this zone id have a biome we know about? Unknown zones get the fallback, quietly. */
@@ -284,7 +346,7 @@ export function setZone(zoneId: string | null) {
 
   if (!zoneId) {
     ambient.play(null)
-    if (!radio.current) music.play(null)
+    if (!radio.current) zoneMusic.select(null)
     return
   }
 
@@ -293,7 +355,7 @@ export function setZone(zoneId: string | null) {
   // Radio, once selected, keeps playing across zone changes - it is a
   // deliberate override, not a per-zone thing to interrupt.
   if (!radio.current) {
-    music.play(`/audio/zone/${zoneId}.mp3`, 0.4)
+    zoneMusic.select(zoneId)
   }
 }
 

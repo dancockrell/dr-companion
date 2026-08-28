@@ -17,7 +17,7 @@
  * two files (Ogg-FLAC, Ogg Skeleton) still owed that check.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import manifest from '../data/audio/manifest.json' with { type: 'json' }
@@ -156,6 +156,59 @@ console.log('\n-- radio tracks are songs, not short loops --')
       )
     } else {
       ok(`every radio track is at least ${MIN_MUSIC_SECONDS} seconds`, short.length === 0, short.join(', '))
+    }
+  }
+}
+
+console.log('\n-- zone playlists reference real tracks and run roughly an hour --')
+{
+  const zoneEntries = Object.entries(manifest.zone ?? {})
+  if (!zoneEntries.length) {
+    skip('zone playlists exist', 'manifest.zone is empty - tools/build-zone-playlists.mjs has not run')
+  } else {
+    const knownTrackIds = new Set((manifest.radio ?? []).map((t) => t.id))
+    const unknownRefs = []
+    const empty = []
+    for (const [zoneId, z] of zoneEntries) {
+      if (!z.tracks || !z.tracks.length) {
+        empty.push(zoneId)
+        continue
+      }
+      for (const id of z.tracks) {
+        if (!knownTrackIds.has(id)) unknownRefs.push(`${zoneId}:${id}`)
+      }
+    }
+    ok('there are zone playlists to check', zoneEntries.length > 0, `${zoneEntries.length} zones`)
+    ok('no zone playlist is empty', empty.length === 0, empty.join(', '))
+    ok(
+      'every zone playlist track id exists in the radio pool',
+      unknownRefs.length === 0,
+      unknownRefs.slice(0, 5).join(', ') + (unknownRefs.length > 5 ? ` (+${unknownRefs.length - 5} more)` : '')
+    )
+
+    // Duration check reuses the cache tools/build-zone-playlists.mjs writes,
+    // rather than re-running ffprobe on hundreds of files here - a stale or
+    // absent cache means "not checked", not a failure, since the cache is a
+    // build artifact and its absence doesn't mean the playlists are wrong.
+    const cachePath = join(root, 'data/audio/.track-durations-cache.json')
+    if (!existsSync(cachePath)) {
+      skip(
+        'zone playlists run roughly an hour',
+        'no duration cache - run tools/build-zone-playlists.mjs to generate it'
+      )
+    } else {
+      const durations = JSON.parse(readFileSync(cachePath, 'utf8'))
+      const MIN_ZONE_MINUTES = 45
+      const short = []
+      for (const [zoneId, z] of zoneEntries) {
+        const total = (z.tracks ?? []).reduce((n, id) => n + (durations[id] ?? 0), 0)
+        if (total < MIN_ZONE_MINUTES * 60) short.push(`${zoneId} (${(total / 60).toFixed(0)}min)`)
+      }
+      ok(
+        `every zone playlist is at least ${MIN_ZONE_MINUTES} minutes`,
+        short.length === 0,
+        short.slice(0, 5).join(', ') + (short.length > 5 ? ` (+${short.length - 5} more)` : '')
+      )
     }
   }
 }

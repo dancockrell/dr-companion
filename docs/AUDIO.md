@@ -23,15 +23,19 @@ player's Genie folder.
    to a file in `BIOME_FILES` in `ambientSound.ts`. This is the fallback
    that covers everything, including roads and zones nobody has hand-tuned
    yet.
-2. **Zone music.** One theme per zone id, tried by convention at
-   `/audio/zone/<id>.mp3` — not looked up in a manifest at runtime, just
-   attempted, and a missing file silently falls back to biome-only (same
-   shape as `roomArtUrl` degrading to the generated room stand-in). This is
-   the layer that makes a hunting region feel distinct, and it is almost
-   entirely unbuilt: `data/audio/manifest.json`'s `zone` object is empty.
-   Adding a zone's theme is: source a track, add a `zone` entry to the
-   manifest with the file at `zone/<id>.mp3`, run
-   `node tools/vendor-audio.mjs`.
+2. **Zone music.** A roughly-one-hour *playlist* per zone (`ZoneMusicPlayer`
+   in `ambientSound.ts`, same shuffle/loop/advance-on-`ended` shape as
+   `RadioPlayer`), not a single file — Dan's ask (28 Aug 2026): "one hour
+   playlists for each region," aware of what a zone actually is, not just
+   its biome. `manifest.json`'s `zone` object maps a zone id to a track-id
+   list drawn from the *same pool* radio stations use (no separate
+   zone-only files). All 85 zones are built: `tools/build-zone-playlists.mjs`
+   assigns each one a station-weighted mix from `characterFor()` — a
+   thief-passage zone gets Halls of Shadow, a coastal one gets Salt and
+   Sail, a real named city gets Throne and Temple, and so on — then fills
+   it with shuffled tracks until the total passes an hour. Re-run it after
+   adding radio tracks to redistribute; `--zone <id> --dry-run` previews
+   one zone without writing.
 3. **Radio.** A player-toggled override of the music layer only — ambience
    keeps playing underneath. Fallout-style, not a jukebox: selecting a
    station starts a *playlist* (`RadioPlayer` in `ambientSound.ts`) that
@@ -76,38 +80,70 @@ Four biome tracks (forest, town, cave, dungeon — the remaining seven
 biomes in `BIOME_FILES` point at one of those four as a stand-in, see the
 comment above `FALLBACK_BIOME`), the full 85-zone biome classification,
 the crossfade engine, the vendor/manifest pipeline, and the mute toggle.
-Zero zone themes.
 
-Radio: **three stations, thirteen tracks** — The Old Concert Hall (western
-orchestral/piano, 6 tracks), Six Strings (classical guitar/lute, 4 tracks),
-The Silk Road (Chinese/Japanese/Persian traditional and traditional-style,
-3 tracks). See `data/audio/ATTRIBUTIONS.md` for every track and its
-licence. `tools/ambient-test.mjs` checks the manifest mechanically:
-every station a track names actually got built, no station has fewer than
-two tracks (the whole point of "station" over the old "one track = one
-station" model), every entry the vendor script would fetch has a file,
-download URL and licence, every attribution-required entry actually
-carries its attribution text, and — added after three tracks turned out
-to be 49s/63s/70s demo clips wearing a full song's metadata — every radio
-track measures at least 90 seconds by `ffprobe`, skipping (not failing)
-if `ffprobe` isn't on PATH or the file hasn't been fetched yet. Sabotage-
-verified — a missing licence, a track pointed at an undeclared station, a
-one-track station, and a truncated file were each introduced on a scratch
-copy and confirmed to fail before being trusted. Not yet wired into
-`npm run test` — `package.json` was mid-edit by another session when this
-landed; add `test:ambient` there when it's free.
+**Radio: six stations, 195 tracks.** The Old Concert Hall (42, western
+orchestral/piano), Six Strings (41, guitar/lute/cello), Halls of Shadow
+(36, dark/dramatic — split out because Brahms' turbulent later movements
+suit undead/dungeon zones far better than a town square), The Silk Road
+(26, Chinese/Japanese/Arabic/Persian), Throne and Temple (33, grand/
+ceremonial — Handel), Salt and Sail (17, sea shanties/nautical folk).
+See `data/audio/ATTRIBUTIONS.md` (generated, not hand-maintained — run
+`node tools/vendor-audio.mjs --attributions` after adding tracks).
 
-The engine-level claims (crossfade, no-restart-on-same-zone, the radio
-picker calling the file it says it will) were verified separately by
-measuring `Audio.play()` calls against the fixture and directly — same
-method as the alert-sound fix, see that commit for why that discipline
-matters here. `tools/ambient-test.mjs` cannot make that claim: it runs in
-plain Node, which has no `Audio` constructor, so it only reaches the
-module's data (station grouping, the manifest) and the pure `shuffled`
-helper — see the file's own header. Two tracks (`satie-gymnopedie-3.ogg`,
-Ogg-FLAC; `albeniz-asturias.ogg`, Ogg Skeleton-multiplexed) are unusual
-enough containers that they're flagged with a `note` in the manifest and
-still owed a real playback check, not just an HTTP 200.
+**Zone music: all 85 zones**, each a roughly-one-hour playlist built by
+`tools/build-zone-playlists.mjs` from the radio pool — see "Layers" above
+and that script's own header for how `characterFor()` reads a zone's name
+and biome into a station mix.
+
+`tools/ambient-test.mjs` checks the manifest mechanically: every station
+a track names actually got built, no station has fewer than two tracks,
+every vendor-fetchable entry has a file/download/licence, every
+attribution-required entry carries its text, every radio track measures
+at least 90 seconds by `ffprobe` (added after three tracks turned out to
+be 49s/63s/70s demo clips wearing a full song's metadata), and every zone
+playlist references real track ids and totals at least 45 minutes
+(reading `data/audio/.track-durations-cache.json`, committed specifically
+so this check works on a fresh checkout before `public/audio/` exists to
+re-probe). Sabotage-verified against real defects — a missing licence, an
+undeclared station, a one-track station, a track pointed at a nonexistent
+station, an empty zone playlist, and an unknown track id in a zone
+playlist were each introduced on a scratch copy and confirmed to fail
+before being trusted. Not yet wired into `npm run test` — `package.json`
+was mid-edit by another session when this landed; add `test:ambient`
+there when it's free.
+
+The engine-level claims (crossfade, no-restart-on-same-zone, a station or
+zone playlist actually calling the files it says it will) were verified
+separately by measuring `Audio.play()` calls against the fixture and
+directly — same method as the alert-sound fix, see that commit for why
+that discipline matters here. `tools/ambient-test.mjs` cannot make that
+claim: it runs in plain Node, which has no `Audio` constructor, so it
+only reaches the module's data and the pure `shuffled` helper — see the
+file's own header. A few tracks use unusual containers (Ogg-FLAC, Ogg
+Skeleton-multiplexed) and are flagged with a `note` in the manifest,
+confirmed serving correctly over HTTP but still owed a real playback
+check in a browser.
+
+## A real trap this system hit: Vite's watcher and `data/audio/`
+
+`vite.config.ts`'s dev-server watcher used to ignore all of `data/` (to
+stop an OOM crash from the art pipeline's ComfyUI venv — see that file's
+own history). That silently broke hot-reload for
+`data/audio/manifest.json`, which `ambientSound.ts` reads as a real ES
+module import, not a static asset: editing the manifest updated the file
+on disk and nothing else, because Vite's watcher was told never to look
+under `data/` at all. Every radio/zone-playlist edit looked correct
+against the source and produced zero new `Audio.play()` calls in the
+running app until the dev server was restarted by hand — the same
+"looks right, does nothing" shape the whole test suite here exists to
+prevent, just moved into a layer no amount of `ambient-test.mjs` coverage
+can see, because the bug wasn't in the data or the code, it was in what
+Vite was willing to notice changed. Fixed by naming the two actually-
+churny directories (`data/art/comfy-venv`, `data/art/out`) instead of
+their parent. If a `data/audio/*` edit ever again looks correct but
+doesn't reach the running app, check whether the dev server has been
+restarted since — this exact failure has now happened twice with two
+different unrelated symptoms.
 
 Sourcing went through OpenGameArt (biome tracks) and Wikimedia Commons
 (radio) - the second because a scripted `imageinfo` API call returns an
@@ -153,28 +189,40 @@ too short. The Andalusian/Ottoman batch that filled out Arabic
 representation in The Silk Road worked because it searched by tradition
 and repertoire name, not by instrument.
 
-## Roadmap: what "hundreds of songs" and real zone-matching still need
+## Roadmap: what's still open
 
-Dan's direction (28 Aug 2026), not yet built:
+Dan's direction (28 Aug 2026). **Done since it was written:** "hundreds of
+songs" (195), "a good number of stations matched to region types" (six,
+each with a `characterFor()` reason — see "What's actually done"), and
+"one hour playlists for each region... aware of more than just maps"
+(all 85 zones, `tools/build-zone-playlists.mjs`). Still open:
 
-- **A good number of stations**, matched as closely as possible to region
-  types - hunting areas, towns, rural areas, and *places of interest
-  within towns* (building interiors specifically named, not just "town").
-  Today there are four (The Old Concert Hall, Six Strings, The Silk Road,
-  Salt and Sail for sea shanties/pirates). Take inspiration from monster
-  types and scenery when choosing what a region's station should be, not
-  only its biome - Arabic/Andalusian music for pirate and coastal
-  content was Dan's own example.
 - **Player-created custom stations.** Not built at all. The manifest
   schema (`radioStations` + a `station` tag per track) already supports
   an arbitrary number of stations, so the data model doesn't block this,
   but there is no UI for a player to build their own station from
   tracks, name it, or persist it. This is the next real feature, not a
   content-sourcing task.
-- **Zone/interior-level music matching**, not just biome-level. The
-  `zone` layer in `manifest.json` is still empty - see "Layers" above.
-  "Places of interest in towns like building interiors" implies
-  finer-than-zone granularity eventually (a temple or guild hall inside
-  a town zone getting its own theme), which the current `place` field
-  already carried in `src/data/map/*.json`'s room records could key off
-  of, but nothing reads it for audio yet.
+- **Interior-level music matching, finer than zone.** "Places of
+  interest in towns like building interiors" implies going below the
+  85-zone granularity eventually (a temple or guild hall inside a town
+  zone getting its own theme distinct from the zone's playlist), which
+  the `place` field already carried in `src/data/map/*.json`'s room
+  records could key off of, but nothing reads it for audio yet.
+- **`characterFor()`'s heuristics are a first pass, not lore.** It reads
+  zone names and biomes; it does not know what actually lives in a zone.
+  Cross-referencing `src/data/hunting.ts`'s `HUNTING_GROUNDS` was tried
+  and abandoned for now — its `area` field names regions ("Zoluren"), not
+  specific zone ids, too loosely to map reliably. A better creature/zone
+  data source, if one exists or gets built, would let a genuinely
+  undead-heavy zone get Halls of Shadow regardless of what its name
+  happens to say.
+- **More stations as content allows.** Six is not a ceiling — a "Court
+  and Ceremony" split from Throne and Temple, a lighter "Tavern and
+  Hearth" folk station, or others Dan names are all just another
+  `radioStations` entry plus a `tools/source-radio.mjs` run away.
+- **The genuine pre-1900 Arabic gap.** The Silk Road's Arabic-adjacent
+  entries (Andalusian/Ottoman traditional, an oud piece, a Persian
+  santur piece) are real and licensed but not a strong period-authentic
+  Arabic showpiece the way Grieg or Handel anchor their stations - worth
+  another sourcing pass if a better candidate turns up on Commons.
