@@ -131,13 +131,13 @@ export function CombatRadar({
             }}
           />
         ))}
-        <span className="absolute left-1/2 top-[2%] -translate-x-1/2 text-[9px] text-ink-faint/70">
+        <span className="absolute left-1/2 top-[2%] -translate-x-1/2 text-xs text-ink-faint/70">
           {RANGE_WORD.missile}
         </span>
 
         {/* Facing marker — "in front of you" is up, matching the compass
             every dot on this radar is drawn against. */}
-        <span className="absolute left-1/2 top-0 -translate-x-1/2 text-[9px] text-ink-faint/50" aria-hidden>
+        <span className="absolute left-1/2 top-0 -translate-x-1/2 text-xs text-ink-faint/50" aria-hidden>
           ▲ front
         </span>
 
@@ -149,7 +149,7 @@ export function CombatRadar({
           style={{ left: '50%', top: '50%' }}
         >
           <span className="h-2 w-2 rounded-full border-2 border-accent bg-surface" />
-          <span className="text-[9px] font-semibold text-accent">you</span>
+          <span className="text-xs font-semibold text-accent">you</span>
         </div>
 
         {hasFight ? (
@@ -168,7 +168,7 @@ export function CombatRadar({
                 }`}
               />
               <span
-                className={`whitespace-nowrap rounded bg-surface/90 px-1 text-[9px] leading-tight shadow ${
+                className={`whitespace-nowrap rounded bg-surface/90 px-1 text-xs leading-tight shadow ${
                   p.combatant.target?.toLowerCase() === 'you'
                     ? 'font-semibold text-danger'
                     : 'text-ink'
