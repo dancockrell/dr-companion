@@ -1,7 +1,10 @@
+import { useSyncExternalStore } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 import { RoundtimeMeter } from './RoundtimeMeter'
 import type { SituationFlag } from '../../types'
+import { situationFor } from '../../lib/situation'
+import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
 
 /**
  * What is currently true about you, ranked by how much it matters.
@@ -92,10 +95,11 @@ function spellTone(minutes: number): string {
 
 export function StatusBoard() {
   const character = useAppStore((s) => s.character)
+  const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
 
   if (!character) return null
 
-  const flags = new Set<string>(character.situation)
+  const flags = situationFor(character.situation, stream.indicators.value)
   // roundtime is deliberately not a chip. It has a real countdown and gets one.
   flags.delete('roundtime')
 
