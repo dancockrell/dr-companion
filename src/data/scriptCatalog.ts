@@ -68,29 +68,136 @@ export interface ScriptCatalogEntry {
   realControl?: string
 }
 
+/**
+ * Scripts that were filed as engine tooling and are not.
+ *
+ * The `HIDDEN` list below means "not a player activity, so no control is
+ * owed". Thirteen entries in it failed that test when their source was
+ * actually read - `alias` ships its own GTK settings tab, `autostart` exists
+ * so a player can choose what runs at login, `esp` opens and closes thought
+ * channels. Players wrote these for a reason, and hiding them meant the app
+ * silently offered less than Lich does.
+ *
+ * Same reasoning as the earlier correction to `download-prime-map` further
+ * down: visible as "a control is owed" beats invisible as "never a player
+ * action", because the second is unfalsifiable from the UI - nobody can
+ * discover what was withheld.
+ *
+ * `verified: true` on every one of these: the description comes from the
+ * script's own source, quoted in the comment beside it, not from its name.
+ * The line count is there because it is the cheapest honest signal that
+ * something is a feature rather than a stub - `noop` is 14 lines, `alias` is
+ * 520.
+ */
+const RECLASSIFIED: Record<string, ScriptCatalogEntry> = {
+  // 520 lines, and it builds `Gtk::Box` tabs - it has a settings UI of its own.
+  'alias': {
+    category: 'Character Setup & Config',
+    tier: 'standard',
+    verified: true,
+    description: 'Define command shortcuts, with its own settings window.',
+  },
+  // "#{...} is already set to start at login for all characters"
+  'autostart': {
+    category: 'Character Setup & Config',
+    tier: 'standard',
+    verified: true,
+    description: 'Choose which scripts start automatically at login.',
+  },
+  // Matches /you (open|close) your mind to the #{channel} channel/
+  'esp': {
+    category: 'Monitoring & Notifications',
+    tier: 'standard',
+    verified: true,
+    description: 'Opens and closes ESP thought channels.',
+  },
+  // "Show help menu if no NPC specified."
+  'find': {
+    category: 'Travel & Navigation',
+    tier: 'standard',
+    verified: true,
+    description: 'Locates an NPC and tells you where they are.',
+  },
+  // "Super simple script to show some useful links"
+  'links': {
+    category: 'Character Setup & Config',
+    tier: 'standard',
+    verified: true,
+    description: 'Shows useful DragonRealms reference links.',
+  },
+  // "For usage, see https://elanthipedia.play.net/Lich_script_repository#schedule"
+  'schedule': {
+    category: 'Hunting & Scheduling',
+    tier: 'standard',
+    verified: true,
+    description: 'Runs scripts on a schedule.',
+  },
+  // "Links text to Elanthipedia" - SELF.ELANTHIPEDIA, MikeLC 2/15/2025
+  'textsubs': {
+    category: 'Character Setup & Config',
+    tier: 'standard',
+    verified: true,
+    description: 'Substitutes text in game output, including Elanthipedia links.',
+  },
+  // "When trigger command =exec has been used. Executes a specified script..."
+  'trigger-watcher': {
+    category: 'Monitoring & Notifications',
+    tier: 'standard',
+    verified: true,
+    description: 'Runs a script when a trigger fires.',
+  },
+  // "--- variable #{name} changed to: #{value} (was #{old_value})"
+  'vars': {
+    category: 'Character Setup & Config',
+    tier: 'standard',
+    verified: true,
+    description: 'Views and sets Lich variables for this character.',
+  },
+  // 607 lines; "No matching scripts found!" - it searches and reports versions.
+  'version': {
+    category: 'Character Setup & Config',
+    tier: 'standard',
+    verified: true,
+    description: 'Checks installed script versions and finds outdated ones.',
+  },
+  // "Your version of Lich is too old for this script." - session logging.
+  'log': {
+    category: 'Monitoring & Notifications',
+    tier: 'standard',
+    verified: true,
+    description: 'Logs the session to a file.',
+  },
+  'logxml': {
+    category: 'Monitoring & Notifications',
+    tier: 'standard',
+    verified: true,
+    description: 'Logs the raw XML stream, for diagnosing parsing problems.',
+  },
+  // "Required gems missing that are needed for newer version of Lich5."
+  // A control is owed here for the same reason as download-prime-map: this is
+  // how Lich updates itself, and burying it means the app cannot offer the fix
+  // for a class of problem it can already detect.
+  'lich5-update': {
+    category: 'Character Setup & Config',
+    tier: 'standard',
+    verified: true,
+    description: 'Updates Lich itself to a newer version.',
+  },
+}
+
 const HIDDEN: Record<string, ScriptCatalogEntry> = Object.fromEntries(
   [
-    'alias',
-    'autostart',
     'dependency',
     'echo',
-    'esp',
-    'find',
     'help-me',
-    'log',
-    'logxml',
     'mock',
     'noop',
     'register',
+    // `repeat` is 15 lines and only re-issues a command a script already has;
+    // there is nothing here a player sets up or configures, so unlike the
+    // thirteen moved into RECLASSIFIED above, this one really is plumbing.
     'repeat',
-    'schedule',
-    'textsubs',
-    'trigger-watcher',
-    'vars',
-    'version',
     'wait',
-    'lich5-update',
-    'links',
     'dr-scripts_install',
     // Our own bridge. Excluded by name alongside the rest of Lich's own
     // tooling, not as a special case — it is not a player action either.
@@ -463,6 +570,11 @@ const STANDARD: Record<string, ScriptCatalogEntry> = {
 
 export const SCRIPT_CATALOG: Record<string, ScriptCatalogEntry> = {
   ...HIDDEN,
+  // After HIDDEN on purpose. These were wrongly filed as engine tooling, and
+  // spreading them later means the correction wins even if a name is left in
+  // both lists by mistake - a duplicate should not be settled by whichever
+  // literal happens to sit higher in the file.
+  ...RECLASSIFIED,
   ...PROMOTED,
   ...STANDARD,
 }
