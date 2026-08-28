@@ -96,7 +96,7 @@ function Chip({ card, combatant }: { card: RoomCard; combatant?: RoomCombatant }
             said so. Bottom-left so it never collides with the count badge. */}
         {combatant?.range && (
           <span
-            className="absolute -bottom-0.5 -left-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-surface bg-surface-overlay text-[9px] font-bold leading-none text-ink"
+            className="absolute -bottom-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full border border-surface bg-surface-overlay text-xs font-bold leading-none text-ink"
             title={`${combatant.range} range`}
           >
             {RANGE_LETTER[combatant.range]}
@@ -183,7 +183,7 @@ export function RoomChips({
       {active.map((bucket) => (
         <div key={bucket} className="flex shrink-0 items-end gap-2">
           {grouped && (
-            <span className="mb-1 shrink-0 self-end text-[9px] font-semibold uppercase tracking-wide text-ink-faint/80">
+            <span className="mb-1 shrink-0 self-end text-xs font-semibold uppercase tracking-wide text-ink-faint/80">
               {BUCKET_LABEL[bucket]}
             </span>
           )}
