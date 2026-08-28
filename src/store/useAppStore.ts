@@ -167,10 +167,40 @@ function handleBridgeMessage(
       // the bridge built the payload, so without knowing when that was the
       // only honest thing to render is a frozen number, which is the one thing
       // a countdown must not be. See AppState.characterAt.
+      // Ask the map where it thinks we are, whenever the game says we moved.
+      //
+      // `MapPanel` has compared these two room ids since it was written -
+      // `DRRoom`'s, which arrives on every status tick, against `map_here`'s,
+      // which is a separate query - to catch the map database and the game
+      // disagreeing about where the character is standing. **Nothing has ever
+      // sent that query.** So `mapHere` was permanently null, the comparison
+      // was permanently false, and a correctness check with its own issue
+      // number sat there unable to fire for its whole life. Found by GUI
+      // features 1 while classifying intents nobody calls.
+      //
+      // On a room change rather than every tick: the answer only changes when
+      // the room does, and a query per tick on a busy status stream is a lot
+      // of traffic to establish something that did not move.
+      //
+      // Through `bridge` rather than the store's own `requestIntent`, which
+      // logs failures for the player. This is a background integrity check;
+      // an older bridge that does not implement it should be quiet, not
+      // announce itself in the log every time the character walks.
+      const previousRoom = get().character?.location.roomId ?? null
+      const nextRoom = msg.payload.location?.roomId ?? null
+
+      // Stamped on arrival. `roundtime` is a count of seconds measured when
+      // the bridge built the payload, so without knowing when that was the
+      // only honest thing to render is a frozen number, which is the one thing
+      // a countdown must not be. See AppState.characterAt.
       set({ character: msg.payload, characterAt: Date.now() })
       // Adopt this character's own settings the moment we learn who they are.
       const p = msg.payload
       if (p.name) get().syncProfile(p.name, p.instance, p.guild)
+
+      if (nextRoom !== null && nextRoom !== previousRoom) {
+        bridge.requestIntent('map_here')
+      }
       break
     }
     case 'inventory':
