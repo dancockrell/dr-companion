@@ -1765,6 +1765,54 @@ begin
   )
   $drch_reply = :raise
 
+  puts ''
+  puts '-- degraded: Thread.current isolation actually holds under real overlap, not just sequentially --'
+  # 3b08dd2's whole argument for thread-local over module state is that
+  # serve() spawns a thread per message, so two payload builds can genuinely
+  # overlap - a shared array would misattribute one request's failure to the
+  # other's payload. The existing coverage (above, and in the section this
+  # follows) never has two threads inside safe()/degraded_fields at the same
+  # moment, so it could not have caught a regression back to shared state.
+  # This forces real overlap with a gate, bypassing the socket layer
+  # entirely to test the mechanism directly rather than through the stub
+  # globals, which are shared across connections and can't simulate two
+  # requests seeing different failures at once anyway.
+  gate = Queue.new
+  t1_ready = Queue.new
+  t2_ready = Queue.new
+  t1_result = nil
+  t2_result = nil
+
+  t1 = Thread.new do
+    Companion::State.reset_degraded!
+    t1_ready << true
+    gate.pop
+    Companion::State.safe(0, as: 'thread1field') { raise 'boom' }
+    sleep 0.05 # hold the window open so t2's read can land while t1's list is populated
+    t1_result = Companion::State.degraded_fields
+  end
+  t2 = Thread.new do
+    Companion::State.reset_degraded!
+    t2_ready << true
+    gate.pop
+    sleep 0.02 # land inside t1's post-raise window, before t1 reads its own result
+    t2_result = Companion::State.degraded_fields
+  end
+
+  t1_ready.pop
+  t2_ready.pop
+  gate << true
+  gate << true
+  t1.join
+  t2.join
+
+  check('thread 1 sees the failure it recorded', t1_result == ['thread1field'], t1_result.inspect)
+  check(
+    "thread 2, mid-overlap with thread 1's failure, sees none of it - its own list stays clean",
+    t2_result == [],
+    t2_result.inspect
+  )
+
   c.close
 ensure
   server.stop
