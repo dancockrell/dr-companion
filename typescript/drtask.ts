@@ -62,9 +62,26 @@ export function unescape(text: string): string {
 }
 
 /** `<d cmd='east'>east</d>` becomes `east` - the tag is presentation, the
- * word is what the player read. */
+ * word is what the player read.
+ *
+ * Loops the regex to a fixed point rather than one `replace()` pass -
+ * flagged by CodeQL (`js/incomplete-multi-character-sanitization`) on the
+ * single-pass version: removing one match can splice two surviving
+ * fragments into a new `<...>` span the regex never re-scans for
+ * (`<scri<script>pt>` loses the inner tag in one pass and is left holding
+ * `pt>`, but a differently-shaped input can reassemble one). Looping until a
+ * pass changes nothing closes that regardless of the specific construction,
+ * rather than patching the one shape found. Terminates in at most
+ * `text.length` iterations - each pass only removes characters or leaves the
+ * string unchanged, never adds any. */
 export function stripTags(text: string): string {
-  return unescape(text.replace(TAG, ''))
+  let current = text
+  for (;;) {
+    const next = current.replace(TAG, '')
+    if (next === current) break
+    current = next
+  }
+  return unescape(current)
 }
 
 export class Vital {
