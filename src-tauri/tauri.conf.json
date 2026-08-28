@@ -54,7 +54,8 @@
     "resources": {
       "../lich-scripts/companion_bridge.lic": "lich-scripts/companion_bridge.lic",
       "vendor/Ruby4Lich5.exe": "vendor/Ruby4Lich5.exe",
-      "vendor/Ruby4Lich5.manifest.json": "vendor/Ruby4Lich5.manifest.json"
+      "vendor/Ruby4Lich5.manifest.json": "vendor/Ruby4Lich5.manifest.json",
+      "../python/**/*": "python/"
     }
   }
 }

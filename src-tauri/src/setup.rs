@@ -316,6 +316,28 @@ fn dedupe_paths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
     out
 }
 
+/// Lich's own `scripts` folder, which is where a Ruby script has to live to
+/// be runnable at all.
+///
+/// Derived from the same search `plan_setup` uses rather than from a second
+/// guess of its own - two independent notions of where Lich is would drift,
+/// and the failure would be a script saved somewhere Lich never looks while
+/// the app reports it saved fine.
+///
+/// `None` means Lich was not found. That is reported to the player as its own
+/// state, never folded into "no scripts": an empty list and an absent Lich
+/// need different things done about them.
+pub(crate) fn lich_scripts_dir() -> Option<PathBuf> {
+    for dir in lich_dirs() {
+        for candidate in [dir.join("scripts"), dir.join("Lich5").join("scripts")] {
+            if candidate.is_dir() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
 fn lich_dirs() -> Vec<PathBuf> {
     let mut d = candidate_dirs(&["lich", "Lich", "lich5", "Lich5", "Ruby4Lich5", "ruby4lich5"]);
 
