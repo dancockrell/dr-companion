@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.10.2'
+  BRIDGE_VERSION = '0.10.3'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1553,6 +1553,7 @@ module Companion
       },
       'read_settings' => ->(_args, server) { read_settings(server) },
       'check_toggles' => ->(_args, server) { check_toggles(server) },
+      'list_vars'     => ->(_args, server) { list_vars(server) },
 
       # --- map queries, all read-only -------------------------------------
       #
@@ -1769,6 +1770,43 @@ module Companion
     # It also parses each file and reports syntax errors with a line and
     # column, which is what people currently paste into an online parser to
     # find out.
+    # Lich::Common::Vars is per-character persistent storage every script can
+    # read and write (Vars['x'] = y), backed by SQLite and separate entirely
+    # from dr-scripts' YAML profiles above. `;vars list` has always been able
+    # to show them; nothing on this app's side could until now.
+    #
+    # Read-only on purpose, for the same reason `read_settings` only reads:
+    # scripts other than this one own these values, and a bridge feature for
+    # a person to change one from here is a bigger decision than reporting
+    # what is already set - it can wait for its own scoping conversation.
+    def list_vars(server)
+      character = State.char_name
+      all = Vars.list
+
+      if all.empty?
+        server.log("No variables set for #{character}.")
+        server.broadcast(type: 'vars', character: character, entries: [])
+        return [true, 'no vars set']
+      end
+
+      entries = all.sort_by { |name, _| name.to_s }.map do |name, value|
+        if value.is_a?(String)
+          { name: name.to_s, value: value, kind: 'string' }
+        else
+          # Lich's own GUI (vars.lic) does the same thing for anything that
+          # is not a String: shows class and inspect, and does not offer to
+          # edit it. Matching that rather than inventing a new display rule
+          # for types this bridge has never seen (Vars can hold booleans,
+          # or whatever a script decided to marshal into it).
+          { name: name.to_s, value: "#{value.class}: #{value.inspect}", kind: 'other' }
+        end
+      end
+
+      server.log("#{entries.size} variable(s) set for #{character}.")
+      server.broadcast(type: 'vars', character: character, entries: entries)
+      [true, "#{entries.size} var(s)"]
+    end
+
     def read_settings(server)
       character = State.char_name
       files = Yaml.files_for(character)
