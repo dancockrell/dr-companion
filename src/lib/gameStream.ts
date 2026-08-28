@@ -39,6 +39,7 @@ import type {
   StreamCharacterState,
   StreamVital,
   IndicatorState,
+  RoomPlayer,
 } from '../types/stream'
 
 /** A line ready to render, with what the game said it was. */
@@ -124,6 +125,21 @@ export interface StreamState {
   afterTagBreak: boolean
   /** Text of the line being built. */
   partial: string
+  /**
+   * Text seen so far inside `<component id='room players'>...</component>`,
+   * or `null` when not inside one.
+   *
+   * DragonRealms sends the entire "Also here: ..." sentence as one text node
+   * with no nested tags - confirmed from Lich's own parser, which processes
+   * it as a single `text_string` rather than per-`<a>` fragments the way
+   * GemStone's room players do. So a plain running capture is enough; this
+   * does not need the tag-awareness `partial` has.
+   *
+   * Mirrors `partial` rather than reusing it: the sentence must still render
+   * as an ordinary line (unchanged from before this existed), and capturing
+   * separately means the structured parse can't perturb what's on screen.
+   */
+  roomPlayersCapture: string | null
 }
 
 /**
@@ -151,7 +167,7 @@ export function newStreamState(): StreamState {
   return {
     buffer: '', stack: [], boldDepth: 0, partialBold: false, inPrompt: false,
     afterPrompt: false, afterTagBreak: false, partial: '',
-    partialWasStateOnly: false,
+    partialWasStateOnly: false, roomPlayersCapture: null,
     // Empty rather than absent, and the two are different on purpose: an
     // empty indicator map means no icon has ever been reported, which a
     // reader must be able to tell from an icon reported as 'unknown'.
@@ -223,6 +239,67 @@ function indicatorState(visible: string | undefined): IndicatorState {
   if (visible === 'y') return 'on'
   if (visible === 'n') return 'off'
   return 'unknown'
+}
+
+/**
+ * DragonRealms' `<component id='room players'>` text, split into names.
+ *
+ * Ported line-for-line from Lich's own `xmlparser.rb` (the `@game =~ /^DR/`
+ * branch under `@active_ids.include?('room players')`), not re-derived from
+ * the game's prose, because a second implementation guessing at the same
+ * sentence is exactly how two parsers end up disagreeing with each other
+ * instead of with the game. Lich has run this against real DragonRealms text
+ * for years; this keeps its exact order of operations, including whichever
+ * of its edge cases are quirks rather than intent - faithfulness to a proven
+ * parser beats a "cleaner" version nobody has run.
+ *
+ * Order matters and mirrors the source: the who-is/parenthetical status is
+ * pulled off first, then the trailing-capitalised-word noun is sliced from
+ * what's left, and only after that are "the body of " and "a stunned "
+ * stripped and folded into status - so `noun` can still carry either of
+ * those words if they were part of it.
+ *
+ * Ruby's `.sub` replaces only the first match; the `.replace` calls below
+ * deliberately omit the global flag to match that, including the
+ * one-`and`-only splice for "A, B and C." style lists.
+ */
+function parseRoomPlayers(raw: string): RoomPlayer[] {
+  const trimmed = raw.trim()
+  // An empty component is a real answer - nobody else is here - and must not
+  // become one bogus blank entry from splitting an empty string.
+  if (!trimmed) return []
+
+  const cleaned = trimmed
+    .replace(/^Also here: /, '')
+    .replace(/ and ([^,]+)\./, (_m, tail: string) => `, ${tail}`)
+
+  return cleaned.split(', ').map((raw) => {
+    let player = raw
+    let status: string | null = null
+
+    const whoIs = player.match(/ who is (.+)/)
+    const parens = player.match(/ \((.+)\)/)
+    if (whoIs) {
+      status = whoIs[1]
+      player = player.replace(/ who is .+/, '')
+    } else if (parens) {
+      status = parens[1]
+      player = player.replace(/ \(.+\)/, '')
+    }
+
+    const noun = player.match(/\b[A-Z][a-z]+$/)?.[0] ?? null
+
+    if (player.includes('the body of ')) {
+      player = player.replace('the body of ', '')
+      status = status ? `${status} dead` : 'dead'
+    }
+    if (player.includes('a stunned ')) {
+      player = player.replace('a stunned ', '')
+      status = status ? `${status} stunned` : 'stunned'
+    }
+
+    return { noun, name: player, status }
+  })
 }
 
 /** Attributes, tolerating single quotes, double quotes and bare values. */
@@ -477,10 +554,26 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
         // Not our business to clear anything: a client that dropped
         // scrollback because the game asked would lose the line somebody was
         // reading. Noted and ignored.
+      } else if (name === 'component') {
+        // The component's own tags carry no text and must not touch what
+        // renders - only `<component id='room players'>`'s *content* is
+        // wanted, and only for structured state on the side. The sentence
+        // still displays exactly as it did before this existed.
+        if (!closing) {
+          const id = attrs(tag).id
+          if (id === 'room players') state.roomPlayersCapture = ''
+        } else if (state.roomPlayersCapture !== null) {
+          state.character.roomPlayers = {
+            value: parseRoomPlayers(state.roomPlayersCapture),
+            from: 'stream',
+            at: Date.now(),
+          }
+          state.roomPlayersCapture = null
+        }
       }
-      // Everything else - <d>, <a>, <style>, <component>, <output> - is
-      // markup around text we keep. Skipping the tag and keeping the content
-      // is what makes this tolerant of a protocol that grows tags over time.
+      // Everything else - <d>, <a>, <style>, <output> - is markup around
+      // text we keep. Skipping the tag and keeping the content is what makes
+      // this tolerant of a protocol that grows tags over time.
       continue
     }
 
@@ -512,6 +605,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
     // writes <pushBold/>title<popBold/> and only then the newline, so reading
     // the depth at emit time reports every bold line as plain.
     if (state.boldDepth > 0) state.partialBold = true
+    if (state.roomPlayersCapture !== null) state.roomPlayersCapture += ch
     i++
   }
 

@@ -104,6 +104,23 @@ export type StreamIndicators = Record<string, IndicatorState>
  * They stay bridge-fed. Leaving them out of this type is the point: a field
  * that cannot arrive should not be somewhere a component can ask for it.
  */
+/**
+ * One name in the `room players` component, as DragonRealms sends it.
+ *
+ * DragonRealms wraps none of this in an `<a>` tag - unlike GemStone, the
+ * whole "Also here: ..." sentence arrives as one text node, and the client is
+ * the one splitting it into names. `noun` is the trailing capitalised word
+ * Lich's own parser slices out (`/\b[A-Z][a-z]+$/`) for addressing the
+ * character with a verb; `name` is the fuller descriptive text with the
+ * status suffix removed; `status` is `null` when the game said nothing about
+ * this arrival's posture.
+ */
+export interface RoomPlayer {
+  noun: string | null
+  name: string
+  status: string | null
+}
+
 export interface StreamCharacterState {
   vitals: Sourced<StreamVitals>
   indicators: Sourced<StreamIndicators>
@@ -111,4 +128,20 @@ export interface StreamCharacterState {
   compass?: Sourced<string[]>
   /** Active spell, as the game names it. */
   spell?: Sourced<string | null>
+  /**
+   * Who else is in the room, from `<component id='room players'>`.
+   *
+   * Replaces on every arrival rather than merging - same call as compass, and
+   * for the same reason: the game re-sends the whole room on every glance, so
+   * merging would keep someone who already left. An empty array is a real
+   * answer ("nobody else is here"), distinct from this key being absent
+   * ("the game has not told us yet").
+   *
+   * `room objs` (the creature/loot half of the room) is deliberately not
+   * here yet. DragonRealms pairs its bold NPC names to a separate
+   * `<crtrStatus>` batch that arrives afterward and is only safe to resolve
+   * at the next `<prompt>` boundary - a cross-tag, cross-prompt scheme this
+   * parser has not implemented, rather than a smaller version of this one.
+   */
+  roomPlayers?: Sourced<RoomPlayer[]>
 }

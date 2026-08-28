@@ -154,6 +154,84 @@ console.log('\n-- split across reads, as a socket delivers it --')
     JSON.stringify(characterState(s).vitals.value.health))
 }
 
+console.log('\n-- room players: ported line-for-line from Lich, not re-derived --')
+{
+  // DragonRealms wraps the whole sentence as one text node with no per-name
+  // <a> tags (unlike GemStone) - confirmed from xmlparser.rb, not guessed.
+  // A separate implementation guessing at the same English is exactly how
+  // two parsers end up disagreeing with the game, so every case below is a
+  // faithful port of Lich's own regex chain, including its quirks: a
+  // trailing period from a name that was never part of the "and X." splice
+  // survives into `name`, and blocks the noun regex's `$` anchor. That is
+  // not a bug in this port - it is the same output Lich's own client has
+  // produced against this exact protocol for years.
+  const s = newStreamState()
+  const lines1 = feed(s, "<component id='room players'>Also here: Bob and Alice.</component>\r\n")
+  eq('two names split on the lone "and"', characterState(s).roomPlayers?.value, [
+    { noun: 'Bob', name: 'Bob', status: null },
+    { noun: 'Alice', name: 'Alice', status: null },
+  ])
+  eq('the sentence still renders as an ordinary line', lines1.map((l) => l.text), [
+    'Also here: Bob and Alice.',
+  ])
+  ok('marked as coming from the stream', characterState(s).roomPlayers?.from === 'stream')
+}
+{
+  const s = newStreamState()
+  feed(s, "<component id='room players'>Also here: Bob who is kneeling.</component>\r\n")
+  eq('"who is" becomes status, stripped from the name', characterState(s).roomPlayers?.value, [
+    { noun: 'Bob', name: 'Bob', status: 'kneeling.' },
+  ])
+}
+{
+  const s = newStreamState()
+  feed(s, "<component id='room players'>Also here: Alice (prone).</component>\r\n")
+  eq('a parenthetical becomes status too', characterState(s).roomPlayers?.value, [
+    // The trailing period stays on the name because only " (prone)" is
+    // stripped, which is also why the noun regex - anchored on $ - cannot
+    // match through it. Same quirk Lich's own regex chain has.
+    { noun: null, name: 'Alice.', status: 'prone' },
+  ])
+}
+{
+  const s = newStreamState()
+  feed(s, "<component id='room players'>Also here: the body of Bob.</component>\r\n")
+  eq('"the body of" folds into status as dead', characterState(s).roomPlayers?.value, [
+    { noun: null, name: 'Bob.', status: 'dead' },
+  ])
+}
+{
+  const s = newStreamState()
+  feed(s, "<component id='room players'>Also here: a stunned troll.</component>\r\n")
+  eq('"a stunned" folds into status', characterState(s).roomPlayers?.value, [
+    { noun: null, name: 'troll.', status: 'stunned' },
+  ])
+}
+{
+  // An empty component is a real answer - nobody else is here - not the
+  // absence of one. Distinguishing the two is the whole reason `roomPlayers`
+  // is a Sourced<[]> rather than an optional list that just never fills in.
+  const s = newStreamState()
+  feed(s, "<component id='room players'></component>\r\n")
+  eq('nobody here parses to an empty list, not one blank entry',
+    characterState(s).roomPlayers?.value, [])
+}
+{
+  // Replaces on every arrival, like compass - the game resends the whole
+  // room rather than the delta, so merging would keep someone already gone.
+  const s = newStreamState()
+  feed(s, "<component id='room players'>Also here: Bob.</component>\r\n")
+  // A lone name never passes through the "and X." splice, so its trailing
+  // period survives and blocks the noun regex - same as the parenthetical
+  // and "the body of" cases above; only a multi-name list loses the period.
+  eq('first room has Bob', characterState(s).roomPlayers?.value, [
+    { noun: null, name: 'Bob.', status: null },
+  ])
+  feed(s, "<component id='room players'></component>\r\n")
+  eq('the next room replaces it, not merges an empty list into it',
+    characterState(s).roomPlayers?.value, [])
+}
+
 const ran = checked
 ok('enough was checked for a pass to mean something', ran >= 18, `${ran} assertions`)
 
