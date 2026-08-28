@@ -58,13 +58,13 @@ export interface PersistedPrefs {
   setupComplete?: boolean
   /**
    * Sound levels, 0 to 1.5 (0% to 150%) each, no separate mute flag - 0 is
-   * silent. Three independent channels because a listener who wants the
-   * idle warning but not a music bed, or the ambience but not the radio,
-   * should be able to have exactly that - see ambientSound.ts and
-   * alertSound.ts for where these are actually applied.
+   * silent. Two independent channels (not three - the ambient terrain
+   * layer shipped once and was pulled back out, 28 Aug 2026) because a
+   * listener who wants the idle warning but not a music bed should be able
+   * to have exactly that - see ambientSound.ts and alertSound.ts for where
+   * these are actually applied.
    */
   alertsVolume?: number
-  ambientVolume?: number
   musicVolume?: number
 }
 
@@ -92,7 +92,6 @@ const defaults: PersistedPrefs = {
   // caught it - see SoundControls.tsx's header for the read-order bug that
   // made the drift actually reach the screen).
   alertsVolume: 0.45,
-  ambientVolume: 1,
   musicVolume: 1,
 }
 

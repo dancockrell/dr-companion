@@ -1,70 +1,71 @@
 # The soundscape
 
-**Status, 28 Aug 2026: the ambient/zone-music/radio layer described below
-is disabled.** Dan's call, after repeated overlap and volume complaints:
-"the idea for that ambiance is bad anyways. pull out that kind of stuff.
-lets not." `GamePane.tsx` no longer imports or calls `ambientSound.ts` at
-all - nothing in the running app triggers it. The module, the 233 sourced
-radio tracks, the 85 zone playlists, the manifest and license records all
-stay in the repo (real, licensed, curated work, and `tools/ambient-test.mjs`
-still runs and passes against it standalone) in case the direction changes
-later, but as of this commit none of it plays. Everything else in this
-file below is a record of what was built and why, kept for that reason -
-read the status line above as overriding anything below that describes
-ambience as active.
+**Status, 28 Aug 2026 (updated same day): ambience is gone for good; music
+is back.** The ambient/zone-music/radio layer was disabled first, then Dan
+clarified within the hour that only the *ambient* half of that was the
+problem: "the idea for that ambiance is bad anyways. pull out that kind of
+stuff. lets not," followed immediately by "i do want music. not
+ambiant...just the music...lots of songs we had." So `ambientSound.ts` was
+rewritten rather than left disabled: the terrain-texture `Layer` instance,
+`BIOME_FILES`, `ZONE_BIOMES` and `biomeFor()` are deleted from the module
+entirely (not just unwired), while `RadioPlayer`, `ZoneMusicPlayer`,
+`RADIO_STATIONS`, `setZone()`, `setRadioStation()` and `setMusicVolume()`
+are back and `GamePane.tsx` calls them again. The four biome ambience audio
+files under `public/audio/biome/` are now unreferenced by any code path -
+left on disk rather than deleted, same as the module logic was left in
+place during the brief disabled window, in case biome-level texture is
+wanted again later in some non-overlapping form. Everything in this file
+that describes ambience as active is historical - the "Layers" section
+below still names three layers because that is what was built and why, not
+what plays today; read this status block as authoritative over it.
 
-Two systems, easy to confuse because they share `data/audio/` and used to
-share a control panel, but built for different things.
+Two systems, easy to confuse because they share `data/audio/` and share a
+control panel, but built for different things.
 
 **Alerts** (`src/lib/alertSound.ts`) — short one-shots tied to Genie
 highlight lines: `dr-genie-settings/Config/highlights.cfg`, played through
-Tauri's `read_sound` from the player's own Genie install. Still active -
-this was the original ask, it works, and it is unaffected by the ambience
-layer being pulled out. Tuned to blend in rather than sit forward - Dan's
-instruction (28 Aug 2026): "tune down your sound effects to be background,
-to blend in generally."
+Tauri's `read_sound` from the player's own Genie install. Unaffected by any
+of the ambience/music churn. Tuned to blend in rather than sit forward -
+Dan's instruction (28 Aug 2026): "tune down your sound effects to be
+background, to blend in generally."
 
-**Ambience** (`src/lib/ambientSound.ts`, disabled - see status above) —
-the background layer covered in the rest of this file: terrain texture,
-per-zone music, and an optional radio override. Files live under
-`public/audio/`, served as plain static assets, not routed through Tauri
-at all - they shipped with the app rather than living in a player's Genie
-folder, when they were shipping.
+**Music** (`src/lib/ambientSound.ts` - the filename predates the rewrite
+and still describes what's inside the module, not what's on the label) —
+per-zone playlists plus an optional radio-station override, covered in the
+rest of this file. No terrain-texture layer under it any more; there is
+only ever one thing playing in the module's `music` slot. Files live under
+`public/audio/`, served as plain static assets, not routed through Tauri at
+all - they ship with the app rather than living in a player's Genie folder.
 
 ## Controls
 
-**Current state, since ambience was pulled out:** `SoundControls.tsx` now
-shows one slider (Alerts) plus a quick-mute button - the Ambience/Music
-sliders and the radio station picker described in the rest of this section
-were removed along with the layer they controlled. The reasoning below
-about *why* a single slider-with-no-mute-flag design was chosen still
-applies to the one channel that's left.
-
-Before the ambience layer was pulled out, one button "Sound" opened a
-popover with three sliders (Alerts, Ambience, Music) and the radio station
-picker, rather than three separate icon-toggle buttons plus a `<select>`
-crammed into the toolbar. Dan's ask (28 Aug 2026): "full and strong sound
-controls... obvious but... easier to use and more intuitive than now."
+`SoundControls.tsx` shows two sliders (Alerts, Music), a quick-mute button,
+and a radio station picker - no Ambience slider; that channel is gone, not
+hidden. One button "Sound" opens a popover with the sliders and the
+`<select>`, rather than several separate icon-toggle buttons crammed into
+the toolbar. Dan's ask (28 Aug 2026): "full and strong sound controls...
+obvious but... easier to use and more intuitive than now."
 
 **No separate mute flag anywhere - a slider at 0% is silent, and that is
-the only state there is.** `alertsVolume()`/`ambientVolume()`/
-`musicVolume()` are plain 0-to-1.5 numbers (0% to 150%); the old
-`setAlertsMuted`/`ambienceMuted`-style booleans were removed rather than
-kept alongside the sliders, because a mute flag and a remembered volume
-level are two pieces of state that can disagree with each other, and a
-control that can silently disagree with what it shows is worse than one
-fewer control. Persisted in `PersistedPrefs` (`src/lib/persistence.ts`) -
-`alertsVolume`/`ambientVolume`/`musicVolume`, defaults 0.45/1/1 - and
-applied once at `GamePane` mount, since neither sound module has (or
-should have) an opinion about storage.
+the only state there is.** `alertsVolume()`/`musicVolume()` are plain
+0-to-1.5 numbers (0% to 150%); a `setAlertsMuted`-style boolean was
+considered and rejected, because a mute flag and a remembered volume level
+are two pieces of state that can disagree with each other, and a control
+that can silently disagree with what it shows is worse than one fewer
+control. Persisted in `PersistedPrefs` (`src/lib/persistence.ts`) -
+`alertsVolume`/`musicVolume`, defaults 0.45/1 (there is no `ambientVolume`
+field any more - removed rather than left dead, since a stale field that
+nothing reads is exactly the kind of drift rule 1 in the working
+agreements warns about) - and applied once at `GamePane` mount, since
+neither sound module has (or should have) an opinion about storage.
 
-**Quick mute** (28 Aug 2026, Dan: "mute quickly or whatever") is a
-separate button next to "Sound," not something you open the panel and
-drag three sliders to reach - one click sets all three channels to 0,
-saving exactly where they were; the same click again restores those exact
-numbers, not a guessed default. Manually moving any slider while
-quick-muted clears the saved state, so the button doesn't fight a
-deliberate adjustment.
+**Quick mute** (28 Aug 2026, Dan: "mute quickly or whatever," reconfirmed
+"that will need a volume control and mute too" when music came back) is a
+separate button next to "Sound," not something you open the panel and drag
+sliders to reach - one click sets both channels to 0, saving exactly where
+they were; the same click again restores those exact numbers, not a
+guessed default. Manually moving either slider while quick-muted clears the
+saved state, so the button doesn't fight a deliberate adjustment.
 
 Also removed from the toolbar, per Dan's instruction, to make room: the
 `{link.lines} lines` counter (gone entirely) and the numeric `host:port`
@@ -144,7 +145,11 @@ review of otherwise-standard Web Audio API usage.
 
 ## Layers
 
-1. **Biome ambience.** Every one of the 85 zones in `src/data/map/*.json`
+**Only #2 and #3 below actually play, as of the status block at the top of
+this file.** #1 (biome ambience) is described here because it's what got
+built and the reasoning is worth keeping, not because it runs.
+
+1. **Biome ambience — removed from the running app, 28 Aug 2026.** Every one of the 85 zones in `src/data/map/*.json`
    is classified into a biome in `data/audio/zone-biomes.json` (forest,
    town, cave, road, etc. — see that file's `classify()` origin in this
    doc's history if the categories ever need revisiting). Each biome maps
@@ -182,12 +187,11 @@ review of otherwise-standard Web Audio API usage.
 reports a room on every step, and GamePane's own header already measured
 eighteen movement events in ninety seconds in one room (Firulf Vista) — a
 naive "play on every room update" design would restart background music
-that often. Crossfading between zones (2.5s, in `ambientSound.ts`'s
-`Layer`) is the only thing that ever changes what is playing, and — an
-emergent property worth knowing about, not something separately coded —
-moving between two zones that share a biome doesn't even restart the
-ambience layer, only the zone-music layer, because `Layer.play()` is
-itself a no-op on an unchanged source.
+that often. Crossfading (2.5s, in `ambientSound.ts`'s `Layer`) is the only
+thing that ever changes what is playing, and it applies to one layer now,
+not two — the note this section used to have about a biome-sharing pair of
+zones not restarting the ambience layer no longer applies now that there is
+no ambience layer to not-restart.
 
 ## Sourcing discipline
 
