@@ -50,12 +50,15 @@ const ok = (label, cond, detail = '') => {
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${label.padEnd(52)}${detail}`)
 }
 
-const { fitColumns, ROOM_MIN, COL_MIN } = m
+const { fitColumns, ROOM_MIN, COL_MIN, MAP_EMPTY_WANT, DASH_EMPTY_WANT } = m
 const SPLIT = 8
 
 /** What the app actually asks for, so a case is a window size and two wants. */
 const fit = (hostW, mapWant, dashWant, mapDocked = true) =>
   fitColumns({ hostW, mapWant, dashWant, mapDocked, splitW: SPLIT })
+
+const fitEmpty = (hostW, mapWant, dashWant, opts = {}) =>
+  fitColumns({ hostW, mapWant, dashWant, mapDocked: true, splitW: SPLIT, ...opts })
 
 /** The invariant the whole module exists for. */
 const fitsInside = (hostW, f, docked = true) => {
@@ -161,6 +164,60 @@ console.log('\n-- and the check can fail, shown against the version it replaces 
     'the map-only ceiling is caught too',
     1180 - mapOnly(1201.6, 1180) - 420 - 16 < ROOM_MIN,
     `it left ${Math.round(1180 - mapOnly(1201.6, 1180) - 420 - 16)}px for the room column`
+  )
+}
+
+console.log('\n-- an empty map yields space rather than holding its stored width --')
+{
+  // Dan's own "see a map?" measurement: 495px of nothing at 1180x820, while
+  // the game pane sat at its bare 380px floor. mapEmpty makes the map's
+  // *effective* ask small until there is something in the column to spend a
+  // large one on.
+  // A window wide enough to honour 495+315 unsqueezed (784px would not be -
+  // 1180 minus splits and ROOM_MIN - so squeeze scaling would shrink the map
+  // too, for a reason unrelated to the thing being asserted here). Same width
+  // for both calls, so the only variable between them is mapEmpty.
+  const idle = fitEmpty(1600, 495, 315, { mapEmpty: true, dashEmpty: false })
+  ok('the empty map is capped near MAP_EMPTY_WANT', idle.map <= MAP_EMPTY_WANT, `${idle.map}px`)
+  ok('room grows past its bare floor because of it', idle.room > ROOM_MIN, `${idle.room}px`)
+
+  const full = fitEmpty(1600, 495, 315, { mapEmpty: false, dashEmpty: false })
+  ok('with content, the same 495px request is honoured', full.map === 495, `${full.map}px`)
+  ok('and room shrinks back to make room for it', full.room < idle.room, `${full.room} vs ${idle.room}`)
+}
+
+console.log('\n-- the cap is a ceiling, not a rewrite --')
+{
+  // A player who dragged the map to 150px - narrower than the empty
+  // allowance - is still asking for exactly 150px, empty or not.
+  const f = fitEmpty(1180, 150, 300, { mapEmpty: true })
+  ok('a want smaller than the empty cap is left alone', f.map === 150, `${f.map}px`)
+}
+
+console.log('\n-- both columns can be empty at once, and both yield --')
+{
+  const f = fitEmpty(1180, 495, 981, { mapEmpty: true, dashEmpty: true })
+  ok('map is capped', f.map <= MAP_EMPTY_WANT, `${f.map}px`)
+  ok('dash is capped', f.dash <= DASH_EMPTY_WANT, `${f.dash}px`)
+  ok('room gets most of the window', f.room > 500, `${f.room}px`)
+  const fitsAfter = f.map + f.dash + f.room + SPLIT * 2 <= 1180 + 0.5
+  ok('and everything still fits', fitsAfter, JSON.stringify(f))
+}
+
+console.log('\n-- and the check can fail: a version that ignores emptiness entirely --')
+{
+  // The mutation this guards against: someone adds the mapEmpty/dashEmpty
+  // parameters to the type and never reads them.
+  const ignoresEmpty = (hostW, mapWant, dashWant) => {
+    const mapAsked = Math.max(COL_MIN, mapWant)
+    const dashAsked = Math.max(COL_MIN, dashWant)
+    return { map: mapAsked, dash: dashAsked, room: hostW - SPLIT * 2 - mapAsked - dashAsked }
+  }
+  const f = ignoresEmpty(1180, 495, 315)
+  ok(
+    'a fit that does not read the empty flags fails this suite',
+    !(f.map <= MAP_EMPTY_WANT),
+    `${f.map}px - would wrongly pass if this were <= ${MAP_EMPTY_WANT}`
   )
 }
 

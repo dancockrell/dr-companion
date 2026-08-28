@@ -58,6 +58,22 @@ export const ROOM_MIN = 380
 /** A sliver, but a grabbable one. */
 export const COL_MIN = 80
 
+/**
+ * What an empty map column asks for, instead of the player's stored width.
+ *
+ * "Empty" here means literally nothing to look at - no bridge, or connected
+ * but no zone fetched yet. Measured from Dan's own "see a map?": a black
+ * rectangle at 495px, 38% of an 1180px window, while the game pane - the
+ * actual reason this app exists - sat at 380px, its bare floor. The stored
+ * preference is not wrong and is not discarded; it is only honoured while
+ * there is something in the column to spend it on. The moment `mapEmpty`
+ * goes false again, `mapWant` applies exactly as it did before.
+ */
+export const MAP_EMPTY_WANT = 220
+
+/** Same reasoning, for the dashboard's "waiting for a character" state. */
+export const DASH_EMPTY_WANT = 300
+
 export interface ColumnFit {
   /** The map column's width, or 0 when it is not docked. */
   map: number
@@ -75,17 +91,29 @@ export function fitColumns({
   dashWant,
   mapDocked,
   splitW,
+  mapEmpty = false,
+  dashEmpty = false,
 }: {
   hostW: number
   mapWant: number
   dashWant: number
   mapDocked: boolean
   splitW: number
+  /** The map has nothing to show right now - see MAP_EMPTY_WANT. */
+  mapEmpty?: boolean
+  /** The dashboard has nothing to show right now - see DASH_EMPTY_WANT. */
+  dashEmpty?: boolean
 }): ColumnFit {
   // Two dividers when the map is docked, one when it is not.
   const splits = mapDocked ? splitW * 2 : splitW
-  const mapAsked = mapDocked ? Math.max(COL_MIN, mapWant) : 0
-  const dashAsked = Math.max(COL_MIN, dashWant)
+  // A ceiling, not a rewrite: a player who dragged the map narrower than the
+  // empty allowance is still asking for exactly that, and gets it. Only a
+  // *larger* stored width is capped, and only while there is nothing behind
+  // it to justify the space.
+  const mapWantEffective = mapEmpty ? Math.min(mapWant, MAP_EMPTY_WANT) : mapWant
+  const dashWantEffective = dashEmpty ? Math.min(dashWant, DASH_EMPTY_WANT) : dashWant
+  const mapAsked = mapDocked ? Math.max(COL_MIN, mapWantEffective) : 0
+  const dashAsked = Math.max(COL_MIN, dashWantEffective)
 
   // Before the layout has measured itself there is nothing to fit against, and
   // returning the requests unchanged is right: the very next frame corrects it,

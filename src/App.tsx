@@ -159,12 +159,23 @@ export default function App() {
    * control several hundred pixels past an edge that does not scroll. See
    * src/lib/columns.ts, which carries the measurements.
    */
+  // What each column actually has to show right now, not what it is capable
+  // of showing. A stored width is a real preference and stays stored; it is
+  // only capped while there is nothing behind it - see MAP_EMPTY_WANT.
+  const mapZone = useAppStore((s) => s.mapZone)
+  const bridgeConnected = useAppStore((s) => s.bridgeConnected)
+  const character = useAppStore((s) => s.character)
+  const mapEmpty = !bridgeConnected || mapZone === null
+  const dashEmpty = !character
+
   const fit = fitColumns({
     hostW,
     mapWant: dock.width,
     dashWant: dashW,
     mapDocked: dock.docked,
     splitW: SPLIT_W,
+    mapEmpty,
+    dashEmpty,
   })
   const mapW = fit.map
   const mapSplit = dock.docked ? SPLIT_W : 0

@@ -263,7 +263,14 @@ export function LichLauncher() {
                 launching <span className="text-ink">Genie</span>, which starts
                 Lich itself using the settings it already has:
               </p>
-              <pre className="whitespace-pre-wrap break-all rounded bg-surface p-1.5 text-xs leading-relaxed text-ink-faint">
+              {/* whitespace-pre-wrap/break-all used to be here, which is what
+                * a Windows path deserves least: it wrapped `c:\ruby4lich5\...`
+                * mid-token onto two lines rather than scrolling it, the exact
+                * shape ConnectGuide.tsx's Line component already solved.
+                * Scrolling is right for a line meant to be copied verbatim -
+                * wrapping it invites someone to retype what they see, split
+                * exactly where the browser happened to break it. */}
+              <pre className="overflow-x-auto whitespace-pre rounded bg-surface p-1.5 text-xs leading-relaxed text-ink-faint">
 {`#config {lichpath} {c:\\ruby4lich5\\lich5\\lich.rbw}
 #config {licharguments} {--genie --dragonrealms}
 #config {lichport} {11024}`}
