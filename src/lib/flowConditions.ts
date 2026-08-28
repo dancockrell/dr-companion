@@ -68,6 +68,46 @@ const GAUGES: Record<string, (ctx: ConditionContext) => number | null> = {
 
 const COMPARISON = /^(\w+)\s*(<=|>=|<|>)\s*(\d+(?:\.\d+)?)$/
 
+/** The gauges a slider can drive. Order is display order in the editor. */
+export const GAUGE_NAMES = ['health', 'spirit', 'fatigue', 'mana'] as const
+export type GaugeName = (typeof GAUGE_NAMES)[number]
+export type ComparisonOp = '<' | '>' | '<=' | '>='
+
+export interface GaugeCondition {
+  negate: boolean
+  gauge: GaugeName
+  op: ComparisonOp
+  /** A percent of max, 0-100 — see the module comment on why percent. */
+  value: number
+}
+
+/**
+ * The other half of the same grammar `evaluateCondition` parses, exposed so
+ * the editor can offer a slider instead of a text box for the shape that has
+ * a natural dial — a situation flag like `bleeding` does not.
+ *
+ * Deliberately reuses `COMPARISON` and `GAUGE_NAMES` rather than a second
+ * regex: a condition the slider can build must be exactly one the evaluator
+ * can read back, or dragging the slider and typing the same value would mean
+ * two different things.
+ */
+export function parseGaugeCondition(condition: string | undefined): GaugeCondition | null {
+  if (!condition) return null
+  const trimmed = condition.trim()
+  const negate = trimmed.startsWith('!')
+  const body = (negate ? trimmed.slice(1) : trimmed).trim()
+  const match = body.match(COMPARISON)
+  if (!match) return null
+  const [, name, op, numText] = match
+  const gauge = GAUGE_NAMES.find((g) => g === name.toLowerCase())
+  if (!gauge) return null
+  return { negate, gauge, op: op as ComparisonOp, value: Number(numText) }
+}
+
+export function formatGaugeCondition(g: GaugeCondition): string {
+  return `${g.negate ? '!' : ''}${g.gauge}${g.op}${g.value}`
+}
+
 /**
  * `undefined` (no condition at all) is not the same input as an condition
  * string that happens to fail open — both return `true`, but only one of

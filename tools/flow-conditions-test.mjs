@@ -3,7 +3,13 @@
  * gated on the wrong state must not run, and one gated on the right state
  * must not be blocked by a typo or a moment with no data yet.
  */
-import { evaluateCondition, contextFromCharacter, describeCondition } from '../src/lib/flowConditions.ts'
+import {
+  evaluateCondition,
+  contextFromCharacter,
+  describeCondition,
+  parseGaugeCondition,
+  formatGaugeCondition,
+} from '../src/lib/flowConditions.ts'
 import { FlowDriver } from '../src/lib/flowDriver.ts'
 
 let failed = 0
@@ -70,6 +76,23 @@ console.log('-- describeCondition, for the tooltip and the editor --')
   ok('undefined has no description', describeCondition(undefined), null)
   ok('blank has no description', describeCondition('  '), null)
   ok('a real condition describes itself', describeCondition('health<50'), 'only while health<50')
+}
+
+console.log('-- parseGaugeCondition/formatGaugeCondition round-trip, for the editor slider --')
+{
+  ok('parses a plain comparison', parseGaugeCondition('health<50'), { negate: false, gauge: 'health', op: '<', value: 50 })
+  ok('parses negated', parseGaugeCondition('!spirit>=80'), { negate: true, gauge: 'spirit', op: '>=', value: 80 })
+  ok('a bare flag does not parse as a gauge', parseGaugeCondition('bleeding'), null)
+  ok('an unknown gauge name does not parse', parseGaugeCondition('luck<50'), null)
+  ok('undefined parses to null', parseGaugeCondition(undefined), null)
+  // The property that actually matters for the slider: format(parse(x)) must
+  // reproduce a condition `evaluateCondition` reads identically to the
+  // original, or dragging the slider back to where it started would change
+  // the flow's meaning without the player touching anything.
+  for (const original of ['health<50', '!fatigue>=30', 'mana>0']) {
+    const parsed = parseGaugeCondition(original)
+    ok(`round-trips "${original}"`, formatGaugeCondition(parsed), original)
+  }
 }
 
 const twoStep = {

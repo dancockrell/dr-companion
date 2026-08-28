@@ -11,7 +11,15 @@ import {
 import { FlowDriver } from '../../lib/flowDriver'
 import { onStopAll, onPauseAll, onResumeAll, onStartFlow } from '../../lib/flowStop'
 import { describeFlow, isFinished, type FlowState } from '../../lib/flowRunner'
-import { evaluateCondition, contextFromCharacter, describeCondition } from '../../lib/flowConditions'
+import {
+  evaluateCondition,
+  contextFromCharacter,
+  describeCondition,
+  parseGaugeCondition,
+  formatGaugeCondition,
+  GAUGE_NAMES,
+  type GaugeCondition,
+} from '../../lib/flowConditions'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
@@ -336,40 +344,12 @@ function FlowEditor({
             placeholder="One command per line"
             className="mt-1 w-full rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-ink-muted"
           />
-          {/*
-           * The "big deal" workflow feature: a step that only runs while a
-           * gauge or a situation flag says so — coordinator.lic's start_on/
-           * stop_on, in one line instead of a YAML block (DESIGN.md §2.2).
-           * The live true/false badge reads against whatever character is
-           * connected right now, so a typo or an impossible condition shows
-           * itself while editing rather than only once the flow is running
-           * and skipping a step nobody can see why.
-           */}
-          <div className="mt-1 flex items-center gap-1.5">
-            <input
-              value={s.condition ?? ''}
-              onChange={(e) => setStep(i, { condition: e.target.value || undefined })}
-              placeholder="Only if… (e.g. health<50, bleeding, !stunned)"
-              className="min-w-0 flex-1 rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-ink-muted"
-            />
-            {s.condition?.trim() && (
-              <span
-                className={cn(
-                  'shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold',
-                  evaluateCondition(s.condition, ctx)
-                    ? 'bg-good/15 text-good'
-                    : 'bg-ink-faint/15 text-ink-faint'
-                )}
-                title={
-                  character
-                    ? 'Checked against the connected character, right now'
-                    : 'No character connected — conditions read as true until one is'
-                }
-              >
-                {evaluateCondition(s.condition, ctx) ? 'true now' : 'false now'}
-              </span>
-            )}
-          </div>
+          <ConditionEditor
+            condition={s.condition}
+            onChange={(condition) => setStep(i, { condition })}
+            ctx={ctx}
+            connected={!!character}
+          />
         </div>
       ))}
 
@@ -431,6 +411,137 @@ function FlowEditor({
           </button>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * A step's condition — the "big deal" workflow feature, coordinator.lic's
+ * start_on/stop_on in one line instead of a YAML block (DESIGN.md §2.2).
+ *
+ * A gauge comparison (`health<50`) gets a real dial: a dropdown for which
+ * gauge, a dropdown for the direction, and a slider for the number, because
+ * "advanced players want dials and sliders, not typing" was the ask this
+ * exists to answer. Anything else — a bare situation flag like `bleeding`,
+ * blank, or hand-written text the player prefers to type — gets the plain
+ * field, since there is no dial for "is this flag set" beyond a checkbox
+ * naming a flag we do not enumerate.
+ *
+ * The two modes are the same underlying string, not two different pieces of
+ * state: `parseGaugeCondition` decides which UI to show, and every slider
+ * drag calls `formatGaugeCondition` to write back the same grammar
+ * `evaluateCondition` reads. A player who prefers typing `health<50` by hand
+ * gets the slider anyway, because the string parses the same either way.
+ */
+function ConditionEditor({
+  condition,
+  onChange,
+  ctx,
+  connected,
+}: {
+  condition: string | undefined
+  onChange: (condition: string | undefined) => void
+  ctx: ReturnType<typeof contextFromCharacter>
+  connected: boolean
+}) {
+  const gauge = parseGaugeCondition(condition)
+  const badgeTitle = connected
+    ? 'Checked against the connected character, right now'
+    : 'No character connected — conditions read as true until one is'
+
+  if (gauge) {
+    const holds = evaluateCondition(condition, ctx)
+    const set = (patch: Partial<GaugeCondition>) => onChange(formatGaugeCondition({ ...gauge, ...patch }))
+    return (
+      <div className="mt-1 flex flex-wrap items-center gap-1.5 rounded border border-border bg-surface px-1.5 py-1">
+        <span className="text-ink-faint">only if</span>
+        <button
+          type="button"
+          onClick={() => set({ negate: !gauge.negate })}
+          title="Negate — flip to the opposite condition"
+          className={cn(
+            'rounded border px-1 font-mono',
+            gauge.negate ? 'border-warn/50 bg-warn/15 text-warn' : 'border-border text-ink-faint'
+          )}
+        >
+          !
+        </button>
+        <select
+          value={gauge.gauge}
+          onChange={(e) => set({ gauge: e.target.value as GaugeCondition['gauge'] })}
+          className="rounded border border-border bg-surface-raised px-1 py-0.5 text-ink"
+        >
+          {GAUGE_NAMES.map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
+        <select
+          value={gauge.op}
+          onChange={(e) => set({ op: e.target.value as GaugeCondition['op'] })}
+          className="rounded border border-border bg-surface-raised px-1 py-0.5 text-ink"
+        >
+          <option value="<">&lt;</option>
+          <option value="<=">&le;</option>
+          <option value=">">&gt;</option>
+          <option value=">=">&ge;</option>
+        </select>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={gauge.value}
+          onChange={(e) => set({ value: Number(e.target.value) })}
+          className="min-w-[5rem] flex-1 accent-accent"
+        />
+        <span className="w-9 shrink-0 text-right tabular-nums text-ink">{gauge.value}%</span>
+        <span
+          className={cn(
+            'shrink-0 rounded px-1.5 py-0.5 font-semibold',
+            holds ? 'bg-good/15 text-good' : 'bg-ink-faint/15 text-ink-faint'
+          )}
+          title={badgeTitle}
+        >
+          {holds ? 'true now' : 'false now'}
+        </span>
+        <button
+          type="button"
+          onClick={() => onChange(undefined)}
+          className="ml-auto shrink-0 text-ink-faint hover:text-danger"
+          title="Remove this condition"
+        >
+          ×
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-1 flex items-center gap-1.5">
+      <input
+        value={condition ?? ''}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        placeholder="Only if… (a flag like bleeding, !stunned — or switch to a gauge)"
+        className="min-w-0 flex-1 rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-ink-muted"
+      />
+      {condition?.trim() && (
+        <span
+          className={cn(
+            'shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold',
+            evaluateCondition(condition, ctx) ? 'bg-good/15 text-good' : 'bg-ink-faint/15 text-ink-faint'
+          )}
+          title={badgeTitle}
+        >
+          {evaluateCondition(condition, ctx) ? 'true now' : 'false now'}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={() => onChange('health<50')}
+        className="shrink-0 rounded border border-dashed border-border px-1.5 py-0.5 text-[11px] text-ink-faint hover:text-ink"
+        title="Switch to a gauge slider"
+      >
+        + gauge
+      </button>
     </div>
   )
 }
