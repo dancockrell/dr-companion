@@ -71,22 +71,3 @@ export function linesFor(lines: ChatLine[], channel: Channel): ChatLine[] {
   return lines.filter((l) => channelOf(l.text) === channel)
 }
 
-/**
- * How many unread in each tab.
- *
- * Counted against a per-tab high-water mark rather than a single global one,
- * because the point of a tab is that you can ignore combat for an hour and
- * still be told, accurately, that three people spoke.
- */
-export function unreadCounts(
-  lines: ChatLine[],
-  seen: Partial<Record<Channel, number>>
-): Record<Channel, number> {
-  const out: Record<Channel, number> = { all: 0, speech: 0, combat: 0, system: 0, companion: 0 }
-  for (const line of lines) {
-    const c = channelOf(line.text)
-    if (line.seq > (seen[c] ?? 0)) out[c]++
-    if (line.seq > (seen.all ?? 0)) out.all++
-  }
-  return out
-}

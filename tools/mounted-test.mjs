@@ -57,10 +57,6 @@ const ALLOWED = new Map([
     'superseded by DashboardLayout, which is a fixed layout rather than a panel registry',
   ],
   [
-    'src/components/shared/MapView.tsx',
-    'superseded by MapCanvas, which is the drawing MapPanel and the popped-out window share',
-  ],
-  [
     'src/components/shared/Panel.tsx',
     'superseded by FreeCanvas, which is what actually provides drag, resize and collapse',
   ],

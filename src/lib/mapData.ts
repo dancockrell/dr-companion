@@ -54,12 +54,6 @@ interface BuiltZone {
   rooms: BuiltRoom[]
 }
 
-export interface ZoneSummary {
-  id: string
-  name: string
-  rooms: number
-}
-
 /** Vite resolves these at build time; only the requested zone is fetched. */
 const ZONES = import.meta.glob<{ default: BuiltZone }>('../data/map/*.json')
 
@@ -67,13 +61,6 @@ const cache = new Map<string, MapZone>()
 
 /** The Crossing. Where new characters start, and the busiest zone in the game. */
 export const DEFAULT_ZONE = '1'
-
-export async function zoneIndex(): Promise<ZoneSummary[]> {
-  const load = ZONES['../data/map/index.json']
-  if (!load) return []
-  const mod = (await load()) as unknown as { default: ZoneSummary[] }
-  return mod.default
-}
 
 /**
  * Exits are directional and the drawing is not: a one-way arc still needs a
@@ -131,17 +118,4 @@ export async function loadZone(id: string): Promise<MapZone | null> {
   }
   cache.set(id, built)
   return built
-}
-
-/** The movement command for one step, so a route can be walked rather than read. */
-export async function moveBetween(
-  zoneId: string,
-  from: number,
-  to: number
-): Promise<string | null> {
-  const load = ZONES[`../data/map/${zoneId}.json`]
-  if (!load) return null
-  const zone = (await load()).default
-  const room = zone.rooms.find((r) => r.id === from)
-  return room?.exits.find((e) => e.to === to)?.move ?? null
 }

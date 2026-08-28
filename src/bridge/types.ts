@@ -305,17 +305,3 @@ export type IntentName =
   | 'trace_on'
   | 'trace_off'
   | 'trace_dump'
-
-export interface BridgeConnectionState {
-  connected: boolean
-  lastError: string | null
-  protocol: number | null
-  lichVersion: string | null
-}
-
-/** Snapshot used by the mock bridge and future real client */
-export interface BridgeSnapshot {
-  character: CharacterStatus
-  inventory: InventorySummary
-  scripts: string[]
-}

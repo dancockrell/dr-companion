@@ -50,7 +50,11 @@ function readAt(relPath) {
 
 /** Declared intents — every `| 'xyz'` line inside the IntentName union. */
 function declaredIntents(typesSrc) {
-  const m = typesSrc.match(/export type IntentName =([\s\S]*?)\n\nexport interface BridgeConnectionState/)
+  // IntentName is the last declaration in the file (BridgeConnectionState/
+  // BridgeSnapshot, the anchor this used, were dead types deleted in a
+  // cleanup pass), so this matches to end-of-file rather than to a named
+  // neighbor.
+  const m = typesSrc.match(/export type IntentName =([\s\S]*)$/)
   if (!m) throw new Error('intent-drift-test: could not locate the IntentName union in types.ts — did it move or get renamed? This script needs updating, not silencing.')
   const body = m[1]
   const names = [...body.matchAll(/\|\s*'([a-z_]+)'/g)].map((x) => x[1])
