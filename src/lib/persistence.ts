@@ -4,6 +4,7 @@
  */
 
 import type { UiMode } from '../types'
+import { readJSON, writeJSON } from './storage'
 
 const KEY = 'dr-companion-prefs-v1'
 
@@ -77,14 +78,8 @@ const defaults: PersistedPrefs = {
 }
 
 export function loadPrefs(): PersistedPrefs {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return { ...defaults }
-    const parsed = JSON.parse(raw) as Partial<PersistedPrefs>
-    return { ...defaults, ...parsed, uiMode: migrateMode(parsed.uiMode) }
-  } catch {
-    return { ...defaults }
-  }
+  const parsed = readJSON<Partial<PersistedPrefs>>(KEY, {})
+  return { ...defaults, ...parsed, uiMode: migrateMode(parsed.uiMode) }
 }
 
 /**
@@ -98,10 +93,6 @@ function migrateMode(stored: unknown): UiMode {
 
 export function savePrefs(partial: Partial<PersistedPrefs>): PersistedPrefs {
   const next = { ...loadPrefs(), ...partial }
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next))
-  } catch {
-    // ignore quota / private mode
-  }
+  writeJSON(KEY, next)
   return next
 }

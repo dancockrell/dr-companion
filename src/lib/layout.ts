@@ -22,6 +22,7 @@ import type { UiMode } from '../types'
 import { DECKS, type Deck, type Tier } from './cards'
 import type { Rect } from './freeLayout'
 import { dockOf, type Dock } from './dock'
+import { readJSON, writeJSON } from './storage'
 
 export type PanelId =
   | 'map'
@@ -156,35 +157,30 @@ export function clampSplit(v: unknown): number {
 }
 
 export function loadLayout(mode: UiMode): Layout {
-  try {
-    const raw = localStorage.getItem(`${KEY}.${mode}`)
-    if (!raw) return defaultLayout(mode)
-    const parsed = JSON.parse(raw) as Layout
+  const parsed = readJSON<Partial<Layout> | null>(`${KEY}.${mode}`, null)
+  if (!parsed) return defaultLayout(mode)
 
-    // Merge against the defaults rather than trusting what was stored. A panel
-    // added in a later version would otherwise never appear for anyone who had
-    // already saved a layout, and a panel we removed would linger as a gap.
-    const known = new Set(defaultLayout(mode).order)
-    const kept = (parsed.order ?? []).filter((id) => known.has(id))
-    const missing = defaultLayout(mode).order.filter((id) => !kept.includes(id))
+  // Merge against the defaults rather than trusting what was stored. A panel
+  // added in a later version would otherwise never appear for anyone who had
+  // already saved a layout, and a panel we removed would linger as a gap.
+  const known = new Set(defaultLayout(mode).order)
+  const kept = (parsed.order ?? []).filter((id) => known.has(id))
+  const missing = defaultLayout(mode).order.filter((id) => !kept.includes(id))
 
-    const d = defaultLayout(mode)
-    return {
-      order: [...kept, ...missing],
-      panels: { ...d.panels, ...(parsed.panels ?? {}) },
-      mapPlane: parsed.mapPlane ?? d.mapPlane,
-      mapSplit: clampSplit(parsed.mapSplit ?? d.mapSplit),
-      // Merged rather than trusted, same as the panels: a deck added later
-      // must not be missing for anyone who already saved a layout.
-      decks: { ...d.decks, ...(parsed.decks ?? {}) },
-      rects: parsed.rects ?? {},
-      freeform: parsed.freeform ?? false,
-      // Rebuilt from the panel order when absent, so an old saved layout picks
-      // up docking without the player losing their arrangement.
-      dock: parsed.dock ?? dockOf([...kept, ...missing]),
-    }
-  } catch {
-    return defaultLayout(mode)
+  const d = defaultLayout(mode)
+  return {
+    order: [...kept, ...missing],
+    panels: { ...d.panels, ...(parsed.panels ?? {}) },
+    mapPlane: parsed.mapPlane ?? d.mapPlane,
+    mapSplit: clampSplit(parsed.mapSplit ?? d.mapSplit),
+    // Merged rather than trusted, same as the panels: a deck added later
+    // must not be missing for anyone who already saved a layout.
+    decks: { ...d.decks, ...(parsed.decks ?? {}) },
+    rects: parsed.rects ?? {},
+    freeform: parsed.freeform ?? false,
+    // Rebuilt from the panel order when absent, so an old saved layout picks
+    // up docking without the player losing their arrangement.
+    dock: parsed.dock ?? dockOf([...kept, ...missing]),
   }
 }
 
@@ -197,12 +193,7 @@ export function setMapSplit(layout: Layout, split: number): Layout {
 }
 
 export function saveLayout(mode: UiMode, layout: Layout): void {
-  try {
-    localStorage.setItem(`${KEY}.${mode}`, JSON.stringify(layout))
-  } catch {
-    // Private mode or a full quota. Losing the arrangement is not worth an
-    // error in front of someone who is trying to play.
-  }
+  writeJSON(`${KEY}.${mode}`, layout)
 }
 
 /**

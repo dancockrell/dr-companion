@@ -20,6 +20,7 @@
  */
 
 import type { GameInstance, AccountTier } from '../types'
+import { readJSON, writeJSON } from './storage'
 
 export interface CharacterProfile {
   /** Character name as the game spells it. */
@@ -85,22 +86,12 @@ const KEY = 'dr-companion-profiles-v1'
 export type ProfileMap = Record<string, CharacterProfile>
 
 export function loadProfiles(): ProfileMap {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw) as ProfileMap
-    return typeof parsed === 'object' && parsed !== null ? parsed : {}
-  } catch {
-    return {}
-  }
+  const parsed = readJSON<unknown>(KEY, {})
+  return typeof parsed === 'object' && parsed !== null ? (parsed as ProfileMap) : {}
 }
 
 export function saveProfiles(map: ProfileMap): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(map))
-  } catch {
-    // Quota or private mode. Settings are a convenience, not a requirement.
-  }
+  writeJSON(KEY, map)
 }
 
 export function upsertProfile(profile: CharacterProfile): ProfileMap {
