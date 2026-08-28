@@ -414,6 +414,113 @@ module Companion
       end.compact
     end
 
+    # Held between polls rather than re-read from a passive stream, because DR
+    # has none for wounds - Intents.check_health sends HEALTH and parses the
+    # reply, on demand, not on this tick. nil means "never successfully
+    # polled", the honest unknown state the client's Paperdoll already renders
+    # for an absent `injuries` field (see docs/BRIDGE_CONTRACT.md's injuries
+    # contract). Once populated, survives every status tick until the next
+    # successful check_health overwrites it - a poll that fails or finds
+    # nothing new must not blank a part that was last known injured back to
+    # "unknown".
+    @held_injuries = nil
+    @held_bleeding = nil
+
+    def injuries
+      @held_injuries
+    end
+
+    def bleeding
+      @held_bleeding
+    end
+
+    # DRCH::WOUND_SEVERITY is 1 ("insignificant") to 13 ("useless"); the
+    # client's Severity is 0|1|2|3 and the paperdoll's tones are deliberately
+    # coarse. See the bucket table in docs/BRIDGE_CONTRACT.md.
+    def bucket_severity(sev)
+      s = sev.to_i
+      return 0 if s <= 0
+      return 1 if s <= 4
+      return 2 if s <= 8
+      3
+    end
+
+    # Wound#body_part is a downcased free string ("head", "left arm",
+    # "l. eye", "tail", "skin", ...). Maps to the client's BodyPart keys;
+    # returns nil for anything with no slot (tail, bare skin) rather than
+    # guessing at the nearest limb - callers must log the raw string rather
+    # than silently drop it. nsys has no known DR wound source and is never
+    # produced here on purpose.
+    def map_body_part(raw)
+      s = raw.to_s.downcase.strip
+      side = if s.start_with?('l.', 'left') then 'left'
+             elsif s.start_with?('r.', 'right') then 'right'
+             end
+      base = s.sub(/\A(?:l\.|r\.|left|right)\s*/, '').strip
+      case base
+      when 'head' then 'head'
+      when 'neck' then 'neck'
+      when 'chest' then 'chest'
+      when 'abdomen' then 'abdomen'
+      when 'back' then 'back'
+      when 'eye'  then side == 'left' ? 'leftEye'  : side == 'right' ? 'rightEye'  : nil
+      when 'arm'  then side == 'left' ? 'leftArm'  : side == 'right' ? 'rightArm'  : nil
+      when 'hand' then side == 'left' ? 'leftHand' : side == 'right' ? 'rightHand' : nil
+      when 'leg'  then side == 'left' ? 'leftLeg'  : side == 'right' ? 'rightLeg'  : nil
+      when 'foot' then side == 'left' ? 'leftFoot' : side == 'right' ? 'rightFoot' : nil
+      end
+    end
+
+    # Builds `injuries`/`bleeding` from a HealthResult and stores them held.
+    # Called from Intents.check_health, which is why `data` and `server`
+    # arrive as arguments rather than being read here. Logs each unmapped raw
+    # body-part string once per poll, per the unmapped-parts rule in
+    # docs/BRIDGE_CONTRACT.md - a Gor'Tog's tail should be visible as a gap,
+    # not silently eaten.
+    def record_health(data, server)
+      unmapped = []
+
+      # Every field read is defensive - a Wound is whatever DRCH handed back,
+      # and this module's own rule (see its header comment) is that a bridge
+      # raising on an unexpected shape is worse than one reporting unknown.
+      # `.severity`/`.scar?`/`.bleeding_rate` are also simply absent from the
+      # lightweight wound stand-ins server_test.rb uses to exercise the count
+      # path, so this has to survive that shape too, not only a real Wound.
+      #
+      # Wound vs scar go to different keys; worst wins when the same part
+      # carries more than one wound of the same kind in one poll.
+      inj = {}
+      (data.wounds || {}).each_value do |list|
+        Array(list).each do |w|
+          raw_part = safe(nil) { w.body_part }
+          next if raw_part.nil?
+          part = map_body_part(raw_part)
+          unless part
+            unmapped << raw_part.to_s
+            next
+          end
+          bucket = bucket_severity(safe(0) { w.severity })
+          slot = (inj[part] ||= { 'wound' => 0, 'scar' => 0 })
+          field = safe(false) { w.scar? } ? 'scar' : 'wound'
+          slot[field] = bucket if bucket > slot[field]
+        end
+      end
+      @held_injuries = inj
+
+      bleed = []
+      (data.bleeders || {}).each_value do |list|
+        Array(list).each do |w|
+          raw_part = safe(nil) { w.body_part }
+          part = raw_part.nil? ? nil : map_body_part(raw_part)
+          unmapped << raw_part.to_s if raw_part && !part
+          bleed << { 'part' => part, 'rate' => safe('') { w.bleeding_rate.to_s } }
+        end
+      end
+      @held_bleeding = bleed
+
+      unmapped.uniq.each { |p| server.log("unmapped wound body part: #{p}", 'warn') }
+    end
+
     def status
       reset_degraded!
       payload = {
@@ -483,6 +590,15 @@ module Companion
         # would put a summon and a thing trying to kill you in the same bucket,
         # which is the one mistake the card decks exist to prevent.
       }
+      # injuries/bleeding come from check_health, a poll, not this passive
+      # tick - held rather than read here. Omitted entirely until the first
+      # successful poll, matching the client's absent-means-unknown contract
+      # for CharacterStatus.injuries (the Paperdoll's `known` prop). See
+      # docs/BRIDGE_CONTRACT.md's injuries contract.
+      unless injuries.nil?
+        payload['injuries'] = injuries
+        payload['bleeding'] = bleeding
+      end
       d = degraded_fields
       payload['degraded'] = d unless d.empty?
       payload
@@ -1861,6 +1977,12 @@ module Companion
         server.log(line.to_s)
         return [true, 'health read']
       end
+
+      # Populates State's held injuries/bleeding for the next status tick to
+      # pick up - lives in State, not here, because that is where `status`
+      # reads it from and every other piece of held character state already
+      # lives. See docs/BRIDGE_CONTRACT.md's injuries contract.
+      State.record_health(data, server)
 
       wounds    = data.wounds || {}
       bleeders  = data.bleeders || {}
