@@ -16,6 +16,7 @@ import {
   ShieldAlert,
   ListChecks,
   ListTree,
+  Sparkles,
 } from 'lucide-react'
 import type { PanelId } from '../../lib/layout'
 import { ActionsPanel } from '../shared/ActionsPanel'
@@ -25,6 +26,7 @@ import { MindstateBoard } from '../shared/MindstateBoard'
 import { useAppStore } from '../../store/useAppStore'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { RiskBar } from '../shared/RiskBar'
+import { StatsPanel } from '../shared/StatsPanel'
 import { ScriptLauncher } from '../shared/ScriptLauncher'
 import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel'
 import { BattlePanel } from '../shared/BattlePanel'
@@ -38,6 +40,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   training: 'Training',
   inventory: 'Inventory',
   risk: 'Risk',
+  stats: 'Stats',
   launcher: 'Activities',
   vitals: 'Vitals',
   mindstate: 'Mindstate',
@@ -51,6 +54,7 @@ export const PANEL_ICONS: Record<PanelId, ReactNode> = {
   training: <Brain className="w-3.5 h-3.5" />,
   inventory: <Package className="w-3.5 h-3.5" />,
   risk: <ShieldAlert className="w-3.5 h-3.5" />,
+  stats: <Sparkles className="w-3.5 h-3.5" />,
   launcher: <ListChecks className="w-3.5 h-3.5" />,
   vitals: <Zap className="w-3.5 h-3.5" />,
   mindstate: <Brain className="w-3.5 h-3.5" />,
@@ -84,6 +88,7 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
   training: (dense) => <TrainingPanel dense={dense} />,
   inventory: () => <InventoryPanel />,
   risk: () => <RiskBar />,
+  stats: (dense) => <StatsPanel dense={dense} />,
   launcher: (dense) => <ScriptLauncher compact={dense} />,
   // Vitals live in the fixed header: identity and health are the two things
   // that must never be closed by accident.
