@@ -4,6 +4,7 @@ import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
 import { Box } from '../shared/Box'
 import { CardDeck } from '../shared/CardDeck'
 import { TaskFlowPanel } from './TaskFlowPanel'
+import { QuickQueuePanel } from '../shared/QuickQueuePanel'
 import { MindstateBoard } from '../shared/MindstateBoard'
 import { Paperdoll } from '../shared/Paperdoll'
 import { Portrait } from '../shared/Portrait'
@@ -257,6 +258,20 @@ export function DashboardLayout({
             <TaskFlowPanel dense={dense} />
           </PanelBoundary>
         </Box>
+
+        {/* Quick Queue, Power only, right beside Task Flows since it is the
+            same idea at a different commitment level: Task Flows are named,
+            saved, reused; this is assembled on the fly for the situation in
+            front of you and thrown away once it runs. A newcomer reaching
+            for something Genie never had should meet the polished, saved
+            version first, not an empty ad-hoc queue with nothing in it. */}
+        {dense && (
+          <Box className="min-h-0">
+            <PanelBoundary label="Quick Queue">
+              <QuickQueuePanel dense={dense} />
+            </PanelBoundary>
+          </Box>
+        )}
 
         {/* Training, Power only, same reason as Risk: real continuous-tracking
             depth Genie never had, not a beginner's first screen. */}
