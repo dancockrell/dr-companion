@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { RoomScene } from './RoomScene'
 import { StreamTabs } from '../game/StreamTabs'
 import { GamePane } from '../game/GamePane'
@@ -6,6 +6,9 @@ import { PanelBoundary } from '../shared/PanelBoundary'
 import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
 import { useHighlights } from '../../lib/useHighlights'
+import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
+import { describeRoomPlayers, describeRoomItems } from '../../lib/roomOccupants'
+import type { RoomItem, RoomPlayer, Sourced } from '../../types/stream'
 
 /**
  * The right half of the window: where you are, and what is being said.
@@ -50,6 +53,23 @@ export function RoomColumn() {
 
   const title = here?.title ?? text?.title ?? null
 
+  /**
+   * Who's here and what's on the floor, straight from the game's own stream
+   * rather than a bridge poll — see src/types/stream.ts. This is a new,
+   * additive display: the People/Objects cards on the dashboard
+   * (DashboardLayout.tsx, `fromRoom(character)`) read the *bridge's* idea of
+   * the room, a separate source, and are not touched or replaced here. Two
+   * panels can legitimately show the same room from two feeds; the dashboard
+   * cards keep their existing source, and this column is the one place
+   * that's stream-fed. If the two ever visibly disagree that's worth its own
+   * look, but resolving it is not this change.
+   *
+   * Same subscription shape as DashboardLayout's vitals read: `subscribeGame`
+   * notifies on any stream update, `streamCharacterState()` is a plain read
+   * taken after.
+   */
+  const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
+
   return (
     /*
      * h-full, and it is the whole reason this column works.
@@ -93,6 +113,8 @@ export function RoomColumn() {
         )}
       </div>
 
+      <RoomOccupants players={stream.roomPlayers} items={stream.roomItems} />
+
       {/* The game itself, above the channels.
         *
         * This is the pane that turns the app from a companion into a client:
@@ -114,6 +136,36 @@ export function RoomColumn() {
           <StreamTabs highlights={highlights} />
         </PanelBoundary>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Who else is here, and what's worth picking up — both straight off the
+ * game's own stream (`room players` / the loot half of `room objs`).
+ *
+ * Absent and empty are rendered differently on purpose, per
+ * `StreamCharacterState`'s own doc comment: absent means the game has not
+ * sent this component yet (nothing to show, so nothing renders — nothing
+ * here reads like a broken feature the way a permanent "nobody" line would),
+ * empty means the game said so explicitly ("nobody else is here", "nothing
+ * on the floor" — a real, current answer, shown as text rather than hidden).
+ */
+function RoomOccupants({
+  players,
+  items,
+}: {
+  players?: Sourced<RoomPlayer[]>
+  items?: Sourced<RoomItem[]>
+}) {
+  const playersLine = describeRoomPlayers(players)
+  const itemsLine = describeRoomItems(items)
+  if (!playersLine && !itemsLine) return null
+
+  return (
+    <div className="shrink-0 space-y-0.5 rounded border border-border bg-surface-raised px-2 py-1.5 text-xs">
+      {playersLine && <p className="truncate text-ink-muted">{playersLine}</p>}
+      {itemsLine && <p className="truncate text-ink-faint">{itemsLine}</p>}
     </div>
   )
 }
