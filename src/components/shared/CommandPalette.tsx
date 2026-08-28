@@ -316,7 +316,7 @@ export function CommandPalette() {
             placeholder="Run a script, a Task Flow, or an app command…"
             className="min-w-0 flex-1 bg-transparent text-sm text-ink placeholder:text-ink-faint focus:outline-none"
           />
-          <kbd className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-faint">
+          <kbd className="shrink-0 rounded border border-border px-1.5 py-0.5 text-xs text-ink-faint">
             esc
           </kbd>
         </div>
@@ -329,7 +329,7 @@ export function CommandPalette() {
           ) : (
             grouped.map(([group, items]) => (
               <div key={group} className="px-1.5 py-1">
-                <div className="px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-ink-faint">
+                <div className="px-2 py-1 text-xs font-medium uppercase tracking-wider text-ink-faint">
                   {group}
                 </div>
                 {items.map((c) => {
