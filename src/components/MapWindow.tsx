@@ -19,7 +19,9 @@ import { MapCanvas, MapLegend } from './shared/MapCanvas'
 import { MapPinBar } from './shared/MapPinBar'
 import { QuickTravel } from './shared/QuickTravel'
 import { PinEditor } from './shared/PinEditor'
+import { RoomNudge } from './shared/RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
+import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
 import { useMapDock, setMapDock, WINDOW_ZOOM_MIN, WINDOW_ZOOM_MAX } from '../lib/mapDock'
 import { useMapViewport } from '../lib/useMapViewport'
 
@@ -117,6 +119,15 @@ export function MapWindow() {
     const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
+
+  const hereVisits = hereId != null ? trail.visits[hereId] : undefined
+  const showNudge =
+    !!character &&
+    hereId != null &&
+    hereVisits !== undefined &&
+    hereVisits >= NUDGE_VISIT_THRESHOLD &&
+    !pinFor(pins, hereId) &&
+    !isDismissed(character.name, character.instance, hereId)
 
   function savePin(label: string, color: MapPin['color'], icon: MapPin['icon']) {
     if (!character || !editingRoom) return
@@ -260,6 +271,16 @@ export function MapWindow() {
             onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
           />
           <QuickTravel onWalk={goThere} />
+          {showNudge && hereId != null && (
+            <RoomNudge
+              visits={hereVisits as number}
+              onPin={() => pinRoom(hereId)}
+              onDismiss={() => {
+                if (character) dismissNudge(character.name, character.instance, hereId)
+                setPinVersion((v) => v + 1)
+              }}
+            />
+          )}
         </div>
       )}
 

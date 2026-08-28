@@ -11,8 +11,10 @@
  * The drawing lives in MapCanvas, shared with the popped-out window, so the
  * glance and the watch cannot drift into two different maps.
  *
- * Not a travel control. Clicking a room asks for a route and shows it; it does
- * not walk anywhere. Moving stays a decision made with the route in view.
+ * A travel control, at Dan's explicit instruction: clicking a room shows the
+ * route and walks it, via map_walk starting Lich's own go2. That reverses
+ * this file's original design, where a route was previewed and moving stayed
+ * a separate decision - see the comment on `goThere` below.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { loadZone, DEFAULT_ZONE } from '../../lib/mapData'
@@ -40,7 +42,9 @@ import type { PlaceHit } from '../../lib/placeSearch'
 import { MapPinBar } from './MapPinBar'
 import { QuickTravel } from './QuickTravel'
 import { PinEditor } from './PinEditor'
+import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
+import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
 
 /**
  * @param plane Fill the height given rather than a fixed box. Set when the map
@@ -226,6 +230,18 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
+
+  // "You've stood here N times - pin it?" Only for the room the character is
+  // standing in right now, not a scan across every room ever visited - the
+  // question only makes sense about somewhere you could pin with one click.
+  const hereVisits = hereId != null ? trail.visits[hereId] : undefined
+  const showNudge =
+    !!character &&
+    hereId != null &&
+    hereVisits !== undefined &&
+    hereVisits >= NUDGE_VISIT_THRESHOLD &&
+    !pinFor(pins, hereId) &&
+    !isDismissed(character.name, character.instance, hereId)
 
   function savePin(label: string, color: MapPin['color'], icon: MapPin['icon']) {
     if (!character || !editingRoom) return
@@ -479,6 +495,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
       />
       <QuickTravel onWalk={goThere} />
+
+      {showNudge && hereId != null && (
+        <RoomNudge
+          visits={hereVisits as number}
+          onPin={() => pinRoom(hereId)}
+          onDismiss={() => {
+            if (character) dismissNudge(character.name, character.instance, hereId)
+            setPinVersion((v) => v + 1)
+          }}
+        />
+      )}
 
       {/*
        * This is the common shape of "no map database", not the `!zone.ok`
