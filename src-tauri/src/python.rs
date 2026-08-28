@@ -228,7 +228,10 @@ pub fn python_status(app: AppHandle) -> PythonStatus {
 
             match cmd.output() {
                 Ok(out) => match serde_json::from_slice::<Vec<TaskInfo>>(&out.stdout) {
-                    Ok(list) => list.into_iter().filter(|t| valid_task_name(&t.id)).collect(),
+                    Ok(list) => list
+                        .into_iter()
+                        .filter(|t| valid_task_name(&t.id))
+                        .collect(),
                     Err(e) => {
                         // The interpreter's own words, not a summary of them.
                         // A catalog that failed to import says exactly which
@@ -296,7 +299,10 @@ pub fn run_python_task(
     let dir = tasks_dir(&app).ok_or("Could not find the task folder in this build.")?;
     let runner = dir.join("runner.py");
     if !runner.exists() {
-        return Err(format!("The task runner is missing from {}.", dir.display()));
+        return Err(format!(
+            "The task runner is missing from {}.",
+            dir.display()
+        ));
     }
 
     stop_python_task(app.clone(), tasks.clone());
@@ -321,8 +327,20 @@ pub fn run_python_task(
         .map_err(|e| format!("Could not start {name}: {e}"))?;
 
     for (stream, is_err) in [
-        (child.stdout.take().map(|s| Box::new(s) as Box<dyn std::io::Read + Send>), false),
-        (child.stderr.take().map(|s| Box::new(s) as Box<dyn std::io::Read + Send>), true),
+        (
+            child
+                .stdout
+                .take()
+                .map(|s| Box::new(s) as Box<dyn std::io::Read + Send>),
+            false,
+        ),
+        (
+            child
+                .stderr
+                .take()
+                .map(|s| Box::new(s) as Box<dyn std::io::Read + Send>),
+            true,
+        ),
     ] {
         let Some(stream) = stream else { continue };
         let app = app.clone();
@@ -463,7 +481,10 @@ mod tests {
         let Ok(src) = std::fs::read_to_string(&catalog) else {
             // Said out loud rather than passing quietly. A test that silently
             // skips is indistinguishable from one that ran and found nothing.
-            panic!("could not read {} - this test checked nothing", catalog.display());
+            panic!(
+                "could not read {} - this test checked nothing",
+                catalog.display()
+            );
         };
 
         let ids: Vec<&str> = src
@@ -474,9 +495,16 @@ mod tests {
 
         // The denominator, asserted below the real count so it catches a
         // parser that matched nothing and never needs touching otherwise.
-        assert!(ids.len() >= 8, "only parsed {} ids from runner.py", ids.len());
+        assert!(
+            ids.len() >= 8,
+            "only parsed {} ids from runner.py",
+            ids.len()
+        );
         for id in ids {
-            assert!(valid_task_name(id), "the catalog ships {id:?}, which this refuses");
+            assert!(
+                valid_task_name(id),
+                "the catalog ships {id:?}, which this refuses"
+            );
         }
     }
 }

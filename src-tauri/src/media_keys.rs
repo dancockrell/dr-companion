@@ -92,7 +92,10 @@ mod tests {
     #[test]
     fn unknown_action_is_refused_not_ignored() {
         let err = vk_for("play").unwrap_err();
-        assert!(err.contains("play"), "error should name the bad action: {err}");
+        assert!(
+            err.contains("play"),
+            "error should name the bad action: {err}"
+        );
     }
 
     #[test]
@@ -120,6 +123,10 @@ mod tests {
         let mut sorted = vks.clone();
         sorted.sort_unstable();
         sorted.dedup();
-        assert_eq!(sorted.len(), vks.len(), "two actions map to the same key: {vks:?}");
+        assert_eq!(
+            sorted.len(),
+            vks.len(),
+            "two actions map to the same key: {vks:?}"
+        );
     }
 }
