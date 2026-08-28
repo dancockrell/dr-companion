@@ -302,12 +302,7 @@ export function Dashboard() {
             ))}
           </div>
         )}
-        <DashboardLayout
-          dense={dense}
-          deckPrefs={layout.decks}
-          onCycleDeck={cycleDeck}
-          onPopOut={popOut}
-        />
+        <DashboardLayout dense={dense} onPopOut={popOut} />
         </>
       )}
     </div>

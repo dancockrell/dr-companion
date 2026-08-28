@@ -2,7 +2,6 @@ import { useSyncExternalStore } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
 import { Box } from '../shared/Box'
-import { CardDeck } from '../shared/CardDeck'
 import { TaskFlowPanel } from './TaskFlowPanel'
 import { QuickQueuePanel } from '../shared/QuickQueuePanel'
 import { MindstateBoard } from '../shared/MindstateBoard'
@@ -19,9 +18,6 @@ import { RiskBar } from '../shared/RiskBar'
 import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
 import { PanelBoundary } from '../shared/PanelBoundary'
-import { fromRoom } from '../../lib/room'
-import type { Deck } from '../../lib/cards'
-import type { DeckPref } from '../../lib/layout'
 
 /**
  * The dashboard.
@@ -39,14 +35,16 @@ import type { DeckPref } from '../../lib/layout'
  *     question in a fight and the answer never moves. The name is not in this
  *     box any more, it reads once beside the zone in the map header, so the
  *     height it was spending on a header row goes to the portrait and doll.
- *   - **Battle, People** stack under you, in that order: what is trying to
- *     kill you, and who else is here.
- *   - Room items are deliberately NOT here. They render as scene chips in
- *     RoomChips ("On the floor", with click-to-take), which is the same call
- *     already made for People and Hostile - one deck, one place it renders,
- *     rather than a list beside a picture saying the same thing twice. An
- *     Objects box was kept here as the exception only while nothing else
- *     showed the floor, and that stopped being true.
+ *   - **Battle and People are gone too, for the same reason Objects went.**
+ *     RoomColumn's scene already renders the exact same cards
+ *     (`fromRoom(character)`) as chips grouped by kind (Hostile/People/On
+ *     the floor), right next to this rail on the same screen — a fan of
+ *     hostile cards and a fan of people cards here were a second, plainer
+ *     rendering of data a player was already looking at a few hundred pixels
+ *     to the left. The pop-out arrow that used to live on Battle now lives
+ *     on the You box below (`popper('room')`), since that is still the
+ *     fastest way to a dedicated battle window with `CombatRadar` in it —
+ *     see BattlePanel.
  *   - **Experience** runs under the map, because it is read between fights
  *     rather than during one, and it wants width more than height.
  *   - **Actions** pin to the bottom, and the one stop bar sits under them in
@@ -103,13 +101,9 @@ import type { DeckPref } from '../../lib/layout'
  */
 export function DashboardLayout({
   dense,
-  deckPrefs,
-  onCycleDeck,
   onPopOut,
 }: {
   dense: boolean
-  deckPrefs?: Partial<Record<Deck, DeckPref>>
-  onCycleDeck?: (deck: Deck) => void
   /** Tear a box into its own window, for a second monitor or a wide desk. */
   onPopOut?: (id: 'map' | 'room' | 'mindstate') => void
 }) {
@@ -126,10 +120,6 @@ export function DashboardLayout({
       </button>
     ) : undefined
   const character = useAppStore((s) => s.character)
-  const cards = fromRoom(character)
-
-  const hostile = cards.filter((c) => c.deck === 'hostile')
-  const people = cards.filter((c) => c.deck === 'people')
 
   // Every vital the character reports, not a chosen three. Concentration only
   // exists for some guilds, so it appears when it exists rather than being
@@ -207,7 +197,7 @@ export function DashboardLayout({
          * The row wraps because the right rail is as narrow as 15rem when the
          * window is docked beside the game, and three fixed-width children in a
          * row that cannot wrap overflow instead of stacking. */}
-        <Box>
+        <Box action={popper('room')}>
           <PanelBoundary label="You">
             <div className="flex flex-wrap items-start gap-3">
               <Portrait
@@ -288,21 +278,6 @@ export function DashboardLayout({
           </Box>
         )}
 
-        <Box tone="danger" action={popper('room')} className="min-h-0">
-          <PanelBoundary label="Battle">
-            {hostile.length ? (
-              <CardDeck
-                deck="hostile"
-                cards={hostile}
-                pref={deckPrefs?.hostile ?? 'auto'}
-                onCyclePref={onCycleDeck ? () => onCycleDeck('hostile') : undefined}
-              />
-            ) : (
-              <p className="text-xs text-ink-faint">Nothing hostile here.</p>
-            )}
-          </PanelBoundary>
-        </Box>
-
         {/* Inventory, Power only. The room scene answers "what's in the
             room", which Genie always showed; this answers "how full are
             my containers", a measurement Genie never had at all — genuine
@@ -314,21 +289,6 @@ export function DashboardLayout({
             </PanelBoundary>
           </Box>
         )}
-
-        <Box title="People" count={people.length}>
-          <PanelBoundary label="People">
-            {people.length ? (
-              <CardDeck
-                deck="people"
-                cards={people}
-                pref={deckPrefs?.people ?? 'auto'}
-                onCyclePref={onCycleDeck ? () => onCycleDeck('people') : undefined}
-              />
-            ) : (
-              <p className="text-xs text-ink-faint">Nobody else here.</p>
-            )}
-          </PanelBoundary>
-        </Box>
 
         {/* Script Library, Power only, last in the rail. All 234 scripts is
             the deepest well of "more information density" this app has —

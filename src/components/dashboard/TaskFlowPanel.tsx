@@ -28,6 +28,17 @@
  * starts things and reports on them. The bug class the old driver hit twice —
  * reporting stopped while a timer kept firing underneath — cannot be written
  * here, because there is no timer to get out of step with.
+ *
+ * # A third tab: Activities
+ *
+ * `ScriptLauncher` (the curated train/heal/town/burgle/travel one-clickers)
+ * used to be a registered panel with nowhere the default dashboard ever
+ * rendered it — reachable only by dragging into freeform placement, which
+ * nothing in the app ever turns on, so it was a pop-out with no door. It
+ * belongs beside Tasks and Scripts, not off in its own undiscoverable place:
+ * all three answer the same question, "what do I start", at three different
+ * levels of composition (a curated one-click activity, a saved Python task,
+ * a raw script).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -68,6 +79,8 @@ import {
   type ScriptLang,
 } from '../../lib/scriptFiles'
 import { ScriptEditor, type EditorTarget } from './ScriptEditor'
+import { ScriptLauncher } from '../shared/ScriptLauncher'
+import { ACTIVITIES } from '../../data/activities'
 import { onStopAll, onStartFlow } from '../../lib/flowStop'
 import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
@@ -102,7 +115,7 @@ function iconFor(id: string): LucideIcon {
   return Terminal
 }
 
-type Tab = 'tasks' | 'scripts'
+type Tab = 'tasks' | 'scripts' | 'activities'
 
 export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const addLog = useAppStore((s) => s.addLog)
@@ -248,7 +261,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
        * the control for it. Reserved whether or not something runs, so
        * starting a task does not push every tile down by a line. */}
       <div className="flex items-center gap-1">
-        {(['tasks', 'scripts'] as Tab[]).map((t) => (
+        {(['tasks', 'scripts', 'activities'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -262,7 +275,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
           >
             {t}
             <span className="ml-1 opacity-60">
-              {t === 'tasks' ? tasks.length : scripts.length}
+              {t === 'tasks' ? tasks.length : t === 'scripts' ? scripts.length : ACTIVITIES.length}
             </span>
           </button>
         ))}
@@ -313,7 +326,9 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
       )}
 
       <div className="min-h-0 flex-1 overflow-auto">
-        {tab === 'tasks' ? (
+        {tab === 'activities' ? (
+          <ScriptLauncher compact={dense} />
+        ) : tab === 'tasks' ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-1">
             {tasks.map((t) => {
               const Icon = iconFor(t.id)
