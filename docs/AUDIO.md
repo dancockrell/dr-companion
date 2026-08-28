@@ -81,14 +81,16 @@ biomes in `BIOME_FILES` point at one of those four as a stand-in, see the
 comment above `FALLBACK_BIOME`), the full 85-zone biome classification,
 the crossfade engine, the vendor/manifest pipeline, and the mute toggle.
 
-**Radio: six stations, 205 tracks.** The Old Concert Hall (42, western
-orchestral/piano), Six Strings (41, guitar/lute/cello), Halls of Shadow
-(36, dark/dramatic — split out because Brahms' turbulent later movements
-suit undead/dungeon zones far better than a town square), The Silk Road
-(35, Chinese/Japanese/Arabic/Persian, including six genuine 1914-1931
-Egyptian recordings — see "Roadmap" below), Throne and Temple (33,
-grand/ceremonial — Handel), Salt and Sail (18, sea shanties/nautical
-folk).
+**Radio: six stations, 233 tracks.** Six Strings (61, guitar/lute/cello,
+including a large Spanish/flamenco folk batch), The Old Concert Hall (42,
+western orchestral/piano), Throne and Temple (39, grand/ceremonial —
+Handel, Purcell), Halls of Shadow (36, dark/dramatic — split out because
+Brahms' and Beethoven's turbulent movements suit undead/dungeon zones
+far better than a town square), The Silk Road (35, Chinese/Japanese/
+Arabic/Persian, including six genuine 1914-1931 Egyptian recordings —
+see "Roadmap" below), Salt and Sail (20, sea shanties/nautical folk, the
+thinnest of the six — good folk maritime instrumental material is
+scarcer on Commons than classical repertoire).
 See `data/audio/ATTRIBUTIONS.md` (generated, not hand-maintained — run
 `node tools/vendor-audio.mjs --attributions` after adding tracks).
 
@@ -194,7 +196,8 @@ and repertoire name, not by instrument.
 ## Roadmap: what's still open
 
 Dan's direction (28 Aug 2026). **Done since it was written:** "hundreds of
-songs" (195), "a good number of stations matched to region types" (six,
+songs" (233 as of this writing), "a good number of stations matched to
+region types" (six,
 each with a `characterFor()` reason — see "What's actually done"), and
 "one hour playlists for each region... aware of more than just maps"
 (all 85 zones, `tools/build-zone-playlists.mjs`). Still open:
