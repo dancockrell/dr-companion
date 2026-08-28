@@ -1064,6 +1064,16 @@ export class MockBridge {
         })
         break
       }
+
+      // Same gap as read_settings above: check_toggles has read and logged
+      // this since before the store had a field for it. brief/invBrief demo
+      // as null rather than false - see ToggleStatus for why the bridge
+      // never asserts a confirmed off for those two.
+      case 'check_toggles': {
+        this.emit({ type: 'toggles', brief: null, invBrief: null, showRoomId: true })
+        this.emit({ type: 'log', line: 'TOGGLE: no toggles active. FLAGS: ShowRoomID on.' })
+        break
+      }
       case 'go_healer': {
         this.character = { ...this.character, activity: 'Evaluating healers…' }
         this.emitStatus()

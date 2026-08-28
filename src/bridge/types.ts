@@ -51,6 +51,7 @@ export type BridgeServerMessage =
   | { type: 'intent_ack'; intent: string; ok: boolean; detail?: string }
   | { type: 'error'; message: string }
   | { type: 'settings'; character: string; files: SettingsFile[] }
+  | ({ type: 'toggles' } & ToggleStatus)
   | { type: 'map_here'; payload: MapRoom & { available: boolean } }
   | { type: 'map_path'; payload: MapPath }
   | { type: 'map_zone'; payload: MapZone }
@@ -100,6 +101,30 @@ export interface SettingsFile {
   error?: string
   line?: number
   column?: number
+}
+
+/**
+ * BRIEF, INVBRIEF and ShowRoomID, as `check_toggles` last read them from the
+ * game rather than inferred from anything client-side.
+ *
+ * All three change what the game prints or what Lich can parse from it -
+ * BRIEF and INVBRIEF shorten room and inventory text that other scripts read,
+ * ShowRoomID is what Lich needs to know which room you're in at all. Nobody
+ * changes them from here; this only reports what TOGGLE/FLAGS said.
+ *
+ * `null` means "not known," and it is not the same claim for every field.
+ * `showRoomId` gets a real `false` when the game's reply is read and does not
+ * say on - that branch has been trusted in production warnings since before
+ * this type existed. `brief`/`invBrief` never resolve to `false`: the bridge
+ * only has a verified pattern for "this is on," not for "the game told us
+ * it's off," so anything short of a positive match stays `null` rather than
+ * asserting an off state nobody has confirmed the wire actually distinguishes
+ * from silence.
+ */
+export interface ToggleStatus {
+  brief: boolean | null
+  invBrief: boolean | null
+  showRoomId: boolean | null
 }
 
 /**

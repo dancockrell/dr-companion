@@ -10,6 +10,7 @@ import { TRAIN_FOCUS_OPTIONS } from '../../data/training'
 import { HEAL_CITIES } from '../../data/healers'
 import { ProfilesPanel } from './ProfilesPanel'
 import { SettingsFilesPanel } from '../shared/SettingsFilesPanel'
+import { TogglesPanel } from '../shared/TogglesPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
@@ -380,6 +381,18 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               dr-scripts settings files
             </h3>
             <SettingsFilesPanel />
+          </section>
+
+          {/* Same gap, same fix: check_toggles has read BRIEF, INVBRIEF and
+              ShowRoomID since before this panel existed, and nothing surfaced
+              it but the log pane. Lives next to the settings files panel
+              because both are "read the game's own state once, on request"
+              rather than something watched continuously. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              Display toggles
+            </h3>
+            <TogglesPanel />
           </section>
 
           <section className="space-y-2">

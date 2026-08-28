@@ -11,6 +11,7 @@ import type {
   MapZone,
   ScriptState,
   SettingsFile,
+  ToggleStatus,
 } from '../bridge/types'
 import type { Trail } from '../lib/trail'
 
@@ -402,6 +403,15 @@ export interface AppState {
    */
   settingsFiles: SettingsFile[] | null
   settingsCharacter: string | null
+  /**
+   * BRIEF, INVBRIEF and ShowRoomID, from the `check_toggles` intent.
+   *
+   * Same gap as `settingsFiles` above: the bridge has read and logged these
+   * since before this field existed, and null-until-asked here means "never
+   * checked this session," not "confirmed off" - see ToggleStatus for why
+   * that distinction matters per field.
+   */
+  toggles: ToggleStatus | null
   logLines: LogRow[]
   /** Command trace from the bridge, for diagnosing broken patterns. */
   trace: TraceRow[]
@@ -463,6 +473,8 @@ export interface AppState {
   addLog: (line: string, level?: LogRow['level']) => void
   /** Ask the bridge which dr-scripts files apply to this character. */
   readSettings: () => void
+  /** Ask the bridge to read BRIEF, INVBRIEF and ShowRoomID from the game. */
+  checkToggles: () => void
   clearLog: () => void
   addTrace: (row: TraceRow) => void
   setTraceEnabled: (v: boolean) => void

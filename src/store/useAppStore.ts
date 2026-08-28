@@ -226,6 +226,12 @@ function handleBridgeMessage(
       // so the payload arrived and fell off the end. See SettingsFile.
       set({ settingsFiles: msg.files, settingsCharacter: msg.character })
       break
+    case 'toggles':
+      // Same shape of gap as 'settings' above: check_toggles has read BRIEF,
+      // INVBRIEF and ShowRoomID and logged them since before this case
+      // existed, with no field for a screen to read instead of the log pane.
+      set({ toggles: { brief: msg.brief, invBrief: msg.invBrief, showRoomId: msg.showRoomId } })
+      break
     case 'trace':
       get().addTrace(msg.row)
       break
@@ -296,6 +302,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeFlow: null,
   settingsFiles: null,
   settingsCharacter: null,
+  toggles: null,
   logLines: [
     { at: new Date().toLocaleTimeString(), text: 'Companion started.', seq: nextSeq() },
   ],
@@ -374,6 +381,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     bridge.requestIntent('read_settings')
   },
 
+  checkToggles: () => {
+    set({ toggles: null })
+    bridge.requestIntent('check_toggles')
+  },
+
   listScripts: () => {
     bridge.requestIntent('list_scripts')
   },
@@ -431,7 +443,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     bridge.setMode(m)
     savePrefs({ bridgeMode: m })
-    set({ bridgeMode: m, bridgeConnected: false, bridgeAuth: 'unknown', bridgeAuthNote: '', bridgeIntents: null, character: null, characterAt: 0, scriptStates: [], runningScripts: [], scriptCatalog: null, settingsFiles: null })
+    set({ bridgeMode: m, bridgeConnected: false, bridgeAuth: 'unknown', bridgeAuthNote: '', bridgeIntents: null, character: null, characterAt: 0, scriptStates: [], runningScripts: [], scriptCatalog: null, settingsFiles: null, toggles: null })
     get().addLog(
       m === 'mock' ? 'Switched to mock bridge' : 'Switched to live Lich bridge'
     )

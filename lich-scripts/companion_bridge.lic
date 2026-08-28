@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.10.1'
+  BRIDGE_VERSION = '0.10.2'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1689,6 +1689,16 @@ module Companion
         label: 'toggles'
       )
 
+      # Only ever true or nil, never false. The regexes below are a positive
+      # match on the toggle being reported on; there is no verified pattern
+      # here for a confirmed *off*, and "did not match" is not the same claim
+      # as "the game told us it's off" - collapsing them would be exactly the
+      # kind of confidently-wrong answer this app has been burned by before.
+      # ShowRoomID gets the stronger claim below because that branch already
+      # shipped and has been trusted in production reasoning; this one has not.
+      brief = nil
+      inv_brief = nil
+
       if line.nil?
         server.log(
           'Could not read TOGGLE. If parsing looks wrong, check BRIEF and ' \
@@ -1697,9 +1707,12 @@ module Companion
         )
       else
         server.log("TOGGLE: #{line.to_s.strip}")
+        inv_brief = true if line =~ /invbrief\s+(on|yes)/i
+        brief = true if line =~ /(?<!inv)brief\s+(on|yes)/i
+
         risky = []
-        risky << 'INVBRIEF' if line =~ /invbrief\s+(on|yes)/i
-        risky << 'BRIEF'    if line =~ /(?<!inv)brief\s+(on|yes)/i
+        risky << 'INVBRIEF' if inv_brief
+        risky << 'BRIEF'    if brief
 
         if risky.empty?
           server.log('No display toggles that would confuse parsing.')
@@ -1713,7 +1726,19 @@ module Companion
         end
       end
 
-      check_room_id_flag(server)
+      success, message, show_room_id = check_room_id_flag(server)
+
+      # Everything here already crossed the socket as a log line; this is the
+      # same information a status field can hold instead of a person having
+      # to have been watching the log pane at the right moment.
+      server.broadcast(
+        type: 'toggles',
+        brief: brief,
+        invBrief: inv_brief,
+        showRoomId: show_room_id
+      )
+
+      [success, message]
     end
 
     # ShowRoomID is the one people actually get burned by, and it cuts both
@@ -1751,7 +1776,7 @@ module Companion
           'rooms. Check it with FLAGS if room tracking looks wrong.',
           'warn'
         )
-        return [true, 'toggles read, flags unknown']
+        return [true, 'toggles read, flags unknown', nil]
       end
 
       on = line =~ /showroomid\s*(?:is\s*)?(on|yes|true)/i
@@ -1762,7 +1787,7 @@ module Companion
           'way round: if you later play without Lich, turn it off again or ' \
           'your frontend mapper will stop working.'
         )
-        [true, 'ShowRoomID on']
+        [true, 'ShowRoomID on', true]
       else
         server.log(
           'ShowRoomID is off. Lich needs it on to know which room you are in, ' \
@@ -1770,7 +1795,7 @@ module Companion
           'with: FLAGS ShowRoomID ON',
           'warn'
         )
-        [true, 'ShowRoomID off']
+        [true, 'ShowRoomID off', false]
       end
     end
 
