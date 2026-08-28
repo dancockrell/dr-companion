@@ -15,7 +15,20 @@ on:
 # the last 57 pushes. A commit nobody verified is indistinguishable from one
 # that passed.
 concurrency:
-  group: ci-${{ github.ref }}
+  # Per-commit on main, per-branch everywhere else.
+  #
+  # Scoping cancel-in-progress to non-main was necessary and not sufficient,
+  # which is only visible by measuring: run 33141537207 was cancelled anyway,
+  # with zero jobs, while still queued. cancel-in-progress governs the RUNNING
+  # member of a group; a newly queued run always supersedes a PENDING one, and
+  # that happens whatever the flag says. With several sessions pushing, the
+  # middle of any burst is dropped.
+  #
+  # Giving each main commit its own group is what actually delivers a verdict
+  # per commit. Nothing to supersede, nothing to cancel. Pull requests keep
+  # sharing a group per branch, where superseding is the right behaviour -
+  # only the tip of a PR matters.
+  group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'shared' }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
