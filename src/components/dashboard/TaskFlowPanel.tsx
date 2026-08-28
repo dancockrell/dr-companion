@@ -537,7 +537,7 @@ function ConditionEditor({
       <button
         type="button"
         onClick={() => onChange('health<50')}
-        className="shrink-0 rounded border border-dashed border-border px-1.5 py-0.5 text-[11px] text-ink-faint hover:text-ink"
+        className="shrink-0 rounded border border-dashed border-border px-1.5 py-0.5 text-xs text-ink-faint hover:text-ink"
         title="Switch to a gauge slider"
       >
         + gauge
