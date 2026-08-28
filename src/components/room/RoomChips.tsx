@@ -59,7 +59,7 @@ function CreatureRow({ card, combatant }: { card: RoomCard; combatant?: RoomComb
 
   return (
     <div
-      className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded px-2 py-1 text-sm ${
+      className={`flex max-w-full items-center gap-2 rounded px-2 py-1 text-sm ${
         targetingYou ? 'bg-danger/10' : ''
       }`}
       title={stale ? `last assessed ${combatant!.enrichedAgeSeconds}s ago — may no longer be accurate` : undefined}
@@ -75,20 +75,26 @@ function CreatureRow({ card, combatant }: { card: RoomCard; combatant?: RoomComb
       ) : (
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${DECK_STYLE[card.deck].band}`} />
       )}
-      <span className={card.status === 'dead' ? 'text-ink-faint line-through' : 'text-ink'}>
+      <span className={`shrink-0 whitespace-nowrap ${card.status === 'dead' ? 'text-ink-faint line-through' : 'text-ink'}`}>
         {card.name}
         {card.count > 1 && <span className="text-ink-faint"> x{card.count}</span>}
       </span>
-      {statusText && <span className="text-warn">{statusText}</span>}
+      {statusText && <span className="shrink-0 whitespace-nowrap text-warn">{statusText}</span>}
       {detail && (
+        // min-w-0 is what lets a flex child shrink below its content size at
+        // all; without it `truncate` has nothing to truncate against and the
+        // row just pushes the whole group wider instead. This is the one
+        // variable-length field (a full relation+range+target phrase), so
+        // it is the one that gives when the row does not fit — the icon and
+        // name never do.
         <span
-          className={
+          className={`min-w-0 truncate ${
             stale
               ? 'italic text-ink-faint/60'
               : targetingYou
                 ? 'font-medium text-danger'
                 : 'text-ink-faint'
-          }
+          }`}
         >
           {detail}
           {targetingYou && ' — on you'}
@@ -121,11 +127,11 @@ function ItemChip({
       disabled={!canSend}
       title={reason ?? `get ${nounOf(name)}`}
       onClick={onTake}
-      className="group flex shrink-0 items-center gap-2 whitespace-nowrap rounded px-2 py-1 text-sm text-ink hover:bg-surface-overlay/70 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+      className="group flex max-w-full items-center gap-2 rounded px-2 py-1 text-sm text-ink hover:bg-surface-overlay/70 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
     >
       <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-accent" />
-      <span className="truncate">{name}</span>
-      <span className="shrink-0 text-xs text-ink-faint opacity-0 group-hover:opacity-100">take</span>
+      <span className="min-w-0 truncate">{name}</span>
+      <span className="shrink-0 whitespace-nowrap text-xs text-ink-faint opacity-0 group-hover:opacity-100">take</span>
     </button>
   )
 }
@@ -204,7 +210,7 @@ export function RoomChips({
           people plus four hostiles clipped "On the floor" out of view
           entirely behind an unlabelled scrollbar before this split. */}
       {shown.length > 0 && (
-        <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto">
+        <div className="flex max-h-40 flex-col gap-1.5 overflow-x-hidden overflow-y-auto">
           {DECKS.map((deck) =>
             byDeck[deck].length > 0 ? (
               <Group key={deck} label={DECK_LABEL[deck]} colorClass={DECK_STYLE[deck].text}>
