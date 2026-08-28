@@ -1,7 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { RoomScene } from './RoomScene'
 import { RoomChips } from './RoomChips'
-import { RoomItemsPanel } from './RoomItemsPanel'
 import { TeachingPanel } from './TeachingPanel'
 import { StreamTabs } from '../game/StreamTabs'
 import { GamePane } from '../game/GamePane'
@@ -111,7 +110,13 @@ export function RoomColumn() {
           room={room ?? 0}
           title={title}
           text={text?.text}
-          chips={<RoomChips cards={cards} combatants={character?.roomCombatants} />}
+          chips={
+            <RoomChips
+              cards={cards}
+              combatants={character?.roomCombatants}
+              items={character?.roomItems}
+            />
+          }
         />
       </PanelBoundary>
 
@@ -138,9 +143,6 @@ export function RoomColumn() {
       </div>
 
       <RoomOccupants players={stream.roomPlayers} />
-      <PanelBoundary label="Room items">
-        <RoomItemsPanel items={character?.roomItems} />
-      </PanelBoundary>
       <PanelBoundary label="Classes">
         <TeachingPanel />
       </PanelBoundary>
