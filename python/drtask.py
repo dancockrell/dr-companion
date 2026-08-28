@@ -118,10 +118,34 @@ def strip_tags(text: str) -> str:
 class Vital:
     current: int
     max: int
+    #: False when the game has not reported this vital yet. A vital that has
+    #: never arrived is not a vital at zero, and the difference decides whether
+    #: a task acts.
+    known: bool = True
 
     @property
     def percent(self) -> float:
-        return 0.0 if self.max <= 0 else 100.0 * self.current / self.max
+        """Percent full, or NaN when the vital is unknown.
+
+        NaN rather than 0.0, and this is the important line in the file.
+
+        An unknown vital returning 0.0 reads as "nearly dead" to every
+        condition anybody will write - `health.percent < 50` fires, the task
+        runs to a healer, and the character was never hurt. Caught on the
+        first real run: a fixture that sends no health bar made a branching
+        flow decide the character needed treatment.
+
+        NaN compares false against everything, in both directions, so
+        `< 50` and `> 50` are both false while the answer is unknown. A task
+        therefore does nothing on a vital it has never seen, which is the only
+        safe default - acting on a number nobody reported is worse than not
+        acting.
+
+        A task that genuinely wants to know can ask `known`.
+        """
+        if not self.known or self.max <= 0:
+            return float("nan")
+        return 100.0 * self.current / self.max
 
 
 @dataclass

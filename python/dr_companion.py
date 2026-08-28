@@ -273,7 +273,26 @@ class Companion:
             self.connect()
 
         while not self._stopped.is_set():
-            msg = self._read_message()
+            try:
+                msg = self._read_message()
+            except (OSError, NotConnected):
+                # The socket was closed under us, which is the ordinary way a
+                # task ends: the main thread finishes its work and calls
+                # `close()` while this reader is blocked in `recv`.
+                #
+                # Unhandled, that printed `Exception in thread Thread-1 (run)`
+                # and a traceback *after* the task had already said "done." -
+                # so a flow that worked perfectly ended by showing the player a
+                # crash. A traceback is a claim that something went wrong, and
+                # it should not be made about the normal path.
+                #
+                # Only swallowed while stopping or already closed. A socket
+                # error during real work still propagates, because that one is
+                # a genuine failure and hiding it would be the opposite
+                # mistake.
+                if self._stopped.is_set() or self._sock is None:
+                    return
+                raise
             if msg is None:
                 break
             self._dispatch(msg)
