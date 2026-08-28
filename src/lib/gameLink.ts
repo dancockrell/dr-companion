@@ -15,7 +15,8 @@
  * See docs/ENGINE.md.
  */
 import { listenTauri, invokeTauri, isTauri } from './tauri.ts'
-import { feed, newStreamState, looksTagged } from './gameStream.ts'
+import { feed, newStreamState, looksTagged, characterState } from './gameStream.ts'
+import type { StreamCharacterState } from '../types/stream'
 
 export interface GameLine {
   seq: number
@@ -255,6 +256,23 @@ export function gameState(): LinkState {
 
 export function gameDropped(): number {
   return dropped
+}
+
+/**
+ * Vitals, status indicators, compass, spell and room contents as the game's
+ * own stream last reported them - see src/types/stream.ts.
+ *
+ * `characterState` was parsing all of this from the moment `feed` started
+ * being called, and nothing outside gameStream.ts and its own test ever read
+ * it: `grep -rl StreamCharacterState src/` found exactly the producer and the
+ * type, zero consumers. This is the missing wire, not new parsing - the same
+ * shape as `gameState()` above it, and for the same reason it belongs beside
+ * `gameLines()` rather than in the Zustand store: a panel that needs it
+ * subscribes to `subscribeGame` directly, so a health tick does not re-render
+ * whatever else the store is holding.
+ */
+export function streamCharacterState(): StreamCharacterState {
+  return characterState(parser)
 }
 
 /**

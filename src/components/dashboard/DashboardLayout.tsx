@@ -1,4 +1,6 @@
+import { useSyncExternalStore } from 'react'
 import { useAppStore } from '../../store/useAppStore'
+import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
 import { Box } from '../shared/Box'
 import { CardDeck } from '../shared/CardDeck'
 import { TaskFlowPanel } from './TaskFlowPanel'
@@ -117,7 +119,12 @@ export function DashboardLayout({
    * five bars, which is how it stayed wrong. There is one derivation now and
    * it lives beside the component that draws it.
    */
-  const vitals = vitalsFor(character)
+  // The game's own stream, subscribed the same way GamePane subscribes to
+  // it - see gameLink.ts's streamCharacterState. Outside the Zustand store on
+  // purpose: this changes on every progressBar tick, and routing that through
+  // the store would re-render everything the store holds for a health bar.
+  const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
+  const vitals = vitalsFor(character, stream.vitals.value)
 
   return (
     // The map row has a floor. With plain 1fr it resolved to whatever was

@@ -1,5 +1,7 @@
 import { cn } from '../../lib/cn'
-import type { CharacterStatus } from '../../types'
+import { vitalsFor, type Vital } from '../../lib/vitals'
+
+export { vitalsFor, type Vital }
 
 /**
  * The five pools, thin.
@@ -31,18 +33,6 @@ import type { CharacterStatus } from '../../types'
  *
  * Nothing here drops below 12px. See docs/DESIGN.md §1.5.
  */
-export interface Vital {
-  key: string
-  /**
-   * Retained so callers still holding a hand-written array compile while they
-   * move to `vitalsFor`. It no longer picks a colour: see the note above.
-   */
-  glyph?: string
-  tone?: 'health' | 'mana' | 'stamina' | 'spirit' | 'concentration'
-  label: string
-  value: number
-  max: number
-}
 
 /**
  * The ramp, with the reason each band exists written down beside it.
@@ -71,89 +61,6 @@ const MEANS: Record<string, string> = {
   stamina: 'runs out and you cannot swing, run or stand',
   spirit: 'runs out and a death costs full price',
   concentration: 'runs out and you cannot hold what you are maintaining',
-}
-
-/**
- * Guilds that have a mana pool, and guilds that do not.
- *
- * Two explicit lists rather than one, because "not in the list" has to mean
- * something different from "known to have none". A Barbarian burns inner fire
- * and a Thief spends khri; neither has mana and both report a permanent zero,
- * so drawing them an empty line every second of every session is a reading
- * that never reads anything.
- *
- * An unknown guild falls through to the value itself: draw it if there is
- * something in it. Guild arrives on the first status payload, so that fallback
- * only covers the moment before we know who we are talking to.
- */
-const MANA_GUILDS = new Set([
-  'bard',
-  'cleric',
-  'empath',
-  'moon_mage',
-  'necromancer',
-  'paladin',
-  'ranger',
-  'warrior_mage',
-])
-const NO_MANA_GUILDS = new Set(['barbarian', 'thief', 'trader', 'commoner'])
-
-function hasManaPool(guild: string | undefined, mana: number): boolean {
-  const g = (guild ?? '').toLowerCase()
-  if (MANA_GUILDS.has(g)) return true
-  if (NO_MANA_GUILDS.has(g)) return false
-  return mana > 0
-}
-
-/**
- * Every vital the character actually reports, derived rather than hand-listed.
- *
- * This exists because of the specific way mana went missing. It was in the
- * payload from the first version of the bridge and it had a field on the type,
- * but the two places that draw a cluster each wrote their own literal array,
- * and neither array mentioned it. Nothing broke and no check failed. Mana
- * simply arrived every second and was never asked for.
- *
- * A caller that has to remember which vitals exist will forget one again, so
- * callers no longer decide. They hand over the character and get the pools that
- * character has.
- *
- * Order is the game's own bar order, so it matches the client the player
- * already has open beside this one.
- *
- * Concentration and mana are both conditional, for the same reason by different
- * tests. Concentration exists only for some guilds and the bridge omits
- * `concentrationMax` when there is none, so the max is the test. Mana is always
- * sent with a max of 100 whether or not there is a pool behind it, so the max
- * cannot be the test and the guild has to be.
- */
-export function vitalsFor(character: CharacterStatus | null | undefined): Vital[] {
-  if (!character) return []
-  const v = character.vitals
-
-  const out: Vital[] = [
-    { key: 'health', label: 'Health', value: v.health, max: v.healthMax },
-  ]
-
-  if (hasManaPool(character.guild, v.mana ?? 0)) {
-    out.push({ key: 'mana', label: 'Mana', value: v.mana ?? 0, max: v.manaMax ?? 100 })
-  }
-
-  // `fatigue` on the wire, stamina everywhere a player will ever have read it.
-  // Lich's field name is not the game's word and the label follows the game.
-  out.push({ key: 'stamina', label: 'Stamina', value: v.fatigue, max: v.fatigueMax })
-  out.push({ key: 'spirit', label: 'Spirit', value: v.spirit, max: v.spiritMax })
-
-  if (v.concentrationMax) {
-    out.push({
-      key: 'concentration',
-      label: 'Conc',
-      value: v.concentration ?? 0,
-      max: v.concentrationMax,
-    })
-  }
-
-  return out
 }
 
 export function VitalCluster({
