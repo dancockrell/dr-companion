@@ -43,7 +43,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
           : 'text-ink-faint'
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
         {/* A heading, not a span - this box is mounted bare (no Box `title`,
          * see DashboardLayout), so this is the only accessible name the
@@ -60,7 +60,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
           const known = c.capacity > 0
           const pct = known ? Math.round((c.used / c.capacity) * 100) : 0
           return (
-            <div key={c.name} className="px-3 py-2 space-y-1">
+            <div key={c.name} className="px-2 py-1.5 space-y-1">
               <div className="flex items-center justify-between text-sm gap-2">
                 <span className="text-ink flex items-center gap-1.5 min-w-0">
                   <Package className="w-3.5 h-3.5 text-ink-faint shrink-0" />
@@ -98,11 +98,11 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
           )
         })}
         {inventory.containers.length === 0 && (
-          <div className="px-3 py-2 text-xs text-ink-faint">
+          <div className="px-2 py-1.5 text-xs text-ink-faint">
             No containers reported
           </div>
         )}
-        <div className="px-3 py-2 flex justify-between text-xs text-ink-faint">
+        <div className="px-2 py-1.5 flex justify-between text-xs text-ink-faint">
           <span>Worn {inventory.wornCount}</span>
           <span>Loose {inventory.looseCount}</span>
         </div>
@@ -133,17 +133,17 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
       })()}
 
       {!dense && (
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <button
             type="button"
-            className="flex-1 text-xs rounded-lg border border-border px-2 py-1.5 text-ink-muted hover:text-ink hover:bg-surface-overlay"
+            className="flex-1 text-xs rounded-lg border border-border px-2 py-1 text-ink-muted hover:text-ink hover:bg-surface-overlay"
             onClick={() => requestIntent('loot')}
           >
             Loot pass
           </button>
           <button
             type="button"
-            className="flex-1 text-xs rounded-lg border border-border px-2 py-1.5 text-ink-muted hover:text-ink hover:bg-surface-overlay"
+            className="flex-1 text-xs rounded-lg border border-border px-2 py-1 text-ink-muted hover:text-ink hover:bg-surface-overlay"
             onClick={() => requestIntent('stow_all')}
           >
             Stow all
