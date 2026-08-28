@@ -118,3 +118,63 @@ with a small HTML/text body to a request it does not like, not a 4xx -
 `tools/vendor-audio.mjs` treats a suspiciously small or HTML-typed
 response as a failure rather than a fetch, and that check was proven
 against a real bad URL before being trusted (see its own commit).
+
+## Bulk sourcing: tools/source-radio.mjs
+
+Hand-picking tracks one at a time doesn't reach the scale this needs
+("hundreds of songs" - Dan, 28 Aug 2026). `tools/source-radio.mjs`
+automates the pipeline: search Commons for a query, batch-check licence
+via `imageinfo` (up to 50 titles per request), download with a real
+User-Agent, reject a suspicious response the same way `vendor-audio.mjs`
+does, reject anything under 90 seconds by real `ffprobe` duration (the
+exact defect class three hand-picked tracks shipped with before this
+existed), and append survivors to the manifest.
+
+```
+node tools/source-radio.mjs --station old-concert-hall --query "brahms symphony" --limit 25
+node tools/source-radio.mjs --station six-strings --query "classical guitar" --mood "warm, intimate" --limit 25 --dry-run
+```
+
+`--mood` tags every track the run adds with a loose free-text mood - not
+inferred from the audio, just the curator's intent at source time (Dan's
+example: Brahms' darker symphonic movements suit undead/dungeon zones).
+Matching mood to a specific zone or biome is not built yet; the tag is
+there so it can be later. `--dry-run` reports candidates without
+downloading or writing, worth using before trusting an unfamiliar query.
+
+**Quality bar, Dan's explicit instruction (28 Aug 2026): avoid "tribal"
+music - typically low-quality demo/commercial-mixing-library material,
+not real performances, and not competing with "great masters."** This is
+why `source-radio.mjs` batches broad composer/genre searches ("brahms
+symphony", "andalusian music") rather than narrow instrument searches
+("oud solo") - the latter mostly surfaces short demo clips from sample
+libraries, which is exactly what got three tracks pulled after shipping
+too short. The Andalusian/Ottoman batch that filled out Arabic
+representation in The Silk Road worked because it searched by tradition
+and repertoire name, not by instrument.
+
+## Roadmap: what "hundreds of songs" and real zone-matching still need
+
+Dan's direction (28 Aug 2026), not yet built:
+
+- **A good number of stations**, matched as closely as possible to region
+  types - hunting areas, towns, rural areas, and *places of interest
+  within towns* (building interiors specifically named, not just "town").
+  Today there are four (The Old Concert Hall, Six Strings, The Silk Road,
+  Salt and Sail for sea shanties/pirates). Take inspiration from monster
+  types and scenery when choosing what a region's station should be, not
+  only its biome - Arabic/Andalusian music for pirate and coastal
+  content was Dan's own example.
+- **Player-created custom stations.** Not built at all. The manifest
+  schema (`radioStations` + a `station` tag per track) already supports
+  an arbitrary number of stations, so the data model doesn't block this,
+  but there is no UI for a player to build their own station from
+  tracks, name it, or persist it. This is the next real feature, not a
+  content-sourcing task.
+- **Zone/interior-level music matching**, not just biome-level. The
+  `zone` layer in `manifest.json` is still empty - see "Layers" above.
+  "Places of interest in towns like building interiors" implies
+  finer-than-zone granularity eventually (a temple or guild hall inside
+  a town zone getting its own theme), which the current `place` field
+  already carried in `src/data/map/*.json`'s room records could key off
+  of, but nothing reads it for audio yet.
