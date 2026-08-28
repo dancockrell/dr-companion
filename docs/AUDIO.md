@@ -81,12 +81,14 @@ biomes in `BIOME_FILES` point at one of those four as a stand-in, see the
 comment above `FALLBACK_BIOME`), the full 85-zone biome classification,
 the crossfade engine, the vendor/manifest pipeline, and the mute toggle.
 
-**Radio: six stations, 195 tracks.** The Old Concert Hall (42, western
+**Radio: six stations, 205 tracks.** The Old Concert Hall (42, western
 orchestral/piano), Six Strings (41, guitar/lute/cello), Halls of Shadow
 (36, dark/dramatic — split out because Brahms' turbulent later movements
 suit undead/dungeon zones far better than a town square), The Silk Road
-(26, Chinese/Japanese/Arabic/Persian), Throne and Temple (33, grand/
-ceremonial — Handel), Salt and Sail (17, sea shanties/nautical folk).
+(35, Chinese/Japanese/Arabic/Persian, including six genuine 1914-1931
+Egyptian recordings — see "Roadmap" below), Throne and Temple (33,
+grand/ceremonial — Handel), Salt and Sail (18, sea shanties/nautical
+folk).
 See `data/audio/ATTRIBUTIONS.md` (generated, not hand-maintained — run
 `node tools/vendor-audio.mjs --attributions` after adding tracks).
 
@@ -221,8 +223,14 @@ each with a `characterFor()` reason — see "What's actually done"), and
   and Ceremony" split from Throne and Temple, a lighter "Tavern and
   Hearth" folk station, or others Dan names are all just another
   `radioStations` entry plus a `tools/source-radio.mjs` run away.
-- **The genuine pre-1900 Arabic gap.** The Silk Road's Arabic-adjacent
-  entries (Andalusian/Ottoman traditional, an oud piece, a Persian
-  santur piece) are real and licensed but not a strong period-authentic
-  Arabic showpiece the way Grieg or Handel anchor their stations - worth
-  another sourcing pass if a better candidate turns up on Commons.
+- ~~The genuine pre-1900 Arabic gap.~~ **Filled, 28 Aug 2026.** Dan's
+  clarification was pre-1960, not pre-1900 - the mid-20th-century Arabic
+  golden age (Umm Kulthum/Abdel Wahab era), not medieval. Named-artist
+  Commons searches came up empty (that era's actual commercial
+  recordings are mostly still copyrighted), but Wikimedia's
+  `Category:Music of Egypt` had six genuine historical recordings, all
+  Public domain: five dated 1914-1931 (`Aldahre Kata Awsali`, two-part
+  `Baschrav Kuzum Maqam Hijaz`, `Art-song Maqam Sika`, `Ala fi Sabil
+  Allah`) plus one undated orchestral anthem. The Silk Road is now 35
+  tracks with real period-authentic Arabic material anchoring it the way
+  Grieg/Handel anchor their stations.

@@ -109,7 +109,7 @@ recorded below with where it came from and what it costs to use.
 - **Kevin MacLeod - J S Bach Cello Suite 1 in G on Dulcimer - Prelude** — [source](https://commons.wikimedia.org/wiki/File%3AKevin%20MacLeod%20-%20J%20S%20Bach%20Cello%20Suite%201%20in%20G%20on%20Dulcimer%20-%20Prelude.ogg) — CC BY 3.0. Attribution required. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
 - **Cello Suite -1 in G - Prelude (ISRC USUAN1100298)** — [source](https://commons.wikimedia.org/wiki/File%3ACello%20Suite%20-1%20in%20G%20-%20Prelude%20(ISRC%20USUAN1100298).mp3) — CC BY 3.0. Attribution required. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
 
-### The Silk Road (26 tracks)
+### The Silk Road (35 tracks)
 
 *Chinese, Japanese and Arabic traditional and traditional-style instrumental music.*
 
@@ -139,6 +139,15 @@ recorded below with where it came from and what it costs to use.
 - **"Cruz" de El Bateo versión couplet - original 01** — [source](https://commons.wikimedia.org/wiki/File%3A%22Cruz%22%20de%20El%20Bateo%20versi%C3%B3n%20couplet%20-%20original%2001.wav) — CC BY-SA 4.0. Attribution required. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
 - **VerdiTorrijos** — [source](https://commons.wikimedia.org/wiki/File%3AVerdiTorrijos.ogg) — Public domain. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
 - **Fundación Joaquín Díaz - ATO 00804 07 - Jota. Canto de trabajo (Envasando pipas en la fábrica Facundo)** — [source](https://commons.wikimedia.org/wiki/File%3AFundaci%C3%B3n%20Joaqu%C3%ADn%20D%C3%ADaz%20-%20ATO%2000804%2007%20-%20Jota.%20Canto%20de%20trabajo%20(Envasando%20pipas%20en%20la%20f%C3%A1brica%20Facundo).ogg) — CC BY-SA 3.0. Attribution required. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
+- **Keçəçioğlu Məhəmməd-Çoban-Bayatı** — [source](https://commons.wikimedia.org/wiki/File%3AKe%C3%A7%C9%99%C3%A7io%C4%9Flu%20M%C9%99h%C9%99mm%C9%99d-%C3%87oban-Bayat%C4%B1.ogg) — Public domain. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
+- **Cabbar Qaryağdıoğlu-Bayatı-Qacar** — [source](https://commons.wikimedia.org/wiki/File%3ACabbar%20Qarya%C4%9Fd%C4%B1o%C4%9Flu-Bayat%C4%B1-Qacar.ogg) — Public domain. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
+- **YASEEN Surah Al Quran - AHMAD MULKLIFF MOHD NOR HAJI IBRAHIM 870604 29 5559** — [source](https://commons.wikimedia.org/wiki/File%3AYASEEN%20Surah%20Al%20Quran%20-%20AHMAD%20MULKLIFF%20MOHD%20NOR%20HAJI%20IBRAHIM%20870604%2029%205559.opus) — CC BY-SA 4.0. Attribution required. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
+- **Art-song, Maqam Sika (1931)**, Traditional Egyptian, unattributed performer — [source](https://commons.wikimedia.org/wiki/File:Art-song_Maqam_Sika_(1931).ogg) — Public domain.
+- **Baschrav Kuzum, Maqam Hijaz - Part 1 (1931)**, Traditional, unattributed performer — [source](https://commons.wikimedia.org/wiki/File:Baschrav_Kuzum_Maqam_Hijaz_part_1_(1931).ogg) — Public domain.
+- **Baschrav Kuzum, Maqam Hijaz - Part 2 (1931)**, Traditional, unattributed performer — [source](https://commons.wikimedia.org/wiki/File:Baschrav_Kuzum_Maqam_Hijaz_part_2_(1931).ogg) — Public domain.
+- **Ala fi Sabil Allah**, Traditional Egyptian, unattributed performer — [source](https://commons.wikimedia.org/wiki/File:Ala_fi_Sabil_Allah.ogg) — Public domain.
+- **Aldahre Kata Awsali (c. 1914)**, Traditional, unattributed performer — [source](https://commons.wikimedia.org/wiki/File:Aldahre_Kata_Awsali_(c._1914).ogg) — Public domain.
+- **Al Watan Al Akbar (Pan-Arabic Patriotic Anthem)**, Traditional/orchestral arrangement — [source](https://commons.wikimedia.org/wiki/File:Al_Watan_Al_Akbar_-_Pan-Arabic_Patriotic_Anthem.ogg) — Public domain.
 
 ### Halls of Shadow (36 tracks)
 
@@ -181,7 +190,7 @@ recorded below with where it came from and what it costs to use.
 - **Mahler Symphony no. 2, IV. "Urlicht"** — [source](https://commons.wikimedia.org/wiki/File%3AMahler%20Symphony%20no.%202%2C%20IV.%20%22Urlicht%22.ogg) — CC0. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
 - **Mahler Symphony no. 2, II. Andante moderato** — [source](https://commons.wikimedia.org/wiki/File%3AMahler%20Symphony%20no.%202%2C%20II.%20Andante%20moderato.ogg) — CC0. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
 
-### Salt and Sail (17 tracks)
+### Salt and Sail (18 tracks)
 
 *Sea shanties and nautical folk - the station for a harbor town, a ship, or anywhere the pirates are.*
 
@@ -202,6 +211,7 @@ recorded below with where it came from and what it costs to use.
 - **TAWTUTB whole view 5-choruses with East Folk Dialogue** — [source](https://commons.wikimedia.org/wiki/File%3ATAWTUTB%20whole%20view%205-choruses%20with%20East%20Folk%20Dialogue.ogg) — CC BY-SA 4.0. Attribution required. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
 - **"Marching Through Georgia" by Henry C. Work – sung by Harlan & Stanley (1904)** — [source](https://commons.wikimedia.org/wiki/File%3A%22Marching%20Through%20Georgia%22%20by%20Henry%20C.%20Work%20%E2%80%93%20sung%20by%20Harlan%20%26%20Stanley%20(1904).ogg) — Public domain. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
 - **Inleiding Anima Eterna Brugge & Jos van Immerseel (audio)** — [source](https://commons.wikimedia.org/wiki/File%3AInleiding%20Anima%20Eterna%20Brugge%20%26%20Jos%20van%20Immerseel%20(audio).mp3) — CC BY 4.0. Attribution required. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
+- **Harry Martinson berättar om olika slags sea shanties - SMV - SVA BB 5355 23** — [source](https://commons.wikimedia.org/wiki/File%3AHarry%20Martinson%20ber%C3%A4ttar%20om%20olika%20slags%20sea%20shanties%20-%20SMV%20-%20SVA%20BB%205355%2023.wav) — CC0. **Note:** Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.
 
 ### Throne and Temple (33 tracks)
 
