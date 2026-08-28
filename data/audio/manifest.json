@@ -106,15 +106,17 @@
     {
       "id": "chopin-nocturne-27-1",
       "station": "old-concert-hall",
-      "file": "radio/chopin-nocturne-27-1.oga",
-      "title": "Nocturne in C-sharp minor, Op. 27 No. 1",
+      "file": "radio/chopin-nocturne-32-1.ogg",
+      "title": "Nocturne in B major, Op. 32 No. 1",
       "composer": "Frédéric Chopin",
-      "era": "composed 1835, this recording modern",
-      "source": "https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_Op.27_No.1.oga",
-      "download": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Chopin_Nocturne_Op.27_No.1.oga",
-      "license": "Public domain",
-      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_Op.27_No.1.oga",
-      "attributionRequired": false
+      "era": "composed 1837, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Chopin,_Nocturne_op_32_no_1.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/a/a7/Chopin%2C_Nocturne_op_32_no_1.ogg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attributionRequired": true,
+      "attributionText": "Chopin, Nocturne Op. 32 No. 1, via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Replaced Op. 27 No. 1 (a 49-second excerpt, not the full piece) - Dan's call: stations need full songs, not short loops. Measured every track's duration with ffprobe after this."
     },
     {
       "id": "vivaldi-autumn-3",
@@ -230,18 +232,19 @@
       "attributionRequired": false
     },
     {
-      "id": "oud-jordan",
+      "id": "santur-concertino",
       "station": "silk-road",
-      "file": "radio/oud-jordan.mp3",
-      "title": "Oud music (2v2)",
-      "composer": "Andy R. Jordan",
-      "era": "modern composition in maqam style - not a pre-1900 traditional piece, included as the best Arabic-genre candidate found so far",
-      "source": "https://commons.wikimedia.org/wiki/File:Oud_music_by_Andy_R._Jordan_2v2.mp3",
-      "download": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Oud_music_by_Andy_R._Jordan_2v2.mp3",
+      "file": "radio/santur-concertino.ogg",
+      "title": "Concertino for Santur (full)",
+      "composer": "Sadeghi / Dehlavi",
+      "era": "modern concertino for the santur, a traditional Persian instrument",
+      "source": "https://commons.wikimedia.org/wiki/File:Sadeghi-Dehlavi-Concertino_for_Santur_Full.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/d/df/Sadeghi-Dehlavi-Concertino_for_Santur_Full.ogg",
       "license": "CC BY-SA 3.0",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
       "attributionRequired": true,
-      "attributionText": "\"Oud music by Andy R. Jordan\", via Wikimedia Commons, CC BY-SA 3.0"
+      "attributionText": "Sadeghi/Dehlavi, Concertino for Santur, via Wikimedia Commons, CC BY-SA 3.0",
+      "note": "Persian, not Arabic - labelled honestly rather than folded into 'Arabic' for a round genre count. Replaces two earlier picks (oud-jordan, santur-azadehfar) that measured 63s and 70s respectively - real recordings, but short-clip demo material rather than full songs. This one is 14 minutes. A genuine full-length Arabic piece is still worth finding; this station is 3 tracks (Chinese, Japanese, Persian) with no Arabic entry right now, which is more honest than the short Arabic clip it replaced."
     }
   ]
 }

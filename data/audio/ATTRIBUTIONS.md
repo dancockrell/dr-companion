@@ -48,9 +48,9 @@ licence status (not eyeballed) before download.
   [2nd](https://commons.wikimedia.org/wiki/File:Beethoven_Moonlight_2nd_movement.ogg),
   [3rd](https://commons.wikimedia.org/wiki/File:Beethoven_Moonlight_3rd_movement.ogg) —
   CC BY-SA 2.0 DE. Attribution required. Composed 1801.
-- **Nocturne in C-sharp minor**, Op. 27 No. 1, Frédéric Chopin —
-  [source](https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_Op.27_No.1.oga) —
-  Public domain. Composed 1835.
+- **Nocturne in B major**, Op. 32 No. 1, Frédéric Chopin —
+  [source](https://commons.wikimedia.org/wiki/File:Chopin,_Nocturne_op_32_no_1.ogg) —
+  CC BY-SA 4.0. Attribution required. Composed 1837.
 - **The Four Seasons — Autumn**, mvt. 3, Antonio Vivaldi, performed by
   John Harrison (violin) —
   [source](https://commons.wikimedia.org/wiki/File:Vivaldi_-_Four_Seasons_3_Autumn_mvt_3_Allegro_-_John_Harrison_violin.oga) —
@@ -79,7 +79,7 @@ licence status (not eyeballed) before download.
   [source](https://commons.wikimedia.org/wiki/File:Johann_Sebastian_Bach_-_BWV_997_-_Lute_Suite_No._2_in_C_minor_-_IV_Gigue_-_Double.ogg) —
   CC BY-SA 2.0. Attribution required. Composed c. 1740.
 
-### The Silk Road — Chinese, Japanese and Arabic (3 tracks)
+### The Silk Road — Chinese, Japanese and Persian (3 tracks)
 
 - **二泉映月 (Erquan Yingyue / Moon Reflected on the Second Spring)**,
   traditional/attributed to Hua Yanjun (Abing), erhu —
@@ -90,14 +90,20 @@ licence status (not eyeballed) before download.
   [source](https://commons.wikimedia.org/wiki/File:Shikanotoone_new.ogg) —
   Public domain. The piece itself is pre-1900 traditional; this recording
   is modern.
-- **Oud music (2v2)**, Andy R. Jordan —
-  [source](https://commons.wikimedia.org/wiki/File:Oud_music_by_Andy_R._Jordan_2v2.mp3) —
-  CC BY-SA 3.0. Attribution required. **Not** a pre-1900 traditional
-  piece — a modern composition in maqam style, included as the best
-  Arabic-genre candidate found so far. A genuine antique Arabic piece is
-  still worth finding, and this station is thin at 3 tracks next to the
-  other two.
+- **Concertino for Santur (full)**, Sadeghi/Dehlavi —
+  [source](https://commons.wikimedia.org/wiki/File:Sadeghi-Dehlavi-Concertino_for_Santur_Full.ogg) —
+  CC BY-SA 3.0. Attribution required. **Persian, not Arabic** — labelled
+  honestly rather than folded into the genre list for a round count.
 
-Still worth doing: a stronger/second Arabic track, more European folk,
-and verifying the two flagged unusual-container files actually play in
+Two tracks were pulled from this station and are gone, not archived: an
+Andy R. Jordan oud clip and an earlier santur clip, both real CC-licensed
+recordings that measured 63s and 70s respectively — demo-library material
+wearing a song's metadata, not full pieces. Dan's correction: a station
+needs songs, not short loops. `tools/ambient-test.mjs` now measures every
+radio track's real duration with `ffprobe` and fails under 90 seconds, so
+this doesn't have to be caught by ear again.
+
+Still worth doing: a genuine full-length Arabic track (this station has
+none right now), more European folk, and verifying the two flagged
+unusual-container files (Ogg-FLAC, Ogg Skeleton) actually play in
 WebView2 rather than just serving over HTTP correctly.

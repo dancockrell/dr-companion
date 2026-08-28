@@ -16,13 +16,25 @@
  * matters, and data/audio/manifest.json's per-track `note` fields for the
  * two files (Ogg-FLAC, Ogg Skeleton) still owed that check.
  */
+import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import manifest from '../data/audio/manifest.json' with { type: 'json' }
 import { RADIO_STATIONS } from '../src/lib/ambientSound.ts'
 
+const root = dirname(dirname(fileURLToPath(import.meta.url)))
+const publicAudio = join(root, 'public/audio')
+
 let failed = 0
+const unchecked = []
 const ok = (name, cond, detail = '') => {
   if (!cond) failed++
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${name.padEnd(50)}${detail}`)
+}
+const skip = (name, why) => {
+  unchecked.push(name)
+  console.log(`SKIP ${name.padEnd(50)}${why}`)
 }
 
 console.log('-- every station the manifest names actually groups --')
@@ -98,5 +110,61 @@ console.log('\n-- every manifest entry the vendor script would fetch has what it
   )
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed')
+console.log('\n-- radio tracks are songs, not short loops --')
+{
+  // Only radio tracks are checked here - a biome ambient bed is *supposed*
+  // to be a short seamless loop, the opposite property. Dan's correction,
+  // after three radio tracks turned out to be 49s/63s/70s demo clips
+  // wearing a song's metadata. ffprobe reads the real duration rather than
+  // trusting the file size, which the earlier size-based "suspicious
+  // response" guard in vendor-audio.mjs would not have caught - these were
+  // genuine, complete downloads of genuinely short files.
+  const MIN_MUSIC_SECONDS = 90
+
+  let ffprobeOk = true
+  try {
+    execFileSync('ffprobe', ['-version'], { stdio: 'ignore' })
+  } catch {
+    ffprobeOk = false
+  }
+
+  if (!ffprobeOk) {
+    skip('every radio track is at least 90 seconds', 'ffprobe not on PATH')
+  } else {
+    const short = []
+    const missing = []
+    for (const t of manifest.radio ?? []) {
+      const path = join(publicAudio, t.file)
+      if (!existsSync(path)) {
+        missing.push(t.id)
+        continue
+      }
+      const out = execFileSync(
+        'ffprobe',
+        ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', path],
+        { encoding: 'utf8' }
+      )
+      const seconds = Number(out.trim())
+      if (!Number.isFinite(seconds) || seconds < MIN_MUSIC_SECONDS) {
+        short.push(`${t.id} (${Number.isFinite(seconds) ? seconds.toFixed(0) + 's' : 'unreadable'})`)
+      }
+    }
+    if (missing.length) {
+      skip(
+        'every radio track is at least 90 seconds',
+        `${missing.length} not fetched yet - run tools/vendor-audio.mjs first: ${missing.join(', ')}`
+      )
+    } else {
+      ok(`every radio track is at least ${MIN_MUSIC_SECONDS} seconds`, short.length === 0, short.join(', '))
+    }
+  }
+}
+
+console.log(
+  failed
+    ? `\n${failed} failed`
+    : unchecked.length
+      ? `\nno failures, but ${unchecked.length} not checked: ${unchecked.join(', ')}`
+      : '\nall passed'
+)
 process.exit(failed ? 1 : 0)

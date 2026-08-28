@@ -80,18 +80,22 @@ Zero zone themes.
 
 Radio: **three stations, thirteen tracks** — The Old Concert Hall (western
 orchestral/piano, 6 tracks), Six Strings (classical guitar/lute, 4 tracks),
-The Silk Road (Chinese/Japanese/Arabic traditional and traditional-style,
+The Silk Road (Chinese/Japanese/Persian traditional and traditional-style,
 3 tracks). See `data/audio/ATTRIBUTIONS.md` for every track and its
 licence. `tools/ambient-test.mjs` checks the manifest mechanically:
 every station a track names actually got built, no station has fewer than
 two tracks (the whole point of "station" over the old "one track = one
 station" model), every entry the vendor script would fetch has a file,
-download URL and licence, and every attribution-required entry actually
-carries its attribution text. Sabotage-verified — a missing licence, a
-track pointed at an undeclared station, and a one-track station were each
-introduced on a scratch copy and confirmed to fail before being trusted.
-Not yet wired into `npm run test` — `package.json` was mid-edit by another
-session when this landed; add `test:ambient` there when it's free.
+download URL and licence, every attribution-required entry actually
+carries its attribution text, and — added after three tracks turned out
+to be 49s/63s/70s demo clips wearing a full song's metadata — every radio
+track measures at least 90 seconds by `ffprobe`, skipping (not failing)
+if `ffprobe` isn't on PATH or the file hasn't been fetched yet. Sabotage-
+verified — a missing licence, a track pointed at an undeclared station, a
+one-track station, and a truncated file were each introduced on a scratch
+copy and confirmed to fail before being trusted. Not yet wired into
+`npm run test` — `package.json` was mid-edit by another session when this
+landed; add `test:ambient` there when it's free.
 
 The engine-level claims (crossfade, no-restart-on-same-zone, the radio
 picker calling the file it says it will) were verified separately by
