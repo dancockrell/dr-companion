@@ -1,13 +1,22 @@
 # Wiring audit: what is connected, what is not
 
 Measured against the running app on 28 Aug 2026, with Phemius logged into the
-live server, Lich 5.20.1, bridge v0.10.1. Not read off the source — every
-claim below came from asking the running client or the real files, and where a
-number is quoted the command that produced it is quoted with it.
+live server, Lich 5.20.1, bridge v0.10.1 at the time. Not read off the source
+originally — every claim below came from asking the running client or the
+real files, and where a number is quoted the command that produced it is
+quoted with it. **The bridge version moves fast enough that this number is
+already stale by the time you read it** — check `BRIDGE_VERSION` in
+`lich-scripts/companion_bridge.lic` directly rather than trusting a version
+number written in a doc, same rule as anything else here: verify against the
+file, not the claim about the file.
 
 This exists so several sessions can divide the remaining work without each
 re-deriving the same list. **Take a section, put your name on it, and delete
-the "unclaimed" line when you do.**
+the "unclaimed" line when you do.** Conversely: if you finish something
+listed here as unclaimed, come back and say so with your name, so the next
+session reading this doesn't redo it against a doc that never learned it was
+done — see section 4b for what happens when this doc runs a day behind a
+fast-moving fleet.
 
 ---
 
@@ -134,31 +143,45 @@ just text. Read off the live wire, these tags arrive unprompted:
 | `dialogData` | grouped panels | `id='minivitals'` |
 | `image` | portrait and room art | 15 in 22 seconds |
 
-**The app currently gets none of this from the game.** Vitals, posture,
-room contents and exits all come from the bridge polling Lich's Ruby state
-instead — a round trip through a WebSocket and a Ruby script to fetch numbers
-the game is already pushing down the socket the client is holding.
+**Updated 28 Aug 2026** (bridge now v0.10.2) **— most of this table is routed
+now, and none of it is consumed by any screen yet.** Checked against the
+actual file rather than this doc's own earlier claim, which was already stale
+by the time a second pass read it — see rule 1 in CLAUDE.md about why that
+check has to be the file, not the doc. `gameStream.ts` currently handles,
+confirmed by grep:
 
-That matters for three reasons, and it is why this is worth doing before more
-panes get built:
+| Tag | Status |
+|---|---|
+| `progressBar` | routed - health/mana/spirit/stamina, plus concentration (a Bard's fifth vital) |
+| `indicator` | routed - three states (on/off/unknown) plus absence, keyed by icon name |
+| `component id='room players'` | routed - DR's "Also here: ..." sentence parsed into named entries |
+| `component id='room objs'` | routed **for loot only** - the bold-name half (creatures) needs pairing to a separate `crtrStatus` batch at the next `<prompt>`, gated on the two counts matching, and is deliberately not implemented without a live capture to verify the pairing against |
+| `compass` / `dir` | routed - replaces on every room, does not accumulate |
+| `spell` | **still absent** |
+| `crtrStatus` | **still absent** (needed for the room-objs creature half above) |
+| `dialogData` | **still absent** |
+| `image` | **still absent** |
 
-1. **It is free and already arriving.** `game_link.rs` receives these bytes
-   today and `gameStream.ts` skips them as unknown markup.
-2. **It removes a dependency.** Anything sourced from these tags keeps
-   working when the bridge is down — which, per the log, it frequently is
-   during a restart.
-3. **Several "absent" Genie windows are already answerable.** Objects and
-   Players map straight onto `component id='room objs'` / `'room players'`.
-   Posture and afflictions have no Genie window but are real state the app
-   shows nowhere.
+All of it lives in `StreamCharacterState` (`src/types/stream.ts`) and is read
+via `characterState(streamState)` in `src/lib/gameStream.ts`. **Nothing in
+`src/components` calls `characterState` yet** — checked by grep, zero hits.
+This is `SettingsFilesPanel`'s exact shape of gap one level up: a bridge (or
+here, a stream parser) answering completely, with the wiring from parser to
+screen still undone. Vitals/posture/room contents *displayed on screen right
+now* still come from the bridge polling Lich's Ruby state, same round trip as
+before this table existed - the parser exists and nothing reads it.
 
-`gameStream.ts` deliberately keeps the text inside unknown tags and drops the
-tags, which is right for `<d>` and `<a>` and wrong for these — they are data,
-not decoration. The work is to route named tags to state rather than to the
-text pane.
+Why this is still worth doing before more panes get built, unchanged from the
+original three reasons: it's free and already arriving, it removes a
+dependency on the bridge connection (which drops on restart), and it answers
+Objects/Players without a new Genie-parity gap.
 
-**Do not start this without saying so here first** — it touches
-`gameStream.ts`, which two sessions have already edited today. *unclaimed*
+Remaining tags (`spell`, `crtrStatus`, `dialogData`, `image`) and the
+consumer-side wiring (parser state -> an actual visible panel) are still real
+work. **Say so here before starting** - `gameStream.ts` has had several
+sessions' hands in it in one day already, and the type it feeds
+(`StreamCharacterState`) is the shared contract every consumer will read.
+*unclaimed*
 
 ## 5. Lich scripts — 234 installed, all catalogued
 
@@ -199,6 +222,15 @@ Suggested division, so several sessions do not collide:
   the absent Genie windows above. *unclaimed*
 - **Character Setup & Config** — alias, autostart, vars, version, textsubs,
   links, lich5-update. Mostly settings surfaces, not game actions. *unclaimed*
+  - **Done, downloads-ae:** `check_toggles` (BRIEF/INVBRIEF/ShowRoomID) had
+    the same gap as `read_settings` below did — the bridge read and logged
+    these since before this audit existed, with no field or control for it.
+    Now a `toggles` broadcast, a store field, and a Toggles panel in Settings
+    next to the settings-files one. `brief`/`invBrief` only ever read `true`
+    or `null`, never a confirmed `false` — see `ToggleStatus` in
+    `src/bridge/types.ts` for why the wire only supports asserting one
+    direction. Bridge bumped to 0.10.2. The rest of this bullet (alias,
+    autostart, vars, version, textsubs, links, lich5-update) is still open.
 
 ## 6. Traps worth not rediscovering
 
