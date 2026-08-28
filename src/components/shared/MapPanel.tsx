@@ -90,6 +90,19 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const roomMismatch =
     hereId !== null && characterRoomId !== null && String(hereId) !== characterRoomId
 
+  /**
+   * True whenever the map on screen is the bundled demo cartography standing
+   * in for a live query that failed — issue #36. The banner above the canvas
+   * says so in words, but a banner can scroll out of view in a dense panel
+   * and the map itself kept rendering exactly as confidently as real data.
+   * A player who only glances at the canvas, not the text above it, could
+   * walk past a fully-populated map of a place they are not standing in. This
+   * drives a persistent, un-scrollable treatment on the canvas itself rather
+   * than relying on the banner alone. Same condition as the banner below, on
+   * purpose — one boolean, two renderings of the same fact.
+   */
+  const standingIn = connected && liveZone !== null && !liveZone.ok
+
   const [level, setLevel] = useState<number | null>(null)
   const [tall, setTall] = useState(false)
   const dock = useMapDock()
@@ -421,7 +434,22 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           ...(plane ? {} : { height: tall ? 320 : 168 }),
         }}
       >
+        {/* Pinned to this box, not to the zoomed/panned content inside it — a
+         * sibling of the scaled div below, not a child, so panning or zooming
+         * the demo map cannot carry the badge out of view the way scrolling
+         * past the banner above already can. This is the un-scrollable half
+         * of issue #36's fix; the banner text is the explanation, this is
+         * the thing that survives a glance that skips the text entirely. */}
+        {standingIn && (
+          <div
+            className="pointer-events-none absolute left-1.5 top-1.5 z-10 rounded border border-warn/50 bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warn shadow"
+            title="Bundled Crossing map, not Lich's view of where you are"
+          >
+            Demo map — not your location
+          </div>
+        )}
         <div
+          className={standingIn ? 'grayscale-[60%] opacity-70' : undefined}
           style={{
             width: `${dock.zoom * 100}%`,
             height: `${dock.zoom * 100}%`,
