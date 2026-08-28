@@ -76,6 +76,10 @@ def main() -> int:
     failed += not _ok("is_stunned_line is case-insensitive", sk.is_stunned_line("YOU ARE STUNNED."))
     failed += not _ok("is_stunned_line does not match unrelated text", not sk.is_stunned_line("You stand up."))
 
+    failed += not _ok("has_prompt matches an open prompt tag", sk.has_prompt("<prompt time='123'>&gt;</prompt>"))
+    failed += not _ok("has_prompt matches a bare open tag with no close in this chunk", sk.has_prompt("<prompt time='123'>"))
+    failed += not _ok("has_prompt is false with no prompt tag", not sk.has_prompt("You swing at the orc."))
+
     if failed:
         print(f"\n{failed} check(s) FAILED")
         return 1

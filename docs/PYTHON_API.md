@@ -187,12 +187,27 @@ module docstring says exactly which parts are backed by something tested
 elsewhere in this repo and which are a best-effort guess; read that before
 trusting a match.
 
+**`python/flow.py`** is a small workflow engine on top of the other three: a
+`Flow` is a list of `Step`s (commands to send, an optional Python callable,
+an optional condition, a way to wait for the next step), and a `FlowRunner`
+walks them against a live `Companion` - once, or forever if the flow loops.
+It mirrors `src/data/taskFlows.ts` and `src/lib/flowConditions.ts` in shape
+(the same `gauge<50`/`bleeding`/`!bleeding` condition grammar, fails open the
+same way, for the same reason) but is not limited to a fixed command list and
+a fixed sleep the way a bridge flow step is: a step waits for the game's own
+`<prompt>` tag (`streamkit.has_prompt`) or a matching line instead of a
+guessed duration, and its Python callable can call into `lich.py` to chain
+Lich scripts together with real conditions between them, or just be arbitrary
+Python logic with no Lich script involved. See `flow.py`'s own module
+docstring for the full API and worked examples of both.
+
 **`python/scripts/`** is a small library of finished, runnable scripts built
-on both - an autostand retry loop, a per-channel logger, a name watchlist, an
-AFK tell auto-responder, a vitals monitor that can force-start a Lich script,
-and `lichctl.py`, a terminal front end to Lich's script engine. See
-`python/scripts/README.md` for what each one does and the Genie-era category
-it replaces.
+on all three - an autostand retry loop, a per-channel logger, a name
+watchlist, an AFK tell auto-responder, a vitals monitor that can force-start a
+Lich script, `lichctl.py` (a terminal front end to Lich's script engine), and
+two `flow.py`-based workflows: a hunting loop and a train-then-heal Lich
+script chain. See `python/scripts/README.md` for what each one does and the
+Genie-era category it replaces.
 
 ## Testing your own script
 
@@ -213,16 +228,18 @@ actually exercised the socket.
 python python/test_dr_companion.py
 ```
 
-`python/test_streamkit.py` and `python/test_lich.py` are the two newer
-modules' own suites, and unlike `test_dr_companion.py` neither needs the app
-running - `streamkit.py` is pure regex over fixed strings and `lich.py` is
-tested against a fake `Companion` that just records what it was sent, since
-both modules' entire job is formatting/parsing text rather than owning a
-socket. Run either directly:
+`python/test_streamkit.py`, `python/test_lich.py` and `python/test_flow.py`
+are the newer modules' own suites, and unlike `test_dr_companion.py` none of
+them need the app running - `streamkit.py` is pure regex over fixed strings,
+`lich.py` is tested against a fake `Companion` that just records what it was
+sent, and `flow.py` is tested against a fake `Companion` plus
+`FlowContext.feed_line`, which is a plain function of a string with no socket
+underneath it. Run any of them directly:
 
 ```bash
 python python/test_streamkit.py
 python python/test_lich.py
+python python/test_flow.py
 ```
 
 ## What this API deliberately does not do

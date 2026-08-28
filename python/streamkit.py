@@ -72,6 +72,14 @@ _INDICATOR = re.compile(
     r"<indicator\s+[^>]*\bid=(['\"])Icon(?P<id>[^'\"]*)\1[^>]*\bvisible=(['\"])(?P<visible>[^'\"]*)\3[^>]*/>"
 )
 
+# `<prompt time='1756300060'>&gt;</prompt>` - the game's own "your turn"
+# marker, confirmed in `src/lib/gameStream.ts` (search for "A prompt means
+# the game is back at top level"). Matched as a bare open tag rather than the
+# full open/close pair: the closing `</prompt>` and its `&gt;` content can
+# land in a later chunk than the opening tag, and the opening tag alone is
+# already the signal a script wants - "the game just handed control back".
+_PROMPT_OPEN = re.compile(r"<prompt\b[^>]*>")
+
 _NUMS = re.compile(r"-?\d+")
 
 
@@ -179,6 +187,22 @@ def is_stunned_line(text: str) -> bool:
     """True if this line is the game telling you that you are stunned.
     Text-matched, not tag-based - see the module note above `_STUNNED`."""
     return bool(_STUNNED.search(strip_tags(text)))
+
+
+def has_prompt(text: str) -> bool:
+    """True if this chunk contains a `<prompt ...>` open tag - the game
+    handing control back after whatever it was doing.
+
+    This is the closest thing to a synchronisation signal a Python script
+    gets without the bridge's own roundtime tracking: rather than sleeping a
+    guessed number of seconds after sending a command, a flow can wait for
+    the next prompt and move on the moment the game is actually listening
+    again. `flow.py` uses this as its default step-advance. Still a text
+    match with the same caveat as everything else in this module - it is
+    "the game emitted the tag that means top level", not a guarantee no
+    roundtime remains, since a prompt can in principle arrive while an
+    action is still resolving. Treat it as a good default, not a proof."""
+    return bool(_PROMPT_OPEN.search(text))
 
 
 def is_recovered_line(text: str) -> bool:
