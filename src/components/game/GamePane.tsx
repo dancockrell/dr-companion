@@ -254,7 +254,50 @@ export function GamePane() {
     if (el && atBottom.current) el.scrollTop = el.scrollHeight
   }, [lines])
 
-  const visible: GameLine[] = lines.length > shown ? lines.slice(-shown) : lines
+  /**
+   * Search the scrollback.
+   *
+   * This file's own header named it - "which is what a search is for anyway
+   * and is the next thing to build" - and the reason is the virtualised tail:
+   * only the newest `shown` lines are rendered, so something said an hour ago
+   * cannot be found by eye without paging back to it.
+   *
+   * A filter rather than a jump-to-next-match. Filtering answers the question
+   * people actually have in a MUD - "what did Wipsy say", "when did I last see
+   * that creature" - and it answers it across the *whole* buffer rather than
+   * the rendered window, which is the entire point.
+   *
+   * Plain case-insensitive substring, not a regex. A regex box invites a typo
+   * that silently matches nothing, and "no results" and "your pattern is
+   * broken" would render identically - which is the failure this app has been
+   * bitten by repeatedly. A literal substring can only fail in the way the
+   * reader expects.
+   *
+   * Searching the whole buffer, not `visible`: a search restricted to what
+   * happens to be rendered would be a search that lies about what it looked at.
+   */
+  const [query, setQuery] = useState('')
+  const trimmedQuery = query.trim()
+  const searching = trimmedQuery.length > 0
+
+  const matches: GameLine[] = searching
+    ? lines.filter((l) => l.text.toLowerCase().includes(trimmedQuery.toLowerCase()))
+    : []
+
+  /**
+   * While searching, the pane shows matches and nothing else.
+   *
+   * The window cap still applies, so a query matching thousands does not
+   * render thousands - but it is applied *after* filtering, so the newest
+   * matches are the ones kept rather than the newest lines.
+   */
+  const visible: GameLine[] = searching
+    ? matches.length > shown
+      ? matches.slice(-shown)
+      : matches
+    : lines.length > shown
+      ? lines.slice(-shown)
+      : lines
 
   const send = () => {
     const text = command.trim()
@@ -452,6 +495,23 @@ export function GamePane() {
               </option>
             ))}
           </select>
+          {/* Searches the whole buffer, not the rendered window - see the
+            * `matches` note. Escape clears, because a filter you cannot get
+            * out of quickly is one people stop using. */}
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                setQuery('')
+              }
+            }}
+            placeholder="Find in scrollback"
+            title="Filter the whole scrollback, including lines older than the rendered window. Plain text, not a pattern. Escape clears."
+            className="w-32 rounded border border-border bg-surface px-1.5 py-0.5 text-ink-muted placeholder:text-ink-faint focus:border-accent/40 focus:text-ink"
+          />
           <button
             type="button"
             className="rounded px-1.5 py-0.5 text-ink-faint hover:text-ink"
@@ -510,9 +570,40 @@ export function GamePane() {
         onScroll={onScroll}
         className="min-h-0 flex-1 overflow-y-auto px-2 py-1"
       >
-        {lines.length > shown && (
+        {/* A filtered pane and a quiet game look identical, and that is the
+          * failure mode this app has paid for more than any other. So while a
+          * search is active the pane says so at the top of its own scroller,
+          * in the reader's line of sight rather than only in the header, and
+          * states the denominator: how many matched, out of how many lines
+          * were actually looked at. "3 lines" alone could mean a quiet room. */}
+        {searching && (
+          <div className="sticky top-0 z-10 -mx-2 mb-1 flex items-center justify-between gap-2 border-b border-accent/30 bg-surface-raised px-2 py-1 text-xs">
+            <span className="text-accent">
+              {matches.length === 0
+                ? `No match for “${trimmedQuery}” in ${lines.length.toLocaleString()} lines`
+                : `${matches.length.toLocaleString()} of ${lines.length.toLocaleString()} lines match “${trimmedQuery}”`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="shrink-0 rounded border border-border px-1.5 text-ink-muted hover:bg-surface-overlay hover:text-ink"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Only meaningful when not filtering - while searching, `shown` caps
+          * matches rather than lines, so this count would describe something
+          * the reader is not looking at. */}
+        {!searching && lines.length > shown && (
           <div className="py-1 text-center text-xs text-ink-faint">
             {lines.length - shown} earlier lines, scroll up to load
+          </div>
+        )}
+        {searching && matches.length > shown && (
+          <div className="py-1 text-center text-xs text-ink-faint">
+            showing the newest {shown.toLocaleString()} matches
           </div>
         )}
 
