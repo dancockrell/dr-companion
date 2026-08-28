@@ -287,7 +287,7 @@ export function SetupWizard() {
   // wants the file. Getting this wrong is one of the causes of the
   // connect-retry loop, so hand them the exact string.
   const lichDir = plan?.components.find((c) => c.id === 'lich')?.path ?? null
-  const lichRbwPath = lichDir ? `${lichDir}\lich.rbw` : null
+  const lichRbwPath = lichDir ? `${lichDir}\\lich.rbw` : null
 
   const missing = required.filter((c) => c.presence !== 'present')
 
