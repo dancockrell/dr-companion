@@ -45,7 +45,7 @@ const MOCK_ALL_INTENTS: string[] = [
   'escape_heal', 'go_healer', 'town_run', 'start_training', 'loot', 'buffs',
   'escape', 'stow_all', 'check_health', 'check_toggles', 'reset_runaway',
   'read_settings', 'run_macro', 'map_here', 'list_vars',
-  'map_path', 'map_walk', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
+  'map_path', 'map_walk', 'map_nearest', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
 ]
 
 /**
@@ -1053,6 +1053,38 @@ export class MockBridge {
                 }),
               }
             : { ok: false, reason: `no route from ${DEMO_ZONE.here} to ${to}` },
+        })
+        break
+      }
+
+      case 'map_nearest': {
+        const tag = String(_args?.tag ?? '').trim()
+        const count = Math.max(1, Number(_args?.count ?? 1))
+        const here = DEMO_ZONE.here as number
+        const hits = (DEMO_ZONE.rooms ?? [])
+          .filter((r) => r.tags?.includes(tag))
+          .map((r) => ({ room: r, route: demoPath(here, r.id as number) }))
+          .filter((h) => h.route)
+          .sort((a, b) => (a.route!.length ?? 0) - (b.route!.length ?? 0))
+          .slice(0, count)
+
+        this.emit({
+          type: 'map_nearest',
+          payload:
+            hits.length > 0
+              ? {
+                  ok: true,
+                  tag,
+                  from: here,
+                  rooms: hits.map(({ room, route }) => ({
+                    id: room.id,
+                    uid: room.uid,
+                    title: room.title,
+                    location: DEMO_ZONE.name ?? null,
+                    steps: route!.length,
+                  })),
+                }
+              : { ok: false, reason: `nothing tagged '${tag}' is reachable in the demo town` },
         })
         break
       }

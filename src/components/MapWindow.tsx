@@ -17,6 +17,7 @@ import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
 import { MapPinBar } from './shared/MapPinBar'
+import { QuickTravel } from './shared/QuickTravel'
 import { PinEditor } from './shared/PinEditor'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
 import { useMapDock, setMapDock, WINDOW_ZOOM_MIN, WINDOW_ZOOM_MAX } from '../lib/mapDock'
@@ -117,16 +118,17 @@ export function MapWindow() {
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
 
-  function savePin(label: string, color: MapPin['color']) {
+  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon']) {
     if (!character || !editingRoom) return
     if (editingRoom.existing) {
-      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color })
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon })
     } else {
       addPin(character.name, character.instance, {
         roomId: editingRoom.id,
         zone: zone?.zone ?? '',
         label,
         color,
+        icon,
       })
     }
     setPinVersion((v) => v + 1)
@@ -250,13 +252,14 @@ export function MapWindow() {
       </header>
 
       {(pins.length > 0 || hereId != null) && (
-        <div className="shrink-0 border-b border-border px-3 py-1.5">
+        <div className="shrink-0 space-y-1.5 border-b border-border px-3 py-1.5">
           <MapPinBar
             pins={pins}
             onGo={(pin) => goThere(pin.roomId)}
             onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
             onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
           />
+          <QuickTravel onWalk={goThere} />
         </div>
       )}
 

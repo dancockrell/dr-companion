@@ -1,5 +1,5 @@
 /**
- * Naming and colouring a pin.
+ * Naming, colouring and icon-ing a pin.
  *
  * A centered modal rather than a popover anchored to the room that was
  * clicked, on purpose: the docked panel and the popped-out window size and
@@ -10,7 +10,16 @@
  */
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
-import { PIN_COLORS, PIN_COLOR_HEX, type PinColor, type MapPin } from '../../lib/mapPins'
+import {
+  PIN_COLORS,
+  PIN_COLOR_HEX,
+  PIN_ICONS,
+  PIN_PRESETS,
+  type PinColor,
+  type PinIcon,
+  type MapPin,
+} from '../../lib/mapPins'
+import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 
 export function PinEditor({
   roomId,
@@ -24,12 +33,18 @@ export function PinEditor({
   roomTitle: string
   /** Editing an existing pin rather than creating one on this room. */
   existing?: MapPin
-  onSave: (label: string, color: PinColor) => void
+  onSave: (label: string, color: PinColor, icon: PinIcon | undefined) => void
   onDelete?: () => void
   onClose: () => void
 }) {
   const [label, setLabel] = useState(existing?.label ?? roomTitle)
   const [color, setColor] = useState<PinColor>(existing?.color ?? 'blue')
+  const [icon, setIcon] = useState<PinIcon | undefined>(existing?.icon)
+
+  const save = () => {
+    if (!label.trim()) return
+    onSave(label.trim(), color, icon)
+  }
 
   return (
     <div
@@ -48,6 +63,33 @@ export function PinEditor({
           {roomTitle ? ` — ${roomTitle}` : ''}
         </p>
 
+        {/* Only offered for a brand-new pin. Overwriting an already-named,
+            already-coloured pin's label with "Home" because someone brushed
+            past the chip would be a worse mistake than not offering it. */}
+        {!existing && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {PIN_PRESETS.map((preset) => {
+              const Icon = PIN_ICON_COMPONENT[preset.icon]
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  title={preset.label}
+                  onClick={() => {
+                    setLabel(preset.label)
+                    setColor(preset.color)
+                    setIcon(preset.icon)
+                  }}
+                  className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-ink-muted hover:border-accent/60 hover:text-accent"
+                >
+                  <Icon className="h-3 w-3" style={{ color: PIN_COLOR_HEX[preset.color] }} />
+                  {preset.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         <label className="mt-3 block text-xs text-ink-faint">
           Label
           <input
@@ -56,7 +98,7 @@ export function PinEditor({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && label.trim()) onSave(label.trim(), color)
+              if (e.key === 'Enter') save()
               if (e.key === 'Escape') onClose()
             }}
             className="mt-1 w-full rounded border border-border bg-surface-overlay px-2 py-1 text-sm text-ink"
@@ -64,7 +106,8 @@ export function PinEditor({
           />
         </label>
 
-        <div className="mt-3 flex items-center gap-1.5">
+        <p className="mt-3 text-xs text-ink-faint">Colour</p>
+        <div className="mt-1 flex items-center gap-1.5">
           {PIN_COLORS.map((c) => (
             <button
               key={c}
@@ -77,6 +120,38 @@ export function PinEditor({
               style={{ background: PIN_COLOR_HEX[c] }}
             />
           ))}
+        </div>
+
+        <p className="mt-3 text-xs text-ink-faint">Icon</p>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {/* No icon at all is a real, first-class choice - a plain dot on
+              the chart for a place that doesn't fit any of these. */}
+          <button
+            type="button"
+            title="No icon"
+            onClick={() => setIcon(undefined)}
+            className={`flex h-7 w-7 items-center justify-center rounded border ${
+              icon === undefined ? 'border-accent text-accent' : 'border-border text-ink-faint'
+            }`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+          </button>
+          {PIN_ICONS.map((key) => {
+            const Icon = PIN_ICON_COMPONENT[key]
+            return (
+              <button
+                key={key}
+                type="button"
+                title={key}
+                onClick={() => setIcon(key)}
+                className={`flex h-7 w-7 items-center justify-center rounded border ${
+                  icon === key ? 'border-accent text-accent' : 'border-border text-ink-faint'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            )
+          })}
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-2">
@@ -103,7 +178,7 @@ export function PinEditor({
             <button
               type="button"
               disabled={!label.trim()}
-              onClick={() => onSave(label.trim(), color)}
+              onClick={save}
               className="rounded bg-accent px-2 py-1 text-xs font-semibold text-surface disabled:opacity-40"
             >
               Save

@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.10.5'
+  BRIDGE_VERSION = '0.11.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -486,12 +486,44 @@ module Companion
     @held_injuries = nil
     @held_bleeding = nil
 
+    # Who is teaching what, from the last `assess teach`. Same contract as
+    # injuries above and for the same reason: nil means "never polled", which
+    # is not the same as "nobody is teaching" and must not render as it.
+    #
+    # This cannot ride the status tick. `assess teach` is a real command with
+    # a roundtime, so polling it every tick would spend the character's time
+    # and spam the game; it is refreshed only when the player asks.
+    #
+    # Held with the moment it was taken, because a class list is perishable -
+    # people finish teaching and leave - and a client showing a ten-minute-old
+    # roster as current is worse than one showing nothing.
+    @held_teaching = nil
+    @held_teaching_at = nil
+
     def injuries
       @held_injuries
     end
 
     def bleeding
       @held_bleeding
+    end
+
+    def teaching
+      @held_teaching
+    end
+
+    def teaching_age_seconds
+      return nil if @held_teaching_at.nil?
+      (Time.now - @held_teaching_at).round
+    end
+
+    # Replaces wholesale rather than merging. A class that ended has to
+    # disappear, and merging would keep a teacher who has gone - the opposite
+    # of the injuries rule above, because these are different kinds of fact:
+    # a wound persists until healed, a class roster is only ever a snapshot.
+    def record_teaching(list)
+      @held_teaching = list
+      @held_teaching_at = Time.now
     end
 
     # DRCH::WOUND_SEVERITY is 1 ("insignificant") to 13 ("useless"); the
@@ -663,6 +695,21 @@ module Companion
       unless injuries.nil?
         payload['injuries'] = injuries
         payload['bleeding'] = bleeding
+      end
+
+      # Same contract as injuries: the key is absent until someone has asked,
+      # so the client can tell "no classes here" (an empty array) from "nobody
+      # has looked yet" (no key at all). Those need different words on screen
+      # and only one of them is a fact about the room.
+      #
+      # The age rides along because a class roster goes stale on its own - the
+      # teacher finishes and walks off, and nothing tells us. The client
+      # decides what to do about that; this just refuses to imply freshness it
+      # cannot vouch for.
+      t = State.teaching
+      unless t.nil?
+        payload['teaching'] = t
+        payload['teachingAgeSeconds'] = State.teaching_age_seconds
       end
       d = degraded_fields
       payload['degraded'] = d unless d.empty?
@@ -1128,6 +1175,34 @@ module Companion
         'steps' => path.length,
         'rooms' => path.map { |rid| describe(rid) }
       }
+    end
+
+    # The closest room or rooms carrying a tag - "nearest bank", "nearest 3
+    # healers" - as a computed answer rather than something the player had to
+    # have stood in once to save. Does not move, same as preview_path.
+    #
+    # Built on Room#find_all_nearest_by_tag, which is already in Lich's Map
+    # class and already what the community's own tag-based travel (go2's
+    # `;go2 bank`, `;go2 healer`) resolves through - this asks the same
+    # question Lich already answers rather than re-deriving nearest-by-tag
+    # from path_to in a loop over every tagged room, which is the same
+    # Dijkstra work Lich's own dijkstra() call already amortises internally.
+    def nearest(tag, count = 1)
+      room = current
+      return { 'ok' => false, 'reason' => 'no current room' } unless room
+
+      t = tag.to_s.strip
+      return { 'ok' => false, 'reason' => 'no tag given' } if t.empty?
+
+      n = [count.to_i, 1].max
+      ids = State.safe([]) { room.find_all_nearest_by_tag(t) } || []
+      return { 'ok' => false, 'reason' => "nothing tagged '#{t}' is reachable from here" } if ids.empty?
+
+      hits = ids.first(n).map do |rid|
+        describe(rid).merge('steps' => State.safe(nil) { room.path_to(rid)&.length })
+      end
+
+      { 'ok' => true, 'tag' => t, 'from' => State.safe(nil) { room.id }, 'rooms' => hits }
     end
 
     # Enough of one zone to draw it.
@@ -1609,6 +1684,9 @@ module Companion
       'escape'   => ->(_args, server) { escape(server) },
       'run_macro' => ->(args, server) { run_macro(args, server) },
       'check_health' => ->(_args, server) { check_health(server) },
+      'check_teaching'  => ->(_args, server) { check_teaching(server) },
+      'listen_to'       => ->(args, server)  { listen_to(args, server) },
+      'stop_listening'  => ->(_args, server) { stop_listening(server) },
       'stow_all'     => ->(_args, server) { stow_all(server) },
       'trace_on' => lambda { |_args, server|
         Trace.enable(true)
@@ -1644,6 +1722,7 @@ module Companion
       'map_here' => ->(_args, server) { map_here(server) },
       'map_path' => ->(args, server) { map_path(args, server) },
       'map_walk' => ->(args, server) { map_walk(args, server) },
+      'map_nearest' => ->(args, server) { map_nearest(args, server) },
       'map_zone' => ->(args, server) { map_zone(args, server) },
       'install_mapdb' => ->(_args, server) { install_mapdb(server) },
       'list_scripts'  => ->(_args, server) { list_scripts(server) },
@@ -1754,6 +1833,22 @@ module Companion
 
       server.log("Walking to room #{dest} (#{path.length} rooms) via go2.")
       [true, "walking to #{dest} (#{path.length} rooms)"]
+    end
+
+    # The nearest bank, the nearest three healers - a computed answer, not a
+    # saved one. args: { tag: string, count?: number }. Read-only, like
+    # map_path: it says where the nearest tagged room is, it does not go there
+    # - the client fires map_walk itself against whichever hit it picks.
+    def map_nearest(args, server)
+      return no_map unless MapInfo.available?
+
+      tag = args.is_a?(Hash) ? args['tag'] : args
+      count = args.is_a?(Hash) ? (args['count'] || 1) : 1
+      result = MapInfo.nearest(tag, count)
+      server.broadcast(type: 'map_nearest', payload: result)
+      return [false, result['reason']] unless result['ok']
+
+      [true, "#{result['rooms'].length} '#{result['tag']}' room(s) found"]
     end
 
     # Fetch Lich's map database by running the script that already does it.
@@ -2186,6 +2281,101 @@ module Companion
       end
 
       [true, "#{count} wounds, #{bleed} bleeding"]
+    end
+
+    # Who is teaching a class here, and what skill.
+    #
+    # DR's own mechanic: someone runs a class, others LISTEN to it and learn
+    # faster than they would alone. `assess teach` is how you find out what is
+    # on offer in this room.
+    #
+    # Only teacher and skill are reported, deliberately. The game also states
+    # a difficulty ("basic", "advanced", and so on, relative to what you
+    # already know) and it is dropped, because Dan's answer when asked was
+    # that players ignore difficulty and pick a class by the skill taught.
+    # Parsing it would also have meant inventing a pattern against wording
+    # nobody here can produce on demand - there is no live class to test
+    # against - so the field would have been a guess wearing a data type.
+    #
+    # Lich's DRC.assess_teach does the command and the parsing, and it is
+    # used rather than reimplemented: it is maintained against the real game
+    # by people who play it, and a second parser here would drift from theirs
+    # silently.
+    def check_teaching(server)
+      unless defined?(DRC) && DRC.respond_to?(:assess_teach)
+        # Said plainly rather than reported as "nobody is teaching". A Lich
+        # without this helper and a room with no classes are different facts,
+        # and only one of them is about the room.
+        server.log('This Lich build has no assess_teach, so classes cannot be listed.', 'warn')
+        return [false, 'assess_teach unavailable']
+      end
+
+      found = begin
+        DRC.assess_teach
+      rescue StandardError => e
+        server.log("Could not assess teaching: #{e.class}", 'warn')
+        return [false, 'assess teach failed']
+      end
+
+      # {} is DRC.assess_teach's answer for BOTH "no one is teaching" and
+      # "you are teaching a class yourself" - it returns early on either. So
+      # an empty list is recorded as an empty list, which is a real answer,
+      # and never left as nil, which means "never asked".
+      list = (found || {}).map { |teacher, skill| { 'teacher' => teacher, 'skill' => skill } }
+      State.record_teaching(list)
+
+      if list.empty?
+        server.log('No classes on offer here.')
+      else
+        list.each { |c| server.log("#{c['teacher']} is teaching #{c['skill']}") }
+      end
+      [true, "#{list.size} class(es)"]
+    end
+
+    # Join a class. The one command here that changes what the character is
+    # doing, so it respects the Stop latch like every other acting intent.
+    def listen_to(args, server)
+      teacher = args.is_a?(Hash) ? args['teacher'] : nil
+      teacher = teacher.to_s.strip
+      # A name, not a sentence. This reaches a game command line, so anything
+      # that is not a plain word is refused rather than sanitised - there is
+      # no legitimate teacher name with a space or a semicolon in it.
+      if teacher.empty? || teacher !~ /\A[A-Za-z'-]{2,30}\z/
+        return [false, 'listen_to needs a teacher name']
+      end
+      if stop_requested?
+        server.log('Listen refused: Stop is latched. Press Resume first.', 'warn')
+        return [false, 'stopped']
+      end
+
+      ok = begin
+        defined?(DRC) && DRC.respond_to?(:listen?) ? DRC.listen?(teacher) : nil
+      rescue StandardError => e
+        server.log("Could not listen to #{teacher}: #{e.class}", 'warn')
+        return [false, 'listen failed']
+      end
+
+      # Three outcomes, not two. nil means this Lich could not be asked; false
+      # means it asked and the game said no. Collapsing them would tell a
+      # player to check their Lich install when the real answer is that the
+      # class was full.
+      if ok.nil?
+        server.log('This Lich build has no listen helper.', 'warn')
+        return [false, 'listen unavailable']
+      end
+      if ok
+        server.log("Listening to #{teacher}.")
+        [true, "listening to #{teacher}"]
+      else
+        server.log("#{teacher} is not teaching a class you can join.", 'warn')
+        [false, 'not teaching']
+      end
+    end
+
+    def stop_listening(server)
+      Cmd.exec('stop listening', expect: /You stop listening|not listening/i, timeout: 5)
+      server.log('Stopped listening.')
+      [true, 'stopped listening']
     end
 
     # Put loose items away. Small, reversible, and a good first thing to let

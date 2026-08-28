@@ -21,6 +21,7 @@ import {
   type CharacterProfile,
 } from '../lib/profiles'
 import { emptyTrail, visit } from '../lib/trail'
+import { loadPins, setCorpseMarker, clearCorpseMarker } from '../lib/mapPins'
 
 const prefs = loadPrefs()
 
@@ -188,6 +189,14 @@ function handleBridgeMessage(
       // announce itself in the log every time the character walks.
       const previousRoom = get().character?.location.roomId ?? null
       const nextRoom = msg.payload.location?.roomId ?? null
+      // Caught here, not in a separate death-watching effect somewhere in the
+      // map code: this is the one place both the old and the new situation
+      // flags are ever in hand at once, and death is exactly a transition -
+      // "dead" arriving on a status that already carried it (a second tick
+      // while still dead) must not drop a fresh marker over one the player
+      // may have already walked away from once revived elsewhere.
+      const wasDead = get().character?.situation.includes('dead') ?? false
+      const isDead = msg.payload.situation.includes('dead')
 
       // Stamped on arrival. `roundtime` is a count of seconds measured when
       // the bridge built the payload, so without knowing when that was the
@@ -200,6 +209,26 @@ function handleBridgeMessage(
 
       if (nextRoom !== null && nextRoom !== previousRoom) {
         bridge.requestIntent('map_here')
+      }
+
+      if (p.name) {
+        const hereId = get().mapHere?.id
+        if (!wasDead && isDead && hereId != null) {
+          // The corpse marker itself, not a claim about where the player
+          // "should" go - the map already knows how to walk to any pin.
+          setCorpseMarker(p.name, p.instance, hereId, get().mapZone?.zone ?? '')
+          get().addLog('You have died. A marker was dropped so you can walk back to your body.', 'warn')
+        } else if (wasDead && !isDead) {
+          // Revival can happen anywhere (a healer's spell, a shrine) - only
+          // clear the marker once the character is actually standing where
+          // it points, so a marker for a corpse not yet recovered survives a
+          // revive that happened somewhere else entirely.
+          const corpse = loadPins(p.name, p.instance).find((pin) => pin.system)
+          if (corpse && hereId === corpse.roomId) {
+            clearCorpseMarker(p.name, p.instance)
+            get().addLog('Corpse marker cleared - welcome back.')
+          }
+        }
       }
       break
     }
@@ -280,6 +309,10 @@ function handleBridgeMessage(
       set({ mapPath: msg.payload })
       if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'no route'}`)
       break
+    case 'map_nearest':
+      set({ mapNearest: msg.payload })
+      if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'nothing nearby'}`)
+      break
     case 'map_zone':
       set({ mapZone: msg.payload })
       if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'no zone'}`)
@@ -292,6 +325,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   mapTrail: emptyTrail(),
   mapdbInstall: null,
   mapPath: null,
+  mapNearest: null,
   mapZone: null,
 
   setupComplete: prefs.setupComplete ?? false,

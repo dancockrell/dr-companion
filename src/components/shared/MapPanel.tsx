@@ -38,6 +38,7 @@ import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
 import type { PlaceHit } from '../../lib/placeSearch'
 import { MapPinBar } from './MapPinBar'
+import { QuickTravel } from './QuickTravel'
 import { PinEditor } from './PinEditor'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
 
@@ -226,16 +227,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
 
-  function savePin(label: string, color: MapPin['color']) {
+  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon']) {
     if (!character || !editingRoom) return
     if (editingRoom.existing) {
-      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color })
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon })
     } else {
       addPin(character.name, character.instance, {
         roomId: editingRoom.id,
         zone: zone?.zone ?? '',
         label,
         color,
+        icon,
       })
     }
     setPinVersion((v) => v + 1)
@@ -476,6 +478,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
         onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
       />
+      <QuickTravel onWalk={goThere} />
 
       {/*
        * This is the common shape of "no map database", not the `!zone.ok`
