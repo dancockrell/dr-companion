@@ -275,6 +275,32 @@ a whole session.
    organically gained experience that session. A seed command is specced in
    `docs/BRIDGE_CONTRACT.md`.
 
+## `npm test` dies silently on this machine's stale Ruby PATH
+
+`echo $PATH | tr ':' '\n' | grep ruby` shows `/c/Ruby4Lich5/4.0.5/bin`. That
+version does not exist on disk — the real install is `4.0.6/`. So `ruby` is
+unresolvable from a default shell, and `npm test`'s chain dies at `test:bridge`
+with `'ruby' is not recognized as an internal or external command`.
+
+**That reads exactly like a real suite failure if you only look at the exit
+code.** No FAIL line, no assertion count, just an ENOENT the chain never
+recovers from — the same three-state trap this file keeps warning about,
+here in the shell's own environment rather than in a test.
+
+Confirmed independently: `which ruby` finds nothing, `ls /c/Ruby4Lich5/4.0.5`
+is `No such file or directory`, `ls /c/Ruby4Lich5/` shows only `4.0.6/`. The
+PATH entry is stale from before the install was updated.
+
+**Workaround, every session, every time:**
+
+```bash
+export PATH="/c/Ruby4Lich5/4.0.6/bin:$PATH"
+```
+
+Fixing the machine's actual PATH is Dan's call, not a repo change - this is
+recorded here so the next session that hits a dead `npm test` checks this
+before assuming the Ruby suites broke.
+
 ## Known broken on live
 
 Checked against the running client, not inferred. Fix or claim these by telling
