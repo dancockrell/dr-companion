@@ -21,33 +21,58 @@
  * looked up by the zone's biome in zone-biomes.json. It has broad coverage
  * because every zone has a biome.
  *
- * Music (music.*) is the zone's own theme, one file per zone id, tried by
- * convention (`/audio/zone/<id>.*`) rather than looked up in a bundled
- * manifest - the same "try it, degrade if it is not installed" shape as
- * `roomArtUrl` in roomText.ts. Most zones do not have one yet. That is not a
- * bug to hide: `zoneHasMusic()` reports it so a settings panel can say so
- * instead of a silent gap nobody can tell from "muted".
+ * Music (music.*) is the zone's own theme, one file per zone id, tried at
+ * `/audio/zone/<id>.mp3` by convention rather than looked up anywhere - the
+ * same "try it, degrade if it is not installed" shape as `roomArtUrl` in
+ * roomText.ts. Most zones do not have one yet; a missing file 404s inside
+ * the `<audio>` element and simply never starts, which is silence, not an
+ * error - correct for a layer whose whole job is to be optional.
  *
- * # Radio is a third track, not a mode
+ * # Radio is a third track, not a mode, and it is looked up for real
  *
- * Selecting a station swaps what plays in the music slot without touching
- * ambient - the terrain keeps breathing under whatever is playing on top of
- * it, same as a real radio does not turn off the wind outside.
+ * Unlike zone music, radio stations are a small, known set - so unlike the
+ * try-and-degrade convention above, `RADIO_STATIONS` is a real lookup built
+ * from the manifest, and `setRadioStation` refuses an id that isn't in it
+ * rather than trying a URL and hoping. Selecting a station swaps what plays
+ * in the music slot without touching ambient - the terrain keeps breathing
+ * under whatever is playing on top of it, same as a real radio does not
+ * turn off the wind outside.
  */
 import zoneBiomes from '../../data/audio/zone-biomes.json'
+import manifest from '../../data/audio/manifest.json'
+
+export interface RadioStation {
+  id: string
+  title: string
+  composer: string
+  genre: string
+}
+
+/** Every station the manifest actually names, for a picker to list. */
+export const RADIO_STATIONS: RadioStation[] = (manifest.radio ?? []).map((r) => ({
+  id: r.id,
+  title: r.title,
+  composer: r.composer,
+  genre: r.genre,
+}))
+
+const RADIO_FILES: Record<string, string> = Object.fromEntries(
+  (manifest.radio ?? []).map((r) => [r.id, `/audio/${r.file}`])
+)
 
 type Biome = keyof typeof BIOME_FILES
 
 const BIOME_FILES = {
   forest: '/audio/biome/forest.ogg',
   town: '/audio/biome/town.mp3',
+  cave: '/audio/biome/cave.mp3',
+  dungeon: '/audio/biome/dungeon.ogg',
+  // Stand-ins, not yet given their own track - see docs/AUDIO.md.
   wilderness: '/audio/biome/forest.ogg',
   water: '/audio/biome/forest.ogg',
   road: '/audio/biome/forest.ogg',
   settlement: '/audio/biome/town.mp3',
   interior: '/audio/biome/town.mp3',
-  dungeon: '/audio/biome/forest.ogg',
-  cave: '/audio/biome/forest.ogg',
   badlands: '/audio/biome/forest.ogg',
   liminal: '/audio/biome/forest.ogg',
 } as const
@@ -167,11 +192,13 @@ export function setZone(zoneId: string | null) {
   }
 }
 
-/** id or null to go back to zone music. Unknown stations are refused, silently falling back. */
+/** id or null to go back to zone music. An id not in RADIO_STATIONS is refused, falling back to zone music. */
 export function setRadioStation(id: string | null) {
-  radioStation = id
-  if (id) {
-    music.play(`/audio/radio/${id}.mp3`, 0.4)
+  const file = id ? RADIO_FILES[id] : undefined
+  radioStation = file ? id : null
+
+  if (file) {
+    music.play(file, 0.4)
   } else if (currentZone) {
     music.play(`/audio/zone/${currentZone}.mp3`, 0.4)
   } else {

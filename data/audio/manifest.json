@@ -21,8 +21,99 @@
       "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
       "attributionRequired": true,
       "attributionText": "\"Peaceful Village Loop\" by abeth (opengameart.org), CC-BY 3.0"
+    },
+    "cave": {
+      "file": "biome/cave.mp3",
+      "title": "Cave Loop",
+      "author": "elerya",
+      "source": "https://opengameart.org/content/cave-loop",
+      "download": "https://opengameart.org/sites/default/files/cave.mp3",
+      "license": "CC-BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "attributionRequired": true,
+      "attributionText": "\"Cave Loop\" by elerya (opengameart.org), CC-BY 3.0"
+    },
+    "dungeon": {
+      "file": "biome/dungeon.ogg",
+      "title": "Dark Cavern Ambient 001",
+      "author": "Paul Wortmann",
+      "source": "https://opengameart.org/content/dark-cavern-ambient",
+      "download": "https://opengameart.org/sites/default/files/dark_cavern_ambient_001.ogg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attributionRequired": false
     }
   },
   "zone": {},
-  "radio": []
+  "radio": [
+    {
+      "id": "grieg-mountain-king",
+      "file": "radio/grieg-mountain-king.ogg",
+      "title": "In the Hall of the Mountain King (Peer Gynt Suite No. 1, Op. 46)",
+      "composer": "Edvard Grieg",
+      "performer": "Musopen Symphony Orchestra",
+      "genre": "classical",
+      "era": "composed 1875, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg",
+      "attributionRequired": false
+    },
+    {
+      "id": "tarrega-alhambra",
+      "file": "radio/tarrega-alhambra.ogg",
+      "title": "Recuerdos de la Alhambra",
+      "composer": "Francisco Tárrega",
+      "genre": "guitar",
+      "era": "composed 1899, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Recuerdos_de_la_Alhambra.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/a/a3/Recuerdos_de_la_Alhambra.ogg",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "attributionRequired": true,
+      "attributionText": "\"Recuerdos de la Alhambra\" by Francisco Tárrega, performance via Wikimedia Commons, CC BY-SA 3.0"
+    },
+    {
+      "id": "erquan-yingyue",
+      "file": "radio/erquan-yingyue.ogg",
+      "title": "二泉映月 (Erquan Yingyue / Moon Reflected on the Second Spring)",
+      "composer": "Traditional / Hua Yanjun (Abing)",
+      "genre": "chinese",
+      "era": "erhu piece, early 20th century (attributed, based on older traditional material)",
+      "source": "https://commons.wikimedia.org/wiki/File:%E4%BA%8C%E6%B3%89%E6%98%A0%E6%9C%88.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/f/ff/%E4%BA%8C%E6%B3%89%E6%98%A0%E6%9C%88.ogg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attributionRequired": true,
+      "attributionText": "\"二泉映月\" (Erquan Yingyue), traditional/Abing, performance via Wikimedia Commons, CC BY-SA 4.0"
+    },
+    {
+      "id": "shika-no-tone",
+      "file": "radio/shika-no-tone.ogg",
+      "title": "鹿の遠音 (Shika no Tone / Distant Call of the Deer)",
+      "composer": "Traditional shakuhachi honkyoku",
+      "genre": "japanese",
+      "era": "pre-1900 traditional honkyoku, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Shikanotoone_new.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Shikanotoone_new.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Shikanotoone_new.ogg",
+      "attributionRequired": false
+    },
+    {
+      "id": "oud-jordan",
+      "file": "radio/oud-jordan.mp3",
+      "title": "Oud music (2v2)",
+      "composer": "Andy R. Jordan",
+      "genre": "arabic",
+      "era": "modern composition in maqam style - not a pre-1900 traditional piece, included as the best Arabic-genre candidate found so far",
+      "source": "https://commons.wikimedia.org/wiki/File:Oud_music_by_Andy_R._Jordan_2v2.mp3",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Oud_music_by_Andy_R._Jordan_2v2.mp3",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "attributionRequired": true,
+      "attributionText": "\"Oud music by Andy R. Jordan\", via Wikimedia Commons, CC BY-SA 3.0"
+    }
+  ]
 }

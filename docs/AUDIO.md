@@ -67,10 +67,26 @@ Dan's call, 27-28 Aug 2026. Never DragonRealms' own audio.
 
 ## What's actually done as of this writing
 
-Two biome tracks (forest, town — the rest of `BIOME_FILES` currently
-points at one of those two as a stand-in, see the comment above
-`FALLBACK_BIOME`), the full 85-zone biome classification, the crossfade
-engine, the vendor/manifest pipeline, and the mute toggle in GamePane. Zero
-zone themes, zero radio tracks. Verified by measuring `Audio.play()` calls
-against the fixture and directly, not by reading the code — same method as
-the alert-sound fix; see that commit for why that discipline matters here.
+Four biome tracks (forest, town, cave, dungeon — the remaining seven
+biomes in `BIOME_FILES` point at one of those four as a stand-in, see the
+comment above `FALLBACK_BIOME`), the full 85-zone biome classification,
+the crossfade engine, the vendor/manifest pipeline, the mute toggle, and a
+radio picker in GamePane listing every station `RADIO_STATIONS` (read
+from the manifest, not guessed) actually names. Five radio tracks sourced
+— see `data/audio/ATTRIBUTIONS.md` for what and their licences. Zero zone
+themes. Verified by measuring `Audio.play()` calls against the fixture and
+directly, not by reading the code — same method as the alert-sound fix;
+see that commit for why that discipline matters here. The radio picker
+itself was verified the same way: selected a station through the actual
+`<select>` element and confirmed the right file (`shika-no-tone.ogg`, not
+a guessed `.mp3`) was the one `Audio.play()` was called with.
+
+Sourcing so far went through OpenGameArt (biome tracks) and Wikimedia
+Commons (radio) - the second because a scripted `imageinfo` API call
+returns an explicit machine-readable licence per file rather than a page
+that has to be read by eye, which matters when several files are being
+pulled in one pass. One sourcing bug worth knowing about: Wikimedia
+returns a 200 with a small HTML/text body to a request it does not like,
+not a 4xx - `tools/vendor-audio.mjs` treats a suspiciously small or
+HTML-typed response as a failure rather than a fetch, and that check was
+proven against a real bad URL before being trusted (see its own commit).

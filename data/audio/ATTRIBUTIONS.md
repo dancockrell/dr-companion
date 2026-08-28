@@ -19,6 +19,12 @@ recorded below with where it came from and what it costs to use.
   [opengameart.org](https://opengameart.org/content/peaceful-village-loop) —
   CC-BY 3.0. Attribution required: "Peaceful Village Loop" by abeth
   (opengameart.org), CC-BY 3.0.
+- **Cave Loop** by elerya —
+  [opengameart.org](https://opengameart.org/content/cave-loop) — CC-BY 3.0.
+  Attribution required: "Cave Loop" by elerya (opengameart.org), CC-BY 3.0.
+- **Dark Cavern Ambient 001** by Paul Wortmann —
+  [opengameart.org](https://opengameart.org/content/dark-cavern-ambient) —
+  CC0. No attribution required; credited anyway.
 
 ## Zone music
 
@@ -26,4 +32,33 @@ None sourced yet. `zone` in manifest.json is empty.
 
 ## Radio station
 
-None sourced yet. `radio` in manifest.json is empty.
+Curated per Dan's brief: pre-1900-leaning, across fantasy/classical/
+guitar/European/Arabic/Chinese/Japanese genres. Five sourced so far, all
+via Wikimedia Commons, all with explicit machine-checked licence status
+(not eyeballed) before download:
+
+- **In the Hall of the Mountain King** (Peer Gynt Suite No. 1, Op. 46),
+  Edvard Grieg, performed by the Musopen Symphony Orchestra —
+  [source](https://commons.wikimedia.org/wiki/File:Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg) —
+  Public domain. Composed 1875; this recording is modern but released PD.
+- **Recuerdos de la Alhambra**, Francisco Tárrega —
+  [source](https://commons.wikimedia.org/wiki/File:Recuerdos_de_la_Alhambra.ogg) —
+  CC BY-SA 3.0. Attribution required. Composed 1899.
+- **二泉映月 (Erquan Yingyue / Moon Reflected on the Second Spring)**,
+  traditional/attributed to Hua Yanjun (Abing), erhu —
+  [source](https://commons.wikimedia.org/wiki/File:%E4%BA%8C%E6%B3%89%E6%98%A0%E6%9C%88.ogg) —
+  CC BY-SA 4.0. Attribution required.
+- **鹿の遠音 (Shika no Tone / Distant Call of the Deer)**, traditional
+  shakuhachi honkyoku —
+  [source](https://commons.wikimedia.org/wiki/File:Shikanotoone_new.ogg) —
+  Public domain. The piece itself is pre-1900 traditional; this recording
+  is modern.
+- **Oud music (2v2)**, Andy R. Jordan —
+  [source](https://commons.wikimedia.org/wiki/File:Oud_music_by_Andy_R._Jordan_2v2.mp3) —
+  CC BY-SA 3.0. Attribution required. **Not** a pre-1900 traditional
+  piece — a modern composition in maqam style, included as the best
+  Arabic-genre candidate found so far. A genuine antique Arabic piece is
+  still worth finding.
+
+Still missing from the genre list: a stronger Arabic entry, and European
+folk/classical beyond Tárrega and Grieg.

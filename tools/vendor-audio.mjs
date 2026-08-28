@@ -43,9 +43,28 @@ async function fetchOne(e) {
   if (!e.download) return { ...e, status: 'no-download-url' }
 
   mkdirSync(dirname(dest), { recursive: true })
-  const res = await fetch(e.download)
+  // Wikimedia rejects a request with no identifying User-Agent - confirmed
+  // directly with `curl -H "User-Agent:"`, which got back "Please set a
+  // user-agent and respect our robot policy" as a 200 of a few hundred
+  // bytes, not a 4xx. Several sourcing downloads in this file's history
+  // came back as small HTML/text bodies sitting where audio should be;
+  // whether every one of those was this exact cause or something else
+  // (e.g. rate limiting) was never isolated, but this header is real
+  // protection against the confirmed case and costs nothing to send always.
+  const res = await fetch(e.download, {
+    headers: { 'User-Agent': 'dr-companion-audio-fetch/1.0 (dancockrell@gmail.com)' },
+  })
   if (!res.ok) return { ...e, status: `fetch-failed (${res.status})` }
+  const contentType = res.headers.get('content-type') ?? ''
   const buf = Buffer.from(await res.arrayBuffer())
+
+  // A 200 with a tiny or HTML body is the "looked like success" failure
+  // mode itself, whatever causes it - the check that catches it without the
+  // sizes having to be compared by eye.
+  if (contentType.includes('html') || buf.length < 10_000) {
+    return { ...e, status: `suspicious-response (${contentType || 'no content-type'}, ${buf.length} bytes)` }
+  }
+
   writeFileSync(dest, buf)
   return { ...e, status: `fetched (${buf.length} bytes)` }
 }
@@ -71,7 +90,12 @@ async function main() {
     console.log(`${r.status.padEnd(24)} ${r.kind}/${r.key}  ${r.file}`)
     if (r.status === 'missing') missing++
     else if (r.status.startsWith('fetched')) fetched++
-    else if (r.status.startsWith('fetch-failed') || r.status === 'no-download-url') failed++
+    else if (
+      r.status.startsWith('fetch-failed') ||
+      r.status.startsWith('suspicious-response') ||
+      r.status === 'no-download-url'
+    )
+      failed++
   }
 
   console.log(

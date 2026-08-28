@@ -52,7 +52,14 @@ import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsMuted, alertsMuted } from '../../lib/alertSound'
-import { setZone, setAmbienceMuted, ambienceMuted } from '../../lib/ambientSound'
+import {
+  setZone,
+  setAmbienceMuted,
+  ambienceMuted,
+  setRadioStation,
+  currentRadioStation,
+  RADIO_STATIONS,
+} from '../../lib/ambientSound'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
@@ -211,6 +218,7 @@ export function GamePane() {
     setZone(mapZone?.ok ? (mapZone.zone ?? null) : null)
   }, [mapZone])
   const [ambienceOff, setAmbienceOff] = useState(ambienceMuted())
+  const [radioId, setRadioId] = useState(currentRadioStation())
 
   /**
    * Follow the bottom, unless the reader has deliberately scrolled away.
@@ -420,6 +428,26 @@ export function GamePane() {
           >
             {ambienceOff ? <Music2 className="h-3 w-3" /> : <Music className="h-3 w-3" />}
           </button>
+          {/* The radio: an override of the music layer only, picked from what
+            * data/audio/manifest.json actually names - see RADIO_STATIONS'
+            * header for why this is a real lookup rather than a guessed URL. */}
+          <select
+            className="w-28 truncate rounded border border-border bg-surface px-1 py-0.5 text-ink-muted"
+            value={radioId ?? ''}
+            onChange={(e) => {
+              const next = e.target.value || null
+              setRadioId(next)
+              setRadioStation(next)
+            }}
+            title="Radio: overrides zone music, ambience keeps playing"
+          >
+            <option value="">Zone music</option>
+            {RADIO_STATIONS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.composer} — {s.title} ({s.genre})
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             className="rounded px-1.5 py-0.5 text-ink-faint hover:text-ink"
