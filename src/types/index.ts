@@ -12,6 +12,7 @@ import type {
   ScriptState,
   SettingsFile,
   ToggleStatus,
+  VarsEntry,
 } from '../bridge/types'
 import type { Trail } from '../lib/trail'
 
@@ -201,6 +202,19 @@ export interface CharacterStatus {
    * has not actually seen is worse than one admitting it does not know.
    */
   injuries?: Partial<Record<BodyPart, Injury>>
+  /**
+   * Real bleed magnitude, from the same `check_health` poll as `injuries` —
+   * see docs/BRIDGE_CONTRACT.md's bleeding-magnitude addendum (#10). `rate`
+   * is DRCH's own word (`'clotted'`, `'slight'`, `'light'`, `'moderate'`, …),
+   * sent as-is rather than pre-collapsed to a boolean: a wound can be
+   * present and tended (`'clotted'`) without still bleeding, and that is a
+   * real third state the plain `bleeding` situation flag cannot carry.
+   * `part` is `null` when the raw body-part string had no `BodyPart` slot
+   * (see `map_body_part` in the bridge) — still worth showing the rate, just
+   * not pinned to a doll location. Absent entirely until the first
+   * successful poll, same as `injuries`.
+   */
+  bleeding?: { part: BodyPart | null; rate: string }[]
   situation: SituationFlag[]
   /**
    * Spells up, shortest remaining first. Empty when dr-scripts is not loaded,
@@ -412,6 +426,11 @@ export interface AppState {
    * that distinction matters per field.
    */
   toggles: ToggleStatus | null
+  /**
+   * `Lich::Common::Vars` for this character, from `list_vars`. null until
+   * asked, distinct from an empty array (the character genuinely has none set).
+   */
+  vars: VarsEntry[] | null
   logLines: LogRow[]
   /** Command trace from the bridge, for diagnosing broken patterns. */
   trace: TraceRow[]
@@ -475,6 +494,8 @@ export interface AppState {
   readSettings: () => void
   /** Ask the bridge to read BRIEF, INVBRIEF and ShowRoomID from the game. */
   checkToggles: () => void
+  /** Ask the bridge to list this character's Lich::Common::Vars. */
+  listVars: () => void
   clearLog: () => void
   addTrace: (row: TraceRow) => void
   setTraceEnabled: (v: boolean) => void

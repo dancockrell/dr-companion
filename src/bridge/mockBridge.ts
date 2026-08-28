@@ -4,6 +4,7 @@
  */
 
 import type { CharacterStatus, InventorySummary } from '../types'
+import type { BodyPart } from '../lib/body'
 import type { BridgeClientMessage, BridgeServerMessage, IntentName } from './types'
 import {
   capabilitiesForCharacter,
@@ -43,7 +44,7 @@ const MOCK_ALL_INTENTS: string[] = [
   'stop_all', 'pause', 'resume', 'start_combat', 'burgle', 'travel',
   'escape_heal', 'go_healer', 'town_run', 'start_training', 'loot', 'buffs',
   'escape', 'stow_all', 'check_health', 'check_toggles', 'reset_runaway',
-  'read_settings', 'run_macro', 'map_here',
+  'read_settings', 'run_macro', 'map_here', 'list_vars',
   'map_path', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
 ]
 
@@ -534,6 +535,7 @@ for (const p of Object.values(presets)) {
   p.character.roomCreatures = demoCreatures(level)
   p.character.roomDeadCreatures = level > 30 ? ['a kobold which appears dead'] : []
   p.character.injuries = demoInjuries(level)
+  p.character.bleeding = demoBleeding(level)
   // A race, so the portrait has something to match. Every demo preset is a
   // Gor'Tog because it is the least generic-looking of the eleven and shows
   // immediately whether the matching works.
@@ -582,6 +584,17 @@ function demoInjuries(level: number) {
   if (level > 60) injuries.head = { wound: 1, scar: 0 }
   if (level > 100) injuries.nsys = { wound: 2, scar: 0 }
   return injuries
+}
+
+/**
+ * The third state #10 exists for: a mid-level character has been tended and
+ * shows 'clotted', not the plain 'bleeding' flag - StatusBoard's 'Tended'
+ * chip has nowhere to exercise without this. `simulateCombat()` below covers
+ * the actively-bleeding path separately, with a real in-progress rate.
+ */
+function demoBleeding(level: number): { part: BodyPart | null; rate: string }[] {
+  if (level < 40 || level >= 60) return []
+  return [{ part: 'leftArm', rate: 'clotted' }]
 }
 
 export const DEMO_PRESET_LIST = Object.values(presets).map((p) => ({
@@ -765,6 +778,9 @@ export class MockBridge {
           'bleeding' as const,
         ]),
       ],
+      // A real rate, not just the flag, so the chip's '(detail)' has
+      // something to show — see #10's addendum.
+      bleeding: [{ part: 'chest', rate: 'moderate' }],
       // A live roundtime, because the whole point of the meter is that it
       // counts down and a demo that sets zero cannot show that.
       roundtime: 5,

@@ -103,6 +103,18 @@ export function StatusBoard() {
   // roundtime is deliberately not a chip. It has a real countdown and gets one.
   flags.delete('roundtime')
 
+  /**
+   * From the same `check_health` poll as `injuries` (#10 addendum). The
+   * `bleeding` situation flag is real-time (an indicator on the wire) and
+   * stays the source of truth for whether the icon is lit right now; this
+   * only adds the rate word once it's known, and — the third state the flag
+   * alone cannot carry — surfaces "tended, not bleeding" when a wound has
+   * been clotted rather than letting it read as no news at all.
+   */
+  const bleedReport = character.bleeding ?? []
+  const bleedRates = bleedReport.map((b) => b.rate).filter(Boolean)
+  const worstBleedRate = bleedRates[0]
+
   const shown = RANK.filter((r) => flags.has(r.flag))
 
   // Anything the bridge sends that this list has not heard of still renders,
@@ -110,9 +122,13 @@ export function StatusBoard() {
   // show up as a word nobody has styled yet, not disappear.
   const unknown = [...flags].filter((f) => !RANK.some((r) => r.flag === f))
 
+  // Wounded and clotted, not currently bleeding — the state the `bleeding`
+  // flag alone reads as identical to "nothing wrong" and #10 exists to fix.
+  const tended = !flags.has('bleeding') && bleedRates.some((r) => /clot/i.test(r))
+
   const spells = character.spells ?? []
   const inRoundtime = (character.roundtime ?? 0) > 0
-  const quiet = shown.length === 0 && unknown.length === 0 && !inRoundtime
+  const quiet = shown.length === 0 && unknown.length === 0 && !inRoundtime && !tended
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -121,18 +137,39 @@ export function StatusBoard() {
             counting and the only one where waiting is the right response. */}
         <RoundtimeMeter />
 
-        {shown.map((r) => (
+        {shown.map((r) => {
+          // The one place a bare boolean flag gets a real word next to it —
+          // 'bleeding' is otherwise a lit-or-not icon, same as the rest of
+          // this list, but check_health's poll happens to also carry a real
+          // rate for this specific one. Only ever adds detail; never changes
+          // whether the chip shows at all, which stays the live indicator.
+          const detail = r.flag === 'bleeding' && worstBleedRate ? ` (${worstBleedRate})` : ''
+          return (
+            <span
+              key={r.flag}
+              title={`${r.label}: ${r.why}`}
+              className={cn(
+                'rounded border px-1.5 py-0.5 text-xs font-medium',
+                BAND_STYLE[r.band]
+              )}
+            >
+              {r.label}
+              {detail}
+            </span>
+          )
+        })}
+
+        {tended && (
           <span
-            key={r.flag}
-            title={`${r.label}: ${r.why}`}
+            title="A wound has been tended and is clotted, not currently bleeding — from the last Check health."
             className={cn(
               'rounded border px-1.5 py-0.5 text-xs font-medium',
-              BAND_STYLE[r.band]
+              BAND_STYLE.good
             )}
           >
-            {r.label}
+            Tended
           </span>
-        ))}
+        )}
 
         {unknown.map((f) => (
           <span
