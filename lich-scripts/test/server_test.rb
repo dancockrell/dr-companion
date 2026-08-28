@@ -89,6 +89,7 @@ $fake_running_scripts = []
 # is installed" regardless of which instance-detection bug was or wasn't
 # present.
 $fake_scripts_installed = []
+$fake_exists_calls = []
 $xmldata_game = ''
 module XMLData
   def self.game = $xmldata_game
@@ -110,7 +111,14 @@ class FakeScript
     s.paused = false if s
   end
 
-  def self.exists?(name) = $fake_scripts_installed.include?(name)
+  # Tracked separately from the return value so a test can prove the regex
+  # guard short-circuited *before* this was ever reached, not just that the
+  # final answer was "refused" - the two failure paths are meant to be
+  # different guards, and only a call log can tell them apart from outside.
+  def self.exists?(name)
+    $fake_exists_calls << name
+    $fake_scripts_installed.include?(name)
+  end
 
   def self.start(*args)
     name = args.first.is_a?(Hash) ? args.first[:name] : args.first
@@ -1407,6 +1415,126 @@ begin
   check('names what it looked for', ack && ack['detail'].to_s.include?('repository'), ack && ack['detail'])
   check('floor: nothing was actually started', $fake_started.empty?, $fake_started.inspect)
   $xmldata_game = ''
+  $fake_scripts_installed = []
+
+  # ------------------------------------------------------------------------
+  # start_script: the only intent that causes Lich to execute arbitrary
+  # named code. Its defence is three guards in a row - name-shape regex,
+  # existence check, already-running check - and none of them had ever been
+  # exercised at the socket. Treated as a security test, not a coverage one:
+  # each case is tested where the wrong answer is available, and the guard
+  # that actually did the refusing is asserted, not just that a refusal
+  # happened.
+  puts ''
+  puts '-- start_script refuses bad-shaped names before ever asking if they exist --'
+  # $fake_exists_calls proves Script.exists? was never reached for these - a
+  # regex bug that let a bad name through would often still get refused by
+  # the existence check, and a test only checking "was it refused" would not
+  # catch that the wrong guard did it.
+  [
+    ['../../etc/passwd', 'path traversal with slashes'],
+    ['foo/bar', 'a single forward slash'],
+    ["a\\b", 'a backslash'],
+    ['foo bar', 'a space'],
+  ].each do |bad_name, why|
+    $fake_scripts_installed = %w[hunting-buddy]
+    $fake_exists_calls = []
+    c.send_json(type: 'intent', intent: 'start_script', args: { name: bad_name })
+    msgs = collect(c, 3)
+    ack = msgs.find { |m| m['type'] == 'intent_ack' }
+    check(
+      "#{why}: refused as an invalid name",
+      ack && ack['ok'] == false && ack['detail'].to_s.include?('not a valid script name'),
+      ack.inspect
+    )
+    check("#{why}: floor - Script.exists? was never reached", $fake_exists_calls.empty?, $fake_exists_calls.inspect)
+  end
+
+  puts ''
+  puts '-- an empty name gets its own specific message, not the invalid-characters one --'
+  $fake_exists_calls = []
+  c.send_json(type: 'intent', intent: 'start_script', args: { name: '' })
+  msgs = collect(c, 3)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check(
+    'refused with the empty-name message specifically',
+    ack && ack['ok'] == false && ack['detail'].to_s == 'no script name given',
+    ack.inspect
+  )
+  check('floor: Script.exists? was never reached', $fake_exists_calls.empty?, $fake_exists_calls.inspect)
+
+  puts ''
+  puts '-- ".." passes the name-shape regex, but Script.exists? correctly refuses it --'
+  # Convinced by reading Lich's own resolvers rather than assuming, since a
+  # crafted "harmless-looking" name is exactly where a gap would hide.
+  # Script.exists? (lib/common/script.rb's @@elevated_exists) builds
+  # "#{SCRIPT_DIR}/#{name}.lic" by concatenation, not path-joining - name
+  # '..' produces the literal filename "...lic" in SCRIPT_DIR, not a
+  # parent-directory escape. Script.start's own resolver
+  # (__find_script_file) only ever matches entries from
+  # Dir.children(SCRIPT_DIR), which never lists ".." as an entry at all
+  # (Dir.children excludes "." and ".." by definition). Both real gates are
+  # independently safe against it; this proves the bridge's own existence
+  # check is the one that actually refuses it - the guard genuinely
+  # reachable from a crafted intent, not merely a coincidence of paths that
+  # happen not to exist.
+  $fake_scripts_installed = %w[hunting-buddy]
+  $fake_exists_calls = []
+  c.send_json(type: 'intent', intent: 'start_script', args: { name: '..' })
+  msgs = collect(c, 3)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('".." is refused, not started', ack && ack['ok'] == false, ack.inspect)
+  check(
+    'and by the existence guard specifically, not the shape regex',
+    ack && ack['detail'].to_s.include?('no script named'),
+    ack && ack['detail']
+  )
+  check('floor: Script.exists? was actually asked about it', $fake_exists_calls.include?('..'), $fake_exists_calls.inspect)
+
+  puts ''
+  puts '-- a well-shaped name that is not installed is refused honestly --'
+  $fake_scripts_installed = %w[hunting-buddy]
+  c.send_json(type: 'intent', intent: 'start_script', args: { name: 'totally-fake-script' })
+  msgs = collect(c, 3)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check(
+    'refused as not found, not started',
+    ack && ack['ok'] == false && ack['detail'].to_s.include?('no script named'),
+    ack.inspect
+  )
+
+  puts ''
+  puts '-- a genuinely valid, installed script name is accepted --'
+  # The floor for every refusal above: a suite where every name gets refused
+  # proves only that the bridge says no to things, never that it can say yes
+  # to the right one.
+  $fake_scripts_installed = %w[hunting-buddy]
+  $fake_started = []
+  c.send_json(type: 'intent', intent: 'start_script', args: { name: 'hunting-buddy' })
+  msgs = collect(c, 3)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('accepted and actually started', ack && ack['ok'] == true, ack.inspect)
+  check(
+    'floor: Script.start was actually called with this exact name',
+    $fake_started.any? { |s| s[0] == 'hunting-buddy' },
+    $fake_started.inspect
+  )
+
+  puts ''
+  puts '-- start_script refuses a script that is already running --'
+  $fake_scripts_installed = %w[hunting-buddy]
+  $fake_running_scripts = [FakeRunningScript.new('hunting-buddy', false)]
+  $fake_started = []
+  c.send_json(type: 'intent', intent: 'start_script', args: { name: 'hunting-buddy' })
+  msgs = collect(c, 3)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check(
+    'refused as already running, not started a second time',
+    ack && ack['ok'] == false && ack['detail'].to_s.include?('already running'),
+    ack.inspect
+  )
+  check('floor: Script.start was not called again', $fake_started.empty?, $fake_started.inspect)
+  $fake_running_scripts = []
   $fake_scripts_installed = []
 
   c.close
