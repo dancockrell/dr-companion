@@ -11,6 +11,8 @@ import { HEAL_CITIES } from '../../data/healers'
 import { ProfilesPanel } from './ProfilesPanel'
 import { SettingsFilesPanel } from '../shared/SettingsFilesPanel'
 import { TogglesPanel } from '../shared/TogglesPanel'
+import { VarsPanel } from '../shared/VarsPanel'
+import { LinksPanel } from '../shared/LinksPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
@@ -393,6 +395,27 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               Display toggles
             </h3>
             <TogglesPanel />
+          </section>
+
+          {/* Third of the same shape: list_vars reads Lich::Common::Vars,
+              which any script can set and only `;vars list` could show
+              before this. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              Lich variables
+            </h3>
+            <VarsPanel />
+          </section>
+
+          {/* From Lich's own `links` script (links.lic) - twelve lines it
+              printed to the console on request, and the console is not
+              somewhere a player goes looking for a reference. See
+              LinksPanel.tsx for which two entries were left out and why. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              Reference links
+            </h3>
+            <LinksPanel />
           </section>
 
           <section className="space-y-2">

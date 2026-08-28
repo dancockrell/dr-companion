@@ -121,9 +121,10 @@ const RECLASSIFIED: Record<string, ScriptCatalogEntry> = {
   // "Super simple script to show some useful links"
   'links': {
     category: 'Character Setup & Config',
-    tier: 'standard',
+    tier: 'promoted',
     verified: true,
     description: 'Shows useful DragonRealms reference links.',
+    realControl: 'Reference links panel in Settings (LinksPanel.tsx).',
   },
   // "For usage, see https://elanthipedia.play.net/Lich_script_repository#schedule"
   'schedule': {
