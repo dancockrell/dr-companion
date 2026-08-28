@@ -156,7 +156,34 @@ class Companion:
         """Open the socket and authenticate. Raises `ConnectionError` on
         anything short of success - there is no partially-connected state a
         caller needs to check for."""
-        sock = socket.create_connection((self._host, self._port), timeout=self._connect_timeout)
+        try:
+            sock = socket.create_connection(
+                (self._host, self._port), timeout=self._connect_timeout
+            )
+        except OSError as e:
+            # A stale port file and a live one are the same file.
+            #
+            # The port and token are rewritten every time DR Companion starts,
+            # and the files survive it closing - so pointing at a port nothing
+            # is listening on is the *normal* failure here, not an exotic one.
+            # Unhandled, it surfaced as `ConnectionRefusedError: [WinError
+            # 10061] No connection could be made because the target machine
+            # actively refused it`, ten frames deep, naming a port number the
+            # reader never chose and saying nothing about the app.
+            #
+            # Hit while writing the first task on top of this library: the app
+            # had been closed, the file still held its last port, and the error
+            # gave no hint that "start DR Companion" was the whole fix.
+            raise ConnectionError(
+                f"Nothing is listening on {self._host}:{self._port}.\n"
+                f"  That port came from {_data_dir() / 'script-api.port'}, which DR "
+                "Companion rewrites every time it starts and leaves behind when it "
+                "closes.\n"
+                "  So this almost always means the app is not running. Start DR "
+                "Companion and try again.\n"
+                f"  (underlying error: {e})"
+            ) from e
+
         sock.settimeout(self._connect_timeout)
         self._sock = sock
 
