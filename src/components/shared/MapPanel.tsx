@@ -442,7 +442,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
          * the thing that survives a glance that skips the text entirely. */}
         {standingIn && (
           <div
-            className="pointer-events-none absolute left-1.5 top-1.5 z-10 rounded border border-warn/50 bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warn shadow"
+            className="pointer-events-none absolute left-1.5 top-1.5 z-10 rounded border border-warn/50 bg-surface/90 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-warn shadow"
             title="Bundled Crossing map, not Lich's view of where you are"
           >
             Demo map — not your location
