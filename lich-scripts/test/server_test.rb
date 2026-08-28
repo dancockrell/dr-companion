@@ -79,6 +79,21 @@ FakeRunningScript = Struct.new(:name, :paused) do
 end
 $fake_running_scripts = []
 
+# install_mapdb needs both: which scripts Lich would say exist, and whether
+# XMLData.game reads as Prime. Neither had a stub - Script.exists? was
+# undefined (always false via State.safe), and XMLData was undefined
+# entirely, so State.instance (safe('') { XMLData.game.to_s }) always read
+# 'Unknown'. That combination happened to make install_mapdb's old logic
+# (try download-prime-map first, unconditionally) untestable in either
+# direction: with exists? always false it always fell through to "neither
+# is installed" regardless of which instance-detection bug was or wasn't
+# present.
+$fake_scripts_installed = []
+$xmldata_game = ''
+module XMLData
+  def self.game = $xmldata_game
+end
+
 class FakeScript
   def self.current = new
   def path = File.join(TEST_LICH_DIR, 'scripts', 'companion_bridge.lic')
@@ -94,8 +109,17 @@ class FakeScript
     s = $fake_running_scripts.find { |x| x.name == name }
     s.paused = false if s
   end
+
+  def self.exists?(name) = $fake_scripts_installed.include?(name)
+
+  def self.start(*args)
+    name = args.first.is_a?(Hash) ? args.first[:name] : args.first
+    $fake_started << [name, args[1..]]
+    true
+  end
 end
 Script = FakeScript
+$fake_started = []
 
 $lich_dir = "#{TEST_LICH_DIR}/"
 
@@ -1325,6 +1349,65 @@ begin
   check('acked ok, naming the real count', ack && ack['detail'] == 'resumed 1', ack.inspect)
   check('and the script is actually unpaused', $fake_running_scripts.first.paused? == false, $fake_running_scripts.inspect)
   $fake_running_scripts = []
+
+  puts ''
+  puts '-- install_mapdb picks download-prime-map off Prime, unchanged behaviour --'
+  # The instance check is new; the rest of this path (try download-prime-map,
+  # fall back to repository, report which one) already existed and must not
+  # regress for Platinum/Fallen, where download-prime-map actually works.
+  $xmldata_game = 'DRX' # Platinum
+  $fake_scripts_installed = %w[download-prime-map repository]
+  $fake_started = []
+  c.send_json(type: 'intent', intent: 'install_mapdb')
+  msgs = collect(c, 4)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('acked ok', ack && ack['ok'] == true, ack.inspect)
+  check(
+    'download-prime-map was the one actually started off Prime',
+    $fake_started.first && $fake_started.first[0] == 'download-prime-map',
+    $fake_started.inspect
+  )
+
+  puts ''
+  puts '-- install_mapdb skips download-prime-map on Prime, where it always refuses --'
+  # download-prime-map.lic hard-exits the moment it runs on Prime
+  # ("XMLData.game == 'DR'" -> exit, before touching the network), so
+  # starting it there is a script that starts and does nothing - a command
+  # that reports success and teaches the bridge nothing. This is the actual
+  # bug: with both scripts installed, install_mapdb used to pick
+  # download-prime-map purely because the file exists, never checking
+  # whether it would run.
+  $xmldata_game = 'DR' # Prime
+  $fake_scripts_installed = %w[download-prime-map repository]
+  $fake_started = []
+  c.send_json(type: 'intent', intent: 'install_mapdb')
+  msgs = collect(c, 4)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('acked ok', ack && ack['ok'] == true, ack.inspect)
+  check(
+    'repository was started instead, not the script that would refuse',
+    $fake_started.first && $fake_started.first[0] == 'repository',
+    $fake_started.inspect
+  )
+  check(
+    'with the download-mapdb argument repository actually understands',
+    $fake_started.first && $fake_started.first[1] == ['download-mapdb'],
+    $fake_started.inspect
+  )
+
+  puts ''
+  puts '-- install_mapdb reports honestly when nothing is installed --'
+  $xmldata_game = 'DR'
+  $fake_scripts_installed = []
+  $fake_started = []
+  c.send_json(type: 'intent', intent: 'install_mapdb')
+  msgs = collect(c, 4)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check('refused, not a fabricated success', ack && ack['ok'] == false, ack.inspect)
+  check('names what it looked for', ack && ack['detail'].to_s.include?('repository'), ack && ack['detail'])
+  check('floor: nothing was actually started', $fake_started.empty?, $fake_started.inspect)
+  $xmldata_game = ''
+  $fake_scripts_installed = []
 
   c.close
 ensure

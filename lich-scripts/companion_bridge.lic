@@ -1489,12 +1489,32 @@ module Companion
     # So this is the §7 rule in its purest form: a script already does it, so
     # start it and report what happened.
     def install_mapdb(server)
-      script = %w[download-prime-map repository].find do |name|
+      # download-prime-map.lic refuses outright on Prime - `exit`, before
+      # doing anything else, on the literal check `XMLData.game == "DR"`
+      # (download-prime-map.lic:258) - with the message "This script is not
+      # intended to be used on the Prime DR instance. Use standard lich
+      # commands to manage your map." It exists for Platinum/Fallen only.
+      #
+      # install_mapdb used to try it first for every instance, gated only on
+      # whether the file existed on disk, never on whether it would actually
+      # run. For a Prime character that file always exists and always
+      # refuses, and Script.start still returns truthy because the script
+      # did start - it just exited immediately. The bridge reported "started,
+      # the map will fill in" and never learned otherwise, which is almost
+      # certainly why this has been reported as silently producing nothing.
+      #
+      # repository.lic's own `download-mapdb` command handles Prime as game
+      # code 'dr' with no such restriction (repository.lic's
+      # determine_mapdb_game), so it is the correct route there - "standard
+      # lich commands", exactly as download-prime-map's own refusal says to
+      # use.
+      candidates = State.instance == 'Prime' ? %w[repository] : %w[download-prime-map repository]
+      script = candidates.find do |name|
         State.safe(false) { Script.exists?(name) }
       end
 
       unless script
-        return [false, 'Neither download-prime-map nor repository is installed. ' \
+        return [false, "None of #{candidates.join(', ')} is installed. " \
                        'Install the script suite first.']
       end
 
