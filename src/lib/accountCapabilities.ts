@@ -207,7 +207,10 @@ export function intentWarnings(intent: string, c: CharacterStatus): string[] {
     const rate = Math.round(expAbsorptionRate(tier, ranks) * 100)
     out.push(`Free account: absorbing at about ${rate}% of the subscriber rate.`)
   }
-  if (c.roomPlayers?.length) {
+  if (
+    c.roomPlayers?.length &&
+    (intent === 'start_combat' || intent === 'start_training' || intent === 'loot')
+  ) {
     out.push(
       `${c.roomPlayers.length} other player${c.roomPlayers.length > 1 ? 's' : ''} here. Hunting grounds are shared.`
     )
