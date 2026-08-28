@@ -25,7 +25,9 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
     : []
 
   return (
-    <section className="px-4 pb-3">
+    // No horizontal padding here: every consumer of this panel (PanelWindow's
+    // p-3 wrapper, FreeCanvas's own padded node) already pads its content.
+    <section className="pb-1.5">
       <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5">
         Activities
       </h2>
