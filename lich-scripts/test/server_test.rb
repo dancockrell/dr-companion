@@ -206,6 +206,15 @@ DRCHWound = Struct.new(:body_part)
 # fix that goes with that bridge fix, not a separate cleanup.
 FakeHealthResult = Struct.new(:wounds, :bleeders, :poisoned, :diseased)
 
+# A wound that actually answers .severity/.scar?/.bleeding_rate, for testing
+# record_health's bucketing/scar/bleeding-rate logic - DRCHWound above is
+# deliberately minimal (only .body_part) so the count-only tests keep
+# exercising the "wound fields can be absent" defensive path. This one is
+# for the tests that need the fields to mean something.
+DRCHWoundFull = Struct.new(:body_part, :severity, :scar, :bleeding_rate) do
+  def scar? = scar
+end
+
 # GameObj had no stub at all - not even one that returns nil, undefined
 # entirely. It appears 12 times in companion_bridge.lic, almost all of them
 # in the status/inventory payloads (roomItems, hands, worn, wornCount,
@@ -1590,6 +1599,139 @@ begin
     names == %w[afk hunting-buddy my-macro],
     names.inspect
   )
+
+  # Drain the backlog before this section - the same read_until defect noted
+  # in 04830aa applies here too: several intents above have already triggered
+  # broadcast(type: 'status', ...), so a fresh get_status could otherwise
+  # return a stale push from before this section's fixture was set.
+  begin
+    loop { c.read_json(timeout: 0.2) }
+  rescue Timeout::Error
+    nil
+  end
+
+  puts ''
+  puts '-- record_health: severity buckets at the documented boundaries --'
+  # 1-4 -> 1, 5-8 -> 2, 9-13 -> 3, per BRIDGE_CONTRACT.md's table. Testing the
+  # boundaries themselves (4/5, 8/9), not just one value comfortably inside
+  # each bucket, since an off-by-one there is exactly the kind of bug a
+  # single mid-range sample would never catch.
+  $drch_reply = FakeHealthResult.new(
+    {
+      'insignificant' => [DRCHWoundFull.new('right arm', 4, false, nil)],
+      'moderate'      => [DRCHWoundFull.new('left leg', 5, false, nil)],
+      'painful'       => [DRCHWoundFull.new('chest', 8, false, nil)],
+      'useless'       => [DRCHWoundFull.new('head', 9, false, nil)]
+    },
+    {},
+    false,
+    false
+  )
+  c.send_json(type: 'intent', intent: 'check_health')
+  c.read_until('intent_ack')
+  status = c.read_until('status')['payload']
+  check('severity 4 buckets to 1 (top of the low band)', status['injuries']['rightArm'] == { 'wound' => 1, 'scar' => 0 }, status['injuries'].inspect)
+  check('severity 5 buckets to 2 (bottom of the mid band)', status['injuries']['leftLeg'] == { 'wound' => 2, 'scar' => 0 }, status['injuries'].inspect)
+  check('severity 8 buckets to 2 (top of the mid band)', status['injuries']['chest'] == { 'wound' => 2, 'scar' => 0 }, status['injuries'].inspect)
+  check('severity 9 buckets to 3 (bottom of the top band)', status['injuries']['head'] == { 'wound' => 3, 'scar' => 0 }, status['injuries'].inspect)
+
+  puts ''
+  puts '-- record_health: a wound and a scar on the same part stay separate, worst wins --'
+  $drch_reply = FakeHealthResult.new(
+    {
+      'moderate' => [DRCHWoundFull.new('chest', 9, false, nil)],  # wound, bucket 3
+      'minor'    => [DRCHWoundFull.new('chest', 3, false, nil)],  # wound, bucket 1 - must not overwrite the 3
+      'scarred'  => [DRCHWoundFull.new('chest', 6, true, nil)]    # scar, bucket 2, separate key
+    },
+    {},
+    false,
+    false
+  )
+  c.send_json(type: 'intent', intent: 'check_health')
+  c.read_until('intent_ack')
+  status = c.read_until('status')['payload']
+  check(
+    'the higher-severity wound wins, the lower one does not overwrite it, and the scar is a separate field',
+    status['injuries']['chest'] == { 'wound' => 3, 'scar' => 2 },
+    status['injuries'].inspect
+  )
+
+  puts ''
+  puts '-- record_health: an unmapped body part is logged, not dropped silently and not guessed at --'
+  $drch_reply = FakeHealthResult.new(
+    { 'moderate' => [DRCHWoundFull.new('tail', 6, false, nil)] },
+    {},
+    false,
+    false
+  )
+  c.send_json(type: 'intent', intent: 'check_health')
+  # read_until discards everything it passes over while searching for its
+  # target type - exactly the defect this file already carries scars from
+  # (see 04830aa, and bd9e534's note on it). The log line this test needs
+  # arrives *before* the status broadcast, so reading status first via
+  # read_until would silently eat it. Collect every message raw instead.
+  received = []
+  8.times do
+    msg = begin
+      c.read_json(timeout: 0.5)
+    rescue Timeout::Error
+      nil
+    end
+    break if msg.nil?
+    received << msg
+  end
+  status = received.reverse.find { |m| m['type'] == 'status' }&.dig('payload')
+  check(
+    'no fabricated slot for a body part with nowhere to go',
+    status && !status['injuries'].key?('tail') && status['injuries'].values.none? { |v| v['wound'] > 0 || v['scar'] > 0 },
+    status && status['injuries'].inspect
+  )
+  logs = received.select { |m| m['type'] == 'log' }
+  check(
+    'and it was logged by name rather than silently eaten',
+    logs.any? { |l| l['line'].to_s.include?('unmapped wound body part: tail') },
+    logs.map { |l| l['line'] }.inspect
+  )
+
+  puts ''
+  puts '-- record_health: bleeding carries the rate string as-is, not collapsed to a boolean --'
+  $drch_reply = FakeHealthResult.new(
+    {},
+    { 'light' => [DRCHWoundFull.new('right arm', 2, false, 'clotted')] },
+    false,
+    false
+  )
+  c.send_json(type: 'intent', intent: 'check_health')
+  c.read_until('intent_ack')
+  status = c.read_until('status')['payload']
+  check(
+    'the rate string survives rather than becoming a yes/no',
+    status['bleeding'] == [{ 'part' => 'rightArm', 'rate' => 'clotted' }],
+    status['bleeding'].inspect
+  )
+
+  puts ''
+  puts '-- record_health: injuries are held state, not blanked by the next status tick --'
+  # The whole point of "held, not passive": a plain get_status with no
+  # intervening check_health must still show the last successful poll's
+  # data, not reset to absent/empty just because time passed.
+  $drch_reply = FakeHealthResult.new(
+    { 'moderate' => [DRCHWoundFull.new('right hand', 6, false, nil)] },
+    {},
+    false,
+    false
+  )
+  c.send_json(type: 'intent', intent: 'check_health')
+  c.read_until('intent_ack')
+  c.read_until('status') # the broadcast from that intent, drained
+  c.send_json(type: 'get_status')
+  held = c.read_until('status')['payload']
+  check(
+    'a later plain status request still carries the same injury, unasked-for',
+    held['injuries'] && held['injuries']['rightHand'] == { 'wound' => 2, 'scar' => 0 },
+    held['injuries'].inspect
+  )
+  $drch_reply = :raise
 
   c.close
 ensure
