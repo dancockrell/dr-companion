@@ -72,9 +72,50 @@ import { onStopAll, onStartFlow } from '../../lib/flowStop'
 import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
+import { readJSON, writeJSON } from '../../lib/storage'
 
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200
+
+/**
+ * Where a player's own tile arrangement lives.
+ *
+ * A plain array of task ids, not a map or anything keyed - the catalog is
+ * re-read on every `refresh()` (a task can appear or disappear between
+ * sessions, same as the panel already handles), so the only thing worth
+ * remembering is *where* an id goes when it's present, not any data about
+ * the task itself. Unknown ids in a stored order (a task that got renamed or
+ * removed) are silently dropped by `orderTasks` below rather than left as
+ * dead weight or an error - a stale entry here costs nothing to lose.
+ */
+const TILE_ORDER_KEY = 'dr-companion:task-tile-order'
+
+/**
+ * The catalog's own order, with a player's saved arrangement applied on top.
+ *
+ * Ids from `order` come first, in that sequence, filtered to only the ones
+ * `tasks` actually has right now; anything `order` doesn't mention - new
+ * since it was saved, or never moved - keeps the catalog's own relative
+ * order and is appended after. So a fresh install (empty order) is
+ * indistinguishable from the catalog's natural order, and adding one new
+ * task never reshuffles everything the player already arranged.
+ */
+function orderTasks(tasks: TaskInfo[], order: string[]): TaskInfo[] {
+  const byId = new Map(tasks.map((t) => [t.id, t]))
+  const placed = new Set<string>()
+  const ordered: TaskInfo[] = []
+  for (const id of order) {
+    const t = byId.get(id)
+    if (t && !placed.has(id)) {
+      ordered.push(t)
+      placed.add(id)
+    }
+  }
+  for (const t of tasks) {
+    if (!placed.has(t.id)) ordered.push(t)
+  }
+  return ordered
+}
 
 /**
  * An icon per task, so a tile is recognisable before it is read.
@@ -118,6 +159,13 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const [note, setNote] = useState('')
   const [lines, setLines] = useState<string[]>([])
   const [filter, setFilter] = useState('')
+
+  // A player's own arrangement of the task tiles, remembered per browser -
+  // see TILE_ORDER_KEY below for why this is a plain id list rather than
+  // anything richer.
+  const [tileOrder, setTileOrder] = useState<string[]>(() => readJSON(TILE_ORDER_KEY, []))
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     const [st, files, where] = await Promise.all([pythonStatus(), listScripts(), scriptDirs()])
@@ -202,6 +250,30 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   useEffect(() => () => setActiveFlow(null), [setActiveFlow])
 
   const tasks: TaskInfo[] = useMemo(() => status?.tasks ?? [], [status])
+  const orderedTasks = useMemo(() => orderTasks(tasks, tileOrder), [tasks, tileOrder])
+
+  // Drop `id` where `overId` currently sits, everything between the two
+  // sliding over by one - the ordinary "pick it up, put it down here" a
+  // dragged tile is expected to do, rather than swapping the two positions
+  // and leaving a hole where the tile you dropped onto used to be.
+  const moveTile = useCallback(
+    (id: string, overId: string) => {
+      if (id === overId) return
+      const next = orderTasks(tasks, tileOrder).map((t) => t.id)
+      const from = next.indexOf(id)
+      if (from === -1) return
+      next.splice(from, 1)
+      // Re-found after removal: taking id out shifts every later index down
+      // by one, so overId's position before the splice is not where it
+      // lands after it.
+      const to = next.indexOf(overId)
+      if (to === -1) return
+      next.splice(to, 0, id)
+      setTileOrder(next)
+      writeJSON(TILE_ORDER_KEY, next)
+    },
+    [tasks, tileOrder]
+  )
 
   // Filtered and grouped, with the denominator kept: Lich's folder holds the
   // whole dr-scripts suite, so a player's own two files would otherwise be lost
@@ -315,10 +387,12 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
       <div className="min-h-0 flex-1 overflow-auto">
         {tab === 'tasks' ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-1">
-            {tasks.map((t) => {
+            {orderedTasks.map((t) => {
               const Icon = iconFor(t.id)
               const active = running === t.id
               const readOnly = t.kind === 'read-only'
+              const isDragging = draggingId === t.id
+              const isDropTarget = dropTargetId === t.id && draggingId !== null && draggingId !== t.id
               return (
                 <button
                   key={t.id}
@@ -326,15 +400,46 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                   onClick={() => void start(t.id)}
                   title={
                     `${t.title}\n${t.summary}\n\n${t.id} — ${t.kind}\n\n` +
-                    `Runs the same outside the app:\npython python/runner.py run ${t.id}`
+                    `Runs the same outside the app:\npython python/runner.py run ${t.id}\n\n` +
+                    'Drag to rearrange.'
                   }
+                  // Native HTML5 drag and drop, same mechanism Panel.tsx uses
+                  // for reordering the dashboard's own panels - one gesture,
+                  // pick it up and put it where you want it, no arrows.
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = 'move'
+                    e.dataTransfer.setData('text/plain', t.id)
+                    setDraggingId(t.id)
+                  }}
+                  onDragEnd={() => {
+                    setDraggingId(null)
+                    setDropTargetId(null)
+                  }}
+                  onDragOver={(e) => {
+                    if (!draggingId || draggingId === t.id) return
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move'
+                    setDropTargetId(t.id)
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    if (draggingId) moveTile(draggingId, t.id)
+                    setDraggingId(null)
+                    setDropTargetId(null)
+                  }}
                   className={cn(
-                    'flex flex-col items-center gap-0.5 rounded border px-1 py-1.5 transition-colors',
-                    active
-                      ? 'border-accent bg-accent/15'
-                      : readOnly
-                        ? 'border-border bg-surface-raised hover:border-ink-faint'
-                        : 'border-border bg-surface-raised hover:border-accent/60'
+                    'flex cursor-grab flex-col items-center gap-0.5 rounded border px-1 py-1.5',
+                    'transition-all duration-150 ease-out active:cursor-grabbing',
+                    isDragging && 'scale-95 opacity-40',
+                    isDropTarget && 'scale-105 border-accent ring-2 ring-accent ring-offset-1 ring-offset-surface',
+                    !isDragging &&
+                      !isDropTarget &&
+                      (active
+                        ? 'border-accent bg-accent/15'
+                        : readOnly
+                          ? 'border-border bg-surface-raised hover:border-ink-faint'
+                          : 'border-border bg-surface-raised hover:border-accent/60 hover:scale-105')
                   )}
                 >
                   <Icon
