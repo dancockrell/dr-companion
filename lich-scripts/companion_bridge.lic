@@ -917,31 +917,6 @@ module Companion
       }
     end
 
-    # The tag vocabulary this player's map actually uses.
-    #
-    # Not a list we curated. Different map databases carry different tags, and
-    # a menu offering "bank" on a map with no bank tagged is worse than one
-    # that offers only what is really there.
-    def tags
-      State.safe([]) { klass&.tags&.map(&:to_s)&.sort } || []
-    end
-
-    # Nearest room carrying a tag, and how far away it is in rooms.
-    #
-    # Returns the room rather than walking to it. The distance is what someone
-    # deciding whether to bother actually wants to know.
-    def nearest(tag)
-      room = current
-      return { 'ok' => false, 'reason' => 'no current room' } unless room
-
-      id = State.safe(nil) { room.find_nearest_by_tag(tag.to_s) }
-      return { 'ok' => false, 'reason' => "nothing tagged #{tag} is reachable" } unless id
-
-      { 'ok' => true, 'tag' => tag.to_s }
-        .merge(describe(id))
-        .merge('steps' => path_length(room, id))
-    end
-
     # The route to a room, as ids and titles. Does not move.
     def preview_path(destination)
       room = current
@@ -1081,10 +1056,6 @@ module Companion
       }
     end
 
-    def path_length(room, id)
-      p = State.safe(nil) { room.path_to(id) }
-      p ? p.length : nil
-    end
   end
 
   # ---------------------------------------------------------------- commands --
@@ -1455,8 +1426,6 @@ module Companion
       # route is shown, never walked; deciding to move stays a separate
       # decision the player makes with the route in front of them.
       when 'map_here' then map_here(server)
-      when 'map_tags' then map_tags(server)
-      when 'map_nearest' then map_nearest(args, server)
       when 'map_path' then map_path(args, server)
       when 'map_zone' then map_zone(args, server)
       when 'install_mapdb' then install_mapdb(server)
@@ -1492,27 +1461,6 @@ module Companion
       [true, "room #{here['id']} (game uid #{here['uid']}) — #{here['title']}"]
     end
 
-    def map_tags(server)
-      return no_map unless MapInfo.available?
-
-      tags = MapInfo.tags
-      server.broadcast(type: 'map_tags', payload: tags)
-      [true, tags.empty? ? 'this map carries no tags' : "#{tags.size} tags"]
-    end
-
-    def map_nearest(args, server)
-      return no_map unless MapInfo.available?
-
-      tag = args.is_a?(Hash) ? args['tag'].to_s : args.to_s
-      return [false, 'no tag given'] if tag.empty?
-
-      result = MapInfo.nearest(tag)
-      server.broadcast(type: 'map_nearest', payload: result)
-      return [false, result['reason']] unless result['ok']
-
-      [true, "#{result['title']} — room #{result['id']}, #{result['steps']} rooms away"]
-    end
-
     def map_path(args, server)
       return no_map unless MapInfo.available?
 
@@ -1541,12 +1489,32 @@ module Companion
     # So this is the §7 rule in its purest form: a script already does it, so
     # start it and report what happened.
     def install_mapdb(server)
-      script = %w[download-prime-map repository].find do |name|
+      # download-prime-map.lic refuses outright on Prime - `exit`, before
+      # doing anything else, on the literal check `XMLData.game == "DR"`
+      # (download-prime-map.lic:258) - with the message "This script is not
+      # intended to be used on the Prime DR instance. Use standard lich
+      # commands to manage your map." It exists for Platinum/Fallen only.
+      #
+      # install_mapdb used to try it first for every instance, gated only on
+      # whether the file existed on disk, never on whether it would actually
+      # run. For a Prime character that file always exists and always
+      # refuses, and Script.start still returns truthy because the script
+      # did start - it just exited immediately. The bridge reported "started,
+      # the map will fill in" and never learned otherwise, which is almost
+      # certainly why this has been reported as silently producing nothing.
+      #
+      # repository.lic's own `download-mapdb` command handles Prime as game
+      # code 'dr' with no such restriction (repository.lic's
+      # determine_mapdb_game), so it is the correct route there - "standard
+      # lich commands", exactly as download-prime-map's own refusal says to
+      # use.
+      candidates = State.instance == 'Prime' ? %w[repository] : %w[download-prime-map repository]
+      script = candidates.find do |name|
         State.safe(false) { Script.exists?(name) }
       end
 
       unless script
-        return [false, 'Neither download-prime-map nor repository is installed. ' \
+        return [false, "None of #{candidates.join(', ')} is installed. " \
                        'Install the script suite first.']
       end
 
