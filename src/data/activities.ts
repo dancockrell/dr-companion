@@ -4,6 +4,8 @@
  * Built from public game knowledge (Elanthipedia, general DR play patterns).
  * No third-party script is bundled, redistributed or launched.
  */
+import type { IntentName } from '../bridge/types'
+
 
 export type ActivityId =
   | 'train'
@@ -70,7 +72,7 @@ export const ACTIVITIES: ActivityDef[] = [
   },
 ]
 
-export function activityToIntent(id: ActivityId): string {
+export function activityToIntent(id: ActivityId): IntentName {
   switch (id) {
     case 'train':
       return 'start_training'

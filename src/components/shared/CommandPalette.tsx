@@ -15,6 +15,7 @@
  * one flat list. A new command source is a new `.map()` call added to it,
  * not a new subsystem.
  */
+import type { IntentName } from '../../bridge/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, CornerDownLeft } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
@@ -56,7 +57,13 @@ function score(query: string, target: string): number {
 
 function buildCommands(deps: {
   scriptCatalog: string[] | null
-  requestIntent: (intent: string, args?: Record<string, unknown>) => void
+  // Not `string`. A palette entry naming an intent that does not exist
+  // used to compile and fail against a live bridge; the union makes the
+  // typo a build error at the entry itself.
+  requestIntent: (
+    intent: IntentName | `travel:${string}`,
+    args?: Record<string, unknown>
+  ) => void
   startScript: (name: string) => void
   uiMode: string
   setUiMode: (m: 'basic' | 'power') => void

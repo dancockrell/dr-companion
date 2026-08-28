@@ -2,6 +2,7 @@ import type { BodyPart, Injury } from '../lib/body'
 /** Core domain types for DR Companion — mirrors design document awareness model */
 
 import type { SkillState } from '../data/skills'
+import type { IntentName } from '../bridge/types'
 import type { CharacterProfile } from '../lib/profiles'
 import type { VersionState } from '../lib/versions'
 import type {
@@ -476,7 +477,10 @@ export interface AppState {
   disconnectBridge: () => void
   setBridgeMode: (m: 'mock' | 'live') => void
   /** args carries a macro's literal commands; named intents build their own. */
-  requestIntent: (intent: string, args?: Record<string, unknown>) => void
+  requestIntent: (
+    intent: IntentName | `travel:${string}`,
+    args?: Record<string, unknown>
+  ) => void
   demoLowHealth: () => void
   demoCombat: () => void
   demoSafe: () => void

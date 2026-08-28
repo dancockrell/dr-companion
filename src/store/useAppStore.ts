@@ -501,7 +501,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().connectBridge()
   },
 
-  requestIntent: (intent: string, extraArgs?: Record<string, unknown>) => {
+  requestIntent: (
+    intent: IntentName | `travel:${string}`,
+    extraArgs?: Record<string, unknown>
+  ) => {
     const { character, addLog, bridgeConnected } = get()
 
     // Stop, pause and escape are never gated. `character.connected` is a flag

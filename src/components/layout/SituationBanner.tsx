@@ -11,6 +11,7 @@
  * is low" is a judgement the app made; 34 of 118 is the reading it made it
  * from, and the reading is what decides whether you walk to a healer or run.
  */
+import type { IntentName } from '../../bridge/types'
 import { AlertTriangle, Heart, Swords, Skull, RotateCcw } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 
@@ -61,7 +62,7 @@ export function SituationBanner() {
   let tone = 'bg-warn/15 border-warn/40 text-warn'
   let icon = <AlertTriangle className="w-4 h-4 shrink-0" />
   let title = 'Attention'
-  let action: { label: string; intent: string } | null = null
+  let action: { label: string; intent: IntentName } | null = null
   let reading: string | null = null
 
   if (dead) {
