@@ -16,7 +16,7 @@ export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
     ? ACTIVITIES.filter((a) =>
         ['train', 'heal', 'town', 'burgle', 'travel'].includes(a.id)
       )
-    : ACTIVITIES.filter((a) => a.id !== 'stop')
+    : ACTIVITIES
 
   // Passport-aware, and instance-scoped: a Fallen character is not offered
   // Prime geography at all.

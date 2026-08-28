@@ -12,7 +12,6 @@ export type ActivityId =
   | 'town'
   | 'travel'
   | 'burgle'
-  | 'stop'
 
 export interface ActivityDef {
   id: ActivityId
@@ -85,7 +84,5 @@ export function activityToIntent(id: ActivityId): string {
       return 'travel'
     case 'burgle':
       return 'burgle'
-    case 'stop':
-      return 'stop_all'
   }
 }

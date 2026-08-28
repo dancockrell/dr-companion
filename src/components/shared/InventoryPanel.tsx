@@ -114,6 +114,24 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
         </p>
       )}
 
+      {/* carryMax/carryWarnAt were sitting in AccountCapabilities with no
+        * reader anywhere (issue #39) — the free-account carry ceiling was
+        * computed and then thrown away. Worn + loose is the same total the
+        * game itself warns against; there is no separate "junk room" count
+        * the bridge sends. */}
+      {caps?.carryMax != null && (() => {
+        const carried = inventory.wornCount + inventory.looseCount
+        const overWarn = caps.carryWarnAt != null && carried >= caps.carryWarnAt
+        const overMax = carried >= caps.carryMax
+        if (!overWarn) return null
+        return (
+          <p className={`text-xs leading-snug ${overMax ? 'text-danger' : 'text-warn'}`}>
+            Carrying {carried} of {caps.carryMax} — free accounts get junk-room
+            warnings past this.
+          </p>
+        )
+      })()}
+
       {!dense && (
         <div className="flex gap-2">
           <button

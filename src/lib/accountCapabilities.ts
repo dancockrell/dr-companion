@@ -21,8 +21,6 @@ export interface AccountCapabilities {
   hasVault: boolean
   /** Items, not some other unit. F2P has no base vault but can buy up to 250. */
   vaultApproximateCapacity: number | null
-  /** Copper. 10 platinum is 100,000 copper: the same cap as bankCapPlatinum. */
-  bankDepositCap: number | null
   /** Platinum. The F2P bank ceiling is 10 plat across all banks combined. */
   bankCapPlatinum: number | null
   inventoryPressureTight: boolean
@@ -31,10 +29,7 @@ export interface AccountCapabilities {
   /** Hard carry ceiling for a free account. */
   carryMax: number | null
   expThrottled: boolean
-  canUsePremiumAreas: boolean
-  canAccessFangCove: boolean
   isFallen: boolean
-  blockedGuilds: string[]
   notes: string[]
 }
 
@@ -76,16 +71,12 @@ export function capabilitiesFor(
     // F2P has no base vault; expansions can be bought up to 250 items. There
     // is no published figure for the subscriber vault, so do not invent one.
     vaultApproximateCapacity: f2p ? 250 : null,
-    bankDepositCap: f2p ? 100_000 : null,
     bankCapPlatinum: f2p ? 10 : null,
     inventoryPressureTight: f2p,
     carryWarnAt: f2p ? 75 : null,
     carryMax: f2p ? 100 : null,
     expThrottled: f2p,
-    canUsePremiumAreas: premium,
-    canAccessFangCove: premium,
     isFallen,
-    blockedGuilds: f2p ? [...F2P_BLOCKED_GUILDS] : [],
     notes,
   }
 }
