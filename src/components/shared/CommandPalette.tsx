@@ -35,6 +35,18 @@ interface Command {
   hint?: string
   group: 'Safety' | 'Task Flows' | 'Scripts' | 'App'
   run: () => void
+  /**
+   * Already started, so offering to start it is a lie.
+   *
+   * The Script Library has always known this and disabled the button; the
+   * palette did not, so the same script was un-startable in one surface and
+   * freely startable in the faster one. Lich refuses a duplicate
+   * (`script.rb:138`, "already running ... use ;force") and so does the
+   * bridge (`companion_bridge.lic:1589`), so the cost was an error line
+   * rather than two hunting scripts fighting each other - but a control that
+   * offers what the system will refuse is the defect this app keeps finding.
+   */
+  alreadyRunning?: boolean
 }
 
 /**
@@ -55,6 +67,19 @@ function score(query: string, target: string): number {
   return i < 0 ? -Infinity : -i // earlier match ranks higher; index 0 beats any later one
 }
 
+/**
+ * Running and paused both count as started.
+ *
+ * Paused is the one that gets missed: a paused script is still loaded and
+ * still refuses a second start, so offering it is the same lie as offering a
+ * running one. The Script Library draws the line here and this matches it
+ * rather than inventing a second answer to the same question.
+ */
+function isStarted(runningByName: Map<string, string>, name: string): boolean {
+  const status = runningByName.get(name.toLowerCase())
+  return status === 'running' || status === 'paused'
+}
+
 function buildCommands(deps: {
   scriptCatalog: string[] | null
   // Not `string`. A palette entry naming an intent that does not exist
@@ -65,6 +90,8 @@ function buildCommands(deps: {
     args?: Record<string, unknown>
   ) => void
   startScript: (name: string) => void
+  /** Lich's own view: lowercased script name -> status. */
+  runningByName: Map<string, string>
   uiMode: string
   setUiMode: (m: 'basic' | 'power') => void
   openSetup: () => void
@@ -126,6 +153,7 @@ function buildCommands(deps: {
           : entry.category,
       group: 'Scripts',
       run: () => deps.startScript(name),
+      alreadyRunning: isStarted(deps.runningByName, name),
     })
   }
 
@@ -169,6 +197,7 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   const scriptCatalog = useAppStore((s) => s.scriptCatalog)
+  const scriptStates = useAppStore((s) => s.scriptStates)
   const requestIntent = useAppStore((s) => s.requestIntent)
   const startScript = useAppStore((s) => s.startScript)
   const uiMode = useAppStore((s) => s.uiMode)
@@ -200,9 +229,27 @@ export function CommandPalette() {
     }
   }, [open])
 
+  // The same map the Script Library builds, from the same source, so the two
+  // surfaces cannot disagree about what is running.
+  const runningByName = useMemo(() => {
+    const m = new Map<string, string>()
+    scriptStates.forEach((sc) => m.set(sc.name.toLowerCase(), sc.status))
+    return m
+  }, [scriptStates])
+
   const commands = useMemo(
-    () => buildCommands({ scriptCatalog, requestIntent, startScript, uiMode, setUiMode, openSetup, addLog }),
-    [scriptCatalog, requestIntent, startScript, uiMode, setUiMode, openSetup, addLog]
+    () =>
+      buildCommands({
+        scriptCatalog,
+        requestIntent,
+        startScript,
+        uiMode,
+        setUiMode,
+        openSetup,
+        addLog,
+        runningByName,
+      }),
+    [scriptCatalog, requestIntent, startScript, uiMode, setUiMode, openSetup, addLog, runningByName]
   )
 
   const results = useMemo(() => {
@@ -228,7 +275,9 @@ export function CommandPalette() {
   }, [results])
 
   function run(c: Command) {
-    c.run()
+    // A disabled entry still closes the palette rather than doing nothing at
+    // all: silently ignoring Enter reads as the app being stuck.
+    if (!c.alreadyRunning) c.run()
     setOpen(false)
   }
 
@@ -297,7 +346,20 @@ export function CommandPalette() {
                       }`}
                     >
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm">{c.label}</span>
+                        <span
+                          className={`block truncate text-sm ${
+                            c.alreadyRunning ? 'text-ink-faint' : ''
+                          }`}
+                        >
+                          {c.label}
+                          {/* Said on the row, not only by dimming it. Greyed
+                              text alone reads as "not available" without
+                              saying why, and the reason here is the useful
+                              part: it is already doing the thing. */}
+                          {c.alreadyRunning && (
+                            <span className="ml-2 text-xs text-good">running</span>
+                          )}
+                        </span>
                         {c.hint && (
                           <span className="block truncate text-xs text-ink-faint">{c.hint}</span>
                         )}
