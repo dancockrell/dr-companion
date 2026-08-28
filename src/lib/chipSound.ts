@@ -9,11 +9,15 @@
  * tone built with the Web Audio API is honest about what it is, needs no
  * asset pipeline, and is what browsers have used for UI blips for years.
  *
- * Reuses `alertSound.ts`'s mute flag rather than adding a second one — a
- * player who muted alerts does not want a new, undocumented sound source
- * starting up beside them.
+ * Reuses `alertSound.ts`'s own Alerts volume rather than adding a second,
+ * undocumented volume control — a player who turned Alerts down to 20% on
+ * the sound panel does not want a new sound source ignoring that and
+ * playing at full strength beside it. Scaled, not just gated on zero: the
+ * whole point of the volume-slider rework (see alertSound.ts's own header)
+ * was replacing on/off with a real level, and a chip sound that only
+ * respected "off" would quietly undo that everywhere it plays.
  */
-import { alertsMuted } from './alertSound'
+import { alertsVolume } from './alertSound'
 
 let ctx: AudioContext | null = null
 
@@ -28,15 +32,16 @@ function context(): AudioContext | null {
 
 /** One short tone: a frequency sweep and a fast decay, the shape of a UI blip. */
 function blip(freqFrom: number, freqTo: number, durationMs: number, gain: number) {
-  const c = context()
-  if (!c || alertsMuted()) return
+  const level = alertsVolume()
+  const c = level > 0 ? context() : null
+  if (!c) return
   try {
     const osc = c.createOscillator()
     const vol = c.createGain()
     osc.type = 'triangle'
     osc.frequency.setValueAtTime(freqFrom, c.currentTime)
     osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqTo), c.currentTime + durationMs / 1000)
-    vol.gain.setValueAtTime(gain, c.currentTime)
+    vol.gain.setValueAtTime(gain * level, c.currentTime)
     vol.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + durationMs / 1000)
     osc.connect(vol)
     vol.connect(c.destination)
