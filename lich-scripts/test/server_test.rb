@@ -1144,23 +1144,10 @@ begin
     here_msg.inspect
   )
 
-  puts ''
-  puts '-- map_tags reaches MapInfo and reports this map\'s real tag vocabulary --'
-  c.send_json(type: 'intent', intent: 'map_tags')
-  msgs = collect(c, 4)
-  tags_msg = msgs.find { |m| m['type'] == 'map_tags' }
-  check('reports exactly the stub\'s tags, not an empty or invented list',
-        tags_msg && tags_msg['payload'] == ['bank'], tags_msg.inspect)
-
-  puts ''
-  puts '-- map_nearest parses the tag argument and finds the tagged room --'
-  c.send_json(type: 'intent', intent: 'map_nearest', args: { tag: 'bank' })
-  msgs = collect(c, 4)
-  nearest_ack = msgs.find { |m| m['type'] == 'intent_ack' }
-  nearest_msg = msgs.find { |m| m['type'] == 'map_nearest' }
-  check('acked ok', nearest_ack && nearest_ack['ok'] == true, nearest_ack.inspect)
-  check('found the room actually tagged bank, not room 1', nearest_msg && nearest_msg['payload']['id'] == 2, nearest_msg.inspect)
-  check('floor: ok is true, not the "nothing tagged" shape', nearest_msg && nearest_msg['payload']['ok'] == true, nearest_msg.inspect)
+  # map_tags and map_nearest deleted (see companion_bridge.lic commit): zero
+  # consumers anywhere in src/, and PlaceSearch already covers the purpose
+  # better across 3,174 labelled rooms with aliases rather than one tag on
+  # whatever the current map database happens to define.
 
   puts ''
   puts '-- map_path parses the destination argument and returns the real route --'

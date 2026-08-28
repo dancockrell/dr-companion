@@ -132,27 +132,6 @@ fails += 1 unless check(
 fails += 1 unless check('exits are listed', here['exits'].sort == %w[2 3], here['exits'].inspect)
 
 puts ''
-puts '-- the tag vocabulary comes from the map, not from us --'
-fails += 1 unless check('tags read through', M.tags == %w[bank healer], M.tags.inspect)
-
-puts ''
-puts '-- nearest tagged room, with the distance --'
-n = M.nearest('bank')
-fails += 1 unless check('found', n['ok'] == true, n.inspect[0, 60])
-fails += 1 unless check('the right room', n['id'] == 2, n['id'].inspect)
-fails += 1 unless check('carries its uid too', n['uid'] == 9002, n['uid'].inspect)
-fails += 1 unless check('and how far', n['steps'] == 1, n['steps'].inspect)
-
-n2 = M.nearest('healer')
-fails += 1 unless check('a two-room trip measures 2', n2['steps'] == 2, n2['steps'].inspect)
-
-puts ''
-puts '-- an unreachable tag is refused with a reason --'
-miss = M.nearest('forge')
-fails += 1 unless check('not ok', miss['ok'] == false)
-fails += 1 unless check('says why', miss['reason'].to_s.include?('forge'), miss['reason'])
-
-puts ''
 puts '-- a route is returned, room by room --'
 p1 = M.preview_path(4)
 fails += 1 unless check('ok', p1['ok'] == true, p1.inspect[0, 60])
@@ -217,7 +196,6 @@ puts '-- with no map at all, nothing pretends to be an answer --'
 Companion::MapInfo.define_singleton_method(:klass) { nil }
 fails += 1 unless check('not available', M.available? == false)
 fails += 1 unless check('here reports unavailable', M.here['available'] == false)
-fails += 1 unless check('tags is empty, not fabricated', M.tags == [])
 
 puts ''
 puts "-- genie_pos comes as a string in Lich's real map database --"
