@@ -52,8 +52,6 @@ export type BridgeServerMessage =
   | { type: 'error'; message: string }
   | { type: 'settings'; character: string; files: SettingsFile[] }
   | { type: 'map_here'; payload: MapRoom & { available: boolean } }
-  | { type: 'map_tags'; payload: string[] }
-  | { type: 'map_nearest'; payload: MapNearest }
   | { type: 'map_path'; payload: MapPath }
   | { type: 'map_zone'; payload: MapZone }
   | { type: 'script_catalog'; payload: string[] }
@@ -122,13 +120,6 @@ export interface MapRoom {
   terrain?: string | null
   tags?: string[]
   exits?: string[]
-}
-
-export interface MapNearest extends MapRoom {
-  ok: boolean
-  tag?: string
-  steps?: number | null
-  reason?: string
 }
 
 /**
@@ -247,8 +238,6 @@ export type IntentName =
   // never move the character. 'map_path' returns a route rather than walking
   // it, so deciding to go stays a separate decision.
   | 'map_here'
-  | 'map_tags'
-  | 'map_nearest'
   | 'map_path'
   | 'map_zone'
   | 'install_mapdb'

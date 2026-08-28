@@ -43,7 +43,7 @@ const MOCK_ALL_INTENTS: string[] = [
   'stop_all', 'pause', 'resume', 'start_combat', 'burgle', 'travel',
   'escape_heal', 'go_healer', 'town_run', 'start_training', 'loot', 'buffs',
   'escape', 'stow_all', 'check_health', 'check_toggles', 'reset_runaway',
-  'read_settings', 'run_macro', 'map_here', 'map_tags', 'map_nearest',
+  'read_settings', 'run_macro', 'map_here',
   'map_path', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
 ]
 
@@ -857,45 +857,6 @@ export class MockBridge {
             location: DEMO_ZONE.name ?? null,
             tags: here?.tags ?? [],
             exits: (here?.to ?? []).map(String),
-          },
-        })
-        break
-      }
-
-      case 'map_tags':
-        this.emit({
-          type: 'map_tags',
-          payload: [...new Set(DEMO_ZONE.rooms!.flatMap((r) => r.tags ?? []))].sort(),
-        })
-        break
-
-      case 'map_nearest': {
-        const tag = String(_args?.tag ?? '')
-        const hit = DEMO_ZONE.rooms?.find((r) => r.tags?.includes(tag))
-        if (!hit) {
-          this.emit({
-            type: 'map_nearest',
-            payload: {
-              ok: false,
-              id: null,
-              uid: null,
-              title: null,
-              location: null,
-              reason: `nothing tagged ${tag} is reachable`,
-            },
-          })
-          break
-        }
-        this.emit({
-          type: 'map_nearest',
-          payload: {
-            ok: true,
-            tag,
-            id: hit.id,
-            uid: hit.uid,
-            title: hit.title,
-            location: DEMO_ZONE.name ?? null,
-            steps: demoPath(DEMO_ZONE.here as number, hit.id as number)?.length ?? null,
           },
         })
         break

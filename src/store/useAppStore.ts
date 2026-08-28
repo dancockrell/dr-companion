@@ -264,13 +264,6 @@ function handleBridgeMessage(
       set({ mapHere: here, mapTrail: visit(get().mapTrail, here?.id) })
       break
     }
-    case 'map_tags':
-      set({ mapTags: msg.payload })
-      break
-    case 'map_nearest':
-      set({ mapNearest: msg.payload })
-      if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'not found'}`)
-      break
     case 'map_path':
       set({ mapPath: msg.payload })
       if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'no route'}`)
@@ -286,8 +279,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   mapHere: null,
   mapTrail: emptyTrail(),
   mapdbInstall: null,
-  mapTags: [],
-  mapNearest: null,
   mapPath: null,
   mapZone: null,
 
