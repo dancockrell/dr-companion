@@ -89,7 +89,7 @@ function CreatureRow({ card, combatant }: { card: RoomCard; combatant?: RoomComb
         )}
       </div>
       <span
-        className={`max-w-[4.5rem] truncate text-xs ${
+        className={`max-w-[6rem] truncate text-xs ${
           card.status === 'dead' ? 'text-ink-faint line-through' : targetingYou ? 'font-medium text-danger' : 'text-ink'
         }`}
       >
@@ -116,11 +116,14 @@ function ItemChip({
       disabled={!canSend}
       title={reason ?? `get ${nounOf(name)}`}
       onClick={onTake}
-      className="group flex max-w-full items-center gap-2 rounded px-2 py-1 text-sm text-ink hover:bg-surface-overlay/70 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+      className="flex max-w-full items-center gap-2 rounded px-2 py-1 text-sm text-ink hover:bg-surface-overlay/70 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
     >
+      {/* The hover-reveal "take" label used to reserve its own width even
+          hidden, which is exactly the kind of chrome the icon+tooltip
+          standard replaces: the title already says "get X" and the pointer
+          cursor already says clickable, so the name gets the room instead. */}
       <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-accent" />
       <span className="min-w-0 truncate">{name}</span>
-      <span className="shrink-0 whitespace-nowrap text-xs text-ink-faint opacity-0 group-hover:opacity-100">take</span>
     </button>
   )
 }
