@@ -121,6 +121,25 @@ export interface RoomPlayer {
   status: string | null
 }
 
+/**
+ * One item on the floor, from the loot half of `room objs`.
+ *
+ * Lich wraps every room-objs entry in `<a exist='...' noun='...'>Name</a>`,
+ * bold or not - bold marks a creature, plain marks loot - and that split is
+ * what makes loot safe to route now while creatures wait. A bold `<a>` (or a
+ * bold DragonRealms name with none) needs the `<crtrStatus>` pairing this
+ * parser does not implement yet; a plain `<a>` is `GameObj.new_loot` in
+ * Lich's own source (xmlparser.rb:1080) and carries nothing else to wait for.
+ *
+ * `noun` comes straight off the tag's own attribute here, unlike
+ * `RoomPlayer.noun` which is sliced from prose - the game hands it to us
+ * directly for loot, so there is nothing to parse.
+ */
+export interface RoomItem {
+  noun: string | null
+  name: string
+}
+
 export interface StreamCharacterState {
   vitals: Sourced<StreamVitals>
   indicators: Sourced<StreamIndicators>
@@ -137,11 +156,25 @@ export interface StreamCharacterState {
    * answer ("nobody else is here"), distinct from this key being absent
    * ("the game has not told us yet").
    *
-   * `room objs` (the creature/loot half of the room) is deliberately not
-   * here yet. DragonRealms pairs its bold NPC names to a separate
-   * `<crtrStatus>` batch that arrives afterward and is only safe to resolve
-   * at the next `<prompt>` boundary - a cross-tag, cross-prompt scheme this
-   * parser has not implemented, rather than a smaller version of this one.
+   * The creature half of `room objs` is a separate, harder problem - see
+   * `roomItems` for the split and why creatures wait.
    */
   roomPlayers?: Sourced<RoomPlayer[]>
+  /**
+   * What's on the floor, from the loot half of `<component id='room objs'>`.
+   *
+   * Only the plain (non-bold) `<a>` entries - loot. The bold entries are
+   * creatures, and DragonRealms pairs their names to a separate
+   * `<crtrStatus>` batch that arrives afterward and is only safe to resolve
+   * at the next `<prompt>` boundary, gated on the two counts matching. That
+   * is a cross-tag, cross-prompt state machine this parser does not
+   * implement, so creatures are left out of this field entirely rather than
+   * risking a wrong pairing - a roster is exactly the place a confidently
+   * wrong answer is more dangerous than an honest gap, since it's what
+   * combat and threat awareness would read from.
+   *
+   * Replaces on every arrival, same as `roomPlayers` and `compass`, for the
+   * same reason: an empty array is a real "nothing here," not an unknown.
+   */
+  roomItems?: Sourced<RoomItem[]>
 }

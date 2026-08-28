@@ -40,6 +40,7 @@ import type {
   StreamVital,
   IndicatorState,
   RoomPlayer,
+  RoomItem,
 } from '../types/stream'
 
 /** A line ready to render, with what the game said it was. */
@@ -140,6 +141,22 @@ export interface StreamState {
    * separately means the structured parse can't perturb what's on screen.
    */
   roomPlayersCapture: string | null
+  /** Inside `<component id='room objs'>`, collecting its loot `<a>` tags. */
+  inRoomObjsComponent: boolean
+  /**
+   * Loot found so far in the `room objs` component now open, or `null`
+   * outside one. Built up across possibly several `<a>` tags and committed
+   * to `state.character.roomItems` as one replacement when the component
+   * closes - matching Lich's own `GameObj.commit_room_objs` on the closing
+   * tag, not per item as each `<a>` resolves.
+   */
+  roomItemsBuilding: RoomItem[] | null
+  /**
+   * The `<a>` tag currently being read as one loot item, or `null` between
+   * them. Only a plain (non-bold) `<a>` starts this - a bold one is a
+   * creature and is left alone, see `RoomItem` for why.
+   */
+  roomItemCapture: { noun: string | null; text: string } | null
 }
 
 /**
@@ -168,6 +185,7 @@ export function newStreamState(): StreamState {
     buffer: '', stack: [], boldDepth: 0, partialBold: false, inPrompt: false,
     afterPrompt: false, afterTagBreak: false, partial: '',
     partialWasStateOnly: false, roomPlayersCapture: null,
+    inRoomObjsComponent: false, roomItemsBuilding: null, roomItemCapture: null,
     // Empty rather than absent, and the two are different on purpose: an
     // empty indicator map means no icon has ever been reported, which a
     // reader must be able to tell from an icon reported as 'unknown'.
@@ -556,12 +574,16 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
         // reading. Noted and ignored.
       } else if (name === 'component') {
         // The component's own tags carry no text and must not touch what
-        // renders - only `<component id='room players'>`'s *content* is
-        // wanted, and only for structured state on the side. The sentence
-        // still displays exactly as it did before this existed.
+        // renders - only a `room players`/`room objs` component's *content*
+        // is wanted, and only for structured state on the side. The room's
+        // own text still displays exactly as it did before this existed.
         if (!closing) {
           const id = attrs(tag).id
           if (id === 'room players') state.roomPlayersCapture = ''
+          else if (id === 'room objs') {
+            state.inRoomObjsComponent = true
+            state.roomItemsBuilding = []
+          }
         } else if (state.roomPlayersCapture !== null) {
           state.character.roomPlayers = {
             value: parseRoomPlayers(state.roomPlayersCapture),
@@ -569,9 +591,39 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
             at: Date.now(),
           }
           state.roomPlayersCapture = null
+        } else if (state.inRoomObjsComponent) {
+          // Commits what was captured, same moment Lich's own
+          // GameObj.commit_room_objs fires - once for the whole component,
+          // not per item as each <a> resolves.
+          state.character.roomItems = {
+            value: state.roomItemsBuilding ?? [],
+            from: 'stream',
+            at: Date.now(),
+          }
+          state.inRoomObjsComponent = false
+          state.roomItemsBuilding = null
+          // Defensive: a malformed stream closing the component with an <a>
+          // still open should not leak a half-built item into the next one.
+          state.roomItemCapture = null
+        }
+      } else if (name === 'a' && state.inRoomObjsComponent) {
+        // Bold marks a creature in room objs; only a plain <a> is loot
+        // (Lich's own GameObj.new_loot path, xmlparser.rb:1080). A bold one
+        // is left alone here - see RoomItem for why creatures wait on the
+        // crtrStatus pairing this parser does not implement.
+        if (!closing) {
+          if (state.boldDepth === 0) {
+            state.roomItemCapture = { noun: attrs(tag).noun ?? null, text: '' }
+          }
+        } else if (state.roomItemCapture !== null) {
+          state.roomItemsBuilding?.push({
+            noun: state.roomItemCapture.noun,
+            name: state.roomItemCapture.text,
+          })
+          state.roomItemCapture = null
         }
       }
-      // Everything else - <d>, <a>, <style>, <output> - is markup around
+      // Everything else - <d>, <style>, <output> - is markup around
       // text we keep. Skipping the tag and keeping the content is what makes
       // this tolerant of a protocol that grows tags over time.
       continue
@@ -606,6 +658,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
     // the depth at emit time reports every bold line as plain.
     if (state.boldDepth > 0) state.partialBold = true
     if (state.roomPlayersCapture !== null) state.roomPlayersCapture += ch
+    if (state.roomItemCapture !== null) state.roomItemCapture.text += ch
     i++
   }
 

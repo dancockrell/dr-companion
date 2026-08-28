@@ -232,6 +232,67 @@ console.log('\n-- room players: ported line-for-line from Lich, not re-derived -
     characterState(s).roomPlayers?.value, [])
 }
 
+console.log('\n-- room objs: only the loot half, creatures deliberately left out --')
+{
+  // A plain <a exist noun> is Lich's own loot shape (GameObj.new_loot,
+  // xmlparser.rb:1079) - the same tag GemStone and DragonRealms both use for
+  // items on the floor, unlike room players which is DR-only prose.
+  const s = newStreamState()
+  const lines = feed(
+    s,
+    "<component id='room objs'>You also see " +
+      "<a exist='#1001' noun='sword'>a battered sword</a>, " +
+      "<a exist='#1002' noun='cloak'>a moth-eaten cloak</a>.</component>\r\n"
+  )
+  eq('both plain <a> items captured', characterState(s).roomItems?.value, [
+    { noun: 'sword', name: 'a battered sword' },
+    { noun: 'cloak', name: 'a moth-eaten cloak' },
+  ])
+  eq('the room text still renders, unaffected', lines.map((l) => l.text), [
+    'You also see a battered sword, a moth-eaten cloak.',
+  ])
+  ok('marked as coming from the stream', characterState(s).roomItems?.from === 'stream')
+}
+{
+  // Bold marks a creature in this component; a bold <a> must be left for the
+  // crtrStatus-paired implementation, not folded in as loot. This is the
+  // property that keeps the roster honestly incomplete instead of wrong.
+  const s = newStreamState()
+  feed(
+    s,
+    "<component id='room objs'>" +
+      "<pushBold/><a exist='#2001' noun='troll'>a hill troll</a><popBold/> is here. " +
+      "<a exist='#1003' noun='coin'>a gold coin</a>.</component>\r\n"
+  )
+  eq('the bold creature is excluded, the plain item is not',
+    characterState(s).roomItems?.value, [{ noun: 'coin', name: 'a gold coin' }])
+}
+{
+  // Same replace-not-merge call as room players and compass: the component
+  // resends the whole floor, so an empty refresh must clear what a stale
+  // stack had, not leave yesterday's loot sitting there.
+  const s = newStreamState()
+  feed(s, "<component id='room objs'>" +
+    "<a exist='#1004' noun='rock'>a plain rock</a>.</component>\r\n")
+  eq('first room has the rock', characterState(s).roomItems?.value, [
+    { noun: 'rock', name: 'a plain rock' },
+  ])
+  feed(s, "<component id='room objs'></component>\r\n")
+  eq('an empty refresh replaces it, not merges an empty list into it',
+    characterState(s).roomItems?.value, [])
+}
+{
+  // room players and room objs are independent fields - routing one must not
+  // touch or require the other.
+  const s = newStreamState()
+  feed(s, "<component id='room players'>Also here: Bob.</component>\r\n")
+  feed(s, "<component id='room objs'><a exist='#1005' noun='torch'>a torch</a>.</component>\r\n")
+  ok('room players survived room objs being routed too',
+    characterState(s).roomPlayers?.value.length === 1)
+  ok('and room objs landed on its own field',
+    characterState(s).roomItems?.value.length === 1)
+}
+
 const ran = checked
 ok('enough was checked for a pass to mean something', ran >= 18, `${ran} assertions`)
 
