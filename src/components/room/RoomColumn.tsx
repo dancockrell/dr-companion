@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { RoomScene } from './RoomScene'
 import { RoomChips } from './RoomChips'
 import { RoomItemsPanel } from './RoomItemsPanel'
+import { TeachingPanel } from './TeachingPanel'
 import { StreamTabs } from '../game/StreamTabs'
 import { GamePane } from '../game/GamePane'
 import { PanelBoundary } from '../shared/PanelBoundary'
@@ -139,6 +140,9 @@ export function RoomColumn() {
       <RoomOccupants players={stream.roomPlayers} />
       <PanelBoundary label="Room items">
         <RoomItemsPanel items={character?.roomItems} />
+      </PanelBoundary>
+      <PanelBoundary label="Classes">
+        <TeachingPanel />
       </PanelBoundary>
 
       {/* The game itself, above the channels.
