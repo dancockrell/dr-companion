@@ -1,30 +1,33 @@
-import { CreatureArt } from './CreatureArt'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 
 /**
- * The fight, laid out the way `assess` actually describes it.
+ * The fight, laid out the way `assess` actually describes it — as text at a
+ * position, not as circular creature portraits. An earlier pass put a round
+ * art token (or, for anything the bestiary art pipeline has not reached yet
+ * — most creatures — a letter-in-a-circle placeholder) at every point on
+ * this radar. It looked like a raid-frame add-on borrowed from a different
+ * genre of game. DragonRealms has no avatars anywhere in its own interface;
+ * a player reading `assess` gets a name and a position, in text, and that is
+ * what belongs here too.
  *
- * DragonRealms' own combat readout is two facts about each opponent, not
- * one: range ("at melee range", "at pole weapon range", "at missile range")
- * and position ("in front of you", "behind you", "flanking", "beside you",
- * "to the left/right of you"). A player reading assess builds a mental map
- * from exactly those two numbers — this radar draws that same map instead of
- * inventing a different one. The words on it are the game's own: "pole
- * weapon", not "polearm"; "missile", not "ranged". A DR player should
- * recognise this as their own assess, not as a generic MMO raid frame.
+ * DR's own combat readout is two facts about each opponent, not one: range
+ * ("at melee range", "at pole weapon range", "at missile range") and
+ * position ("in front of you", "behind you", "flanking", "beside you", "to
+ * the left/right of you"). This draws that same map instead of inventing a
+ * different one, using the game's own words throughout — "pole weapon", not
+ * "polearm"; "missile", not "ranged".
  *
  * Only what assess actually reported gets a position. A creature with no
  * relation, or no range at all, is not guessed onto the radar — it goes in
- * the tray below, honestly labelled unassessed or not fighting, because a
- * wrong dot is worse than an admitted gap.
+ * the list below, honestly labelled unassessed or not fighting.
  */
 
 const RANGE_RADIUS_PCT: Record<'melee' | 'pole' | 'missile', number> = {
-  melee: 18,
-  pole: 33,
-  missile: 46,
+  melee: 20,
+  pole: 36,
+  missile: 48,
 }
 
 /**
@@ -100,7 +103,7 @@ export function CombatRadar({
   for (const group of groups.values()) {
     const n = group.length
     group.forEach((p, i) => {
-      const jitter = n > 1 ? (i - (n - 1) / 2) * 14 : 0
+      const jitter = n > 1 ? (i - (n - 1) / 2) * 16 : 0
       const rad = ((p.angleDeg - 90) * Math.PI) / 180
       spread.push({
         ...p,
@@ -114,7 +117,7 @@ export function CombatRadar({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative mx-auto aspect-square w-full max-w-[280px]">
+      <div className="relative mx-auto aspect-square w-full max-w-[300px]">
         {/* Range rings, in DR's own words, not a generic distance scale. */}
         {(['missile', 'pole', 'melee'] as const).map((range) => (
           <div
@@ -128,52 +131,51 @@ export function CombatRadar({
             }}
           />
         ))}
-        <span className="absolute left-1/2 top-[4%] -translate-x-1/2 text-[9px] text-ink-faint/70">
+        <span className="absolute left-1/2 top-[2%] -translate-x-1/2 text-[9px] text-ink-faint/70">
           {RANGE_WORD.missile}
         </span>
 
         {/* Facing marker — "in front of you" is up, matching the compass
             every dot on this radar is drawn against. */}
-        <span className="absolute left-1/2 top-0 -translate-x-1/2 text-ink-faint/50" aria-hidden>
-          ▲
+        <span className="absolute left-1/2 top-0 -translate-x-1/2 text-[9px] text-ink-faint/50" aria-hidden>
+          ▲ front
         </span>
 
         {/* You, at the center — the one fixed point everything else is
-            relative to, same as assess itself. */}
+            relative to, same as assess itself. Text, not a portrait — this
+            app has never drawn the player character either. */}
         <div
-          className="absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-accent bg-surface text-[9px] font-bold text-accent"
+          className="absolute flex flex-col items-center gap-0.5 -translate-x-1/2 -translate-y-1/2"
           style={{ left: '50%', top: '50%' }}
-          title="You"
         >
-          Y
+          <span className="h-2 w-2 rounded-full border-2 border-accent bg-surface" />
+          <span className="text-[9px] font-semibold text-accent">you</span>
         </div>
 
         {hasFight ? (
           spread.map((p) => (
             <div
               key={p.key}
-              className="group absolute -translate-x-1/2 -translate-y-1/2"
+              className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
               style={{ left: `${p.x}%`, top: `${p.y}%` }}
               title={`${p.card.name} — ${p.combatant.relation}, at ${RANGE_WORD[p.combatant.range!]} range${
                 p.combatant.target ? `, targeting ${p.combatant.target}` : ''
               }`}
             >
-              <CreatureArt
-                name={p.card.name}
-                noun={p.card.noun}
-                lore={p.card.lore}
-                height={30}
-                className={`!w-[30px] shrink-0 !rounded-full ring-2 ${
-                  p.combatant.target?.toLowerCase() === 'you'
-                    ? 'ring-danger animate-pulse'
-                    : 'ring-warn/70'
+              <span
+                className={`h-2.5 w-2.5 rounded-full border border-surface ${
+                  p.combatant.target?.toLowerCase() === 'you' ? 'animate-pulse bg-danger' : 'bg-warn'
                 }`}
               />
               <span
-                className="pointer-events-none absolute top-full mt-0.5 hidden -translate-x-1/2 whitespace-nowrap rounded bg-surface/95 px-1 text-[10px] text-ink shadow group-hover:block"
-                style={{ left: '50%' }}
+                className={`whitespace-nowrap rounded bg-surface/90 px-1 text-[9px] leading-tight shadow ${
+                  p.combatant.target?.toLowerCase() === 'you'
+                    ? 'font-semibold text-danger'
+                    : 'text-ink'
+                }`}
               >
                 {p.card.name}
+                {p.card.count > 1 ? ` x${p.card.count}` : ''}
               </span>
             </div>
           ))
