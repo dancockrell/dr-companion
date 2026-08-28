@@ -80,7 +80,7 @@ export function RoomColumn() {
      * half the app, and the chat panel's flex-1 had nothing to expand into
      * because its parent had already collapsed.
      */
-    <div className="flex h-full min-h-0 flex-col gap-2 p-2">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 p-1.5">
       <PanelBoundary label="Scene">
         <RoomScene
           zone={zone}
@@ -91,7 +91,7 @@ export function RoomColumn() {
         />
       </PanelBoundary>
 
-      <div className="max-h-40 shrink-0 overflow-y-auto rounded border border-border bg-surface-raised p-2">
+      <div className="max-h-40 shrink-0 overflow-y-auto rounded border border-border bg-surface-raised p-1.5">
         {text?.text ? (
           <p className="text-xs leading-relaxed text-ink-muted">{text.text}</p>
         ) : (

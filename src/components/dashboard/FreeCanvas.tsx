@@ -204,8 +204,15 @@ export function FreeCanvas({
             )}
             style={{ left: shown.x, top: shown.y, width: shown.w, height: shown.h }}
           >
+            {/* Thinned from a py-1 bar with a 14px icon to this: still its own
+                row (an absolute overlay here would land in the same corner
+                pixels the resize handles already claim, at `GRAB` below, and
+                lose the drag to whichever paints on top), but the smallest
+                strip that keeps a comfortable pointer target rather than the
+                icon's own bounding box. That reserved row was pure "useless
+                menu" for any panel not actively being reordered. */}
             <div
-              className="flex cursor-grab touch-none items-center gap-1 px-1.5 py-1 active:cursor-grabbing"
+              className="flex h-4 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               onPointerDown={(e) => {
                 e.preventDefault()
                 e.currentTarget.setPointerCapture(e.pointerId)
@@ -219,11 +226,12 @@ export function FreeCanvas({
                   startY: e.clientY,
                 })
               }}
+              title="Drag to move"
             >
-              <GripVertical className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
+              <GripVertical className="h-3 w-3 shrink-0 text-ink-faint" />
             </div>
 
-            <div className="min-h-0 flex-1 overflow-auto px-2 pb-2">{item.node}</div>
+            <div className="min-h-0 flex-1 overflow-auto p-1.5">{item.node}</div>
 
             {/* All eight, the way every window on this machine resizes.
              *
