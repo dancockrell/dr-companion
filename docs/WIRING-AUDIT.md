@@ -163,23 +163,38 @@ confirmed by grep:
 | `image` | **still absent** |
 
 All of it lives in `StreamCharacterState` (`src/types/stream.ts`) and is read
-via `characterState(streamState)` in `src/lib/gameStream.ts`. **Nothing in
-`src/components` calls `characterState` yet** — checked by grep, zero hits.
-This is `SettingsFilesPanel`'s exact shape of gap one level up: a bridge (or
-here, a stream parser) answering completely, with the wiring from parser to
-screen still undone. Vitals/posture/room contents *displayed on screen right
-now* still come from the bridge polling Lich's Ruby state, same round trip as
-before this table existed - the parser exists and nothing reads it.
+via `characterState(streamState)` in `src/lib/gameStream.ts`.
 
-Why this is still worth doing before more panes get built, unchanged from the
-original three reasons: it's free and already arriving, it removes a
-dependency on the bridge connection (which drops on restart), and it answers
-Objects/Players without a new Genie-parity gap.
+**Done, vitals and indicators — the consuming side is wired now.** A grep for
+`characterState` in `src/components` still finds nothing, and that is not a
+gap: `gameLink.ts` wraps it as `streamCharacterState()`, subscribed the same
+way `GamePane` subscribes to lines (`subscribeGame` + `useSyncExternalStore`),
+so check for that name instead if you are re-running this audit's greps.
+`src/lib/vitals.ts` (`vitalsFor`) and `src/lib/situation.ts` (`situationFor`)
+each take the stream value as a second argument and decide per-field which
+source wins, stated as a real choice rather than a default:
 
-Remaining tags (`spell`, `crtrStatus`, `dialogData`, `image`) and the
-consumer-side wiring (parser state -> an actual visible panel) are still real
-work. **Say so here before starting** - `gameStream.ts` has had several
-sessions' hands in it in one day already, and the type it feeds
+- **Vitals** (health/mana/spirit/stamina): stream wins whenever it has
+  reported a value, bridge is the fallback. Concentration stays bridge-only —
+  it is never in `StreamVitals` at all, DragonRealms does not send it as a
+  `progressBar`.
+- **Indicators**: `'on'`/`'off'` from the stream sets or clears the matching
+  situation flag; `'unknown'` (or the tag never having arrived) leaves
+  whatever the bridge already said standing, rather than treated as false.
+
+Wired into `VitalCluster`/`StatusBoard` via `DashboardLayout.tsx`. Tests in
+`tools/stream-consumers-test.mjs`, sabotaged with scoping asserted (breaking
+the stream-precedence path reddens only its own tests, not the bridge-only
+ones). Landed 28 Aug 2026, `fcb2444`.
+
+Room contents (Objects/Players) are a separate, larger piece — see
+`src/lib/roomOccupants.ts`, in progress elsewhere as of this edit; check its
+own commit history rather than this line before assuming it is done or open.
+
+Remaining tags (`spell`, `crtrStatus`, `dialogData`, `image`) have no consumer
+yet and no parser support yet either for `crtrStatus`/`dialogData`/`image` -
+still real work. **Say so here before starting** - `gameStream.ts` has had
+several sessions' hands in it in one day already, and the type it feeds
 (`StreamCharacterState`) is the shared contract every consumer will read.
 *unclaimed*
 
