@@ -149,65 +149,72 @@ def watch(line):
 ```
 
 This is exactly the kind of pattern-matching Genie users already write by
-hand, and it is not the end state - it is what "the gap is not hidden" looks
-like in practice. When the parser moves to a place both the frontend and this
-API can read from, this note goes away and scripts stop needing it.
+hand, and matching the tag yourself is still the whole story if you build
+directly on `dr_companion.Companion`. It is not the only way in any more,
+though: `drtask.py` (below) is a second, independently-grounded layer that
+closes this gap for the common case - it does not share code with
+`gameStream.ts`, so read its own module docstring for what it is confident
+about (`progressBar`/`roundTime` parsing, checked against Lich's own
+`xmlparser.rb`) versus what remains a text match.
 
-`streamkit.py`, below, packages this same pattern-matching (streams, vitals,
-indicators) as tested helpers rather than a snippet every script re-writes.
-
-## Beyond the transport: `lich.py` and `streamkit.py`
+## Beyond the transport: `drtask.py`, `flow.py`, task discovery, and `lich.py`
 
 `dr_companion.py` is deliberately minimal - a socket, `send()`, `on_line()`.
-Two more pure-stdlib modules build on top of it, and a folder of runnable
-scripts builds on those. None of this changes the wire protocol above; it is
-all a client of it.
+Everything below is a client of it; none of it changes the wire protocol
+above.
+
+**`python/drtask.py`** is the layer most scripts should actually build on.
+`Task` gives you clean, tag-stripped lines with their channel labelled
+(`on_clean`), current vitals with unknown-vs-zero kept distinct
+(`on_vitals` - a vital the game has never reported is `NaN`, not `0`, so a
+condition on it does nothing rather than firing on a number nobody sent),
+roundtime-aware sending, and a hard cap on commands per minute enforced in
+the one method (`do()`) anything reaches the game through - a runaway loop is
+stopped and told why rather than allowed to look like scripted abuse on a
+live account. Read its own module docstring before writing a task; the
+reasoning for each parsing decision (why `progressBar.text` and never
+`.value`, why `roundTime` is an absolute epoch second and not a duration) is
+there, grounded against Lich's own `xmlparser.rb`.
+
+**`python/flow.py`** builds `Flow`/`Step` on top of `Task`: a sequence of
+steps, each with commands to send, an optional `when=lambda f: ...` condition
+(an ordinary Python expression - no condition grammar to parse), and a way to
+know a step finished (`until=r"regex"`, waiting for the game to actually say
+so, or a flat `settle` when there is nothing to wait for). See its own module
+docstring and `python/tasks/example_custom.py` for the full shape.
+
+**`python/runner.py`** is the catalog: `python python/runner.py --list` and
+`run <id>`. The built-in flows and the read-only `task.watch` example live in
+`python/tasks/`; anything you save under `python/tasks/user/*.py` is
+discovered automatically as `user.<filename>` - no registration, no restart.
+See `python/tasks/user/README.md`.
+
+**`python/tasks/user/`** in this repo ships five ready-to-run examples,
+each answering a Genie-era automation category with an original
+implementation (no script text ported from anyone - see the repo's Scope
+note): `autostand.py` (retries `stand` on a bounded schedule after a stun),
+`channel_logger.py` (every channel to its own timestamped file, from
+`CleanLine.stream`), `watchlist.py` (alert - and optionally act - when a name
+shows up anywhere in the text), `afk_reply.py` (per-sender-cooldown tell
+auto-responder), and `vitals_monitor.py` (fire a Lich command when a vital
+crosses a threshold, via `on_vitals`). Each is runnable directly
+(`python python/tasks/user/autostand.py`) or through the catalog
+(`python python/runner.py run user.autostand`).
 
 **`python/lich.py`** wraps Lich's own `;`-prefixed command language -
-`;force`, `;kill`, `;pause`, `;unpause`, `;list`, `;vars` - so a script starts,
-stops and force-restarts Lich scripts (including the dr-scripts ecosystem)
-without hand-formatting strings and re-deriving that "already running" needs
-`;force` (Lich's own message, from `script.rb`). It does not parse Lich's
-replies - those come back as ordinary `line` messages through the same
-`on_line` callback everything else uses, undecoded, for the reason
-`lich.py`'s module docstring gives: guessing at Lich's plain-text table format
-without a test fixture to check it against is the same mistake
-`docs/ENGINE.md` already warns against for the game's own markup.
-
-**`python/streamkit.py`** reads the raw markup a `Line.text` carries: which
-`pushStream`/`popStream` channel a chunk of text belongs to, `progressBar`
-vitals (health/mana/spirit/stamina/concentration, parsed from `text` never
-`value` - `vitalFromText`'s reasoning in `gameStream.ts` applies unchanged
-here), `indicator` icons (`bleeding`, `stunned`, ...), and a couple of
-text-matched heuristics (`is_stunned_line`) for the things that are not
-tag-based at all. It is explicitly **not** a second implementation of
-`src/lib/gameStream.ts`'s state machine - it does not track a stream stack
-across lines, and will miss a tag split across two socket reads. Its own
-module docstring says exactly which parts are backed by something tested
-elsewhere in this repo and which are a best-effort guess; read that before
-trusting a match.
-
-**`python/flow.py`** is a small workflow engine on top of the other three: a
-`Flow` is a list of `Step`s (commands to send, an optional Python callable,
-an optional condition, a way to wait for the next step), and a `FlowRunner`
-walks them against a live `Companion` - once, or forever if the flow loops.
-It mirrors `src/data/taskFlows.ts` and `src/lib/flowConditions.ts` in shape
-(the same `gauge<50`/`bleeding`/`!bleeding` condition grammar, fails open the
-same way, for the same reason) but is not limited to a fixed command list and
-a fixed sleep the way a bridge flow step is: a step waits for the game's own
-`<prompt>` tag (`streamkit.has_prompt`) or a matching line instead of a
-guessed duration, and its Python callable can call into `lich.py` to chain
-Lich scripts together with real conditions between them, or just be arbitrary
-Python logic with no Lich script involved. See `flow.py`'s own module
-docstring for the full API and worked examples of both.
-
-**`python/scripts/`** is a small library of finished, runnable scripts built
-on all three - an autostand retry loop, a per-channel logger, a name
-watchlist, an AFK tell auto-responder, a vitals monitor that can force-start a
-Lich script, `lichctl.py` (a terminal front end to Lich's script engine), and
-two `flow.py`-based workflows: a hunting loop and a train-then-heal Lich
-script chain. See `python/scripts/README.md` for what each one does and the
-Genie-era category it replaces.
+`;force`, `;kill`, `;pause`, `;unpause`, `;list`, `;vars` - so a script
+starts, stops and force-restarts Lich scripts (including the dr-scripts
+ecosystem) without hand-formatting strings and re-deriving that "already
+running" needs `;force` (Lich's own message, from `script.rb`). It does not
+parse Lich's replies - those arrive as ordinary lines through whichever of
+`on_line`/`on_clean` you're using, undecoded, for the reason `lich.py`'s
+module docstring gives: guessing at Lich's plain-text table format without a
+test fixture to check it against is the same mistake this file already warns
+against for the game's own markup. `lich.py` works with either
+`dr_companion.Companion` or a `drtask.Task`'s `.c` - `Lich(task.c)`.
+`python/scripts/lichctl.py` is a small terminal front end to it: start, stop,
+pause, force, list, all as one-shot CLI commands rather than a running
+script. See `python/scripts/README.md`.
 
 ## Testing your own script
 
@@ -228,18 +235,13 @@ actually exercised the socket.
 python python/test_dr_companion.py
 ```
 
-`python/test_streamkit.py`, `python/test_lich.py` and `python/test_flow.py`
-are the newer modules' own suites, and unlike `test_dr_companion.py` none of
-them need the app running - `streamkit.py` is pure regex over fixed strings,
-`lich.py` is tested against a fake `Companion` that just records what it was
-sent, and `flow.py` is tested against a fake `Companion` plus
-`FlowContext.feed_line`, which is a plain function of a string with no socket
-underneath it. Run any of them directly:
+`python/test_lich.py` is `lich.py`'s own suite, and unlike
+`test_dr_companion.py` it does not need the app running - `lich.py` only
+formats strings and hands them to `Companion.send()`, so a fake `Companion`
+that just records what it was sent is a complete test double for it:
 
 ```bash
-python python/test_streamkit.py
 python python/test_lich.py
-python python/test_flow.py
 ```
 
 ## What this API deliberately does not do
