@@ -283,6 +283,15 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
   const z = level ?? levels[0] ?? 0
 
+  // True whenever the drawn zone is the bundled stand-in rather than Lich's
+  // own geography for where the character actually is - see issue #36. The
+  // banner below already says so in words, but words scroll out of view and
+  // this map is watched more than it is read. The fix has to hold up the way
+  // the issue's own bar states it: force mapZone to {ok:false} against a
+  // connected bridge and confirm the rendered map cannot be mistaken for
+  // live data, not just that a sentence above it once said so.
+  const demoStandIn = connected && liveZone !== null && !liveZone.ok
+
   return (
     <Shell
       plane={plane}
@@ -378,10 +387,10 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
        * forcing mapZone to {ok:false} — the merged `zone` still rendered the
        * full built-in Crossing map with no visible sign anything was wrong.
        */}
-      {connected && liveZone !== null && !liveZone.ok && (
+      {demoStandIn && (
         <div className="rounded border border-warn/30 bg-warn/5 px-2 py-1.5">
           <p className="text-xs text-warn leading-snug">
-            {liveZone.reason ?? 'Lich has no map for where you are.'} Showing
+            {liveZone?.reason ?? 'Lich has no map for where you are.'} Showing
             the built-in Crossing map below instead — it is not where you are.
           </p>
           <MapdbInstallControl />
@@ -401,7 +410,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           In plane mode the height comes from the column instead. */}
       <div
         ref={boxRef}
-        className={`rounded ${dock.zoom > 1 ? 'overflow-auto' : 'overflow-hidden'} ${
+        className={`relative rounded ${dock.zoom > 1 ? 'overflow-auto' : 'overflow-hidden'} ${
           plane ? 'flex-1 min-h-0' : ''
         }`}
         style={{
@@ -416,6 +425,12 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           style={{
             width: `${dock.zoom * 100}%`,
             height: `${dock.zoom * 100}%`,
+            // Desaturated and dimmed rather than removed: the room shapes and
+            // exits are still worth having for orientation, but a full-colour
+            // map reads as "this is true" and this one is not. The banner
+            // above can scroll out of view; a filter on the pixels themselves
+            // cannot.
+            ...(demoStandIn ? { filter: 'grayscale(0.85) brightness(0.55)' } : {}),
           }}
         >
           <MapCanvas
@@ -428,6 +443,22 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             trail={trail}
           />
         </div>
+
+        {/* A watermark on the map itself, not just a banner above it. The
+         * banner is what explains why; this is what keeps a glance from
+         * mistaking demo cartography for the character's real location even
+         * after the explanation has scrolled out of view - which is the bar
+         * issue #36 sets: "cannot be mistaken for live data." */}
+        {demoStandIn && (
+          <div
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <span className="rotate-[-18deg] select-none rounded border border-warn/40 bg-surface/70 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-warn">
+              Demo cartography — not your location
+            </span>
+          </div>
+        )}
       </div>
 
       {/* The way back.
