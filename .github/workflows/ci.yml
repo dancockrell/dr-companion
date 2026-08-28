@@ -31,6 +31,13 @@ concurrency:
   group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'shared' }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+# Node 24 everywhere, matching what this repo is developed and typed against
+# (@types/node ^24). CI sat on 22 and the gap was invisible until a suite used
+# an API whose option names changed between them: node:test's mock.module takes
+# `namedExports` on 22 and `exports` on 24, so test:backlog linked fine
+# locally and failed to instantiate on the runner. Testing on a runtime nobody
+# develops on finds problems that are not in the code.
+
 jobs:
   # Everything that does not need Rust.
   checks:
@@ -50,7 +57,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       - run: npm ci
@@ -79,7 +86,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
@@ -134,7 +141,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       # ws, for the round-trip test below.
