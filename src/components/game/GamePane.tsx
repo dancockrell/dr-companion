@@ -52,10 +52,8 @@ import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsVolume } from '../../lib/alertSound'
-import { setZone, setAmbientVolume, setMusicVolume } from '../../lib/ambientSound'
 import { SoundControls } from './SoundControls'
 import { loadPrefs } from '../../lib/persistence'
-import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
 /** How many lines are in the DOM at once. */
@@ -201,27 +199,23 @@ export function GamePane() {
   }, [highlights])
 
   /**
-   * The background layer: terrain ambience plus per-zone music, driven by the
-   * live bridge's zone report rather than the room line stream this pane
-   * otherwise reads. See ambientSound.ts's header for why zone rather than
-   * room, and why a no-op on an unchanged zone id is the whole point.
+   * The ambient/zone-music/radio layer (ambientSound.ts) was pulled out of
+   * the running app - Dan's call, 28 Aug 2026, after repeated overlap and
+   * volume complaints: "the idea for that ambiance is bad anyways. pull out
+   * that kind of stuff. lets not." The module, the sourced tracks, and the
+   * zone-playlist data stay in the repo (real, licensed, curated work - see
+   * docs/AUDIO.md) but nothing here calls into it anymore, so it never
+   * plays. Alerts are unaffected - a different system, and the one that was
+   * actually asked for at the start of this.
    *
-   * Persisted volumes are applied here, once, rather than read fresh by
-   * alertSound.ts/ambientSound.ts themselves - those modules have no opinion
-   * about storage (see their own headers), so something has to hand them the
-   * remembered levels on startup. SoundControls only writes the levels back
-   * out when a slider is actually moved.
+   * Persisted alert volume is applied here, once, rather than read fresh by
+   * alertSound.ts itself - that module has no opinion about storage (see
+   * its own header), so something has to hand it the remembered level on
+   * startup. SoundControls only writes it back out when the slider moves.
    */
   useEffect(() => {
-    const prefs = loadPrefs()
-    setAlertsVolume(prefs.alertsVolume ?? 0.8)
-    setAmbientVolume(prefs.ambientVolume ?? 1)
-    setMusicVolume(prefs.musicVolume ?? 1)
+    setAlertsVolume(loadPrefs().alertsVolume ?? 0.45)
   }, [])
-  const mapZone = useAppStore((s) => s.mapZone)
-  useEffect(() => {
-    setZone(mapZone?.ok ? (mapZone.zone ?? null) : null)
-  }, [mapZone])
 
   /**
    * Follow the bottom, unless the reader has deliberately scrolled away.

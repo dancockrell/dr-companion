@@ -1,25 +1,46 @@
 # The soundscape
 
-Two systems, easy to confuse because they share `data/audio/` and a control
-panel, but built for different things.
+**Status, 28 Aug 2026: the ambient/zone-music/radio layer described below
+is disabled.** Dan's call, after repeated overlap and volume complaints:
+"the idea for that ambiance is bad anyways. pull out that kind of stuff.
+lets not." `GamePane.tsx` no longer imports or calls `ambientSound.ts` at
+all - nothing in the running app triggers it. The module, the 233 sourced
+radio tracks, the 85 zone playlists, the manifest and license records all
+stay in the repo (real, licensed, curated work, and `tools/ambient-test.mjs`
+still runs and passes against it standalone) in case the direction changes
+later, but as of this commit none of it plays. Everything else in this
+file below is a record of what was built and why, kept for that reason -
+read the status line above as overriding anything below that describes
+ambience as active.
+
+Two systems, easy to confuse because they share `data/audio/` and used to
+share a control panel, but built for different things.
 
 **Alerts** (`src/lib/alertSound.ts`) — short one-shots tied to Genie
 highlight lines: `dr-genie-settings/Config/highlights.cfg`, played through
-Tauri's `read_sound` from the player's own Genie install. Unrelated to
-everything below except that both are tuned to blend in rather than sit
-forward - Dan's instruction (28 Aug 2026, alongside the control-panel
-rework below): "tune down your sound effects to be background, to blend
-in generally."
+Tauri's `read_sound` from the player's own Genie install. Still active -
+this was the original ask, it works, and it is unaffected by the ambience
+layer being pulled out. Tuned to blend in rather than sit forward - Dan's
+instruction (28 Aug 2026): "tune down your sound effects to be background,
+to blend in generally."
 
-**Ambience** (`src/lib/ambientSound.ts`) — the background layer covered
-here: terrain texture, per-zone music, and an optional radio override.
-Files live under `public/audio/`, served as plain static assets, not routed
-through Tauri at all - they ship with the app rather than living in a
-player's Genie folder.
+**Ambience** (`src/lib/ambientSound.ts`, disabled - see status above) —
+the background layer covered in the rest of this file: terrain texture,
+per-zone music, and an optional radio override. Files live under
+`public/audio/`, served as plain static assets, not routed through Tauri
+at all - they shipped with the app rather than living in a player's Genie
+folder, when they were shipping.
 
 ## Controls
 
-One button, "Sound," opens `src/components/game/SoundControls.tsx` - a
+**Current state, since ambience was pulled out:** `SoundControls.tsx` now
+shows one slider (Alerts) plus a quick-mute button - the Ambience/Music
+sliders and the radio station picker described in the rest of this section
+were removed along with the layer they controlled. The reasoning below
+about *why* a single slider-with-no-mute-flag design was chosen still
+applies to the one channel that's left.
+
+Before the ambience layer was pulled out, one button "Sound" opened a
 popover with three sliders (Alerts, Ambience, Music) and the radio station
 picker, rather than three separate icon-toggle buttons plus a `<select>`
 crammed into the toolbar. Dan's ask (28 Aug 2026): "full and strong sound
