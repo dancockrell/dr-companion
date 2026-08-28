@@ -246,6 +246,21 @@ Suggested division, so several sessions do not collide:
     `src/bridge/types.ts` for why the wire only supports asserting one
     direction. Bridge bumped to 0.10.2. The rest of this bullet (alias,
     autostart, vars, version, textsubs, links, lich5-update) is still open.
+  - **Done, downloads-ae:** `vars` (`Lich::Common::Vars`) — same shape again.
+    `Vars.list`/`Vars[name]` is a clean, documented Ruby API (SQLite-backed,
+    per-character), so `list_vars` reads it straight across: a `vars`
+    broadcast, a store field, a read-only panel next to Toggles. Non-string
+    values match Lich's own `;vars` GUI (`class: inspect`, not editable)
+    rather than inventing a new display rule. Bridge bumped to 0.10.3.
+  - **Checked and NOT done, downloads-ae:** `alias`, `autostart`, `textsubs`
+    have no `Vars`-shaped module to read from — `grep -rn "class Alias\|module
+    Alias" lib/` and the same for autostart/textsubs in `lib/common/` all
+    return nothing, and none of the three scripts reference a `Settings[]`/
+    `Vars[]`/YAML file for their own storage either. Whatever they use is
+    either a Lich-core global this audit hasn't found yet, or GTK-only state
+    with no headless read path — either way it needs actually reading the
+    600-line `alias.lic`/etc. source to find out, not assumed to be another
+    quick `Vars.list`-style win. `version` and `lich5-update` untouched too.
 
 ## 6. Traps worth not rediscovering
 
