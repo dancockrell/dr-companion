@@ -52,7 +52,7 @@ import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsVolume } from '../../lib/alertSound'
-import { setZone, setMusicVolume } from '../../lib/ambientSound'
+import { setZone, setMusicVolume, setRadioStation, setCustomStream } from '../../lib/ambientSound'
 import { SoundControls } from './SoundControls'
 import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
@@ -220,6 +220,14 @@ export function GamePane() {
     const prefs = loadPrefs()
     setAlertsVolume(prefs.alertsVolume ?? 0)
     setMusicVolume(prefs.musicVolume ?? 0)
+    // A remembered station or custom stream beats zone music on startup, the
+    // same override relationship setZone() enforces afterward. Custom stream
+    // wins if somehow both are set - see persistence.ts's own comment.
+    if (prefs.customStreamUrl) {
+      setCustomStream(prefs.customStreamUrl)
+    } else if (prefs.radioStation) {
+      setRadioStation(prefs.radioStation)
+    }
   }, [])
   const mapZone = useAppStore((s) => s.mapZone)
   useEffect(() => {
