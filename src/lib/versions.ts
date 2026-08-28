@@ -19,8 +19,19 @@
  * report.
  */
 
-/** The bridge version this build of the app ships and expects. */
-export const EXPECTED_BRIDGE_VERSION = '0.10.0'
+/**
+ * The bridge version this build of the app ships and expects.
+ *
+ * Found stale by downloads-a6 while landing an unrelated bridge change: this
+ * had not moved through two real BRIDGE_VERSION bumps in companion_bridge.lic
+ * (0.10.0 -> 0.10.2), which means the exact support-channel confusion this
+ * file's own header describes had started happening to us - a freshly
+ * reinstalled, genuinely current bridge would report itself "newer than
+ * expected" to the app that just shipped it. There is nothing that keeps this
+ * in sync automatically; whoever bumps BRIDGE_VERSION in the bridge script
+ * has to bump this too.
+ */
+export const EXPECTED_BRIDGE_VERSION = '0.10.2'
 
 export const APP_VERSION = '0.1.0'
 
