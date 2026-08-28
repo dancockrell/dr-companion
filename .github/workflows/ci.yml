@@ -9,9 +9,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+# On a pull request only the tip matters, so superseding a run is right. On
+# main it is not: each commit is a distinct state somebody may build on, and
+# several sessions push here, so cancelling threw away the verdict for 21 of
+# the last 57 pushes. A commit nobody verified is indistinguishable from one
+# that passed.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # Everything that does not need Rust.
