@@ -22,16 +22,19 @@
 /**
  * The bridge version this build of the app ships and expects.
  *
- * Found stale by downloads-a6 while landing an unrelated bridge change: this
- * had not moved through two real BRIDGE_VERSION bumps in companion_bridge.lic
- * (0.10.0 -> 0.10.2), which means the exact support-channel confusion this
- * file's own header describes had started happening to us - a freshly
- * reinstalled, genuinely current bridge would report itself "newer than
- * expected" to the app that just shipped it. There is nothing that keeps this
- * in sync automatically; whoever bumps BRIDGE_VERSION in the bridge script
- * has to bump this too.
+ * Drifted twice now, each time exactly the way this file's own header
+ * predicts: found stale by downloads-a6 (0.10.0 left here against a real
+ * bridge at 0.10.2), fixed, then drifted again to 0.10.2 against a real
+ * bridge at 0.10.3 within the same day - a `list_vars` commit bumped
+ * `BRIDGE_VERSION` in companion_bridge.lic and nobody, including whoever
+ * wrote that commit, thought to grep for this constant. Two real
+ * occurrences of the same defect is this project's own stated bar for
+ * "stop fixing it and make it impossible" - see
+ * `tools/bridge-version-drift-test.mjs`, wired into `npm run build`, which
+ * now fails the build the moment these two numbers disagree rather than
+ * waiting for a live app to print the warning at someone.
  */
-export const EXPECTED_BRIDGE_VERSION = '0.10.2'
+export const EXPECTED_BRIDGE_VERSION = '0.10.3'
 
 export const APP_VERSION = '0.1.0'
 
