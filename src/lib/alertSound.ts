@@ -64,8 +64,13 @@ let lastAny = 0
  * only one would have still left alerts too loud most of the way to 100%.
  * Persisted by the caller (GamePane), not here: this module has no opinion
  * about storage, only about what plays right now.
+ *
+ * Lowered again to 0 (28 Aug 2026, same day) - a first run should start
+ * silent, not at a tuned "reasonable" level nobody asked for. Kept in sync
+ * by hand with persistence.ts's own default; see that file's comment on the
+ * field for why they have to match.
  */
-let volume = 0.45
+let volume = 0
 export function setAlertsVolume(v: number) {
   volume = Math.max(0, Math.min(1.5, v))
 }

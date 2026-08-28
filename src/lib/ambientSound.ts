@@ -332,8 +332,12 @@ export function currentRadioStation(): string | null {
   return radio.current
 }
 
-/** 0 to 1.5 (0% to 150%); 0 is silent, and there is no separate mute flag - see `Layer`'s header for why. */
-let musicGain = 1
+/**
+ * 0 to 1.5 (0% to 150%); 0 is silent, and there is no separate mute flag -
+ * see `Layer`'s header for why. Default 0 (28 Aug 2026, Dan) - a first run
+ * starts silent; kept in sync by hand with persistence.ts's own default.
+ */
+let musicGain = 0
 export function setMusicVolume(v: number) {
   musicGain = Math.max(0, Math.min(1.5, v))
   music.setGain(musicGain)

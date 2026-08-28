@@ -63,6 +63,14 @@ export interface PersistedPrefs {
    * listener who wants the idle warning but not a music bed should be able
    * to have exactly that - see ambientSound.ts and alertSound.ts for where
    * these are actually applied.
+   *
+   * Default is 0 (muted) for both, not some tuned "reasonable" level - Dan's
+   * call, 28 Aug 2026, after a night of dr-companion's own audio work
+   * repeatedly surprising him and, separately, other sessions' leftover
+   * Browser-pane tabs leaving it playing unattended. A first run should
+   * never make noise nobody asked for; turning sound on is something a
+   * listener opts into via SoundControls, not something they have to
+   * discover how to turn off.
    */
   alertsVolume?: number
   musicVolume?: number
@@ -85,14 +93,15 @@ const defaults: PersistedPrefs = {
   houseEntryMaxSearches: 3,
   houseEntryHide: true,
   setupComplete: false,
-  // Kept identical to alertSound.ts's own default, by hand - there is no
-  // single source of truth between the two, and letting them drift is
-  // exactly what happened here once already (this stood at 0.8 after the
-  // module's own default had already been lowered to 0.45, and nothing
-  // caught it - see SoundControls.tsx's header for the read-order bug that
-  // made the drift actually reach the screen).
-  alertsVolume: 0.45,
-  musicVolume: 1,
+  // Kept identical to alertSound.ts's and ambientSound.ts's own defaults, by
+  // hand - there is no single source of truth between them, and letting them
+  // drift is exactly what happened here once already (this stood at 0.8
+  // after the module's own default had already been lowered to 0.45, and
+  // nothing caught it - see SoundControls.tsx's header for the read-order
+  // bug that made the drift actually reach the screen). Muted by default -
+  // see this field's own doc comment above for why.
+  alertsVolume: 0,
+  musicVolume: 0,
 }
 
 export function loadPrefs(): PersistedPrefs {

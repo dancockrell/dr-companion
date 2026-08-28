@@ -53,11 +53,13 @@ considered and rejected, because a mute flag and a remembered volume level
 are two pieces of state that can disagree with each other, and a control
 that can silently disagree with what it shows is worse than one fewer
 control. Persisted in `PersistedPrefs` (`src/lib/persistence.ts`) -
-`alertsVolume`/`musicVolume`, defaults 0.45/1 (there is no `ambientVolume`
-field any more - removed rather than left dead, since a stale field that
-nothing reads is exactly the kind of drift rule 1 in the working
-agreements warns about) - and applied once at `GamePane` mount, since
-neither sound module has (or should have) an opinion about storage.
+`alertsVolume`/`musicVolume`, both defaulting to 0 (muted) - not the earlier
+0.45/1 - since a first run should never make noise nobody asked for; sound
+is opt-in via the sliders, not opt-out (there is no `ambientVolume` field
+any more either - removed rather than left dead, since a stale field that
+nothing reads is exactly the kind of drift rule 1 in the working agreements
+warns about) - and applied once at `GamePane` mount, since neither sound
+module has (or should have) an opinion about storage.
 
 **Quick mute** (28 Aug 2026, Dan: "mute quickly or whatever," reconfirmed
 "that will need a volume control and mute too" when music came back) is a

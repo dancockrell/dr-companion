@@ -218,8 +218,8 @@ export function GamePane() {
    */
   useEffect(() => {
     const prefs = loadPrefs()
-    setAlertsVolume(prefs.alertsVolume ?? 0.45)
-    setMusicVolume(prefs.musicVolume ?? 1)
+    setAlertsVolume(prefs.alertsVolume ?? 0)
+    setMusicVolume(prefs.musicVolume ?? 0)
   }, [])
   const mapZone = useAppStore((s) => s.mapZone)
   useEffect(() => {
