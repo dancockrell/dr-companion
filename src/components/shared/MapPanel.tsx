@@ -17,7 +17,7 @@
  * a separate decision - see the comment on `goThere` below.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { loadZone, DEFAULT_ZONE } from '../../lib/mapData'
+import { loadZone, DEFAULT_ZONE, roomKind } from '../../lib/mapData'
 import type { MapZone } from '../../bridge/types'
 import {
   Map as MapIcon,
@@ -695,8 +695,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       )}
 
       <div className="flex items-center justify-between gap-2">
+        {/* The kinds the canvas actually draws, from the same `roomKind` and
+          * the same `onRoute` set it uses - so the legend and the map cannot
+          * disagree about what colour a room is.
+          *
+          * This passed raw `tags` before, which is what made the legend show
+          * three fixed entries forever and explain none of the dots on the
+          * map. See MapLegend's own comment for the measurement. */}
         <MapLegend
-          kinds={[...new Set((zone?.rooms ?? []).flatMap((r) => r.tags ?? []))]}
+          kinds={[
+            ...new Set((zone?.rooms ?? []).map((r) => roomKind(r, zone?.here, onRoute))),
+          ]}
         />
         {/* What the trail says, in words.
          *
