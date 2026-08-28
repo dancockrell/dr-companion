@@ -4,10 +4,19 @@
  * Everyone plays differently. A crafter wants inventory open and the map
  * small; someone hunting wants the map big and watched, because they know
  * which rooms break a script. Rather than guess an order and defend it, the
- * panels move and resize, and the arrangement is theirs.
+ * panels move and resize, and the arrangement is theirs — in freeform, via
+ * `FreeCanvas`, which is the only thing that reads `order`/`rects` today.
  *
- * Stored per UI mode, because Basic and Power are different arrangements of
- * the same panels, not the same arrangement at two sizes.
+ * **Not true of the default dashboard.** This used to say Basic and Power
+ * are "different arrangements of the same panels, not the same arrangement
+ * at two sizes" — that describes what this file builds, not what a player
+ * sees. `DashboardLayout.tsx` renders a fixed grid that never reads `order`
+ * for arrangement (see its own doc comment); the only place `order` reaches
+ * the default view is `Dashboard.tsx` filtering it for **dock membership**
+ * (which panels are docked vs popped out), not sequence. So today, Basic and
+ * Power differ in size defaults and each panel's own `dense` rendering, not
+ * in where panels sit. See issue #33 before assuming this comment is current
+ * again — it was already wrong once.
  */
 import type { UiMode } from '../types'
 import { DECKS, type Deck, type Tier } from './cards'
@@ -92,9 +101,13 @@ function autoDecks(): Record<Deck, DeckPref> {
 /**
  * Defaults per mode.
  *
- * Both lead with the map, because orientation is the thing you look at first
- * and keep looking at. They differ in what comes next: Basic puts the thing you
- * came to press second, Power puts the numbers there.
+ * The `order` arrays below are real and genuinely differ — Basic leads with
+ * `map`, Power with `room` — but see the header comment above: the default
+ * dashboard doesn't read `order` for arrangement, so this difference is
+ * currently only visible in freeform (`FreeCanvas`) and in which panels
+ * `Dashboard.tsx` treats as docked. `panels.height` and each panel's own
+ * `dense` behavior are what a player actually sees differ between modes
+ * today.
  */
 const DEFAULTS: Record<UiMode, Layout> = {
   basic: {
