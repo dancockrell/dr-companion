@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { collapse, sortCards, DECKS, DECK_LABEL, DECK_STYLE, type RoomCard, type Deck } from '../../lib/cards'
+import { sortCards, DECKS, DECK_LABEL, DECK_STYLE, type RoomCard, type Deck } from '../../lib/cards'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from '../shared/CreatureArt'
 import { hasArt } from '../../lib/creatureArt'
@@ -9,48 +9,50 @@ import { useAppStore } from '../../store/useAppStore'
 import type { RoomCombatant } from '../../types'
 
 /**
- * Who's here and what's on the floor, read the way DragonRealms itself reads
- * it — text first, a real portrait when there genuinely is one, grouped the
- * way `assess` groups them: hostile apart from allied apart from everyone
- * else, rather than one flat row where a goblin and a guildmate sit side by
- * side with nothing but a dot telling them apart.
+ * Who's here and what's on the floor: an icon per individual, the detail in
+ * its tooltip — per Dan's direct standard for this whole app, "at all points
+ * the question is how can I do this with an icon and a tooltip".
+ *
+ * Never `collapse()`'d into a count chip. Three goblins are three individual
+ * combatants, each fighting at its own range and relation and possibly
+ * targeting something different — "you can't stack monsters". Folding them
+ * into one "a goblin x3" row was hiding exactly the information this panel
+ * exists to show: `combat.ts`'s FIFO noun-matching was already built to hand
+ * each of the three cards its own distinct combatant, but collapse() never
+ * gave it three cards to work with in the first place.
  *
  * Room items moved in here from their own panel below the description
  * (RoomItemsPanel, now deleted) at Dan's direction — a room item belongs on
  * the room, not in a separate list elsewhere in the UI competing for the
- * same attention as the game pane and the channels. The take-on-click
- * mechanics (nounOf, run_macro, the canSendMacro debounce) moved with it
- * unchanged; only where they render changed.
+ * same attention as the game pane and the channels.
  *
- * Bigger icons and bigger text, per direct feedback that the first pass was
- * too small to actually read at a glance. `hasArt` still gates every
- * portrait — never CreatureArt's letter fallback — so nothing here regresses
- * to the placeholder-heavy version that got called "awful" two rounds ago.
+ * `hasArt` still gates every portrait — never CreatureArt's letter fallback —
+ * so nothing here regresses to the placeholder-heavy version that got called
+ * "awful" earlier this session.
  */
 
 const IN_FLIGHT_MS = 900
 const STALE_AFTER_SECONDS = 60
 
-/** assess's own phrasing, shortest useful form. */
-function combatText(c: RoomCombatant | undefined): string | null {
-  if (!c) return null
-  if (c.disengaged) return 'not fighting'
-  const bits: string[] = []
-  if (c.relation) bits.push(c.relation)
-  if (c.range) bits.push(RANGE_WORD[c.range])
-  return bits.length ? bits.join(' · ') : null
-}
-
-const STATUS_TEXT: Record<RoomCard['status'], string> = {
-  alive: '',
-  stunned: 'stunned',
-  dead: 'dead',
+/** assess's own phrasing, shortest useful form — lives in the tooltip now,
+ * not inline, so a row is never wider than its icon and name. */
+function combatTooltip(card: RoomCard, combatant: RoomCombatant | undefined, stale: boolean): string {
+  const bits = [card.name]
+  if (card.status === 'dead') bits.push('dead')
+  if (card.status === 'stunned') bits.push('stunned')
+  if (combatant?.disengaged) bits.push('not fighting')
+  if (combatant?.relation) bits.push(combatant.relation)
+  if (combatant?.range) bits.push(`at ${RANGE_WORD[combatant.range]} range`)
+  if (combatant?.target) bits.push(`targeting ${combatant.target}`)
+  if (combatant?.offBalance) bits.push('off balance')
+  if (stale && combatant?.enrichedAgeSeconds != null) {
+    bits.push(`last assessed ${combatant.enrichedAgeSeconds}s ago — may no longer be accurate`)
+  }
+  return bits.join(' — ')
 }
 
 function CreatureRow({ card, combatant }: { card: RoomCard; combatant?: RoomCombatant }) {
   const targetingYou = combatant?.target?.toLowerCase() === 'you'
-  const detail = combatText(combatant)
-  const statusText = STATUS_TEXT[card.status]
   const stale =
     combatant != null &&
     combatant.enrichedAgeSeconds != null &&
@@ -59,53 +61,40 @@ function CreatureRow({ card, combatant }: { card: RoomCard; combatant?: RoomComb
 
   return (
     <div
-      className={`flex max-w-full items-center gap-2 rounded px-2 py-1 text-sm ${
-        targetingYou ? 'bg-danger/10' : ''
-      }`}
-      title={stale ? `last assessed ${combatant!.enrichedAgeSeconds}s ago — may no longer be accurate` : undefined}
+      className="flex shrink-0 flex-col items-center gap-0.5"
+      title={combatTooltip(card, combatant, stale)}
     >
-      {portrait ? (
-        <CreatureArt
-          name={card.name}
-          noun={card.noun}
-          lore={card.lore}
-          height={32}
-          className="!w-8 shrink-0 !rounded-full"
-        />
-      ) : (
-        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${DECK_STYLE[card.deck].band}`} />
-      )}
-      <span className={`shrink-0 whitespace-nowrap ${card.status === 'dead' ? 'text-ink-faint line-through' : 'text-ink'}`}>
+      <div
+        className={`relative flex items-center justify-center rounded-full ${
+          targetingYou ? 'ring-2 ring-danger' : ''
+        }`}
+      >
+        {portrait ? (
+          <CreatureArt
+            name={card.name}
+            noun={card.noun}
+            lore={card.lore}
+            height={36}
+            className={`!w-9 rounded-full ${stale ? 'opacity-50' : ''} ${card.status === 'dead' ? 'grayscale opacity-40' : ''}`}
+          />
+        ) : (
+          <span
+            className={`flex h-9 w-9 items-center justify-center rounded-full ${DECK_STYLE[card.deck].band} ${
+              stale ? 'opacity-50' : ''
+            } ${card.status === 'dead' ? 'grayscale opacity-40' : ''}`}
+          />
+        )}
+        {combatant?.offBalance && (
+          <span className="absolute -right-0.5 -top-0.5 text-xs leading-none text-accent">⚖</span>
+        )}
+      </div>
+      <span
+        className={`max-w-[4.5rem] truncate text-xs ${
+          card.status === 'dead' ? 'text-ink-faint line-through' : targetingYou ? 'font-medium text-danger' : 'text-ink'
+        }`}
+      >
         {card.name}
-        {card.count > 1 && <span className="text-ink-faint"> x{card.count}</span>}
       </span>
-      {statusText && <span className="shrink-0 whitespace-nowrap text-warn">{statusText}</span>}
-      {detail && (
-        // min-w-0 is what lets a flex child shrink below its content size at
-        // all; without it `truncate` has nothing to truncate against and the
-        // row just pushes the whole group wider instead. This is the one
-        // variable-length field (a full relation+range+target phrase), so
-        // it is the one that gives when the row does not fit — the icon and
-        // name never do.
-        <span
-          className={`min-w-0 truncate ${
-            stale
-              ? 'italic text-ink-faint/60'
-              : targetingYou
-                ? 'font-medium text-danger'
-                : 'text-ink-faint'
-          }`}
-        >
-          {detail}
-          {targetingYou && ' — on you'}
-          {stale && ' (stale)'}
-        </span>
-      )}
-      {combatant?.offBalance && (
-        <span className="text-accent" title="off balance">
-          ⚖
-        </span>
-      )}
     </div>
   )
 }
@@ -191,7 +180,7 @@ export function RoomChips({
     [character, inFlight, requestIntent]
   )
 
-  const shown = collapse(sortCards(cards))
+  const shown = sortCards(cards)
   const index = indexCombatants(combatants)
 
   const byDeck: Record<Deck, RoomCard[]> = { hostile: [], allied: [], people: [] }
