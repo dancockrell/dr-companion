@@ -53,27 +53,7 @@ fn candidates(leaf: &str) -> Vec<PathBuf> {
 /// segment in it - the app asks for `highlights.cfg`, not for a path.
 #[tauri::command]
 pub fn read_genie_config(leaf: String) -> ConfigFile {
-    // The charset does the work: no '/', no '\', no ':', nothing non-ASCII,
-    // which forecloses separators, absolute paths, drive letters, UNC paths
-    // and alternate data streams in one line.
-    //
-    // Dot-dot is checked as an exact name rather than as a substring. It was a
-    // substring, which would have refused a legitimate `my..config.cfg` - a
-    // false refusal that reads to somebody as a corrupt file. Only the exact
-    // relative-directory names can do anything.
-    //
-    // Reserved device names are refused too. `CON.cfg` and `NUL.cfg` pass any
-    // charset check and Windows resolves them as devices; reading `CON` blocks
-    // on console input, which presents as the app hanging rather than failing.
-    if leaf.is_empty()
-        || leaf.len() > 64
-        || leaf == ".."
-        || leaf == "."
-        || !leaf
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
-        || crate::sounds::is_reserved_device(&leaf)
-    {
+    if !crate::sounds::valid_plain_filename(&leaf, 64) {
         return ConfigFile {
             note: format!("{leaf:?} is not a config file name"),
             ..Default::default()

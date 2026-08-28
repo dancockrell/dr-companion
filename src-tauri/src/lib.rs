@@ -9,11 +9,17 @@ pub mod sounds;
 
 use tauri::{Manager, WebviewWindow};
 
+/// The bridge address to try before the user has configured anything.
+/// Constant today because the port is fixed; a command rather than a literal
+/// in the frontend so the two sides can't drift if that changes.
 #[tauri::command]
 fn bridge_default_url() -> String {
     "ws://127.0.0.1:7415/companion".into()
 }
 
+/// Pin or unpin the main window above others. Never errors in practice on
+/// the platforms this ships for; `Result` only because the underlying
+/// windowing call can fail.
 #[tauri::command]
 fn set_always_on_top(window: WebviewWindow, value: bool) -> Result<(), String> {
     window.set_always_on_top(value).map_err(|e| e.to_string())
