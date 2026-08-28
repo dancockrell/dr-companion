@@ -117,25 +117,41 @@ type Biome = keyof typeof BIOME_FILES
 
 const BIOME_FILES = {
   forest: '/audio/biome/forest.ogg',
-  town: '/audio/biome/town.mp3',
-  cave: '/audio/biome/cave.mp3',
+  // `town` deliberately does not point at biome/town.mp3 ("Peaceful Village
+  // Loop"). Measured with ffprobe: 16 seconds, and it is an actual melodic
+  // tune - flute-and-guitar - not the terrain texture this slot is meant to
+  // carry (wind, water, cave drips, per this file's own header). Every
+  // biome with a real ambient track runs well over a minute (forest.ogg is
+  // 137s); looping a 16-second melody under a separately-playing music track
+  // is audible as exactly that, constantly, in the most-visited biome in the
+  // game. Pointed at forest.ogg - genuinely textural, CC0, already the
+  // established stand-in for biomes with nothing of their own - until town
+  // gets an ambient (not melodic) track of its own. The file stays on disk
+  // and in the manifest; only which key resolves to it changed.
+  town: '/audio/biome/forest.ogg',
+  // Same defect, same fix: biome/cave.mp3 ("Cave Loop") is also 16 seconds
+  // and melodic rather than textural. dungeon.ogg is a genuine, much longer
+  // ambient track and the closer biome besides.
+  cave: '/audio/biome/dungeon.ogg',
   dungeon: '/audio/biome/dungeon.ogg',
   // Stand-ins, not yet given their own track - see docs/AUDIO.md.
   wilderness: '/audio/biome/forest.ogg',
   water: '/audio/biome/forest.ogg',
   road: '/audio/biome/forest.ogg',
-  settlement: '/audio/biome/town.mp3',
-  interior: '/audio/biome/town.mp3',
+  settlement: '/audio/biome/forest.ogg',
+  interior: '/audio/biome/forest.ogg',
   badlands: '/audio/biome/forest.ogg',
   liminal: '/audio/biome/forest.ogg',
 } as const
 
 /**
- * Every biome resolves to a real file today, several of them sharing the two
+ * Every biome resolves to a real file today, several of them sharing the
  * tracks fetched so far as a stand-in. That is stated here rather than left
  * for someone to discover by ear: `data/audio/manifest.json` is where a
  * biome's own track gets added, and `BIOME_FILES` is the only other place
- * that has to change.
+ * that has to change. `town` and `cave` are stand-ins too now, despite
+ * having their own fetched files - see the comments on those two entries
+ * above for why the fetched files are unused rather than deleted.
  */
 const FALLBACK_BIOME: Biome = 'wilderness'
 

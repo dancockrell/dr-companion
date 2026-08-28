@@ -183,10 +183,25 @@ Dan's call, 27-28 Aug 2026. Never DragonRealms' own audio.
 
 ## What's actually done as of this writing
 
-Four biome tracks (forest, town, cave, dungeon — the remaining seven
-biomes in `BIOME_FILES` point at one of those four as a stand-in, see the
-comment above `FALLBACK_BIOME`), the full 85-zone biome classification,
-the crossfade engine, the vendor/manifest pipeline, and the mute toggle.
+Two biome tracks actually carry their own ambient audio (forest, dungeon)
+— every other biome, including `town` and `cave`, points at one of those
+two as a stand-in, see the comment above `FALLBACK_BIOME` in
+`ambientSound.ts`. `town` and `cave` *did* have their own fetched files
+(`biome/town.mp3` "Peaceful Village Loop", `biome/cave.mp3` "Cave Loop"),
+but both turned out to be 16-second melodic tunes - a plucked/flute-led
+tune, not the wind/water/drips texture this slot is for - measured with
+`ffprobe` after a player heard it as "an annoying flute and guitar
+plays over the music on a short loop," which it did, constantly, since
+`town` is the biome for Crossing and every settlement/interior. Repointed
+to the stand-ins rather than deleted; **town and cave still need their own
+genuinely textural ambient track** (short is fine for a real texture loop -
+see ambient-test.mjs's own comment on why that property is intentionally
+*not* checked here the way it is for radio tracks; melodic is the actual
+defect, not duration) - this is a
+regression fix, not the fix for the underlying gap.
+
+The full 85-zone biome classification, the crossfade engine, the
+vendor/manifest pipeline, and the mute toggle are done.
 
 **Radio: six stations, 233 tracks.** Six Strings (61, guitar/lute/cello,
 including a large Spanish/flamenco folk batch), The Old Concert Hall (42,
