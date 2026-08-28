@@ -32,8 +32,7 @@ use crate::setup::genie_install_dir;
 /// machine where the linker is already fragile. Twenty lines with a test
 /// against the RFC 4648 vectors is cheaper than a supply chain.
 fn base64(bytes: &[u8]) -> String {
-    const ALPHABET: &[u8; 64] =
-        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
     for chunk in bytes.chunks(3) {
@@ -49,8 +48,16 @@ fn base64(bytes: &[u8]) -> String {
         // The tail is padded rather than truncated. A decoder given an
         // unpadded stream is entitled to reject it, and a data: URL that some
         // browsers accept and others do not is the worst kind of bug.
-        out.push(if chunk.len() > 1 { ALPHABET[(n >> 6) as usize & 63] as char } else { '=' });
-        out.push(if chunk.len() > 2 { ALPHABET[n as usize & 63] as char } else { '=' });
+        out.push(if chunk.len() > 1 {
+            ALPHABET[(n >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            ALPHABET[n as usize & 63] as char
+        } else {
+            '='
+        });
     }
     out
 }
@@ -73,11 +80,7 @@ fn base64(bytes: &[u8]) -> String {
 /// written yet. Rejecting by name survives someone dropping the `is_file`
 /// call; relying on `is_file` does not.
 pub(crate) fn is_reserved_device(name: &str) -> bool {
-    let stem = name
-        .split('.')
-        .next()
-        .unwrap_or("")
-        .to_ascii_uppercase();
+    let stem = name.split('.').next().unwrap_or("").to_ascii_uppercase();
 
     matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
         || (stem.len() == 4
@@ -158,7 +161,10 @@ pub fn read_sound(name: String) -> SoundFile {
             Ok(m) if m.len() > MAX_BYTES => {
                 return SoundFile {
                     path: p.to_string_lossy().into_owned(),
-                    note: format!("{name} is {} bytes, larger than an alert should be", m.len()),
+                    note: format!(
+                        "{name} is {} bytes, larger than an alert should be",
+                        m.len()
+                    ),
                     ..Default::default()
                 }
             }
@@ -267,7 +273,13 @@ mod tests {
         // The control. Without it, "everything returned true" and "the
         // function returns true for everything" are the same reading - and a
         // classifier that refuses all input would pass the block above.
-        for ordinary in ["Help.wav", "Chatter.wav", "console.wav", "communicator.mp3", "auxiliary.ogg"] {
+        for ordinary in [
+            "Help.wav",
+            "Chatter.wav",
+            "console.wav",
+            "communicator.mp3",
+            "auxiliary.ogg",
+        ] {
             assert!(
                 !is_reserved_device(ordinary),
                 "{ordinary:?} is an ordinary name and must be allowed"

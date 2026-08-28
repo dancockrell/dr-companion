@@ -121,10 +121,7 @@ fn run_bounded(ruby: &str, dir: &Path, args: &[&str]) -> Result<(bool, String), 
                 if start.elapsed() > TIMEOUT {
                     let _ = child.kill();
                     let _ = child.wait();
-                    return Err(format!(
-                        "Lich did not answer within {}s",
-                        TIMEOUT.as_secs()
-                    ));
+                    return Err(format!("Lich did not answer within {}s", TIMEOUT.as_secs()));
                 }
                 std::thread::sleep(Duration::from_millis(120));
             }
@@ -321,7 +318,11 @@ pub fn lich_health() -> LichHealth {
                         || s.contains("missing")
                 })
                 .map(|l| l.trim().to_string())
-                .or_else(|| text.lines().find(|l| !l.trim().is_empty()).map(|l| l.trim().to_string()));
+                .or_else(|| {
+                    text.lines()
+                        .find(|l| !l.trim().is_empty())
+                        .map(|l| l.trim().to_string())
+                });
 
             let found = problem.as_deref().and_then(|_| diagnose(&text, dir));
 
@@ -352,7 +353,10 @@ mod tests {
                     C:/Ruby4Lich5/Lich5/lib/common/script.rb (LoadError)";
         let (diagnosis, remedy) =
             diagnose(text, Path::new("C:\\Ruby4Lich5\\Lich5")).expect("should recognise this");
-        assert!(diagnosis.contains("missing from the Lich install"), "{diagnosis}");
+        assert!(
+            diagnosis.contains("missing from the Lich install"),
+            "{diagnosis}"
+        );
         // The remedy has to send them to the right place. Telling somebody to
         // install gems when 24 source files are gone is an hour of their life.
         assert!(remedy.contains("Re-extract"), "{remedy}");
@@ -382,10 +386,7 @@ mod tests {
     /// general-purpose `which` - just enough to let this test run where it
     /// matters without hardcoding one path.
     fn find_ruby() -> Option<String> {
-        for p in [
-            "C:/Ruby4Lich5/4.0.6/bin/ruby.exe",
-            "C:/Ruby/bin/ruby.exe",
-        ] {
+        for p in ["C:/Ruby4Lich5/4.0.6/bin/ruby.exe", "C:/Ruby/bin/ruby.exe"] {
             if Path::new(p).exists() {
                 return Some(p.to_string());
             }
@@ -418,10 +419,7 @@ mod tests {
             return;
         };
 
-        let dir = std::env::temp_dir().join(format!(
-            "drc-lich-health-test-{}",
-            std::process::id()
-        ));
+        let dir = std::env::temp_dir().join(format!("drc-lich-health-test-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(dir.join("temp")).unwrap();
 
@@ -458,7 +456,10 @@ require File.join(__dir__, 'lib', 'common', 'script.rb')
 
         let (diagnosis, _) =
             diagnose(&log, &dir).expect("this shape should be recognised as a missing file");
-        assert!(diagnosis.contains("missing from the Lich install"), "{diagnosis}");
+        assert!(
+            diagnosis.contains("missing from the Lich install"),
+            "{diagnosis}"
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }

@@ -823,7 +823,10 @@ fn bundled_ruby4lich5<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<(PathBuf,
 
     let exe_path = app
         .path()
-        .resolve("vendor/Ruby4Lich5.exe", tauri::path::BaseDirectory::Resource)
+        .resolve(
+            "vendor/Ruby4Lich5.exe",
+            tauri::path::BaseDirectory::Resource,
+        )
         .ok()?;
     let manifest_path = app
         .path()
@@ -899,7 +902,9 @@ fn bundled_option(manifest: &VendorManifest) -> DownloadOption {
 /// bundled location itself, the only place resource paths are computed for
 /// this whole feature.
 #[tauri::command]
-pub fn install_bundled_ruby4lich5<R: tauri::Runtime>(app: AppHandle<R>) -> Result<DownloadResult, String> {
+pub fn install_bundled_ruby4lich5<R: tauri::Runtime>(
+    app: AppHandle<R>,
+) -> Result<DownloadResult, String> {
     let (src, manifest) = bundled_ruby4lich5(&app)
         .ok_or_else(|| "no verified bundled copy is present in this build".to_string())?;
 
@@ -2347,7 +2352,10 @@ mod vendor_tests {
 
     fn manifest_json(bytes: &[u8], version: &str) -> String {
         let sha = format!("{:x}", Sha256::digest(bytes));
-        format!(r#"{{"version":"{version}","sha256":"{sha}","bytes":{}}}"#, bytes.len())
+        format!(
+            r#"{{"version":"{version}","sha256":"{sha}","bytes":{}}}"#,
+            bytes.len()
+        )
     }
 
     /// The case a real build is in whenever `vendor-fetch.mjs` ran and wrote
@@ -2447,11 +2455,17 @@ mod vendor_tests {
             bytes: 68_000_000,
         };
         let opt = bundled_option(&manifest);
-        assert!(opt.bundled, "the frontend uses this to route to the right install command");
+        assert!(
+            opt.bundled,
+            "the frontend uses this to route to the right install command"
+        );
         assert!(opt.recommended);
         assert_eq!(opt.version, "5.20.1");
         assert_eq!(opt.bytes, 68_000_000);
-        assert_eq!(opt.after, "installer", "still needs its own separate consent to run");
+        assert_eq!(
+            opt.after, "installer",
+            "still needs its own separate consent to run"
+        );
     }
 }
 
@@ -2490,7 +2504,11 @@ mod bridge_staleness_tests {
         let lf = b"BRIDGE_VERSION = '0.9.0'\nrespond 'hello'\n";
         let crlf = b"BRIDGE_VERSION = '0.9.0'\r\nrespond 'hello'\r\n";
 
-        assert_ne!(lf.len(), crlf.len(), "test premise: the byte counts do differ");
+        assert_ne!(
+            lf.len(),
+            crlf.len(),
+            "test premise: the byte counts do differ"
+        );
         assert!(
             compare_bridge(lf, crlf),
             "a raw byte hash would call these different; they are the same script"
@@ -2563,12 +2581,19 @@ mod bridge_staleness_tests {
 
         // Both present and different: stale, at the same declared version.
         let verdict = Some(stale.as_slice()).map(|b| !compare_bridge(current, b));
-        assert_eq!(verdict, Some(true), "same version, different content, must read stale");
+        assert_eq!(
+            verdict,
+            Some(true),
+            "same version, different content, must read stale"
+        );
 
         // No reference copy: no verdict. `plan_setup_inner` only computes one
         // when both sides are `Some`, and this stands in for that arm.
         let bundled: Option<&[u8]> = None;
         let verdict = bundled.map(|b| !compare_bridge(current, b));
-        assert_eq!(verdict, None, "a missing reference must not become a verdict");
+        assert_eq!(
+            verdict, None,
+            "a missing reference must not become a verdict"
+        );
     }
 }

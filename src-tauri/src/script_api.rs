@@ -357,7 +357,10 @@ mod tests {
         assert_eq!(read_json(&mut r)["type"], "auth_failed");
         let mut rest = Vec::new();
         r.read_to_end(&mut rest).unwrap();
-        assert!(rest.is_empty(), "nothing more should arrive after a refused auth");
+        assert!(
+            rest.is_empty(),
+            "nothing more should arrive after a refused auth"
+        );
 
         // Right token: hello, then auth_ok, and the connection stays open.
         let (mut s, mut r) = connect(port);
@@ -394,7 +397,11 @@ mod tests {
         send_json(&mut s, &json!({"type": "auth", "token": "not-it"})).unwrap();
         done.wait();
 
-        assert_eq!(clients.lock().unwrap().len(), 0, "a failed auth must not register a broadcast target");
+        assert_eq!(
+            clients.lock().unwrap().len(),
+            0,
+            "a failed auth must not register a broadcast target"
+        );
     }
 
     /// The actual point of the socket: a game line reaches an authed script,
@@ -431,7 +438,11 @@ mod tests {
         }
         assert_eq!(clients.lock().unwrap().len(), 1);
 
-        broadcast(&clients, r#"{"seq":1,"text":"a shaggy mutt bounds in\r\n"}"#, "line");
+        broadcast(
+            &clients,
+            r#"{"seq":1,"text":"a shaggy mutt bounds in\r\n"}"#,
+            "line",
+        );
 
         let got = read_json(&mut r);
         assert_eq!(got["type"], "line");
@@ -484,7 +495,11 @@ mod tests {
             broadcast(&clients, r#"{"seq":1,"text":"x"}"#, "line");
             std::thread::sleep(Duration::from_millis(20));
         }
-        assert_eq!(clients.lock().unwrap().len(), 0, "a dead client must not stay registered forever");
+        assert_eq!(
+            clients.lock().unwrap().len(),
+            0,
+            "a dead client must not stay registered forever"
+        );
     }
 
     /// A `send` request reaches whatever `dispatch` was stubbed to do, and a
@@ -504,9 +519,15 @@ mod tests {
             move || {
                 for stream in listener.incoming().flatten() {
                     let seen = Arc::clone(&seen);
-                    handle_client(stream, Arc::clone(&clients), "tok", &next_id, move |v, _out| {
-                        seen.lock().unwrap().push(v.clone());
-                    });
+                    handle_client(
+                        stream,
+                        Arc::clone(&clients),
+                        "tok",
+                        &next_id,
+                        move |v, _out| {
+                            seen.lock().unwrap().push(v.clone());
+                        },
+                    );
                 }
             }
         });
@@ -520,10 +541,13 @@ mod tests {
         s.write_all(b"not json at all\n").unwrap();
 
         let err = read_json(&mut r);
-        assert_eq!(err["type"], "error", "the malformed line should be answered, not ignored");
+        assert_eq!(
+            err["type"], "error",
+            "the malformed line should be answered, not ignored"
+        );
 
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
-        while seen.lock().unwrap().len() < 1 && std::time::Instant::now() < deadline {
+        while seen.lock().unwrap().is_empty() && std::time::Instant::now() < deadline {
             std::thread::sleep(Duration::from_millis(5));
         }
         assert_eq!(seen.lock().unwrap()[0]["command"], "look");

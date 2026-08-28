@@ -158,7 +158,9 @@ mod tests {
         }
 
         // Refused as directories, not because of the dots.
-        assert!(read_genie_config("..".into()).note.contains("not a config file name"));
+        assert!(read_genie_config("..".into())
+            .note
+            .contains("not a config file name"));
 
         // And a legitimate name with dots in it passes validation. It will not
         // be found, but the reason must be "no such file", not "bad name".
