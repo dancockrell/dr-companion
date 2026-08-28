@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.10.3'
+  BRIDGE_VERSION = '0.10.4'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -738,9 +738,21 @@ module Companion
     ROUNDTIME = /^\[?\(?Roundtime:?/i.freeze
 
     # Per-intent expectations. Keys are stable; values are what we hope to see.
+    #
+    # This table is the whole point of the module comment above - one place a
+    # tester can fix - and it only holds that promise if every `expect:` in
+    # the file actually reads from it rather than writing its own regex.
+    # `health` and the fallback `Cmd.exec('health', expect: [...])` used to be
+    # two separate literals and had already drifted: the fallback was missing
+    # the `You are in good` alternative present here, so a healthy character's
+    # health check would never match on that path. Caught by the table saying
+    # something the code no longer did, which is what having one table is for.
     EXPECT = {
       health: [/You have|You feel|You are in good/i],
       stow:   [/You put|You (?:can't|cannot)|is too/i],
+      toggle: [/BRIEF|INVBRIEF|Toggle settings|You have the following/i],
+      flags:  [/ShowRoomID|Flags|You have the following/i],
+      escape: [/You have fled|You can't flee|nowhere to flee|too hurt|You gather yourself/i],
       # Filled in as intents land. Unknown keys fall through to no expectation,
       # which sends the command and does not pretend to have read the answer.
     }.freeze
@@ -1868,7 +1880,7 @@ module Companion
     def check_toggles(server)
       line = Cmd.exec(
         'toggle',
-        expect: [/BRIEF|INVBRIEF|Toggle settings|You have the following/i],
+        expect: Patterns.expect(:toggle),
         timeout: 8,
         label: 'toggles'
       )
@@ -1949,7 +1961,7 @@ module Companion
     def check_room_id_flag(server)
       line = Cmd.exec(
         'flags',
-        expect: [/ShowRoomID|Flags|You have the following/i],
+        expect: Patterns.expect(:flags),
         timeout: 8,
         label: 'flags'
       )
@@ -2010,7 +2022,7 @@ module Companion
       # been hiding a broken body the whole time nobody could reach it.
       unless data.respond_to?(:wounds)
         # Fall back to reading the raw reply ourselves rather than giving up.
-        line = Cmd.exec('health', expect: [/You have|You feel/i], timeout: 8)
+        line = Cmd.exec('health', expect: Patterns.expect(:health), timeout: 8)
         return [false, 'Could not read health.'] if line.nil?
         server.log(line.to_s)
         return [true, 'health read']
@@ -2085,7 +2097,7 @@ module Companion
         end
         next if name.empty?
 
-        line = Cmd.exec("stow #{name}", expect: [/You put|You (?:can't|cannot)|is too/i], timeout: 6)
+        line = Cmd.exec("stow #{name}", expect: Patterns.expect(:stow), timeout: 6)
         if line.nil?
           server.log("stow #{name}: no reply", 'warn')
         elsif line =~ /You put/i
@@ -2175,7 +2187,7 @@ module Companion
       Runaway.reset
       line = Cmd.exec(
         'flee',
-        expect: [/You have fled|You can't flee|nowhere to flee|too hurt|You gather yourself/i],
+        expect: Patterns.expect(:escape),
         timeout: 6
       )
       server.log("Escape: #{line || 'no response from flee'}", line ? 'info' : 'warn')
