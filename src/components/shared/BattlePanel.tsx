@@ -1,5 +1,6 @@
 import { useAppStore } from '../../store/useAppStore'
 import { CardDeck } from './CardDeck'
+import { CombatRadar } from './CombatRadar'
 import { Paperdoll } from './Paperdoll'
 import { VitalCluster, vitalsFor } from './VitalCluster'
 import { fromRoom } from '../../lib/room'
@@ -55,15 +56,14 @@ export function BattlePanel({
           <VitalCluster vitals={vitals} height={54} />
         </div>
 
-        {/* Them. */}
+        {/* Them, laid out the way assess actually describes a fight — range
+            and position, not just a list of names. See CombatRadar's own
+            doc comment for why this replaced the card fan here specifically:
+            the fan is a fine "what and how many" view, but it cannot show
+            where anything is, which is the question a fight actually asks. */}
         <div className="min-w-[13rem] flex-1">
           {hostile.length > 0 ? (
-            <CardDeck
-              deck="hostile"
-              cards={hostile}
-              pref={deckPrefs?.hostile ?? 'auto'}
-              onCyclePref={onCycleDeck ? () => onCycleDeck('hostile') : undefined}
-            />
+            <CombatRadar cards={hostile} combatants={character?.roomCombatants ?? []} />
           ) : (
             <p className="pt-6 text-sm text-ink-faint">Nothing hostile here.</p>
           )}

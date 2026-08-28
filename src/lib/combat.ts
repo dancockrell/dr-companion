@@ -16,15 +16,13 @@
  * real limitation, not a bug — DR's own `assess` list numbers are the only
  * thing that could resolve it exactly, and this app does not run assess.
  */
-import type { RoomCard } from './cards'
-import type { CombatRange, RoomCombatant } from '../types'
+import type { RoomCombatant } from '../types'
 
-const RANGE_ORDER: CombatRange[] = ['melee', 'pole', 'missile']
-
-export const RANGE_LABEL: Record<CombatRange, string> = {
-  melee: 'Melee',
-  pole: 'Polearm',
-  missile: 'Ranged',
+/** DR's own three assess range buckets, in the game's own words. */
+export const RANGE_WORD: Record<'melee' | 'pole' | 'missile', string> = {
+  melee: 'melee',
+  pole: 'pole weapon',
+  missile: 'missile',
 }
 
 /** Build a noun → queue-of-combatants index once per render, not per card. */
@@ -42,47 +40,18 @@ export function indexCombatants(
   return byNoun
 }
 
-/** Claims and removes the next unclaimed combatant matching this card's noun. */
-export function combatantFor(
-  card: RoomCard,
+/** Claims and removes the next unclaimed combatant matching this noun. */
+export function claimCombatant(
+  noun: string,
   index: Map<string, RoomCombatant[]>
 ): RoomCombatant | undefined {
-  const queue = index.get(card.noun.toLowerCase())
-  return queue?.shift()
+  return index.get(noun.toLowerCase())?.shift()
 }
 
-/**
- * Where a card without any assessed combatant belongs on the range display.
- *
- * Not "melee by default" — that would put an unassessed creature in the
- * lane meant for a specific, known fact. It gets its own bucket instead.
- */
-export type RangeBucket = CombatRange | 'unassessed' | 'disengaged'
-
-export function bucketFor(combatant: RoomCombatant | undefined): RangeBucket {
-  if (!combatant) return 'unassessed'
-  if (combatant.disengaged) return 'disengaged'
-  if (combatant.range) return combatant.range
-  return 'unassessed'
-}
-
-export const BUCKET_ORDER: RangeBucket[] = [...RANGE_ORDER, 'disengaged', 'unassessed']
-
-export const BUCKET_LABEL: Record<RangeBucket, string> = {
-  ...RANGE_LABEL,
-  disengaged: 'Not fighting',
-  unassessed: 'Unassessed',
-}
-
-/**
- * A key distinguishing two same-named creatures whose combat state actually
- * differs — collapsing cards is right for four visually identical boars, and
- * wrong the moment one of them is at melee range on you and another has
- * broken off. Two unassessed creatures still collapse together: there is
- * nothing yet to tell them apart, and pretending otherwise would invent a
- * distinction the data does not have.
- */
-export function combatantSignature(c: RoomCombatant | undefined): string {
-  if (!c) return 'none'
-  return [bucketFor(c), c.target ?? '', c.offBalance ? '1' : '0'].join(':')
+/** Convenience overload taking a RoomCard directly. */
+export function combatantFor(
+  card: { noun: string },
+  index: Map<string, RoomCombatant[]>
+): RoomCombatant | undefined {
+  return claimCombatant(card.noun, index)
 }
