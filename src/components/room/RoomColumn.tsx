@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { RoomScene } from './RoomScene'
 import { RoomChips } from './RoomChips'
+import { RoomItemsPanel } from './RoomItemsPanel'
 import { StreamTabs } from '../game/StreamTabs'
 import { GamePane } from '../game/GamePane'
 import { PanelBoundary } from '../shared/PanelBoundary'
@@ -8,9 +9,9 @@ import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
 import { useHighlights } from '../../lib/useHighlights'
 import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
-import { describeRoomPlayers, describeRoomItems } from '../../lib/roomOccupants'
+import { describeRoomPlayers } from '../../lib/roomOccupants'
 import { fromRoom } from '../../lib/room'
-import type { RoomItem, RoomPlayer, Sourced } from '../../types/stream'
+import type { RoomPlayer, Sourced } from '../../types/stream'
 import { bridge } from '../../bridge'
 
 /**
@@ -135,7 +136,10 @@ export function RoomColumn() {
         )}
       </div>
 
-      <RoomOccupants players={stream.roomPlayers} items={stream.roomItems} />
+      <RoomOccupants players={stream.roomPlayers} />
+      <PanelBoundary label="Room items">
+        <RoomItemsPanel items={character?.roomItems} />
+      </PanelBoundary>
 
       {/* The game itself, above the channels.
         *
@@ -173,21 +177,13 @@ export function RoomColumn() {
  * empty means the game said so explicitly ("nobody else is here", "nothing
  * on the floor" — a real, current answer, shown as text rather than hidden).
  */
-function RoomOccupants({
-  players,
-  items,
-}: {
-  players?: Sourced<RoomPlayer[]>
-  items?: Sourced<RoomItem[]>
-}) {
+function RoomOccupants({ players }: { players?: Sourced<RoomPlayer[]> }) {
   const playersLine = describeRoomPlayers(players)
-  const itemsLine = describeRoomItems(items)
-  if (!playersLine && !itemsLine) return null
+  if (!playersLine) return null
 
   return (
-    <div className="shrink-0 space-y-0.5 rounded border border-border bg-surface-raised px-2 py-1.5 text-xs">
-      {playersLine && <p className="truncate text-ink-muted">{playersLine}</p>}
-      {itemsLine && <p className="truncate text-ink-faint">{itemsLine}</p>}
+    <div className="shrink-0 rounded border border-border bg-surface-raised px-2 py-1.5 text-xs">
+      <p className="truncate text-ink-muted">{playersLine}</p>
     </div>
   )
 }
