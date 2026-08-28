@@ -197,15 +197,24 @@ export function RoomChips({
   const itemState = canSendMacro({ stopLatched: character?.stopLatched, inFlight, connected: !!character })
 
   return (
-    <div className={`flex max-h-56 flex-col gap-1.5 overflow-y-auto ${className ?? ''}`}>
-      {DECKS.map((deck) =>
-        byDeck[deck].length > 0 ? (
-          <Group key={deck} label={DECK_LABEL[deck]} colorClass={DECK_STYLE[deck].text}>
-            {byDeck[deck].map((c) => (
-              <CreatureRow key={c.id} card={c} combatant={combatantFor(c, index)} />
-            ))}
-          </Group>
-        ) : null
+    <div className={`flex flex-col gap-1.5 ${className ?? ''}`}>
+      {/* Who's here scrolls on its own — a busy fight can run past the
+          scene's height, and when it does the floor below must stay put
+          rather than being pushed under the fold with it. Measured: five
+          people plus four hostiles clipped "On the floor" out of view
+          entirely behind an unlabelled scrollbar before this split. */}
+      {shown.length > 0 && (
+        <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto">
+          {DECKS.map((deck) =>
+            byDeck[deck].length > 0 ? (
+              <Group key={deck} label={DECK_LABEL[deck]} colorClass={DECK_STYLE[deck].text}>
+                {byDeck[deck].map((c) => (
+                  <CreatureRow key={c.id} card={c} combatant={combatantFor(c, index)} />
+                ))}
+              </Group>
+            ) : null
+          )}
+        </div>
       )}
       {itemsKnown && (
         <Group label="On the floor" colorClass="text-ink-faint">
