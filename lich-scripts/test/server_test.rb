@@ -98,6 +98,11 @@ end
 class FakeScript
   def self.current = new
   def path = File.join(TEST_LICH_DIR, 'scripts', 'companion_bridge.lic')
+  # list_scripts excludes the running bridge by Script.current.name - had no
+  # stub at all, so that exclusion was untestable (State.safe(nil) always
+  # won, so it excluded a script named literally nil, which is to say
+  # nothing).
+  def name = 'companion_bridge'
   def self.at_exit(&_blk) = nil
   def self.running = $fake_running_scripts
 
@@ -130,6 +135,13 @@ Script = FakeScript
 $fake_started = []
 
 $lich_dir = "#{TEST_LICH_DIR}/"
+
+# list_scripts references the bare SCRIPT_DIR constant directly, wrapped in
+# State.safe(...) - so with SCRIPT_DIR entirely undefined, the NameError was
+# swallowed and the catalog silently came back [] in every run there has
+# ever been. A real Lich sets this from $lich_dir + 'scripts'; matching that
+# here rather than reusing $lich_dir by coincidence.
+SCRIPT_DIR = File.join(TEST_LICH_DIR, 'scripts')
 
 # For the concurrency tests below: run_macro/stow_all reach Cmd.exec, which
 # calls fput directly (no `expect:` given, so dothistimeout is never reached).
@@ -1536,6 +1548,48 @@ begin
   check('floor: Script.start was not called again', $fake_started.empty?, $fake_started.inspect)
   $fake_running_scripts = []
   $fake_scripts_installed = []
+
+  puts ''
+  puts '-- list_scripts enumerates real files: root, custom/, every accepted extension --'
+  # Ordinary by comparison to start_script - this reads the real filesystem
+  # rather than a mocked API, so the test writes real files into
+  # TEST_LICH_DIR/scripts (the same fixture read_settings's tests use) and
+  # asks what comes back, rather than stubbing the scan itself.
+  scripts_dir = File.join(TEST_LICH_DIR, 'scripts')
+  custom_dir = File.join(scripts_dir, 'custom')
+  FileUtils.mkdir_p(custom_dir)
+  File.write(File.join(scripts_dir, 'afk.lic'), '')
+  File.write(File.join(scripts_dir, 'hunting-buddy.rb'), '')
+  File.write(File.join(scripts_dir, 'notes.txt'), 'not a script')
+  # The bridge's own file, written here on purpose - without it, "excludes
+  # itself" would pass vacuously by never having a chance to appear.
+  File.write(File.join(scripts_dir, 'companion_bridge.lic'), '')
+  File.write(File.join(custom_dir, 'my-macro.lic'), '')
+
+  c.send_json(type: 'intent', intent: 'list_scripts')
+  msgs = collect(c, 4)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  catalog_msg = msgs.find { |m| m['type'] == 'script_catalog' }
+  names = catalog_msg && catalog_msg['payload']
+
+  check('acked ok', ack && ack['ok'] == true, ack.inspect)
+  check('floor: the catalog is not empty - proves the scan actually ran', names && !names.empty?, names.inspect)
+  check('includes a root-level .lic script', names && names.include?('afk'), names.inspect)
+  check('includes a root-level .rb script', names && names.include?('hunting-buddy'), names.inspect)
+  check('includes a script from custom/', names && names.include?('my-macro'), names.inspect)
+  # An exact-set check, not "does not include 'notes'" - the extension
+  # filter's job is to strip the extension AND drop the file. A version that
+  # only stripped `.sub(exts, '')` and dropped the `.select` would leave
+  # "notes.txt" untouched in the list, which is also not equal to the string
+  # "notes" - so an inclusion check on the trimmed name would pass for the
+  # wrong reason regardless of whether the filter ran. Checked and caught
+  # exactly this: the first version of this test used
+  # `!names.include?('notes')` and stayed green with the filter removed.
+  check(
+    'the catalog is exactly these three names, nothing extra and nothing missing',
+    names == %w[afk hunting-buddy my-macro],
+    names.inspect
+  )
 
   c.close
 ensure
