@@ -70,7 +70,7 @@ import type { DeckPref } from '../../lib/layout'
  *   vitals, wounds, hands, room contents, Stop — plus the two things that
  *   are the actual reason to open this app instead: the mindstate/
  *   throughput board (nothing in the dr-scripts suite shows it, DESIGN.md
- *   §2.35) and Task Flows. Risk, Training, Inventory and the 234-script
+ *   §2.35) and Tasks. Risk, Training, Inventory and the 234-script
  *   Library are real, live-wired panels, and they are exactly the panels a
  *   newcomer never asked Genie for — they are Power's to show, not Basic's
  *   to bury a beginner under. `dense` also tightens gaps and padding, since
@@ -247,19 +247,19 @@ export function DashboardLayout({
           </Box>
         )}
 
-        {/* Task flows, on the first page.
+        {/* Tasks and scripts, on the first page.
          *
          * This rail held the paperdoll, the room and two lists, and the thing
          * a player presses most often was not on the page at all - the
          * Activities panel existed and was registered as a pop-out that the
          * dashboard never rendered. */}
-        <Box title="Task flows" className="min-h-0">
-          <PanelBoundary label="Task flows">
+        <Box title="Tasks and scripts" className="min-h-0">
+          <PanelBoundary label="Tasks and scripts">
             <TaskFlowPanel dense={dense} />
           </PanelBoundary>
         </Box>
 
-        {/* Quick Queue, Power only, right beside Task Flows since it is the
+        {/* Quick Queue, Power only, right beside Tasks since it is the
             same idea at a different commitment level: Task Flows are named,
             saved, reused; this is assembled on the fly for the situation in
             front of you and thrown away once it runs. A newcomer reaching
