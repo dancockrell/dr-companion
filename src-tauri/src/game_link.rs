@@ -32,6 +32,7 @@
 //! identical from a text pane. The link reports its state as a fact so the UI
 //! can say which, rather than showing an empty pane that means either.
 
+use std::collections::VecDeque;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -50,6 +51,31 @@ pub struct GameLine {
     /// "Obvious paths: east, south, west." lines are different events.
     pub seq: u64,
     pub text: String,
+}
+
+/// How many chunks the backlog retains.
+///
+/// One chunk is at most one line, and the pane renders a few hundred at a
+/// time, so this refills a full screen many times over. Bounded because a
+/// session runs for hours: unbounded, a long hunt would grow it without limit
+/// and nothing would ever read the oldest end.
+const BACKLOG_MAX: usize = 2000;
+
+/// Chunks already emitted, kept so a frontend that mounts late can catch up.
+#[derive(Default)]
+struct BacklogBuf {
+    lines: VecDeque<GameLine>,
+    /// Read, then aged out. Counted rather than forgotten: a pane that quietly
+    /// begins mid-session is indistinguishable from one that lost nothing.
+    dropped: u64,
+}
+
+/// What `game_backlog` hands back.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Backlog {
+    pub lines: Vec<GameLine>,
+    pub dropped: u64,
 }
 
 /// What the link is doing, as a fact rather than an inference from silence.
@@ -183,6 +209,8 @@ struct LinkHandle {
     host: String,
     port: u16,
     lines: Arc<AtomicU64>,
+    /// Shared with the reader thread, which fills it as it emits.
+    backlog: Arc<Mutex<BacklogBuf>>,
     /// Cleared to stop the reader thread. The thread owns its own socket
     /// clone, so dropping this struct alone would leave it reading forever.
     running: Arc<AtomicBool>,
@@ -265,10 +293,12 @@ pub fn game_attach(
 
     let lines = Arc::new(AtomicU64::new(0));
     let running = Arc::new(AtomicBool::new(true));
+    let backlog: Arc<Mutex<BacklogBuf>> = Arc::new(Mutex::new(BacklogBuf::default()));
 
     {
         let lines = Arc::clone(&lines);
         let running = Arc::clone(&running);
+        let backlog = Arc::clone(&backlog);
         let app = app.clone();
         let host_for_thread = host.clone();
 
@@ -337,7 +367,24 @@ pub fn game_attach(
                         // Emitted even when empty. A blank line is how the
                         // game paragraphs its output, and stripping them turns
                         // readable text into a wall.
-                        let _ = app.emit("game:line", GameLine { seq, text });
+                        // Retained before it is emitted, not after.
+                        //
+                        // An event fires once and is gone. Rust begins reading
+                        // the moment game_attach returns, so anything arriving
+                        // before the pane has subscribed was lost outright -
+                        // while the count in game:state kept climbing, so the
+                        // header reported lines the pane could not show.
+                        let line = GameLine { seq, text };
+                        {
+                            let mut b = backlog.lock().unwrap();
+                            if b.lines.len() >= BACKLOG_MAX {
+                                b.lines.pop_front();
+                                b.dropped += 1;
+                            }
+                            b.lines.push_back(line.clone());
+                        }
+
+                        let _ = app.emit("game:line", line);
                     }
                     Err(e) => {
                         running.store(false, Ordering::Relaxed);
@@ -360,6 +407,7 @@ pub fn game_attach(
         host: host.clone(),
         port,
         lines: Arc::clone(&lines),
+        backlog: Arc::clone(&backlog),
         running: Arc::clone(&running),
     };
 
@@ -387,6 +435,40 @@ pub fn game_attach(
     let _ = app.emit("game:state", st.clone());
 
     Ok(st)
+}
+
+/// Everything read since `since`, for a pane that was not listening yet.
+///
+/// The gap this closes was visible against a live session: `game:state`
+/// reported `lines: 245` while the pane rendered its "Nothing yet" empty
+/// state, because all 245 `game:line` events had fired before React mounted
+/// and subscribed. Every dev-mode HMR reload reaches that state, and so does
+/// every window reload in a release build.
+///
+/// The opening dump is the expensive part to lose. Lich replays the room
+/// description, the vitals and the character's state on attach - precisely the
+/// text that arrives before a freshly-mounted pane is listening.
+///
+/// `since` rather than "everything": the caller already holds what it has
+/// seen, and asking for the tail makes this safe to call on every remount.
+#[tauri::command]
+pub fn game_backlog(link: State<'_, GameLink>, since: u64) -> Backlog {
+    let guard = link.inner.lock().unwrap();
+    match guard.as_ref() {
+        Some(h) => {
+            let b = h.backlog.lock().unwrap();
+            Backlog {
+                lines: b.lines.iter().filter(|l| l.seq > since).cloned().collect(),
+                dropped: b.dropped,
+            }
+        }
+        // Not attached is not an error. A pane that mounts before any attach
+        // asks the same question and deserves the same shape of answer.
+        None => Backlog {
+            lines: Vec::new(),
+            dropped: 0,
+        },
+    }
 }
 
 /// Send a command, exactly as typed.

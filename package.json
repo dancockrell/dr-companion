@@ -23,7 +23,7 @@
     "test:scrub": "node tools/scrub-test.mjs",
     "test:bridge": "ruby lich-scripts/test/cmd_test.rb lich-scripts/companion_bridge.lic",
     "test:runaway": "ruby lich-scripts/test/runaway_test.rb lich-scripts/companion_bridge.lic",
-    "test": "npm run test:safety && npm run test:gear && npm run test:mounted && npm run test:macroguard && npm run test:gamelines && npm run test:escapes && npm run test:subscribe && npm run test:cdp-timeout && npm run test:highlight && npm run test:aliases && npm run test:stream && npm run test:streamstate && npm run test:stream-consumers && npm run test:link && npm run test:eval && npm run test:contrast && npm run test:cards && npm run test:layout && npm run test:freelayout && npm run test:dock && npm run test:mapdock && npm run test:room && npm run test:look && npm run test:place && npm run test:trail && npm run test:flow && npm run test:keybindings && npm run test:room-occupants && npm run test:gateway && npm run test:bestiary && npm run test:creature-art && npm run test:scrub && npm run test:frontend && npm run test:bundle && npm run test:bridge && npm run test:runaway && npm run test:yaml && npm run test:server && npm run test:live && npm run test:map && npm run test:verified-claim",
+    "test": "npm run test:safety && npm run test:gear && npm run test:mounted && npm run test:macroguard && npm run test:gamelines && npm run test:escapes && npm run test:subscribe && npm run test:cdp-timeout && npm run test:backlog && npm run test:highlight && npm run test:aliases && npm run test:stream && npm run test:streamstate && npm run test:stream-consumers && npm run test:link && npm run test:eval && npm run test:contrast && npm run test:cards && npm run test:layout && npm run test:freelayout && npm run test:dock && npm run test:mapdock && npm run test:room && npm run test:look && npm run test:place && npm run test:trail && npm run test:flow && npm run test:keybindings && npm run test:room-occupants && npm run test:gateway && npm run test:bestiary && npm run test:creature-art && npm run test:scrub && npm run test:frontend && npm run test:bundle && npm run test:bridge && npm run test:runaway && npm run test:yaml && npm run test:server && npm run test:live && npm run test:map && npm run test:verified-claim",
     "test:bundle": "npm run build && node tools/bundle-test.mjs",
     "test:contrast": "node tools/contrast-test.mjs",
     "test:frontend": "node tools/frontend-test.mjs",
@@ -66,6 +66,7 @@
     "test:subscribe": "node tools/subscribe-test.mjs",
     "test:verified-claim": "node tools/verified-claim-test.mjs",
     "test:all": "node tools/run-tests.mjs",
+    "test:backlog": "node --experimental-test-module-mocks tools/backlog-test.mjs",
     "test:cdp-timeout": "node tools/cdp-timeout-test.mjs",
     "test:macroguard": "node tools/macro-guard-test.mjs",
     "test:streamstate": "node tools/stream-state-test.mjs"

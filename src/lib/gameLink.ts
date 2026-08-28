@@ -161,7 +161,91 @@ function wire() {
   if (wired || !isTauri()) return
   wired = true
 
-  listenTauri<{ seq: number; text: string }>('game:line', (chunk) => {
+  listenTauri<GameChunk>('game:line', (chunk) => {
+    // Queued, not applied, until the backlog has been merged. Applying now
+    // would double-render every chunk the backlog also contains, and the
+    // backlog is what makes the pane survive a remount at all.
+    if (!backfilled) {
+      queued.push(chunk)
+      return
+    }
+    applyChunk(chunk)
+  })
+
+  void backfill()
+
+  listenTauri<LinkState>('game:state', (s) => {
+    state = adopt(s)
+    notify()
+  })
+}
+
+/** One chunk as Rust emits it: bytes up to and including a newline. */
+type GameChunk = { seq: number; text: string }
+
+/**
+ * Whether the backlog has been merged, and what arrived while it had not.
+ *
+ * `game:line` is an event, and an event fires once. Rust starts reading the
+ * instant `game_attach` returns, so every chunk delivered before this module
+ * subscribed was simply gone - while `game:state` kept reporting the running
+ * total, so the header counted lines the pane could not show. Measured against
+ * a live DragonRealms session: `lines: 245` above a pane rendering its
+ * "Nothing yet" empty state.
+ *
+ * Every dev-mode HMR remount reaches that state, and so does every window
+ * reload in a release build. The text most often lost is the worst text to
+ * lose: Lich replays the room, the vitals and the character's state on attach,
+ * which is exactly what arrives before a freshly-mounted pane is listening.
+ */
+let backfilled = false
+let queued: GameChunk[] = []
+
+/** The highest chunk seq applied, so the backlog can be asked for the tail. */
+let lastChunkSeq = 0
+
+/**
+ * Ask Rust for what was missed, then drain anything that arrived meanwhile.
+ *
+ * Order matters and the `finally` is not decoration. If the request fails,
+ * the queued chunks are still real game text and must still reach the pane -
+ * a guard that threw them away would turn a backlog miss into a dead pane,
+ * which is worse than the bug this exists to fix.
+ */
+async function backfill(): Promise<void> {
+  try {
+    const reply = await invokeTauri('game_backlog', { since: lastChunkSeq })
+    const r = reply as { lines?: unknown; dropped?: unknown } | undefined
+    if (Array.isArray(r?.lines)) {
+      for (const c of r.lines as GameChunk[]) {
+        if (typeof c?.seq === 'number' && typeof c?.text === 'string') applyChunk(c)
+      }
+    }
+    // Counted, not hidden. A pane that quietly begins mid-session looks
+    // exactly like one that lost nothing.
+    if (typeof r?.dropped === 'number' && r.dropped > 0) dropped += r.dropped
+  } catch (e) {
+    // Caught here rather than left to the caller, and this is not tidiness.
+    //
+    // Every call site is fire-and-forget - there is no caller waiting to be
+    // handed an error. Rethrowing therefore produced an unhandled rejection,
+    // found by the failure case in tools/backlog-test.mjs, which crashed the
+    // run rather than reporting a missing backlog.
+    //
+    // Missing the backlog is survivable: the `finally` below still delivers
+    // every live chunk, so the pane keeps working and only the history before
+    // this moment is absent. Say so instead of dying.
+    console.warn('game backlog unavailable, scrollback starts from here', e)
+  } finally {
+    for (const c of queued) if (c.seq > lastChunkSeq) applyChunk(c)
+    queued = []
+    backfilled = true
+    notify()
+  }
+}
+
+function applyChunk(chunk: GameChunk) {
+    lastChunkSeq = chunk.seq
     if (!tagged && looksTagged(chunk.text)) tagged = true
 
     for (const parsed of feed(parser, chunk.text)) {
@@ -200,12 +284,6 @@ function wire() {
       note: state.connected ? state.note : '',
     }
     notify()
-  })
-
-  listenTauri<LinkState>('game:state', (s) => {
-    state = adopt(s)
-    notify()
-  })
 }
 
 export function subscribeGame(fn: () => void): () => void {
@@ -324,6 +402,18 @@ function adopt(next: LinkState): LinkState {
 
 export async function attachGame(port: number, host?: string): Promise<LinkState> {
   wire()
+
+  // Reset BEFORE the attach, not after.
+  //
+  // A fresh attach gives Rust a fresh backlog whose seq starts at 1 again, so
+  // a stale `lastChunkSeq` would filter the whole new session out of the
+  // backfill. Resetting first also means any chunk the new reader emits while
+  // this call is still in flight is queued rather than applied, which is what
+  // stops it being rendered once here and again from the backlog.
+  backfilled = false
+  queued = []
+  lastChunkSeq = 0
+
   try {
     state = adopt(asLinkState(await invokeTauri('game_attach', { host: host ?? null, port })) ?? state)
     notify()
@@ -349,6 +439,14 @@ export async function attachGame(port: number, host?: string): Promise<LinkState
       // Let the original error stand rather than inventing a state.
     }
     throw e
+  } finally {
+    // Always, including the refusal path above. "Already attached" means the
+    // reader IS running, and its backlog is precisely what this pane is
+    // missing - that refusal is the single most likely way to arrive here
+    // with text to catch up on. Skipping it would leave `backfilled` false
+    // and strand every live chunk in the queue, turning a display bug into a
+    // pane that never renders anything again.
+    void backfill()
   }
 }
 
