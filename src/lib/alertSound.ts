@@ -38,12 +38,20 @@ const cache = new Map<string, HTMLAudioElement | null>()
 const lastPlayed = new Map<string, number>()
 let lastAny = 0
 
-let muted = false
-export function setAlertsMuted(v: boolean) {
-  muted = v
+/**
+ * 0 to 1, no separate mute flag - 0 silences alerts the same way it silences
+ * ambience in ambientSound.ts, one control instead of a slider plus a
+ * button that can drift out of sync with it. Alerts default louder than the
+ * ambience layers do, because they are short one-shots meant to be noticed,
+ * not a background bed. Persisted by the caller (GamePane), not here: this
+ * module has no opinion about storage, only about what plays right now.
+ */
+let volume = 0.8
+export function setAlertsVolume(v: number) {
+  volume = Math.max(0, Math.min(1, v))
 }
-export function alertsMuted() {
-  return muted
+export function alertsVolume() {
+  return volume
 }
 
 /** Names that turned out not to exist, so a missing file is asked for once. */
@@ -91,7 +99,7 @@ async function load(name: string): Promise<HTMLAudioElement | null> {
  * reason for a line of game text not to appear.
  */
 export function playAlert(name: string) {
-  if (muted || !name) return
+  if (volume <= 0 || !name) return
 
   const now = Date.now()
   if (now - lastAny < GLOBAL_MS) return
@@ -107,6 +115,7 @@ export function playAlert(name: string) {
       // apart otherwise leave two objects behind, and over an evening that is
       // thousands.
       audio.currentTime = 0
+      audio.volume = volume
       void audio.play().catch(() => {
         /* Autoplay policy, or no audio device. Not worth interrupting play. */
       })

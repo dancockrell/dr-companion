@@ -31,7 +31,7 @@
  * is the next thing to build.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Send, Plug, PlugZap, Volume2, VolumeX, Music, Music2 } from 'lucide-react'
+import { Send, Plug, PlugZap } from 'lucide-react'
 import {
   attachGame,
   clearGame,
@@ -51,15 +51,10 @@ import { useHighlights } from '../../lib/useHighlights'
 import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
-import { playAlert, setAlertsMuted, alertsMuted } from '../../lib/alertSound'
-import {
-  setZone,
-  setAmbienceMuted,
-  ambienceMuted,
-  setRadioStation,
-  currentRadioStation,
-  RADIO_STATIONS,
-} from '../../lib/ambientSound'
+import { playAlert, setAlertsVolume } from '../../lib/alertSound'
+import { setZone, setAmbientVolume, setMusicVolume } from '../../lib/ambientSound'
+import { SoundControls } from './SoundControls'
+import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
@@ -205,20 +200,28 @@ export function GamePane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlights])
 
-  const [muted, setMuted] = useState(alertsMuted())
-
   /**
    * The background layer: terrain ambience plus per-zone music, driven by the
    * live bridge's zone report rather than the room line stream this pane
    * otherwise reads. See ambientSound.ts's header for why zone rather than
    * room, and why a no-op on an unchanged zone id is the whole point.
+   *
+   * Persisted volumes are applied here, once, rather than read fresh by
+   * alertSound.ts/ambientSound.ts themselves - those modules have no opinion
+   * about storage (see their own headers), so something has to hand them the
+   * remembered levels on startup. SoundControls only writes the levels back
+   * out when a slider is actually moved.
    */
+  useEffect(() => {
+    const prefs = loadPrefs()
+    setAlertsVolume(prefs.alertsVolume ?? 0.8)
+    setAmbientVolume(prefs.ambientVolume ?? 1)
+    setMusicVolume(prefs.musicVolume ?? 1)
+  }, [])
   const mapZone = useAppStore((s) => s.mapZone)
   useEffect(() => {
     setZone(mapZone?.ok ? (mapZone.zone ?? null) : null)
   }, [mapZone])
-  const [ambienceOff, setAmbienceOff] = useState(ambienceMuted())
-  const [radioId, setRadioId] = useState(currentRadioStation())
 
   /**
    * Follow the bottom, unless the reader has deliberately scrolled away.
@@ -385,12 +388,8 @@ export function GamePane() {
           title={link.note || `${link.host}:${link.port}`}
         >
           {link.connected ? <PlugZap className="h-3 w-3" /> : <Plug className="h-3 w-3" />}
-          {link.connected ? `${link.host}:${link.port}` : link.note || 'not attached'}
+          {link.connected ? 'Attached' : link.note || 'not attached'}
         </span>
-
-        {link.connected && (
-          <span className="tabular-nums text-ink-faint">{link.lines} lines</span>
-        )}
 
         {/* "Connection lost" was the same sentence whether our socket dropped
             or Lich exited underneath us, and those need opposite actions -
@@ -431,70 +430,7 @@ export function GamePane() {
         )}
 
         <span className="ml-auto flex items-center gap-1">
-          {/* Mute, and it is a real control rather than a courtesy.
-            *
-            * The corpus is deliberately quiet - 13 of 57 entries make a sound -
-            * because a client that pings constantly gets muted at the operating
-            * system, and a client muted there has no alerts at all including
-            * the idle warning that costs a session. A mute inside the app is
-            * how somebody turns it down for an hour instead of forever. */}
-          <button
-            type="button"
-            className={cn(
-              'rounded px-1.5 py-0.5',
-              muted ? 'text-warn' : 'text-ink-faint hover:text-ink'
-            )}
-            onClick={() => {
-              const next = !muted
-              setMuted(next)
-              setAlertsMuted(next)
-            }}
-            title={muted ? 'Alerts are muted' : 'Mute alerts'}
-          >
-            {muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-          </button>
-          {/* Ambience: terrain and per-zone music, separate from alerts on
-            * purpose - somebody who wants the idle warning but not a music bed
-            * running under everything should be able to have exactly that. */}
-          <button
-            type="button"
-            className={cn(
-              'rounded px-1.5 py-0.5',
-              ambienceOff ? 'text-warn' : 'text-ink-faint hover:text-ink'
-            )}
-            onClick={() => {
-              const next = !ambienceOff
-              setAmbienceOff(next)
-              setAmbienceMuted(next)
-            }}
-            title={ambienceOff ? 'Ambience is muted' : 'Mute ambience'}
-          >
-            {ambienceOff ? <Music2 className="h-3 w-3" /> : <Music className="h-3 w-3" />}
-          </button>
-          {/* The radio: a station, not a track. Selecting one starts its
-            * playlist looping and advancing on its own - see RadioPlayer in
-            * ambientSound.ts. An override of the music layer only; ambience
-            * keeps playing under whatever the station is playing. */}
-          <select
-            className="w-32 truncate rounded border border-border bg-surface px-1 py-0.5 text-ink-muted"
-            value={radioId ?? ''}
-            onChange={(e) => {
-              const next = e.target.value || null
-              setRadioId(next)
-              setRadioStation(next)
-            }}
-            title={
-              RADIO_STATIONS.find((s) => s.id === radioId)?.description ??
-              'Radio: overrides zone music, ambience keeps playing'
-            }
-          >
-            <option value="">Zone music</option>
-            {RADIO_STATIONS.map((s) => (
-              <option key={s.id} value={s.id} title={s.description}>
-                {s.name} ({s.tracks.length})
-              </option>
-            ))}
-          </select>
+          <SoundControls />
           {/* Searches the whole buffer, not the rendered window - see the
             * `matches` note. Escape clears, because a filter you cannot get
             * out of quickly is one people stop using. */}

@@ -56,6 +56,16 @@ export interface PersistedPrefs {
    * one bit saying they are a returning player was not.
    */
   setupComplete?: boolean
+  /**
+   * Sound levels, 0 to 1.5 (0% to 150%) each, no separate mute flag - 0 is
+   * silent. Three independent channels because a listener who wants the
+   * idle warning but not a music bed, or the ambience but not the radio,
+   * should be able to have exactly that - see ambientSound.ts and
+   * alertSound.ts for where these are actually applied.
+   */
+  alertsVolume?: number
+  ambientVolume?: number
+  musicVolume?: number
 }
 
 const defaults: PersistedPrefs = {
@@ -75,6 +85,9 @@ const defaults: PersistedPrefs = {
   houseEntryMaxSearches: 3,
   houseEntryHide: true,
   setupComplete: false,
+  alertsVolume: 0.8,
+  ambientVolume: 1,
+  musicVolume: 1,
 }
 
 export function loadPrefs(): PersistedPrefs {

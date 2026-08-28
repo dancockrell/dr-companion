@@ -144,16 +144,32 @@ const ZONE_BIOMES: Record<string, { name: string; biome: string }> = zoneBiomes
 const FADE_MS = 2500
 const TICK_MS = 50
 
-/** One layer, faded rather than cut. Loops by default; radio turns that off and drives `onEnded` instead. */
+/**
+ * One layer, faded rather than cut. Loops by default; radio turns that off
+ * and drives `onEnded` instead.
+ *
+ * Volume has two parts, multiplied together. `mix` is the per-track balance
+ * this file's own callers set - ambient always quieter than music, so the
+ * two never fight for attention - and it is deliberately small: Dan's
+ * instruction (28 Aug 2026) was to tune these down to blend into the
+ * background rather than sit forward, so the base levels below are already
+ * "quiet" before a listener touches anything. `gain` is the listener's own
+ * slider, 0 to 1.5 (0% to 150%), default 1 - turning a layer's gain to 0 is
+ * how it goes silent; there is no separate mute flag to fall out of sync
+ * with the slider.
+ */
 class Layer {
   private el: HTMLAudioElement | null = null
-  private targetVolume = 0
-  private fadeTimer: ReturnType<typeof setInterval> | null = null
-  private muted = false
+  private mix = 0
+  private gain = 1
 
-  setMuted(v: boolean) {
-    this.muted = v
-    if (this.el) this.el.volume = v ? 0 : this.targetVolume
+  private get target(): number {
+    return this.mix * this.gain
+  }
+
+  setGain(v: number) {
+    this.gain = Math.max(0, Math.min(1.5, v))
+    if (this.el) this.el.volume = this.target
   }
 
   /**
@@ -163,9 +179,9 @@ class Layer {
    * station) should not rely on `play` for that; nothing here currently needs
    * to.
    */
-  play(src: string | null, volume = 0.35, opts?: { loop?: boolean; onEnded?: () => void }) {
+  play(src: string | null, mix = 0.2, opts?: { loop?: boolean; onEnded?: () => void }) {
     if (src === (this.el?.dataset.src ?? null)) return
-    this.targetVolume = volume
+    this.mix = mix
 
     const dying = this.el
     if (dying) this.fadeOutAndStop(dying)
@@ -193,14 +209,11 @@ class Layer {
   }
 
   private fadeIn(el: HTMLAudioElement) {
-    if (this.fadeTimer) clearInterval(this.fadeTimer)
-    const step = (this.muted ? 0 : this.targetVolume) / (FADE_MS / TICK_MS)
-    this.fadeTimer = setInterval(() => {
-      el.volume = Math.min(this.muted ? 0 : this.targetVolume, el.volume + step)
-      if (el.volume >= (this.muted ? 0 : this.targetVolume) - 0.001 && this.fadeTimer) {
-        clearInterval(this.fadeTimer)
-        this.fadeTimer = null
-      }
+    const target = this.target
+    const step = target / (FADE_MS / TICK_MS)
+    const timer = setInterval(() => {
+      el.volume = Math.min(target, el.volume + step)
+      if (el.volume >= target - 0.001) clearInterval(timer)
     }, TICK_MS)
   }
 
@@ -265,7 +278,7 @@ class RadioPlayer {
   private playCurrent() {
     const track = this.queue[this.pos]
     if (!track) return
-    music.play(RADIO_FILES[track.id], 0.4, { loop: false, onEnded: () => this.advance() })
+    music.play(RADIO_FILES[track.id], 0.22, { loop: false, onEnded: () => this.advance() })
   }
 
   private advance() {
@@ -309,7 +322,7 @@ class ZoneMusicPlayer {
     const id = this.queue[this.pos]
     const file = id ? RADIO_FILES[id] : undefined
     if (!file) return
-    music.play(file, 0.4, { loop: false, onEnded: () => this.advance() })
+    music.play(file, 0.22, { loop: false, onEnded: () => this.advance() })
   }
 
   private advance() {
@@ -350,7 +363,7 @@ export function setZone(zoneId: string | null) {
     return
   }
 
-  ambient.play(BIOME_FILES[biomeFor(zoneId)], 0.3)
+  ambient.play(BIOME_FILES[biomeFor(zoneId)], 0.15)
 
   // Radio, once selected, keeps playing across zone changes - it is a
   // deliberate override, not a per-zone thing to interrupt.
@@ -368,14 +381,29 @@ export function currentRadioStation(): string | null {
   return radio.current
 }
 
-let muted = false
-export function setAmbienceMuted(v: boolean) {
-  muted = v
-  ambient.setMuted(v)
-  music.setMuted(v)
+/**
+ * Ambience (terrain texture) and music (zone playlist / radio) have their
+ * own independent volumes rather than a shared mute - a listener who wants
+ * the wind and birds but not a music bed, or the other way round, should be
+ * able to have exactly that. 0 to 1.5 (0% to 150%); 0 is silent, and there
+ * is no separate mute flag - see `Layer`'s header for why.
+ */
+let ambientGain = 1
+export function setAmbientVolume(v: number) {
+  ambientGain = Math.max(0, Math.min(1.5, v))
+  ambient.setGain(ambientGain)
 }
-export function ambienceMuted(): boolean {
-  return muted
+export function ambientVolume(): number {
+  return ambientGain
+}
+
+let musicGain = 1
+export function setMusicVolume(v: number) {
+  musicGain = Math.max(0, Math.min(1.5, v))
+  music.setGain(musicGain)
+}
+export function musicVolume(): number {
+  return musicGain
 }
 
 /** For a hard reset - leaving a character, or a settings reload. */

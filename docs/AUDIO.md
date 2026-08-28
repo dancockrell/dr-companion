@@ -1,18 +1,55 @@
 # The soundscape
 
-Two systems, easy to confuse because they share `data/audio/` and a mute
-button each, but built for different things.
+Two systems, easy to confuse because they share `data/audio/` and a control
+panel, but built for different things.
 
 **Alerts** (`src/lib/alertSound.ts`) — short one-shots tied to Genie
 highlight lines: `dr-genie-settings/Config/highlights.cfg`, played through
 Tauri's `read_sound` from the player's own Genie install. Unrelated to
-everything below.
+everything below except that both are tuned to blend in rather than sit
+forward - Dan's instruction (28 Aug 2026, alongside the control-panel
+rework below): "tune down your sound effects to be background, to blend
+in generally."
 
 **Ambience** (`src/lib/ambientSound.ts`) — the background layer covered
 here: terrain texture, per-zone music, and an optional radio override.
 Files live under `public/audio/`, served as plain static assets, not routed
 through Tauri at all - they ship with the app rather than living in a
 player's Genie folder.
+
+## Controls
+
+One button, "Sound," opens `src/components/game/SoundControls.tsx` - a
+popover with three sliders (Alerts, Ambience, Music) and the radio station
+picker, rather than three separate icon-toggle buttons plus a `<select>`
+crammed into the toolbar. Dan's ask (28 Aug 2026): "full and strong sound
+controls... obvious but... easier to use and more intuitive than now."
+
+**No separate mute flag anywhere - a slider at 0% is silent, and that is
+the only state there is.** `alertsVolume()`/`ambientVolume()`/
+`musicVolume()` are plain 0-to-1.5 numbers (0% to 150%); the old
+`setAlertsMuted`/`ambienceMuted`-style booleans were removed rather than
+kept alongside the sliders, because a mute flag and a remembered volume
+level are two pieces of state that can disagree with each other, and a
+control that can silently disagree with what it shows is worse than one
+fewer control. Persisted in `PersistedPrefs` (`src/lib/persistence.ts`) -
+`alertsVolume`/`ambientVolume`/`musicVolume`, defaults 0.8/1/1 - and
+applied once at `GamePane` mount, since neither sound module has (or
+should have) an opinion about storage.
+
+Also removed from the toolbar, per Dan's instruction, to make room: the
+`{link.lines} lines` counter (gone entirely) and the numeric `host:port`
+display, replaced with a plain "Attached" - the number is still in the
+connection indicator's `title` tooltip for anyone who needs it, just not
+rendered inline.
+
+**"Blend into the background" as actual numbers:** each `Layer.play()`
+call site's base level (`Layer`'s `mix` in `ambientSound.ts`) was lowered
+- ambient 0.3 → 0.15, zone/radio music 0.4 → 0.22 - so the 100% slider
+position is already the tuned-down level Dan asked for, not a starting
+point a listener has to find by ear. The slider then multiplies that base
+by up to 1.5x, so turning it up is still available without touching the
+source.
 
 ## Layers
 
