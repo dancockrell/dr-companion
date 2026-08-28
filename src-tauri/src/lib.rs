@@ -5,8 +5,8 @@ pub mod lich;
 pub mod lich_health;
 pub mod pause;
 pub mod python;
-pub mod scripts;
 pub mod script_api;
+pub mod scripts;
 pub mod setup;
 pub mod sounds;
 

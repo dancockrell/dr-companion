@@ -60,12 +60,14 @@ export function RoomScene({
   room,
   title,
   text,
+  chips,
   height = 150,
 }: {
   zone: string
   room: number
   title?: string | null
   text?: string | null
+  chips?: React.ReactNode
   height?: number
 }) {
   const key = `${zone}-${room}`
@@ -145,6 +147,12 @@ export function RoomScene({
         }}
         className="absolute inset-0 h-full w-full object-cover"
       />
+
+      {chips && (
+        <div className="absolute inset-x-0 top-0 bg-surface/80 px-2 py-1 backdrop-blur-sm">
+          {chips}
+        </div>
+      )}
 
       {title && (
         <div className="absolute inset-x-0 bottom-0 bg-surface/80 px-2 py-1 text-xs text-ink backdrop-blur-sm">

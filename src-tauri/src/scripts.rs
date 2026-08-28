@@ -141,7 +141,10 @@ fn summarise(body: &str, lang: Lang) -> String {
                 .trim_start_matches('#'),
             Lang::Ruby => line.trim_start_matches('#'),
         };
-        let text = text.trim().trim_end_matches("\"\"\"").trim_end_matches("'''");
+        let text = text
+            .trim()
+            .trim_end_matches("\"\"\"")
+            .trim_end_matches("'''");
         if text.is_empty() || text == raw.trim() {
             // Unchanged means this line was code, not a comment. Stop rather
             // than walking into the body and quoting a line of logic as a
@@ -361,7 +364,17 @@ mod tests {
     #[test]
     fn refuses_names_that_could_escape_the_folder() {
         for bad in [
-            "", "..", "../x", "a/b", "a\\b", "a.py", "a.b", "-x", "_x", "a b", "a;b",
+            "",
+            "..",
+            "../x",
+            "a/b",
+            "a\\b",
+            "a.py",
+            "a.b",
+            "-x",
+            "_x",
+            "a b",
+            "a;b",
             &"a".repeat(65),
         ] {
             assert!(!valid_name(bad), "accepted {bad:?}");
@@ -378,7 +391,10 @@ mod tests {
     #[test]
     fn a_summary_comes_from_the_header_and_never_from_the_code() {
         assert_eq!(
-            summarise("\"\"\"Tends wounds and rests.\"\"\"\nimport x\n", Lang::Python),
+            summarise(
+                "\"\"\"Tends wounds and rests.\"\"\"\nimport x\n",
+                Lang::Python
+            ),
             "Tends wounds and rests."
         );
         assert_eq!(
