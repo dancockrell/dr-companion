@@ -20,6 +20,7 @@ import {
   cycleDeckPref,
   setPanelRect,
   clearPanelRects,
+  enterFreeform,
   setDock,
   type Layout,
   type PanelId,
@@ -89,6 +90,11 @@ export function useLayout(mode: UiMode) {
 
   const unplace = useCallback(() => commit(clearPanelRects(layout)), [commit, layout])
 
+  const enterFreeArrange = useCallback(
+    () => commit(enterFreeform(layout)),
+    [commit, layout]
+  )
+
   const dock = useCallback((next: Dock) => commit(setDock(layout, next)), [commit, layout])
 
   return {
@@ -102,6 +108,7 @@ export function useLayout(mode: UiMode) {
     cycleDeck,
     place,
     unplace,
+    enterFreeArrange,
     dock,
   }
 }

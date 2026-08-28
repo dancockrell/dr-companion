@@ -260,6 +260,20 @@ export function cycleDeckPref(layout: Layout, deck: Deck): Layout {
   return setDeckPref(layout, deck, next)
 }
 
+/**
+ * Enter freeform with nothing placed yet.
+ *
+ * Safe to leave `rects` empty: FreeCanvas already falls back to
+ * `firstFreeSlot` for any panel with no rect, which is how a panel dragged
+ * for the first time gets a starting position at all. Without this, the only
+ * way `freeform` ever became true was `setPanelRect` — called from inside
+ * FreeCanvas's own drag handler, which only renders once freeform is already
+ * true. A locked door with no handle on either side (issue #32).
+ */
+export function enterFreeform(layout: Layout): Layout {
+  return { ...layout, freeform: true }
+}
+
 /** Place one panel, and record that the layout is now hand-arranged. */
 export function setPanelRect(layout: Layout, id: PanelId, rect: Rect): Layout {
   return {

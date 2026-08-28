@@ -30,7 +30,7 @@ export function Dashboard() {
   const character = useAppStore((s) => s.character)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
   const uiMode = useAppStore((s) => s.uiMode)
-  const { layout, cycleDeck, place, unplace } = useLayout(uiMode)
+  const { layout, cycleDeck, place, unplace, enterFreeArrange } = useLayout(uiMode)
 
   // Which panel is in the hand, and where it would land. Held here rather than
   // in each Panel so the insertion line can be drawn on a different panel from
@@ -226,6 +226,30 @@ export function Dashboard() {
 
   return (
     <div ref={hostRef} className="flex h-full min-h-0 flex-col">
+
+      {/*
+       * The only entry point into freeform (issue #32). Freeform's own
+       * drag/resize/place machinery has existed for a while — FreeCanvas
+       * already falls back to firstFreeSlot for anything with no rect yet —
+       * but nothing outside FreeCanvas's own pointer handlers ever set
+       * `freeform: true`, so a player could never reach it through the app.
+       * One button, always visible, that says which state it would leave and
+       * which it would enter.
+       */}
+      <div className="flex items-center justify-end px-2 pt-1">
+        <button
+          type="button"
+          onClick={() => (layout.freeform ? unplace() : enterFreeArrange())}
+          title={
+            layout.freeform
+              ? 'Back to the fixed arrangement'
+              : 'Drag any panel anywhere, and resize it'
+          }
+          className="rounded border border-border px-1.5 py-0.5 text-xs text-ink-faint hover:text-ink"
+        >
+          {layout.freeform ? 'Fixed layout' : 'Arrange freely'}
+        </button>
+      </div>
 
       {layout.freeform ? (
         <FreeCanvas
