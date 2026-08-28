@@ -45,6 +45,8 @@ import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
+import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
+import { listScripts, writeScript } from '../../lib/scriptFiles'
 
 /**
  * @param plane Fill the height given rather than a fixed box. Set when the map
@@ -192,6 +194,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
   const here = useAppStore((s) => s.mapHere)
   const character = useAppStore((s) => s.character)
+  const addLog = useAppStore((s) => s.addLog)
 
   /**
    * Saved places, and the hotbar under the map that walks to them.
@@ -257,6 +260,21 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       })
     }
     setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+
+  // Writes a real python/tasks/user/walk_to_<pin>.py - see pinTaskGenerator.ts
+  // for why generation, not overwrite, is the right default the moment a
+  // player might have edited a previously-generated file by hand.
+  async function createTaskForPin(pin: MapPin) {
+    const existingNames = (await listScripts()).filter((s) => s.lang === 'python').map((s) => s.name)
+    const name = uniqueTaskName(existingNames, pin)
+    try {
+      const path = await writeScript('python', name, pinTaskSource(pin))
+      addLog(`Task "${name}" written for ${pin.label} (${path || 'python/tasks/user/'}).`)
+    } catch (e) {
+      addLog(`Could not write a task for ${pin.label}: ${e instanceof Error ? e.message : e}`, 'error')
+    }
     setEditingRoom(null)
   }
 
@@ -712,6 +730,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onSave={savePin}
           onDelete={editingRoom.existing ? deletePin : undefined}
           onClose={() => setEditingRoom(null)}
+          onCreateTask={isTauri() ? createTaskForPin : undefined}
         />
       )}
     </>

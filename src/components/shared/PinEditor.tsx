@@ -28,6 +28,7 @@ export function PinEditor({
   onSave,
   onDelete,
   onClose,
+  onCreateTask,
 }: {
   roomId: number
   roomTitle: string
@@ -36,6 +37,13 @@ export function PinEditor({
   onSave: (label: string, color: PinColor, icon: PinIcon | undefined) => void
   onDelete?: () => void
   onClose: () => void
+  /**
+   * Write a real python/tasks/user/walk_to_<pin>.py for this pin. Only
+   * offered once a pin actually exists (not while creating one) - a task
+   * generated for a pin the player then cancels out of saving would be a
+   * file on disk with nothing behind it.
+   */
+  onCreateTask?: (pin: MapPin) => void
 }) {
   const [label, setLabel] = useState(existing?.label ?? roomTitle)
   const [color, setColor] = useState<PinColor>(existing?.color ?? 'blue')
@@ -153,6 +161,16 @@ export function PinEditor({
             )
           })}
         </div>
+
+        {existing && onCreateTask && (
+          <button
+            type="button"
+            onClick={() => onCreateTask(existing)}
+            className="mt-3 flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-ink-muted hover:border-accent/60 hover:text-accent"
+          >
+            Create a Python task for this pin
+          </button>
+        )}
 
         <div className="mt-4 flex items-center justify-between gap-2">
           {existing && onDelete ? (
