@@ -51,7 +51,10 @@ export function RiskBar() {
   const fav = favors === undefined ? null : favorTone(favors)
 
   return (
-    <section className="px-4 pb-2 shrink-0">
+    // No horizontal padding here: every mount of this panel already pads
+    // its content (DashboardLayout wraps it in a Box) - this section used
+    // to double it.
+    <section className="pb-1.5 shrink-0">
       {/* No visible heading on purpose - the icons and numbers below are
        * self-labelling to a sighted player, the same reasoning `Box` uses
        * for an omitted title. But this panel is mounted bare (no Box
@@ -59,7 +62,7 @@ export function RiskBar() {
        * all - a screen reader announces an unlabelled region rather than
        * "Risk". `sr-only` keeps the visual unchanged and gives it one. */}
       <h2 className="sr-only">Risk</h2>
-      <div className="rounded-xl border border-border bg-surface-raised px-3 py-2 flex items-center gap-4 text-xs flex-wrap">
+      <div className="rounded-xl border border-border bg-surface-raised px-2 py-1.5 flex items-center gap-4 text-xs flex-wrap">
         {isTown !== undefined && (
           <span
             className="flex items-center gap-1.5"
