@@ -428,23 +428,27 @@ export function GamePane() {
           >
             {ambienceOff ? <Music2 className="h-3 w-3" /> : <Music className="h-3 w-3" />}
           </button>
-          {/* The radio: an override of the music layer only, picked from what
-            * data/audio/manifest.json actually names - see RADIO_STATIONS'
-            * header for why this is a real lookup rather than a guessed URL. */}
+          {/* The radio: a station, not a track. Selecting one starts its
+            * playlist looping and advancing on its own - see RadioPlayer in
+            * ambientSound.ts. An override of the music layer only; ambience
+            * keeps playing under whatever the station is playing. */}
           <select
-            className="w-28 truncate rounded border border-border bg-surface px-1 py-0.5 text-ink-muted"
+            className="w-32 truncate rounded border border-border bg-surface px-1 py-0.5 text-ink-muted"
             value={radioId ?? ''}
             onChange={(e) => {
               const next = e.target.value || null
               setRadioId(next)
               setRadioStation(next)
             }}
-            title="Radio: overrides zone music, ambience keeps playing"
+            title={
+              RADIO_STATIONS.find((s) => s.id === radioId)?.description ??
+              'Radio: overrides zone music, ambience keeps playing'
+            }
           >
             <option value="">Zone music</option>
             {RADIO_STATIONS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.composer} — {s.title} ({s.genre})
+              <option key={s.id} value={s.id} title={s.description}>
+                {s.name} ({s.tracks.length})
               </option>
             ))}
           </select>

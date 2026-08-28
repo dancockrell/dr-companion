@@ -33,11 +33,16 @@ player's Genie folder.
    manifest with the file at `zone/<id>.mp3`, run
    `node tools/vendor-audio.mjs`.
 3. **Radio.** A player-toggled override of the music layer only — ambience
-   keeps playing underneath. Also unbuilt: `manifest.json`'s `radio` array
-   is empty. The brief, from Dan: curated, licensed, pre-1900-leaning
-   tracks across fantasy/classical/guitar/European/Arabic/Chinese/Japanese
-   genres — expect to source a lot of candidates and reject most of them
-   on quality or licensing grounds.
+   keeps playing underneath. Fallout-style, not a jukebox: selecting a
+   station starts a *playlist* (`RadioPlayer` in `ambientSound.ts`) that
+   shuffles once, loops, and advances on its own — it does not stop after
+   one track, the way Galaxy News Radio does not. `manifest.json`'s
+   `radio` array is a flat list of tracks, each tagged with a `station` id
+   that groups into `manifest.json`'s `radioStations` object (name +
+   description per station). The brief, from Dan: curated, licensed,
+   chill-able tracks — pre-1900-leaning was a proxy for "not weird," not a
+   hard rule — across fantasy/classical/guitar/European/Arabic/Chinese/
+   Japanese genres, several tracks per station rather than one.
 
 ## Why zone, not room
 
@@ -70,23 +75,42 @@ Dan's call, 27-28 Aug 2026. Never DragonRealms' own audio.
 Four biome tracks (forest, town, cave, dungeon — the remaining seven
 biomes in `BIOME_FILES` point at one of those four as a stand-in, see the
 comment above `FALLBACK_BIOME`), the full 85-zone biome classification,
-the crossfade engine, the vendor/manifest pipeline, the mute toggle, and a
-radio picker in GamePane listing every station `RADIO_STATIONS` (read
-from the manifest, not guessed) actually names. Five radio tracks sourced
-— see `data/audio/ATTRIBUTIONS.md` for what and their licences. Zero zone
-themes. Verified by measuring `Audio.play()` calls against the fixture and
-directly, not by reading the code — same method as the alert-sound fix;
-see that commit for why that discipline matters here. The radio picker
-itself was verified the same way: selected a station through the actual
-`<select>` element and confirmed the right file (`shika-no-tone.ogg`, not
-a guessed `.mp3`) was the one `Audio.play()` was called with.
+the crossfade engine, the vendor/manifest pipeline, and the mute toggle.
+Zero zone themes.
 
-Sourcing so far went through OpenGameArt (biome tracks) and Wikimedia
-Commons (radio) - the second because a scripted `imageinfo` API call
-returns an explicit machine-readable licence per file rather than a page
-that has to be read by eye, which matters when several files are being
-pulled in one pass. One sourcing bug worth knowing about: Wikimedia
-returns a 200 with a small HTML/text body to a request it does not like,
-not a 4xx - `tools/vendor-audio.mjs` treats a suspiciously small or
-HTML-typed response as a failure rather than a fetch, and that check was
-proven against a real bad URL before being trusted (see its own commit).
+Radio: **three stations, thirteen tracks** — The Old Concert Hall (western
+orchestral/piano, 6 tracks), Six Strings (classical guitar/lute, 4 tracks),
+The Silk Road (Chinese/Japanese/Arabic traditional and traditional-style,
+3 tracks). See `data/audio/ATTRIBUTIONS.md` for every track and its
+licence. `tools/ambient-test.mjs` checks the manifest mechanically:
+every station a track names actually got built, no station has fewer than
+two tracks (the whole point of "station" over the old "one track = one
+station" model), every entry the vendor script would fetch has a file,
+download URL and licence, and every attribution-required entry actually
+carries its attribution text. Sabotage-verified — a missing licence, a
+track pointed at an undeclared station, and a one-track station were each
+introduced on a scratch copy and confirmed to fail before being trusted.
+Not yet wired into `npm run test` — `package.json` was mid-edit by another
+session when this landed; add `test:ambient` there when it's free.
+
+The engine-level claims (crossfade, no-restart-on-same-zone, the radio
+picker calling the file it says it will) were verified separately by
+measuring `Audio.play()` calls against the fixture and directly — same
+method as the alert-sound fix, see that commit for why that discipline
+matters here. `tools/ambient-test.mjs` cannot make that claim: it runs in
+plain Node, which has no `Audio` constructor, so it only reaches the
+module's data (station grouping, the manifest) and the pure `shuffled`
+helper — see the file's own header. Two tracks (`satie-gymnopedie-3.ogg`,
+Ogg-FLAC; `albeniz-asturias.ogg`, Ogg Skeleton-multiplexed) are unusual
+enough containers that they're flagged with a `note` in the manifest and
+still owed a real playback check, not just an HTTP 200.
+
+Sourcing went through OpenGameArt (biome tracks) and Wikimedia Commons
+(radio) - the second because a scripted `imageinfo` API call returns an
+explicit machine-readable licence per file rather than a page that has to
+be read by eye, which matters when a dozen-plus files are being pulled in
+one pass. One sourcing bug worth knowing about: Wikimedia returns a 200
+with a small HTML/text body to a request it does not like, not a 4xx -
+`tools/vendor-audio.mjs` treats a suspiciously small or HTML-typed
+response as a failure rather than a fetch, and that check was proven
+against a real bad URL before being trusted (see its own commit).

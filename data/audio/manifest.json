@@ -45,14 +45,29 @@
     }
   },
   "zone": {},
+  "_radioNote": "Fallout-style: a small number of STATIONS, each a looping playlist of several tracks - not one station per track. `station` on each track is the grouping key; ambientSound.ts builds RADIO_STATIONS from the distinct station ids present here, in the order their first track appears.",
+  "radioStations": {
+    "old-concert-hall": {
+      "name": "The Old Concert Hall",
+      "description": "Western orchestral and piano - the station for a quiet town or a long walk on a trade road."
+    },
+    "six-strings": {
+      "name": "Six Strings",
+      "description": "Guitar and lute, solo. The station for a tavern corner or a camp fire."
+    },
+    "silk-road": {
+      "name": "The Silk Road",
+      "description": "Chinese, Japanese and Arabic traditional and traditional-style instrumental music."
+    }
+  },
   "radio": [
     {
       "id": "grieg-mountain-king",
+      "station": "old-concert-hall",
       "file": "radio/grieg-mountain-king.ogg",
       "title": "In the Hall of the Mountain King (Peer Gynt Suite No. 1, Op. 46)",
       "composer": "Edvard Grieg",
       "performer": "Musopen Symphony Orchestra",
-      "genre": "classical",
       "era": "composed 1875, this recording modern",
       "source": "https://commons.wikimedia.org/wiki/File:Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg",
       "download": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg",
@@ -61,11 +76,81 @@
       "attributionRequired": false
     },
     {
+      "id": "beethoven-moonlight-2",
+      "station": "old-concert-hall",
+      "file": "radio/beethoven-moonlight-2.ogg",
+      "title": "Moonlight Sonata, Op. 27 No. 2 - II. Allegretto",
+      "composer": "Ludwig van Beethoven",
+      "era": "composed 1801, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Beethoven_Moonlight_2nd_movement.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/4/47/Beethoven_Moonlight_2nd_movement.ogg",
+      "license": "CC BY-SA 2.0 DE",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/de/",
+      "attributionRequired": true,
+      "attributionText": "Beethoven, Moonlight Sonata, 2nd movement, via Wikimedia Commons, CC BY-SA 2.0 DE"
+    },
+    {
+      "id": "beethoven-moonlight-3",
+      "station": "old-concert-hall",
+      "file": "radio/beethoven-moonlight-3.ogg",
+      "title": "Moonlight Sonata, Op. 27 No. 2 - III. Presto agitato",
+      "composer": "Ludwig van Beethoven",
+      "era": "composed 1801, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Beethoven_Moonlight_3rd_movement.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Beethoven_Moonlight_3rd_movement.ogg",
+      "license": "CC BY-SA 2.0 DE",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/de/",
+      "attributionRequired": true,
+      "attributionText": "Beethoven, Moonlight Sonata, 3rd movement, via Wikimedia Commons, CC BY-SA 2.0 DE"
+    },
+    {
+      "id": "chopin-nocturne-27-1",
+      "station": "old-concert-hall",
+      "file": "radio/chopin-nocturne-27-1.oga",
+      "title": "Nocturne in C-sharp minor, Op. 27 No. 1",
+      "composer": "Frédéric Chopin",
+      "era": "composed 1835, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_Op.27_No.1.oga",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Chopin_Nocturne_Op.27_No.1.oga",
+      "license": "Public domain",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_Op.27_No.1.oga",
+      "attributionRequired": false
+    },
+    {
+      "id": "vivaldi-autumn-3",
+      "station": "old-concert-hall",
+      "file": "radio/vivaldi-autumn-3.oga",
+      "title": "The Four Seasons - Autumn, mvt. 3 Allegro",
+      "composer": "Antonio Vivaldi",
+      "performer": "John Harrison, violin",
+      "era": "composed 1725, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Vivaldi_-_Four_Seasons_3_Autumn_mvt_3_Allegro_-_John_Harrison_violin.oga",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Vivaldi_-_Four_Seasons_3_Autumn_mvt_3_Allegro_-_John_Harrison_violin.oga",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attributionRequired": true,
+      "attributionText": "Vivaldi, The Four Seasons - Autumn, performed by John Harrison, via Wikimedia Commons, CC BY-SA 4.0"
+    },
+    {
+      "id": "satie-gymnopedie-3",
+      "station": "old-concert-hall",
+      "file": "radio/satie-gymnopedie-3.ogg",
+      "title": "Gymnopédie No. 3",
+      "composer": "Erik Satie",
+      "era": "composed 1888, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Gymnop%C3%A9die_no.3.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Gymnop%C3%A9die_no.3.ogg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attributionRequired": false,
+      "note": "Ogg-FLAC container, not Ogg-Vorbis like the rest of this station - verify browser playback before trusting it as loud as the others."
+    },
+    {
       "id": "tarrega-alhambra",
+      "station": "six-strings",
       "file": "radio/tarrega-alhambra.ogg",
       "title": "Recuerdos de la Alhambra",
       "composer": "Francisco Tárrega",
-      "genre": "guitar",
       "era": "composed 1899, this recording modern",
       "source": "https://commons.wikimedia.org/wiki/File:Recuerdos_de_la_Alhambra.ogg",
       "download": "https://upload.wikimedia.org/wikipedia/commons/a/a3/Recuerdos_de_la_Alhambra.ogg",
@@ -75,11 +160,54 @@
       "attributionText": "\"Recuerdos de la Alhambra\" by Francisco Tárrega, performance via Wikimedia Commons, CC BY-SA 3.0"
     },
     {
+      "id": "romance-anonimo",
+      "station": "six-strings",
+      "file": "radio/romance-anonimo.ogg",
+      "title": "Romance Anónimo (\"Jeux Interdits\")",
+      "composer": "Traditional (anonymous)",
+      "era": "traditional Spanish guitar piece, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Romance_An%C3%B3nimo_(Jeux_interdits).ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/3/33/Romance_An%C3%B3nimo_%28Jeux_interdits%29.ogg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attributionRequired": false
+    },
+    {
+      "id": "albeniz-asturias",
+      "station": "six-strings",
+      "file": "radio/albeniz-asturias.ogg",
+      "title": "Asturias (Leyenda)",
+      "composer": "Isaac Albéniz",
+      "performer": "David Hernando Vitores",
+      "era": "composed 1892, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Isaac_Albeniz_-_Asturias_-_David_Hernando_Vitores.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/0/00/Isaac_Albeniz_-_Asturias_-_David_Hernando_Vitores.ogg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attributionRequired": true,
+      "attributionText": "Albéniz, Asturias (Leyenda), performed by David Hernando Vitores, via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Ogg Skeleton-multiplexed container - verify browser playback before trusting it plays like the plain-Vorbis files in this station."
+    },
+    {
+      "id": "bach-lute-gigue",
+      "station": "six-strings",
+      "file": "radio/bach-lute-gigue.ogg",
+      "title": "Lute Suite No. 2 in C minor, BWV 997 - IV. Gigue",
+      "composer": "Johann Sebastian Bach",
+      "era": "composed c. 1740, this recording modern",
+      "source": "https://commons.wikimedia.org/wiki/File:Johann_Sebastian_Bach_-_BWV_997_-_Lute_Suite_No._2_in_C_minor_-_IV_Gigue_-_Double.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/7/75/Johann_Sebastian_Bach_-_BWV_997_-_Lute_Suite_No._2_in_C_minor_-_IV_Gigue_-_Double.ogg",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "attributionRequired": true,
+      "attributionText": "Bach, Lute Suite No. 2, BWV 997, IV. Gigue, via Wikimedia Commons, CC BY-SA 2.0"
+    },
+    {
       "id": "erquan-yingyue",
+      "station": "silk-road",
       "file": "radio/erquan-yingyue.ogg",
       "title": "二泉映月 (Erquan Yingyue / Moon Reflected on the Second Spring)",
       "composer": "Traditional / Hua Yanjun (Abing)",
-      "genre": "chinese",
       "era": "erhu piece, early 20th century (attributed, based on older traditional material)",
       "source": "https://commons.wikimedia.org/wiki/File:%E4%BA%8C%E6%B3%89%E6%98%A0%E6%9C%88.ogg",
       "download": "https://upload.wikimedia.org/wikipedia/commons/f/ff/%E4%BA%8C%E6%B3%89%E6%98%A0%E6%9C%88.ogg",
@@ -90,10 +218,10 @@
     },
     {
       "id": "shika-no-tone",
+      "station": "silk-road",
       "file": "radio/shika-no-tone.ogg",
       "title": "鹿の遠音 (Shika no Tone / Distant Call of the Deer)",
       "composer": "Traditional shakuhachi honkyoku",
-      "genre": "japanese",
       "era": "pre-1900 traditional honkyoku, this recording modern",
       "source": "https://commons.wikimedia.org/wiki/File:Shikanotoone_new.ogg",
       "download": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Shikanotoone_new.ogg",
@@ -103,10 +231,10 @@
     },
     {
       "id": "oud-jordan",
+      "station": "silk-road",
       "file": "radio/oud-jordan.mp3",
       "title": "Oud music (2v2)",
       "composer": "Andy R. Jordan",
-      "genre": "arabic",
       "era": "modern composition in maqam style - not a pre-1900 traditional piece, included as the best Arabic-genre candidate found so far",
       "source": "https://commons.wikimedia.org/wiki/File:Oud_music_by_Andy_R._Jordan_2v2.mp3",
       "download": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Oud_music_by_Andy_R._Jordan_2v2.mp3",

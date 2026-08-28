@@ -30,20 +30,57 @@ recorded below with where it came from and what it costs to use.
 
 None sourced yet. `zone` in manifest.json is empty.
 
-## Radio station
+## Radio stations
 
-Curated per Dan's brief: pre-1900-leaning, across fantasy/classical/
-guitar/European/Arabic/Chinese/Japanese genres. Five sourced so far, all
-via Wikimedia Commons, all with explicit machine-checked licence status
-(not eyeballed) before download:
+Fallout-style: a small number of stations, each a looping, shuffling
+playlist (`RadioPlayer` in `ambientSound.ts`), not one station per track.
+All 13 tracks via Wikimedia Commons, all with explicit machine-checked
+licence status (not eyeballed) before download.
+
+### The Old Concert Hall — western orchestral and piano (6 tracks)
 
 - **In the Hall of the Mountain King** (Peer Gynt Suite No. 1, Op. 46),
   Edvard Grieg, performed by the Musopen Symphony Orchestra —
   [source](https://commons.wikimedia.org/wiki/File:Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg) —
   Public domain. Composed 1875; this recording is modern but released PD.
+- **Moonlight Sonata**, Op. 27 No. 2, 2nd and 3rd movements, Ludwig van
+  Beethoven —
+  [2nd](https://commons.wikimedia.org/wiki/File:Beethoven_Moonlight_2nd_movement.ogg),
+  [3rd](https://commons.wikimedia.org/wiki/File:Beethoven_Moonlight_3rd_movement.ogg) —
+  CC BY-SA 2.0 DE. Attribution required. Composed 1801.
+- **Nocturne in C-sharp minor**, Op. 27 No. 1, Frédéric Chopin —
+  [source](https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_Op.27_No.1.oga) —
+  Public domain. Composed 1835.
+- **The Four Seasons — Autumn**, mvt. 3, Antonio Vivaldi, performed by
+  John Harrison (violin) —
+  [source](https://commons.wikimedia.org/wiki/File:Vivaldi_-_Four_Seasons_3_Autumn_mvt_3_Allegro_-_John_Harrison_violin.oga) —
+  CC BY-SA 4.0. Attribution required. Composed 1725.
+- **Gymnopédie No. 3**, Erik Satie —
+  [source](https://commons.wikimedia.org/wiki/File:Gymnop%C3%A9die_no.3.ogg) —
+  CC0. Composed 1888. **Ogg-FLAC container** — playback not yet verified
+  in the app, see the manifest's `note` on this entry.
+
+### Six Strings — classical guitar and lute (4 tracks)
+
 - **Recuerdos de la Alhambra**, Francisco Tárrega —
   [source](https://commons.wikimedia.org/wiki/File:Recuerdos_de_la_Alhambra.ogg) —
   CC BY-SA 3.0. Attribution required. Composed 1899.
+- **Romance Anónimo** ("Jeux Interdits"), traditional —
+  [source](https://commons.wikimedia.org/wiki/File:Romance_An%C3%B3nimo_(Jeux_interdits).ogg) —
+  CC0.
+- **Asturias (Leyenda)**, Isaac Albéniz, performed by David Hernando
+  Vitores —
+  [source](https://commons.wikimedia.org/wiki/File:Isaac_Albeniz_-_Asturias_-_David_Hernando_Vitores.ogg) —
+  CC BY-SA 4.0. Attribution required. Composed 1892. **Ogg
+  Skeleton-multiplexed container** — playback not yet verified in the
+  app, see the manifest's `note` on this entry.
+- **Lute Suite No. 2 in C minor, BWV 997 — IV. Gigue**, Johann Sebastian
+  Bach —
+  [source](https://commons.wikimedia.org/wiki/File:Johann_Sebastian_Bach_-_BWV_997_-_Lute_Suite_No._2_in_C_minor_-_IV_Gigue_-_Double.ogg) —
+  CC BY-SA 2.0. Attribution required. Composed c. 1740.
+
+### The Silk Road — Chinese, Japanese and Arabic (3 tracks)
+
 - **二泉映月 (Erquan Yingyue / Moon Reflected on the Second Spring)**,
   traditional/attributed to Hua Yanjun (Abing), erhu —
   [source](https://commons.wikimedia.org/wiki/File:%E4%BA%8C%E6%B3%89%E6%98%A0%E6%9C%88.ogg) —
@@ -58,7 +95,9 @@ via Wikimedia Commons, all with explicit machine-checked licence status
   CC BY-SA 3.0. Attribution required. **Not** a pre-1900 traditional
   piece — a modern composition in maqam style, included as the best
   Arabic-genre candidate found so far. A genuine antique Arabic piece is
-  still worth finding.
+  still worth finding, and this station is thin at 3 tracks next to the
+  other two.
 
-Still missing from the genre list: a stronger Arabic entry, and European
-folk/classical beyond Tárrega and Grieg.
+Still worth doing: a stronger/second Arabic track, more European folk,
+and verifying the two flagged unusual-container files actually play in
+WebView2 rather than just serving over HTTP correctly.

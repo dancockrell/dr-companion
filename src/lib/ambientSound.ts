@@ -28,37 +28,76 @@
  * the `<audio>` element and simply never starts, which is silence, not an
  * error - correct for a layer whose whole job is to be optional.
  *
- * # Radio is a third track, not a mode, and it is looked up for real
+ * # Radio is a third track, not a mode - and a station, not a track
  *
- * Unlike zone music, radio stations are a small, known set - so unlike the
- * try-and-degrade convention above, `RADIO_STATIONS` is a real lookup built
- * from the manifest, and `setRadioStation` refuses an id that isn't in it
- * rather than trying a URL and hoping. Selecting a station swaps what plays
- * in the music slot without touching ambient - the terrain keeps breathing
- * under whatever is playing on top of it, same as a real radio does not
- * turn off the wind outside.
+ * A Fallout-style radio, not a jukebox: selecting a station starts a
+ * *playlist* that loops and advances on its own, the way Galaxy News Radio
+ * does not stop after one song. `data/audio/manifest.json`'s `radio` array
+ * is a flat list of tracks, each tagged with a `station` id; `RADIO_STATIONS`
+ * groups them for a picker, and `RadioPlayer` below is what actually walks
+ * a station's list - shuffled once per station switch so the order isn't
+ * identical every time, looping the whole list rather than one track.
+ *
+ * Selecting a station swaps what plays in the music slot without touching
+ * ambient - the terrain keeps breathing under whatever is playing on top of
+ * it, same as a real radio does not turn off the wind outside.
  */
-import zoneBiomes from '../../data/audio/zone-biomes.json'
-import manifest from '../../data/audio/manifest.json'
+// The `with { type: 'json' }` attribute is required by plain Node ESM (which
+// tools/ambient-test.mjs uses to import this file directly, the same way
+// trail-test.mjs and flow-test.mjs import .ts sources elsewhere in this
+// repo) even though Vite accepts a bare JSON import without it. Without the
+// attribute this module fails to import outside a bundler at all.
+import zoneBiomes from '../../data/audio/zone-biomes.json' with { type: 'json' }
+import manifest from '../../data/audio/manifest.json' with { type: 'json' }
 
-export interface RadioStation {
+export interface RadioTrack {
   id: string
   title: string
   composer: string
-  genre: string
 }
 
-/** Every station the manifest actually names, for a picker to list. */
-export const RADIO_STATIONS: RadioStation[] = (manifest.radio ?? []).map((r) => ({
-  id: r.id,
-  title: r.title,
-  composer: r.composer,
-  genre: r.genre,
-}))
+export interface RadioStation {
+  id: string
+  name: string
+  description: string
+  tracks: RadioTrack[]
+}
+
+const STATION_META: Record<string, { name: string; description: string }> =
+  manifest.radioStations ?? {}
+
+/** Every station the manifest actually names, in first-appearance order, for a picker to list. */
+export const RADIO_STATIONS: RadioStation[] = (() => {
+  const byId = new Map<string, RadioStation>()
+  for (const t of manifest.radio ?? []) {
+    let s = byId.get(t.station)
+    if (!s) {
+      const meta = STATION_META[t.station]
+      s = {
+        id: t.station,
+        name: meta?.name ?? t.station,
+        description: meta?.description ?? '',
+        tracks: [],
+      }
+      byId.set(t.station, s)
+    }
+    s.tracks.push({ id: t.id, title: t.title, composer: t.composer })
+  }
+  return [...byId.values()]
+})()
 
 const RADIO_FILES: Record<string, string> = Object.fromEntries(
   (manifest.radio ?? []).map((r) => [r.id, `/audio/${r.file}`])
 )
+
+function shuffled<T>(items: T[]): T[] {
+  const out = items.slice()
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
 
 type Biome = keyof typeof BIOME_FILES
 
@@ -91,7 +130,7 @@ const ZONE_BIOMES: Record<string, { name: string; biome: string }> = zoneBiomes
 const FADE_MS = 2500
 const TICK_MS = 50
 
-/** One looping layer, faded rather than cut. */
+/** One layer, faded rather than cut. Loops by default; radio turns that off and drives `onEnded` instead. */
 class Layer {
   private el: HTMLAudioElement | null = null
   private targetVolume = 0
@@ -103,8 +142,14 @@ class Layer {
     if (this.el) this.el.volume = v ? 0 : this.targetVolume
   }
 
-  /** Swap to a new source, crossfading out the old and in the new. Same src is a no-op. */
-  play(src: string | null, volume = 0.35) {
+  /**
+   * Swap to a new source, crossfading out the old and in the new. Same src is
+   * a no-op - callers that want the same file to restart (radio advancing to
+   * the next track happens to sometimes land on the same file in a small
+   * station) should not rely on `play` for that; nothing here currently needs
+   * to.
+   */
+  play(src: string | null, volume = 0.35, opts?: { loop?: boolean; onEnded?: () => void }) {
     if (src === (this.el?.dataset.src ?? null)) return
     this.targetVolume = volume
 
@@ -117,9 +162,10 @@ class Layer {
     }
 
     const next = new Audio(src)
-    next.loop = true
+    next.loop = opts?.loop ?? true
     next.volume = 0
     next.dataset.src = src
+    if (opts?.onEnded) next.addEventListener('ended', opts.onEnded)
     // Autoplay policy or a missing file both land here; a background track
     // failing to start is not worth surfacing as an error to the player.
     void next.play().catch(() => {})
@@ -161,7 +207,66 @@ const ambient = new Layer()
 const music = new Layer()
 
 let currentZone: string | null = null
-let radioStation: string | null = null
+
+/**
+ * Walks one station's playlist in the `music` slot: shuffles once on
+ * selection, advances on `ended`, loops the whole list rather than one
+ * track. This is the difference between a radio station and a jukebox
+ * repeating a single song - Galaxy News Radio does not loop "Way Back Home"
+ * forever, it works through its library and comes back around.
+ */
+class RadioPlayer {
+  private stationId: string | null = null
+  private queue: RadioTrack[] = []
+  private pos = 0
+
+  get current(): string | null {
+    return this.stationId
+  }
+
+  select(stationId: string | null) {
+    if (stationId === this.stationId) return
+    this.stationId = stationId
+
+    if (!stationId) {
+      music.play(currentZone ? `/audio/zone/${currentZone}.mp3` : null, 0.4)
+      return
+    }
+
+    const station = RADIO_STATIONS.find((s) => s.id === stationId)
+    // An id that isn't a real station falls back to zone music rather than
+    // silently doing nothing - the same "refuse, don't guess" the old
+    // single-track lookup did.
+    if (!station || !station.tracks.length) {
+      this.stationId = null
+      music.play(currentZone ? `/audio/zone/${currentZone}.mp3` : null, 0.4)
+      return
+    }
+
+    this.queue = shuffled(station.tracks)
+    this.pos = 0
+    this.playCurrent()
+  }
+
+  private playCurrent() {
+    const track = this.queue[this.pos]
+    if (!track) return
+    music.play(RADIO_FILES[track.id], 0.4, { loop: false, onEnded: () => this.advance() })
+  }
+
+  private advance() {
+    this.pos++
+    if (this.pos >= this.queue.length) {
+      // Loop the list - reshuffle rather than replaying the identical order,
+      // so a long play session does not have an audibly fixed cycle.
+      this.queue = shuffled(this.queue)
+      this.pos = 0
+    }
+    this.playCurrent()
+  }
+}
+
+const radio = new RadioPlayer()
 
 /** Does this zone id have a biome we know about? Unknown zones get the fallback, quietly. */
 function biomeFor(zoneId: string): Biome {
@@ -179,7 +284,7 @@ export function setZone(zoneId: string | null) {
 
   if (!zoneId) {
     ambient.play(null)
-    if (!radioStation) music.play(null)
+    if (!radio.current) music.play(null)
     return
   }
 
@@ -187,27 +292,18 @@ export function setZone(zoneId: string | null) {
 
   // Radio, once selected, keeps playing across zone changes - it is a
   // deliberate override, not a per-zone thing to interrupt.
-  if (!radioStation) {
+  if (!radio.current) {
     music.play(`/audio/zone/${zoneId}.mp3`, 0.4)
   }
 }
 
 /** id or null to go back to zone music. An id not in RADIO_STATIONS is refused, falling back to zone music. */
 export function setRadioStation(id: string | null) {
-  const file = id ? RADIO_FILES[id] : undefined
-  radioStation = file ? id : null
-
-  if (file) {
-    music.play(file, 0.4)
-  } else if (currentZone) {
-    music.play(`/audio/zone/${currentZone}.mp3`, 0.4)
-  } else {
-    music.play(null)
-  }
+  radio.select(id)
 }
 
 export function currentRadioStation(): string | null {
-  return radioStation
+  return radio.current
 }
 
 let muted = false
@@ -225,4 +321,5 @@ export function stopAmbience() {
   ambient.stop()
   music.stop()
   currentZone = null
+  radio.select(null)
 }
