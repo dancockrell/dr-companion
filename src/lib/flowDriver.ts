@@ -31,6 +31,13 @@ export interface FlowDriverHooks {
   onChange: (state: FlowState) => void
   /** For the log. */
   log: (line: string) => void
+  /**
+   * Whether a step's `condition` currently holds. Optional so callers that
+   * never use conditions (every test written before this existed) do not
+   * have to supply one — a step with a condition and no way to check it
+   * runs unconditionally, the same as a step with no condition at all.
+   */
+  evaluateCondition?: (condition: string) => boolean
 }
 
 export class FlowDriver {
@@ -127,12 +134,40 @@ export class FlowDriver {
     }
   }
 
-  /** Send the current step, then schedule the next. */
-  private push(): void {
+  /**
+   * Send the current step, then schedule the next.
+   *
+   * `guard` counts steps skipped for an unmet condition in one unbroken
+   * synchronous chain — never reset by a real wait, only by a step that
+   * actually sends. Without it, a looping flow whose every step's condition
+   * is permanently false would recurse through the whole step list forever
+   * in one tick, which is a hang with no timer to interrupt it. Past
+   * `steps.length` skips, no step in the loop can currently run at all,
+   * which is worth failing loudly rather than spinning silently on.
+   */
+  private push(guard = 0): void {
     if (!this.state) return
     const step = currentStep(this.state)
     if (!step) {
       this.hooks.onChange(this.state)
+      return
+    }
+
+    if (step.condition && this.hooks.evaluateCondition && !this.hooks.evaluateCondition(step.condition)) {
+      if (guard > this.state.flow.steps.length) {
+        this.state = fail(this.state, `no step's condition can currently be met (${step.condition})`)
+        this.hooks.log(`Flow: ${this.state.flow.title} stopped — every step is gated and none can run`)
+        this.hooks.onChange(this.state)
+        return
+      }
+      this.hooks.log(`Flow: skipping "${step.label}" — condition not met (${step.condition})`)
+      this.state = advance(this.state)
+      if (isFinished(this.state)) {
+        this.hooks.log(`Flow: ${this.state.flow.title} finished`)
+        this.hooks.onChange(this.state)
+        return
+      }
+      this.push(guard + 1)
       return
     }
 

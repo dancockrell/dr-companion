@@ -34,6 +34,13 @@ export interface FlowStep {
    * immediately gets it eaten.
    */
   settle?: number
+  /**
+   * Only run this step while the condition holds — a gauge percent
+   * (`health<50`), a situation flag (`bleeding`), either negated (`!spirit>80`,
+   * `!stunned`). Unset means unconditional, same as before this existed.
+   * See lib/flowConditions.ts for the grammar and why it fails open.
+   */
+  condition?: string
 }
 
 export interface TaskFlow {
@@ -72,7 +79,11 @@ export const DEFAULT_FLOWS: TaskFlow[] = [
       { label: 'Attacking', commands: ['attack'] },
       { label: 'Looting', commands: ['get all', 'get coins'], settle: 1 },
       { label: 'Skinning', commands: ['skin'], settle: 1 },
-      { label: 'Tending', commands: ['tend my worst'] },
+      // The first real use of a step condition: tending a fresh kill's
+      // corpse when there is nothing bleeding just spends a command doing
+      // nothing. `bleeding` is a live situation flag the bridge already
+      // reports every tick, so this is real state, not a guess.
+      { label: 'Tending', commands: ['tend my worst'], condition: 'bleeding' },
     ],
   },
   {
@@ -219,8 +230,14 @@ function validFlow(f: unknown): TaskFlow | string {
       typeof s.settle === 'number' && Number.isFinite(s.settle) && s.settle >= 0
         ? s.settle
         : undefined
+    // Also cosmetic in the sense that matters here: a malformed condition
+    // string already evaluates to "always run" (see flowConditions.ts's
+    // fail-open rule), so dropping a non-string value changes nothing about
+    // what reaches the game — it only removes a gate that could not have
+    // gated anything.
+    const condition = typeof s.condition === 'string' && s.condition.trim() ? s.condition : undefined
 
-    steps.push(settle === undefined ? { label, commands } : { label, commands, settle })
+    steps.push({ label, commands, ...(settle !== undefined && { settle }), ...(condition && { condition }) })
   }
 
   return {

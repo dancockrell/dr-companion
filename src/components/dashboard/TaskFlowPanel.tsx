@@ -11,6 +11,7 @@ import {
 import { FlowDriver } from '../../lib/flowDriver'
 import { onStopAll, onPauseAll, onResumeAll, onStartFlow } from '../../lib/flowStop'
 import { describeFlow, isFinished, type FlowState } from '../../lib/flowRunner'
+import { evaluateCondition, contextFromCharacter, describeCondition } from '../../lib/flowConditions'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
@@ -63,6 +64,13 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         setActiveFlow(isFinished(s) ? null : describeFlow(s))
       },
       log: addLog,
+      // Read fresh from the store on every call rather than closed over —
+      // the driver instance is created once, but the character's vitals
+      // change every tick, and a condition checked against whatever health
+      // the character happened to have when the flow started would defeat
+      // the entire point of it being conditional.
+      evaluateCondition: (condition) =>
+        evaluateCondition(condition, contextFromCharacter(useAppStore.getState().character)),
     })
   }
 
@@ -183,7 +191,12 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                     : { ...f, id: `${f.id}-${Date.now().toString(36)}`, title: `${f.title} (mine)`, custom: true }
                 )
               }}
-              title={`${f.summary}\n\n${f.steps.map((s, i) => `${i + 1}. ${s.label}: ${s.commands.join('; ')}`).join('\n')}\n\nRight-click to ${f.custom ? 'edit' : 'copy and edit'}`}
+              title={`${f.summary}\n\n${f.steps
+                .map((s, i) => {
+                  const cond = describeCondition(s.condition)
+                  return `${i + 1}. ${s.label}: ${s.commands.join('; ')}${cond ? ` (${cond})` : ''}`
+                })
+                .join('\n')}\n\nRight-click to ${f.custom ? 'edit' : 'copy and edit'}`}
               className={cn(
                 'rounded border px-2 py-1.5 text-left transition-colors',
                 active
@@ -237,6 +250,12 @@ function FlowEditor({
 }) {
   const [draft, setDraft] = useState<TaskFlow>(flow)
   const known = DEFAULT_FLOWS.some((f) => f.id === flow.id)
+
+  // Live, not evaluated once — a condition someone is typing right now
+  // should show whether it currently holds, and health changes mid-edit
+  // same as it does mid-flow.
+  const character = useAppStore((s) => s.character)
+  const ctx = useMemo(() => contextFromCharacter(character), [character])
 
   /**
    * The first step that would make `loadCustomFlows()` reject this whole flow,
@@ -317,6 +336,40 @@ function FlowEditor({
             placeholder="One command per line"
             className="mt-1 w-full rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-ink-muted"
           />
+          {/*
+           * The "big deal" workflow feature: a step that only runs while a
+           * gauge or a situation flag says so — coordinator.lic's start_on/
+           * stop_on, in one line instead of a YAML block (DESIGN.md §2.2).
+           * The live true/false badge reads against whatever character is
+           * connected right now, so a typo or an impossible condition shows
+           * itself while editing rather than only once the flow is running
+           * and skipping a step nobody can see why.
+           */}
+          <div className="mt-1 flex items-center gap-1.5">
+            <input
+              value={s.condition ?? ''}
+              onChange={(e) => setStep(i, { condition: e.target.value || undefined })}
+              placeholder="Only if… (e.g. health<50, bleeding, !stunned)"
+              className="min-w-0 flex-1 rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-ink-muted"
+            />
+            {s.condition?.trim() && (
+              <span
+                className={cn(
+                  'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                  evaluateCondition(s.condition, ctx)
+                    ? 'bg-good/15 text-good'
+                    : 'bg-ink-faint/15 text-ink-faint'
+                )}
+                title={
+                  character
+                    ? 'Checked against the connected character, right now'
+                    : 'No character connected — conditions read as true until one is'
+                }
+              >
+                {evaluateCondition(s.condition, ctx) ? 'true now' : 'false now'}
+              </span>
+            )}
+          </div>
         </div>
       ))}
 
