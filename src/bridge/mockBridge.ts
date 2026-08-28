@@ -238,8 +238,14 @@ const presets: Record<DemoPresetId, DemoPreset> = {
         { name: 'backpack', used: 22, capacity: 25 },
         { name: 'belt', used: 5, capacity: 6 },
       ],
-      wornCount: 8,
-      looseCount: 1,
+      // Above carryWarnAt (75, F2P-only - see accountCapabilities.ts),
+      // below carryMax (100). This is the only preset F2P applies to, so it
+      // was the only place this warning could ever be seen - and at the old
+      // 8+1=9 it never crossed 75, so the panel had never actually been
+      // rendered by anyone. "A state the fixture cannot reach is a state
+      // nobody sees until a user does." Found by downloads-7e.
+      wornCount: 78,
+      looseCount: 4,
       pressure: 'high',
     },
   },
