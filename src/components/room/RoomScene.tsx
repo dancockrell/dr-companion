@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { roomArtUrl } from '../../lib/roomText'
 
 /**
@@ -61,12 +61,19 @@ export function RoomScene({
   title,
   text,
   height = 150,
+  children,
 }: {
   zone: string
   room: number
   title?: string | null
   text?: string | null
   height?: number
+  /**
+   * Drawn over the art/fingerprint, under the title bar — the table's chips
+   * sit here. Optional so every existing caller that just wants the picture
+   * is untouched.
+   */
+  children?: ReactNode
 }) {
   const key = `${zone}-${room}`
 
@@ -145,6 +152,8 @@ export function RoomScene({
         }}
         className="absolute inset-0 h-full w-full object-cover"
       />
+
+      {children}
 
       {title && (
         <div className="absolute inset-x-0 bottom-0 bg-surface/80 px-2 py-1 text-xs text-ink backdrop-blur-sm">

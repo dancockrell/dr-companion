@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { RoomScene } from './RoomScene'
+import { RoomTable } from './RoomTable'
 import { StreamTabs } from '../game/StreamTabs'
 import { GamePane } from '../game/GamePane'
 import { PanelBoundary } from '../shared/PanelBoundary'
@@ -82,12 +82,12 @@ export function RoomColumn() {
      */
     <div className="flex h-full min-h-0 flex-col gap-2 p-2">
       <PanelBoundary label="Scene">
-        <RoomScene
+        <RoomTable
           zone={zone}
           room={room ?? 0}
           title={title}
           text={text?.text}
-          height={170}
+          height={260}
         />
       </PanelBoundary>
 
