@@ -1,0 +1,28 @@
+{
+  "_note": "Source-of-truth for every file under public/audio/. public/audio/ itself is gitignored (same reasoning as public/rooms/ - regenerable, large, not source), so this manifest is what makes the audio pipeline auditable and re-fetchable. tools/vendor-audio.mjs reads this and pulls each entry's `source` into `public/audio/<file>` if it isn't already there. Never add a file to public/audio/ without an entry here - an untracked file has no license on record and no way to be re-fetched on a clean checkout.",
+  "biome": {
+    "forest": {
+      "file": "biome/forest.ogg",
+      "title": "Cathedral in the Forest (ambient loop)",
+      "author": "congusbongus",
+      "source": "https://opengameart.org/content/cathedral-in-the-forest-ambient-loop",
+      "download": "https://opengameart.org/sites/default/files/forest_2_0.ogg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attributionRequired": false
+    },
+    "town": {
+      "file": "biome/town.mp3",
+      "title": "Peaceful Village Loop",
+      "author": "abeth",
+      "source": "https://opengameart.org/content/peaceful-village-loop",
+      "download": "https://opengameart.org/sites/default/files/abeth.mp3",
+      "license": "CC-BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "attributionRequired": true,
+      "attributionText": "\"Peaceful Village Loop\" by abeth (opengameart.org), CC-BY 3.0"
+    }
+  },
+  "zone": {},
+  "radio": []
+}

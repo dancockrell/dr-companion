@@ -1,0 +1,342 @@
+{
+  "1": {
+    "name": "Crossing",
+    "biome": "town"
+  },
+  "10": {
+    "name": "Abandoned Mine and Lairocott Brach",
+    "biome": "cave"
+  },
+  "105": {
+    "name": "Soul of Maelshyve",
+    "biome": "wilderness"
+  },
+  "106": {
+    "name": "Hara'jaal",
+    "biome": "settlement"
+  },
+  "107": {
+    "name": "Mer'Kresh",
+    "biome": "settlement"
+  },
+  "107a": {
+    "name": "Belarritaco Bay",
+    "biome": "water"
+  },
+  "108": {
+    "name": "M'Riss",
+    "biome": "settlement"
+  },
+  "11": {
+    "name": "Leucros Vipers and Rock Guardians",
+    "biome": "wilderness"
+  },
+  "112": {
+    "name": "Ilaya Taipa River Clan",
+    "biome": "water"
+  },
+  "113": {
+    "name": "West Segoltha",
+    "biome": "wilderness"
+  },
+  "116": {
+    "name": "Hibarnhvidar",
+    "biome": "settlement"
+  },
+  "118e": {
+    "name": "Cavern of Fire",
+    "biome": "cave"
+  },
+  "123": {
+    "name": "Himineldar Shel",
+    "biome": "settlement"
+  },
+  "126": {
+    "name": "Hawstkaal Road",
+    "biome": "road"
+  },
+  "127": {
+    "name": "Boar Clan",
+    "biome": "settlement"
+  },
+  "12a": {
+    "name": "Misenseor Abbey",
+    "biome": "interior"
+  },
+  "13": {
+    "name": "Dirge",
+    "biome": "wilderness"
+  },
+  "14b": {
+    "name": "Greater Fist",
+    "biome": "wilderness"
+  },
+  "14c": {
+    "name": "Faldesu River",
+    "biome": "water"
+  },
+  "14d": {
+    "name": "Moon Mage Guild NTR",
+    "biome": "interior"
+  },
+  "150": {
+    "name": "Fang Cove",
+    "biome": "wilderness"
+  },
+  "1a": {
+    "name": "Crossing Thief Passages",
+    "biome": "dungeon"
+  },
+  "1j": {
+    "name": "Crossing Market Plaza",
+    "biome": "town"
+  },
+  "1l": {
+    "name": "Crossing Amusement Pier",
+    "biome": "town"
+  },
+  "1m": {
+    "name": "Crossing Jadewater Mansion",
+    "biome": "town"
+  },
+  "1n": {
+    "name": "The Seacaves of Peri'el",
+    "biome": "wilderness"
+  },
+  "2": {
+    "name": "Lake of Dreams",
+    "biome": "water"
+  },
+  "2a": {
+    "name": "Crossing Temple",
+    "biome": "town"
+  },
+  "2d": {
+    "name": "Crossing Escape Tunnels",
+    "biome": "dungeon"
+  },
+  "30": {
+    "name": "Riverhaven",
+    "biome": "town"
+  },
+  "30a": {
+    "name": "Dunshade Manor",
+    "biome": "interior"
+  },
+  "30b": {
+    "name": "Riverhaven Thief Passages",
+    "biome": "dungeon"
+  },
+  "31": {
+    "name": "Riverhaven East Gate",
+    "biome": "town"
+  },
+  "31b": {
+    "name": "Maelshyve's Fortress",
+    "biome": "interior"
+  },
+  "32": {
+    "name": "Riverhaven North Gate",
+    "biome": "town"
+  },
+  "33a": {
+    "name": "Road to Therenborough",
+    "biome": "road"
+  },
+  "35": {
+    "name": "Throne City",
+    "biome": "town"
+  },
+  "35a": {
+    "name": "Throne City Thief Passages",
+    "biome": "dungeon"
+  },
+  "4": {
+    "name": "Crossing West Gate",
+    "biome": "town"
+  },
+  "40": {
+    "name": "Langenfirth to Therenborough",
+    "biome": "town"
+  },
+  "40a": {
+    "name": "Langenfirth to Siksraja",
+    "biome": "town"
+  },
+  "41": {
+    "name": "Ker'Leor Fornsted and Hraval",
+    "biome": "settlement"
+  },
+  "42": {
+    "name": "Therenborough and Keep",
+    "biome": "interior"
+  },
+  "47": {
+    "name": "Muspar'i",
+    "biome": "town"
+  },
+  "47a": {
+    "name": "Muspar'i Thief Passages",
+    "biome": "dungeon"
+  },
+  "48": {
+    "name": "Haizen Cugis",
+    "biome": "wilderness"
+  },
+  "4a": {
+    "name": "Tiger Clan",
+    "biome": "settlement"
+  },
+  "50": {
+    "name": "Segoltha River",
+    "biome": "water"
+  },
+  "58": {
+    "name": "Acenamacra Village",
+    "biome": "settlement"
+  },
+  "59": {
+    "name": "Boggy Wood",
+    "biome": "forest"
+  },
+  "6": {
+    "name": "Crossing North Gate",
+    "biome": "town"
+  },
+  "60": {
+    "name": "Southern Trade Route Part 1",
+    "biome": "road"
+  },
+  "61": {
+    "name": "Leth Deriel",
+    "biome": "wilderness"
+  },
+  "62": {
+    "name": "Southern Trade Route Part 2",
+    "biome": "road"
+  },
+  "62b": {
+    "name": "Tref Dinta",
+    "biome": "wilderness"
+  },
+  "63": {
+    "name": "Oshu'ehhrsk Manor",
+    "biome": "interior"
+  },
+  "65": {
+    "name": "Under the Gondola",
+    "biome": "water"
+  },
+  "66": {
+    "name": "Shard to Gondola Area",
+    "biome": "water"
+  },
+  "67": {
+    "name": "Shard",
+    "biome": "town"
+  },
+  "67a": {
+    "name": "Shard Thief Passages",
+    "biome": "dungeon"
+  },
+  "68": {
+    "name": "Shard South Gate",
+    "biome": "town"
+  },
+  "68a": {
+    "name": "Ice Caves",
+    "biome": "cave"
+  },
+  "68b": {
+    "name": "Blackthorn Canyon Lost Ground",
+    "biome": "badlands"
+  },
+  "69": {
+    "name": "Shard West Gate",
+    "biome": "town"
+  },
+  "7": {
+    "name": "Northern Trade Road",
+    "biome": "road"
+  },
+  "7a": {
+    "name": "Vineyard",
+    "biome": "forest"
+  },
+  "7c": {
+    "name": "DiSilveron",
+    "biome": "wilderness"
+  },
+  "8": {
+    "name": "Crossing East Gate",
+    "biome": "town"
+  },
+  "8a": {
+    "name": "Lost Crossing",
+    "biome": "town"
+  },
+  "90": {
+    "name": "Ratha",
+    "biome": "town"
+  },
+  "90a": {
+    "name": "Sand Sprites and Ochre La'heke",
+    "biome": "wilderness"
+  },
+  "90d": {
+    "name": "Taisgath",
+    "biome": "wilderness"
+  },
+  "90e": {
+    "name": "Basalt Isle and Jeihrem's Barrow",
+    "biome": "water"
+  },
+  "92": {
+    "name": "Reshalia Trade Road",
+    "biome": "road"
+  },
+  "95": {
+    "name": "Pokekehekepi",
+    "biome": "settlement"
+  },
+  "98": {
+    "name": "Road to Aesry Frostweavers Snow Gobs",
+    "biome": "road"
+  },
+  "98a": {
+    "name": "Sea Caves",
+    "biome": "cave"
+  },
+  "99": {
+    "name": "Aesry Surlaenis'a",
+    "biome": "town"
+  },
+  "997": {
+    "name": "Wyvern Arena",
+    "biome": "interior"
+  },
+  "998": {
+    "name": "Transports",
+    "biome": "liminal"
+  },
+  "999": {
+    "name": "Microcosm",
+    "biome": "liminal"
+  },
+  "99a": {
+    "name": "Tethloren Island",
+    "biome": "wilderness"
+  },
+  "9b": {
+    "name": "Sorrow's Reach",
+    "biome": "badlands"
+  },
+  "TF1": {
+    "name": "The Arch (TF)",
+    "biome": "wilderness"
+  },
+  "TF990": {
+    "name": "The Extreme Shop (TF)",
+    "biome": "interior"
+  }
+}

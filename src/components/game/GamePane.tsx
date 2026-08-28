@@ -31,7 +31,7 @@
  * is the next thing to build.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Send, Plug, PlugZap, Volume2, VolumeX } from 'lucide-react'
+import { Send, Plug, PlugZap, Volume2, VolumeX, Music, Music2 } from 'lucide-react'
 import {
   attachGame,
   clearGame,
@@ -50,6 +50,8 @@ import { paint } from '../../lib/highlights'
 import { useHighlights } from '../../lib/useHighlights'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsMuted, alertsMuted } from '../../lib/alertSound'
+import { setZone, setAmbienceMuted, ambienceMuted } from '../../lib/ambientSound'
+import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
 /** How many lines are in the DOM at once. */
@@ -191,6 +193,18 @@ export function GamePane() {
   }, [highlights])
 
   const [muted, setMuted] = useState(alertsMuted())
+
+  /**
+   * The background layer: terrain ambience plus per-zone music, driven by the
+   * live bridge's zone report rather than the room line stream this pane
+   * otherwise reads. See ambientSound.ts's header for why zone rather than
+   * room, and why a no-op on an unchanged zone id is the whole point.
+   */
+  const mapZone = useAppStore((s) => s.mapZone)
+  useEffect(() => {
+    setZone(mapZone?.ok ? (mapZone.zone ?? null) : null)
+  }, [mapZone])
+  const [ambienceOff, setAmbienceOff] = useState(ambienceMuted())
 
   /**
    * Follow the bottom, unless the reader has deliberately scrolled away.
@@ -346,6 +360,24 @@ export function GamePane() {
             title={muted ? 'Alerts are muted' : 'Mute alerts'}
           >
             {muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+          </button>
+          {/* Ambience: terrain and per-zone music, separate from alerts on
+            * purpose - somebody who wants the idle warning but not a music bed
+            * running under everything should be able to have exactly that. */}
+          <button
+            type="button"
+            className={cn(
+              'rounded px-1.5 py-0.5',
+              ambienceOff ? 'text-warn' : 'text-ink-faint hover:text-ink'
+            )}
+            onClick={() => {
+              const next = !ambienceOff
+              setAmbienceOff(next)
+              setAmbienceMuted(next)
+            }}
+            title={ambienceOff ? 'Ambience is muted' : 'Mute ambience'}
+          >
+            {ambienceOff ? <Music2 className="h-3 w-3" /> : <Music className="h-3 w-3" />}
           </button>
           <button
             type="button"

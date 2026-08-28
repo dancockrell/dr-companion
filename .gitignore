@@ -50,6 +50,12 @@ quarantine*/
 # Generated from data/art/room-prompts.json by tools/build-room-text.mjs.
 public/roomtext/
 
+# Ambient/music/radio audio, sourced by data/audio/manifest.json and pulled
+# by tools/vendor-audio.mjs. Same reasoning as public/rooms/ below: fetchable
+# from the manifest, not source. The manifest itself is tracked - it is the
+# license record and the only copy of "where this came from" that matters.
+public/audio/
+
 # Room art, which does not belong in git.
 #
 # 17,750 rooms at a mean 178 KB is 3.0 GB against a 72 MB repository. Creatures
@@ -65,6 +71,8 @@ data/art/daemon-status.json
 data/art/daemon.lock
 data/art/daemon.stop
 data/art/failures.json
+data/art/comfy-extra-model-paths.yaml
+data/art/comfy-manual*.log
 
 # Account credentials for tools/save-lich-entry.rb. Never committed, never
 # printed by that script, and deletable the moment the Lich entry is saved.
