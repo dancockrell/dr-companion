@@ -47,21 +47,28 @@ const VK_VOLUME_MUTE: u8 = 0xAD;
 const VK_VOLUME_DOWN: u8 = 0xAE;
 const VK_VOLUME_UP: u8 = 0xAF;
 
+/// action name -> virtual-key code. Separated from `send_media_key` so a
+/// test can exercise the real lookup without also tapping a real key on
+/// whatever machine runs the test.
+fn vk_for(action: &str) -> Result<u8, String> {
+    match action {
+        "play_pause" => Ok(VK_MEDIA_PLAY_PAUSE),
+        "next" => Ok(VK_MEDIA_NEXT_TRACK),
+        "previous" => Ok(VK_MEDIA_PREV_TRACK),
+        "stop" => Ok(VK_MEDIA_STOP),
+        "volume_up" => Ok(VK_VOLUME_UP),
+        "volume_down" => Ok(VK_VOLUME_DOWN),
+        "mute" => Ok(VK_VOLUME_MUTE),
+        other => Err(format!("unknown media action: {other}")),
+    }
+}
+
 /// One of: play_pause, next, previous, stop, volume_up, volume_down, mute.
 /// Refuses an unknown action rather than silently doing nothing - same
 /// "refuse, don't guess" as ambientSound.ts's station lookup.
 #[tauri::command]
 pub fn send_media_key(action: String) -> Result<(), String> {
-    let vk = match action.as_str() {
-        "play_pause" => VK_MEDIA_PLAY_PAUSE,
-        "next" => VK_MEDIA_NEXT_TRACK,
-        "previous" => VK_MEDIA_PREV_TRACK,
-        "stop" => VK_MEDIA_STOP,
-        "volume_up" => VK_VOLUME_UP,
-        "volume_down" => VK_VOLUME_DOWN,
-        "mute" => VK_VOLUME_MUTE,
-        other => return Err(format!("unknown media action: {other}")),
-    };
+    let vk = vk_for(&action)?;
 
     #[cfg(target_os = "windows")]
     {
@@ -72,5 +79,47 @@ pub fn send_media_key(action: String) -> Result<(), String> {
     {
         let _ = vk;
         Err("media key injection is only implemented on Windows".to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Refuses rather than silently doing nothing - the real match arm,
+    /// exercised through `vk_for` rather than `send_media_key` so this
+    /// never taps a real key on whatever machine runs the test.
+    #[test]
+    fn unknown_action_is_refused_not_ignored() {
+        let err = vk_for("play").unwrap_err();
+        assert!(err.contains("play"), "error should name the bad action: {err}");
+    }
+
+    #[test]
+    fn every_documented_action_resolves_to_a_distinct_vk() {
+        // Same action strings externalMedia.ts's MediaAction type and
+        // SoundControls.tsx's ExternalMediaControls send - keeping this in
+        // sync by hand is exactly the kind of drift rule 1 warns about, so
+        // this exists specifically to catch one side changing without the
+        // other. Sabotage-checked: deleting a match arm above makes this
+        // fail with the real "unknown media action" error, not a tautology.
+        let actions = [
+            "play_pause",
+            "next",
+            "previous",
+            "stop",
+            "volume_up",
+            "volume_down",
+            "mute",
+        ];
+        let vks: Vec<u8> = actions
+            .iter()
+            .map(|a| vk_for(a).unwrap_or_else(|e| panic!("{e}")))
+            .collect();
+
+        let mut sorted = vks.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(sorted.len(), vks.len(), "two actions map to the same key: {vks:?}");
     }
 }
