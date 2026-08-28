@@ -166,6 +166,87 @@ const CAPTURED_TAGGED = [
   ['GENIE HAS FLAGGED YOU AS IDLE, PLEASE RESPOND!', 2200],
 ]
 
+/**
+ * The structured tags a `--stormfront` frontend receives, which nothing in
+ * this app reads yet.
+ *
+ * These are state, not text: vitals as numbers, posture and affliction flags,
+ * room contents, exits. The client currently gets all of it by polling the
+ * bridge instead, which is a round trip through Ruby to fetch what is already
+ * arriving on the socket it is holding.
+ *
+ * Shapes taken from Lich's own source rather than from memory or from a
+ * guess, because the fixture is what a parser will be developed against and a
+ * fixture that encodes a guess produces a parser and a test that agree with
+ * each other and disagree with the game:
+ *
+ *   - `detachable_client_send_init` (global_defs.rb:2306) - the exact dump
+ *     Lich sends a newly attached client. Every tag below appears there.
+ *   - `XMLParser#tag_start` (xmlparser.rb:698, :788) - how Lich reads the
+ *     game's own ongoing tags.
+ *
+ * Cross-checked against 22 seconds of real wire capture from a live
+ * DragonRealms session on Phemius, which produced exactly these tag names:
+ * dialogData, skin, progressBar, prompt, spell, indicator, compass, dir,
+ * output, component, image, pushBold, popBold, crtrStatus.
+ *
+ * # Three traps a parser author needs before starting
+ *
+ * **Read `text`, not `value`, for vitals.** Lich's own parser does
+ * `attributes['text'].scan(/-?\d+/)` to get [current, max]. In the init dump
+ * `value` is hardcoded `'0'` for every bar, so a parser reading `value` gets
+ * zero health on a healthy character and nothing errors.
+ *
+ * **`value` is meaningful only for GemStone bars** - `pbarStance` and
+ * `mindState`. Those are the two Lich reads it from.
+ *
+ * **Hands, wounds and mindstate never arrive in DragonRealms.** The init dump
+ * gates `<right>`, `<left>`, `<image id="chest" name="Injury2"/>`,
+ * `pbarStance`, `mindState` and `encumlevel` behind
+ * `XMLData.game.to_s.match?(/GS/)`. Building a DR panel fed by those tags
+ * would wait forever. Confirmed by the live capture: none of them appeared.
+ *
+ * Sent once on attach, mirroring `detachable_client_send_init`, rather than
+ * repeated in the loop - which is also how the real thing behaves, and means
+ * a parser that only handles them mid-stream will be caught out here too.
+ */
+const INIT_TAGS = [
+  // value='0' is not a typo. Lich hardcodes it in the init dump and puts the
+  // real numbers in `text` - see the trap note above.
+  "<progressBar id='mana' value='0' text='mana 98/100'/>",
+  "<progressBar id='health' value='0' text='health 100/100'/>",
+  "<progressBar id='spirit' value='0' text='spirit 100/100'/>",
+  "<progressBar id='stamina' value='0' text='stamina 96/100'/>",
+  '<spell>None</spell>',
+  // The seven Lich sends, in its own order. `visible` is 'y' or 'n', and an
+  // empty string appears in real captures for icons the game has not spoken
+  // to yet - which is neither, and must not be read as 'n'.
+  "<indicator id='IconBLEEDING' visible='n'/>",
+  "<indicator id='IconPOISONED' visible=''/>",
+  "<indicator id='IconDISEASED' visible=''/>",
+  "<indicator id='IconSTANDING' visible='y'/>",
+  "<indicator id='IconKNEELING' visible='n'/>",
+  "<indicator id='IconSITTING' visible='n'/>",
+  "<indicator id='IconPRONE' visible='n'/>",
+  // Short forms only: n ne e se s sw w nw up down out.
+  "<compass><dir value='e'/><dir value='s'/><dir value='w'/></compass>",
+]
+
+/**
+ * Structured tags that arrive during play rather than on attach.
+ *
+ * `component` wraps room contents and is where Objects and Players come from;
+ * `crtrStatus` is how DragonRealms rebuilds its creature roster after a
+ * `room objs` component, per the comment at xmlparser.rb:457.
+ */
+const LIVE_TAGS = [
+  ["<component id='room objs'>You also see <d>a stone stairway</d>.</component>", 1200],
+  ["<component id='room players'>Also here: <d>Wipsy</d>.</component>", 1400],
+  ["<progressBar id='stamina' value='96' text='stamina 96/100'/>", 900],
+  ["<indicator id='IconKNEELING' visible='y'/>", 1100],
+  ["<indicator id='IconSTANDING' visible='n'/>", 60],
+]
+
 /** What the game says back to a command, for the few worth answering. */
 const REPLIES = {
   look: [
@@ -215,9 +296,26 @@ const server = createServer((socket) => {
     // in this file for a shell or an editor to mangle on the way in. Three
     // separate edits today were eaten by exactly that.
     const EOL = String.fromCharCode(13) + String.fromCharCode(10)
+
+    // The attach-time state dump, once, before the replay starts - mirroring
+    // `detachable_client_send_init`. Only in tagged mode: a frontend with no
+    // xml capability never receives these, so sending them in plain mode
+    // would be the fixture inventing a state the real thing cannot produce.
+    //
+    // Sent as one write, as Lich does (`client.puts_main_stream(init_str)`),
+    // rather than line by line. That matters: a parser that assumes one tag
+    // per read passes against a tidier fixture and fails against Lich.
+    if (TAGGED) {
+      socket.write(INIT_TAGS.join('') + EOL)
+      await new Promise((r) => setTimeout(r, 200))
+    }
+
     while (alive) {
       pass++
-      const script = TAGGED ? CAPTURED_TAGGED : CAPTURED
+      // Structured tags interleaved with the text, which is how they arrive.
+      // Appended rather than woven in at a fixed point so the text replay
+      // stays byte-identical to what was captured.
+      const script = TAGGED ? [...CAPTURED_TAGGED, ...LIVE_TAGS] : CAPTURED
       for (const [line, gap] of script) {
         if (!alive) return
         const payload = line + EOL
