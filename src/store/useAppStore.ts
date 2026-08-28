@@ -496,7 +496,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     // first moments got "Not connected to Lich bridge" from the transport
     // instead of this store's clear "stop scripts in Lich directly". Wrong
     // message, worst moment.
-    set({ bridgeConnected: !live })
+    //
+    // For live, that "merely connecting" default is wrong exactly once: when
+    // the transport was already open before this call - a dev-mode HMR
+    // reload, or any second mount of this store - and `bridge.connect()`
+    // above is then a deliberate no-op on an already-connected socket (see
+    // RealBridge.connect), so the 'connected' event that would have flipped
+    // this never fires again. Read the real, current status instead of
+    // assuming "not yet" - the map panel showed "No bridge" against a
+    // genuinely open, working socket until this was read here rather than
+    // inferred. See bridge.getLiveStatus's own doc comment.
+    set({ bridgeConnected: live ? bridge.getLiveStatus() === 'connected' : true })
   },
 
   disconnectBridge: () => {

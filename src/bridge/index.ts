@@ -98,6 +98,24 @@ export const bridge = {
     return realBridge.onStatus(fn)
   },
 
+  /**
+   * The real bridge's status right now, not the next time it changes.
+   *
+   * `onLiveStatus` is edge-triggered - it fires on a transition, not on
+   * subscribing. A caller that only relies on future events misses "already
+   * connected," which is exactly the state after a dev-mode HMR reload (the
+   * store resets `bridgeConnected` to false and re-subscribes, but the
+   * underlying socket - a module singleton that survives HMR - is still open
+   * and `connect()` on an already-connected socket is a deliberate no-op, so
+   * no 'connected' event ever fires again). Same shape of bug `game_attach`
+   * already names for the game-link side: a re-mount reaches this state
+   * honestly, with the transport still up and a fresh subscriber that has
+   * forgotten. See useAppStore's `connectBridge`.
+   */
+  getLiveStatus() {
+    return realBridge.getStatus()
+  },
+
   setLiveUrl(url: string) {
     realBridge.setUrl(url)
   },
