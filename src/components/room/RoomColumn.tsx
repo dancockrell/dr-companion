@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { RoomScene } from './RoomScene'
+import { RoomChips } from './RoomChips'
 import { StreamTabs } from '../game/StreamTabs'
 import { GamePane } from '../game/GamePane'
 import { PanelBoundary } from '../shared/PanelBoundary'
@@ -8,7 +9,9 @@ import { useAppStore } from '../../store/useAppStore'
 import { useHighlights } from '../../lib/useHighlights'
 import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
 import { describeRoomPlayers, describeRoomItems } from '../../lib/roomOccupants'
+import { fromRoom } from '../../lib/room'
 import type { RoomItem, RoomPlayer, Sourced } from '../../types/stream'
+import { bridge } from '../../bridge'
 
 /**
  * The right half of the window: where you are, and what is being said.
@@ -28,6 +31,18 @@ export function RoomColumn() {
   const { highlights } = useHighlights()
   const here = useAppStore((s) => s.mapHere)
   const zoneLive = useAppStore((s) => s.mapZone)
+  const connected = useAppStore((s) => s.bridgeConnected)
+
+  // MapPanel asks map_zone the moment it mounts, and the status handler asks
+  // map_here the moment the room number changes — but this panel can be the
+  // only one on screen, and a mock status tick carries no room id to change,
+  // so neither ever fires unless something asks here too. Without this the
+  // scene has nothing to draw from before the map is ever opened.
+  useEffect(() => {
+    if (!connected) return
+    bridge.requestIntent('map_zone')
+    bridge.requestIntent('map_here')
+  }, [connected])
 
   // The zone id the description files are keyed by. mapHere carries the room
   // number but not the zone, so the current zone payload supplies it, and
@@ -70,6 +85,13 @@ export function RoomColumn() {
    */
   const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
 
+  // Same source DashboardLayout's Battle/People boxes used to read — those
+  // boxes are gone now that this is where the same cards show, as chips on
+  // the scene rather than a list beside it. One deck of cards, one place it
+  // renders, not two that could disagree about who's in the room.
+  const character = useAppStore((s) => s.character)
+  const cards = fromRoom(character)
+
   return (
     /*
      * h-full, and it is the whole reason this column works.
@@ -87,7 +109,7 @@ export function RoomColumn() {
           room={room ?? 0}
           title={title}
           text={text?.text}
-          height={170}
+          chips={<RoomChips cards={cards} combatants={character?.roomCombatants} />}
         />
       </PanelBoundary>
 
