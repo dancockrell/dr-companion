@@ -11,9 +11,13 @@ exhausted - normally built from a handful of hand-tuned regexes per player.
 A background thread resends `--command` (`do()` still waits out roundtime and
 enforces the rate cap between sends - nothing here bypasses either), while
 the main line-reading loop watches for the phrases that mean "nothing left
-here" or "your hands are full" and stops the loop. `--max-finds` is a second,
-independent backstop, so a wording this task fails to recognise cannot turn
-it into an unbounded loop nobody is watching.
+here" or "your hands are full" and stops the loop. `--max-finds` bounds it
+further, but only once something has actually been recognised as a find -
+none of the three phrases matching at all would otherwise run until
+`drtask.py`'s own rate cap kills it with a `RateLimited` exception a couple
+of minutes in, which works but is a crash rather than a clean stop. `--timeout`
+is the real backstop: a plain time bound that does not depend on recognising
+anything.
 
 All of the message matching is text-based - like the rest of this repo's
 text-matched heuristics, it is a reasonable guess at DR's phrasing, not
@@ -34,21 +38,37 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from drtask import CleanLine, Task  # noqa: E402
 
+DEFAULT_TIMEOUT = 900.0
+
 
 class Forage(Task):
     def __init__(
-        self, command: str, max_finds: int, nothing_here: re.Pattern[str], hands_full: re.Pattern[str]
+        self,
+        command: str,
+        max_finds: int,
+        nothing_here: re.Pattern[str],
+        hands_full: re.Pattern[str],
+        timeout: float = DEFAULT_TIMEOUT,
     ) -> None:
         super().__init__()
         self.command = command
         self.max_finds = max_finds
         self.nothing_here = nothing_here
         self.hands_full = hands_full
+        self.timeout = timeout
         self.finds = 0
 
     def on_start(self) -> None:
         print(f"forage: '{self.command}' up to {self.max_finds} finds - attached: {self.c.status()}")
         threading.Thread(target=self._loop, daemon=True).start()
+        threading.Thread(target=self._watchdog, daemon=True).start()
+
+    def _watchdog(self) -> None:
+        time.sleep(self.timeout)
+        if self._stopping:
+            return
+        print(f"forage: gave up after {self.timeout:.0f}s ({self.finds} finds) - stopping")
+        self.stop()
 
     def _loop(self) -> None:
         while not self._stopping:
@@ -82,6 +102,12 @@ def main() -> None:
     parser.add_argument(
         "--hands-full", default=r"(your hands are full|already holding)", help="regex meaning you must stow first"
     )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT,
+        help=f"give up after this many seconds regardless (default {DEFAULT_TIMEOUT:.0f} = 15 min)",
+    )
     args = parser.parse_args()
 
     task = Forage(
@@ -89,6 +115,7 @@ def main() -> None:
         args.max_finds,
         re.compile(args.nothing_here, re.IGNORECASE),
         re.compile(args.hands_full, re.IGNORECASE),
+        args.timeout,
     )
     try:
         task.run()

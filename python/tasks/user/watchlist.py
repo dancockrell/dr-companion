@@ -37,10 +37,22 @@ BELL = "\a"
 
 
 class Watchlist(Task):
-    def __init__(self, names: set[str], file_path: Path | None, cooldown: float, lich_command: str) -> None:
+    def __init__(self, cli_names: set[str], file_path: Path | None, cooldown: float, lich_command: str) -> None:
         super().__init__()
-        self.names = names
+        # Kept apart from self.names, which _maybe_reload replaces wholesale
+        # on every reload - a bug caught before it shipped: names passed on
+        # the command line vanished on the first reload if the watch file
+        # didn't happen to repeat them, since the old code just assigned the
+        # file's contents over whatever was there. --names is a standing
+        # request, not a seed for the file to overwrite.
+        self._cli_names = cli_names
         self.file_path = file_path
+        initial_from_file = (
+            {line.strip() for line in file_path.read_text(encoding="utf-8").splitlines() if line.strip()}
+            if file_path and file_path.exists()
+            else set()
+        )
+        self.names = cli_names | initial_from_file
         self.cooldown = cooldown
         self.lich_command = lich_command
         self._last_reload = 0.0
@@ -63,11 +75,12 @@ class Watchlist(Task):
             return
         self._last_reload = now
         if self.file_path.exists():
-            fresh = {
+            from_file = {
                 line.strip()
                 for line in self.file_path.read_text(encoding="utf-8").splitlines()
                 if line.strip()
             }
+            fresh = self._cli_names | from_file
             added = fresh - self.names
             if added:
                 print(f"watchlist: picked up new name(s) from {self.file_path}: {sorted(added)}")
@@ -114,14 +127,12 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    names = {n.strip() for n in args.names.split(",") if n.strip()}
+    cli_names = {n.strip() for n in args.names.split(",") if n.strip()}
     file_path = Path(args.file) if args.file else None
-    if file_path and file_path.exists():
-        names |= {line.strip() for line in file_path.read_text(encoding="utf-8").splitlines() if line.strip()}
-    if not names:
+    if not cli_names and not (file_path and file_path.exists()):
         parser.error("nothing to watch for - pass --names and/or --file")
 
-    task = Watchlist(names, file_path, args.cooldown, args.lich_command)
+    task = Watchlist(cli_names, file_path, args.cooldown, args.lich_command)
     try:
         task.run()
     except KeyboardInterrupt:

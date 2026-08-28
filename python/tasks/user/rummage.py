@@ -19,6 +19,9 @@ The parse is a plain line match on "You search ... and find:" style text,
 which is a guess rather than something this repo has confirmed against a
 live game - if nothing gets picked up, run with default args once and check
 what the raw line actually looked like before assuming the task is broken.
+`--timeout` (default 15s) is what stops this from waiting forever on a
+result line whose wording never matches, rather than the task quietly never
+returning.
 """
 
 from __future__ import annotations
@@ -26,6 +29,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -48,11 +52,15 @@ def _split_items(text: str) -> list[str]:
     return [re.sub(r"^(a|an|some)\s+", "", i, flags=re.IGNORECASE) for i in items]
 
 
+DEFAULT_TIMEOUT = 15.0
+
+
 class Rummage(Task):
-    def __init__(self, target: str, keep: list[str]) -> None:
+    def __init__(self, target: str, keep: list[str], timeout: float = DEFAULT_TIMEOUT) -> None:
         super().__init__()
         self.target = target
         self.keep = [k.lower() for k in keep]
+        self.timeout = timeout
         self._done = False
 
     def on_start(self) -> None:
@@ -63,6 +71,15 @@ class Rummage(Task):
             self.stop()
             return
         self.do(f"search {self.target}")
+        threading.Thread(target=self._watchdog, daemon=True).start()
+
+    def _watchdog(self) -> None:
+        time.sleep(self.timeout)
+        if self._done or self._stopping:
+            return
+        self._done = True
+        print(f"rummage: no recognised result within {self.timeout:.0f}s - giving up")
+        self.stop()
 
     def on_clean(self, line: CleanLine) -> None:
         if self._done:
@@ -92,10 +109,16 @@ def main() -> None:
         default="coin,gem,gold,silver,herb,root,relic",
         help="comma-separated substrings; an item is kept if any appears in its name",
     )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT,
+        help=f"give up waiting for a result line after this many seconds (default {DEFAULT_TIMEOUT:.0f})",
+    )
     args = parser.parse_args()
 
     keep = [k.strip() for k in args.keep.split(",") if k.strip()]
-    task = Rummage(args.target, keep)
+    task = Rummage(args.target, keep, args.timeout)
     try:
         task.run()
     except KeyboardInterrupt:

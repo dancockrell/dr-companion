@@ -17,37 +17,67 @@ loop or re-check afterwards, so it is safe to chain after a hunting flow
 Uses `Task.on_vitals`, so - like `vitals_monitor.py` - a vital the game has
 never reported is `NaN`, not `0`: this waits rather than declaring "already
 there" on a vital it has not seen yet.
+
+`--timeout` (default 30 minutes) is the bound every other wait in this task
+library has and this one was missing until it was pointed out: an interrupt
+mid-rest, a vital that stops updating, or a target that was simply too high
+for the character's regen rate would otherwise leave this running
+indefinitely with nothing to say it was stuck rather than still working.
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
+import threading
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from drtask import Task, Vital  # noqa: E402
 
+DEFAULT_TIMEOUT = 1800.0
+
 
 class RegenWait(Task):
-    def __init__(self, vital: str, to: float, rest: bool) -> None:
+    def __init__(self, vital: str, to: float, rest: bool, timeout: float) -> None:
         super().__init__()
         self.vital_name = vital
         self.to = to
         self.rest = rest
+        self.timeout = timeout
+        self._done = False
 
     def on_start(self) -> None:
         print(f"regen_wait: waiting for {self.vital_name} >= {self.to:.0f}% - attached: {self.c.status()}")
         if self.rest:
             self.do("rest")
+        threading.Thread(target=self._watchdog, daemon=True).start()
+
+    def _watchdog(self) -> None:
+        time.sleep(self.timeout)
+        if self._done or self._stopping:
+            return
+        self._done = True
+        print(f"regen_wait: gave up after {self.timeout:.0f}s without reaching {self.to:.0f}%")
+        # Standing on timeout too, not just on success - --rest sent 'rest'
+        # at the start, and leaving the character resting with nothing
+        # watching any more is worse than standing them up short of the
+        # target.
+        if self.rest:
+            self.do("stand")
+        self.stop()
 
     def on_vitals(self, vitals: dict[str, Vital]) -> None:
+        if self._done:
+            return
         v = vitals.get(self.vital_name)
         if v is None:
             return
         print(f"regen_wait: {self.vital_name} {v.current}/{v.max} ({v.percent:.0f}%)")
         if v.percent >= self.to:
+            self._done = True
             print(f"regen_wait: reached {self.to:.0f}% - done")
             if self.rest:
                 self.do("stand")
@@ -66,9 +96,15 @@ def main() -> None:
     parser.add_argument(
         "--rest", action="store_true", help="send 'rest' at the start and 'stand' once the target is reached"
     )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT,
+        help=f"give up after this many seconds (default {DEFAULT_TIMEOUT:.0f} = 30 min)",
+    )
     args = parser.parse_args()
 
-    task = RegenWait(args.vital, args.to, args.rest)
+    task = RegenWait(args.vital, args.to, args.rest, args.timeout)
     try:
         task.run()
     except KeyboardInterrupt:
