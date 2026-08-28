@@ -46,6 +46,7 @@ import {
   Search,
   Shield,
   Square,
+  Star,
   Stethoscope,
   Swords,
   Terminal,
@@ -108,6 +109,8 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const addLog = useAppStore((s) => s.addLog)
   const setActiveFlow = useAppStore((s) => s.setActiveFlow)
   const startScript = useAppStore((s) => s.startScript)
+  const quickSwitchPins = useAppStore((s) => s.quickSwitchPins)
+  const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
 
   const [tab, setTab] = useState<Tab>('tasks')
   const [status, setStatus] = useState<PythonStatus | null>(null)
@@ -319,39 +322,64 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
               const Icon = iconFor(t.id)
               const active = running === t.id
               const readOnly = t.kind === 'read-only'
+              const pinned = quickSwitchPins.some((p) => p.kind === 'task' && p.id === t.id)
               return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => void start(t.id)}
-                  title={
-                    `${t.title}\n${t.summary}\n\n${t.id} — ${t.kind}\n\n` +
-                    `Runs the same outside the app:\npython python/runner.py run ${t.id}`
-                  }
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 rounded border px-1 py-1.5 transition-colors',
-                    active
-                      ? 'border-accent bg-accent/15'
-                      : readOnly
-                        ? 'border-border bg-surface-raised hover:border-ink-faint'
-                        : 'border-border bg-surface-raised hover:border-accent/60'
-                  )}
-                >
-                  <Icon
+                // `relative` on the wrapper, not the tile button itself: the
+                // pin star is a sibling button, not a nested one — a button
+                // inside a button is invalid HTML and would give the star no
+                // click of its own to stop from bubbling into Start.
+                <div key={t.id} className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => void start(t.id)}
+                    title={
+                      `${t.title}\n${t.summary}\n\n${t.id} — ${t.kind}\n\n` +
+                      `Runs the same outside the app:\npython python/runner.py run ${t.id}`
+                    }
                     className={cn(
-                      'h-4 w-4',
-                      active ? 'text-accent' : readOnly ? 'text-ink-faint' : 'text-ink'
+                      'flex w-full flex-col items-center gap-0.5 rounded border px-1 py-1.5 transition-colors',
+                      active
+                        ? 'border-accent bg-accent/15'
+                        : readOnly
+                          ? 'border-border bg-surface-raised hover:border-ink-faint'
+                          : 'border-border bg-surface-raised hover:border-accent/60'
                     )}
-                  />
-                  <span className="w-full truncate text-center text-xs leading-tight text-ink">
-                    {t.title}
-                  </span>
-                  {/* The one distinction never left to a tooltip. */}
-                  {readOnly && !dense && (
-                    <span className="text-xs leading-none text-ink-faint">watches</span>
-                  )}
-                  {active && <Play className="h-3 w-3 text-accent" />}
-                </button>
+                  >
+                    <Icon
+                      className={cn(
+                        'h-4 w-4',
+                        active ? 'text-accent' : readOnly ? 'text-ink-faint' : 'text-ink'
+                      )}
+                    />
+                    <span className="w-full truncate text-center text-xs leading-tight text-ink">
+                      {t.title}
+                    </span>
+                    {/* The one distinction never left to a tooltip. */}
+                    {readOnly && !dense && (
+                      <span className="text-xs leading-none text-ink-faint">watches</span>
+                    )}
+                    {active && <Play className="h-3 w-3 text-accent" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleQuickSwitchPin({ kind: 'task', id: t.id })
+                    }}
+                    title={
+                      pinned
+                        ? 'Unpin from the Quick Switch bar'
+                        : 'Pin to the Quick Switch bar — one click or a number key from anywhere in the app'
+                    }
+                    className={cn(
+                      'absolute -right-1 -top-1 rounded-full bg-surface p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
+                      pinned && 'opacity-100',
+                      pinned ? 'text-accent' : 'text-ink-faint/70 hover:text-ink-faint'
+                    )}
+                  >
+                    <Star className="h-3 w-3" fill={pinned ? 'currentColor' : 'none'} />
+                  </button>
+                </div>
               )
             })}
 

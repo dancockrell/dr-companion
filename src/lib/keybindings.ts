@@ -43,6 +43,17 @@ const F_KEYS: Record<string, string> = {
 const GAME_KEYS: Record<string, string> = { ...MOVEMENT, ...F_KEYS }
 
 /**
+ * Digit1..Digit9 (the top-row number keys, not NumPad, which movement
+ * already owns) switch to the Nth pinned Quick Switch slot. `code` rather
+ * than `key` for the same reason movement uses it: layout-independent, and
+ * unaffected by Shift.
+ */
+const QUICK_SWITCH_KEYS: Record<string, number> = {
+  Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4,
+  Digit6: 5, Digit7: 6, Digit8: 7, Digit9: 8,
+}
+
+/**
  * A short, human-readable list for wherever the bindings need to be shown —
  * the command palette entry and the Escape hint both read from this rather
  * than restating it, so the two can never drift apart.
@@ -53,6 +64,7 @@ export const KEYBINDING_HELP: string[] = [
   'NumPad . / 0 — up / down',
   'NumPad 5 — out',
   'F1 — look at what you\u2019re facing, F2 — health, F4 — skills',
+  '1-9 — switch to that Quick Switch slot (pin a task or script to fill one)',
   'Escape — stop all, even while typing in a text field',
 ]
 
@@ -77,6 +89,7 @@ export function isTypingTarget(target: EventTarget | null): boolean {
 export type KeyResolution =
   | { kind: 'game'; command: string }
   | { kind: 'stop' }
+  | { kind: 'quickswitch'; slot: number }
   | null
 
 /**
@@ -94,7 +107,9 @@ export function resolveKeybinding(
   if (e.key === 'Escape') return { kind: 'stop' }
   if (typing) return null
   const command = GAME_KEYS[e.code]
-  return command ? { kind: 'game', command } : null
+  if (command) return { kind: 'game', command }
+  const slot = QUICK_SWITCH_KEYS[e.code]
+  return slot !== undefined ? { kind: 'quickswitch', slot } : null
 }
 
 export interface KeybindingHooks {
@@ -102,6 +117,8 @@ export interface KeybindingHooks {
   sendGame: (command: string) => void
   /** Stop everything — both halves, same as the footer's own button. */
   stopAll: () => void
+  /** Switch to (or, if already running, stop) the Nth pinned Quick Switch slot. */
+  quickSwitch: (slot: number) => void
 }
 
 /** Installs the one global listener. Returns the cleanup. */
@@ -111,6 +128,7 @@ export function installKeybindings(hooks: KeybindingHooks): () => void {
     if (!action) return
     e.preventDefault()
     if (action.kind === 'stop') hooks.stopAll()
+    else if (action.kind === 'quickswitch') hooks.quickSwitch(action.slot)
     else hooks.sendGame(action.command)
   }
   window.addEventListener('keydown', onKeyDown)

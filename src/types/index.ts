@@ -16,6 +16,7 @@ import type {
   VarsEntry,
 } from '../bridge/types'
 import type { Trail } from '../lib/trail'
+import type { QuickSwitchPin } from '../lib/quickSwitch'
 
 export type { SkillState }
 export type { CharacterProfile }
@@ -503,6 +504,16 @@ export interface AppState {
    */
   activeFlow: string | null
   setActiveFlow: (v: string | null) => void
+  /**
+   * Tasks and scripts pinned to the Quick Switch bar, in slot order (index 0
+   * is key "1"). See lib/quickSwitch.ts for the tagged-union shape, the
+   * persistence and the cap. A pinned task is matched against `activeFlow`
+   * above by id (it already holds the running task's id, not just a
+   * sentence) to know which slot is live and whether pressing it again
+   * should stop it rather than restart it — see QuickSwitchBar.
+   */
+  quickSwitchPins: QuickSwitchPin[]
+  toggleQuickSwitchPin: (pin: QuickSwitchPin) => void
   /**
    * dr-scripts settings files, from the `read_settings` intent.
    *

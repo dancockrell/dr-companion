@@ -21,7 +21,8 @@ import {
   type CharacterProfile,
 } from '../lib/profiles'
 import { emptyTrail, visit } from '../lib/trail'
-import { loadPins, setCorpseMarker, clearCorpseMarker } from '../lib/mapPins'
+import { loadPins as loadMapPins, setCorpseMarker, clearCorpseMarker } from '../lib/mapPins'
+import { loadPins as loadQuickSwitchPins, togglePin, MAX_SLOTS } from '../lib/quickSwitch'
 
 const prefs = loadPrefs()
 
@@ -223,7 +224,7 @@ function handleBridgeMessage(
           // clear the marker once the character is actually standing where
           // it points, so a marker for a corpse not yet recovered survives a
           // revive that happened somewhere else entirely.
-          const corpse = loadPins(p.name, p.instance).find((pin) => pin.system)
+          const corpse = loadMapPins(p.name, p.instance).find((pin) => pin.system)
           if (corpse && hereId === corpse.roomId) {
             clearCorpseMarker(p.name, p.instance)
             get().addLog('Corpse marker cleared - welcome back.')
@@ -340,6 +341,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   scriptStates: [],
   scriptCatalog: null,
   activeFlow: null,
+  quickSwitchPins: loadQuickSwitchPins(),
   settingsFiles: null,
   settingsCharacter: null,
   toggles: null,
@@ -446,6 +448,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setActiveFlow: (v) => set({ activeFlow: v }),
+
+  toggleQuickSwitchPin: (pin) => {
+    const { pins, refused } = togglePin(get().quickSwitchPins, pin)
+    if (refused) {
+      get().addLog(`Quick Switch is full (${MAX_SLOTS} slots) — unpin something first.`, 'warn')
+      return
+    }
+    set({ quickSwitchPins: pins })
+  },
 
   clearLog: () => set({ logLines: [], trace: [] }),
 
