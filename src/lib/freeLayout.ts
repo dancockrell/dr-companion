@@ -15,6 +15,18 @@ export interface Rect {
   y: number
   w: number
   h: number
+  /**
+   * Stacking order. Higher is nearer the front.
+   *
+   * Optional because it arrived after layouts were already being saved, and a
+   * stored rect without it is not broken - it is a panel that has never been
+   * raised, which is exactly what `?? 0` means. Nothing needs migrating.
+   *
+   * Persisted with the rest of the rect, so a window someone put on top stays
+   * on top across a restart. A stacking order that resets every session is
+   * one nobody bothers to arrange.
+   */
+  z?: number
 }
 
 /** Small enough to tuck into a corner, large enough to still read. */
@@ -33,11 +45,23 @@ export function clampToBounds(r: Rect, bounds: { w: number; h: number }): Rect {
     h,
     x: Math.max(0, Math.min(r.x, bounds.w - w)),
     y: Math.max(0, Math.min(r.y, bounds.h - h)),
+    // Carried through, not rebuilt away.
+    //
+    // This function returns a fresh object, and every drop goes through it -
+    // so dropping `z` here would have reset the stacking order on every single
+    // drag, silently, while looking exactly like stacking that "does not
+    // stick". Nothing would have errored.
+    z: r.z,
   }
 }
 
 /**
  * Push a rectangle clear of everything it overlaps.
+ *
+ * NOT USED BY THE CANVAS ANY MORE. Panels are allowed to overlap and stack;
+ * see FreeCanvas's pointer-up handler for why that changed. Kept because it
+ * is a correct pure function and a `tidy up` command is the obvious next use
+ * for it - but its tests prove the arithmetic, not that anything calls it.
  *
  * Resolved along whichever axis needs the least movement, because that is the
  * direction that feels like the panel settling rather than jumping. Repeated

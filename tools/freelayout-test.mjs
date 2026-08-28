@@ -65,5 +65,24 @@ const b = m.firstFreeSlot({ w: 200, h: 100 }, [a], BOUNDS)
 check('first goes to the origin', a, { x: 0, y: 0, w: 200, h: 100 })
 ok('second does not overlap the first', !m.overlaps(a, b), JSON.stringify(b))
 
+console.log('\n-- stacking order survives a drop --')
+// The bug this exists for, found before it shipped: clampToBounds builds a
+// fresh object, and every drop goes through it. A `z` it forgot to copy would
+// have reset the stacking order on every single drag - silently, with nothing
+// erroring, and looking exactly like stacking that "does not stick".
+const kept = m.clampToBounds({ x: 10, y: 10, w: 200, h: 100, z: 7 }, BOUNDS)
+ok('z survives a clamp that changes nothing', kept.z === 7, JSON.stringify(kept))
+
+// The path a drop near the edge actually takes: the clamp moves the rect.
+const moved = m.clampToBounds({ x: -50, y: -50, w: 200, h: 100, z: 3 }, BOUNDS)
+ok('z survives a clamp that moves the rect', moved.z === 3, JSON.stringify(moved))
+ok('and the move still happened', moved.x === 0 && moved.y === 0, JSON.stringify(moved))
+
+// Absent stays absent rather than becoming a zero. "Never raised" and
+// "explicitly at the bottom" are the same on screen but not in storage, and
+// inventing a value here would write one into every saved layout.
+const none = m.clampToBounds({ x: 0, y: 0, w: 200, h: 100 }, BOUNDS)
+ok('a rect with no z does not invent one', none.z === undefined, JSON.stringify(none))
+
 console.log(fails ? `\n${fails} failed` : '\nall passed')
 process.exit(fails ? 1 : 0)
