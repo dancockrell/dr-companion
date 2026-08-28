@@ -11,11 +11,13 @@
  * The drawing lives in MapCanvas, shared with the popped-out window, so the
  * glance and the watch cannot drift into two different maps.
  *
- * Not a travel control. Clicking a room asks for a route and shows it; it does
- * not walk anywhere. Moving stays a decision made with the route in view.
+ * A travel control, at Dan's explicit instruction: clicking a room shows the
+ * route and walks it, via map_walk starting Lich's own go2. That reverses
+ * this file's original design, where a route was previewed and moving stayed
+ * a separate decision - see the comment on `goThere` below.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { loadZone, DEFAULT_ZONE } from '../../lib/mapData'
+import { loadZone, DEFAULT_ZONE, roomKind } from '../../lib/mapData'
 import type { MapZone } from '../../bridge/types'
 import {
   Map as MapIcon,
@@ -38,8 +40,13 @@ import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
 import type { PlaceHit } from '../../lib/placeSearch'
 import { MapPinBar } from './MapPinBar'
+import { QuickTravel } from './QuickTravel'
 import { PinEditor } from './PinEditor'
+import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
+import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
+import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
+import { listScripts, writeScript } from '../../lib/scriptFiles'
 
 /**
  * @param plane Fill the height given rather than a fixed box. Set when the map
@@ -187,6 +194,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
   const here = useAppStore((s) => s.mapHere)
   const character = useAppStore((s) => s.character)
+  const addLog = useAppStore((s) => s.addLog)
 
   /**
    * Saved places, and the hotbar under the map that walks to them.
@@ -226,19 +234,47 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
 
-  function savePin(label: string, color: MapPin['color']) {
+  // "You've stood here N times - pin it?" Only for the room the character is
+  // standing in right now, not a scan across every room ever visited - the
+  // question only makes sense about somewhere you could pin with one click.
+  const hereVisits = hereId != null ? trail.visits[hereId] : undefined
+  const showNudge =
+    !!character &&
+    hereId != null &&
+    hereVisits !== undefined &&
+    hereVisits >= NUDGE_VISIT_THRESHOLD &&
+    !pinFor(pins, hereId) &&
+    !isDismissed(character.name, character.instance, hereId)
+
+  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon']) {
     if (!character || !editingRoom) return
     if (editingRoom.existing) {
-      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color })
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon })
     } else {
       addPin(character.name, character.instance, {
         roomId: editingRoom.id,
         zone: zone?.zone ?? '',
         label,
         color,
+        icon,
       })
     }
     setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+
+  // Writes a real python/tasks/user/walk_to_<pin>.py - see pinTaskGenerator.ts
+  // for why generation, not overwrite, is the right default the moment a
+  // player might have edited a previously-generated file by hand.
+  async function createTaskForPin(pin: MapPin) {
+    const existingNames = (await listScripts()).filter((s) => s.lang === 'python').map((s) => s.name)
+    const name = uniqueTaskName(existingNames, pin)
+    try {
+      const path = await writeScript('python', name, pinTaskSource(pin))
+      addLog(`Task "${name}" written for ${pin.label} (${path || 'python/tasks/user/'}).`)
+    } catch (e) {
+      addLog(`Could not write a task for ${pin.label}: ${e instanceof Error ? e.message : e}`, 'error')
+    }
     setEditingRoom(null)
   }
 
@@ -476,6 +512,18 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
         onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
       />
+      <QuickTravel onWalk={goThere} />
+
+      {showNudge && hereId != null && (
+        <RoomNudge
+          visits={hereVisits as number}
+          onPin={() => pinRoom(hereId)}
+          onDismiss={() => {
+            if (character) dismissNudge(character.name, character.instance, hereId)
+            setPinVersion((v) => v + 1)
+          }}
+        />
+      )}
 
       {/*
        * This is the common shape of "no map database", not the `!zone.ok`
@@ -647,8 +695,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       )}
 
       <div className="flex items-center justify-between gap-2">
+        {/* The kinds the canvas actually draws, from the same `roomKind` and
+          * the same `onRoute` set it uses - so the legend and the map cannot
+          * disagree about what colour a room is.
+          *
+          * This passed raw `tags` before, which is what made the legend show
+          * three fixed entries forever and explain none of the dots on the
+          * map. See MapLegend's own comment for the measurement. */}
         <MapLegend
-          kinds={[...new Set((zone?.rooms ?? []).flatMap((r) => r.tags ?? []))]}
+          kinds={[
+            ...new Set((zone?.rooms ?? []).map((r) => roomKind(r, zone?.here, onRoute))),
+          ]}
         />
         {/* What the trail says, in words.
          *
@@ -682,6 +739,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onSave={savePin}
           onDelete={editingRoom.existing ? deletePin : undefined}
           onClose={() => setEditingRoom(null)}
+          onCreateTask={isTauri() ? createTaskForPin : undefined}
         />
       )}
     </>

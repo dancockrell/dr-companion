@@ -1,11 +1,21 @@
 /**
  * Playing the sounds a highlight names.
  *
- * The corpus is deliberately quiet - 13 of 57 entries carry a sound - because
+ * The corpus is deliberately quiet - 10 of 58 entries carry a sound - because
  * a client that pings constantly is a client people mute, and a muted client
  * has no alerts at all. That policy is enforced by a test in
  * `dr-genie-settings/validate.mjs`, and it only holds if this file does not
  * undo it at playback time.
+ *
+ * The count dropped from 16 (28 Aug 2026, Dan: "the alerts... way too much...
+ * a cacophony of noise") by taking sound off every combat-frequency entry in
+ * highlights.cfg's Danger section - wound severity, bleeding, stun, lodged
+ * projectiles, parasites, nearby deaths. Combat fails this file's own "not
+ * looking at the window" test by definition, and PER_SOUND_MS below caps how
+ * often Hit.wav can *retrigger*, not how many times a single fight retriggers
+ * it - a fight-long stream of hits re-crossing a 3-second floor is still a
+ * fight-long stream of dings. See highlights.cfg's own header for the full
+ * reasoning; only character death kept its sound out of that whole section.
  *
  * So there are two limits here that the config cannot express, and both exist
  * because of things measured in play rather than imagined.

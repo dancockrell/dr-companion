@@ -106,10 +106,11 @@ export function RiskBar() {
         )}
 
         {contested.length > 0 && (
-          <span
-            className="flex items-center gap-1.5"
-            title="Other players hunting in this area"
-          >
+          // Names in the tooltip, not just a count — "3 others here" answers
+          // whether the ground is contested and nothing else; "3 others here"
+          // hovered to Brannick, Kestrel, Orlathe answers whether it's worth
+          // moving on. Icon + tooltip, same standard as the room scene.
+          <span className="flex items-center gap-1.5" title={contested.join(', ')}>
             <Users className="w-3.5 h-3.5 text-warn" />
             <span className="text-warn">
               {contested.length === 1

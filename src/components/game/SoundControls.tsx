@@ -14,7 +14,7 @@
  * engine level.
  */
 import { useEffect, useRef, useState } from 'react'
-import { Volume2, VolumeX } from 'lucide-react'
+import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio } from 'lucide-react'
 import { playAlert, setAlertsVolume, alertsVolume } from '../../lib/alertSound'
 import {
   setMusicVolume,
@@ -22,7 +22,14 @@ import {
   setRadioStation,
   currentRadioStation,
   RADIO_STATIONS,
+  setCustomStream,
+  currentCustomStream,
+  skipTrack,
+  nowPlaying,
+  onNowPlayingChange,
+  type NowPlaying,
 } from '../../lib/ambientSound'
+import { externalMediaAvailable, sendMediaKey, type MediaAction } from '../../lib/externalMedia'
 import { loadPrefs, savePrefs } from '../../lib/persistence'
 import { cn } from '../../lib/cn'
 
@@ -58,6 +65,50 @@ function Slider({
   )
 }
 
+/**
+ * Play/pause/skip/volume for whatever else is playing outside the app -
+ * Spotify, a browser tab, a desktop radio app - sent as global media keys.
+ * See externalMedia.ts and src-tauri/src/media_keys.rs for the mechanism and
+ * why this, not real audio capture, is what's built. Hidden entirely in the
+ * browser demo, where there's no OS underneath to send a key to.
+ */
+function ExternalMediaControls() {
+  if (!externalMediaAvailable()) return null
+
+  const tap = (action: MediaAction) => {
+    void sendMediaKey(action).catch((e) => console.warn('media key failed', action, e))
+  }
+
+  return (
+    <div className="mt-3 border-t border-border pt-2">
+      <div className="mb-1 text-xs text-ink-muted">
+        External source (Spotify, browser, etc.)
+      </div>
+      <div className="flex items-center justify-between gap-1">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('previous')} title="Previous">
+          <SkipBack className="h-3.5 w-3.5" />
+        </button>
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('play_pause')} title="Play / pause">
+          <Play className="h-3.5 w-3.5" />
+        </button>
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('next')} title="Next">
+          <SkipForward className="h-3.5 w-3.5" />
+        </button>
+        <span className="mx-1 h-4 w-px bg-border" />
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_down')} title="Volume down">
+          <Volume1 className="h-3.5 w-3.5" />
+        </button>
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_up')} title="Volume up">
+          <Volume2 className="h-3.5 w-3.5" />
+        </button>
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('mute')} title="Mute / unmute">
+          <VolumeX className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function SoundControls() {
   const [open, setOpen] = useState(false)
   // Read from `loadPrefs()`, not `alertsVolume()`/`musicVolume()` - those
@@ -70,6 +121,12 @@ export function SoundControls() {
   const [alerts, setAlerts] = useState(() => loadPrefs().alertsVolume ?? alertsVolume())
   const [music, setMusic] = useState(() => loadPrefs().musicVolume ?? musicVolume())
   const [radioId, setRadioId] = useState(currentRadioStation())
+  const [customUrl, setCustomUrl] = useState(currentCustomStream() ?? '')
+  const [now, setNow] = useState<NowPlaying | null>(() => nowPlaying())
+  // Subscribes rather than polls - a track change (radio/zone advancing on
+  // its own between user actions) has to reach this line without the player
+  // touching a slider first.
+  useEffect(() => onNowPlayingChange(setNow), [])
   // One ref for the whole control - the quick-mute button, the Sound
   // trigger, and the panel are all descendants of it. Two separate refs
   // (trigger, panel) missed the mute button once already: clicking it read
@@ -185,6 +242,34 @@ export function SoundControls() {
           </div>
 
           <div className="mt-3 border-t border-border pt-2">
+            {/* What's actually in the music slot right now, plus track-skip -
+              * a bare slider doesn't tell a listener what they're hearing or
+              * let them move past a track they don't want. */}
+            <div className="mb-2 flex items-center gap-1">
+              <button
+                type="button"
+                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
+                onClick={() => skipTrack(-1)}
+                disabled={!!customUrl}
+                title="Previous track"
+              >
+                <SkipBack className="h-3 w-3" />
+              </button>
+              <div className="flex-1 truncate text-xs text-ink" title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}>
+                {now ? now.title : 'Silent'}
+                {now?.composer ? <span className="text-ink-muted"> — {now.composer}</span> : null}
+              </div>
+              <button
+                type="button"
+                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
+                onClick={() => skipTrack(1)}
+                disabled={!!customUrl}
+                title="Next track"
+              >
+                <SkipForward className="h-3 w-3" />
+              </button>
+            </div>
+
             {/* The radio: a station, not a track. Selecting one starts its
               * playlist looping and advancing on its own - see RadioPlayer in
               * ambientSound.ts. Overrides zone music in the same slot. */}
@@ -197,6 +282,12 @@ export function SoundControls() {
                   const next = e.target.value || null
                   setRadioId(next)
                   setRadioStation(next)
+                  if (next) {
+                    setCustomUrl('')
+                    savePrefs({ radioStation: next, customStreamUrl: null })
+                  } else {
+                    savePrefs({ radioStation: null })
+                  }
                 }}
                 title={
                   RADIO_STATIONS.find((s) => s.id === radioId)?.description ??
@@ -211,7 +302,58 @@ export function SoundControls() {
                 ))}
               </select>
             </label>
+
+            {/* Any direct stream URL (an Icecast/Shoutcast station, or
+              * whatever else someone points it at) - the "plug in other
+              * radio sources" ask, covering stations beyond the six curated
+              * ones. Mutually exclusive with the picker above and with zone
+              * music - see setCustomStream's own header. */}
+            <form
+              className="mt-2 flex flex-col gap-1 text-xs"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const url = customUrl.trim()
+                if (!url) return
+                setRadioId(null)
+                setCustomStream(url)
+                savePrefs({ customStreamUrl: url, radioStation: null })
+              }}
+            >
+              <span className="text-ink-muted">Custom stream URL</span>
+              <div className="flex gap-1">
+                <input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://…/stream"
+                  className="w-full truncate rounded border border-border bg-surface px-1 py-1 text-ink"
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="shrink-0 rounded border border-border px-2 py-1 text-ink-faint hover:text-ink"
+                  title="Play this stream"
+                >
+                  <Radio className="h-3 w-3" />
+                </button>
+              </div>
+              {currentCustomStream() && (
+                <button
+                  type="button"
+                  className="self-start text-ink-faint underline hover:text-ink"
+                  onClick={() => {
+                    setCustomUrl('')
+                    setCustomStream(null)
+                    savePrefs({ customStreamUrl: null })
+                  }}
+                >
+                  Stop custom stream
+                </button>
+              )}
+            </form>
           </div>
+
+          <ExternalMediaControls />
         </div>
       )}
     </div>

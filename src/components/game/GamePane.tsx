@@ -52,8 +52,7 @@ import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsVolume } from '../../lib/alertSound'
-import { setZone, setMusicVolume } from '../../lib/ambientSound'
-import { SoundControls } from './SoundControls'
+import { setZone, setMusicVolume, setRadioStation, setCustomStream } from '../../lib/ambientSound'
 import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
@@ -220,6 +219,14 @@ export function GamePane() {
     const prefs = loadPrefs()
     setAlertsVolume(prefs.alertsVolume ?? 0)
     setMusicVolume(prefs.musicVolume ?? 0)
+    // A remembered station or custom stream beats zone music on startup, the
+    // same override relationship setZone() enforces afterward. Custom stream
+    // wins if somehow both are set - see persistence.ts's own comment.
+    if (prefs.customStreamUrl) {
+      setCustomStream(prefs.customStreamUrl)
+    } else if (prefs.radioStation) {
+      setRadioStation(prefs.radioStation)
+    }
   }, [])
   const mapZone = useAppStore((s) => s.mapZone)
   useEffect(() => {
@@ -433,7 +440,10 @@ export function GamePane() {
         )}
 
         <span className="ml-auto flex items-center gap-1">
-          <SoundControls />
+          {/* Sound moved to SafetyFooter (the persistent bottom bar) - a
+              control living only in this scrollable pane's own header
+              disappeared the moment the pane scrolled, and the footer is
+              the one place that's always on screen. */}
           {/* Searches the whole buffer, not the rendered window - see the
             * `matches` note. Escape clears, because a filter you cannot get
             * out of quickly is one people stop using. */}

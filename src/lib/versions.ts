@@ -34,7 +34,7 @@
  * now fails the build the moment these two numbers disagree rather than
  * waiting for a live app to print the warning at someone.
  */
-export const EXPECTED_BRIDGE_VERSION = '0.10.5'
+export const EXPECTED_BRIDGE_VERSION = '0.11.0'
 
 export const APP_VERSION = '0.1.0'
 

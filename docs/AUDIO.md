@@ -37,6 +37,49 @@ only ever one thing playing in the module's `music` slot. Files live under
 `public/audio/`, served as plain static assets, not routed through Tauri at
 all - they ship with the app rather than living in a player's Genie folder.
 
+## What's new since the status block above: a full player, not just a volume slider
+
+28 Aug 2026, same evening. The panel gained a "now playing" line with
+prev/next skip (works on radio and zone playlists - `ambientSound.ts`'s
+`Layer` now emits its current track over a small `nowPlayingListeners` set,
+and `RadioPlayer`/`ZoneMusicPlayer` both got a `skip(dir)` that jumps a
+position and calls `playCurrent()` directly rather than waiting for `ended`),
+a custom stream URL field, and global media-key control of whatever else is
+playing outside the app.
+
+**Custom stream URL** (`setCustomStream`/`currentCustomStream` in
+`ambientSound.ts`) is the literal "plug in other radio sources" ask - a
+player can point the `music` slot at any direct audio URL (an Icecast/
+Shoutcast station, or anything else that streams), not just the six curated
+built-in stations. It occupies the same slot radio and zone music do, so all
+three are mutually exclusive: picking a built-in station clears the custom
+URL, entering a custom URL clears the built-in pick, and clearing either
+falls back to zone music. `setZone()` was updated to check `customStreamUrl`
+alongside `radio.current` before it's allowed to touch the slot, the same
+override relationship a built-in station already had. No licence/attribution
+bookkeeping applies here the way it does to `manifest.json`'s curated pool -
+a player pointing this at their own stream is responsible for what they
+play, same as plugging a physical radio into a speaker. Persisted
+(`persistence.ts`'s `radioStation`/`customStreamUrl`) and restored on mount
+in `GamePane.tsx`, alongside the volume levels - previously neither the
+built-in station pick nor (obviously) a custom stream survived a restart.
+
+**External media control** (`src/lib/externalMedia.ts`,
+`src-tauri/src/media_keys.rs`) answers the other half of the ask - "take
+music from other games or Spotify and control it in game." Real per-app
+audio capture (WASAPI loopback, mixed into this app's own output) is a
+separate, much bigger project and is **not** attempted. What's built instead
+is global media-key injection: `send_media_key` taps a virtual media key
+(`VK_MEDIA_PLAY_PAUSE`, `VK_MEDIA_NEXT_TRACK`, etc., via `user32.dll`'s
+`keybd_event`) exactly as a physical keyboard's media keys would, system-
+wide. Spotify, browsers, VLC and most other players already answer to this
+without any app-specific integration - the panel doesn't ask them for
+anything, it just presses the same button a keyboard would. Windows-only
+(`#[cfg(target_os = "windows")]`; this app only ships for Windows, see
+Cargo.toml), and hidden from the panel entirely in the browser demo
+(`externalMediaAvailable()` is `isTauri()` - there is no OS underneath the
+demo to send a key to).
+
 ## Controls
 
 `SoundControls.tsx` shows two sliders (Alerts, Music), a quick-mute button,

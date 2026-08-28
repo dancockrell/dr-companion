@@ -8,6 +8,7 @@ import type { VersionState } from '../lib/versions'
 import type {
   MapRoom,
   MapPath,
+  MapNearest,
   MapZone,
   ScriptState,
   SettingsFile,
@@ -182,6 +183,21 @@ export interface RoomCombatant {
   enrichedAgeSeconds: number | null
 }
 
+/**
+ * One class being taught in the room.
+ *
+ * DR's own mechanic: a player teaches a skill, others LISTEN and learn faster
+ * than they would alone. Only teacher and skill are carried - the game also
+ * reports a difficulty relative to what you already know, and it is
+ * deliberately dropped, because players choose a class by the skill taught.
+ */
+export interface TeachingClass {
+  /** The teacher's name, as the game gives it. */
+  teacher: string
+  /** The skill on offer. This is the field players decide on. */
+  skill: string
+}
+
 export interface CharacterStatus {
   name: string
   instance: GameInstance
@@ -244,6 +260,26 @@ export interface CharacterStatus {
    * the parse may not have run, and a doll showing a clean bill of health it
    * has not actually seen is worse than one admitting it does not know.
    */
+  /**
+   * Classes on offer here, from the last `check_teaching`.
+   *
+   * Absent means nobody has asked yet; an empty array means somebody asked
+   * and there are none. Those are different facts and have to read
+   * differently on screen - the same absent-means-unknown contract
+   * `injuries` uses just below.
+   *
+   * Not on the status tick: `assess teach` is a real command with a
+   * roundtime, so polling it every tick would spend the character's time.
+   */
+  teaching?: TeachingClass[]
+  /**
+   * Whole seconds since that list was taken.
+   *
+   * A roster goes stale silently - the teacher finishes and walks off and
+   * nothing announces it - so this is what lets the client grey out an old
+   * list rather than implying it is current.
+   */
+  teachingAgeSeconds?: number
   injuries?: Partial<Record<BodyPart, Injury>>
   /**
    * Real bleed magnitude, from the same `check_health` poll as `injuries` —
@@ -397,6 +433,8 @@ export interface AppState {
   /** Where you have been this session. See lib/trail.ts. */
   mapTrail: Trail
   mapPath: MapPath | null
+  /** The nearest room(s) carrying a tag - computed on demand, not stored between queries. */
+  mapNearest: MapNearest | null
   mapZone: MapZone | null
   /**
    * The install_mapdb intent's own lifecycle, distinct from the map's.

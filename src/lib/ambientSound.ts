@@ -88,6 +88,12 @@ const RADIO_FILES: Record<string, string> = Object.fromEntries(
   (manifest.radio ?? []).map((r) => [r.id, `/audio/${r.file}`])
 )
 
+/** Track id -> display metadata, for the "now playing" line - radio and zone
+ * playlists both draw from this same pool, so one lookup covers both. */
+const TRACK_META: Record<string, { title: string; composer: string }> = Object.fromEntries(
+  (manifest.radio ?? []).map((r) => [r.id, { title: r.title, composer: r.composer }])
+)
+
 interface ZoneManifestEntry {
   tracks?: string[]
   character?: string
@@ -201,6 +207,32 @@ const music = new Layer()
 let currentZone: string | null = null
 
 /**
+ * What's actually in the `music` slot right now, for a "now playing" line in
+ * the panel - a bare volume slider doesn't tell a listener what they're
+ * hearing or let them skip it. `title`/`composer` come from `TRACK_META`;
+ * a custom stream has neither, so it carries its URL as `title` instead.
+ */
+export interface NowPlaying {
+  title: string
+  composer: string
+  source: 'radio' | 'zone' | 'custom'
+}
+let nowPlayingState: NowPlaying | null = null
+const nowPlayingListeners = new Set<(np: NowPlaying | null) => void>()
+function setNowPlaying(np: NowPlaying | null) {
+  nowPlayingState = np
+  for (const l of nowPlayingListeners) l(np)
+}
+export function nowPlaying(): NowPlaying | null {
+  return nowPlayingState
+}
+/** Subscribe to now-playing changes. Returns an unsubscribe function. */
+export function onNowPlayingChange(fn: (np: NowPlaying | null) => void): () => void {
+  nowPlayingListeners.add(fn)
+  return () => nowPlayingListeners.delete(fn)
+}
+
+/**
  * Walks one station's playlist in the `music` slot: shuffles once on
  * selection, advances on `ended`, loops the whole list rather than one
  * track. This is the difference between a radio station and a jukebox
@@ -240,10 +272,25 @@ class RadioPlayer {
     this.playCurrent()
   }
 
+  /** Clears the selection without falling back to zone music - for when a
+   * custom stream is about to take the slot instead. */
+  clearSilently() {
+    this.stationId = null
+  }
+
+  /** Jump forward or back one track in the current station's playlist. A
+   * no-op with no station selected. */
+  skip(dir: 1 | -1) {
+    if (!this.stationId || !this.queue.length) return
+    this.pos = (this.pos + dir + this.queue.length) % this.queue.length
+    this.playCurrent()
+  }
+
   private playCurrent() {
     const track = this.queue[this.pos]
     if (!track) return
     music.play(RADIO_FILES[track.id], 0.22, { loop: false, onEnded: () => this.advance() })
+    setNowPlaying({ title: track.title, composer: track.composer, source: 'radio' })
   }
 
   private advance() {
@@ -276,10 +323,18 @@ class ZoneMusicPlayer {
     const ids = zoneId ? (ZONE_TRACKS[zoneId] ?? []) : []
     if (!ids.length) {
       music.play(null)
+      setNowPlaying(null)
       return
     }
     this.queue = shuffled(ids)
     this.pos = 0
+    this.playCurrent()
+  }
+
+  /** Jump forward or back one track in the current zone's playlist. */
+  skip(dir: 1 | -1) {
+    if (!this.queue.length) return
+    this.pos = (this.pos + dir + this.queue.length) % this.queue.length
     this.playCurrent()
   }
 
@@ -288,6 +343,8 @@ class ZoneMusicPlayer {
     const file = id ? RADIO_FILES[id] : undefined
     if (!file) return
     music.play(file, 0.22, { loop: false, onEnded: () => this.advance() })
+    const meta = id ? TRACK_META[id] : undefined
+    setNowPlaying(meta ? { ...meta, source: 'zone' } : null)
   }
 
   private advance() {
@@ -316,20 +373,61 @@ export function setZone(zoneId: string | null) {
   if (zoneId === currentZone) return
   currentZone = zoneId
 
-  // Radio, once selected, keeps playing across zone changes - it is a
-  // deliberate override, not a per-zone thing to interrupt.
-  if (!radio.current) {
+  // Radio and a custom stream, once selected, keep playing across zone
+  // changes - both are a deliberate override, not a per-zone thing to
+  // interrupt.
+  if (!radio.current && !customStreamUrl) {
     zoneMusic.select(zoneId)
   }
 }
 
 /** id or null to go back to zone music. An id not in RADIO_STATIONS is refused, falling back to zone music. */
 export function setRadioStation(id: string | null) {
+  if (id !== null) customStreamUrl = null
   radio.select(id)
 }
 
 export function currentRadioStation(): string | null {
   return radio.current
+}
+
+/**
+ * A player-supplied stream URL - an Icecast/Shoutcast station, or any other
+ * direct audio URL - played in the same `music` slot the built-in radio
+ * stations use. This is the literal "plug in other radio sources" ask: it
+ * covers any station whose raw stream URL someone hands the app, not just
+ * the six curated ones. Mutually exclusive with a built-in station and with
+ * zone music, same as those are with each other - only one thing ever
+ * occupies the slot. `null` goes back to zone music.
+ *
+ * No licence/attribution bookkeeping here, unlike the curated `manifest.json`
+ * pool - a player pointing this at their own stream is responsible for what
+ * they play, the same way plugging a physical radio into a speaker is.
+ */
+let customStreamUrl: string | null = null
+export function setCustomStream(url: string | null) {
+  if (url === customStreamUrl) return
+  customStreamUrl = url
+  if (url) {
+    radio.clearSilently()
+    music.play(url, 0.22, { loop: true })
+    setNowPlaying({ title: url, composer: '', source: 'custom' })
+  } else {
+    zoneMusic.select(currentZone)
+  }
+}
+
+export function currentCustomStream(): string | null {
+  return customStreamUrl
+}
+
+/** Skip a track forward (1) or back (-1) in whatever's currently in the
+ * `music` slot. A no-op on a custom stream - a live stream has no track to
+ * skip to. */
+export function skipTrack(dir: 1 | -1) {
+  if (customStreamUrl) return
+  if (radio.current) radio.skip(dir)
+  else zoneMusic.skip(dir)
 }
 
 /**
@@ -350,5 +448,7 @@ export function musicVolume(): number {
 export function stopMusic() {
   music.stop()
   currentZone = null
+  customStreamUrl = null
   radio.select(null)
+  setNowPlaying(null)
 }

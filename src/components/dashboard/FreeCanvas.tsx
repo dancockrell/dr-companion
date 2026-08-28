@@ -5,8 +5,7 @@ import {
   MIN_H,
   MIN_W,
   clampToBounds,
-  firstFreeSlot,
-  resolveCollisions,
+  gridSlot,
   type Rect,
 } from '../../lib/freeLayout'
 import type { PanelId } from '../../lib/layout'
@@ -101,7 +100,7 @@ export function FreeCanvas({
   for (const item of items) {
     const rect =
       item.rect ??
-      firstFreeSlot({ w: Math.min(360, bounds.w || 360), h: 220 }, taken, {
+      gridSlot(items.indexOf(item), items.length, {
         w: bounds.w || 1200,
         h: bounds.h || 800,
       })
@@ -141,13 +140,49 @@ export function FreeCanvas({
     []
   )
 
+  /**
+   * Put a panel in front of the others.
+   *
+   * Writes only when it is not already on top. Raising on every pointerdown
+   * would persist a layout change on every single click into a panel, which
+   * is a lot of storage churn for a value that did not change.
+   */
+  const raise = useCallback(
+    (id: PanelId) => {
+      const rect = placed.get(id)
+      if (!rect) return
+      let top = 0
+      let topId: PanelId | null = null
+      for (const [otherId, r] of placed) {
+        const z = r.z ?? 0
+        if (z >= top) {
+          top = z
+          topId = otherId
+        }
+      }
+      if (topId === id) return
+      onPlace(id, { ...rect, z: top + 1 })
+    },
+    [placed, onPlace]
+  )
+
   const onPointerUp = useCallback(() => {
     setDrag((d) => {
       if (!d) return null
-      const others = [...placed.entries()]
-        .filter(([id]) => id !== d.id)
-        .map(([, r]) => r)
-      onPlace(d.id, resolveCollisions(d.rect, others, bounds))
+      // Dropped where it was dropped.
+      //
+      // This used to call resolveCollisions, which shoved the panel out of
+      // anything it landed on. That is the behaviour Dan described as sticky,
+      // and it is worth being precise about why it was wrong rather than just
+      // deleting it: it made the canvas a tiling layout wearing a window
+      // manager's clothes. You could put a panel anywhere except where you
+      // aimed, and two panels could never share space even when the whole
+      // point was to park one over another.
+      //
+      // Panels now overlap, and `z` decides what is in front. Still clamped to
+      // the canvas, because a panel dragged off the edge is a panel nobody can
+      // get back - overlapping is a choice the player made, off-screen is not.
+      onPlace(d.id, clampToBounds(d.rect, bounds))
       return null
     })
   }, [bounds, onPlace, placed])
@@ -198,11 +233,23 @@ export function FreeCanvas({
             key={item.id}
             className={cn(
               'absolute flex flex-col overflow-hidden rounded-lg border bg-surface-raised',
-              dragging
-                ? 'z-20 border-accent shadow-lg'
-                : 'z-10 border-border'
+              dragging ? 'border-accent shadow-lg' : 'border-border'
             )}
-            style={{ left: shown.x, top: shown.y, width: shown.w, height: shown.h }}
+            style={{
+              left: shown.x,
+              top: shown.y,
+              width: shown.w,
+              height: shown.h,
+              // The dragged panel is always in front while it is moving, so it
+              // is never lost behind something it is being dragged across.
+              // Otherwise the persisted order decides.
+              zIndex: dragging ? 9999 : 10 + (shown.z ?? 0),
+            }}
+            // Capture, so clicking anything inside raises the panel without
+            // the content having to know this canvas exists. Not preventDefault
+            // and not stopPropagation: the click must still reach the button
+            // the player was actually aiming at.
+            onPointerDownCapture={() => raise(item.id)}
           >
             <div
               className="flex cursor-grab touch-none items-center gap-1 px-1.5 py-1 active:cursor-grabbing"

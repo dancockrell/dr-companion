@@ -17,8 +17,14 @@ import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
 import { MapPinBar } from './shared/MapPinBar'
+import { QuickTravel } from './shared/QuickTravel'
 import { PinEditor } from './shared/PinEditor'
+import { RoomNudge } from './shared/RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
+import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
+import { uniqueTaskName, pinTaskSource } from '../lib/pinTaskGenerator'
+import { listScripts, writeScript } from '../lib/scriptFiles'
+import { isTauri } from '../lib/tauri'
 import { useMapDock, setMapDock, WINDOW_ZOOM_MIN, WINDOW_ZOOM_MAX } from '../lib/mapDock'
 import { useMapViewport } from '../lib/useMapViewport'
 
@@ -85,6 +91,7 @@ export function MapWindow() {
 
   const trail = useAppStore((s) => s.mapTrail)
   const character = useAppStore((s) => s.character)
+  const addLog = useAppStore((s) => s.addLog)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
 
   const onRoute = useMemo(
@@ -117,19 +124,41 @@ export function MapWindow() {
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
 
-  function savePin(label: string, color: MapPin['color']) {
+  const hereVisits = hereId != null ? trail.visits[hereId] : undefined
+  const showNudge =
+    !!character &&
+    hereId != null &&
+    hereVisits !== undefined &&
+    hereVisits >= NUDGE_VISIT_THRESHOLD &&
+    !pinFor(pins, hereId) &&
+    !isDismissed(character.name, character.instance, hereId)
+
+  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon']) {
     if (!character || !editingRoom) return
     if (editingRoom.existing) {
-      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color })
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon })
     } else {
       addPin(character.name, character.instance, {
         roomId: editingRoom.id,
         zone: zone?.zone ?? '',
         label,
         color,
+        icon,
       })
     }
     setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+
+  async function createTaskForPin(pin: MapPin) {
+    const existingNames = (await listScripts()).filter((s) => s.lang === 'python').map((s) => s.name)
+    const name = uniqueTaskName(existingNames, pin)
+    try {
+      const path = await writeScript('python', name, pinTaskSource(pin))
+      addLog(`Task "${name}" written for ${pin.label} (${path || 'python/tasks/user/'}).`)
+    } catch (e) {
+      addLog(`Could not write a task for ${pin.label}: ${e instanceof Error ? e.message : e}`, 'error')
+    }
     setEditingRoom(null)
   }
 
@@ -250,13 +279,24 @@ export function MapWindow() {
       </header>
 
       {(pins.length > 0 || hereId != null) && (
-        <div className="shrink-0 border-b border-border px-3 py-1.5">
+        <div className="shrink-0 space-y-1.5 border-b border-border px-3 py-1.5">
           <MapPinBar
             pins={pins}
             onGo={(pin) => goThere(pin.roomId)}
             onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
             onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
           />
+          <QuickTravel onWalk={goThere} />
+          {showNudge && hereId != null && (
+            <RoomNudge
+              visits={hereVisits as number}
+              onPin={() => pinRoom(hereId)}
+              onDismiss={() => {
+                if (character) dismissNudge(character.name, character.instance, hereId)
+                setPinVersion((v) => v + 1)
+              }}
+            />
+          )}
         </div>
       )}
 
@@ -322,6 +362,7 @@ export function MapWindow() {
           onSave={savePin}
           onDelete={editingRoom.existing ? deletePin : undefined}
           onClose={() => setEditingRoom(null)}
+          onCreateTask={isTauri() ? createTaskForPin : undefined}
         />
       )}
     </>

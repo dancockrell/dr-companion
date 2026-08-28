@@ -235,6 +235,27 @@ class Task:
             )
         self.c.send(command)
 
+    def walk_to(self, destination: "str | int") -> None:
+        """Walk to a Lich room id (or one of go2's own named targets, e.g.
+        "bank") by starting Lich's own ;go2, the same script the map panel's
+        click-to-travel uses (companion_bridge.lic's map_walk intent).
+
+        Not a reimplementation of movement - go2 already knows how to
+        retreat out of combat, work a locked door, use a day pass, take the
+        Ta'Vaalor shortcut, and a dozen other DragonRealms-specific cases a
+        plain sequence of `self.do(direction)` calls would get wrong. Sent
+        once, through the same rate cap and roundtime wait as any other
+        command; go2 itself paces the actual walking.
+
+        The command prefix is hardcoded to `;`, not looked up. Lich's own
+        choice between `;` and `,` (`$clean_lich_char`) depends on which
+        game frontend it thinks it's serving, and this app's launch only
+        ever resolves to `stormfront`/`profanity`, never `genie` - see
+        docs/LIVE-STATE.md and issue #31. The comma branch cannot be reached
+        by any task this app starts, so there's nothing to detect.
+        """
+        self.do(f";go2 {destination}", wait_rt=False)
+
     def wait_rt(self, extra: float = 0.2) -> None:
         """Block until the current roundtime has passed."""
         while True:
