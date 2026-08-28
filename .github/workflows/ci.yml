@@ -17,9 +17,18 @@ jobs:
   # Everything that does not need Rust.
   checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 39 suites including a build; the old 15 was sized for ten of them.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      # test:all includes the Ruby bridge suites. Without Ruby they report
+      # NOT RUN, which the runner exits non-zero for on purpose - a check that
+      # was skipped must never be able to read as one that passed.
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: false
 
       - uses: actions/setup-node@v4
         with:
@@ -34,15 +43,14 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Listed individually so a failure names itself in the job list.
-      - name: Contrast (WCAG AA)
-        run: npm run test:contrast
-      - name: Log scrubbing
-        run: npm run test:scrub
-      - name: Frontend
-        run: npm run test:frontend
-      - name: Bundle integrity
-        run: npm run test:bundle
+      # Every suite, through the runner that names all failures rather than
+      # stopping at the first. Listing them by hand here covered 10 of 39, so
+      # 29 suites had no CI at all - test:contrast was red for 24 commits and
+      # was one of the ten. The runner reports passed/failed/NOT RUN and exits
+      # non-zero for either of the last two, so a suite that could not execute
+      # can never be read as one that passed.
+      - name: Test suites
+        run: npm run test:all
 
   # The Rust half. Separate so it does not hold up the fast feedback.
   tauri:
@@ -65,6 +73,15 @@ jobs:
           workspaces: src-tauri
 
       - run: npm ci
+
+      # tauri.conf.json bundles src-tauri/vendor/Ruby4Lich5.exe, and that
+      # directory is gitignored (65 MB, rebuilt on Lich's own schedule).
+      # build.rs validates resource paths, so with it absent EVERY Rust step
+      # fails before compiling anything - clippy and cargo test included, not
+      # only the packaging one. Fetch it up front. The script verifies the
+      # download against GitHub's published sha256 and no-ops when current.
+      - name: Vendor Ruby4Lich5
+        run: npm run vendor:fetch
 
       - name: Rust format
         working-directory: src-tauri
