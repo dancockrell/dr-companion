@@ -87,24 +87,37 @@ const handlers = new Map()
 let backlogReply = { lines: [], dropped: 0 }
 let backlogThrows = false
 
-mock.module('../src/lib/tauri.ts', {
-  exports: {
-    isTauri: () => true,
-    listenTauri: (name, fn) => {
-      handlers.set(name, fn)
-      return () => handlers.delete(name)
-    },
-    invokeTauri: async (cmd) => {
-      if (cmd === 'game_backlog') {
-        if (backlogThrows) throw new Error('backend unreachable')
-        return backlogReply
-      }
-      return undefined
-    },
-    setAlwaysOnTop: async () => {},
-    getBridgeDefaultUrl: async () => '',
+const stub = {
+  isTauri: () => true,
+  listenTauri: (name, fn) => {
+    handlers.set(name, fn)
+    return () => handlers.delete(name)
   },
-})
+  invokeTauri: async (cmd) => {
+    if (cmd === 'game_backlog') {
+      if (backlogThrows) throw new Error('backend unreachable')
+      return backlogReply
+    }
+    return undefined
+  },
+  setAlwaysOnTop: async () => {},
+  getBridgeDefaultUrl: async () => '',
+}
+
+/*
+ * node:test renamed this option between releases: `namedExports` on Node 22,
+ * `exports` on 24, where the old name is deprecated.
+ *
+ * Passing the wrong one is not a warning. The replacement module ends up with
+ * no named exports at all, so the failure is a link error thrown by the module
+ * loader at import time, naming neither this file nor the option - CI reported
+ * only "the test file does not parse". It cost a full CI round trip to place.
+ *
+ * Chosen by version rather than passing both, so neither runtime prints a
+ * deprecation warning into the suite output.
+ */
+const nodeMajor = Number(process.versions.node.split('.')[0])
+mock.module('../src/lib/tauri.ts', nodeMajor >= 24 ? { exports: stub } : { namedExports: stub })
 
 let caseNo = 0
 async function freshLink() {
