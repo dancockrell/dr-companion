@@ -101,7 +101,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
           Quick Queue
         </h2>
         {state.total > 0 && (
-          <span className={cn('text-[11px]', running ? 'text-accent' : 'text-ink-faint')}>
+          <span className={cn('text-xs', running ? 'text-accent' : 'text-ink-faint')}>
             {running
               ? `${state.index + 1} of ${state.total}`
               : state.status === 'done'
@@ -179,7 +179,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
               <span className="w-4 shrink-0 text-right tabular-nums text-ink-faint">{i + 1}</span>
               <span
                 className={cn(
-                  'shrink-0 rounded px-1 text-[10px] font-semibold uppercase',
+                  'shrink-0 rounded px-1 text-xs font-semibold uppercase',
                   item.kind === 'script' ? 'bg-accent/15 text-accent' : 'bg-ink-faint/15 text-ink-faint'
                 )}
               >
