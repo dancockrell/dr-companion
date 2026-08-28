@@ -10,59 +10,11 @@ import { useMemo, useState } from 'react'
 import { Brain, Music } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import {
-  MINDSTATE_MAX,
-  mindstateLabel,
   suggestTraining,
   nextTrainingTarget,
-  urgencyFor,
-  type SkillState,
-  type TrainingUrgency,
 } from '../../data/skills'
 import { activityTrainingFor } from '../../data/activityTraining'
 import { PLAY_SONGS, PLAY_MOODS, moodDifficulty, buildPlayCommand } from '../../data/performance'
-
-const URGENCY_BAR: Record<TrainingUrgency, string> = {
-  ideal: 'bg-good',
-  fine: 'bg-info',
-  poor: 'bg-warn',
-  wasted: 'bg-danger',
-}
-
-const URGENCY_TEXT: Record<TrainingUrgency, string> = {
-  ideal: 'text-good',
-  fine: 'text-info',
-  poor: 'text-warn',
-  wasted: 'text-danger',
-}
-
-function SkillRow({ skill, dense }: { skill: SkillState; dense?: boolean }) {
-  const urgency = urgencyFor(skill)
-  const pct = Math.round((skill.mindstate / MINDSTATE_MAX) * 100)
-
-  return (
-    <div className={dense ? 'px-2.5 py-1' : 'px-3 py-1.5'}>
-      <div className="flex items-baseline justify-between gap-2 text-xs">
-        <span className="text-ink truncate">{skill.name}</span>
-        <span className="text-ink-faint shrink-0 tabular-nums">
-          {skill.ranks}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 mt-1">
-        <div className="h-1.5 flex-1 rounded-full bg-surface overflow-hidden border border-border/40">
-          <div
-            className={`h-full rounded-full transition-all ${URGENCY_BAR[urgency]}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <span
-          className={`text-xs shrink-0 w-24 text-right ${URGENCY_TEXT[urgency]}`}
-        >
-          {mindstateLabel(skill.mindstate)}
-        </span>
-      </div>
-    </div>
-  )
-}
 
 /**
  * The PLAY picker (issue #12).
@@ -197,7 +149,11 @@ function ActivityTrainingCard({
   )
 }
 
-export function TrainingPanel({ dense = false }: { dense?: boolean }) {
+// `dense` is accepted and unused: every panel in this dashboard takes it, and
+// dropping it from the signature would make this the one that does not. It
+// stopped being read when the skill list went - what is left is a single
+// recommendation card, which is the same size either way.
+export function TrainingPanel({ dense: _dense = false }: { dense?: boolean }) {
   const character = useAppStore((s) => s.character)
   const trainFocus = useAppStore((s) => s.trainFocus)
 
@@ -268,16 +224,6 @@ export function TrainingPanel({ dense = false }: { dense?: boolean }) {
           nothing. Rest, run town chores, or wait for the pools to drain.
         </div>
       )}
-
-      <div
-        className={`rounded-xl border border-border bg-surface-raised divide-y divide-border overflow-y-auto ${
-          dense ? 'max-h-32' : 'max-h-44'
-        }`}
-      >
-        {ranked.map((r) => (
-          <SkillRow key={r.skill.name} skill={r.skill} dense={dense} />
-        ))}
-      </div>
     </section>
   )
 }

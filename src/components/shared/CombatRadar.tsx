@@ -1,16 +1,22 @@
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
+import { CreatureArt } from './CreatureArt'
+import { hasArt } from '../../lib/creatureArt'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 
 /**
  * The fight, laid out the way `assess` actually describes it — as text at a
- * position, not as circular creature portraits. An earlier pass put a round
- * art token (or, for anything the bestiary art pipeline has not reached yet
- * — most creatures — a letter-in-a-circle placeholder) at every point on
- * this radar. It looked like a raid-frame add-on borrowed from a different
- * genre of game. DragonRealms has no avatars anywhere in its own interface;
- * a player reading `assess` gets a name and a position, in text, and that is
- * what belongs here too.
+ * position, with a real portrait riding along when the pack genuinely has
+ * one. An earlier pass put a round art token (or, for anything the bestiary
+ * art pipeline has not reached yet — most creatures — a letter-in-a-circle
+ * placeholder) at every point on this radar, unconditionally. It looked like
+ * a raid-frame add-on borrowed from a different genre of game, and the text
+ * a player reading `assess` actually gets was the part that had gone
+ * missing. `hasArt` (lib/creatureArt.ts) is the same manifest check
+ * RoomChips.tsx uses — never a guess, never the letter fallback CreatureArt
+ * draws when asked to render regardless. A marker with no confirmed art
+ * stays exactly the dot it was; nothing stands in for a portrait that does
+ * not exist.
  *
  * DR's own combat readout is two facts about each opponent, not one: range
  * ("at melee range", "at pole weapon range", "at missile range") and
@@ -23,6 +29,10 @@ import type { RoomCard } from '../../lib/cards'
  * relation, or no range at all, is not guessed onto the radar — it goes in
  * the list below, honestly labelled unassessed or not fighting.
  */
+
+/** Same threshold as RoomChips.tsx — assess data past a minute old is shown
+ * softened rather than at full confidence. */
+const STALE_AFTER_SECONDS = 60
 
 const RANGE_RADIUS_PCT: Record<'melee' | 'pole' | 'missile', number> = {
   melee: 20,
@@ -153,32 +163,50 @@ export function CombatRadar({
         </div>
 
         {hasFight ? (
-          spread.map((p) => (
-            <div
-              key={p.key}
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
-              style={{ left: `${p.x}%`, top: `${p.y}%` }}
-              title={`${p.card.name} — ${p.combatant.relation}, at ${RANGE_WORD[p.combatant.range!]} range${
-                p.combatant.target ? `, targeting ${p.combatant.target}` : ''
-              }`}
-            >
-              <span
-                className={`h-2.5 w-2.5 rounded-full border border-surface ${
-                  p.combatant.target?.toLowerCase() === 'you' ? 'animate-pulse bg-danger' : 'bg-warn'
+          spread.map((p) => {
+            const stale =
+              p.combatant.enrichedAgeSeconds != null &&
+              p.combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS
+            const portrait = hasArt(p.card.name, p.card.noun)
+            const onYou = p.combatant.target?.toLowerCase() === 'you'
+            return (
+              <div
+                key={p.key}
+                className={`absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5 ${
+                  stale ? 'opacity-60' : ''
                 }`}
-              />
-              <span
-                className={`whitespace-nowrap rounded bg-surface/90 px-1 text-[9px] leading-tight shadow ${
-                  p.combatant.target?.toLowerCase() === 'you'
-                    ? 'font-semibold text-danger'
-                    : 'text-ink'
-                }`}
+                style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                title={`${p.card.name} — ${p.combatant.relation}, at ${RANGE_WORD[p.combatant.range!]} range${
+                  p.combatant.target ? `, targeting ${p.combatant.target}` : ''
+                }${stale ? ` (last assessed ${p.combatant.enrichedAgeSeconds}s ago)` : ''}`}
               >
-                {p.card.name}
-                {p.card.count > 1 ? ` x${p.card.count}` : ''}
-              </span>
-            </div>
-          ))
+                {portrait ? (
+                  <CreatureArt
+                    name={p.card.name}
+                    noun={p.card.noun}
+                    lore={p.card.lore}
+                    height={28}
+                    className={`!w-7 rounded-full border ${onYou ? 'border-danger' : 'border-surface'}`}
+                  />
+                ) : (
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full border border-surface ${
+                      onYou ? 'animate-pulse bg-danger' : 'bg-warn'
+                    }`}
+                  />
+                )}
+                <span
+                  className={`whitespace-nowrap rounded bg-surface/90 px-1 text-[9px] leading-tight shadow ${
+                    onYou ? 'font-semibold text-danger' : 'text-ink'
+                  }`}
+                >
+                  {p.card.name}
+                  {p.card.count > 1 ? ` x${p.card.count}` : ''}
+                  {stale ? ' ⏳' : ''}
+                </span>
+              </div>
+            )
+          })
         ) : (
           <p className="absolute left-1/2 top-1/2 w-32 -translate-x-1/2 -translate-y-1/2 text-center text-xs text-ink-faint">
             Nothing assessed yet

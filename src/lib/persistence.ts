@@ -74,6 +74,17 @@ export interface PersistedPrefs {
    */
   alertsVolume?: number
   musicVolume?: number
+  /**
+   * A built-in station id (see ambientSound.ts's RADIO_STATIONS) remembered
+   * across restarts, so picking a station once doesn't mean re-picking it
+   * every session. Mutually exclusive with `customStreamUrl` - GamePane's
+   * mount effect applies whichever one is set, preferring the custom stream
+   * if somehow both are (shouldn't happen; setRadioStation/setCustomStream
+   * each clear the other when applied).
+   */
+  radioStation?: string | null
+  /** A player-supplied stream URL - see ambientSound.ts's setCustomStream. */
+  customStreamUrl?: string | null
 }
 
 const defaults: PersistedPrefs = {

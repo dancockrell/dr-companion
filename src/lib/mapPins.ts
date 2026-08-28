@@ -34,6 +34,32 @@ export const PIN_COLOR_HEX: Record<PinColor, string> = {
   slate: '#8a94a6',
 }
 
+/**
+ * Which lucide icon a pin draws, alongside its colour. Optional and absent
+ * on older saved pins - PinEditor/MapPinBar fall back to a plain dot for
+ * `undefined`, so this is additive and never breaks a pin saved before it
+ * existed.
+ */
+export const PIN_ICONS = [
+  'home',
+  'landmark',
+  'coins',
+  'heart-pulse',
+  'shield',
+  'shopping-bag',
+  'backpack',
+  'sword',
+  'swords',
+  'users',
+  'tent',
+  'flag',
+  'skull',
+  'ghost',
+  'sprout',
+  'map-pin',
+] as const
+export type PinIcon = (typeof PIN_ICONS)[number]
+
 export interface MapPin {
   id: string
   /** Lich's room id — what map_walk and Room#path_to both take. */
@@ -42,9 +68,42 @@ export interface MapPin {
   zone: string
   label: string
   color: PinColor
+  icon?: PinIcon
+  /**
+   * Set only on the auto-dropped corpse marker (see the death-detection
+   * code that creates it). Distinguishes it from anything the player made by
+   * hand: the picker never offers to create one, and it is the one pin the
+   * app removes on its own once you have walked back to it - a hand-made pin
+   * never disappears just because you visited it.
+   */
+  system?: boolean
   /** Epoch ms, so pins can be listed oldest/newest if that's ever wanted. */
   createdAt: number
 }
+
+/**
+ * Starter chips PinEditor offers for a brand-new pin: label, icon and colour
+ * together, one click, still fully editable afterward. Several entries per
+ * common category on purpose (a bank pin and a "the good bank" pin can want
+ * different icons) rather than one canonical choice per idea - Dan's own
+ * ask was for "many and variations of expected common ones," not a single
+ * icon per category.
+ */
+export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = [
+  { label: 'Home', icon: 'home', color: 'blue' },
+  { label: 'Bank', icon: 'landmark', color: 'gold' },
+  { label: 'Vault', icon: 'coins', color: 'gold' },
+  { label: 'Healer', icon: 'heart-pulse', color: 'green' },
+  { label: 'Guild', icon: 'shield', color: 'purple' },
+  { label: 'Shop', icon: 'shopping-bag', color: 'blue' },
+  { label: 'General Store', icon: 'backpack', color: 'blue' },
+  { label: 'Hunting Spot', icon: 'swords', color: 'red' },
+  { label: 'Danger', icon: 'skull', color: 'red' },
+  { label: 'Hangout', icon: 'users', color: 'gold' },
+  { label: 'Meetup Point', icon: 'tent', color: 'purple' },
+  { label: 'Resource Node', icon: 'sprout', color: 'green' },
+  { label: 'Return Point', icon: 'flag', color: 'slate' },
+]
 
 const STORAGE_KEY = 'drc.pins.v1'
 type PinStore = Record<string, MapPin[]>
@@ -65,7 +124,7 @@ export function loadPins(name: string, instance: GameInstance): MapPin[] {
 export function addPin(
   name: string,
   instance: GameInstance,
-  pin: { roomId: number; zone: string; label: string; color: PinColor }
+  pin: { roomId: number; zone: string; label: string; color: PinColor; icon?: PinIcon; system?: boolean }
 ): MapPin[] {
   const store = loadStore()
   const key = profileKey(name, instance)
@@ -93,7 +152,7 @@ export function updatePin(
   name: string,
   instance: GameInstance,
   id: string,
-  patch: Partial<Pick<MapPin, 'label' | 'color'>>
+  patch: Partial<Pick<MapPin, 'label' | 'color' | 'icon'>>
 ): MapPin[] {
   const store = loadStore()
   const key = profileKey(name, instance)
@@ -106,4 +165,44 @@ export function updatePin(
 /** Whether a room already has a pin, for the map to offer "unpin" instead of "pin" a second time. */
 export function pinFor(pins: MapPin[], roomId: number): MapPin | undefined {
   return pins.find((p) => p.roomId === roomId)
+}
+
+/**
+ * Drop (or move) the one corpse marker onto wherever the character just
+ * died. Replaces any previous one rather than accumulating - a character
+ * has one body, and a stale marker pointing at where you died three fights
+ * ago would send "walk to your corpse" to the wrong room.
+ */
+export function setCorpseMarker(
+  name: string,
+  instance: GameInstance,
+  roomId: number,
+  zone: string
+): MapPin[] {
+  const store = loadStore()
+  const key = profileKey(name, instance)
+  const marker: MapPin = {
+    id: `corpse-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    roomId,
+    zone,
+    label: 'Your corpse',
+    color: 'red',
+    icon: 'skull',
+    system: true,
+    createdAt: Date.now(),
+  }
+  const next = [...(store[key] ?? []).filter((p) => !p.system), marker]
+  store[key] = next
+  saveStore(store)
+  return next
+}
+
+/** Sweep the corpse marker once you've actually walked back to it - see MapPin.system. */
+export function clearCorpseMarker(name: string, instance: GameInstance): MapPin[] {
+  const store = loadStore()
+  const key = profileKey(name, instance)
+  const next = (store[key] ?? []).filter((p) => !p.system)
+  store[key] = next
+  saveStore(store)
+  return next
 }

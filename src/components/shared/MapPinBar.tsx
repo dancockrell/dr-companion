@@ -11,6 +11,7 @@
  */
 import { MapPin as MapPinIcon, Pencil, Plus } from 'lucide-react'
 import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
+import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 
 export function MapPinBar({
   pins,
@@ -31,7 +32,9 @@ export function MapPinBar({
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {pins.map((pin) => (
+      {pins.map((pin) => {
+        const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
+        return (
         <div
           key={pin.id}
           className="group flex items-center overflow-hidden rounded-full border border-border"
@@ -42,8 +45,9 @@ export function MapPinBar({
             disabled={disabled}
             title={`Walk to ${pin.label} (room ${pin.roomId})`}
             onClick={() => onGo(pin)}
-            className="px-2 py-0.5 text-xs text-ink-muted hover:text-ink disabled:opacity-40"
+            className="flex items-center gap-1 px-2 py-0.5 text-xs text-ink-muted hover:text-ink disabled:opacity-40"
           >
+            {Icon && <Icon className="h-3 w-3" style={{ color: PIN_COLOR_HEX[pin.color] }} />}
             {pin.label}
           </button>
           <button
@@ -55,7 +59,8 @@ export function MapPinBar({
             <Pencil className="h-3 w-3" />
           </button>
         </div>
-      ))}
+        )
+      })}
       {onAddHere && (
         <button
           type="button"

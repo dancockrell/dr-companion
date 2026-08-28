@@ -6,7 +6,7 @@
  * read it. Putting it in the global store would re-render everything that
  * subscribes while somebody is resizing a panel.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import type { UiMode } from '../types'
 import {
   loadLayout,
@@ -21,6 +21,7 @@ import {
   setPanelRect,
   clearPanelRects,
   enterFreeform,
+  onLayoutChange,
   setDock,
   type Layout,
   type PanelId,
@@ -29,6 +30,23 @@ import {
 import type { Deck } from './cards'
 import type { Rect } from './freeLayout'
 import type { Dock } from './dock'
+
+/**
+ * Just the freeform flag, for callers outside the dashboard.
+ *
+ * A boolean rather than the layout object, and that is deliberate rather than
+ * minimalism: `useSyncExternalStore` compares snapshots by identity, so a
+ * getSnapshot returning a fresh object every call re-renders forever. This app
+ * has already paid for that mistake once, in `gameLines()`. A primitive cannot
+ * make it.
+ */
+export function useFreeform(mode: UiMode): boolean {
+  return useSyncExternalStore(
+    onLayoutChange,
+    () => loadLayout(mode).freeform,
+    () => false
+  )
+}
 
 export function useLayout(mode: UiMode) {
   const [layout, setLayout] = useState<Layout>(() => loadLayout(mode))

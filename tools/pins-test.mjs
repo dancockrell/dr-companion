@@ -39,9 +39,19 @@ globalThis.localStorage = {
   removeItem: (k) => store.delete(k),
 }
 
-const { loadPins, addPin, removePin, updatePin, pinFor, PIN_COLORS, PIN_COLOR_HEX } = await import(
-  pathToFileURL(pinsPath).href
-)
+const {
+  loadPins,
+  addPin,
+  removePin,
+  updatePin,
+  pinFor,
+  setCorpseMarker,
+  clearCorpseMarker,
+  PIN_COLORS,
+  PIN_COLOR_HEX,
+  PIN_ICONS,
+  PIN_PRESETS,
+} = await import(pathToFileURL(pinsPath).href)
 
 let failed = 0
 let checked = 0
@@ -105,6 +115,54 @@ ok(
   'every palette colour has a hex value to draw with',
   PIN_COLORS.every((c) => typeof PIN_COLOR_HEX[c] === 'string' && PIN_COLOR_HEX[c].startsWith('#'))
 )
+
+console.log('')
+console.log('-- icons: optional, additive, do not touch anything else --')
+const withIcon = addPin(...HERO, { roomId: 303, zone: '1', label: 'Guild', color: 'purple', icon: 'shield' })
+const guildPin = withIcon.find((p) => p.roomId === 303)
+ok('icon survives', guildPin.icon === 'shield')
+ok('a pin saved with no icon simply has none', loadPins(...HERO).find((p) => p.roomId === 101).icon === undefined)
+const iconEdit = updatePin(...HERO, guildPin.id, { icon: 'sword' })
+ok('icon can be edited on its own', iconEdit.find((p) => p.id === guildPin.id).icon === 'sword')
+ok(
+  "editing the icon doesn't touch the label or colour",
+  iconEdit.find((p) => p.id === guildPin.id).label === 'Guild' &&
+    iconEdit.find((p) => p.id === guildPin.id).color === 'purple'
+)
+removePin(...HERO, guildPin.id)
+
+console.log('')
+console.log('-- the icon set --')
+ok('several icons to choose from, not just one', PIN_ICONS.length >= 8)
+ok('map-pin (the plain default) is one of them', PIN_ICONS.includes('map-pin'))
+
+console.log('')
+console.log('-- starter presets: many, and covering the categories Dan asked for --')
+ok('a generous list, not one-per-category minimum', PIN_PRESETS.length >= 10)
+for (const want of ['Home', 'Bank', 'Healer', 'Guild', 'Hunting Spot', 'Return Point']) {
+  ok(`covers "${want}"`, PIN_PRESETS.some((p) => p.label === want))
+}
+ok(
+  'every preset names a real icon and a real colour',
+  PIN_PRESETS.every((p) => PIN_ICONS.includes(p.icon) && PIN_COLORS.includes(p.color))
+)
+
+console.log('')
+console.log('-- the corpse marker: one at a time, and it is not a normal pin --')
+const afterDeath1 = setCorpseMarker(...HERO, 555, '1')
+const corpse1 = afterDeath1.find((p) => p.system)
+ok('a marker was dropped', !!corpse1, JSON.stringify(afterDeath1))
+ok('at the death room', corpse1.roomId === 555)
+ok('flagged as system, not a hand-made pin', corpse1.system === true)
+ok('the other pins are untouched', afterDeath1.some((p) => p.label === 'Home'))
+
+const afterDeath2 = setCorpseMarker(...HERO, 777, '1')
+ok('a second death replaces the marker rather than stacking', afterDeath2.filter((p) => p.system).length === 1)
+ok('at the new death room', afterDeath2.find((p) => p.system).roomId === 777)
+
+const afterClear = clearCorpseMarker(...HERO)
+ok('walking back to it clears the marker', afterClear.every((p) => !p.system))
+ok('everything else survives being cleared', afterClear.some((p) => p.label === 'Home'))
 
 console.log('')
 console.log('-- storage survives garbage already in it --')

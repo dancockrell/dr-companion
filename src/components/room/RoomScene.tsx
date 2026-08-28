@@ -60,15 +60,17 @@ export function RoomScene({
   room,
   title,
   text,
+  height,
   chips,
-  height = 150,
 }: {
   zone: string
   room: number
   title?: string | null
   text?: string | null
-  chips?: React.ReactNode
+  /** A fixed height, for a strip. Omit it for the square stage — the default. */
   height?: number
+  /** Who's here, layered on top along the bottom edge. */
+  chips?: import('react').ReactNode
 }) {
   const key = `${zone}-${room}`
 
@@ -102,8 +104,21 @@ export function RoomScene({
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded border border-border"
-      style={{ height }}
+      // No fixed height by default: a true square, width min(column, 42vh)
+      // so it reads as a peer to the map rather than a strip above the
+      // description, without ballooning past the game pane and chat under
+      // it on a wide window. `w-[min(100%,42vh)]` rather than `w-full` +
+      // aspect-square, because aspect-ratio only derives the dimension left
+      // auto — with width pinned to 100% it cannot also shrink for a height
+      // cap, so the two would stop matching the moment the column got wide.
+      // A caller that still wants the old strip passes height and gets it,
+      // full width, exactly as before.
+      className={
+        height
+          ? 'relative w-full overflow-hidden rounded border border-border'
+          : 'relative mx-auto aspect-square w-[min(100%,42vh)] overflow-hidden rounded border border-border'
+      }
+      style={height ? { height } : undefined}
     >
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
         <defs>
@@ -148,15 +163,17 @@ export function RoomScene({
         className="absolute inset-0 h-full w-full object-cover"
       />
 
-      {chips && (
-        <div className="absolute inset-x-0 top-0 bg-surface/80 px-2 py-1 backdrop-blur-sm">
-          {chips}
+      {title && (
+        <div className="absolute inset-x-0 top-0 bg-surface/80 px-2 py-1 text-xs text-ink backdrop-blur-sm">
+          <span className="truncate">{title}</span>
         </div>
       )}
 
-      {title && (
-        <div className="absolute inset-x-0 bottom-0 bg-surface/80 px-2 py-1 text-xs text-ink backdrop-blur-sm">
-          <span className="truncate">{title}</span>
+      {/* Who's here, on the felt rather than in a list beside it — the
+          bottom edge, since the title moved to the top to make room. */}
+      {chips && (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-6">
+          {chips}
         </div>
       )}
     </div>

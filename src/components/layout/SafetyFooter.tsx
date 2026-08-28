@@ -29,6 +29,7 @@
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop'
+import { SoundControls } from '../game/SoundControls'
 import { cn } from '../../lib/cn'
 
 export function SafetyFooter() {
@@ -259,6 +260,13 @@ export function SafetyFooter() {
             {scripts}
           </span>
         )}
+
+        {/* Sound moved here from GamePane's own header, same reasoning as
+            Stop/Pause/Resume above: a control that only exists inside one
+            scrollable panel is a control you lose the moment that panel
+            scrolls off, and this bar is the one place that's always part of
+            the window. */}
+        <SoundControls />
       </div>
     </footer>
   )

@@ -3,6 +3,7 @@ pub mod config_import;
 pub mod game_link;
 pub mod lich;
 pub mod lich_health;
+pub mod media_keys;
 pub mod pause;
 pub mod python;
 pub mod script_api;
@@ -119,6 +120,7 @@ pub fn run() {
             bridge_token::read_bridge_token,
             config_import::read_genie_config,
             sounds::read_sound,
+            media_keys::send_media_key,
             game_link::game_status,
             game_link::game_attach,
             game_link::game_send,

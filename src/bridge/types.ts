@@ -55,6 +55,7 @@ export type BridgeServerMessage =
   | { type: 'vars'; character: string; entries: VarsEntry[] }
   | { type: 'map_here'; payload: MapRoom & { available: boolean } }
   | { type: 'map_path'; payload: MapPath }
+  | { type: 'map_nearest'; payload: MapNearest }
   | { type: 'map_zone'; payload: MapZone }
   | { type: 'script_catalog'; payload: string[] }
 
@@ -236,6 +237,15 @@ export interface MapPath {
   reason?: string
 }
 
+/** The nearest room(s) carrying a tag - computed, not saved. Nothing has moved. */
+export interface MapNearest {
+  ok: boolean
+  tag?: string
+  from?: number | null
+  rooms?: (MapRoom & { steps?: number | null })[]
+  reason?: string
+}
+
 /** Messages Companion → Lich */
 export type BridgeClientMessage =
   | { type: 'ping' }
@@ -264,6 +274,12 @@ export type IntentName =
   | 'escape'
   | 'stow_all'
   | 'check_health'
+  // DR's class mechanic. `check_teaching` asks the room what is on offer;
+  // `listen_to` joins a class and `stop_listening` leaves one. All three cost
+  // a real game command, so none of them rides the status tick.
+  | 'check_teaching'
+  | 'listen_to'
+  | 'stop_listening'
   | 'check_toggles'
   | 'reset_runaway'
   | 'read_settings'
@@ -288,6 +304,14 @@ export type IntentName =
   | 'map_here'
   | 'map_path'
   | 'map_walk'
+  /**
+   * The nearest room(s) carrying a tag - "nearest bank", "nearest 3
+   * healers" - computed fresh each time, unlike a pin. args:
+   * { tag: string, count?: number }. Read-only, like map_path: it answers
+   * where the nearest one is, the client fires map_walk itself against
+   * whichever hit it wants.
+   */
+  | 'map_nearest'
   | 'map_zone'
   | 'install_mapdb'
   // Raw script library access. Distinct from the curated activity intents
