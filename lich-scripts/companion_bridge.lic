@@ -414,6 +414,66 @@ module Companion
       end.compact
     end
 
+    # Named entities Lich is tracking in the room right now, with as much
+    # combat detail as it actually has - not just names, which DRRoom.npcs
+    # already sends. This is a genuinely separate feed: Lich::DragonRealms::
+    # Creature is built id-first from <crtrStatus> (automatic, every room
+    # refresh - hostile/dead/stunned/etc, no name and no range) and enriched
+    # from `assess` (name, range bucket, relation, who it's targeting,
+    # balance, conditions) whenever a player or script has actually run
+    # assess. The two halves arrive on different schedules, which is why
+    # `enrichedAgeSeconds` is sent honestly rather than assumed fresh - a
+    # creature can be real and current on crtrStatus while its range/target
+    # are minutes stale from the last assess. See docs/BRIDGE_CONTRACT.md.
+    #
+    # Optional module, guarded rather than assumed: it does not touch DRRoom
+    # or the plain-string roster every existing script already reads, so a
+    # Lich build without it degrades to an empty list, not an error.
+    COMBATANT_STATUS_FLAGS = %w[
+      stunned prone sitting kneeling sleeping hidden immobilized webbed
+      rooted disoriented flying hovering calm
+    ].freeze
+
+    def combatants
+      return [] unless defined?(Lich::DragonRealms::Creature)
+
+      safe([]) do
+        Lich::DragonRealms::Creature.in_room.map do |c|
+          {
+            'id'                 => safe(nil) { c.id.to_s },
+            'name'               => safe(nil) { c.name },
+            'noun'               => safe(nil) { c.noun },
+            'dead'               => safe(false) { c.crtr_flag?(:dead) },
+            'hostile'            => safe(false) { c.crtr_flag?(:hostile) },
+            # True once the creature has broken off - still in the room, no
+            # longer fighting. The client's honest answer to "not engaged at
+            # all", when it can tell rather than guess.
+            'disengaged'         => safe(false) { c.crtr_flag?(:disengaged) },
+            # 'melee' | 'pole' | 'missile' | nil - nil means not yet assessed
+            # this room, not "at range zero". See enrichedAgeSeconds below.
+            'range'              => safe(nil) { c.range&.to_s },
+            'relation'           => safe(nil) { c.relation },
+            'target'             => safe(nil) { c.target },
+            'targetNumber'       => safe(nil) { c.target_number },
+            'balance'            => safe(nil) { c.balance },
+            'offBalance'         => safe(false) { c.off_balance? },
+            'conditions'         => safe([]) { c.conditions } || [],
+            'statuses'           => COMBATANT_STATUS_FLAGS.select do |f|
+              safe(false) { c.flag_active?(f) }
+            end,
+            # Whole seconds since the last assess enriched this entry, or nil
+            # if it never has been. The client's call whether to still show
+            # range/target/balance past some age, or grey them out as stale -
+            # this field is what makes that an honest choice rather than a
+            # guess dressed as current data.
+            'enrichedAgeSeconds' => safe(nil) {
+              c.enriched? ? (Time.now - c.enriched_at).round : nil
+            }
+          }
+        end
+      end || []
+    end
+
     # Held between polls rather than re-read from a passive stream, because DR
     # has none for wounds - Intents.check_health sends HEALTH and parses the
     # reply, on demand, not on this tick. nil means "never successfully
@@ -566,6 +626,11 @@ module Companion
         # Corpses stay reported rather than dropped. A skinnable one with boxes
         # in it is a task the player has not done yet.
         'roomDeadCreatures' => safe([]) { DRRoom.dead_npcs } || [],
+        # Combat detail (range, target, balance, statuses) for whatever Lich
+        # has assessed - additive to roomCreatures above, not a replacement:
+        # this can be a shorter or differently-ordered list, and empty is a
+        # real answer ("nobody has assessed yet"), not a failure.
+        'roomCombatants' => combatants,
         # Loose items on the floor. GameObj.loot is the game's own list of
         # what is lying here, which is not the same as what a script decided
         # was worth picking up.
