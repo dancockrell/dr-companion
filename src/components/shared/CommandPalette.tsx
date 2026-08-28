@@ -26,6 +26,7 @@ import {
   requestResumeAll,
   requestStartFlow,
 } from '../../lib/flowStop'
+import { KEYBINDING_HELP } from '../../lib/keybindings'
 
 interface Command {
   id: string
@@ -60,6 +61,7 @@ function buildCommands(deps: {
   uiMode: string
   setUiMode: (m: 'basic' | 'power') => void
   openSetup: () => void
+  addLog: (line: string) => void
 }): Command[] {
   const commands: Command[] = [
     {
@@ -134,6 +136,17 @@ function buildCommands(deps: {
       hint: 'Dependencies, bridge connection, map data',
       group: 'App',
       run: () => deps.openSetup(),
+    },
+    {
+      id: 'app:keyboard-shortcuts',
+      label: 'Keyboard shortcuts',
+      hint: 'NumPad movement, F-key commands, Escape to stop',
+      group: 'App',
+      // The console, not a new panel: DESIGN.md is explicit that the console
+      // is never demoted, and a key that does something the player cannot
+      // discover is worse than no key — this is that discovery, without
+      // inventing a surface for something six short lines cover.
+      run: () => KEYBINDING_HELP.forEach((line) => deps.addLog(line)),
     }
   )
 
@@ -154,6 +167,7 @@ export function CommandPalette() {
   const uiMode = useAppStore((s) => s.uiMode)
   const setUiMode = useAppStore((s) => s.setUiMode)
   const openSetup = useAppStore((s) => s.openSetup)
+  const addLog = useAppStore((s) => s.addLog)
 
   // Global, because the whole point is that it works from wherever you
   // already are. Ctrl on Windows/Linux, Cmd on macOS — Tauri ships on both.
@@ -180,8 +194,8 @@ export function CommandPalette() {
   }, [open])
 
   const commands = useMemo(
-    () => buildCommands({ scriptCatalog, requestIntent, startScript, uiMode, setUiMode, openSetup }),
-    [scriptCatalog, requestIntent, startScript, uiMode, setUiMode, openSetup]
+    () => buildCommands({ scriptCatalog, requestIntent, startScript, uiMode, setUiMode, openSetup, addLog }),
+    [scriptCatalog, requestIntent, startScript, uiMode, setUiMode, openSetup, addLog]
   )
 
   const results = useMemo(() => {

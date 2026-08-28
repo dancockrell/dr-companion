@@ -134,7 +134,7 @@ export function SafetyFooter() {
       <button
         type="button"
         className="flex min-w-[7.5rem] flex-1 items-center justify-center gap-1.5 rounded-lg bg-danger/90 px-3 py-2 text-sm font-semibold text-white hover:bg-danger"
-        title="Stop every script the Companion started"
+        title="Stop every script the Companion started (or press Escape, anywhere)"
         onClick={() => {
           requestIntent('stop_all')
           // The bridge half stops scripts; this half stops a client-side

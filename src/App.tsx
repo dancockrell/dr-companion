@@ -16,6 +16,9 @@ import { useMapDock, setMapDock } from './lib/mapDock'
 import { fitColumns } from './lib/columns'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
+import { installKeybindings } from './lib/keybindings'
+import { sendGame } from './lib/gameLink'
+import { requestStopAll } from './lib/flowStop'
 
 /**
  * Which window this is.
@@ -72,6 +75,28 @@ export default function App() {
   useEffect(() => {
     connectBridge()
   }, [connectBridge])
+
+  const requestIntent = useAppStore((s) => s.requestIntent)
+
+  /**
+   * NumPad movement, F-key commands, Escape-to-stop — see keybindings.ts.
+   *
+   * Installed once at the root, same reasoning as flowStop.ts's signals:
+   * one listener, one owner. Escape mirrors SafetyFooter's Stop all button
+   * exactly (both the bridge intent and the client-side flow signal) rather
+   * than only one half of it, so pressing the key and pressing the button
+   * are the same action by construction, not two paths that happen to agree.
+   */
+  useEffect(() => {
+    if (!setupComplete) return
+    return installKeybindings({
+      sendGame: (command) => void sendGame(command),
+      stopAll: () => {
+        requestIntent('stop_all')
+        requestStopAll()
+      },
+    })
+  }, [setupComplete, requestIntent])
 
   /**
    * The columns are fixed widths in pixels, not shares of the window.
