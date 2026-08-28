@@ -153,6 +153,47 @@ hand, and it is not the end state - it is what "the gap is not hidden" looks
 like in practice. When the parser moves to a place both the frontend and this
 API can read from, this note goes away and scripts stop needing it.
 
+`streamkit.py`, below, packages this same pattern-matching (streams, vitals,
+indicators) as tested helpers rather than a snippet every script re-writes.
+
+## Beyond the transport: `lich.py` and `streamkit.py`
+
+`dr_companion.py` is deliberately minimal - a socket, `send()`, `on_line()`.
+Two more pure-stdlib modules build on top of it, and a folder of runnable
+scripts builds on those. None of this changes the wire protocol above; it is
+all a client of it.
+
+**`python/lich.py`** wraps Lich's own `;`-prefixed command language -
+`;force`, `;kill`, `;pause`, `;unpause`, `;list`, `;vars` - so a script starts,
+stops and force-restarts Lich scripts (including the dr-scripts ecosystem)
+without hand-formatting strings and re-deriving that "already running" needs
+`;force` (Lich's own message, from `script.rb`). It does not parse Lich's
+replies - those come back as ordinary `line` messages through the same
+`on_line` callback everything else uses, undecoded, for the reason
+`lich.py`'s module docstring gives: guessing at Lich's plain-text table format
+without a test fixture to check it against is the same mistake
+`docs/ENGINE.md` already warns against for the game's own markup.
+
+**`python/streamkit.py`** reads the raw markup a `Line.text` carries: which
+`pushStream`/`popStream` channel a chunk of text belongs to, `progressBar`
+vitals (health/mana/spirit/stamina/concentration, parsed from `text` never
+`value` - `vitalFromText`'s reasoning in `gameStream.ts` applies unchanged
+here), `indicator` icons (`bleeding`, `stunned`, ...), and a couple of
+text-matched heuristics (`is_stunned_line`) for the things that are not
+tag-based at all. It is explicitly **not** a second implementation of
+`src/lib/gameStream.ts`'s state machine - it does not track a stream stack
+across lines, and will miss a tag split across two socket reads. Its own
+module docstring says exactly which parts are backed by something tested
+elsewhere in this repo and which are a best-effort guess; read that before
+trusting a match.
+
+**`python/scripts/`** is a small library of finished, runnable scripts built
+on both - an autostand retry loop, a per-channel logger, a name watchlist, an
+AFK tell auto-responder, a vitals monitor that can force-start a Lich script,
+and `lichctl.py`, a terminal front end to Lich's script engine. See
+`python/scripts/README.md` for what each one does and the Genie-era category
+it replaces.
+
 ## Testing your own script
 
 `python/examples/hello.py` is the minimal working example - run it with the
@@ -170,6 +211,18 @@ actually exercised the socket.
 
 ```bash
 python python/test_dr_companion.py
+```
+
+`python/test_streamkit.py` and `python/test_lich.py` are the two newer
+modules' own suites, and unlike `test_dr_companion.py` neither needs the app
+running - `streamkit.py` is pure regex over fixed strings and `lich.py` is
+tested against a fake `Companion` that just records what it was sent, since
+both modules' entire job is formatting/parsing text rather than owning a
+socket. Run either directly:
+
+```bash
+python python/test_streamkit.py
+python python/test_lich.py
 ```
 
 ## What this API deliberately does not do
