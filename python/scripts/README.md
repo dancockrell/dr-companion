@@ -21,10 +21,11 @@ python python/scripts/lichctl.py --help
 
 ## Looking for the reactive scripts?
 
-Autostand, a per-channel logger, a name watchlist, an AFK tell
-auto-responder, and a vitals monitor moved to `python/tasks/user/` - they are
-`drtask.Task` subclasses now, so they're discoverable through the app's task
-catalog the same way anything you save there is:
+Ten of them - autostand, a per-channel logger, a name watchlist, an AFK tell
+auto-responder, a vitals monitor, foraging, corpse rummaging, a vital-regen
+waiter, a shop sell-run, and a Mind Lock watcher - live in
+`python/tasks/user/` as `drtask.Task` subclasses, discoverable through the
+app's task catalog the same way anything you save there is:
 
 ```
 python python/tasks/user/autostand.py

@@ -189,17 +189,16 @@ docstring and `python/tasks/example_custom.py` for the full shape.
 discovered automatically as `user.<filename>` - no registration, no restart.
 See `python/tasks/user/README.md`.
 
-**`python/tasks/user/`** in this repo ships five ready-to-run examples,
-each answering a Genie-era automation category with an original
-implementation (no script text ported from anyone - see the repo's Scope
-note): `autostand.py` (retries `stand` on a bounded schedule after a stun),
-`channel_logger.py` (every channel to its own timestamped file, from
-`CleanLine.stream`), `watchlist.py` (alert - and optionally act - when a name
-shows up anywhere in the text), `afk_reply.py` (per-sender-cooldown tell
-auto-responder), and `vitals_monitor.py` (fire a Lich command when a vital
-crosses a threshold, via `on_vitals`). Each is runnable directly
+**`python/tasks/user/`** in this repo ships ten ready-to-run examples, each
+answering a Genie-era automation category with an original implementation
+(no script text ported from anyone - see the repo's Scope note):
+`autostand.py`, `channel_logger.py`, `watchlist.py`, `afk_reply.py`,
+`vitals_monitor.py`, `forage.py`, `rummage.py`, `regen_wait.py`,
+`sell_run.py`, and `skill_trainer.py` (a read-only Mind Lock watcher built on
+`docs/DOMAIN.md` §1's mindstate mechanic). Each is runnable directly
 (`python python/tasks/user/autostand.py`) or through the catalog
-(`python python/runner.py run user.autostand`).
+(`python python/runner.py run user.autostand`). See
+`python/tasks/user/README.md`'s own table for what each one does.
 
 **`python/lich.py`** wraps Lich's own `;`-prefixed command language -
 `;force`, `;kill`, `;pause`, `;unpause`, `;list`, `;vars` - so a script

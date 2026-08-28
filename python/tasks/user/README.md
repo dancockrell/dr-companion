@@ -74,3 +74,29 @@ Lich with Lich's API, and start the same way any other Lich script does.
 
 `../example_custom.py` shows a plain step list, branching on what the game
 actually said, and chaining two flows together.
+
+## What's already here
+
+Ten ready-to-run tasks ship in this folder, each answering a Genie-era
+automation category with an original implementation - no script text ported
+from anyone, see the repo's Scope note in the root README. Every one prints
+`--help` for its own flags.
+
+| Task | What it does |
+|---|---|
+| `autostand.py` | Retries `stand` on a bounded schedule after a stun, instead of one guess |
+| `channel_logger.py` | Every game channel to its own timestamped file |
+| `watchlist.py` | Alert - and optionally act - when a name shows up anywhere in the text |
+| `afk_reply.py` | Per-sender-cooldown tell auto-responder |
+| `vitals_monitor.py` | Fire a Lich command when a vital crosses a threshold |
+| `forage.py` | Repeat a search command until the room's exhausted or your hands are full |
+| `rummage.py` | One-shot: search a corpse, `get` only what matches a keep-list |
+| `regen_wait.py` | Block until a vital reaches a target percent, then exit |
+| `sell_run.py` | Sell a list of items to whatever shop you're standing in, one at a time |
+| `skill_trainer.py` | Read-only: says when a watched skill hits Mind Lock (`docs/DOMAIN.md` §1) |
+
+Several of these match on the game's own wording (a stun message, a search
+result, a shop's refusal) rather than a tag, and say so in their own
+docstrings - DR's exact phrasing for those cases has not been confirmed
+against a live game anywhere in this repo. Treat a script that never fires as
+a cue to check the wording, not proof the task is broken.
