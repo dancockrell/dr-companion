@@ -77,10 +77,13 @@ actually said, and chaining two flows together.
 
 ## What's already here
 
-Ten ready-to-run tasks ship in this folder, each answering a Genie-era
+Fourteen ready-to-run tasks ship in this folder, each answering a Genie-era
 automation category with an original implementation - no script text ported
 from anyone, see the repo's Scope note in the root README. Every one prints
-`--help` for its own flags.
+`--help` for its own flags. `meditate.py`/`regen_wait.py` and
+`buff_sequence.py`/`macro_repeat.py` are deliberately close in shape to each
+other - see their own docstrings for why each pair stayed two scripts
+instead of collapsing into a flag on one.
 
 | Task | What it does |
 |---|---|
@@ -94,6 +97,10 @@ from anyone, see the repo's Scope note in the root README. Every one prints
 | `regen_wait.py` | Block until a vital reaches a target percent, then exit |
 | `sell_run.py` | Sell a list of items to whatever shop you're standing in, one at a time |
 | `skill_trainer.py` | Read-only: says when a watched skill hits Mind Lock (`docs/DOMAIN.md` §1) |
+| `meditate.py` | `regen_wait.py`, but sends `meditate`/`stand` instead of `rest`/`stand` |
+| `macro_repeat.py` | Repeat a `;`-separated command list a fixed number of times |
+| `buff_sequence.py` | Send an ordered prep/buff command list once, paced by roundtime |
+| `session_journal.py` | Not a Genie port - read-only running totals (kills, deaths, time low on a vital) over a whole session |
 
 Several of these match on the game's own wording (a stun message, a search
 result, a shop's refusal) rather than a tag, and say so in their own
