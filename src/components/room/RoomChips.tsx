@@ -192,41 +192,48 @@ export function RoomChips({
   const itemState = canSendMacro({ stopLatched: character?.stopLatched, inFlight, connected: !!character })
 
   return (
-    <div className={`flex flex-col gap-1.5 ${className ?? ''}`}>
-      {/* Who's here scrolls on its own — a busy fight can run past the
-          scene's height, and when it does the floor below must stay put
-          rather than being pushed under the fold with it. Measured: five
-          people plus four hostiles clipped "On the floor" out of view
-          entirely behind an unlabelled scrollbar before this split. */}
-      {shown.length > 0 && (
-        <div className="flex max-h-40 flex-col gap-1.5 overflow-x-hidden overflow-y-auto">
-          {DECKS.map((deck) =>
-            byDeck[deck].length > 0 ? (
-              <Group key={deck} label={DECK_LABEL[deck]} colorClass={DECK_STYLE[deck].text}>
-                {byDeck[deck].map((c) => (
-                  <CreatureRow key={c.id} card={c} combatant={combatantFor(c, index)} />
-                ))}
-              </Group>
-            ) : null
-          )}
-        </div>
+    /*
+     * Four quadrants, not one scrolling stack — Dan's own instruction: a
+     * hostile creature, an allied one, a player and a floor item are four
+     * different kinds of fact, and stacking their labelled groups one above
+     * the other still reads as a single crowded list once more than one of
+     * them has anything in it. Each cell scrolls on its own instead of one
+     * shared region, for the same reason the old single scroll existed —
+     * a busy fight filling the hostile cell must not push the people cell
+     * (or the floor) out of view entirely behind an unlabelled scrollbar.
+     * Empty cells just don't render, so one hostile and one item still read
+     * as two clear things rather than an empty 2x2 grid with gaps in it.
+     */
+    <div className={`grid grid-cols-2 gap-x-3 gap-y-1.5 ${className ?? ''}`}>
+      {DECKS.map((deck) =>
+        byDeck[deck].length > 0 ? (
+          <div key={deck} className="max-h-28 overflow-x-hidden overflow-y-auto">
+            <Group label={DECK_LABEL[deck]} colorClass={DECK_STYLE[deck].text}>
+              {byDeck[deck].map((c) => (
+                <CreatureRow key={c.id} card={c} combatant={combatantFor(c, index)} />
+              ))}
+            </Group>
+          </div>
+        ) : null
       )}
       {itemsKnown && (
-        <Group label="On the floor" colorClass="text-ink-faint">
-          {items!.length > 0 ? (
-            items!.map((name, i) => (
-              <ItemChip
-                key={`${name}-${i}`}
-                name={name}
-                canSend={itemState.canSend}
-                reason={itemState.reason}
-                onTake={() => take(name)}
-              />
-            ))
-          ) : (
-            <span className="text-sm text-ink-faint/70">nothing</span>
-          )}
-        </Group>
+        <div className="max-h-28 overflow-x-hidden overflow-y-auto">
+          <Group label="On the floor" colorClass="text-ink-faint">
+            {items!.length > 0 ? (
+              items!.map((name, i) => (
+                <ItemChip
+                  key={`${name}-${i}`}
+                  name={name}
+                  canSend={itemState.canSend}
+                  reason={itemState.reason}
+                  onTake={() => take(name)}
+                />
+              ))
+            ) : (
+              <span className="text-sm text-ink-faint/70">nothing</span>
+            )}
+          </Group>
+        </div>
       )}
     </div>
   )
