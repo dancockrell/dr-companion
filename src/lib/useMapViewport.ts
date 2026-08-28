@@ -103,6 +103,18 @@ export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOpti
       const next = clampZoom(current * factor)
       if (next === current) return
 
+      // Written eagerly, not left for the effect above to pick up next
+      // render. `zoom` is a controlled prop that only reaches this hook again
+      // after onZoomChange -> the caller's setState -> a re-render -> the
+      // effect - and a burst of calls that all land before that round trip
+      // completes (a fast flick of the wheel, or two zoom-in clicks close
+      // together) would otherwise all read the same stale `current`, compute
+      // the same `next`, and collapse into a single step. Measured: three
+      // rapid clicks on the zoom-in button reached 1.3x instead of 2.2x.
+      // Safe to set ahead of the prop actually arriving because `next` is
+      // exactly the value that round trip is going to deliver.
+      zoomRef.current = next
+
       const rect = containerRef.current?.getBoundingClientRect()
       if (rect && clientX !== undefined && clientY !== undefined) {
         // The content point under the cursor before the zoom must be the same
