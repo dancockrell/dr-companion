@@ -35,8 +35,10 @@ sha1 = "0.10"
 # `rand` for one call to getrandom().
 getrandom = "0.2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
-# `macros` only, for tokio::join!. Tauri already supplies the runtime.
-tokio = { version = "1", default-features = false, features = ["macros"] }
+# "rt" for spawn_blocking, which keeps the multi-second lich_status off the
+# UI thread - see lich.rs. "macros" for tokio::join!. Tauri supplies the
+# runtime itself; these are the pieces this crate names directly.
+tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 
 [profile.release]
 panic = "abort"

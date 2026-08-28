@@ -220,5 +220,50 @@ fails += 1 unless check('here reports unavailable', M.here['available'] == false
 fails += 1 unless check('tags is empty, not fabricated', M.tags == [])
 
 puts ''
+puts "-- genie_pos comes as a string in Lich's real map database --"
+
+# The shape that actually ships, and the one that was silently dropped.
+#
+# Lich's downloaded map database stores position as comma-separated text
+# ("360,460,0"), not a Hash or an Array. `coords` handled the other two and
+# returned [nil, nil, nil] for this, so every room lost its coordinates and the
+# map rendered "No rooms with coordinates on this level" while still reporting
+# the correct zone name and room count - because those do not pass through
+# here. Measured against the real file: 18,784 rooms, 14,639 with genie_pos,
+# The Crossing holding 896 of them with a position on every one.
+#
+# Asserted as the property - a room with a position keeps it - rather than
+# against the parsing mechanism, so a rewrite of `coords` still has to satisfy
+# it.
+C = Companion::MapInfo
+fails += 1 unless check('a "x,y,z" string yields real coordinates',
+                        C.send(:coords, '360,460,0') == [360, 460, 0],
+                        C.send(:coords, '360,460,0').inspect)
+fails += 1 unless check('whitespace around the numbers is tolerated',
+                        C.send(:coords, ' 12 , -3 , 1 ') == [12, -3, 1],
+                        C.send(:coords, ' 12 , -3 , 1 ').inspect)
+fails += 1 unless check('a negative coordinate survives',
+                        C.send(:coords, '-40,-80,0') == [-40, -80, 0],
+                        C.send(:coords, '-40,-80,0').inspect)
+
+# The two shapes that already worked must keep working - this adds a case, it
+# does not replace them.
+fails += 1 unless check('a hash still works',
+                        C.send(:coords, { 'x' => 1, 'y' => 2, 'z' => 3 }) == [1, 2, 3])
+fails += 1 unless check('an array still works',
+                        C.send(:coords, [4, 5, 6]) == [4, 5, 6])
+
+# Unparseable must stay nil rather than becoming 0. `to_i` on junk is 0, which
+# would pile every unreadable room at the origin - visibly wrong data rather
+# than an honest absence, and harder to notice than an empty map.
+fails += 1 unless check('junk is nil, not 0',
+                        C.send(:coords, 'somewhere,over,there') == [nil, nil, nil],
+                        C.send(:coords, 'somewhere,over,there').inspect)
+fails += 1 unless check('a short string leaves z absent rather than guessing 0',
+                        C.send(:coords, '10,20') == [10, 20, nil],
+                        C.send(:coords, '10,20').inspect)
+fails += 1 unless check('nil is still nil', C.send(:coords, nil) == [nil, nil, nil])
+
+puts ''
 puts(fails.zero? ? 'all passed' : "#{fails} FAILED")
 exit(fails.zero? ? 0 : 1)

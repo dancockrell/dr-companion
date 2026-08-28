@@ -240,7 +240,9 @@ fn diagnose(text: &str, lich_dir: &Path) -> Option<(String, String)> {
 /// Ask Lich whether it can start, by starting it.
 #[tauri::command]
 pub fn lich_health() -> LichHealth {
-    let status = crate::lich::lich_status();
+    // Blocking form - see lich.rs. `lich_status` is now async so it cannot
+    // freeze the window; internal callers want the plain function.
+    let status = crate::lich::lich_status_blocking();
 
     let (Some(launcher), Some(ruby), Some(install_dir)) =
         (&status.launcher, &status.ruby, &status.install_dir)

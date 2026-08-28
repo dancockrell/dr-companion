@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.10.0'
+  BRIDGE_VERSION = '0.10.1'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1023,17 +1023,52 @@ module Companion
       }
     end
 
-    # genie_pos arrives as a hash or an array depending on how the database was
-    # written. Accept both rather than making the shape someone else's problem.
+    # genie_pos arrives as a string, a hash or an array depending on how the
+    # database was written. Accept all three rather than making the shape
+    # someone else's problem.
+    #
+    # The string form is the one that actually ships, and missing it meant the
+    # map drew nothing at all. Lich's own downloaded map database stores it as
+    # comma-separated text:
+    #
+    #     "genie_pos": "360,460,0"
+    #
+    # which is neither a Hash nor an Array, so it fell to the `else` branch and
+    # every room came back [nil, nil, nil]. The panel filters on
+    # `x !== null && y !== null`, so all of them were discarded and it rendered
+    # "No rooms with coordinates on this level" - on a zone where every single
+    # room has a position.
+    #
+    # Measured against the real file rather than inferred: 18,784 rooms, 14,639
+    # carrying genie_pos, and The Crossing (genie_zone "1") holding 896 of them
+    # with a position on every one. The app was receiving all 896, capping to
+    # 400 for drawing, and throwing away the coordinates of all 400.
+    #
+    # Worth noting why it looked like a map problem and was not: the zone name
+    # and room count came through correctly the whole time, because those do
+    # not go through here. Only the geometry was lost, so the panel had a real
+    # zone with real rooms and nothing it could place.
     def coords(pos)
       case pos
       when Hash
         [pos['x'] || pos[:x], pos['y'] || pos[:y], pos['z'] || pos[:z]]
       when Array
         [pos[0], pos[1], pos[2]]
+      when String
+        # Split to exactly three, so a trailing field cannot shift z. A short
+        # string yields nils for what is absent rather than guessing a zero -
+        # a room at an unknown depth is not a room on level 0.
+        parts = pos.split(',', 4).map(&:strip)
+        [parts[0], parts[1], parts[2]]
       else
         [nil, nil, nil]
-      end.map { |v| v.nil? ? nil : v.to_i }
+      end.map do |v|
+        # `to_i` on a non-numeric string is 0, which would place unparseable
+        # rooms at the origin in a heap rather than leaving them out. Only
+        # convert what actually looks like an integer.
+        s = v.to_s.strip
+        s.match?(/\A-?\d+\z/) ? s.to_i : nil
+      end
     end
 
     def describe(room_id)

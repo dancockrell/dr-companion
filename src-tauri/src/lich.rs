@@ -283,8 +283,49 @@ fn valid_character_name(name: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '\'' || c == '-' || c == ' ')
 }
 
+/// Off the UI thread, because this takes seconds and used to freeze the app.
+///
+/// A Tauri command declared `fn` rather than `async fn` runs on the main
+/// thread, so its whole duration is time the window cannot paint and no other
+/// command can start. This one is not fast: measured against the running app,
+/// three times in a row on a settled process,
+///
+///     bridge_default_url:      2ms
+///     lich_status:          5447ms
+///     lich_status:          5424ms
+///     game_status:             2ms
+///
+/// Consistent, so it is real work rather than startup contention. It is spread
+/// across filesystem probing - `detect_ruby`, `rank_lich_installs`,
+/// `saved_characters`, `gui_login_usable` - each cheap on its own and slow
+/// together on a machine with a large PATH and cloud-synced user folders.
+///
+/// The UI calls this on mount and again on every "Check again", so those were
+/// five-second freezes of the entire window, and any command issued during one
+/// queued behind it. That is what "the app is broken" looked like from
+/// outside: `bridge_default_url`, a function that returns a constant string,
+/// took over thirty seconds and timed out.
+///
+/// `spawn_blocking` rather than only marking it `async`: the body is
+/// genuinely blocking, and an `async fn` whose body blocks just moves the
+/// stall onto an async worker instead of the UI thread. This puts it on the
+/// pool meant for blocking work, which is the honest description of what it
+/// does.
+///
+/// The cost itself is still worth reducing - this makes it not freeze the
+/// app, which is a different thing from making it fast.
 #[tauri::command]
-pub fn lich_status() -> LichStatus {
+pub async fn lich_status() -> LichStatus {
+    tokio::task::spawn_blocking(lich_status_blocking)
+        .await
+        // A panic in the probe must not take the command with it. Default is
+        // the honest answer here: every "is it there" field has a matching
+        // "did we actually look", and `LichStatus::default()` says no to both
+        // rather than claiming an absence it never established.
+        .unwrap_or_default()
+}
+
+pub(crate) fn lich_status_blocking() -> LichStatus {
     let mut s = LichStatus::default();
 
     let (_ruby_version, ruby) = detect_ruby();
@@ -412,7 +453,10 @@ fn launch_args(launcher: &str, character: Option<&str>) -> Result<Vec<String>, S
 /// the screen where credentials belong. See the module header.
 #[tauri::command]
 pub fn launch_lich(character: Option<String>) -> Result<String, String> {
-    let s = lich_status();
+    // The blocking form: this is already off the UI thread (its own command
+    // is async) and calling the command wrapper here would need an await for
+    // no benefit.
+    let s = lich_status_blocking();
 
     let launcher = s.launcher.ok_or("Could not find lich.rbw")?;
     let ruby = s.ruby.ok_or("Could not find Ruby, which Lich needs to run")?;
