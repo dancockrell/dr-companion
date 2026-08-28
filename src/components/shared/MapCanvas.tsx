@@ -538,27 +538,46 @@ export function MapCanvas({
 }
 
 /**
- * The legend names places the way the game does.
+ * The legend names places the way the game does, and now actually fires.
  *
- * It used to say "service", which is not a word DragonRealms uses for
- * anything. The map knows what each room is, so it says: bank, healer, guild,
- * temple, gate. A twenty-year player reading "service" learns that a
- * programmer wrote the label without looking at the game.
+ * The intent above this line was right and the wiring never worked. It said
+ * "service" once, which is not a word DragonRealms uses, and was changed to
+ * name real places - bank, healer, guild, temple, gate - by filtering those
+ * words against each room's `tags`.
  *
- * Only what is actually on screen is listed. A legend explaining colours that
- * are not present is furniture.
+ * Tags are place *names*, not categories. Measured against the real Crossing:
+ * 1060 rooms, 352 distinct tags, and **zero** matched any of those eight
+ * words. So the place half of this legend could never appear, the bar showed
+ * the same three fixed entries forever, and the blue dots all over the map -
+ * every bank, healer and shop in town - went unexplained. Dan's reading, "I
+ * can't think of any reason to keep this bottom bar", was accurate about the
+ * bar as built.
+ *
+ * It is keyed on `roomKind()` now, which is the function that actually
+ * decides a room's colour. One source: this legend cannot describe a colour
+ * the map does not draw, and cannot miss one it does.
+ *
+ * The service entry is still named in game words rather than as "service",
+ * because the original objection stands - a twenty-year player reading
+ * "service" learns that a programmer wrote the label without looking at the
+ * game.
+ *
+ * Only what is on screen is listed. A legend explaining colours that are not
+ * present is furniture.
  */
-export function MapLegend({ kinds }: { kinds?: string[] }) {
+export function MapLegend({ kinds }: { kinds?: RoomKind[] }) {
   const present = new Set(kinds ?? [])
 
-  const items: Array<[string, string]> = [
-    ['here', 'you'],
-    ['route', 'route'],
-    ['hazard', 'hazard'],
-    ...(['bank', 'healer', 'guild', 'temple', 'gate', 'bridge', 'shop', 'park'] as const)
-      .filter((k) => present.has(k))
-      .map((k) => [k, k] as [string, string]),
-  ]
+  const items: Array<[string, string]> = (
+    [
+      // `here` always: it is the one square that must never be missed, and it
+      // is on screen by definition.
+      ['here', 'you'],
+      ['route', 'route'],
+      ['hazard', 'hazard'],
+      ['service', 'bank, healer, guild, shop'],
+    ] as Array<[RoomKind, string]>
+  ).filter(([k]) => k === 'here' || present.has(k))
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-faint">

@@ -22,6 +22,9 @@ import { PinEditor } from './shared/PinEditor'
 import { RoomNudge } from './shared/RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
+import { uniqueTaskName, pinTaskSource } from '../lib/pinTaskGenerator'
+import { listScripts, writeScript } from '../lib/scriptFiles'
+import { isTauri } from '../lib/tauri'
 import { useMapDock, setMapDock, WINDOW_ZOOM_MIN, WINDOW_ZOOM_MAX } from '../lib/mapDock'
 import { useMapViewport } from '../lib/useMapViewport'
 
@@ -88,6 +91,7 @@ export function MapWindow() {
 
   const trail = useAppStore((s) => s.mapTrail)
   const character = useAppStore((s) => s.character)
+  const addLog = useAppStore((s) => s.addLog)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
 
   const onRoute = useMemo(
@@ -143,6 +147,18 @@ export function MapWindow() {
       })
     }
     setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+
+  async function createTaskForPin(pin: MapPin) {
+    const existingNames = (await listScripts()).filter((s) => s.lang === 'python').map((s) => s.name)
+    const name = uniqueTaskName(existingNames, pin)
+    try {
+      const path = await writeScript('python', name, pinTaskSource(pin))
+      addLog(`Task "${name}" written for ${pin.label} (${path || 'python/tasks/user/'}).`)
+    } catch (e) {
+      addLog(`Could not write a task for ${pin.label}: ${e instanceof Error ? e.message : e}`, 'error')
+    }
     setEditingRoom(null)
   }
 
@@ -346,6 +362,7 @@ export function MapWindow() {
           onSave={savePin}
           onDelete={editingRoom.existing ? deletePin : undefined}
           onClose={() => setEditingRoom(null)}
+          onCreateTask={isTauri() ? createTaskForPin : undefined}
         />
       )}
     </>

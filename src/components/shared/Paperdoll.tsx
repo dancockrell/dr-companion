@@ -1,3 +1,4 @@
+import { Zap } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import {
   BODY_PARTS,
@@ -115,12 +116,32 @@ export function Paperdoll({
         })}
       </svg>
 
-      {/* nsys has nowhere to sit on a body, so it gets its own mark. */}
+      {/* The nervous system has nowhere to sit on a body, so it gets its own
+        * mark - but only when there is something to report.
+        *
+        * It used to render always, as a bare lowercase "n" beside an empty
+        * circle, with the word "nervous system" reachable only by hovering.
+        * On an uninjured character that is a stray letter and a dot floating
+        * next to the doll, and it was read as a rendering artifact rather than
+        * as information - which is the correct reading, because an indicator
+        * that permanently says "nothing is wrong" carries none.
+        *
+        * So it appears when it means something: a wound or a scar. The letter
+        * is now an icon, because at this size a word breaks the 12px floor the
+        * rest of this component is built around (see the header comment) and a
+        * single letter is not a label, it is a puzzle. */}
+      {known && (nsys.wound > 0 || nsys.scar > 0) && (
       <div
         className="flex flex-col items-center gap-0.5"
         title={`nervous system: ${SEVERITY_LABEL[nsys.wound]}`}
       >
-        <span className="text-xs leading-none text-ink-faint">n</span>
+        <Zap
+          className={cn(
+            'h-3 w-3',
+            nsys.wound >= 2 ? 'text-danger' : nsys.wound === 1 ? 'text-warn' : 'text-ink-faint'
+          )}
+          aria-hidden
+        />
         <span
           className={cn(
             'h-3 w-3 rounded-full border',
@@ -130,10 +151,14 @@ export function Paperdoll({
                 ? 'border-danger bg-danger/60'
                 : nsys.wound === 1
                   ? 'border-warn bg-warn/50'
+                  // Reachable when the nerves are scarred but unwounded, which
+                  // is why this branch stays rather than being folded away with
+                  // the always-on rendering.
                   : 'border-border bg-surface-overlay'
           )}
         />
       </div>
+      )}
     </div>
   )
 }

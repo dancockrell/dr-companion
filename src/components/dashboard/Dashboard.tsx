@@ -23,6 +23,7 @@ import { useLayout } from '../../lib/useLayout'
 import type { PanelId } from '../../lib/layout'
 import { isTauri, invokeTauri } from '../../lib/tauri'
 import { DashboardLayout } from './DashboardLayout'
+import { cn } from '../../lib/cn'
 import { PANEL_CONTENT, PANEL_TITLES } from './panels'
 import { FreeCanvas } from './FreeCanvas'
 
@@ -220,8 +221,17 @@ export function Dashboard() {
   // It also means the map is drawn exactly once. The previous build had it in
   // a plane and in the dock at the same time, which is a bug and looked like
   // one.
+  // `map` is held out of the dashboard because it has a column of its own -
+  // drawing it in both is the bug the comment above describes.
+  //
+  // In freeform there is no map column: App hands the whole window to this
+  // canvas. So the map has to come back in, or the one panel most people look
+  // at most is the one thing they cannot move.
   const docked = layout.order.filter(
-    (id) => id !== 'vitals' && id !== 'map' && !out.includes(id)
+    (id) =>
+      id !== 'vitals' &&
+      (layout.freeform || (id !== 'map' && id !== 'game')) &&
+      !out.includes(id)
   )
 
   return (
@@ -236,7 +246,17 @@ export function Dashboard() {
        * One button, always visible, that says which state it would leave and
        * which it would enter.
        */}
-      <div className="flex items-center justify-end px-2 pt-1">
+      {/* Left-aligned in freeform.
+        *
+        * Right-aligned it lands in the same band as AppControls, because
+        * freeform gives the dashboard the whole window width - the two
+        * overlapped, which is only visible by looking at the thing. */}
+      <div
+        className={cn(
+          'flex items-center px-2 pt-1',
+          layout.freeform ? 'justify-start' : 'justify-end'
+        )}
+      >
         <button
           type="button"
           onClick={() => (layout.freeform ? unplace() : enterFreeArrange())}

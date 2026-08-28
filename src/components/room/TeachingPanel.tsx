@@ -74,7 +74,7 @@ export function TeachingPanel() {
     character.teachingAgeSeconds > STALE_AFTER_SECONDS
 
   return (
-    <div className="flex shrink-0 flex-col gap-1 rounded border border-border bg-surface-raised px-2 py-1.5">
+    <div className="flex shrink-0 flex-col gap-1">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-ink-muted">
           {teaching === undefined

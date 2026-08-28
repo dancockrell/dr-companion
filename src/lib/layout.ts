@@ -35,6 +35,10 @@ export type PanelId =
   | 'room'
   | 'mindstate'
   | 'scripts'
+  // The room, the game text and the command line, as one panel.
+  // Rendered as a fixed column in the normal layout; it becomes a panel in
+  // freeform, where there are no columns to put it in.
+  | 'game'
 
 export interface PanelState {
   /** Collapsed to its title bar. */
@@ -112,7 +116,7 @@ function autoDecks(): Record<Deck, DeckPref> {
  */
 const DEFAULTS: Record<UiMode, Layout> = {
   basic: {
-    order: ['vitals', 'map', 'room', 'mindstate', 'actions', 'training', 'inventory', 'launcher', 'risk', 'scripts'],
+    order: ['vitals', 'map', 'room', 'mindstate', 'actions', 'training', 'inventory', 'launcher', 'risk', 'scripts', 'game'],
     panels: { map: { height: 200 } },
     mapPlane: true,
     mapSplit: 0.38,
@@ -121,7 +125,7 @@ const DEFAULTS: Record<UiMode, Layout> = {
     freeform: false,
   },
   power: {
-    order: ['vitals', 'room', 'mindstate', 'actions', 'map', 'risk', 'training', 'inventory', 'launcher', 'scripts'],
+    order: ['vitals', 'room', 'mindstate', 'actions', 'map', 'risk', 'training', 'inventory', 'launcher', 'scripts', 'game'],
     panels: { map: { height: 260 } },
     mapPlane: true,
     mapSplit: 0.38,
@@ -192,8 +196,35 @@ export function setMapSplit(layout: Layout, split: number): Layout {
   return { ...layout, mapSplit: clampSplit(split) }
 }
 
+/**
+ * Anyone who needs to know the arrangement changed.
+ *
+ * `useLayout` keeps its state per component on purpose - the comment at the
+ * top of that file explains why this is not in the global store, and it is
+ * right: it changes on every drag and re-rendering the whole app for that
+ * would be awful.
+ *
+ * The cost is that two callers of `useLayout` each hold their own copy and
+ * never learn about each other's edits. That is fine while the dashboard is
+ * the only caller, and it stops being fine the moment App needs to know
+ * whether freeform is on - App's copy would keep saying `false` after the
+ * dashboard turned it on, and the columns would never go away.
+ *
+ * So: one notification, no second copy of the state. Subscribers re-read from
+ * here, which stays the single source of truth.
+ */
+const listeners = new Set<() => void>()
+
+export function onLayoutChange(fn: () => void): () => void {
+  listeners.add(fn)
+  return () => {
+    listeners.delete(fn)
+  }
+}
+
 export function saveLayout(mode: UiMode, layout: Layout): void {
   writeJSON(`${KEY}.${mode}`, layout)
+  for (const fn of listeners) fn()
 }
 
 /**

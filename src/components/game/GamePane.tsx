@@ -53,7 +53,6 @@ import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsVolume } from '../../lib/alertSound'
 import { setZone, setMusicVolume, setRadioStation, setCustomStream } from '../../lib/ambientSound'
-import { SoundControls } from './SoundControls'
 import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
@@ -441,7 +440,10 @@ export function GamePane() {
         )}
 
         <span className="ml-auto flex items-center gap-1">
-          <SoundControls />
+          {/* Sound moved to SafetyFooter (the persistent bottom bar) - a
+              control living only in this scrollable pane's own header
+              disappeared the moment the pane scrolled, and the footer is
+              the one place that's always on screen. */}
           {/* Searches the whole buffer, not the rendered window - see the
             * `matches` note. Escape clears, because a filter you cannot get
             * out of quickly is one people stop using. */}
