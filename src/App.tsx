@@ -180,6 +180,22 @@ export default function App() {
   const mapW = fit.map
   const mapSplit = dock.docked ? SPLIT_W : 0
 
+  /**
+   * Put the columns back to the widths the app ships with.
+   *
+   * The stored widths are a real preference and `fitColumns` never rewrites
+   * them - but a width set by a drag that overshot is also stored, and it is
+   * indistinguishable from an intentional one. Found live: a stored map width
+   * of 861.6px in an 1180px window, 73% of a MUD client given to the chart,
+   * which left the dashboard clipped by 97px and the game pane pinned to its
+   * 380px floor. Nobody chooses that; a drag produced it and nothing offered a
+   * way back except dragging precisely.
+   */
+  const resetWidths = () => {
+    setMapDock({ width: 300 })
+    setDashW(420)
+  }
+
   /** Small enough to keep a column grabbable, and no opinion beyond that. */
   const atLeastVisible = (px: number) => Math.max(MIN_PX, px)
 
@@ -217,6 +233,35 @@ export default function App() {
           controls, which do not need a band of their own. */}
       <AppControls />
       {setupComplete && <SituationBanner />}
+
+      {/* Said out loud, because the alternative is what it looked like live:
+        * a map at 42% of the window, a dashboard clipped by 97px, the game
+        * pane pinned to its floor, and nothing anywhere connecting those three
+        * facts to a stored width somebody's drag overshot.
+        *
+        * `fitColumns` has always returned `squeezed` and nothing read it -
+        * the layout quietly did the right thing and never mentioned that it
+        * was overriding a preference to do it. A silent correct answer and a
+        * silent bug look identical from a chair.
+        *
+        * Only while it is actually squeezing. This is not a warning about the
+        * widths being large; it is the app saying it could not honour them. */}
+      {setupComplete && fit.squeezed && (
+        <div className="flex shrink-0 items-center gap-2 border-b border-border bg-surface-raised px-2 py-1 text-xs text-ink-faint">
+          <span>
+            Not enough width for the stored column sizes — the map and dashboard
+            are being scaled down to keep the game pane usable.
+          </span>
+          <button
+            type="button"
+            onClick={resetWidths}
+            className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-muted hover:bg-surface-overlay hover:text-ink"
+          >
+            Reset widths
+          </button>
+        </div>
+      )}
+
       <main ref={hostRef} className="flex min-h-0 flex-1 overflow-hidden">
         {setupComplete ? (
           <>
