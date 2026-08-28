@@ -85,7 +85,13 @@ const defaults: PersistedPrefs = {
   houseEntryMaxSearches: 3,
   houseEntryHide: true,
   setupComplete: false,
-  alertsVolume: 0.8,
+  // Kept identical to alertSound.ts's own default, by hand - there is no
+  // single source of truth between the two, and letting them drift is
+  // exactly what happened here once already (this stood at 0.8 after the
+  // module's own default had already been lowered to 0.45, and nothing
+  // caught it - see SoundControls.tsx's header for the read-order bug that
+  // made the drift actually reach the screen).
+  alertsVolume: 0.45,
   ambientVolume: 1,
   musicVolume: 1,
 }

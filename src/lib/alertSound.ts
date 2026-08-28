@@ -35,20 +35,39 @@ const PER_SOUND_MS = 3000
 const GLOBAL_MS = 400
 
 const cache = new Map<string, HTMLAudioElement | null>()
+/**
+ * A `GainNode` per loaded sound, routed `MediaElementSource -> gain ->
+ * destination`, so volume can actually exceed 100%. `HTMLAudioElement.volume`
+ * is spec-clamped to [0, 1] - setting it above 1 throws in a strict
+ * implementation - so a slider that goes to 150% needs Web Audio to mean
+ * anything past 100%, not just a bigger number nothing reads. Created once
+ * per element and cached alongside it, because `createMediaElementSource`
+ * can only be called once per `<audio>` element ever - calling it twice
+ * throws "already connected".
+ */
+const gains = new Map<string, GainNode>()
+let audioCtx: AudioContext | null = null
 const lastPlayed = new Map<string, number>()
 let lastAny = 0
 
 /**
- * 0 to 1, no separate mute flag - 0 silences alerts the same way it silences
- * ambience in ambientSound.ts, one control instead of a slider plus a
- * button that can drift out of sync with it. Alerts default louder than the
- * ambience layers do, because they are short one-shots meant to be noticed,
- * not a background bed. Persisted by the caller (GamePane), not here: this
- * module has no opinion about storage, only about what plays right now.
+ * 0 to 1.5 (0% to 150%), same range as ambientSound.ts's two channels - no
+ * separate mute flag, 0 silences alerts, one control instead of a slider
+ * plus a button that can drift out of sync with it.
+ *
+ * Default lowered 0.8 -> 0.45 (28 Aug 2026, Dan: "fix the sounds... they are
+ * a menace right now"), alongside cutting the alert WAVs themselves down
+ * from 0 dBFS peak (maximum digital loudness, no headroom - measured with
+ * `ffmpeg -af volumedetect`, every one of the six pegged at max_volume: -0.0
+ * dB) to -8 dB peak. Two different problems, both real: the files were
+ * mastered too hot, and the multiplier on top of them was too high. Fixing
+ * only one would have still left alerts too loud most of the way to 100%.
+ * Persisted by the caller (GamePane), not here: this module has no opinion
+ * about storage, only about what plays right now.
  */
-let volume = 0.8
+let volume = 0.45
 export function setAlertsVolume(v: number) {
-  volume = Math.max(0, Math.min(1, v))
+  volume = Math.max(0, Math.min(1.5, v))
 }
 export function alertsVolume() {
   return volume
@@ -83,6 +102,21 @@ async function load(name: string): Promise<HTMLAudioElement | null> {
     const audio = new Audio(file.dataUrl)
     audio.preload = 'auto'
     cache.set(name, audio)
+
+    // Web Audio routing is best-effort: a browser without it, or one that
+    // refuses to create a context before a user gesture, still gets sound -
+    // just capped at 100% via the element's own `volume` in `playAlert`,
+    // which is a real fallback rather than a silent failure to boost.
+    try {
+      audioCtx ??= new AudioContext()
+      const source = audioCtx.createMediaElementSource(audio)
+      const gain = audioCtx.createGain()
+      source.connect(gain).connect(audioCtx.destination)
+      gains.set(name, gain)
+    } catch {
+      /* Fall back to audio.volume, capped at 100%. */
+    }
+
     return audio
   } catch (e) {
     missing.set(name, String(e))
@@ -115,7 +149,18 @@ export function playAlert(name: string) {
       // apart otherwise leave two objects behind, and over an evening that is
       // thousands.
       audio.currentTime = 0
-      audio.volume = volume
+      const gain = gains.get(name)
+      if (gain) {
+        // Routed through Web Audio: the element itself stays at full scale
+        // and the GainNode carries the real level, which is what lets it
+        // exceed 100%.
+        audio.volume = 1
+        gain.gain.value = volume
+      } else {
+        // No Web Audio route - the native element cap at 1.0 quietly limits
+        // this to 100%, which is a real ceiling, not a bug.
+        audio.volume = Math.min(1, volume)
+      }
       void audio.play().catch(() => {
         /* Autoplay policy, or no audio device. Not worth interrupting play. */
       })
@@ -128,6 +173,7 @@ export function playAlert(name: string) {
 /** Forget everything, for when the config is reloaded. */
 export function resetAlerts() {
   cache.clear()
+  gains.clear()
   lastPlayed.clear()
   missing.clear()
   lastAny = 0

@@ -33,9 +33,17 @@ kept alongside the sliders, because a mute flag and a remembered volume
 level are two pieces of state that can disagree with each other, and a
 control that can silently disagree with what it shows is worse than one
 fewer control. Persisted in `PersistedPrefs` (`src/lib/persistence.ts`) -
-`alertsVolume`/`ambientVolume`/`musicVolume`, defaults 0.8/1/1 - and
+`alertsVolume`/`ambientVolume`/`musicVolume`, defaults 0.45/1/1 - and
 applied once at `GamePane` mount, since neither sound module has (or
 should have) an opinion about storage.
+
+**Quick mute** (28 Aug 2026, Dan: "mute quickly or whatever") is a
+separate button next to "Sound," not something you open the panel and
+drag three sliders to reach - one click sets all three channels to 0,
+saving exactly where they were; the same click again restores those exact
+numbers, not a guessed default. Manually moving any slider while
+quick-muted clears the saved state, so the button doesn't fight a
+deliberate adjustment.
 
 Also removed from the toolbar, per Dan's instruction, to make room: the
 `{link.lines} lines` counter (gone entirely) and the numeric `host:port`
@@ -50,6 +58,68 @@ position is already the tuned-down level Dan asked for, not a starting
 point a listener has to find by ear. The slider then multiplies that base
 by up to 1.5x, so turning it up is still available without touching the
 source.
+
+## "They are a menace" (28 Aug 2026) - what was actually wrong, and the fix
+
+Two separate real problems, plus two bugs found while fixing them.
+
+**The alert WAVs were mastered to 0 dBFS peak - maximum digital loudness,
+zero headroom.** Measured with `ffmpeg -af volumedetect` on all six files
+in `dr-genie-settings/Sounds/`: every one showed `max_volume: -0.0 dB`.
+Combined with an 80% default multiplier on top, that is most of the way
+to as loud as a WAV file can be, played on every idle warning, every
+creature entering, every whisper. Cut to -8 dB peak with
+`ffmpeg -af "volume=-8dB"`, originals kept in
+`dr-genie-settings/Sounds/.originals-backup/`, redeployed to both
+`dr-genie-settings/Sounds/` and the live `C:\Genie4\Sounds\` (diffed
+after to confirm the two copies match). The default multiplier was also
+lowered, 0.8 → 0.45 - fixing only the file or only the multiplier would
+have still left alerts loud most of the way up the slider.
+
+**Alerts now route through Web Audio (`AudioContext` → `GainNode`)
+instead of the element's own `.volume`.** `HTMLAudioElement.volume` is
+spec-clamped to [0, 1] - it cannot express the 100%-to-150% half of the
+slider range at all, silently doing nothing past 100% (or throwing, in a
+strict implementation). A `GainNode` per loaded sound, created once and
+cached alongside the `<audio>` element (`createMediaElementSource` can
+only be called once per element, ever), carries the real level instead;
+the element itself stays at full scale. Falls back to the native
+`.volume`, capped at 100%, if Web Audio is unavailable for any reason -
+a real ceiling stated honestly, not a silent failure to boost.
+
+**Bug found while building quick mute: clicking it closed the Sound
+panel.** The outside-click-closes handler checked two separate refs
+(the panel, the "Sound" trigger) and the new mute button was neither -
+clicking it read as a click outside the control and closed whatever was
+open, which is the opposite of "easier to use." Fixed by giving the
+whole control (mute button, Sound trigger, panel) one wrapping ref and
+checking that instead of two ad hoc ones.
+
+**Bug found verifying the fix: the slider's displayed percentage could
+silently disagree with what was actually playing.** `SoundControls`
+initialized its React state by reading `alertsVolume()` directly from the
+module at mount; `GamePane` applies the persisted level to that same
+module in its own effect, in a separate render pass. Which one a
+listener saw depended on which ran first, and on a fresh profile the two
+defaults had already drifted apart (`persistence.ts`'s `alertsVolume`
+default was still 0.8 from before the module's own default was lowered
+to 0.45 - the same commit that introduced the first problem this section
+describes reintroduced a version of it here). Fixed by having
+`SoundControls` read the same `loadPrefs()` snapshot `GamePane`'s effect
+reads, rather than the module's live value - removing the race instead of
+correcting the one instance of it that happened to be caught.
+
+All of this was verified in the running app rather than assumed: cleared
+persisted prefs, hard-reloaded, and read actual DOM/slider state after
+each step (mute, unmute, panel-still-open) - the first pass at this
+verification gave contradictory results from querying too fast for
+React's render to land and from testing across app restarts that raced
+each other, both corrected by testing methodically rather than trusting
+the first answer. The Web Audio gain-boost path itself was not exercised
+live (would have meant real audible playback, and Dan had just reported
+these very sounds as a problem) - checked instead that `AudioContext`/
+`GainNode` are present in this WebView2's environment, and by code
+review of otherwise-standard Web Audio API usage.
 
 ## Layers
 
