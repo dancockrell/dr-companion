@@ -14,7 +14,7 @@
  * Not a travel control. Clicking a room asks for a route and shows it; it does
  * not walk anywhere. Moving stays a decision made with the route in view.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { loadZone, DEFAULT_ZONE } from '../../lib/mapData'
 import type { MapZone } from '../../bridge/types'
 import {
@@ -34,8 +34,12 @@ import { bridge } from '../../bridge'
 import { isTauri, invokeTauri } from '../../lib/tauri'
 import { MapCanvas, MapLegend } from './MapCanvas'
 import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
+import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
 import type { PlaceHit } from '../../lib/placeSearch'
+import { MapPinBar } from './MapPinBar'
+import { PinEditor } from './PinEditor'
+import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
 
 /**
  * @param plane Fill the height given rather than a fixed box. Set when the map
@@ -159,35 +163,106 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const refresh = () => bridge.requestIntent('map_zone')
 
   /**
-   * Zoomed in, the box scrolls, and it stays centred on where you are.
+   * Scroll-wheel zoom anchored at the cursor, and click-and-drag panning -
+   * same interaction, same hook, as the popped-out window (useMapViewport).
+   * Previously this scrolled a container sized to a percentage of the box
+   * and centred itself with raw `scrollLeft`/`scrollTop` math on every zoom
+   * step; replaced so the docked panel and the popped-out window - which
+   * this file's own header already insists must never draw two different
+   * maps - don't feel like two different products once you try to move
+   * around either one.
    *
-   * Without this, zooming shows the top-left corner of the zone, which for
-   * Crossing is a stretch of the north wall regardless of where the character
-   * actually is. A zoom control that reliably shows you somewhere else is
-   * worse than no zoom control.
-   *
-   * It re-centres whenever the zoom changes or the character moves, which is
-   * the same behaviour Genie's own mapper has and the reason a player can
-   * leave it zoomed in and still trust it.
-   *
-   * Layout effect rather than effect: the scroll is set in the same frame the
-   * new size is painted, so the chart does not flash at the corner first.
+   * Only active once actually zoomed in (`dock.zoom > 1`): at zoom 1 the
+   * whole zone already fits the box by design ("a glance that is always
+   * complete, never clipped" - MapCanvas's own `fit` mode), and there is
+   * nothing to pan.
    */
-  const boxRef = useRef<HTMLDivElement | null>(null)
-  const here = useAppStore((s) => s.mapHere)
-  useLayoutEffect(() => {
-    const box = boxRef.current
-    if (!box) return
-    const mark = box.querySelector('[data-here]')
-    if (!mark) return
-    const m = mark.getBoundingClientRect()
-    const b = box.getBoundingClientRect()
-    box.scrollLeft += m.left - b.left - (b.width - m.width) / 2
-    box.scrollTop += m.top - b.top - (b.height - m.height) / 2
-  }, [dock.zoom, here, zoneStack, level])
+  const viewport = useMapViewport({
+    zoom: dock.zoom,
+    onZoomChange: (z) => setMapDock({ zoom: z }),
+    min: ZOOM_MIN,
+    max: ZOOM_MAX,
+  })
+  const { containerRef, x: panX, y: panY, dragging, handlers, zoomBy, centerOn, resetPan } = viewport
 
-  const zoomBy = (step: number) =>
-    setMapDock({ zoom: Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, dock.zoom + step)) })
+  const here = useAppStore((s) => s.mapHere)
+  const character = useAppStore((s) => s.character)
+
+  /**
+   * Saved places, and the hotbar under the map that walks to them.
+   *
+   * Loaded per character (Home for one is not Home for another - see
+   * mapPins.ts) straight from localStorage during render rather than kept
+   * only in this component's state, so a pin added in the popped-out window
+   * shows up here too the next time either one re-renders - both windows
+   * read the same storage. `pinVersion` exists only to force a re-read after
+   * a write this component made itself, since editing a pin doesn't
+   * otherwise touch anything React tracks as having changed.
+   */
+  const [pinVersion, setPinVersion] = useState(0)
+  const { pins, pinsByRoom } = useMemo(() => {
+    const list = character ? loadPins(character.name, character.instance) : []
+    return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
+  }, [character, pinVersion])
+
+  // Either a fresh pin on this room (no `existing`) or an edit of one already
+  // there - one piece of state either way, since PinEditor is the same modal
+  // for both and only ever one can be open.
+  const [editingRoom, setEditingRoom] = useState<{ id: number; title: string; existing?: MapPin } | null>(
+    null
+  )
+
+  function goThere(roomId: number) {
+    // The preview still fires alongside it - a route highlighted on the
+    // chart is useful information about a trip that is now actually
+    // happening, not just theoretical. See the comment on the room click
+    // handler below for why this now moves the character at all.
+    bridge.requestIntent('map_path', { to: roomId })
+    bridge.requestIntent('map_walk', { to: roomId })
+  }
+
+  function pinRoom(id: number) {
+    const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
+    setEditingRoom({ id, title, existing: pinFor(pins, id) })
+  }
+
+  function savePin(label: string, color: MapPin['color']) {
+    if (!character || !editingRoom) return
+    if (editingRoom.existing) {
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color })
+    } else {
+      addPin(character.name, character.instance, {
+        roomId: editingRoom.id,
+        zone: zone?.zone ?? '',
+        label,
+        color,
+      })
+    }
+    setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+
+  function deletePin() {
+    if (!character || !editingRoom?.existing) return
+    removePin(character.name, character.instance, editingRoom.existing.id)
+    setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+  // Recenter when the character moves, the zone/level changes, or zoom
+  // itself changes - the last one only matters here because the toolbar
+  // zoom buttons are the only way in (no wheel while at fit), so unlike the
+  // popped-out window there is no cursor position for the button to anchor
+  // toward instead.
+  const centeredFor = useRef<string | null>(null)
+  const onHereAt = useCallback(
+    (x: number, y: number) => {
+      const key = `${here?.id}:${zoneStack.join('>')}:${level}:${dock.zoom}`
+      if (centeredFor.current === key) return
+      centeredFor.current = key
+      centerOn(x, y)
+    },
+    [here?.id, zoneStack, level, dock.zoom, centerOn]
+  )
 
   /**
    * Going where the search says the place is.
@@ -306,6 +381,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const demoStandIn = connected && liveZone !== null && !liveZone.ok
 
   return (
+    <>
     <Shell
       plane={plane}
       title={zone.name ?? `Zone ${zone.zone}`}
@@ -344,7 +420,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
                 className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
                 title="Zoom out"
                 disabled={dock.zoom <= ZOOM_MIN}
-                onClick={() => zoomBy(-0.5)}
+                onClick={() => zoomBy(1 / 1.3)}
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
@@ -352,16 +428,19 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
                 type="button"
                 className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
                 title="Back to the whole zone"
-                onClick={() => setMapDock({ zoom: 1 })}
+                onClick={() => {
+                  setMapDock({ zoom: 1 })
+                  resetPan()
+                }}
               >
-                {dock.zoom === 1 ? 'fit' : `${dock.zoom}x`}
+                {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
               </button>
               <button
                 type="button"
                 className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
                 title="Zoom in"
                 disabled={dock.zoom >= ZOOM_MAX}
-                onClick={() => zoomBy(0.5)}
+                onClick={() => zoomBy(1.3)}
               >
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
@@ -388,6 +467,15 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           gives is a place on the map and the two want to be read together.
           It costs one row and gives back the thing the map could not do. */}
       <PlaceSearch here={zone.zone} onPick={goToPlace} />
+
+      {/* Home, hangouts, whatever is worth one click - independent of
+          whichever zone is currently drawn, since these walk by room id. */}
+      <MapPinBar
+        pins={pins}
+        onGo={(pin) => goThere(pin.roomId)}
+        onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+        onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+      />
 
       {/*
        * This is the common shape of "no map database", not the `!zone.ok`
@@ -422,17 +510,27 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           which for a small zone is a stamp in the corner.
           In plane mode the height comes from the column instead. */}
       <div
-        ref={boxRef}
-        className={`relative rounded ${dock.zoom > 1 ? 'overflow-auto' : 'overflow-hidden'} ${
-          plane ? 'flex-1 min-h-0' : ''
-        }`}
+        ref={dock.zoom > 1 ? containerRef : undefined}
+        className={`relative rounded ${
+          dock.zoom > 1 ? `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}` : 'overflow-hidden'
+        } ${plane ? 'flex-1 min-h-0' : ''}`}
         style={{
           // The page, behind and around the chart. Letterboxing in the app's
           // dark surface would read as the map having been cut off rather than
           // as a sheet that does not fill the box.
           background: 'var(--map-ground)',
           ...(plane ? {} : { height: tall ? 320 : 168 }),
+          ...(dock.zoom > 1 ? { touchAction: 'none' } : {}),
         }}
+        {...(dock.zoom > 1
+          ? {
+              onWheel: handlers.onWheel,
+              onPointerDown: handlers.onPointerDown,
+              onPointerMove: handlers.onPointerMove,
+              onPointerUp: handlers.onPointerUp,
+              onClickCapture: handlers.onClickCapture,
+            }
+          : {})}
       >
         {/* Pinned to this box, not to the zoomed/panned content inside it — a
          * sibling of the scaled div below, not a child, so panning or zooming
@@ -448,29 +546,59 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             Demo map — not your location
           </div>
         )}
-        <div
-          className={standingIn ? 'grayscale-[60%] opacity-70' : undefined}
-          style={{
-            width: `${dock.zoom * 100}%`,
-            height: `${dock.zoom * 100}%`,
-            // Desaturated and dimmed rather than removed: the room shapes and
-            // exits are still worth having for orientation, but a full-colour
-            // map reads as "this is true" and this one is not. The banner
-            // above can scroll out of view; a filter on the pixels themselves
-            // cannot.
-            ...(demoStandIn ? { filter: 'grayscale(0.85) brightness(0.55)' } : {}),
-          }}
-        >
-          <MapCanvas
-            zone={zone}
-            level={z}
-            onRoute={onRoute}
-            fit
-            onPick={(id) => bridge.requestIntent('map_path', { to: id })}
-            onZone={(id) => setZoneStack((st) => [...st, id])}
-            trail={trail}
-          />
-        </div>
+        {dock.zoom > 1 ? (
+          // Zoomed: natural-size drawing under a translate+scale transform,
+          // panned and zoomed the same way the popped-out window is (see
+          // useMapViewport) - click-and-drag, and the wheel anchored on the
+          // cursor rather than always re-centring on the box.
+          <div
+            className={`${standingIn ? 'grayscale-[60%] opacity-70' : ''} ${
+              dragging ? '' : 'transition-transform duration-150 ease-out'
+            }`}
+            style={{
+              position: 'absolute',
+              transform: `translate(${panX}px, ${panY}px) scale(${dock.zoom})`,
+              transformOrigin: '0 0',
+              ...(demoStandIn ? { filter: 'grayscale(0.85) brightness(0.55)' } : {}),
+            }}
+          >
+            <MapCanvas
+              zone={zone}
+              level={z}
+              onRoute={onRoute}
+              onPick={goThere}
+              onZone={(id) => setZoneStack((st) => [...st, id])}
+              trail={trail}
+              onHereAt={onHereAt}
+              pins={pinsByRoom}
+              onPinRoom={pinRoom}
+            />
+          </div>
+        ) : (
+          // Fit: the whole zone visible, always - "a glance that is always
+          // complete, never clipped." No pan needed because nothing is cut
+          // off to pan toward.
+          <div
+            className={standingIn ? 'grayscale-[60%] opacity-70' : undefined}
+            style={{
+              width: '100%',
+              height: '100%',
+              ...(demoStandIn ? { filter: 'grayscale(0.85) brightness(0.55)' } : {}),
+            }}
+          >
+            <MapCanvas
+              zone={zone}
+              level={z}
+              onRoute={onRoute}
+              fit
+              onPick={goThere}
+              onZone={(id) => setZoneStack((st) => [...st, id])}
+              trail={trail}
+              pins={pinsByRoom}
+              onPinRoom={pinRoom}
+            />
+          </div>
+        )}
 
         {/* A watermark on the map itself, not just a banner above it. The
          * banner is what explains why; this is what keeps a glance from
@@ -545,7 +673,18 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       {path && !path.ok && (
         <p className="text-xs text-warn leading-snug">{path.reason}</p>
       )}
-    </Shell>
+      </Shell>
+      {editingRoom && (
+        <PinEditor
+          roomId={editingRoom.id}
+          roomTitle={editingRoom.title}
+          existing={editingRoom.existing}
+          onSave={savePin}
+          onDelete={editingRoom.existing ? deletePin : undefined}
+          onClose={() => setEditingRoom(null)}
+        />
+      )}
+    </>
   )
 }
 

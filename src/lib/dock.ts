@@ -143,14 +143,6 @@ export function moveBoundary(
   return { ...dock, regions }
 }
 
-/** Bring a tab to the front of its deck. */
-export function activate(dock: Dock, id: PanelId): Dock {
-  return {
-    ...dock,
-    regions: dock.regions.map((r) => (r.panels.includes(id) ? { ...r, active: id } : r)),
-  }
-}
-
 /**
  * One region holding everything, as tabs.
  *

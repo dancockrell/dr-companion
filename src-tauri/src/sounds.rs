@@ -88,6 +88,32 @@ pub(crate) fn is_reserved_device(name: &str) -> bool {
             && stem.as_bytes()[3].is_ascii_digit())
 }
 
+/// Whether `name` is safe to join onto a directory and read: a bare filename,
+/// not a path.
+///
+/// Used by both `read_sound` and `read_genie_config`, which used to each
+/// carry their own copy of this exact check - length bound, exact `".."`/`"."`
+/// rejection (not a substring match, which would refuse a legitimate
+/// `my..config.cfg`), an ASCII-alphanumeric-plus-`.-_` charset (the charset is
+/// what actually forecloses traversal: no `/`, `\`, `:`, or non-ASCII, so a
+/// separator, an absolute path, a drive letter, a UNC path or an alternate
+/// data stream are all impossible in one line), and a reserved-device check
+/// (`CON.cfg`/`NUL.cfg` pass the charset check and Windows resolves them as
+/// devices - reading `CON` blocks on console input, which presents as the app
+/// hanging rather than failing). Two copies meant a future fix to one - this
+/// exact logic has already needed one, the dot-dot substring bug above - was
+/// one keystroke from not reaching the other.
+pub(crate) fn valid_plain_filename(name: &str, max_len: usize) -> bool {
+    !name.is_empty()
+        && name.len() <= max_len
+        && name != ".."
+        && name != "."
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
+        && !is_reserved_device(name)
+}
+
 /// Big enough for any alert anybody would want, small enough that a mistake
 /// cannot pull a film into memory. The stock Genie sounds are a few kilobytes.
 const MAX_BYTES: u64 = 4 * 1024 * 1024;
@@ -118,24 +144,7 @@ fn sound_dirs() -> Vec<PathBuf> {
 /// which is most of the value.
 #[tauri::command]
 pub fn read_sound(name: String) -> SoundFile {
-    // The charset is what actually forecloses traversal: no '/', no '\', no
-    // ':', nothing non-ASCII, so a path separator, an absolute path, a drive
-    // letter, a UNC path and an alternate data stream are all impossible in
-    // one line.
-    //
-    // The dot-dot rule is therefore belt to those braces, and it used to be
-    // `!name.contains("..")` - which refused a legitimate `my..song.wav`. A
-    // false refusal here reads to a player as a corrupt file. Only the exact
-    // relative-directory names can do anything, and they are rejected by name.
-    let relative_dir = name == ".." || name == ".";
-
-    let looks_like_a_name = !name.is_empty()
-        && name.len() <= 64
-        && !relative_dir
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
-        && !is_reserved_device(&name);
+    let looks_like_a_name = valid_plain_filename(&name, 64);
 
     let is_audio = {
         let lower = name.to_ascii_lowercase();

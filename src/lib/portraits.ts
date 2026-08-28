@@ -15,6 +15,7 @@
  * it in one click.
  */
 import { suggestPortraits, type PortraitMeta } from './lookMatch'
+import { readJSON, writeJSON } from './storage'
 
 const KEY = 'drc.portrait.v1'
 
@@ -62,22 +63,14 @@ export const portraitUrl = (key: string) => `/portraits/${key}.webp`
 
 /** What this character chose, if anything. Keyed by name so alts differ. */
 export function chosenFor(character: string): string | null {
-  try {
-    const all = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<string, string>
-    return all[character] ?? null
-  } catch {
-    return null
-  }
+  const all = readJSON<Record<string, string>>(KEY, {})
+  return all[character] ?? null
 }
 
 export function choose(character: string, key: string): void {
-  try {
-    const all = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<string, string>
-    all[character] = key
-    localStorage.setItem(KEY, JSON.stringify(all))
-  } catch {
-    // Private mode. Losing a portrait choice is not worth an error.
-  }
+  const all = readJSON<Record<string, string>>(KEY, {})
+  all[character] = key
+  writeJSON(KEY, all)
 }
 
 /**

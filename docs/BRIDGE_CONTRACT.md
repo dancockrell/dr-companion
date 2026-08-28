@@ -33,10 +33,12 @@ A small **Lich script** exposes a **localhost-only** WebSocket so the Companion 
 { type: 'intent_ack', intent: string, ok: boolean, detail?: string }
 { type: 'error', message: string }
 
-// Map replies (bridge 0.4.0+). All read-only; none of them move anything.
+// Map replies (bridge 0.4.0+). map_here/map_path/map_zone are read-only.
+// 'map_walk' (bridge 0.10.5+) is the one exception: it starts go2 walking
+// toward the room and answers over the ordinary intent_ack/log channel, not
+// a payload of its own - go2's own progress prints through the normal game
+// stream, the same as if the player had typed ;go2 <room> themselves.
 { type: 'map_here',    payload: MapRoom & { available: boolean } }
-{ type: 'map_tags',    payload: string[] }
-{ type: 'map_nearest', payload: MapRoom & { ok, tag?, steps?, reason? } }
 { type: 'map_path',    payload: { ok, from?, to?, steps?, rooms?, reason? } }
 ```
 

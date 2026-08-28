@@ -215,6 +215,29 @@ DRCHWoundFull = Struct.new(:body_part, :severity, :scar, :bleeding_rate) do
   def scar? = scar
 end
 
+# Lich::DragonRealms::Creature had no stub at all before this - the bridge's
+# combatants() guards on `defined?(Lich::DragonRealms::Creature)`, so leaving
+# it fully undefined (the honest default - most Lich builds/test runs never
+# load it) exercises the "module absent" path, and $creature_room lets a test
+# populate it on demand for the "module present" path.
+FakeCreature = Struct.new(:id, :name, :noun, :range, :relation, :target, :target_number,
+                           :balance, :off_balance, :conditions, :flags, :enriched_since) do
+  def crtr_flag?(key) = flags.include?(key.to_s) || flags.include?(key.to_sym)
+  def flag_active?(key) = crtr_flag?(key)
+  def off_balance? = off_balance
+  def enriched? = !enriched_since.nil?
+  def enriched_at = enriched_since
+end
+
+$creature_room = []
+module Lich
+  module DragonRealms
+    module Creature
+      def self.in_room = $creature_room
+    end
+  end
+end
+
 # GameObj had no stub at all - not even one that returns nil, undefined
 # entirely. It appears 12 times in companion_bridge.lic, almost all of them
 # in the status/inventory payloads (roomItems, hands, worn, wornCount,
@@ -1812,6 +1835,72 @@ begin
     t2_result == [],
     t2_result.inspect
   )
+
+  # Drain, same reason as every other section that reads status right after
+  # setting fixture state: read_until returns the first message of a
+  # matching type, not the one answering this request.
+  begin
+    loop { c.read_json(timeout: 0.2) }
+  rescue Timeout::Error
+    nil
+  end
+
+  puts ''
+  puts '-- roomCombatants: assessed range/target/balance/statuses reach the status payload --'
+  $creature_room = [
+    FakeCreature.new(
+      '105829093', 'a jeol moradu', 'moradu', 'melee', 'in front of you', 'you', 1,
+      'off', false, %w[cursed], %w[hostile stunned], Time.now
+    )
+  ]
+  c.send_json(type: 'get_status')
+  status = c.read_until('status')['payload']
+  combatant = status['roomCombatants']&.first
+  check(
+    'the assessed creature carries range, relation and who it is targeting',
+    combatant && combatant['range'] == 'melee' && combatant['relation'] == 'in front of you' &&
+      combatant['target'] == 'you' && combatant['targetNumber'] == 1,
+    combatant.inspect
+  )
+  check(
+    'balance and its derived off-balance flag both reach the payload',
+    combatant && combatant['balance'] == 'off' && combatant['offBalance'] == false,
+    combatant.inspect
+  )
+  check(
+    'crtrStatus flags (hostile, stunned) and assess-only conditions (cursed) are both visible, from different sources',
+    combatant && combatant['hostile'] == true && combatant['statuses'] == ['stunned'] &&
+      combatant['conditions'] == ['cursed'],
+    combatant.inspect
+  )
+  check(
+    'freshly enriched reports as roughly zero seconds old, not nil or stale',
+    combatant && combatant['enrichedAgeSeconds'] && combatant['enrichedAgeSeconds'] <= 2,
+    combatant.inspect
+  )
+
+  puts ''
+  puts '-- roomCombatants: disengaged is the honest "not fighting" answer, not absence --'
+  $creature_room = [
+    FakeCreature.new(
+      '1', 'a wild boar', 'boar', nil, nil, nil, nil,
+      nil, false, [], %w[hostile disengaged], nil
+    )
+  ]
+  c.send_json(type: 'get_status')
+  status = c.read_until('status')['payload']
+  combatant = status['roomCombatants']&.first
+  check(
+    'a creature that broke off combat is marked disengaged rather than just missing range data',
+    combatant && combatant['disengaged'] == true && combatant['range'].nil?,
+    combatant.inspect
+  )
+  check(
+    'never assessed reports enrichedAgeSeconds as nil, not zero - "unknown" and "just now" must not look the same',
+    combatant && combatant['enrichedAgeSeconds'].nil?,
+    combatant.inspect
+  )
+  $creature_room = []
 
   c.close
 ensure

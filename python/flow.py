@@ -1,326 +1,232 @@
-"""Multi-step automation, native to the Python side.
+"""Task flows in Python, where the scripting language is.
 
-`src/data/taskFlows.ts` already has a "flow" concept for the bridge - a list
-of steps a player can read before pressing, run over `run_macro`, which waits
-out roundtime and refuses when it cannot run. This is the same idea rebuilt
-for a Python script talking to the raw game stream instead: a `Flow` is a
-list of `Step`s, a `FlowRunner` walks them in order (or forever, if
-`Flow.loops`), and a `FlowContext` accumulates vitals and situation flags from
-the stream so a step's `condition` can read live state - the same grammar
-`src/lib/flowConditions.ts` defines (`health<50`, `bleeding`, `!bleeding`),
-evaluated against `streamkit.py`'s vitals/indicators instead of the bridge's
-`CharacterStatus`.
+Flows currently live in `src/data/taskFlows.ts` as seven hardcoded entries,
+driven by `src/lib/flowDriver.ts` and `src/lib/flowRunner.ts`, with conditions
+written as strings (`health<50`, `!bleeding`) and parsed by a purpose-built
+grammar in `src/lib/flowConditions.ts`. That is a scripting language, hand-rolled
+in TypeScript, inside an app that already decided Python is its scripting
+language.
 
-**Where this is genuinely more than the bridge flows can do, not just a
-port:** a bridge flow's step is a fixed command list plus a fixed `settle`
-number of seconds. A `Step.run` here is an arbitrary Python callable - it can
-look at `FlowContext`, decide what to send, loop internally, call into
-`lich.py` to chain Lich scripts together, or do nothing at all and just wait.
-That is the "pure python flow" half of the ask: not a bigger command list, a
-real program.
+This is that same capability where it belongs. It is not a translation: moving
+it buys three things the TypeScript version cannot have.
 
-# Waiting between steps
+# 1. Conditions are expressions, so the grammar disappears
 
-There is no bridge here waiting out roundtime for you - `dr_companion.py`'s
-`send()` puts a command on the wire and returns immediately, full stop. Three
-ways to wait, picked per step with `Step.wait`:
+TypeScript needed `flowConditions.ts` to parse `health<50` into something it
+could evaluate, and that parser has to grow a feature every time somebody wants
+a condition it did not anticipate - two gauges compared, a count, a substring.
 
-- `"prompt"` (the default) - wait for the game's own `<prompt>` tag
-  (`streamkit.has_prompt`), the signal the game just handed control back.
-  Better than a guessed sleep, not a guarantee - see `has_prompt`'s own
-  docstring for the honest limit.
-- `"line"` - wait for a line matching `Step.wait_for` (a compiled regex, or a
-  `str -> bool` callable).
-- `"settle"` - a fixed sleep, for the cases Genie scripts have always used
-  this for: a door, a shopkeeper's reply, nothing the stream announces.
+    TS      { commands: ['tend my worst'], condition: 'bleeding' }
+    Python  Step('Tending', ['tend my worst'], when=lambda t: t.bleeding)
 
-Every wait mode is bounded by `Step.timeout` (default 30s) so a flow can never
-hang forever on a line that does not arrive - it moves on and the next step
-runs against whatever state actually exists, the same "fails open" choice
-`flowConditions.ts` makes for an unmet condition.
+The Python version needs no parser at all, and `when=lambda t: t.health.percent
+< 50 and not t.in_combat` needs no new feature.
 
-# Example - a pure Python flow, no Lich scripts involved
+# 2. Waiting on the game instead of guessing at it
 
-    from dr_companion import Companion
-    from flow import Flow, Step, FlowRunner
+A TypeScript step waits `settle` seconds because it has no way to know when the
+game is ready - the comment on that field says as much: "for the cases where
+the game needs a beat and gives no roundtime - walking through a door, a
+shopkeeper's reply". A fixed timer is either too short, and the next command is
+eaten, or too long, and the flow crawls.
 
-    hunt = Flow(
-        id="hunt",
-        title="Hunt cycle",
-        loops=True,
-        steps=[
-            Step("Attacking", commands=["attack"]),
-            Step("Looting", commands=["get all", "get coins"], wait="settle", settle=1),
-            Step("Skinning", commands=["skin"], wait="settle", settle=1),
-            Step("Tending", commands=["tend my worst"], condition="bleeding"),
-        ],
-    )
+    TS      { commands: ['go bank'], settle: 3 }
+    Python  Step('To the bank', ['go bank'], until=r'Bank|teller')
 
-    c = Companion()
-    runner = FlowRunner(c)
-    c.status()                                    # connects, on this thread
-    threading.Thread(target=c.run, daemon=True).start()  # then, and only then, start reading
-    runner.run(hunt)   # blocks; Ctrl+C or another thread calling runner.stop()
+`until` waits for the game to actually say it arrived, with a timeout as the
+backstop rather than the mechanism. `settle` still exists for the cases where
+there is genuinely nothing to wait for.
 
-# Example - chaining Lich commands into a workflow
+# 3. A step can decide things
 
-    from lich import Lich
-    lich = Lich(c)
-    rotation = Flow(id="rotation", title="Train then heal if needed", steps=[
-        Step("Training pass", run=lambda ctx: lich.start("my-trainer")),
-        Step("Wait for it to finish", wait="line", wait_for=re.compile(r"my-trainer.*(?:done|dies|stops)", re.I), timeout=600),
-        Step("Heal if needed", run=lambda ctx: lich.force_start("healer") if ctx.vital_pct("health") < 60 else None),
-    ])
-    FlowRunner(c, lich=lich).run(rotation)
+`on_line` is available inside a flow, so a step can react to what the game
+actually said rather than assuming its command worked.
+
+# What is deliberately kept
+
+The safety properties, because they are the reason this is trustworthy:
+`do()`'s rate cap still applies to every command a flow sends (see drtask.py),
+roundtime is still respected, and a flow that loops says so rather than
+surprising somebody who expected it to end.
 """
 
 from __future__ import annotations
 
 import re
-import threading
 import time
-from collections import deque
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable, Optional, Pattern, Sequence, Union
+from typing import Callable, Optional, Sequence
 
-import streamkit as sk
+from drtask import CleanLine, Task, Vital
 
-if TYPE_CHECKING:
-    from dr_companion import Companion, Line
-    from lich import Lich
-
-
-WaitMatcher = Union[Pattern[str], Callable[[str], bool]]
-
-
-class FlowContext:
-    """Live state a running flow can read: vitals and situation flags built
-    from the stream, plus whatever a script's own `Step.run` chooses to set.
-
-    Thread-safe - lines arrive on whatever thread is running `Companion.run`,
-    while a flow step's wait and its `condition` check happen on the thread
-    that called `FlowRunner.run`. Every read and write below takes the same
-    lock.
-    """
-
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-        self._cond = threading.Condition(self._lock)
-        self._vitals: dict[str, sk.Vital] = {}
-        self._indicators: dict[str, bool] = {}
-        self._flags: dict[str, bool] = {}
-        # (counter, text) rather than bare text, so a wait started after some
-        # lines already arrived can filter to "since I started" by counter
-        # even once the deque's maxlen has evicted earlier entries - a plain
-        # index into the deque would silently shift as older lines fall off.
-        self._recent: deque[tuple[int, str]] = deque(maxlen=200)
-        self._line_counter = 0
-        self._prompt_counter = 0
-
-    # -- fed by the reading thread ---------------------------------------
-
-    def feed_line(self, text: str) -> None:
-        """Update state from one raw `Line.text`. Called by `FlowRunner`'s
-        own `on_line` handler; exposed directly (and kept independent of any
-        socket) so it can be unit-tested with plain strings."""
-        with self._cond:
-            for vital in sk.all_vitals_in(text):
-                self._vitals[vital.id] = vital
-            for key, value in sk.indicators_in(text).items():
-                self._indicators[key] = value
-            self._line_counter += 1
-            self._recent.append((self._line_counter, text))
-            if sk.has_prompt(text):
-                self._prompt_counter = self._line_counter
-            self._cond.notify_all()
-
-    # -- read by a step's condition / run callable -----------------------
-
-    def vital_pct(self, name: str) -> Optional[float]:
-        """0-100, or `None` if this vital has not been reported yet - a step
-        condition treats `None` as "no reading", which is what makes the
-        grammar below fail open the same way `flowConditions.ts` does."""
-        with self._lock:
-            v = self._vitals.get(name)
-            return v.pct if v is not None else None
-
-    def indicator(self, name: str) -> Optional[bool]:
-        """`True`/`False` as last reported, or `None` if never reported."""
-        with self._lock:
-            return self._indicators.get(name)
-
-    def set_flag(self, name: str, value: bool = True) -> None:
-        """A script's own situation flag, checked the same way an `indicator`
-        is - `condition="my_flag"` reads whatever this last set. Lets a
-        `Step.run` communicate something to a later step's condition without
-        both ends knowing about a game indicator."""
-        with self._lock:
-            self._flags[name] = value
-
-    def flag(self, name: str) -> Optional[bool]:
-        with self._lock:
-            return self._flags.get(name)
-
-    # -- waiting ------------------------------------------------------------
-
-    def wait_for_prompt(self, timeout: float) -> bool:
-        """Block until a line containing `<prompt ...>` arrives, or
-        `timeout` elapses. Returns whether a prompt was actually seen."""
-        deadline = time.monotonic() + timeout
-        with self._cond:
-            start = self._line_counter
-            while self._prompt_counter <= start:
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    return False
-                self._cond.wait(remaining)
-            return True
-
-    def wait_for_line(self, matcher: WaitMatcher, timeout: float) -> Optional[str]:
-        """Block until a line since this call matches `matcher`, or
-        `timeout` elapses. Returns the matching line's text, or `None`.
-
-        A match older than the buffer's last 200 lines (`FlowContext`'s own
-        cap) by the time this wakes up is missed rather than found - the same
-        "probably right, occasionally silent" trade the rest of this stack
-        makes, not a guarantee for a busy stream and a very long timeout."""
-        test = matcher.search if isinstance(matcher, re.Pattern) else matcher
-        deadline = time.monotonic() + timeout
-        with self._cond:
-            since = self._line_counter
-            while True:
-                for counter, text in self._recent:
-                    if counter > since and test(text):
-                        return text
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    return None
-                self._cond.wait(remaining)
-
-
-_COMPARISON = re.compile(r"^(\w+)\s*(<=|>=|<|>)\s*(\d+(?:\.\d+)?)$")
-
-
-def evaluate_condition(condition: Optional[str], ctx: FlowContext) -> bool:
-    """The same grammar as `src/lib/flowConditions.ts`, evaluated against a
-    `FlowContext`: `gauge<50` / `gauge>=80` (gauge is a `streamkit.py` vital
-    id - `health`, `mana`, `spirit`, `stamina`, `concentration`, not the
-    bridge's `fatigue`/`spirit` pair), a bare flag (`bleeding`, `stunned`, or
-    anything a `Step.run` set with `FlowContext.set_flag`), either negated
-    with a leading `!`. `None` or blank is unconditional. Fails open on an
-    unknown gauge or a reading that has not arrived yet, for the same reason
-    the TS version gives: a flow stuck forever on a typo or a slow connection
-    is worse than one that ran a step it could have skipped."""
-    if not condition or not condition.strip():
-        return True
-    trimmed = condition.strip()
-    negate = trimmed.startswith("!")
-    body = trimmed[1:].strip() if negate else trimmed
-
-    m = _COMPARISON.match(body)
-    if m:
-        name, op, num_text = m.group(1), m.group(2), m.group(3)
-        value = ctx.vital_pct(name.lower())
-        if value is None:
-            result = True  # unknown gauge, or no reading yet - fail open
-        else:
-            n = float(num_text)
-            result = value < n if op == "<" else value > n if op == ">" else value <= n if op == "<=" else value >= n
-    else:
-        flag = ctx.indicator(body)
-        if flag is None:
-            flag = ctx.flag(body)
-        result = bool(flag)
-
-    return not result if negate else result
-
-
-StepRun = Callable[[FlowContext], None]
+#: Returned for a vital the game has never reported. Shared rather than
+#: constructed per call so `is` comparisons work and there is one thing to
+#: point at when explaining why a condition did not fire.
+_UNKNOWN = Vital(0, 0, known=False)
 
 
 @dataclass
 class Step:
-    """One step of a `Flow`. `label` is shown while it runs, same spirit as
-    the bridge flow's own `label` - written as the thing happening."""
+    """One step of a flow.
+
+    `when`, `until` and `settle` are three different questions and a step may
+    use any combination:
+
+        when    should this step run at all, checked once before it starts
+        until   what the game says when the step has finished
+        settle  a flat pause, for when there is nothing to wait for
+    """
 
     label: str
-    commands: Sequence[str] = ()
-    run: Optional[StepRun] = None
-    condition: Optional[str] = None
-    wait: str = "prompt"  # "prompt" | "line" | "settle"
-    settle: float = 1.0
-    wait_for: Optional[WaitMatcher] = None
-    timeout: float = 30.0
+    commands: Sequence[str]
+    #: Run only if this returns true. Receives the flow, so it can read vitals,
+    #: the last line, anything the task knows.
+    when: Optional[Callable[["Flow"], bool]] = None
+    #: A regex; the step is done when a game line matches it. Preferred over
+    #: `settle` whenever the game says something observable.
+    until: Optional[str] = None
+    #: Seconds. A backstop when `until` is set, a flat wait when it is not.
+    settle: float = 0.0
+    #: How long to wait for `until` before giving up and moving on. A flow that
+    #: blocks forever on a message that never comes is worse than one that
+    #: moves on and is visibly wrong.
+    timeout: float = 15.0
 
-    def __post_init__(self) -> None:
-        if self.wait not in ("prompt", "line", "settle"):
-            raise ValueError(f"Step.wait must be 'prompt', 'line' or 'settle', not {self.wait!r}")
-        if self.wait == "line" and self.wait_for is None:
-            raise ValueError(f"step {self.label!r}: wait='line' needs wait_for")
 
+class Flow(Task):
+    """A sequence of steps, run in order, optionally repeating.
 
-@dataclass
-class Flow:
-    id: str
-    title: str
-    steps: Sequence[Step]
+    Subclass and set `title`, `summary` and `steps`, or build one inline:
+
+        Flow(title='Recover', steps=[...]).run()
+    """
+
+    title: str = "Flow"
     summary: str = ""
+    steps: Sequence[Step] = ()
+    #: Repeat until stopped. An endless flow has to be obvious rather than a
+    #: surprise, so this is printed at the start.
     loops: bool = False
 
+    def __init__(self, **kw) -> None:
+        super().__init__()
+        for key in ("title", "summary", "steps", "loops"):
+            if key in kw:
+                setattr(self, key, kw.pop(key))
+        if kw:
+            raise TypeError(f"unexpected arguments: {', '.join(kw)}")
 
-class FlowRunner:
-    """Walks a `Flow`'s steps against a live `Companion`, one at a time."""
+        self._waiting: Optional[re.Pattern[str]] = None
+        self._matched = False
+        self.last_line: str = ""
+        self._lines_seen = 0
 
-    def __init__(self, companion: "Companion", lich: Optional["Lich"] = None) -> None:
-        self._c = companion
-        self._lich = lich
-        self.ctx = FlowContext()
-        self._stopped = threading.Event()
-        companion.on_line(self._on_line)
+    # -- things a condition can ask ------------------------------------
+    #
+    # A vital the game has not reported yet is `known=False`, whose `percent`
+    # is NaN - so every comparison against it is false and a condition on an
+    # unreported vital does nothing rather than firing on a zero nobody sent.
+    # See Vital.percent in drtask.py for the run that made this necessary.
 
-    def _on_line(self, line: "Line") -> None:
-        self.ctx.feed_line(line.text)
+    @property
+    def health(self) -> Vital:
+        return self.vitals.get("health", _UNKNOWN)
 
-    def stop(self) -> None:
-        """Ends the flow after the step in progress finishes - callable from
-        another thread, e.g. a `Step.run` that decides the loop is done, or a
-        signal handler."""
-        self._stopped.set()
+    @property
+    def mana(self) -> Vital:
+        return self.vitals.get("mana", _UNKNOWN)
 
-    def run(self, flow: Flow) -> None:
-        """Runs `flow` to completion (or forever, if `flow.loops`), blocking
-        the calling thread. `Companion.run()` must already be pumping lines
-        on another thread - this does not start it, the same way it does not
-        own the socket. Start that thread *after* any `connect()`/`status()`
-        call your script makes on the main thread, not before -
-        `dr_companion.py`'s socket reads are not safe to call from two
-        threads at once, and a `status()` call racing the reader thread is
-        exactly that."""
-        self._stopped.clear()
-        while not self._stopped.is_set():
-            for step in flow.steps:
-                if self._stopped.is_set():
+    @property
+    def stamina(self) -> Vital:
+        return self.vitals.get("stamina", _UNKNOWN)
+
+    @property
+    def concentration(self) -> Vital:
+        return self.vitals.get("concentration", _UNKNOWN)
+
+    @property
+    def bleeding(self) -> bool:
+        return "bleeding" in self.last_line.lower()
+
+    # -- plumbing -------------------------------------------------------
+
+    def on_clean(self, line: CleanLine) -> None:
+        self.last_line = line.text
+        self._lines_seen += 1
+        if self._waiting and self._waiting.search(line.text):
+            self._matched = True
+
+    def _await(self, pattern: str, timeout: float) -> bool:
+        """Wait for a line matching `pattern`. True if it arrived."""
+        self._waiting = re.compile(pattern, re.I)
+        self._matched = False
+        deadline = time.time() + timeout
+        try:
+            while time.time() < deadline:
+                if self._matched:
+                    return True
+                if self._stopping:
+                    return False
+                time.sleep(0.1)
+            return False
+        finally:
+            self._waiting = None
+
+    def run(self) -> None:
+        """Connect, then walk the steps.
+
+        The reader runs on its own thread so `on_clean` keeps firing while a
+        step waits - without that, `until` could never match, because the line
+        it is waiting for would be queued behind the wait itself.
+        """
+        import threading
+
+        self.c.connect()
+        self.c.on_line(self._feed)
+        threading.Thread(target=self.c.run, daemon=True).start()
+
+        print(f"{self.title}" + (f" - {self.summary}" if self.summary else ""))
+        if self.loops:
+            print("This flow repeats until stopped. Ctrl+C to stop.")
+        print()
+
+        try:
+            while True:
+                for i, step in enumerate(self.steps, 1):
+                    if self._stopping:
+                        return
+
+                    if step.when and not step.when(self):
+                        print(f"  {i}. {step.label} - skipped, condition not met")
+                        continue
+
+                    print(f"  {i}. {step.label}")
+                    for command in step.commands:
+                        if self._stopping:
+                            return
+                        self.do(command)
+
+                    if step.until:
+                        if not self._await(step.until, step.timeout):
+                            # Said out loud rather than moving on quietly. A
+                            # step whose expected message never arrived is the
+                            # single most useful thing to know when a flow
+                            # behaves oddly, and it is invisible otherwise.
+                            print(
+                                f"     (timed out after {step.timeout:.0f}s waiting for "
+                                f"/{step.until}/ - continuing)"
+                            )
+                    elif step.settle:
+                        time.sleep(step.settle)
+
+                if not self.loops:
+                    print("\ndone.")
                     return
-                if not evaluate_condition(step.condition, self.ctx):
-                    print(f"flow[{flow.id}]: skipping '{step.label}' - condition {step.condition!r} not met")
-                    continue
-
-                print(f"flow[{flow.id}]: {step.label}")
-                for command in step.commands:
-                    self._c.send(command)
-                if step.run is not None:
-                    step.run(self.ctx)
-
-                if step.wait == "settle":
-                    time.sleep(step.settle)
-                elif step.wait == "prompt":
-                    if not self.ctx.wait_for_prompt(step.timeout):
-                        print(f"flow[{flow.id}]: '{step.label}' - no prompt seen within {step.timeout}s, moving on")
-                elif step.wait == "line":
-                    assert step.wait_for is not None  # enforced in Step.__post_init__
-                    if self.ctx.wait_for_line(step.wait_for, step.timeout) is None:
-                        print(f"flow[{flow.id}]: '{step.label}' - nothing matched within {step.timeout}s, moving on")
-
-            if not flow.loops:
-                return
-        return
+        except KeyboardInterrupt:
+            print("\nstopped.")
+        finally:
+            # Tell the reader to stop *before* closing the socket it is
+            # blocked on, so it treats the close as expected rather than as a
+            # failure. Closing first is a race the reader loses noisily.
+            self.c.stop()
+            self.c.close()

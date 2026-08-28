@@ -3,7 +3,7 @@
  * without a live game connection.
  */
 
-import type { CharacterStatus, InventorySummary } from '../types'
+import type { CharacterStatus, InventorySummary, RoomCombatant } from '../types'
 import type { BodyPart } from '../lib/body'
 import type { BridgeClientMessage, BridgeServerMessage, IntentName } from './types'
 import {
@@ -45,7 +45,7 @@ const MOCK_ALL_INTENTS: string[] = [
   'escape_heal', 'go_healer', 'town_run', 'start_training', 'loot', 'buffs',
   'escape', 'stow_all', 'check_health', 'check_toggles', 'reset_runaway',
   'read_settings', 'run_macro', 'map_here', 'list_vars',
-  'map_path', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
+  'map_path', 'map_walk', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
 ]
 
 /**
@@ -527,12 +527,13 @@ for (const p of Object.values(presets)) {
   // computed 2 - and a fabricated number that looks plausible is worse than an
   // obviously missing one, because nothing about it invites checking.
   p.character.circle = p.character.circle ?? Math.max(1, Math.round(level / 3))
-  p.character.roomPlayers = level > 80 ? ['Someguy'] : []
+  p.character.roomPlayers = ['Kestrel', 'Vessa', 'Thendish', 'Orlathe', 'Brannick']
   p.character.encumbrance = level > 100 ? 'Somewhat Burdened' : 'Light'
   // Enough creatures to push the deck through its tiers rather than only ever
   // showing the roomy case. Names are real DragonRealms creatures at roughly
   // the right level, so the bestiary lookup has something to find.
   p.character.roomCreatures = demoCreatures(level)
+  p.character.roomCombatants = demoCombatants(level)
   p.character.roomDeadCreatures = level > 30 ? ['a kobold which appears dead'] : []
   p.character.injuries = demoInjuries(level)
   p.character.bleeding = demoBleeding(level)
@@ -545,33 +546,172 @@ for (const p of Object.values(presets)) {
 }
 
 /**
- * A plausible room for a character of this level.
+ * The demo room, unconditionally — overwritten 28 Aug 2026 to be a
+ * deliberate stress test rather than tiered by level: 13 hostiles across 5
+ * distinct creature types plus a player-controlled pet, all in one room, so
+ * the room viewer is always exercised under real load rather than only in
+ * whichever preset happens to be open.
  *
- * Duplicated nouns on purpose: collapsing six identical goblins into one card
- * with a multiplier is a behaviour worth seeing in the demo, because six
+ * Duplicated nouns on purpose: collapsing four identical boars into one card
+ * with a multiplier is a behaviour worth seeing in the demo, because four
  * separate cards is a wall rather than information.
  */
-function demoCreatures(level: number): string[] {
-  if (level < 20) return ['a kobold', 'a kobold', 'a goblin']
-  if (level < 60) {
-    return [
-      'a snarling goblin',
-      'a snarling goblin',
-      'a snarling goblin',
-      'a rock troll',
-      'a wild boar',
-    ]
-  }
+function demoCreatures(_level: number): string[] {
   return [
-    "an Adan'f blood warrior",
-    "an Adan'f blood warrior",
-    "an Adan'f shadow mage",
-    'a rock troll',
     'a wild boar',
-    'a kobold',
+    'a wild boar',
+    'a wild boar',
+    'a wild boar',
     'a goblin',
-    'a giant rat',
+    'a goblin',
+    'a goblin',
+    'a goblin shaman',
+    'a goblin shaman',
+    'a goblin shaman',
+    'a goblin shaman',
+    'a goblin shaman',
+    // A necromancer's animated combat pet — player-controlled, not a wild
+    // spawn, hence the possessive naming rather than a bare bestiary noun.
+    "Zdolyn's risen",
   ]
+}
+
+/**
+ * A realistic slice of `assess` coverage, not full coverage — assess is a
+ * pull in real DR, so most of a room is never enriched at any given moment.
+ * Exercises the range/target/balance/disengaged/staleness paths the way a
+ * real fight actually produces them: some creatures assessed and current,
+ * one stale, several never assessed at all (absent from this list entirely,
+ * which is the honest "unassessed" case RoomChips renders as its own group).
+ */
+function demoCombatants(level: number): RoomCombatant[] {
+  if (level < 20) return []
+  const now = () => Math.round(Math.random() * 3)
+  return [
+    {
+      id: 'boar-1',
+      name: 'a wild boar',
+      noun: 'boar',
+      dead: false,
+      hostile: true,
+      disengaged: false,
+      range: 'melee',
+      relation: 'in front of you',
+      target: 'you',
+      targetNumber: 1,
+      balance: 'solidly',
+      offBalance: false,
+      conditions: [],
+      statuses: [],
+      enrichedAgeSeconds: now(),
+    },
+    {
+      id: 'boar-2',
+      name: 'a wild boar',
+      noun: 'boar',
+      dead: false,
+      hostile: true,
+      disengaged: false,
+      range: 'melee',
+      relation: 'beside you',
+      target: 'you',
+      targetNumber: 1,
+      balance: 'off',
+      offBalance: true,
+      conditions: [],
+      statuses: [],
+      enrichedAgeSeconds: now(),
+    },
+    {
+      id: 'goblin-1',
+      name: 'a goblin',
+      noun: 'goblin',
+      dead: false,
+      hostile: true,
+      disengaged: false,
+      range: 'pole',
+      relation: 'flanking you',
+      target: 'Kestrel',
+      targetNumber: 2,
+      balance: 'solidly',
+      offBalance: false,
+      conditions: [],
+      statuses: [],
+      enrichedAgeSeconds: now(),
+    },
+    {
+      id: 'goblin-2',
+      name: 'a goblin',
+      noun: 'goblin',
+      dead: false,
+      hostile: true,
+      disengaged: true,
+      range: null,
+      relation: null,
+      target: null,
+      targetNumber: null,
+      balance: null,
+      offBalance: false,
+      conditions: [],
+      statuses: [],
+      enrichedAgeSeconds: null,
+    },
+    {
+      id: 'shaman-1',
+      name: 'a goblin shaman',
+      noun: 'shaman',
+      dead: false,
+      hostile: true,
+      disengaged: false,
+      range: 'missile',
+      relation: 'across the room',
+      target: 'you',
+      targetNumber: 1,
+      balance: 'solidly',
+      offBalance: false,
+      conditions: ['cursed'],
+      statuses: [],
+      // Stale on purpose - the one assess in this room old enough that the
+      // chip should visibly soften rather than claim a currency it lacks.
+      enrichedAgeSeconds: 95,
+    },
+    {
+      id: 'shaman-2',
+      name: 'a goblin shaman',
+      noun: 'shaman',
+      dead: false,
+      hostile: true,
+      disengaged: false,
+      range: null,
+      relation: 'hidden nearby',
+      target: null,
+      targetNumber: null,
+      balance: null,
+      offBalance: false,
+      conditions: [],
+      statuses: ['hidden'],
+      enrichedAgeSeconds: now(),
+    },
+    {
+      id: 'risen-1',
+      name: "zdolyn's risen",
+      noun: 'risen',
+      dead: false,
+      hostile: true,
+      disengaged: false,
+      range: 'melee',
+      relation: 'in front of you',
+      target: 'you',
+      targetNumber: 1,
+      balance: 'solidly',
+      offBalance: false,
+      conditions: [],
+      statuses: ['stunned'],
+      enrichedAgeSeconds: now(),
+    },
+  ]
+  // The remaining boars/goblins/shamans deliberately have no entry here at
+  // all - unassessed, the common real case, and RoomChips' own group for it.
 }
 
 /** A few wounds past the early levels, so the doll is not always blank. */
@@ -868,18 +1008,25 @@ export class MockBridge {
         break
 
       case 'map_here': {
-        const here = DEMO_ZONE.rooms?.find((r) => r.id === DEMO_ZONE.here)
-        this.emit({
-          type: 'map_here',
-          payload: {
-            available: true,
-            id: here?.id ?? null,
-            uid: here?.uid ?? null,
-            title: here?.title ?? null,
-            location: DEMO_ZONE.name ?? null,
-            tags: here?.tags ?? [],
-            exits: (here?.to ?? []).map(String),
-          },
+        // Answered from the same real zone map_zone loads, not the invented
+        // DEMO_ZONE — that town's room ids (101-112) never appear in the real
+        // Crossing data, so a scene lookup keyed on {zone}-{room} always
+        // missed. This is where the room picture-viewer gets what to show.
+        void loadZone(DEFAULT_ZONE).then((zone) => {
+          const rooms = zone?.rooms ?? DEMO_ZONE.rooms ?? []
+          const here = rooms.find((r) => r.id === (zone ? rooms[0]?.id : DEMO_ZONE.here)) ?? rooms[0]
+          this.emit({
+            type: 'map_here',
+            payload: {
+              available: true,
+              id: here?.id ?? null,
+              uid: here?.uid ?? null,
+              title: here?.title ?? null,
+              location: zone?.name ?? DEMO_ZONE.name ?? null,
+              tags: here?.tags ?? [],
+              exits: (here?.to ?? []).map(String),
+            },
+          })
         })
         break
       }
@@ -906,6 +1053,22 @@ export class MockBridge {
                 }),
               }
             : { ok: false, reason: `no route from ${DEMO_ZONE.here} to ${to}` },
+        })
+        break
+      }
+
+      case 'map_walk': {
+        // No real Lich to hand a room number to in demo mode - the honest
+        // answer is to say so, the same way MapPanel already says "No
+        // bridge" rather than pretending to show a live position.
+        const to = Number(_args?.to ?? 0)
+        const route = demoPath(DEMO_ZONE.here as number, to)
+        this.emit({
+          type: 'log',
+          line: route
+            ? `Demo: would walk ${route.length} room${route.length === 1 ? '' : 's'} to ${to} — connect to Lich to actually travel.`
+            : `Demo: no route from ${DEMO_ZONE.here} to ${to}.`,
+          level: route ? 'info' : 'warn',
         })
         break
       }
@@ -1088,6 +1251,22 @@ export class MockBridge {
       case 'check_toggles': {
         this.emit({ type: 'toggles', brief: null, invBrief: null, showRoomId: true })
         this.emit({ type: 'log', line: 'TOGGLE: no toggles active. FLAGS: ShowRoomID on.' })
+        break
+      }
+
+      // list_vars is check_toggles' same-shape sibling: Lich::Common::Vars
+      // has always been readable via ;vars list, nothing on this side asked
+      // for it until now. One string entry, one non-string entry so the
+      // 'other' kind actually gets exercised in the demo.
+      case 'list_vars': {
+        this.emit({
+          type: 'vars',
+          character: this.character.name,
+          entries: [
+            { name: 'hunting_room_id', value: '1234', kind: 'string' },
+            { name: 'autotend', value: 'TrueClass: true', kind: 'other' },
+          ],
+        })
         break
       }
       case 'go_healer': {

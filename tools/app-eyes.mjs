@@ -69,6 +69,32 @@ const EXE = 'src-tauri/target/debug/dr-companion.exe'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+/**
+ * Floor between two *implicit* restarts triggered by `eyes()` failing to see
+ * the app - not between explicit `start` calls, which always run.
+ *
+ * Measured need: an orphaned polling loop (`until ...eval "window.X"...; do
+ * sleep 2; done`) outlived the session that started it, surviving a machine
+ * restart notification that read as "may have been running when the process
+ * exited." Every 2-second poll found the app not answering (crashed on the
+ * dev server being down, separately) and `eyes()` did exactly what it is
+ * documented to do - kill and relaunch - with nothing to notice that this was
+ * the fifth relaunch in ten seconds rather than the first ever. The app plays
+ * audio on load, so `dr-companion.exe`, `msedgewebview2.exe` and the WebView2
+ * autoplay policy turned an orphaned test loop into a real person hearing a
+ * few seconds of music, over and over, with no session realising it owned the
+ * loop until someone went looking for the process tree by hand.
+ *
+ * This does not fix the orphaned-loop problem - a background shell surviving
+ * its own session is a Claude Code lifecycle question, not this tool's to
+ * solve. It bounds the blast radius of any caller, orphaned or not, hammering
+ * `eyes()` in a tight loop: at most one real restart per window, and callers
+ * in between get the existing (still-failing, if it's still failing) instance
+ * rather than a fresh kill.
+ */
+const AUTO_RESTART_COOLDOWN_MS = 10_000
+let lastAutoStart = 0
+
 /** Pids of every running instance, or an empty list. */
 export function running() {
   try {
@@ -171,7 +197,20 @@ export async function start({ quiet = false } = {}) {
  * So the page says what it is before anything is measured on it.
  */
 export async function eyes({ require = true, requireDoc = null } = {}) {
-  if (!(await seeing())) await start({ quiet: true })
+  if (!(await seeing())) {
+    const sinceLastAutoStart = Date.now() - lastAutoStart
+    if (lastAutoStart && sinceLastAutoStart < AUTO_RESTART_COOLDOWN_MS) {
+      // Already restarted recently on this same "can't see it" reason. Wait
+      // out the rest of the cooldown instead of kill-and-relaunching again -
+      // if the last restart is going to work, this is what waiting for it
+      // looks like; if it never will, one throttled failure a caller can see
+      // beats an unbounded restart loop they can't.
+      await sleep(AUTO_RESTART_COOLDOWN_MS - sinceLastAutoStart)
+    } else {
+      lastAutoStart = Date.now()
+      await start({ quiet: true })
+    }
+  }
 
   // Say which window, rather than taking whichever came back first.
   //

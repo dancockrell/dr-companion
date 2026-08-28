@@ -54,12 +54,6 @@ interface BuiltZone {
   rooms: BuiltRoom[]
 }
 
-export interface ZoneSummary {
-  id: string
-  name: string
-  rooms: number
-}
-
 /** Vite resolves these at build time; only the requested zone is fetched. */
 const ZONES = import.meta.glob<{ default: BuiltZone }>('../data/map/*.json')
 
@@ -67,13 +61,6 @@ const cache = new Map<string, MapZone>()
 
 /** The Crossing. Where new characters start, and the busiest zone in the game. */
 export const DEFAULT_ZONE = '1'
-
-export async function zoneIndex(): Promise<ZoneSummary[]> {
-  const load = ZONES['../data/map/index.json']
-  if (!load) return []
-  const mod = (await load()) as unknown as { default: ZoneSummary[] }
-  return mod.default
-}
 
 /**
  * Exits are directional and the drawing is not: a one-way arc still needs a
@@ -91,6 +78,48 @@ function kindOfExit(dir: string): 'walk' | 'enter' | 'climb' | 'vertical' {
   if (dir === 'climb') return 'climb'
   if (dir === 'up' || dir === 'down') return 'vertical'
   return 'walk'
+}
+
+/**
+ * Tags worth shouting about.
+ *
+ * Not decoration. These are the rooms that end a script: water you have to
+ * swim, rooms you can drown in, and anything the mapper marks as costing
+ * roundtime to cross. Someone watching the map is usually watching for exactly
+ * these, so they get colour rather than a tooltip.
+ *
+ * Lives here rather than in the drawing code (MapCanvas) because this is a
+ * fact about the room, the same kind of fact `kindOfExit` above is about a
+ * connection - domain knowledge about DragonRealms geography, not something
+ * about SVG. A hazard list, a filter in PlaceSearch, or any future consumer
+ * that needs to know which rooms are dangerous can read this without
+ * importing a rendering component to get it.
+ *
+ * `rt` (the mapper's own shorthand for "roundtime") is word-bounded
+ * (`\brt\b`), not a bare fragment. As a bare fragment it matched any
+ * substring containing those two letters - "courtyard", "party", "fort",
+ * "shirt", "garter" - which meant an ordinary courtyard could show up
+ * marked as a hazard on the chart for no reason a player could see. Found
+ * by a test for this function, not by inspection - a room named "Courtyard"
+ * would have had to exist and get looked at for anyone to notice by eye.
+ */
+const HAZARD = /water|swim|drown|underwater|obstacle|climb|roundtime|\brt\b/i
+const SERVICE = /bank|teller|exchange|healer|empath|guild|shop|repair|depart|altar|shrine|temple|gate|bridge|park/i
+
+export type RoomKind = 'here' | 'route' | 'hazard' | 'service' | 'plain'
+
+/** What a room is, for the purposes of colouring the map. */
+export function roomKind(
+  r: MapZoneRoom,
+  hereId: number | null | undefined,
+  onRoute: Set<number | null>
+): RoomKind {
+  if (r.id === hereId) return 'here'
+  if (onRoute.has(r.id)) return 'route'
+  const tags = (r.tags ?? []).join(' ')
+  if (HAZARD.test(tags)) return 'hazard'
+  if (SERVICE.test(tags)) return 'service'
+  return 'plain'
 }
 
 function toZoneRoom(r: BuiltRoom): MapZoneRoom {
@@ -131,17 +160,4 @@ export async function loadZone(id: string): Promise<MapZone | null> {
   }
   cache.set(id, built)
   return built
-}
-
-/** The movement command for one step, so a route can be walked rather than read. */
-export async function moveBetween(
-  zoneId: string,
-  from: number,
-  to: number
-): Promise<string | null> {
-  const load = ZONES[`../data/map/${zoneId}.json`]
-  if (!load) return null
-  const zone = (await load()).default
-  const room = zone.rooms.find((r) => r.id === from)
-  return room?.exits.find((e) => e.to === to)?.move ?? null
 }

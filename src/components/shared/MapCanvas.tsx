@@ -10,21 +10,12 @@
  * Room positions come from Lich's `genie_pos`, which carries the layout the
  * community's cartographers built, keyed to Lich's own room ids.
  */
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { MapZone, MapZoneRoom } from '../../bridge/types'
 import { inkFor } from '../../lib/mapInk'
 import { recency, segments, type Trail } from '../../lib/trail'
-
-/**
- * Tags worth shouting about.
- *
- * Not decoration. These are the rooms that end a script: water you have to
- * swim, rooms you can drown in, and anything the mapper marks as costing
- * roundtime to cross. Someone watching the map is usually watching for exactly
- * these, so they get colour rather than a tooltip.
- */
-const HAZARD = /water|swim|drown|underwater|obstacle|climb|roundtime|rt/i
-const SERVICE = /bank|teller|exchange|healer|empath|guild|shop|repair|depart|altar|shrine|temple|gate|bridge|park/i
+import { roomKind, type RoomKind } from '../../lib/mapData'
+import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
 
 /**
  * Colour by what the place is.
@@ -66,21 +57,6 @@ const LOCAL_CAP = 2000
  */
 const GRID = 10
 
-export type RoomKind = 'here' | 'route' | 'hazard' | 'service' | 'plain'
-
-export function roomKind(
-  r: MapZoneRoom,
-  hereId: number | null | undefined,
-  onRoute: Set<number | null>
-): RoomKind {
-  if (r.id === hereId) return 'here'
-  if (onRoute.has(r.id)) return 'route'
-  const tags = (r.tags ?? []).join(' ')
-  if (HAZARD.test(tags)) return 'hazard'
-  if (SERVICE.test(tags)) return 'service'
-  return 'plain'
-}
-
 const FILL: Record<RoomKind, string> = {
   // Not the app's accent. Gold on vellum is a wash, and this is the one square
   // on the chart that must never be missed.
@@ -105,6 +81,16 @@ export function MapCanvas({
   fit = false,
   /** Where you have been. Drawn as a stroke over the chart. */
   trail,
+  /** The "here" room's position, in this draw's own pixel space, once known -
+   *  so a viewport can center on it without re-deriving the coordinate math
+   *  this component already does. Fires on every render that has a "here"
+   *  room, not just the first; a room change is exactly when re-centering
+   *  is wanted. */
+  onHereAt,
+  /** Saved places, keyed by room id, for the small colour-coded marker on a pinned room. */
+  pins,
+  /** Right-click (or long-press, once this has a touch input) a room to pin it - offered on any room, not just the one you're standing in, since browsing a distant zone to mark its bank is a real use of this. */
+  onPinRoom,
 }: {
   zone: MapZone
   level: number
@@ -116,6 +102,9 @@ export function MapCanvas({
   labels?: boolean
   fit?: boolean
   trail?: Trail
+  onHereAt?: (x: number, y: number) => void
+  pins?: Map<number, MapPin>
+  onPinRoom?: (id: number) => void
 }) {
   /**
    * The cartography is authored on a 10-unit grid: 1,221 of Crossing's
@@ -176,6 +165,68 @@ export function MapCanvas({
     }
   }, [rooms, scale, pad])
 
+  // Rebuilt only when the room set actually changes - not on every trail
+  // update, which is the whole reason a window left open to watch a script
+  // used to reclassify every room and rebuild this lookup on every tick.
+  const index = useMemo(() => new Map(rooms.map((r) => [r.id, r])), [rooms])
+
+  // Same reasoning: `roomKind` runs a couple of regex tests per room, cheap
+  // once and wasted work every trail-driven re-render of a 1,000-room zone.
+  const kindById = useMemo(
+    () => new Map(rooms.map((r) => [r.id, roomKind(r, zone.here, onRoute)])),
+    [rooms, zone.here, onRoute]
+  )
+
+  // Who's next to whom, for highlighting a room's connections on hover - a
+  // map that lights up where you can actually go from the room the cursor is
+  // over is a map that teaches the city, not just displays it. Built once per
+  // room set, read on every pointer move rather than walked per hover.
+  const neighbors = useMemo(() => {
+    const out = new Map<number, Set<number>>()
+    const link = (a: number, b: number) => {
+      if (!out.has(a)) out.set(a, new Set())
+      out.get(a)?.add(b)
+    }
+    for (const r of rooms) {
+      if (r.id == null) continue
+      for (const l of r.links ?? (r.to ?? []).map((t) => ({ to: t }))) {
+        link(r.id, l.to)
+        link(l.to, r.id)
+      }
+    }
+    return out
+  }, [rooms])
+
+  // One label per named place, at the first room of its cluster - depends
+  // only on which rooms exist, not on where the character is or the trail.
+  const labelEntries = useMemo(() => {
+    const seen = new Set<string>()
+    const out: { id: number | null; x: number; y: number; name: string }[] = []
+    for (const r of rooms) {
+      const place = (r.tags ?? [])[0]
+      if (!place) continue
+      const title = r.title ?? ''
+      const name = title.includes(',') ? title.slice(0, title.indexOf(',')) : title
+      if (!name || seen.has(name)) continue
+      seen.add(name)
+      out.push({ id: r.id, x: r.x as number, y: r.y as number, name })
+    }
+    return out
+  }, [rooms])
+
+  const [hoverId, setHoverId] = useState<number | null>(null)
+  const hoverNeighbors = hoverId != null ? neighbors.get(hoverId) : undefined
+
+  // Reports the "here" room's pixel position whenever it is known, so a
+  // viewport (useMapViewport) can center on it without re-deriving px/py
+  // itself - the same coordinate math kept in exactly one place.
+  useEffect(() => {
+    if (!onHereAt || !view || zone.here == null) return
+    const room = index.get(zone.here)
+    if (!room || room.x == null || room.y == null) return
+    onHereAt(room.x * scale - view.minX + pad, room.y * scale - view.minY + pad)
+  }, [onHereAt, view, zone.here, index, scale, pad])
+
   if (!view) {
     return (
       <p className="p-3 text-xs text-ink-faint">
@@ -184,7 +235,6 @@ export function MapCanvas({
     )
   }
 
-  const index = new Map(rooms.map((r) => [r.id, r]))
   const fresh = trail ? recency(trail) : null
 
   const px = (r: MapZoneRoom) => (r.x as number) * scale - view.minX + pad
@@ -259,6 +309,11 @@ export function MapCanvas({
           const other = index.get(link.to)
           if (!other || (other.id ?? 0) <= (r.id ?? 0)) return null
 
+          // Lit up when either end is the room under the cursor - a corridor
+          // is exactly as much "connected to here" from either side of it.
+          const isHovered =
+            hoverId != null && (r.id === hoverId || other.id === hoverId)
+
           const style =
             link.kind === 'enter'
               ? { stroke: 'var(--map-route)', strokeWidth: 0.7 * scale, strokeDasharray: '1.5 1.5', opacity: 0.8 }
@@ -282,6 +337,15 @@ export function MapCanvas({
               y2={py(other)}
               strokeLinecap="round"
               {...style}
+              {...(isHovered
+                ? {
+                    stroke: 'var(--map-here)',
+                    strokeWidth: Math.max(1.4, (style.strokeWidth as number) * 1.8),
+                    strokeDasharray: undefined,
+                    opacity: 1,
+                  }
+                : {})}
+              className="transition-[stroke,stroke-width,opacity] duration-100"
             />
           )
         })
@@ -290,42 +354,33 @@ export function MapCanvas({
       {/* One label per named place, at the first room of its cluster.
           Labelling every room of an eight-room guild would print its name
           eight times; labelling none is what made this a diagram. */}
-      {(() => {
-        const seen = new Set<string>()
-        return rooms.map((r) => {
-          const place = (r.tags ?? [])[0]
-          if (!place) return null
-          const title = r.title ?? ''
-          const name = title.includes(',') ? title.slice(0, title.indexOf(',')) : title
-          if (!name || seen.has(name)) return null
-          seen.add(name)
-          return (
-            <text
-              key={`label-${r.id}`}
-              x={px(r) + box}
-              y={py(r) - box * 0.4}
-              fill="var(--map-ink)"
-              style={{
-                fontSize: Math.max(7, 6.5 * scale),
-                pointerEvents: 'none',
-                // The annotations on a hand-drawn chart, not interface text:
-                // small, letter-spaced, and quiet enough that the geography
-                // stays the thing you read first.
-                letterSpacing: '0.04em',
-                fontVariant: 'small-caps',
-                opacity: 0.75,
-              }}
-            >
-              {name}
-            </text>
-          )
-        })
-      })()}
+      {labelEntries.map((l) => (
+        <text
+          key={`label-${l.id}`}
+          x={l.x * scale - view.minX + pad + box}
+          y={l.y * scale - view.minY + pad - box * 0.4}
+          fill="var(--map-ink)"
+          style={{
+            fontSize: Math.max(7, 6.5 * scale),
+            pointerEvents: 'none',
+            // The annotations on a hand-drawn chart, not interface text:
+            // small, letter-spaced, and quiet enough that the geography
+            // stays the thing you read first.
+            letterSpacing: '0.04em',
+            fontVariant: 'small-caps',
+            opacity: 0.75,
+          }}
+        >
+          {l.name}
+        </text>
+      ))}
 
       {rooms.map((r) => {
-        const kind = roomKind(r, zone.here, onRoute)
+        const kind = kindById.get(r.id) ?? 'plain'
         const been = r.id != null ? fresh?.get(r.id) : undefined
         const times = r.id != null ? trail?.visits[r.id] : undefined
+        const isHovered = r.id != null && r.id === hoverId
+        const isNeighborOfHover = r.id != null && hoverNeighbors?.has(r.id)
         return (
           <g
             key={r.id}
@@ -337,6 +392,13 @@ export function MapCanvas({
               if (r.gateway && onZone) onZone(r.gateway.zone)
               else if (r.id) onPick(r.id)
             }}
+            onContextMenu={(e) => {
+              if (!onPinRoom || r.id == null) return
+              e.preventDefault()
+              onPinRoom(r.id)
+            }}
+            onMouseEnter={() => r.id != null && setHoverId(r.id)}
+            onMouseLeave={() => r.id != null && setHoverId((h) => (h === r.id ? null : h))}
           >
             {/* A ring on a room you have stood in.
              *
@@ -395,14 +457,25 @@ export function MapCanvas({
                 (r.tags?.length ? `\n${r.tags.join(', ')}` : '') +
                 (times ? `\nvisited ${times === 1 ? 'once' : `${times} times`} this session` : '') +
                 (r.gateway ? `\n→ ${r.gateway.name}  (click to follow)` : '') +
-                (r.leaves?.length ? `\nleaves the zone: ${r.leaves.join(', ')}` : '')}
+                (r.leaves?.length ? `\nleaves the zone: ${r.leaves.join(', ')}` : '') +
+                (r.id != null && pins?.has(r.id)
+                  ? `\n📍 ${pins.get(r.id)?.label}`
+                  : onPinRoom
+                    ? '\n(right-click to pin)'
+                    : '')}
             </title>
+            {/* Hovering a room lifts it: a touch bigger, its own outline, and
+                its immediate neighbours dimmed slightly rather than lit -
+                the room under the cursor should read as the one thing being
+                asked about, with its connections (drawn above) doing the
+                "where can I go from here" work instead of every neighbour
+                fighting for the same attention. */}
             <rect
               data-here={kind === 'here' ? 'true' : undefined}
-              x={px(r) - box / 2}
-              y={py(r) - box / 2}
-              width={box}
-              height={box}
+              x={px(r) - (isHovered ? box * 0.58 : box / 2)}
+              y={py(r) - (isHovered ? box * 0.58 : box / 2)}
+              width={isHovered ? box * 1.16 : box}
+              height={isHovered ? box * 1.16 : box}
               rx={Math.max(2, 3 * scale)}
               fill={
                 // Where you are and where you are going outrank everything.
@@ -415,15 +488,19 @@ export function MapCanvas({
                   : inkFor(r.mapColour, FILL[kind])
               }
               stroke={
-                kind === 'here'
+                isHovered
                   ? 'var(--map-here)'
-                  : kind === 'hazard'
-                    ? 'var(--color-danger)'
-                    : kind === 'service'
-                      ? 'var(--map-ink)'
-                      : 'var(--map-ink)'
+                  : kind === 'here'
+                    ? 'var(--map-here)'
+                    : kind === 'hazard'
+                      ? 'var(--color-danger)'
+                      : kind === 'service'
+                        ? 'var(--map-ink)'
+                        : 'var(--map-ink)'
               }
-              strokeWidth={kind === 'here' ? 2.5 * scale : 1 * scale}
+              strokeWidth={isHovered ? 2 * scale : kind === 'here' ? 2.5 * scale : 1 * scale}
+              opacity={isNeighborOfHover ? 0.55 : 1}
+              className="transition-[opacity] duration-100"
             />
             {labels && r.title && (
               <text
@@ -435,6 +512,23 @@ export function MapCanvas({
               >
                 {r.title}
               </text>
+            )}
+            {/* A saved place, marked on the chart itself rather than only in
+                the hotbar below it - so browsing toward one, or noticing you
+                are near Home, doesn't require reading a row of buttons that
+                may not even be in view in a small docked panel. Drawn above
+                everything else on the room: a pin is a fact about the place
+                that outranks what kind of room it happens to be. */}
+            {r.id != null && pins?.has(r.id) && (
+              <circle
+                cx={px(r) + box * 0.62}
+                cy={py(r) - box * 0.62}
+                r={Math.max(1.6, 1.8 * scale)}
+                fill={PIN_COLOR_HEX[pins.get(r.id)!.color]}
+                stroke="var(--map-ground)"
+                strokeWidth={Math.max(0.5, 0.5 * scale)}
+                className="pointer-events-none"
+              />
             )}
           </g>
         )

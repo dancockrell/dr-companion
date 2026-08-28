@@ -1,9 +1,14 @@
 /**
- * The world's background: terrain ambience, per-zone music, and an optional
- * radio override, layered the way the Mud Sound Protocol has laid this out
- * for decades - room/zone music overrides area ambience, never replaces it,
- * and nothing here is game audio ripped from DragonRealms. Everything under
- * public/audio/ is sourced and licensed in data/audio/manifest.json.
+ * Music: per-zone playlists and an optional radio override. No ambient
+ * terrain-texture layer - it shipped once (28 Aug 2026) and was pulled back
+ * out the same day, Dan's call, after it caused exactly the overlap it was
+ * built to avoid: "the idea for that ambiance is bad anyways. pull out that
+ * kind of stuff. lets not." Then, immediately after: "i do want music. not
+ * ambiant...just the music...lots of songs we had." One layer, not two -
+ * nothing here fights anything else here for attention, because there is
+ * only ever one thing playing in the `music` slot at a time. Nothing here is
+ * game audio ripped from DragonRealms; everything under `public/audio/` is
+ * sourced and licensed in `data/audio/manifest.json`.
  *
  * # Why zone, not room
  *
@@ -15,20 +20,16 @@
  * distinct" design actually wants. `setZone` is a no-op unless the zone id it
  * is given differs from the one already playing.
  *
- * # Two independent tracks, one of them optional
+ * # Zone music is a playlist, not one file
  *
- * Ambient (ambient.*) is the terrain texture - wind, water, cave drips -
- * looked up by the zone's biome in zone-biomes.json. It has broad coverage
- * because every zone has a biome.
+ * `manifest.json`'s `zone` object maps a zone id to a list of track ids
+ * (reusing the same pool of tracks radio stations draw from - there is no
+ * separate zone-only file set), built to run roughly an hour before it loops
+ * (Dan's ask, 28 Aug 2026 - one-hour region playlists, aware of what the
+ * zone actually is, not just its biome). A zone with no playlist plays
+ * nothing, which is silence, not an error.
  *
- * Music (music.*) is the zone's own theme, one file per zone id, tried at
- * `/audio/zone/<id>.mp3` by convention rather than looked up anywhere - the
- * same "try it, degrade if it is not installed" shape as `roomArtUrl` in
- * roomText.ts. Most zones do not have one yet; a missing file 404s inside
- * the `<audio>` element and simply never starts, which is silence, not an
- * error - correct for a layer whose whole job is to be optional.
- *
- * # Radio is a third track, not a mode - and a station, not a track
+ * # Radio is a station, not a track
  *
  * A Fallout-style radio, not a jukebox: selecting a station starts a
  * *playlist* that loops and advances on its own, the way Galaxy News Radio
@@ -37,17 +38,14 @@
  * groups them for a picker, and `RadioPlayer` below is what actually walks
  * a station's list - shuffled once per station switch so the order isn't
  * identical every time, looping the whole list rather than one track.
- *
- * Selecting a station swaps what plays in the music slot without touching
- * ambient - the terrain keeps breathing under whatever is playing on top of
- * it, same as a real radio does not turn off the wind outside.
+ * Selecting a station overrides zone music in the same slot; deselecting it
+ * goes back to whatever the current zone's playlist is.
  */
 // The `with { type: 'json' }` attribute is required by plain Node ESM (which
 // tools/ambient-test.mjs uses to import this file directly, the same way
 // trail-test.mjs and flow-test.mjs import .ts sources elsewhere in this
 // repo) even though Vite accepts a bare JSON import without it. Without the
 // attribute this module fails to import outside a bundler at all.
-import zoneBiomes from '../../data/audio/zone-biomes.json' with { type: 'json' }
 import manifest from '../../data/audio/manifest.json' with { type: 'json' }
 
 export interface RadioTrack {
@@ -90,6 +88,18 @@ const RADIO_FILES: Record<string, string> = Object.fromEntries(
   (manifest.radio ?? []).map((r) => [r.id, `/audio/${r.file}`])
 )
 
+interface ZoneManifestEntry {
+  tracks?: string[]
+  character?: string
+}
+
+const ZONE_MANIFEST = manifest.zone as Record<string, ZoneManifestEntry>
+
+/** Zone id -> the track ids its playlist names, in the order authored. */
+const ZONE_TRACKS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(ZONE_MANIFEST).map(([zoneId, z]) => [zoneId, z.tracks ?? []])
+)
+
 function shuffled<T>(items: T[]): T[] {
   const out = items.slice()
   for (let i = out.length - 1; i > 0; i--) {
@@ -99,47 +109,33 @@ function shuffled<T>(items: T[]): T[] {
   return out
 }
 
-type Biome = keyof typeof BIOME_FILES
-
-const BIOME_FILES = {
-  forest: '/audio/biome/forest.ogg',
-  town: '/audio/biome/town.mp3',
-  cave: '/audio/biome/cave.mp3',
-  dungeon: '/audio/biome/dungeon.ogg',
-  // Stand-ins, not yet given their own track - see docs/AUDIO.md.
-  wilderness: '/audio/biome/forest.ogg',
-  water: '/audio/biome/forest.ogg',
-  road: '/audio/biome/forest.ogg',
-  settlement: '/audio/biome/town.mp3',
-  interior: '/audio/biome/town.mp3',
-  badlands: '/audio/biome/forest.ogg',
-  liminal: '/audio/biome/forest.ogg',
-} as const
-
-/**
- * Every biome resolves to a real file today, several of them sharing the two
- * tracks fetched so far as a stand-in. That is stated here rather than left
- * for someone to discover by ear: `data/audio/manifest.json` is where a
- * biome's own track gets added, and `BIOME_FILES` is the only other place
- * that has to change.
- */
-const FALLBACK_BIOME: Biome = 'wilderness'
-
-const ZONE_BIOMES: Record<string, { name: string; biome: string }> = zoneBiomes
-
 const FADE_MS = 2500
 const TICK_MS = 50
 
-/** One layer, faded rather than cut. Loops by default; radio turns that off and drives `onEnded` instead. */
+/**
+ * The one music layer, faded rather than cut. Loops by default; radio and
+ * zone playlists both turn that off and drive `onEnded` instead.
+ *
+ * Volume has two parts, multiplied together. `mix` is the level the caller
+ * asks for at `play()` time - kept deliberately modest (0.22, Dan's "blend
+ * into the background" instruction, 28 Aug 2026) so the 100% gain position
+ * is already a reasonable level rather than a starting point to find by ear.
+ * `gain` is the listener's own slider, 0 to 1.5 (0% to 150%), default 1 -
+ * turning gain to 0 is how this goes silent; there is no separate mute flag
+ * to fall out of sync with the slider.
+ */
 class Layer {
   private el: HTMLAudioElement | null = null
-  private targetVolume = 0
-  private fadeTimer: ReturnType<typeof setInterval> | null = null
-  private muted = false
+  private mix = 0
+  private gain = 1
 
-  setMuted(v: boolean) {
-    this.muted = v
-    if (this.el) this.el.volume = v ? 0 : this.targetVolume
+  private get target(): number {
+    return this.mix * this.gain
+  }
+
+  setGain(v: number) {
+    this.gain = Math.max(0, Math.min(1.5, v))
+    if (this.el) this.el.volume = this.target
   }
 
   /**
@@ -149,9 +145,9 @@ class Layer {
    * station) should not rely on `play` for that; nothing here currently needs
    * to.
    */
-  play(src: string | null, volume = 0.35, opts?: { loop?: boolean; onEnded?: () => void }) {
+  play(src: string | null, mix = 0.22, opts?: { loop?: boolean; onEnded?: () => void }) {
     if (src === (this.el?.dataset.src ?? null)) return
-    this.targetVolume = volume
+    this.mix = mix
 
     const dying = this.el
     if (dying) this.fadeOutAndStop(dying)
@@ -179,14 +175,11 @@ class Layer {
   }
 
   private fadeIn(el: HTMLAudioElement) {
-    if (this.fadeTimer) clearInterval(this.fadeTimer)
-    const step = (this.muted ? 0 : this.targetVolume) / (FADE_MS / TICK_MS)
-    this.fadeTimer = setInterval(() => {
-      el.volume = Math.min(this.muted ? 0 : this.targetVolume, el.volume + step)
-      if (el.volume >= (this.muted ? 0 : this.targetVolume) - 0.001 && this.fadeTimer) {
-        clearInterval(this.fadeTimer)
-        this.fadeTimer = null
-      }
+    const target = this.target
+    const step = target / (FADE_MS / TICK_MS)
+    const timer = setInterval(() => {
+      el.volume = Math.min(target, el.volume + step)
+      if (el.volume >= target - 0.001) clearInterval(timer)
     }, TICK_MS)
   }
 
@@ -203,7 +196,6 @@ class Layer {
   }
 }
 
-const ambient = new Layer()
 const music = new Layer()
 
 let currentZone: string | null = null
@@ -229,7 +221,7 @@ class RadioPlayer {
     this.stationId = stationId
 
     if (!stationId) {
-      music.play(currentZone ? `/audio/zone/${currentZone}.mp3` : null, 0.4)
+      zoneMusic.select(currentZone)
       return
     }
 
@@ -239,7 +231,7 @@ class RadioPlayer {
     // single-track lookup did.
     if (!station || !station.tracks.length) {
       this.stationId = null
-      music.play(currentZone ? `/audio/zone/${currentZone}.mp3` : null, 0.4)
+      zoneMusic.select(currentZone)
       return
     }
 
@@ -251,7 +243,7 @@ class RadioPlayer {
   private playCurrent() {
     const track = this.queue[this.pos]
     if (!track) return
-    music.play(RADIO_FILES[track.id], 0.4, { loop: false, onEnded: () => this.advance() })
+    music.play(RADIO_FILES[track.id], 0.22, { loop: false, onEnded: () => this.advance() })
   }
 
   private advance() {
@@ -266,13 +258,55 @@ class RadioPlayer {
   }
 }
 
-const radio = new RadioPlayer()
+/**
+ * Walks the current zone's playlist, same shape as `RadioPlayer` - shuffle
+ * on entry, advance on `ended`, reshuffle rather than repeat the identical
+ * order when the list loops. A zone with no playlist plays nothing; `setZone`'s
+ * no-op-on-unchanged-id guard is what already stops this from restarting on
+ * every room, so this player only has to care about zone *changes*, never
+ * room changes within one.
+ */
+class ZoneMusicPlayer {
+  private zoneId: string | null = null
+  private queue: string[] = []
+  private pos = 0
 
-/** Does this zone id have a biome we know about? Unknown zones get the fallback, quietly. */
-function biomeFor(zoneId: string): Biome {
-  const b = ZONE_BIOMES[zoneId]?.biome
-  return b && b in BIOME_FILES ? (b as Biome) : FALLBACK_BIOME
+  select(zoneId: string | null) {
+    this.zoneId = zoneId
+    const ids = zoneId ? (ZONE_TRACKS[zoneId] ?? []) : []
+    if (!ids.length) {
+      music.play(null)
+      return
+    }
+    this.queue = shuffled(ids)
+    this.pos = 0
+    this.playCurrent()
+  }
+
+  private playCurrent() {
+    const id = this.queue[this.pos]
+    const file = id ? RADIO_FILES[id] : undefined
+    if (!file) return
+    music.play(file, 0.22, { loop: false, onEnded: () => this.advance() })
+  }
+
+  private advance() {
+    // `Layer.play()` pauses the outgoing element before the new one starts,
+    // which stops a superseded track's `ended` from firing under normal use
+    // - this guard is defense against the case where it does anyway (a zone
+    // left to no playlist at all), not a claim the race is fully closed.
+    if (this.zoneId === null) return
+    this.pos++
+    if (this.pos >= this.queue.length) {
+      this.queue = shuffled(this.queue)
+      this.pos = 0
+    }
+    this.playCurrent()
+  }
 }
+
+const zoneMusic = new ZoneMusicPlayer()
+const radio = new RadioPlayer()
 
 /**
  * Called on every zone report from the live bridge. A no-op unless the zone
@@ -282,18 +316,10 @@ export function setZone(zoneId: string | null) {
   if (zoneId === currentZone) return
   currentZone = zoneId
 
-  if (!zoneId) {
-    ambient.play(null)
-    if (!radio.current) music.play(null)
-    return
-  }
-
-  ambient.play(BIOME_FILES[biomeFor(zoneId)], 0.3)
-
   // Radio, once selected, keeps playing across zone changes - it is a
   // deliberate override, not a per-zone thing to interrupt.
   if (!radio.current) {
-    music.play(`/audio/zone/${zoneId}.mp3`, 0.4)
+    zoneMusic.select(zoneId)
   }
 }
 
@@ -306,19 +332,22 @@ export function currentRadioStation(): string | null {
   return radio.current
 }
 
-let muted = false
-export function setAmbienceMuted(v: boolean) {
-  muted = v
-  ambient.setMuted(v)
-  music.setMuted(v)
+/**
+ * 0 to 1.5 (0% to 150%); 0 is silent, and there is no separate mute flag -
+ * see `Layer`'s header for why. Default 0 (28 Aug 2026, Dan) - a first run
+ * starts silent; kept in sync by hand with persistence.ts's own default.
+ */
+let musicGain = 0
+export function setMusicVolume(v: number) {
+  musicGain = Math.max(0, Math.min(1.5, v))
+  music.setGain(musicGain)
 }
-export function ambienceMuted(): boolean {
-  return muted
+export function musicVolume(): number {
+  return musicGain
 }
 
 /** For a hard reset - leaving a character, or a settings reload. */
-export function stopAmbience() {
-  ambient.stop()
+export function stopMusic() {
   music.stop()
   currentZone = null
   radio.select(null)

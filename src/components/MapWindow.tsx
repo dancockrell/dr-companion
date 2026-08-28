@@ -11,14 +11,16 @@
  * and the mock runs in-process per window. It means this window keeps working
  * if the main one is busy, and it means neither can corrupt the other's state.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
-import { useMapDock, setMapDock } from '../lib/mapDock'
-
-const ZOOMS = [1, 1.5, 2, 3]
+import { MapPinBar } from './shared/MapPinBar'
+import { PinEditor } from './shared/PinEditor'
+import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
+import { useMapDock, setMapDock, WINDOW_ZOOM_MIN, WINDOW_ZOOM_MAX } from '../lib/mapDock'
+import { useMapViewport } from '../lib/useMapViewport'
 
 export function MapWindow() {
   const zone = useAppStore((s) => s.mapZone)
@@ -37,9 +39,34 @@ export function MapWindow() {
    * would silently mean something different in each window.
    */
   const zoom = useMapDock().windowZoom
-  const setZoom = (next: number | ((v: number) => number)) =>
-    setMapDock({ windowZoom: typeof next === 'function' ? next(zoom) : next })
+  const setZoom = (z: number) => setMapDock({ windowZoom: z })
   const [labels, setLabels] = useState(false)
+
+  /**
+   * Scroll-wheel zoom anchored at the cursor, and click-and-drag panning.
+   *
+   * Replaces plain `overflow-auto` scrolling. A window whose whole point is
+   * to be left open and watched deserves to be zoomed and panned the way any
+   * map is - toward wherever you're pointing, by grabbing the sheet - not by
+   * hunting for a scrollbar or clicking a zoom button four times and landing
+   * somewhere else on the chart.
+   */
+  const {
+    containerRef,
+    x: panX,
+    y: panY,
+    zoom: viewZoom,
+    dragging,
+    handlers,
+    zoomBy,
+    centerOn,
+    resetPan,
+  } = useMapViewport({
+    zoom,
+    onZoomChange: setZoom,
+    min: WINDOW_ZOOM_MIN,
+    max: WINDOW_ZOOM_MAX,
+  })
 
   // This window connects for itself. It did not inherit the main window's
   // socket, because it does not share its JavaScript at all.
@@ -57,15 +84,85 @@ export function MapWindow() {
   }, [zone])
 
   const trail = useAppStore((s) => s.mapTrail)
+  const character = useAppStore((s) => s.character)
+  const hereId = useAppStore((s) => s.mapHere?.id ?? null)
 
   const onRoute = useMemo(
     () => new Set((path?.ok ? (path.rooms ?? []) : []).map((r) => r.id)),
     [path]
   )
 
+  // Same pin store as the docked panel (see MapPanel.tsx) - a separate
+  // webview with its own JavaScript context, but the same localStorage, so a
+  // pin added in either window is there the next time this one re-renders.
+  // Read straight from storage during render; pinVersion exists only to
+  // force a re-read after a write this window made itself.
+  const [pinVersion, setPinVersion] = useState(0)
+  const { pins, pinsByRoom } = useMemo(() => {
+    const list = character ? loadPins(character.name, character.instance) : []
+    return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
+  }, [character, pinVersion])
+
+  const [editingRoom, setEditingRoom] = useState<{ id: number; title: string; existing?: MapPin } | null>(
+    null
+  )
+
+  function goThere(roomId: number) {
+    bridge.requestIntent('map_path', { to: roomId })
+    bridge.requestIntent('map_walk', { to: roomId })
+  }
+
+  function pinRoom(id: number) {
+    const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
+    setEditingRoom({ id, title, existing: pinFor(pins, id) })
+  }
+
+  function savePin(label: string, color: MapPin['color']) {
+    if (!character || !editingRoom) return
+    if (editingRoom.existing) {
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color })
+    } else {
+      addPin(character.name, character.instance, {
+        roomId: editingRoom.id,
+        zone: zone?.zone ?? '',
+        label,
+        color,
+      })
+    }
+    setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+
+  function deletePin() {
+    if (!character || !editingRoom?.existing) return
+    removePin(character.name, character.instance, editingRoom.existing.id)
+    setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+
   const z = level ?? levels[0] ?? 0
 
+  /**
+   * Recenter on "here" when the character moves or the level changes - not
+   * on every zoom change, which is what the old scroll-based centering did.
+   * That made sense when zoom had no anchor point of its own; now that wheel
+   * zoom anchors on the cursor and the buttons anchor on the box center (see
+   * useMapViewport), re-centering on every zoom step would fight both and
+   * always snap back to "here" the moment you zoomed toward anything else.
+   */
+  const centeredFor = useRef<string | null>(null)
+  const onHereAt = useCallback(
+    (x: number, y: number) => {
+      const key = `${zone?.here}:${z}`
+      if (centeredFor.current === key) return
+      centeredFor.current = key
+      centerOn(x, y)
+    },
+    [zone?.here, z, centerOn]
+  )
+
   return (
+    <>
     <div className="h-full w-full flex flex-col bg-surface text-ink">
       <header className="shrink-0 flex items-center justify-between gap-3 border-b border-border px-3 py-2">
         <div className="min-w-0">
@@ -117,23 +214,27 @@ export function MapWindow() {
 
           <button
             type="button"
-            className="p-1 rounded border border-border text-ink-faint hover:text-ink"
+            className="p-1 rounded border border-border text-ink-faint hover:text-ink disabled:opacity-40"
             title="Zoom out"
-            onClick={() =>
-              setZoom((v) => ZOOMS[Math.max(0, ZOOMS.indexOf(v) - 1)] ?? ZOOMS[0])
-            }
+            disabled={zoom <= WINDOW_ZOOM_MIN}
+            onClick={() => zoomBy(1 / 1.3)}
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
-            className="p-1 rounded border border-border text-ink-faint hover:text-ink"
+            className="min-w-10 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
+            title="Reset pan"
+            onClick={() => resetPan()}
+          >
+            {zoom.toFixed(1)}x
+          </button>
+          <button
+            type="button"
+            className="p-1 rounded border border-border text-ink-faint hover:text-ink disabled:opacity-40"
             title="Zoom in"
-            onClick={() =>
-              setZoom(
-                (v) => ZOOMS[Math.min(ZOOMS.length - 1, ZOOMS.indexOf(v) + 1)] ?? v
-              )
-            }
+            disabled={zoom >= WINDOW_ZOOM_MAX}
+            onClick={() => zoomBy(1.3)}
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
@@ -148,19 +249,52 @@ export function MapWindow() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-auto p-3">
-        {zone?.ok ? (
-          <MapCanvas
-            zone={zone}
-            level={z}
-            onRoute={onRoute}
-            scale={zoom}
-            labels={labels}
-            onPick={(id) => bridge.requestIntent('map_path', { to: id })}
-            trail={trail}
+      {(pins.length > 0 || hereId != null) && (
+        <div className="shrink-0 border-b border-border px-3 py-1.5">
+          <MapPinBar
+            pins={pins}
+            onGo={(pin) => goThere(pin.roomId)}
+            onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+            onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
           />
+        </div>
+      )}
+
+      <main
+        ref={containerRef}
+        className={`flex-1 min-h-0 overflow-hidden relative ${
+          dragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+        style={{ touchAction: 'none' }}
+        onWheel={handlers.onWheel}
+        onPointerDown={handlers.onPointerDown}
+        onPointerMove={handlers.onPointerMove}
+        onPointerUp={handlers.onPointerUp}
+        onClickCapture={handlers.onClickCapture}
+      >
+        {zone?.ok ? (
+          <div
+            className={dragging ? '' : 'transition-transform duration-150 ease-out'}
+            style={{
+              position: 'absolute',
+              transform: `translate(${panX}px, ${panY}px) scale(${viewZoom})`,
+              transformOrigin: '0 0',
+            }}
+          >
+            <MapCanvas
+              zone={zone}
+              level={z}
+              onRoute={onRoute}
+              labels={labels}
+              onPick={goThere}
+              trail={trail}
+              onHereAt={onHereAt}
+              pins={pinsByRoom}
+              onPinRoom={pinRoom}
+            />
+          </div>
         ) : (
-          <p className="text-xs text-ink-faint">
+          <p className="p-3 text-xs text-ink-faint">
             {zone?.reason ??
               (connected
                 ? 'Nothing yet. Press refresh, or move a room.'
@@ -176,9 +310,20 @@ export function MapWindow() {
             ? `${path.steps} rooms to ${
                 path.rooms?.[path.rooms.length - 1]?.title ?? path.to
               }`
-            : 'Click a room for its route'}
+            : 'Scroll to zoom, drag to pan, click a room to walk there'}
         </span>
       </footer>
-    </div>
+      </div>
+      {editingRoom && (
+        <PinEditor
+          roomId={editingRoom.id}
+          roomTitle={editingRoom.title}
+          existing={editingRoom.existing}
+          onSave={savePin}
+          onDelete={editingRoom.existing ? deletePin : undefined}
+          onClose={() => setEditingRoom(null)}
+        />
+      )}
+    </>
   )
 }

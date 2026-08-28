@@ -44,7 +44,1334 @@
       "attributionRequired": false
     }
   },
-  "zone": {},
+  "zone": {
+    "1": {
+      "tracks": [
+        "beethoven-moonlight-3",
+        "mozart-symphony-36-kv-425-linz-3",
+        "symphony-no-18-in-f-major-k-130-ii-andantino-grazioso-mozart",
+        "mozart-symphony-36-kv-425-linz-1",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "haydn-symphony-no-94-surprise-2-andante",
+        "beethoven-moonlight-3",
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "chopin-nocturne-32-1",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "2": {
+      "tracks": [
+        "1-sallu-ya-ibad",
+        "fiddles-mcginty-isrc-usuan1400051",
+        "nadezhda-plevitskaya-za-morem-sinichka",
+        "07-united-states-navy-band-victory-at-sea-songs-of-sailor-an",
+        "jan-ke-tami-ale-o-pali",
+        "sargasso",
+        "jan-ke-tami-o-weka-tan-ona",
+        "jan-ke-tami-ale-o-pali",
+        "leis-a-lurrighan",
+        "marching-through-georgia-by-henry-c-work-sung-by-harlan-stan",
+        "sargasso",
+        "jan-ke-tami-o-tawa-e-mi",
+        "netherworld-shanty-isrc-usuan1100138",
+        "07-united-states-navy-band-victory-at-sea-songs-of-sailor-an",
+        "howie-mitchell-04-haul-away-joe",
+        "the-message-of-the-violet-from-the-prince-of-pilsen-1902-sun",
+        "tawtutb-whole-view-5-choruses-with-east-folk-dialogue",
+        "jan-ke-tami-o-weka-tan-ona",
+        "johnbsails-prickly-bear",
+        "harry-martinson-berattar-om-olika-slags-sea-shanties-smv-sva",
+        "leis-a-lurrighan",
+        "fiddles-mcginty-isrc-usuan1400051"
+      ],
+      "character": "coastal/maritime - shanties, with some exotic-world flavor"
+    },
+    "4": {
+      "tracks": [
+        "inleiding-staatskoor-van-letland-audio",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "george-frideric-handel-music-for-the-royal-fireworks-3-peace",
+        "george-frideric-handel-music-for-the-royal-fireworks-4-la-re",
+        "funeral-march-for-queen-mary-h-purcell-opus",
+        "inleiding-koor-orkest-collegium-vocale-gent-audio"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "6": {
+      "tracks": [
+        "mozart-symphony-no-19-in-e-flat-major-iv-allegro-mozart-euro",
+        "handel-messiah-01-sinfony-new-version-deleted-3-coughs",
+        "marc-antoine-charpentier-te-deum-h-146-prelude",
+        "pasquale-amato-tosca-te-deum",
+        "inleiding-le-concert-spirituel-herve-niquet-audio",
+        "handel-messiah-part-1-scherchen-01-sinfony",
+        "handel-messiah-01-sinfony",
+        "george-frideric-handel-music-for-the-royal-fireworks-4-la-re",
+        "cra09583-44-mirotice",
+        "radio-herrijzend-nederland-3-7-1945-dodenherdenking-in-de-st"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "7": {
+      "tracks": [
+        "haydn-symphony-no-94-surprise-4-finale-allegro-molto",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-i-prelude",
+        "romanza-espanola",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-gigue",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-iii-courante",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-sarabande",
+        "romance-anonimo-jeux-interdits",
+        "fermin-pardo-cinta-60-a",
+        "fundacion-joaquin-diaz-ato-00314b-10-fandanguillo-critica-a-",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-allemande",
+        "fermin-pardo-cinta-53-a"
+      ],
+      "character": "a trade road - pastoral orchestral and solo string for travel"
+    },
+    "8": {
+      "tracks": [
+        "te-deum",
+        "beethoven-moonlight-2",
+        "mozart-symphony-36-kv-425-linz-4",
+        "mozart-symphony-36-kv-425-linz-3",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "symphony-no-35-in-d-haffner-k-385-iv-finale-presto-mozart-eu",
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "mozart-symphony-no-40-in-g-minor-k550-i-molto-allegro-musope",
+        "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
+        "symphony-no-18-in-f-major-k-130-ii-andantino-grazioso-mozart",
+        "handel-messiah-44-hallelujah",
+        "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
+        "w-a-mozart-symphony-n-25-iv-allegro"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "10": {
+      "tracks": [
+        "liszt-sonata-in-b-minor-piano-jorge-bolet-1960",
+        "brahms-symphony-no-3-in-f-major-op-90-ii-andante",
+        "brahms-symphony-no-3-in-f-major-op-90-iv-allegro",
+        "brahms-symphony-no-1-in-c-minor-op-68-ii-andante-sostenuto-m",
+        "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-2nd-movement",
+        "tchaikovsky-theme-from-symphony-no-6-in-b-minor-op-74-pathet"
+      ],
+      "character": "named for loss or ruin - leans on the dark/dramatic station entirely"
+    },
+    "11": {
+      "tracks": [
+        "pdp-ch-london-symphony-orchestra-bruno-walter-symphony-no-9-",
+        "ala-fi-sabil-allah",
+        "haydn-symphony-no-100-in-g-major-military-2-allegretto",
+        "haydn-symphony-no-94-surprise-4-finale-allegro-molto",
+        "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto",
+        "haydn-symphony-no-94-surprise-2-andante",
+        "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
+        "mozart-symphony-36-kv-425-linz-2",
+        "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
+        "haydn-symphony-no-94-surprise-2-andante",
+        "symphony-no-35-in-d-haffner-k-385-iv-finale-presto-mozart-eu",
+        "haydn-surprise-symphony-second-movement"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "13": {
+      "tracks": [
+        "brahms-symphony-no-4-in-e-minor-op-98-iii-allegro-giocoso-po",
+        "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio-mus",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-ii-all",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iii-al",
+        "mahler-symphony-no-2-ii-andante-moderato",
+        "mahler-symphony-no-6-andante-moderato"
+      ],
+      "character": "named for loss or ruin - leans on the dark/dramatic station entirely"
+    },
+    "30": {
+      "tracks": [
+        "handel-messiah-hallelujah-by-oratorio-chorus",
+        "mozart-symphony-no-19-in-e-flat-major-iv-allegro-mozart-euro",
+        "handel-messiah-44-hallelujah",
+        "beethoven-moonlight-3",
+        "handel-messiah-part-1-scherchen-01-sinfony",
+        "pasquale-amato-tosca-te-deum",
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-iv",
+        "george-frideric-handel-music-for-the-royal-fireworks-4-la-re",
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-ii",
+        "columbia-dx1536-cax10357",
+        "pasquale-amato-tosca-te-deum",
+        "inleiding-le-concert-spirituel-olv-herve-niquet-audio"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "31": {
+      "tracks": [
+        "haydn-symphony-no-100-in-g-major-military-4-finale-presto",
+        "mozart-symphony-no-19-in-e-flat-major-i-allegro-mozart-europ",
+        "inleiding-anima-eterna-jos-van-immerseel-audio",
+        "te-deum-charpentier",
+        "inleiding-le-concert-spirituel-olv-herve-niquet-audio"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "32": {
+      "tracks": [
+        "symphony-no-35-in-d-haffner-k-385-iii-minuetto-mozart-europe",
+        "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
+        "mozart-symphony-36-kv-425-linz-3",
+        "mozart-symphony-no-40-in-g-minor-k550-i-molto-allegro-musope",
+        "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
+        "symphony-no-35-in-d-haffner-k-385-ii-andante-mozart-european",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto",
+        "mozart-symphony-no-34-c-major-ii-andante-di-molto-mozart-eur",
+        "mozart-symphony-no-19-in-e-flat-major-iii-menuetto-mozart-eu",
+        "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto",
+        "funeral-march-for-queen-mary-h-purcell-opus",
+        "beethoven-moonlight-2",
+        "w-a-mozart-symphony-n-25-ii-andante"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "35": {
+      "tracks": [
+        "cc0-ch-london-brass-players-a-trumpet-voluntary-jeremiah-cla",
+        "inleiding-anima-eterna-jos-van-immerseel-audio",
+        "te-deum",
+        "hmv-da1480-ola1015",
+        "clarke-trumpet-voluntary",
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-iv",
+        "te-deum",
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-ii",
+        "pdp-ch-the-halle-trumpet-voluntary-columbia-l1986-ax2660",
+        "inleiding-koor-en-orkest-collegium-vocale-gent-olv-philippe-"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "40": {
+      "tracks": [
+        "handel-messiah-hallelujah-by-oratorio-chorus",
+        "symphony-no-35-in-d-haffner-k-385-iv-finale-presto-mozart-eu",
+        "inleiding-koor-orkest-collegium-vocale-gent-audio",
+        "cc0-ch-london-brass-players-a-trumpet-voluntary-jeremiah-cla",
+        "inleiding-koor-orkest-collegium-vocale-gent-audio"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "41": {
+      "tracks": [
+        "piot-ettourase-elie-bensaid",
+        "baschrav-kuzum-hijaz-2",
+        "vatan-march",
+        "7-ludh-bi-n-nabi",
+        "husseyni-saz-semayissi",
+        "cruz-de-el-bateo-version-couplet-original-01",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-allemande",
+        "ala-fi-sabil-allah",
+        "yaseen-surah-al-quran-ahmad-mulkliff-mohd-nor-haji-ibrahim-8",
+        "baschrav-kuzum-hijaz-1",
+        "cruz-de-el-bateo-version-couplet-restaurado",
+        "audio-files-of-spanish-guitar-chords-13",
+        "rani-ben-afrah",
+        "kevin-macleod-j-s-bach-cello-suite-1-in-g-on-dulcimer-prelud",
+        "fermin-pardo-cinta-315-b"
+      ],
+      "character": "a non-human settlement - exotic-world flavor with intimate solo string"
+    },
+    "42": {
+      "tracks": [
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-i-",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-prelude",
+        "funeral-march-for-queen-mary-h-purcell-opus",
+        "inleiding-le-concert-spirituel-herve-niquet-audio",
+        "inleiding-le-concert-spirituel-olv-herve-niquet-audio"
+      ],
+      "character": "a notable interior (manor/keep/guild) - grand with some intimacy"
+    },
+    "47": {
+      "tracks": [
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-ii",
+        "handel-messiah-23-he-was-despised",
+        "handel-messiah-44-hallelujah",
+        "symphony-no-35-in-d-haffner-k-385-ii-andante-mozart-european",
+        "dvorak-antonin-symphony-no-8-op-88-2-adagio",
+        "w-a-mozart-symphony-n-25-iv-allegro",
+        "mozart-symphony-36-kv-425-linz-2",
+        "inleiding-le-concert-spirituel-olv-herve-niquet-audio"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "48": {
+      "tracks": [
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-i-prelude",
+        "cello-suite-1-in-g-prelude-isrc-usuan1100298",
+        "fermin-pardo-cinta-147-b",
+        "erquan-yingyue",
+        "isfahan-gazel-uthman-al-mosuli",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-gigue",
+        "fermin-pardo-cinta-315-a"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "50": {
+      "tracks": [
+        "shika-no-tone",
+        "yaseen-surah-al-quran-ahmad-mulkliff-mohd-nor-haji-ibrahim-8",
+        "rani-ben-afrah",
+        "maqam-sika-1931",
+        "5-ya-ashiqin",
+        "leis-a-lurrighan",
+        "7-ludh-bi-n-nabi",
+        "jan-ke-tami-ale-o-pali",
+        "inleiding-anima-eterna-brugge-jos-van-immerseel-audio"
+      ],
+      "character": "coastal/maritime - shanties, with some exotic-world flavor"
+    },
+    "58": {
+      "tracks": [
+        "audio-files-of-spanish-guitar-chords-08",
+        "santur-concertino",
+        "ala-fi-sabil-allah",
+        "cruz-de-el-bateo-version-couplet-restaurado",
+        "yaseen-surah-al-quran-ahmad-mulkliff-mohd-nor-haji-ibrahim-8",
+        "ala-fi-sabil-allah",
+        "1-sallu-ya-ibad",
+        "fermin-pardo-cinta-145-a"
+      ],
+      "character": "a non-human settlement - exotic-world flavor with intimate solo string"
+    },
+    "59": {
+      "tracks": [
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-iv-sarabande",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-ii-allemande",
+        "bach-cello-suite-bwv-1008-gigue",
+        "audio-files-of-spanish-guitar-chords-07",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-courante",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-v-menuets-i-and-ii",
+        "sor-op-11-no-2",
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "audio-files-of-spanish-guitar-chords-02",
+        "bach-lute-gigue",
+        "fermin-pardo-cinta-147-b"
+      ],
+      "character": "forest - intimate solo string leading, pastoral orchestral under it"
+    },
+    "60": {
+      "tracks": [
+        "symphony-no-18-in-f-major-k-130-ii-andantino-grazioso-mozart",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-sarabande",
+        "haydn-symphony-no-100-in-g-major-military-2-allegretto",
+        "haydn-symphony-no-94-surprise-2-andante",
+        "w-a-mozart-symphony-n-25-iv-allegro",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "mozart-symphony-no-19-in-e-flat-major-iv-allegro-mozart-euro",
+        "w-a-mozart-symphony-n-25-iv-allegro",
+        "tarrega-alhambra",
+        "beethoven-moonlight-2",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-courante",
+        "audio-files-of-spanish-guitar-chords-08",
+        "symphony-no-35-in-d-haffner-k-385-i-allegro-con-spirito-moza",
+        "fermin-pardo-cinta-315-b"
+      ],
+      "character": "a trade road - pastoral orchestral and solo string for travel"
+    },
+    "61": {
+      "tracks": [
+        "verditorrijos",
+        "mozart-symphony-36-kv-425-linz-4",
+        "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven",
+        "haydn-surprise-symphony-second-movement",
+        "haydn-symphony-no-100-in-g-major-military-4-finale-presto",
+        "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven",
+        "chopin-nocturne-32-1",
+        "audio-files-of-spanish-guitar-chords-07",
+        "beethoven-moonlight-3",
+        "mozart-symphony-36-kv-425-linz-2",
+        "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
+        "haydn-symphony-no-94-surprise-4-finale-allegro-molto",
+        "mozart-symphony-no-34-c-major-i-allegro-vivace-mozart-europe"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "62": {
+      "tracks": [
+        "haydn-surprise-symphony-second-movement",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-sarabande",
+        "tarrega-alhambra",
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "fundacion-joaquin-diaz-ato-00920-06-fandanguillos",
+        "mozart-symphony-no-19-in-e-flat-major-ii-andantino-grazioso-",
+        "mozart-symphony-36-kv-425-linz-4",
+        "symphony-no-18-in-f-major-k-130-iii-menuetto-mozart-european",
+        "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven",
+        "w-a-mozart-symphony-n-25-iv-allegro",
+        "haydn-surprise-symphony-second-movement",
+        "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto",
+        "vivaldi-autumn-3",
+        "audio-files-of-spanish-guitar-chords-08",
+        "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto",
+        "mozart-symphony-no-34-c-major-ii-andante-di-molto-mozart-eur"
+      ],
+      "character": "a trade road - pastoral orchestral and solo string for travel"
+    },
+    "63": {
+      "tracks": [
+        "cc0-ch-london-brass-players-a-trumpet-voluntary-jeremiah-cla",
+        "audio-files-of-spanish-guitar-chords-02",
+        "cra09583-44-mirotice",
+        "george-frideric-handel-music-for-the-royal-fireworks-1-overt",
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-v-",
+        "cc0-ch-london-brass-players-a-trumpet-voluntary-jeremiah-cla",
+        "handel-messiah-23-he-was-despised",
+        "marc-antoine-charpentier-te-deum-h-146-prelude",
+        "kevin-macleod-j-s-bach-cello-suite-1-in-g-on-dulcimer-prelud",
+        "handel-messiah-23-he-was-despised",
+        "george-frideric-handel-music-for-the-royal-fireworks-5-minue",
+        "inleiding-koor-en-orkest-collegium-vocale-gent-olv-philippe-"
+      ],
+      "character": "a notable interior (manor/keep/guild) - grand with some intimacy"
+    },
+    "65": {
+      "tracks": [
+        "marche-de-sa-majeste-imperiale-le-sultan-abdul-hamid-han-ii-",
+        "netherworld-shanty-isrc-usuan1100138",
+        "the-natiobar-sea-shanty-vocal",
+        "cruz-de-el-bateo-version-couplet-original-01",
+        "baschrav-kuzum-hijaz-2",
+        "santur-concertino",
+        "istikhbar-zidan",
+        "rani-ben-afrah",
+        "kec-cioglu-m-h-mm-d-coban-bayat",
+        "1-sallu-ya-ibad",
+        "rani-ben-afrah",
+        "piot-ettourase-elie-bensaid",
+        "cruz-de-el-bateo-version-couplet-restaurado",
+        "aldahre-kata-awsali-1914",
+        "baschrav-kuzum-hijaz-1",
+        "2-rubba-laylin",
+        "erquan-yingyue"
+      ],
+      "character": "coastal/maritime - shanties, with some exotic-world flavor"
+    },
+    "66": {
+      "tracks": [
+        "fiddles-mcginty-isrc-usuan1400051",
+        "barichai-bocherh-aarbi-elie-bensaid",
+        "2-rubba-laylin",
+        "tawtutb-whole-view-5-choruses-with-east-folk-dialogue",
+        "flamenco-sample-by-franciscokeep",
+        "7-ludh-bi-n-nabi",
+        "johnbsails-prickly-bear",
+        "drunken-sailor-performed-by-the-midshipmen-glee-club-1977",
+        "maqam-sika-1931",
+        "istakhbar-mezmoum",
+        "harry-martinson-berattar-om-olika-slags-sea-shanties-smv-sva",
+        "istikhbar-djarka",
+        "netherworld-shanty-isrc-usuan1100138",
+        "harry-martinson-berattar-om-olika-slags-sea-shanties-smv-sva",
+        "howie-mitchell-04-haul-away-joe",
+        "jan-ke-tami-ale-o-pali",
+        "lalat-u-l-uns"
+      ],
+      "character": "coastal/maritime - shanties, with some exotic-world flavor"
+    },
+    "67": {
+      "tracks": [
+        "inleiding-anima-eterna-jos-van-immerseel-audio",
+        "cra09583-43-miletin",
+        "clarke-trumpet-voluntary",
+        "pdp-ch-the-halle-trumpet-voluntary-columbia-l1986-ax2660",
+        "pasquale-amato-tosca-te-deum",
+        "george-frideric-handel-music-for-the-royal-fireworks-3-peace",
+        "symphony-no-18-in-f-major-k-130-ii-andantino-grazioso-mozart",
+        "inleiding-le-concert-spirituel-olv-herve-niquet-charpentier-"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "68": {
+      "tracks": [
+        "haydn-surprise-symphony-second-movement",
+        "haydn-symphony-no-100-in-g-major-military-2-allegretto",
+        "symphony-no-18-in-f-major-k-130-iii-menuetto-mozart-european",
+        "haydn-symphony-no-100-in-g-major-military-1-adagio-allegro",
+        "haydn-symphony-no-100-in-g-major-military-3-menuetto-moderat",
+        "vivaldi-autumn-3",
+        "symphony-no-35-in-d-haffner-k-385-ii-andante-mozart-european",
+        "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
+        "mozart-symphony-36-kv-425-linz-2",
+        "grieg-mountain-king",
+        "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
+        "mozart-symphony-no-19-in-e-flat-major-iii-menuetto-mozart-eu",
+        "haydn-symphony-no-100-in-g-major-military-2-allegretto"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "69": {
+      "tracks": [
+        "symphony-no-18-in-f-major-k-130-iii-menuetto-mozart-european",
+        "george-frideric-handel-music-for-the-royal-fireworks-1-overt",
+        "clarke-trumpet-voluntary",
+        "te-deum-charpentier",
+        "george-frideric-handel-music-for-the-royal-fireworks-3-peace",
+        "handel-messiah-part-1-scherchen-01-sinfony",
+        "handel-zadok-the-priest-hwv-258-st-matthew-s-concert-choir",
+        "funeral-march-for-queen-mary-h-purcell-opus",
+        "columbia-dx1536-cax10357",
+        "pdp-ch-the-halle-trumpet-voluntary-columbia-l1986-ax2660",
+        "handel-messiah-01-sinfony-new-version-deleted-3-coughs",
+        "te-deum",
+        "radio-herrijzend-nederland-3-7-1945-dodenherdenking-in-de-st"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "90": {
+      "tracks": [
+        "handel-messiah-01-sinfony",
+        "george-frideric-handel-music-for-the-royal-fireworks-1-overt",
+        "mozart-symphony-no-34-c-major-i-allegro-vivace-mozart-europe",
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-ii",
+        "te-deum-charpentier",
+        "handel-zadok-the-priest-hwv-258-st-matthew-s-concert-choir",
+        "charpentier-te-deum-prelude",
+        "jeremiah-clarke-prince-of-denmarks-march-harpsichord",
+        "te-deum-charpentier",
+        "handel-messiah-23-he-was-despised",
+        "pasquale-amato-tosca-te-deum",
+        "vivaldi-autumn-3",
+        "cra09583-44-mirotice",
+        "jeremiah-clarke-prince-of-denmarks-march-harpsichord",
+        "hmv-da1480-ola1015",
+        "te-deum"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "92": {
+      "tracks": [
+        "fundacion-joaquin-diaz-ato-00278-04a-fandanguillo",
+        "sor-op-11-no-2",
+        "fermin-pardo-cinta-146-b",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-sarabande",
+        "fermin-pardo-cinta-315-a"
+      ],
+      "character": "a trade road - pastoral orchestral and solo string for travel"
+    },
+    "95": {
+      "tracks": [
+        "sor-op-35-no-17",
+        "aldahre-kata-awsali-1914",
+        "marche-de-sa-majeste-imperiale-le-sultan-abdul-hamid-han-ii-",
+        "barichai-bocherh-aarbi-elie-bensaid",
+        "istikhbar-djarka",
+        "piot-ettourase-elie-bensaid",
+        "baschrav-kuzum-hijaz-1",
+        "isfahan-gazel-uthman-al-mosuli",
+        "vatan-march",
+        "cruz-de-el-bateo-version-couplet-original-01",
+        "2-rubba-laylin",
+        "cruz-de-el-bateo-version-couplet-restaurado",
+        "husseyni-saz-semayissi",
+        "5-ya-ashiqin",
+        "8-qad-tala-shawqi",
+        "ala-fi-sabil-allah",
+        "flamenco-sample-by-franciscokeep",
+        "selli-houmoumek",
+        "1-sallu-ya-ibad",
+        "isfahan-gazel-uthman-al-mosuli",
+        "verditorrijos"
+      ],
+      "character": "a non-human settlement - exotic-world flavor with intimate solo string"
+    },
+    "98": {
+      "tracks": [
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "mozart-symphony-no-34-c-major-ii-andante-di-molto-mozart-eur",
+        "vivaldi-autumn-3",
+        "bach-lute-gigue",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-iv-sarabande",
+        "haydn-symphony-no-100-in-g-major-military-2-allegretto",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "jcza-jczarnecki-flamenco",
+        "mozart-symphony-36-kv-425-linz-3",
+        "symphony-no-18-in-f-major-k-130-ii-andantino-grazioso-mozart",
+        "haydn-symphony-no-100-in-g-major-military-2-allegretto",
+        "w-a-mozart-symphony-n-25-iv-allegro"
+      ],
+      "character": "a trade road - pastoral orchestral and solo string for travel"
+    },
+    "99": {
+      "tracks": [
+        "george-frideric-handel-music-for-the-royal-fireworks-4-la-re",
+        "grieg-mountain-king",
+        "symphony-no-18-in-f-major-k-130-iii-menuetto-mozart-european",
+        "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "dvorak-antonin-symphony-no-8-op-88-2-adagio",
+        "beethoven-moonlight-3",
+        "symphony-no-35-in-d-haffner-k-385-i-allegro-con-spirito-moza",
+        "haydn-symphony-no-100-in-g-major-military-1-adagio-allegro",
+        "symphony-no-35-in-d-haffner-k-385-iii-minuetto-mozart-europe",
+        "satie-gymnopedie-3",
+        "chopin-nocturne-32-1",
+        "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "105": {
+      "tracks": [
+        "fermin-pardo-cinta-315-b",
+        "audio-files-of-spanish-guitar-chords-13",
+        "mozart-symphony-no-34-c-major-ii-andante-di-molto-mozart-eur",
+        "mozart-symphony-36-kv-425-linz-4",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "dvorak-antonin-symphony-no-8-op-88-2-adagio"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "106": {
+      "tracks": [
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-i-prelude-lud-and-",
+        "ala-fi-sabil-allah",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-ii-allemande",
+        "albeniz-asturias",
+        "2-rubba-laylin",
+        "romance-anonimo-jeux-interdits",
+        "fundacion-joaquin-diaz-ato-00804-07-jota-canto-de-trabajo-en",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-gigue",
+        "fermin-pardo-cinta-315-a"
+      ],
+      "character": "a non-human settlement - exotic-world flavor with intimate solo string"
+    },
+    "107": {
+      "tracks": [
+        "santur-concertino",
+        "fundacion-joaquin-diaz-ato-00353-04-fandanguillos",
+        "rani-ben-afrah",
+        "erquan-yingyue",
+        "romanza-espanola",
+        "ala-fi-sabil-allah",
+        "husseyni-saz-semayissi",
+        "audio-files-of-spanish-guitar-chords-02",
+        "8-qad-tala-shawqi",
+        "istikhbar-zidan",
+        "fundacion-joaquin-diaz-ato-00237-03-fandanguillos",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-prelude",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-iv-sarabande",
+        "verditorrijos",
+        "barichai-bocherh-aarbi-elie-bensaid",
+        "baschrav-kuzum-hijaz-1",
+        "romance-anonimo-jeux-interdits"
+      ],
+      "character": "a non-human settlement - exotic-world flavor with intimate solo string"
+    },
+    "108": {
+      "tracks": [
+        "8-qad-tala-shawqi",
+        "fermin-pardo-cinta-144-b",
+        "fermin-pardo-cinta-145-a"
+      ],
+      "character": "a non-human settlement - exotic-world flavor with intimate solo string"
+    },
+    "112": {
+      "tracks": [
+        "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
+        "mozart-symphony-no-19-in-e-flat-major-iv-allegro-mozart-euro",
+        "beethoven-moonlight-2",
+        "mozart-symphony-36-kv-425-linz-3",
+        "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "brahms-symphony-no-3-in-f-major-op-90-ii-andante",
+        "mozart-symphony-36-kv-425-linz-2",
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio-mus",
+        "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto"
+      ],
+      "character": "a beast-tribe hold - dramatic orchestral rather than literal tribal instrumentation (Dan: avoid low-quality \"tribal\" demo material)"
+    },
+    "113": {
+      "tracks": [
+        "bach-lute-gigue",
+        "baschrav-kuzum-hijaz-2",
+        "fundacion-joaquin-diaz-ato-00920-06-fandanguillos",
+        "albeniz-asturias",
+        "fundacion-joaquin-diaz-ato-00920-15-fandango",
+        "fundacion-joaquin-diaz-ato-00804-07-jota-canto-de-trabajo-en",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-prelude",
+        "sor-op-35-no-17",
+        "3-ya-ashiqin",
+        "fermin-pardo-cinta-275-b"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "116": {
+      "tracks": [
+        "istakhbar-mezmoum",
+        "cabbar-qaryagd-oglu-bayat-qacar",
+        "ala-fi-sabil-allah",
+        "istakhbar-mezmoum",
+        "baschrav-kuzum-hijaz-2",
+        "flamenco-sample-by-franciscokeep",
+        "verditorrijos",
+        "yaseen-surah-al-quran-ahmad-mulkliff-mohd-nor-haji-ibrahim-8",
+        "husseyni-saz-semayissi",
+        "shika-no-tone",
+        "husseyni-saz-semayissi",
+        "lalat-u-l-uns",
+        "cruz-de-el-bateo-version-couplet-restaurado",
+        "shika-no-tone"
+      ],
+      "character": "a non-human settlement - exotic-world flavor with intimate solo string"
+    },
+    "123": {
+      "tracks": [
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-iii-courante",
+        "fundacion-joaquin-diaz-ato-00804-07-jota-canto-de-trabajo-en",
+        "romanza-espanola",
+        "marche-de-sa-majeste-imperiale-le-sultan-abdul-hamid-han-ii-",
+        "santur-concertino",
+        "verditorrijos",
+        "3-ya-ashiqin",
+        "audio-files-of-spanish-guitar-chords-07",
+        "shika-no-tone",
+        "isfahan-gazel-uthman-al-mosuli",
+        "husseyni-saz-semayissi",
+        "kec-cioglu-m-h-mm-d-coban-bayat",
+        "5-ya-ashiqin",
+        "albeniz-asturias",
+        "istikhbar-djarka",
+        "rani-ben-afrah"
+      ],
+      "character": "a non-human settlement - exotic-world flavor with intimate solo string"
+    },
+    "126": {
+      "tracks": [
+        "w-a-mozart-symphony-n-25-iv-allegro",
+        "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto",
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "grieg-mountain-king",
+        "mozart-symphony-no-19-in-e-flat-major-ii-andantino-grazioso-",
+        "sor-op-11-no-2",
+        "beethoven-moonlight-2",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-gigue",
+        "mozart-symphony-no-40-in-g-minor-k550-ii-andante-musopen-sym",
+        "symphony-no-18-in-f-major-k-130-iii-menuetto-mozart-european",
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "romanza-espanola",
+        "bach-cello-suite-1-prelude-bwv-1007-played-by-chris",
+        "symphony-no-35-in-d-haffner-k-385-ii-andante-mozart-european"
+      ],
+      "character": "a trade road - pastoral orchestral and solo string for travel"
+    },
+    "127": {
+      "tracks": [
+        "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven",
+        "brahms-symphony-no-1-in-c-minor-op-68-i-un-poco-sostenuto-al",
+        "brahms-symphony-no-4-in-e-minor-op-98-iii-allegro-giocoso",
+        "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
+        "mahler-symphony-no-6-andante-moderato",
+        "brahms-symphony-no-3-in-f-major-op-90-ii-andante",
+        "mozart-symphony-no-19-in-e-flat-major-i-allegro-mozart-europ",
+        "mahler-symphony-no-2-ii-andante-moderato"
+      ],
+      "character": "a beast-tribe hold - dramatic orchestral rather than literal tribal instrumentation (Dan: avoid low-quality \"tribal\" demo material)"
+    },
+    "150": {
+      "tracks": [
+        "netherworld-shanty-macleod-kevin-isrc-usuan1100138",
+        "1-sallu-ya-ibad",
+        "the-natiobar-sea-shanty-vocal",
+        "netherworld-shanty-isrc-usuan1100138",
+        "jan-ke-tami-o-tawa-e-mi",
+        "the-message-of-the-violet-from-the-prince-of-pilsen-1902-sun",
+        "johnbsails-prickly-bear",
+        "sargasso",
+        "the-natiobar-sea-shanty-vocal",
+        "jan-ke-tami-o-tawa-e-mi",
+        "the-message-of-the-violet-from-the-prince-of-pilsen-1902-sun",
+        "jan-ke-tami-o-tawa-e-mi",
+        "baschrav-kuzum-hijaz-2",
+        "jan-ke-tami-ma-pona-mawi",
+        "fiddles-mcginty-isrc-usuan1400051",
+        "cruz-de-el-bateo-version-couplet-restaurado",
+        "leis-a-lurrighan",
+        "erquan-yingyue",
+        "5-ya-ashiqin",
+        "drunken-sailor-performed-by-the-midshipmen-glee-club-1977",
+        "jan-ke-tami-ale-o-pali",
+        "flamenco-sample-by-franciscokeep",
+        "3-ya-ashiqin"
+      ],
+      "character": "coastal/maritime - shanties, with some exotic-world flavor"
+    },
+    "997": {
+      "tracks": [
+        "brahms-symphony-no-2-in-d-major-op-73-ii-adagio-non-troppo",
+        "brahms-symphony-no-3-in-f-major-op-90-ii-andante",
+        "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo",
+        "brahms-symphony-no-1-in-c-minor-op-68-ii-andante-sostenuto-m",
+        "tchaikovsky-theme-from-symphony-no-6-in-b-minor-op-74-pathet",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-iv-finale-adagio-",
+        "brahms-symphony-no-3-in-f-major-op-90-iii-poco-allegretto",
+        "brahms-symphony-no-3-in-f-major-op-90-iii-poco-allegretto-mu"
+      ],
+      "character": "a blood-sport arena - dramatic with a grand/ceremonial edge"
+    },
+    "998": {
+      "tracks": [
+        "5-ya-ashiqin",
+        "baschrav-kuzum-hijaz-2",
+        "marche-de-sa-majeste-imperiale-le-sultan-abdul-hamid-han-ii-",
+        "1-sallu-ya-ibad",
+        "erquan-yingyue",
+        "cabbar-qaryagd-oglu-bayat-qacar",
+        "shika-no-tone",
+        "8-qad-tala-shawqi",
+        "selli-houmoumek",
+        "ala-fi-sabil-allah",
+        "flamenco-sample-by-franciscokeep",
+        "fundacion-joaquin-diaz-ato-00804-07-jota-canto-de-trabajo-en",
+        "al-watan-al-akbar",
+        "fundacion-joaquin-diaz-ato-00804-07-jota-canto-de-trabajo-en",
+        "istikhbar-zidan",
+        "santur-concertino"
+      ],
+      "character": "a liminal/otherworldly space (Transports, Microcosm) - exotic and unmoored from any real geography"
+    },
+    "999": {
+      "tracks": [
+        "isfahan-gazel-uthman-al-mosuli",
+        "ala-fi-sabil-allah",
+        "selli-houmoumek",
+        "fundacion-joaquin-diaz-ato-00804-07-jota-canto-de-trabajo-en",
+        "selli-houmoumek",
+        "fundacion-joaquin-diaz-ato-00804-07-jota-canto-de-trabajo-en",
+        "cabbar-qaryagd-oglu-bayat-qacar",
+        "erquan-yingyue",
+        "shika-no-tone",
+        "istakhbar-mezmoum",
+        "barichai-bocherh-aarbi-elie-bensaid",
+        "cruz-de-el-bateo-version-couplet-restaurado",
+        "isfahan-gazel-uthman-al-mosuli",
+        "8-qad-tala-shawqi",
+        "al-watan-al-akbar",
+        "selli-houmoumek"
+      ],
+      "character": "a liminal/otherworldly space (Transports, Microcosm) - exotic and unmoored from any real geography"
+    },
+    "107a": {
+      "tracks": [
+        "santur-concertino",
+        "leis-a-lurrighan",
+        "marching-through-georgia-by-henry-c-work-sung-by-harlan-stan",
+        "maqam-sika-1931",
+        "inleiding-anima-eterna-brugge-jos-van-immerseel-audio",
+        "selli-houmoumek",
+        "fiddles-mcginty-isrc-usuan1400051",
+        "netherworld-shanty-macleod-kevin-isrc-usuan1100138",
+        "07-united-states-navy-band-victory-at-sea-songs-of-sailor-an"
+      ],
+      "character": "coastal/maritime - shanties, with some exotic-world flavor"
+    },
+    "118e": {
+      "tracks": [
+        "brahms-symphony-no-3-in-f-major-op-90-iii-poco-allegretto-mu",
+        "brahms-symphony-no-1-in-c-minor-op-68-iii-un-poco-allegretto",
+        "brahms-symphony-no-3-in-f-major-op-90-ii-andante",
+        "mahler-symphony-no-2-iv-urlicht",
+        "brahms-symphony-no-4-in-e-minor-op-98-ii-andante-moderato",
+        "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo",
+        "brahms-symphony-no-1-in-c-minor-op-68-i-un-poco-sostenuto-al"
+      ],
+      "character": "named for loss or ruin - leans on the dark/dramatic station entirely"
+    },
+    "12a": {
+      "tracks": [
+        "bach-cello-suite-no-5-1-prelude",
+        "handel-messiah-23-he-was-despised",
+        "handel-messiah-part-2-scherchen-45-hallelujah",
+        "handel-messiah-part-1-scherchen-01-sinfony",
+        "cc0-ch-london-brass-players-a-trumpet-voluntary-jeremiah-cla",
+        "inleiding-le-concert-spirituel-olv-herve-niquet-charpentier-",
+        "inleiding-staatskoor-van-letland-audio"
+      ],
+      "character": "a notable interior (manor/keep/guild) - grand with some intimacy"
+    },
+    "14b": {
+      "tracks": [
+        "mozart-symphony-no-19-in-e-flat-major-ii-andantino-grazioso-",
+        "7-ludh-bi-n-nabi",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "fermin-pardo-cinta-53-a",
+        "jcza-jczarnecki-flamenco",
+        "fundacion-joaquin-diaz-ato-00237-03-fandanguillos",
+        "tarrega-alhambra",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "fermin-pardo-cinta-147-b"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "14c": {
+      "tracks": [
+        "johnbsails-prickly-bear",
+        "fiddles-mcginty-isrc-usuan1400051",
+        "marching-through-georgia-by-henry-c-work-sung-by-harlan-stan",
+        "jan-ke-tami-o-weka-tan-ona",
+        "tawtutb-whole-view-5-choruses-with-east-folk-dialogue",
+        "marching-through-georgia-by-henry-c-work-sung-by-harlan-stan",
+        "sargasso",
+        "the-message-of-the-violet-from-the-prince-of-pilsen-1902-sun",
+        "the-natiobar-sea-shanty-vocal",
+        "the-message-of-the-violet-from-the-prince-of-pilsen-1902-sun",
+        "sargasso",
+        "johnbsails-prickly-bear",
+        "the-natiobar-sea-shanty-vocal",
+        "drunken-sailor-performed-by-the-midshipmen-glee-club-1977",
+        "sargasso",
+        "the-natiobar-sea-shanty-vocal",
+        "netherworld-shanty-macleod-kevin-isrc-usuan1100138",
+        "nadezhda-plevitskaya-za-morem-sinichka",
+        "harry-martinson-berattar-om-olika-slags-sea-shanties-smv-sva",
+        "netherworld-shanty-isrc-usuan1100138",
+        "the-natiobar-sea-shanty-vocal"
+      ],
+      "character": "coastal/maritime - shanties, with some exotic-world flavor"
+    },
+    "14d": {
+      "tracks": [
+        "audio-files-of-spanish-guitar-chords-07",
+        "cra09583-09a-dobruska",
+        "handel-messiah-01-sinfony",
+        "te-deum-charpentier",
+        "funeral-march-for-queen-mary-h-purcell-opus",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-prelude",
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-ii",
+        "george-frideric-handel-music-for-the-royal-fireworks-4-la-re",
+        "cra09583-43-miletin",
+        "cra09583-44-mirotice",
+        "inleiding-le-concert-spirituel-olv-herve-niquet-audio",
+        "pasquale-amato-tosca-te-deum",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-sarabande",
+        "cra09583-43-miletin",
+        "fermin-pardo-cinta-146-b"
+      ],
+      "character": "a notable interior (manor/keep/guild) - grand with some intimacy"
+    },
+    "1a": {
+      "tracks": [
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-i-adag",
+        "brahms-symphony-no-3-in-f-major-op-90-iv-allegro",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-iv-finale-adagio-",
+        "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo",
+        "brahms-symphony-no-4-in-e-minor-op-98-ii-andante-moderato"
+      ],
+      "character": "hidden passages beneath a town - furtive, not grand"
+    },
+    "1j": {
+      "tracks": [
+        "haydn-symphony-no-100-in-g-major-military-1-adagio-allegro",
+        "symphony-no-35-in-d-haffner-k-385-iv-finale-presto-mozart-eu",
+        "haydn-symphony-no-100-in-g-major-military-1-adagio-allegro",
+        "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
+        "handel-messiah-part-2-scherchen-45-hallelujah",
+        "symphony-no-35-in-d-haffner-k-385-iv-finale-presto-mozart-eu",
+        "radio-herrijzend-nederland-3-7-1945-dodenherdenking-in-de-st",
+        "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
+        "mozart-symphony-36-kv-425-linz-3"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "1l": {
+      "tracks": [
+        "inleiding-anima-eterna-jos-van-immerseel-audio",
+        "inleiding-koor-en-orkest-collegium-vocale-gent-olv-philippe-",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "haydn-symphony-no-94-surprise-2-andante"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "1m": {
+      "tracks": [
+        "george-frideric-handel-music-for-the-royal-fireworks-1-overt",
+        "charpentier-te-deum-prelude",
+        "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
+        "mozart-symphony-no-40-in-g-minor-k550-i-molto-allegro-musope",
+        "haydn-symphony-no-94-surprise-2-andante",
+        "symphony-no-35-in-d-haffner-k-385-iii-minuetto-mozart-europe",
+        "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
+        "mozart-symphony-36-kv-425-linz-1",
+        "w-a-mozart-symphony-n-25-ii-andante",
+        "haydn-symphony-no-94-surprise-2-andante",
+        "vivaldi-autumn-3",
+        "symphony-no-18-in-f-major-k-130-ii-andantino-grazioso-mozart",
+        "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "1n": {
+      "tracks": [
+        "piot-ettourase-elie-bensaid",
+        "symphony-no-35-in-d-haffner-k-385-i-allegro-con-spirito-moza",
+        "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "jcza-jczarnecki-flamenco",
+        "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto",
+        "haydn-symphony-no-100-in-g-major-military-4-finale-presto",
+        "haydn-surprise-symphony-second-movement",
+        "mozart-symphony-36-kv-425-linz-3",
+        "mozart-symphony-no-40-in-g-minor-k550-i-molto-allegro-musope",
+        "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven",
+        "chopin-nocturne-32-1",
+        "vivaldi-autumn-3",
+        "symphony-no-18-in-f-major-k-130-iii-menuetto-mozart-european",
+        "bach-lute-gigue"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "2a": {
+      "tracks": [
+        "haydn-symphony-no-94-surprise-2-andante",
+        "mozart-symphony-36-kv-425-linz-2",
+        "symphony-no-35-in-d-haffner-k-385-iii-minuetto-mozart-europe",
+        "mozart-symphony-no-40-in-g-minor-k550-i-molto-allegro-musope",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
+        "mozart-symphony-no-34-c-major-i-allegro-vivace-mozart-europe",
+        "mozart-symphony-36-kv-425-linz-4",
+        "mozart-symphony-no-19-in-e-flat-major-ii-andantino-grazioso-",
+        "mozart-symphony-no-19-in-e-flat-major-iii-menuetto-mozart-eu"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "2d": {
+      "tracks": [
+        "liszt-sonata-in-b-minor-piano-jorge-bolet-1960",
+        "cruz-de-el-bateo-version-couplet-original-01",
+        "brahms-symphony-no-3-in-f-major-op-90-iv-allegro-musopen-sym",
+        "brahms-symphony-no-3-in-f-major-op-90-iii-poco-allegretto",
+        "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-1st-movement",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-ii-allegro-con-gr"
+      ],
+      "character": "hidden passages beneath a town - furtive, not grand"
+    },
+    "30a": {
+      "tracks": [
+        "cra09583-44-mirotice",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-g-bourees",
+        "jcza-jczarnecki-flamenco",
+        "bach-cello-suite-bwv-1008-gigue",
+        "romanza-espanola",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-iv-sarabande",
+        "fundacion-joaquin-diaz-ato-00920-15-fandango",
+        "bach-cello-suite-1-prelude-bwv-1007-played-by-chris",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-iii-courante",
+        "romance-anonimo",
+        "fermin-pardo-cinta-315-b"
+      ],
+      "character": "a notable interior (manor/keep/guild) - grand with some intimacy"
+    },
+    "30b": {
+      "tracks": [
+        "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo",
+        "brahms-symphony-no-3-in-f-major-op-90-ii-andante-musopen-sym",
+        "tchaikovsky-theme-from-symphony-no-6-in-b-minor-op-74-pathet",
+        "brahms-symphony-no-4-in-e-minor-op-98-iii-allegro-giocoso-po",
+        "brahms-symphony-no-1-in-c-minor-op-68-ii-andante-sostenuto-m",
+        "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iv-fin"
+      ],
+      "character": "hidden passages beneath a town - furtive, not grand"
+    },
+    "31b": {
+      "tracks": [
+        "fermin-pardo-cinta-145-a",
+        "inleiding-anima-eterna-jos-van-immerseel-audio",
+        "handel-messiah-part-1-scherchen-01-sinfony"
+      ],
+      "character": "a notable interior (manor/keep/guild) - grand with some intimacy"
+    },
+    "33a": {
+      "tracks": [
+        "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
+        "symphony-no-35-in-d-haffner-k-385-iii-minuetto-mozart-europe",
+        "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
+        "haydn-symphony-no-94-surprise-4-finale-allegro-molto",
+        "mozart-symphony-no-19-in-e-flat-major-iv-allegro-mozart-euro",
+        "haydn-symphony-no-100-in-g-major-military-4-finale-presto",
+        "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
+        "haydn-symphony-no-94-surprise-2-andante",
+        "mozart-symphony-no-19-in-e-flat-major-i-allegro-mozart-europ",
+        "symphony-no-35-in-d-haffner-k-385-iv-finale-presto-mozart-eu",
+        "mozart-symphony-36-kv-425-linz-1",
+        "haydn-symphony-no-100-in-g-major-military-1-adagio-allegro"
+      ],
+      "character": "a trade road - pastoral orchestral and solo string for travel"
+    },
+    "35a": {
+      "tracks": [
+        "brahms-symphony-no-1-in-c-minor-op-68-i-un-poco-sostenuto-al",
+        "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio-mus",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iii-al",
+        "brahms-symphony-no-1-in-c-minor-op-68-ii-andante-sostenuto-m",
+        "brahms-symphony-no-3-in-f-major-op-90-iv-allegro-musopen-sym",
+        "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo-m"
+      ],
+      "character": "hidden passages beneath a town - furtive, not grand"
+    },
+    "40a": {
+      "tracks": [
+        "pasquale-amato-tosca-te-deum",
+        "haydn-symphony-no-100-in-g-major-military-4-finale-presto",
+        "te-deum",
+        "charpentier-te-deum-prelude",
+        "cra09583-09a-dobruska",
+        "handel-messiah-hallelujah-by-oratorio-chorus",
+        "inleiding-anima-eterna-jos-van-immerseel-audio",
+        "cra09583-44-mirotice",
+        "haydn-symphony-no-100-in-g-major-military-4-finale-presto"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "47a": {
+      "tracks": [
+        "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-iii-allegro-molto",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-i-adagio-allegro-",
+        "brahms-symphony-no-3-in-f-major-op-90-iv-allegro",
+        "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo-m"
+      ],
+      "character": "hidden passages beneath a town - furtive, not grand"
+    },
+    "4a": {
+      "tracks": [
+        "brahms-symphony-no-1-in-c-minor-op-68-ii-andante-sostenuto-m",
+        "haydn-symphony-no-100-in-g-major-military-2-allegretto",
+        "mozart-symphony-36-kv-425-linz-3",
+        "w-a-mozart-symphony-n-25-iv-allegro",
+        "mozart-symphony-no-40-in-g-minor-k550-ii-andante-musopen-sym",
+        "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven",
+        "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
+        "mozart-symphony-36-kv-425-linz-2",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iv-fin",
+        "haydn-symphony-no-100-in-g-major-military-2-allegretto"
+      ],
+      "character": "a beast-tribe hold - dramatic orchestral rather than literal tribal instrumentation (Dan: avoid low-quality \"tribal\" demo material)"
+    },
+    "62b": {
+      "tracks": [
+        "fundacion-joaquin-diaz-ato-00920-06-fandanguillos",
+        "7-ludh-bi-n-nabi",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-courante",
+        "bach-cello-suite-no-5-1-prelude",
+        "cello-suite-1-in-g-prelude-isrc-usuan1100298",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-sarabande",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-prelude",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-gigue",
+        "rani-ben-afrah",
+        "verditorrijos",
+        "isfahan-gazel-uthman-al-mosuli",
+        "audio-files-of-spanish-guitar-chords-06",
+        "mozart-symphony-36-kv-425-linz-1",
+        "kevin-macleod-j-s-bach-cello-suite-1-in-g-on-dulcimer-prelud",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-courante",
+        "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven",
+        "mozart-symphony-no-19-in-e-flat-major-iv-allegro-mozart-euro",
+        "7-ludh-bi-n-nabi",
+        "grieg-mountain-king",
+        "symphony-no-35-in-d-haffner-k-385-i-allegro-con-spirito-moza"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "67a": {
+      "tracks": [
+        "al-watan-al-akbar",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-ii-allegro-con-gr",
+        "mahler-symphony-no-6-andante-moderato",
+        "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio-mus",
+        "cruz-de-el-bateo-version-couplet-original-01",
+        "brahms-symphony-no-3-in-f-major-op-90-iv-allegro-musopen-sym",
+        "brahms-symphony-no-3-in-f-major-op-90-iii-poco-allegretto"
+      ],
+      "character": "hidden passages beneath a town - furtive, not grand"
+    },
+    "68a": {
+      "tracks": [
+        "audio-files-of-spanish-guitar-chords-15",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-iv-finale-adagio-",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iii-al",
+        "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-1st-movement",
+        "brahms-symphony-no-1-in-c-minor-op-68-ii-andante-sostenuto-m",
+        "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-i-adagio-allegro-"
+      ],
+      "character": "cave, no other signal - mostly dark/dramatic with some intimate solo string"
+    },
+    "68b": {
+      "tracks": [
+        "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio-mus",
+        "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-2nd-movement",
+        "brahms-symphony-no-1-in-c-minor-op-68-i-un-poco-sostenuto-al",
+        "brahms-symphony-no-4-in-e-minor-op-98-iv-allegro-energico-e-",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-i-adagio-allegro-"
+      ],
+      "character": "named for loss or ruin - leans on the dark/dramatic station entirely"
+    },
+    "7a": {
+      "tracks": [
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-v-menuets-i-and-ii",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-i-prelude-lud-and-",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-gigue",
+        "fundacion-joaquin-diaz-ato-00237-03-fandanguillos",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-vi-gigue",
+        "fundacion-joaquin-diaz-ato-00353-04-fandanguillos",
+        "bach-cello-suite-no-5-1-prelude",
+        "romance-anonimo",
+        "fermin-pardo-cinta-145-a",
+        "bach-lute-gigue",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-v-menuets-i-and-ii"
+      ],
+      "character": "forest - intimate solo string leading, pastoral orchestral under it"
+    },
+    "7c": {
+      "tracks": [
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-sarabande",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-minuets",
+        "bach-cello-suite-no-1-in-g-major-bwv-1007-ii-allemande",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-gigue",
+        "fermin-pardo-cinta-145-a",
+        "fermin-pardo-cinta-60-a"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "8a": {
+      "tracks": [
+        "mozart-symphony-no-34-c-major-i-allegro-vivace-mozart-europe",
+        "haydn-symphony-no-100-in-g-major-military-3-menuetto-moderat",
+        "haydn-symphony-no-100-in-g-major-military-4-finale-presto",
+        "mozart-symphony-no-19-in-e-flat-major-ii-andantino-grazioso-",
+        "haydn-symphony-no-100-in-g-major-military-3-menuetto-moderat",
+        "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-iv",
+        "mozart-symphony-no-40-in-g-minor-k550-i-molto-allegro-musope",
+        "mozart-symphony-36-kv-425-linz-4",
+        "george-frideric-handel-music-for-the-royal-fireworks-1-overt",
+        "handel-messiah-01-sinfony-new-version-deleted-3-coughs",
+        "handel-messiah-44-hallelujah",
+        "inleiding-le-concert-spirituel-herve-niquet-audio"
+      ],
+      "character": "a real town - grand/ceremonial mixed with general orchestral"
+    },
+    "90a": {
+      "tracks": [
+        "mozart-symphony-36-kv-425-linz-3",
+        "fermin-pardo-cinta-146-b",
+        "baschrav-kuzum-hijaz-1",
+        "7-ludh-bi-n-nabi",
+        "mozart-symphony-no-19-in-e-flat-major-iii-menuetto-mozart-eu",
+        "ala-fi-sabil-allah",
+        "mozart-symphony-no-19-in-e-flat-major-iii-menuetto-mozart-eu",
+        "bach-cello-suite-bwv-1008-gigue",
+        "selli-houmoumek",
+        "istikhbar-djarka"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "90d": {
+      "tracks": [
+        "mozart-symphony-36-kv-425-linz-2",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-gigue",
+        "audio-files-of-spanish-guitar-chords-07",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-prelude",
+        "john-michel-cello-j-s-bach-cello-suite-3-in-c-sarabande",
+        "mozart-symphony-no-40-in-g-minor-k550-ii-andante-musopen-sym",
+        "john-michel-cello-j-s-bach-cello-suite-1-in-g-courante",
+        "mozart-symphony-no-19-in-e-flat-major-iv-allegro-mozart-euro",
+        "haydn-surprise-symphony-second-movement",
+        "mozart-symphony-36-kv-425-linz-1",
+        "haydn-symphony-no-94-surprise-4-finale-allegro-molto",
+        "satie-gymnopedie-3",
+        "fundacion-joaquin-diaz-ato-00920-06-fandanguillos"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "90e": {
+      "tracks": [
+        "brahms-symphony-no-1-in-c-minor-op-68-ii-andante-sostenuto-m",
+        "tchaikovsky-pathetique-wilhelm-furtwangler-iv-finale-adagio-",
+        "brahms-symphony-no-1-in-c-minor-op-68-i-un-poco-sostenuto-al",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-i-adag",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-ii-all",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iv-fin"
+      ],
+      "character": "named for loss or ruin - leans on the dark/dramatic station entirely"
+    },
+    "98a": {
+      "tracks": [
+        "cello-suite-1-in-g-prelude-isrc-usuan1100298",
+        "brahms-symphony-no-4-in-e-minor-op-98-ii-andante-moderato-mu",
+        "brahms-symphony-no-3-in-f-major-op-90-ii-andante-musopen-sym",
+        "brahms-symphony-no-4-in-e-minor-op-98-iii-allegro-giocoso",
+        "brahms-symphony-no-4-in-e-minor-op-98-iii-allegro-giocoso-po",
+        "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo",
+        "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo-m"
+      ],
+      "character": "cave, no other signal - mostly dark/dramatic with some intimate solo string"
+    },
+    "99a": {
+      "tracks": [
+        "el-noi-de-la-mare-guitar",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "sor-op-35-no-17",
+        "symphony-no-35-in-d-haffner-k-385-ii-andante-mozart-european",
+        "dvorak-antonin-symphony-no-8-op-88-2-adagio",
+        "mozart-symphony-36-kv-425-linz-4",
+        "vivaldi-autumn-3",
+        "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
+        "w-a-mozart-symphony-n-25-iv-allegro",
+        "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "beethoven-moonlight-2",
+        "mozart-symphony-36-kv-425-linz-2"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "9b": {
+      "tracks": [
+        "brahms-symphony-no-1-in-c-minor-op-68-iii-un-poco-allegretto",
+        "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iv-fin",
+        "brahms-symphony-no-1-in-c-minor-op-68-i-un-poco-sostenuto-al",
+        "brahms-symphony-no-3-in-f-major-op-90-iv-allegro",
+        "liszt-sonata-in-b-minor-piano-jorge-bolet-1960"
+      ],
+      "character": "named for loss or ruin - leans on the dark/dramatic station entirely"
+    },
+    "TF1": {
+      "tracks": [
+        "sor-op-11-no-2",
+        "mozart-symphony-no-19-in-e-flat-major-i-allegro-mozart-europ",
+        "mozart-symphony-36-kv-425-linz-2",
+        "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
+        "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
+        "mozart-symphony-no-19-in-e-flat-major-iii-menuetto-mozart-eu",
+        "symphony-no-35-in-d-haffner-k-385-ii-andante-mozart-european",
+        "w-a-mozart-symphony-n-25-iv-allegro",
+        "beethoven-moonlight-3",
+        "haydn-symphony-no-100-in-g-major-military-4-finale-presto",
+        "symphony-no-35-in-d-haffner-k-385-ii-andante-mozart-european"
+      ],
+      "character": "open wilderness, no stronger signal - a broad mix"
+    },
+    "TF990": {
+      "tracks": [
+        "handel-messiah-01-sinfony",
+        "handel-messiah-44-hallelujah",
+        "george-frideric-handel-music-for-the-royal-fireworks-5-minue",
+        "charpentier-te-deum-prelude",
+        "radio-herrijzend-nederland-3-7-1945-dodenherdenking-in-de-st",
+        "inleiding-le-concert-spirituel-herve-niquet-audio"
+      ],
+      "character": "a notable interior (manor/keep/guild) - grand with some intimacy"
+    }
+  },
   "_radioNote": "Fallout-style: a small number of STATIONS, each a looping playlist of several tracks - not one station per track. `station` on each track is the grouping key; ambientSound.ts builds RADIO_STATIONS from the distinct station ids present here, in the order their first track appears.",
   "radioStations": {
     "old-concert-hall": {
@@ -3058,6 +4385,594 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Inleiding Anima Eterna - Jos Van Immerseel (audio)\", via Wikimedia Commons, CC BY 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "kec-cioglu-m-h-mm-d-coban-bayat",
+      "station": "silk-road",
+      "file": "radio/kec-cioglu-m-h-mm-d-coban-bayat.ogg",
+      "title": "Keçəçioğlu Məhəmməd-Çoban-Bayatı",
+      "composer": "",
+      "era": "",
+      "mood": "arabic, period",
+      "source": "https://commons.wikimedia.org/wiki/File%3AKe%C3%A7%C9%99%C3%A7io%C4%9Flu%20M%C9%99h%C9%99mm%C9%99d-%C3%87oban-Bayat%C4%B1.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Ke%C3%A7%C9%99%C3%A7io%C4%9Flu_M%C9%99h%C9%99mm%C9%99d-%C3%87oban-Bayat%C4%B1.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "Public domain",
+      "licenseUrl": "",
+      "attributionRequired": false,
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "cabbar-qaryagd-oglu-bayat-qacar",
+      "station": "silk-road",
+      "file": "radio/cabbar-qaryagd-oglu-bayat-qacar.ogg",
+      "title": "Cabbar Qaryağdıoğlu-Bayatı-Qacar",
+      "composer": "",
+      "era": "",
+      "mood": "arabic, period",
+      "source": "https://commons.wikimedia.org/wiki/File%3ACabbar%20Qarya%C4%9Fd%C4%B1o%C4%9Flu-Bayat%C4%B1-Qacar.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/4/44/Cabbar_Qarya%C4%9Fd%C4%B1o%C4%9Flu-Bayat%C4%B1-Qacar.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "Public domain",
+      "licenseUrl": "",
+      "attributionRequired": false,
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "yaseen-surah-al-quran-ahmad-mulkliff-mohd-nor-haji-ibrahim-8",
+      "station": "silk-road",
+      "file": "radio/yaseen-surah-al-quran-ahmad-mulkliff-mohd-nor-haji-ibrahim-8.opus",
+      "title": "YASEEN Surah Al Quran - AHMAD MULKLIFF MOHD NOR HAJI IBRAHIM 870604 29 5559",
+      "composer": "",
+      "era": "",
+      "mood": "arabic, period",
+      "source": "https://commons.wikimedia.org/wiki/File%3AYASEEN%20Surah%20Al%20Quran%20-%20AHMAD%20MULKLIFF%20MOHD%20NOR%20HAJI%20IBRAHIM%20870604%2029%205559.opus",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/a/a5/YASEEN_Surah_Al_Quran_-_AHMAD_MULKLIFF_MOHD_NOR_HAJI_IBRAHIM_870604_29_5559.opus?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"YASEEN Surah Al Quran - AHMAD MULKLIFF MOHD NOR HAJI IBRAHIM 870604 29 5559\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "harry-martinson-berattar-om-olika-slags-sea-shanties-smv-sva",
+      "station": "salt-and-sail",
+      "file": "radio/harry-martinson-berattar-om-olika-slags-sea-shanties-smv-sva.wav",
+      "title": "Harry Martinson berättar om olika slags sea shanties - SMV - SVA BB 5355 23",
+      "composer": "",
+      "era": "",
+      "mood": "nautical",
+      "source": "https://commons.wikimedia.org/wiki/File%3AHarry%20Martinson%20ber%C3%A4ttar%20om%20olika%20slags%20sea%20shanties%20-%20SMV%20-%20SVA%20BB%205355%2023.wav",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Harry_Martinson_ber%C3%A4ttar_om_olika_slags_sea_shanties_-_SMV_-_SVA_BB_5355_23.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC0",
+      "licenseUrl": "",
+      "attributionRequired": false,
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "maqam-sika-1931",
+      "station": "silk-road",
+      "file": "radio/maqam-sika-1931.ogg",
+      "title": "Art-song, Maqam Sika (1931)",
+      "composer": "Traditional Egyptian, unattributed performer",
+      "era": "recorded 1931",
+      "source": "https://commons.wikimedia.org/wiki/File:Art-song_Maqam_Sika_(1931).ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/0/04/Art-song_Maqam_Sika_%281931%29.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Art-song_Maqam_Sika_(1931).ogg",
+      "attributionRequired": false,
+      "mood": "arabic, period-authentic (1931 recording)"
+    },
+    {
+      "id": "baschrav-kuzum-hijaz-1",
+      "station": "silk-road",
+      "file": "radio/baschrav-kuzum-hijaz-1.ogg",
+      "title": "Baschrav Kuzum, Maqam Hijaz - Part 1 (1931)",
+      "composer": "Traditional, unattributed performer",
+      "era": "recorded 1931",
+      "source": "https://commons.wikimedia.org/wiki/File:Baschrav_Kuzum_Maqam_Hijaz_part_1_(1931).ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/0/01/Baschrav_Kuzum_Maqam_Hijaz_part_1_%281931%29.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Baschrav_Kuzum_Maqam_Hijaz_part_1_(1931).ogg",
+      "attributionRequired": false,
+      "mood": "arabic, period-authentic (1931 recording)"
+    },
+    {
+      "id": "baschrav-kuzum-hijaz-2",
+      "station": "silk-road",
+      "file": "radio/baschrav-kuzum-hijaz-2.ogg",
+      "title": "Baschrav Kuzum, Maqam Hijaz - Part 2 (1931)",
+      "composer": "Traditional, unattributed performer",
+      "era": "recorded 1931",
+      "source": "https://commons.wikimedia.org/wiki/File:Baschrav_Kuzum_Maqam_Hijaz_part_2_(1931).ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Baschrav_Kuzum_Maqam_Hijaz_part_2_%281931%29.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Baschrav_Kuzum_Maqam_Hijaz_part_2_(1931).ogg",
+      "attributionRequired": false,
+      "mood": "arabic, period-authentic (1931 recording)"
+    },
+    {
+      "id": "ala-fi-sabil-allah",
+      "station": "silk-road",
+      "file": "radio/ala-fi-sabil-allah.ogg",
+      "title": "Ala fi Sabil Allah",
+      "composer": "Traditional Egyptian, unattributed performer",
+      "era": "early 20th century recording",
+      "source": "https://commons.wikimedia.org/wiki/File:Ala_fi_Sabil_Allah.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Ala_fi_Sabil_Allah.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Ala_fi_Sabil_Allah.ogg",
+      "attributionRequired": false,
+      "mood": "arabic, period-authentic"
+    },
+    {
+      "id": "aldahre-kata-awsali-1914",
+      "station": "silk-road",
+      "file": "radio/aldahre-kata-awsali-1914.ogg",
+      "title": "Aldahre Kata Awsali (c. 1914)",
+      "composer": "Traditional, unattributed performer",
+      "era": "recorded c. 1914",
+      "source": "https://commons.wikimedia.org/wiki/File:Aldahre_Kata_Awsali_(c._1914).ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/a/a7/Aldahre_Kata_Awsali_%28c._1914%29.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Aldahre_Kata_Awsali_(c._1914).ogg",
+      "attributionRequired": false,
+      "mood": "arabic, genuinely pre-1960 (1914 recording, Dan asked for this specifically)"
+    },
+    {
+      "id": "al-watan-al-akbar",
+      "station": "silk-road",
+      "file": "radio/al-watan-al-akbar.ogg",
+      "title": "Al Watan Al Akbar (Pan-Arabic Patriotic Anthem)",
+      "composer": "Traditional/orchestral arrangement",
+      "era": "historical recording, exact date unconfirmed",
+      "source": "https://commons.wikimedia.org/wiki/File:Al_Watan_Al_Akbar_-_Pan-Arabic_Patriotic_Anthem.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/d/de/Al_Watan_Al_Akbar_-_Pan-Arabic_Patriotic_Anthem.ogg",
+      "license": "Public domain",
+      "licenseUrl": "https://commons.wikimedia.org/wiki/File:Al_Watan_Al_Akbar_-_Pan-Arabic_Patriotic_Anthem.ogg",
+      "attributionRequired": false,
+      "mood": "arabic, grand/orchestral, period"
+    },
+    {
+      "id": "the-message-of-the-violet-from-the-prince-of-pilsen-1902-sun",
+      "station": "salt-and-sail",
+      "file": "radio/the-message-of-the-violet-from-the-prince-of-pilsen-1902-sun.oga",
+      "title": "\"The Message of the Violet\" from \"The Prince of Pilsen\" (1902), sung by J. W. Myers and written by Gustav Luders and Frank Pixley",
+      "composer": "",
+      "era": "",
+      "mood": "nautical, folk",
+      "source": "https://commons.wikimedia.org/wiki/File%3A%22The%20Message%20of%20the%20Violet%22%20from%20%22The%20Prince%20of%20Pilsen%22%20(1902)%2C%20sung%20by%20J.%20W.%20Myers%20and%20written%20by%20Gustav%20Luders%20and%20Frank%20Pixley.oga",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/2/26/%22The_Message_of_the_Violet%22_from_%22The_Prince_of_Pilsen%22_%281902%29%2C_sung_by_J._W._Myers_and_written_by_Gustav_Luders_and_Frank_Pixley.oga?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "Public domain",
+      "licenseUrl": "",
+      "attributionRequired": false,
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fiddles-mcginty-isrc-usuan1400051",
+      "station": "salt-and-sail",
+      "file": "radio/fiddles-mcginty-isrc-usuan1400051.mp3",
+      "title": "Fiddles McGinty (ISRC USUAN1400051)",
+      "composer": "",
+      "era": "",
+      "mood": "nautical, working",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFiddles%20McGinty%20(ISRC%20USUAN1400051).mp3",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Fiddles_McGinty_%28ISRC_USUAN1400051%29.mp3?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fiddles McGinty (ISRC USUAN1400051)\", via Wikimedia Commons, CC BY 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "cc0-ch-london-brass-players-a-trumpet-voluntary-jeremiah-cla",
+      "station": "throne-and-temple",
+      "file": "radio/cc0-ch-london-brass-players-a-trumpet-voluntary-jeremiah-cla.flac",
+      "title": "CC0-CH - London Brass Players - A Trumpet Voluntary - Jeremiah Clarke - Columbia-dx1536-cax10357",
+      "composer": "",
+      "era": "",
+      "mood": "grand, ceremonial",
+      "source": "https://commons.wikimedia.org/wiki/File%3ACC0-CH%20-%20London%20Brass%20Players%20-%20A%20Trumpet%20Voluntary%20-%20Jeremiah%20Clarke%20-%20Columbia-dx1536-cax10357.flac",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/7/75/CC0-CH_-_London_Brass_Players_-_A_Trumpet_Voluntary_-_Jeremiah_Clarke_-_Columbia-dx1536-cax10357.flac?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "Public domain",
+      "licenseUrl": "",
+      "attributionRequired": false,
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "clarke-trumpet-voluntary",
+      "station": "throne-and-temple",
+      "file": "radio/clarke-trumpet-voluntary.ogg",
+      "title": "Clarke Trumpet Voluntary",
+      "composer": "",
+      "era": "",
+      "mood": "grand, ceremonial",
+      "source": "https://commons.wikimedia.org/wiki/File%3AClarke%20Trumpet%20Voluntary.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Clarke_Trumpet_Voluntary.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Clarke Trumpet Voluntary\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "pdp-ch-the-halle-trumpet-voluntary-columbia-l1986-ax2660",
+      "station": "throne-and-temple",
+      "file": "radio/pdp-ch-the-halle-trumpet-voluntary-columbia-l1986-ax2660.flac",
+      "title": "PDP-CH - The Hallé - Trumpet voluntary - Columbia-l1986-ax2660",
+      "composer": "",
+      "era": "",
+      "mood": "grand, ceremonial",
+      "source": "https://commons.wikimedia.org/wiki/File%3APDP-CH%20-%20The%20Hall%C3%A9%20-%20Trumpet%20voluntary%20-%20Columbia-l1986-ax2660.flac",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/4/43/PDP-CH_-_The_Hall%C3%A9_-_Trumpet_voluntary_-_Columbia-l1986-ax2660.flac?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "Public domain",
+      "licenseUrl": "",
+      "attributionRequired": false,
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "jeremiah-clarke-prince-of-denmarks-march-harpsichord",
+      "station": "throne-and-temple",
+      "file": "radio/jeremiah-clarke-prince-of-denmarks-march-harpsichord.wav",
+      "title": "Jeremiah Clarke - Prince of Denmarks March Harpsichord",
+      "composer": "",
+      "era": "",
+      "mood": "grand, ceremonial",
+      "source": "https://commons.wikimedia.org/wiki/File%3AJeremiah%20Clarke%20-%20Prince%20of%20Denmarks%20March%20Harpsichord.wav",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Jeremiah_Clarke_-_Prince_of_Denmarks_March_Harpsichord.wav?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Jeremiah Clarke - Prince of Denmarks March Harpsichord\", via Wikimedia Commons, CC BY-SA 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "funeral-march-for-queen-mary-h-purcell-opus",
+      "station": "throne-and-temple",
+      "file": "radio/funeral-march-for-queen-mary-h-purcell-opus.opus",
+      "title": "Funeral March for Queen Mary - H. Purcell",
+      "composer": "",
+      "era": "",
+      "mood": "grand, ceremonial",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFuneral%20March%20for%20Queen%20Mary%20-%20H.%20Purcell.opus",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/9/92/Funeral_March_for_Queen_Mary_-_H._Purcell.opus?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Funeral March for Queen Mary - H. Purcell\", via Wikimedia Commons, CC BY 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "columbia-dx1536-cax10357",
+      "station": "throne-and-temple",
+      "file": "radio/columbia-dx1536-cax10357.ogg",
+      "title": "Columbia-dx1536-cax10357",
+      "composer": "",
+      "era": "",
+      "mood": "grand, ceremonial",
+      "source": "https://commons.wikimedia.org/wiki/File%3AColumbia-dx1536-cax10357.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/a/ac/Columbia-dx1536-cax10357.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "Public domain",
+      "licenseUrl": "",
+      "attributionRequired": false,
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "intermezzo-from-goyescas-u-s-marine-band",
+      "station": "six-strings",
+      "file": "radio/intermezzo-from-goyescas-u-s-marine-band.ogg",
+      "title": "Intermezzo from Goyescas - U.S. Marine Band",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AIntermezzo%20from%20Goyescas%20-%20U.S.%20Marine%20Band.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/2/26/Intermezzo_from_Goyescas_-_U.S._Marine_Band.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "Public domain",
+      "licenseUrl": "",
+      "attributionRequired": false,
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fundacion-joaquin-diaz-ato-00314b-10-fandanguillo-critica-a-",
+      "station": "six-strings",
+      "file": "radio/fundacion-joaquin-diaz-ato-00314b-10-fandanguillo-critica-a-.ogg",
+      "title": "Fundación Joaquín Díaz - ATO 00314B 10 - Fandanguillo. Crítica a la Iglesia",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFundaci%C3%B3n%20Joaqu%C3%ADn%20D%C3%ADaz%20-%20ATO%2000314B%2010%20-%20Fandanguillo.%20Cr%C3%ADtica%20a%20la%20Iglesia.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/8/81/Fundaci%C3%B3n_Joaqu%C3%ADn_D%C3%ADaz_-_ATO_00314B_10_-_Fandanguillo._Cr%C3%ADtica_a_la_Iglesia.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fundación Joaquín Díaz - ATO 00314B 10 - Fandanguillo. Crítica a la Iglesia\", via Wikimedia Commons, CC BY-SA 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fundacion-joaquin-diaz-ato-00353-04-fandanguillos",
+      "station": "six-strings",
+      "file": "radio/fundacion-joaquin-diaz-ato-00353-04-fandanguillos.ogg",
+      "title": "Fundación Joaquín Díaz - ATO 00353 04 - Fandanguillos",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFundaci%C3%B3n%20Joaqu%C3%ADn%20D%C3%ADaz%20-%20ATO%2000353%2004%20-%20Fandanguillos.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Fundaci%C3%B3n_Joaqu%C3%ADn_D%C3%ADaz_-_ATO_00353_04_-_Fandanguillos.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fundación Joaquín Díaz - ATO 00353 04 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fundacion-joaquin-diaz-ato-00237-03-fandanguillos",
+      "station": "six-strings",
+      "file": "radio/fundacion-joaquin-diaz-ato-00237-03-fandanguillos.ogg",
+      "title": "Fundación Joaquín Díaz - ATO 00237 03 - Fandanguillos",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFundaci%C3%B3n%20Joaqu%C3%ADn%20D%C3%ADaz%20-%20ATO%2000237%2003%20-%20Fandanguillos.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Fundaci%C3%B3n_Joaqu%C3%ADn_D%C3%ADaz_-_ATO_00237_03_-_Fandanguillos.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fundación Joaquín Díaz - ATO 00237 03 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fundacion-joaquin-diaz-ato-00920-06-fandanguillos",
+      "station": "six-strings",
+      "file": "radio/fundacion-joaquin-diaz-ato-00920-06-fandanguillos.ogg",
+      "title": "Fundación Joaquín Díaz - ATO 00920 06 - Fandanguillos",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFundaci%C3%B3n%20Joaqu%C3%ADn%20D%C3%ADaz%20-%20ATO%2000920%2006%20-%20Fandanguillos.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/e/ed/Fundaci%C3%B3n_Joaqu%C3%ADn_D%C3%ADaz_-_ATO_00920_06_-_Fandanguillos.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fundación Joaquín Díaz - ATO 00920 06 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fundacion-joaquin-diaz-ato-00278-04a-fandanguillo",
+      "station": "six-strings",
+      "file": "radio/fundacion-joaquin-diaz-ato-00278-04a-fandanguillo.ogg",
+      "title": "Fundación Joaquín Díaz - ATO 00278 04A - Fandanguillo",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFundaci%C3%B3n%20Joaqu%C3%ADn%20D%C3%ADaz%20-%20ATO%2000278%2004A%20-%20Fandanguillo.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/7/71/Fundaci%C3%B3n_Joaqu%C3%ADn_D%C3%ADaz_-_ATO_00278_04A_-_Fandanguillo.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fundación Joaquín Díaz - ATO 00278 04A - Fandanguillo\", via Wikimedia Commons, CC BY-SA 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fundacion-joaquin-diaz-ato-00353-16-fandanguillos",
+      "station": "six-strings",
+      "file": "radio/fundacion-joaquin-diaz-ato-00353-16-fandanguillos.ogg",
+      "title": "Fundación Joaquín Díaz - ATO 00353 16 - Fandanguillos",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFundaci%C3%B3n%20Joaqu%C3%ADn%20D%C3%ADaz%20-%20ATO%2000353%2016%20-%20Fandanguillos.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Fundaci%C3%B3n_Joaqu%C3%ADn_D%C3%ADaz_-_ATO_00353_16_-_Fandanguillos.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fundación Joaquín Díaz - ATO 00353 16 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-315-a",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-315-a.ogg",
+      "title": "Fermín Pardo - Cinta 315-A",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%20315-A.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/6/61/Ferm%C3%ADn_Pardo_-_Cinta_315-A.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 315-A\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-65-b",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-65-b.ogg",
+      "title": "Fermín Pardo - Cinta 65-B",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%2065-B.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/c/c6/Ferm%C3%ADn_Pardo_-_Cinta_65-B.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 65-B\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-53-a",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-53-a.ogg",
+      "title": "Fermín Pardo - Cinta 53-A",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%2053-A.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/6/66/Ferm%C3%ADn_Pardo_-_Cinta_53-A.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 53-A\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-275-b",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-275-b.ogg",
+      "title": "Fermín Pardo - Cinta 275-B",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%20275-B.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/9/93/Ferm%C3%ADn_Pardo_-_Cinta_275-B.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 275-B\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-147-b",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-147-b.ogg",
+      "title": "Fermín Pardo - Cinta 147-B",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%20147-B.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Ferm%C3%ADn_Pardo_-_Cinta_147-B.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 147-B\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-145-a",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-145-a.ogg",
+      "title": "Fermín Pardo - Cinta 145-A",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%20145-A.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Ferm%C3%ADn_Pardo_-_Cinta_145-A.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 145-A\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-146-b",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-146-b.ogg",
+      "title": "Fermín Pardo - Cinta 146-B",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%20146-B.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Ferm%C3%ADn_Pardo_-_Cinta_146-B.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 146-B\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-144-b",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-144-b.ogg",
+      "title": "Fermín Pardo - Cinta 144-B",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%20144-B.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/8/83/Ferm%C3%ADn_Pardo_-_Cinta_144-B.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 144-B\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fundacion-joaquin-diaz-ato-00585b-19-el-pernales",
+      "station": "six-strings",
+      "file": "radio/fundacion-joaquin-diaz-ato-00585b-19-el-pernales.ogg",
+      "title": "Fundación Joaquín Díaz - ATO 00585B 19 - El Pernales",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFundaci%C3%B3n%20Joaqu%C3%ADn%20D%C3%ADaz%20-%20ATO%2000585B%2019%20-%20El%20Pernales.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/0/01/Fundaci%C3%B3n_Joaqu%C3%ADn_D%C3%ADaz_-_ATO_00585B_19_-_El_Pernales.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fundación Joaquín Díaz - ATO 00585B 19 - El Pernales\", via Wikimedia Commons, CC BY-SA 3.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-315-b",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-315-b.ogg",
+      "title": "Fermín Pardo - Cinta 315-B",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%20315-B.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Ferm%C3%ADn_Pardo_-_Cinta_315-B.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 315-B\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-26-b",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-26-b.ogg",
+      "title": "Fermín Pardo - Cinta 26-B",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%2026-B.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Ferm%C3%ADn_Pardo_-_Cinta_26-B.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 26-B\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fermin-pardo-cinta-60-a",
+      "station": "six-strings",
+      "file": "radio/fermin-pardo-cinta-60-a.ogg",
+      "title": "Fermín Pardo - Cinta 60-A",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFerm%C3%ADn%20Pardo%20-%20Cinta%2060-A.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/0/0e/Ferm%C3%ADn_Pardo_-_Cinta_60-A.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fermín Pardo - Cinta 60-A\", via Wikimedia Commons, CC BY-SA 4.0",
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+    },
+    {
+      "id": "fundacion-joaquin-diaz-ato-00920-15-fandango",
+      "station": "six-strings",
+      "file": "radio/fundacion-joaquin-diaz-ato-00920-15-fandango.ogg",
+      "title": "Fundación Joaquín Díaz - ATO 00920 15 - Fandango",
+      "composer": "",
+      "era": "",
+      "mood": "warm, southern",
+      "source": "https://commons.wikimedia.org/wiki/File%3AFundaci%C3%B3n%20Joaqu%C3%ADn%20D%C3%ADaz%20-%20ATO%2000920%2015%20-%20Fandango.ogg",
+      "download": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Fundaci%C3%B3n_Joaqu%C3%ADn_D%C3%ADaz_-_ATO_00920_15_-_Fandango.ogg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "",
+      "attributionRequired": true,
+      "attributionText": "\"Fundación Joaquín Díaz - ATO 00920 15 - Fandango\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
     }
   ]

@@ -316,6 +316,28 @@ fn dedupe_paths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
     out
 }
 
+/// Lich's own `scripts` folder, which is where a Ruby script has to live to
+/// be runnable at all.
+///
+/// Derived from the same search `plan_setup` uses rather than from a second
+/// guess of its own - two independent notions of where Lich is would drift,
+/// and the failure would be a script saved somewhere Lich never looks while
+/// the app reports it saved fine.
+///
+/// `None` means Lich was not found. That is reported to the player as its own
+/// state, never folded into "no scripts": an empty list and an absent Lich
+/// need different things done about them.
+pub(crate) fn lich_scripts_dir() -> Option<PathBuf> {
+    for dir in lich_dirs() {
+        for candidate in [dir.join("scripts"), dir.join("Lich5").join("scripts")] {
+            if candidate.is_dir() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
 fn lich_dirs() -> Vec<PathBuf> {
     let mut d = candidate_dirs(&["lich", "Lich", "lich5", "Lich5", "Ruby4Lich5", "ruby4lich5"]);
 
@@ -471,6 +493,20 @@ pub enum Presence {
     Missing,
     /// We looked and could not tell. Never treated as either good or bad.
     Unknown,
+}
+
+impl From<bool> for Presence {
+    /// `true` -> `Present`, `false` -> `Missing`. The six call sites that used
+    /// to write this out as an if/else by hand are exactly the kind of
+    /// copy-paste one of them could silently invert during a future edit -
+    /// same risk `Presence::Unknown` itself exists to avoid one level up.
+    fn from(found: bool) -> Self {
+        if found {
+            Presence::Present
+        } else {
+            Presence::Missing
+        }
+    }
 }
 
 /// One thing we could fetch, with everything needed to judge it.
@@ -914,14 +950,12 @@ pub fn install_bundled_ruby4lich5<R: tauri::Runtime>(
     }
     std::fs::copy(&src, &dest).map_err(|e| e.to_string())?;
 
-    let _ = app.emit(
-        "setup://progress",
-        Progress {
-            id: "ruby4lich5-bundled".into(),
-            received: manifest.bytes,
-            total: manifest.bytes,
-            phase: "verified".into(),
-        },
+    emit_setup_progress(
+        &app,
+        "ruby4lich5-bundled",
+        manifest.bytes,
+        manifest.bytes,
+        "verified",
     );
 
     Ok(DownloadResult {
@@ -1260,11 +1294,7 @@ pub async fn plan_setup_inner(
         // frontend still runs and every .cmd script keeps working. It is this
         // app's plumbing, not a toolchain anyone has to adopt.
         label: "Lich 5 (this app's engine)".into(),
-        presence: if lich_found.is_some() {
-            Presence::Present
-        } else {
-            Presence::Missing
-        },
+        presence: lich_found.is_some().into(),
         detail: match &lich_found {
             // Naming the extras matters more than it looks. The bridge script
             // gets copied into one `scripts\` folder, and if that is not the
@@ -1391,11 +1421,7 @@ pub async fn plan_setup_inner(
         components.push(ComponentPlan {
             id: "dr_scripts".into(),
             label: "DragonRealms script suite".into(),
-            presence: if missing_core.is_empty() {
-                Presence::Present
-            } else {
-                Presence::Missing
-            },
+            presence: missing_core.is_empty().into(),
             detail: if missing_core.is_empty() {
                 format!("{} scripts in Lich's scripts folder", have.len())
             } else {
@@ -1447,11 +1473,7 @@ pub async fn plan_setup_inner(
         components.push(ComponentPlan {
             id: "mapdb".into(),
             label: "Map database".into(),
-            presence: if map_db.is_some() {
-                Presence::Present
-            } else {
-                Presence::Missing
-            },
+            presence: map_db.is_some().into(),
             detail: match &map_db {
                 Some(_) => "Lich has room data, so the map and travel work".into(),
                 None => "Not downloaded. Without it Lich cannot route, so the map \
@@ -1504,11 +1526,7 @@ pub async fn plan_setup_inner(
     components.push(ComponentPlan {
         id: "genie".into(),
         label: "Game frontend (Genie)".into(),
-        presence: if genie_path.is_some() {
-            Presence::Present
-        } else {
-            Presence::Missing
-        },
+        presence: genie_path.is_some().into(),
         detail: genie_detail,
         path: genie_path.clone(),
         required: false,
@@ -1551,11 +1569,7 @@ pub async fn plan_setup_inner(
             components.push(ComponentPlan {
                 id: "plugins".into(),
                 label: "Genie plugins".into(),
-                presence: if missing.is_empty() {
-                    Presence::Present
-                } else {
-                    Presence::Missing
-                },
+                presence: missing.is_empty().into(),
                 detail: if missing.is_empty() {
                     "EXPTracker, SpellTimer and CircleCalc are installed".into()
                 } else {
@@ -1610,11 +1624,7 @@ pub async fn plan_setup_inner(
             components.push(ComponentPlan {
                 id: "maps".into(),
                 label: "Genie maps".into(),
-                presence: if map_count > 0 {
-                    Presence::Present
-                } else {
-                    Presence::Missing
-                },
+                presence: (map_count > 0).into(),
                 detail: if map_count > 0 {
                     format!("{map_count} map files")
                 } else {
@@ -1666,6 +1676,28 @@ pub struct Progress {
     pub received: u64,
     pub total: u64,
     pub phase: String,
+}
+
+/// Emit one `setup://progress` event. A dropped listener (the setup screen
+/// already closed) is not this call's problem, so the send result is
+/// discarded here rather than at each of the five call sites that used to
+/// repeat `let _ = app.emit(...)` with the same `Progress` literal by hand.
+fn emit_setup_progress<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    id: impl Into<String>,
+    received: u64,
+    total: u64,
+    phase: &str,
+) {
+    let _ = app.emit(
+        "setup://progress",
+        Progress {
+            id: id.into(),
+            received,
+            total,
+            phase: phase.into(),
+        },
+    );
 }
 
 #[derive(Serialize, Clone)]
@@ -1765,27 +1797,11 @@ pub async fn download_component(
     let emit_id = id.clone();
     let app2 = app.clone();
     let res = download_verified(&url, &expected_sha256, &dest, move |received, total| {
-        let _ = app2.emit(
-            "setup://progress",
-            Progress {
-                id: emit_id.clone(),
-                received,
-                total,
-                phase: "downloading".into(),
-            },
-        );
+        emit_setup_progress(&app2, emit_id.clone(), received, total, "downloading");
     })
     .await?;
 
-    let _ = app.emit(
-        "setup://progress",
-        Progress {
-            id,
-            received: res.bytes,
-            total: res.bytes,
-            phase: "verified".into(),
-        },
-    );
+    emit_setup_progress(&app, id, res.bytes, res.bytes, "verified");
     Ok(res)
 }
 
@@ -2306,28 +2322,12 @@ pub async fn install_bundle(
     let emit_id = id.clone();
     let app2 = app.clone();
     let res = install_bundle_inner(&files, &target, move |received, total| {
-        let _ = app2.emit(
-            "setup://progress",
-            Progress {
-                id: emit_id.clone(),
-                received,
-                total,
-                phase: "downloading".into(),
-            },
-        );
+        emit_setup_progress(&app2, emit_id.clone(), received, total, "downloading");
     })
     .await?;
 
     let total: u64 = files.iter().map(|f| f.bytes).sum();
-    let _ = app.emit(
-        "setup://progress",
-        Progress {
-            id,
-            received: total,
-            total,
-            phase: "verified".into(),
-        },
-    );
+    emit_setup_progress(&app, id, total, total, "verified");
     Ok(res)
 }
 

@@ -1,5 +1,5 @@
-import { RefreshCw } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
+import { CheckPanel } from './CheckPanel'
 
 /**
  * `Lich::Common::Vars` for this character, listed rather than left to `;vars`.
@@ -19,32 +19,14 @@ export function VarsPanel() {
   const connected = useAppStore((s) => s.bridgeConnected)
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded border border-border px-2 py-1 text-xs text-ink-muted hover:bg-surface-overlay hover:text-ink disabled:opacity-50"
-          onClick={listVars}
-          disabled={!connected}
-          title={
-            connected
-              ? "List this character's Lich variables (the same list ;vars list shows)"
-              : 'Needs a bridge connection'
-          }
-        >
-          <RefreshCw className="h-3 w-3" />
-          {vars ? 'Check again' : 'List variables'}
-        </button>
-      </div>
-
-      {!vars && (
-        <p className="text-xs text-ink-faint">
-          Not checked yet. Scripts store settings here that this app doesn't
-          otherwise know about - a hunting room id, a saved preference. Nothing
-          here is changed, only read.
-        </p>
-      )}
-
+    <CheckPanel
+      label="List variables"
+      checkTitle="List this character's Lich variables (the same list ;vars list shows)"
+      notCheckedText="Not checked yet. Scripts store settings here that this app doesn't otherwise know about - a hunting room id, a saved preference. Nothing here is changed, only read."
+      connected={connected}
+      hasData={!!vars}
+      onCheck={listVars}
+    >
       {vars && vars.length === 0 && (
         <p className="text-xs text-ink-faint">No variables set for this character.</p>
       )}
@@ -69,6 +51,6 @@ export function VarsPanel() {
           ))}
         </ul>
       )}
-    </div>
+    </CheckPanel>
   )
 }

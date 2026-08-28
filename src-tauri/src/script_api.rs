@@ -194,6 +194,24 @@ fn dispatch(v: &Value, app: &AppHandle, out: &mut TcpStream) {
     match v.get("type").and_then(Value::as_str) {
         Some("send") => match v.get("command").and_then(Value::as_str) {
             Some(cmd) => {
+                // Pause is enforced here because this is the one line every
+                // automated command crosses - a Python flow, a hand-written
+                // script, anything holding a script-API socket. Pausing inside
+                // the driver instead, which is what the TypeScript flows did,
+                // only ever paused the flows this app happened to ship. The
+                // command is delayed, never dropped; see pause.rs.
+                if crate::pause::Gate::TimedOut
+                    == app.state::<crate::pause::Pause>().wait_while_paused()
+                {
+                    let _ = send_json(
+                        out,
+                        &json!({
+                            "type": "error",
+                            "message": "held by Pause too long; this command was not sent"
+                        }),
+                    );
+                    return;
+                }
                 let link = app.state::<GameLink>();
                 if let Err(e) = crate::game_link::game_send(link, cmd.to_string()) {
                     let _ = send_json(out, &json!({"type": "error", "message": e}));

@@ -4,6 +4,7 @@
  */
 
 import type { UiMode } from '../types'
+import { readJSON, writeJSON } from './storage'
 
 const KEY = 'dr-companion-prefs-v1'
 
@@ -55,6 +56,24 @@ export interface PersistedPrefs {
    * one bit saying they are a returning player was not.
    */
   setupComplete?: boolean
+  /**
+   * Sound levels, 0 to 1.5 (0% to 150%) each, no separate mute flag - 0 is
+   * silent. Two independent channels (not three - the ambient terrain
+   * layer shipped once and was pulled back out, 28 Aug 2026) because a
+   * listener who wants the idle warning but not a music bed should be able
+   * to have exactly that - see ambientSound.ts and alertSound.ts for where
+   * these are actually applied.
+   *
+   * Default is 0 (muted) for both, not some tuned "reasonable" level - Dan's
+   * call, 28 Aug 2026, after a night of dr-companion's own audio work
+   * repeatedly surprising him and, separately, other sessions' leftover
+   * Browser-pane tabs leaving it playing unattended. A first run should
+   * never make noise nobody asked for; turning sound on is something a
+   * listener opts into via SoundControls, not something they have to
+   * discover how to turn off.
+   */
+  alertsVolume?: number
+  musicVolume?: number
 }
 
 const defaults: PersistedPrefs = {
@@ -74,17 +93,20 @@ const defaults: PersistedPrefs = {
   houseEntryMaxSearches: 3,
   houseEntryHide: true,
   setupComplete: false,
+  // Kept identical to alertSound.ts's and ambientSound.ts's own defaults, by
+  // hand - there is no single source of truth between them, and letting them
+  // drift is exactly what happened here once already (this stood at 0.8
+  // after the module's own default had already been lowered to 0.45, and
+  // nothing caught it - see SoundControls.tsx's header for the read-order
+  // bug that made the drift actually reach the screen). Muted by default -
+  // see this field's own doc comment above for why.
+  alertsVolume: 0,
+  musicVolume: 0,
 }
 
 export function loadPrefs(): PersistedPrefs {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return { ...defaults }
-    const parsed = JSON.parse(raw) as Partial<PersistedPrefs>
-    return { ...defaults, ...parsed, uiMode: migrateMode(parsed.uiMode) }
-  } catch {
-    return { ...defaults }
-  }
+  const parsed = readJSON<Partial<PersistedPrefs>>(KEY, {})
+  return { ...defaults, ...parsed, uiMode: migrateMode(parsed.uiMode) }
 }
 
 /**
@@ -98,10 +120,6 @@ function migrateMode(stored: unknown): UiMode {
 
 export function savePrefs(partial: Partial<PersistedPrefs>): PersistedPrefs {
   const next = { ...loadPrefs(), ...partial }
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next))
-  } catch {
-    // ignore quota / private mode
-  }
+  writeJSON(KEY, next)
   return next
 }

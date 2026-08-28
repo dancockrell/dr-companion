@@ -1,153 +1,242 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+/**
+ * Tasks and scripts: what can be run, and where you write more.
+ *
+ * This used to be a flow engine. `FlowDriver` with a timer, a `FlowState`, a
+ * condition grammar, and a step-list form writing custom flows to
+ * localStorage — about 1,200 lines of TypeScript implementing a scripting
+ * language inside a project whose scripting language is Python. All of it is
+ * replaced: flows are Python tasks (`lib/pythonTasks.ts`), custom scripts are
+ * real files in either language (`lib/scriptFiles.ts`, `ScriptEditor`).
+ *
+ * # Why the list is icons
+ *
+ * Because the panel shares a window with a live game, and every row of chrome
+ * is a row of game text nobody can see. An icon grid puts roughly three times
+ * as many tasks in the same height as the old two-column text list, and the
+ * name is one hover away rather than gone — every tile carries its title, its
+ * summary, its id, and the command line that runs the same thing outside the
+ * app.
+ *
+ * The one thing that is never reduced to an icon is whether a task *sends
+ * commands*. A task that watches and a task that drives a live character are
+ * different in the way that matters most, so that difference is a visible
+ * badge and a border colour, not a detail in a tooltip.
+ *
+ * # Nothing here schedules anything
+ *
+ * A task is a separate process; a Ruby script runs inside Lich. This panel
+ * starts things and reports on them. The bug class the old driver hit twice —
+ * reporting stopped while a timer kept firing underneath — cannot be written
+ * here, because there is no timer to get out of step with.
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  DEFAULT_FLOWS,
-  allFlows,
-  customFlowNote,
-  loadCustomFlows,
-  newFlow,
-  saveCustomFlows,
-  type TaskFlow,
-} from '../../data/taskFlows'
-import { FlowDriver } from '../../lib/flowDriver'
-import { onStopAll, onPauseAll, onResumeAll, onStartFlow } from '../../lib/flowStop'
-import { describeFlow, isFinished, type FlowState } from '../../lib/flowRunner'
+  BookOpen,
+  Coins,
+  Eye,
+  EyeOff,
+  FileCode2,
+  FilePlus2,
+  FolderOpen,
+  HeartPulse,
+  LogOut,
+  type LucideIcon,
+  Play,
+  RefreshCw,
+  Search,
+  Shield,
+  Square,
+  Stethoscope,
+  Swords,
+  Terminal,
+} from 'lucide-react'
 import {
-  evaluateCondition,
-  contextFromCharacter,
-  describeCondition,
-  parseGaugeCondition,
-  formatGaugeCondition,
-  GAUGE_NAMES,
-  type GaugeCondition,
-} from '../../lib/flowConditions'
+  onTaskLine,
+  onTaskState,
+  pythonStatus,
+  startTask,
+  stopTask,
+  taskState,
+  type PythonStatus,
+  type TaskInfo,
+} from '../../lib/pythonTasks'
+import {
+  listScripts,
+  scriptDirs,
+  type ScriptDirs,
+  type ScriptFile,
+  type ScriptLang,
+} from '../../lib/scriptFiles'
+import { ScriptEditor, type EditorTarget } from './ScriptEditor'
+import { onStopAll, onStartFlow } from '../../lib/flowStop'
+import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
+/** How many lines of task output the panel keeps. */
+const KEEP_LINES = 200
+
 /**
- * Task flows.
+ * An icon per task, so a tile is recognisable before it is read.
  *
- * The panel the Activities list should have been. Its buttons were one press
- * each and told you nothing afterwards: "combat loop" started something and
- * then the interface went quiet until you pressed Stop, so a working loop and
- * a wedged one looked the same.
- *
- * Three things fix that and they are all visible here. Every flow says what it
- * does before you press it. A running flow says which step it is on and, if it
- * loops, which pass. And the flows are editable, because the built-in seven
- * are a starting set and a player's own hunting cycle is the one they will
- * actually press.
+ * Matched by id, with a prefix fallback, and a generic icon when neither hits.
+ * A task this map has never heard of still gets a tile — the alternative is a
+ * list that silently omits whatever somebody added most recently, which is
+ * exactly the task they are looking for.
  */
+const ICONS: Record<string, LucideIcon> = {
+  'flow.hunt': Swords,
+  'flow.ambush': EyeOff,
+  'flow.recover': HeartPulse,
+  'flow.to_healer': Stethoscope,
+  'flow.town_run': Coins,
+  'flow.prepare': Shield,
+  'flow.disengage': LogOut,
+  'task.watch': Eye,
+}
+
+function iconFor(id: string): LucideIcon {
+  if (ICONS[id]) return ICONS[id]
+  if (id.startsWith('example.')) return BookOpen
+  if (id.startsWith('user.')) return FileCode2
+  return Terminal
+}
+
+type Tab = 'tasks' | 'scripts'
+
 export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
-  const requestIntent = useAppStore((s) => s.requestIntent)
   const addLog = useAppStore((s) => s.addLog)
-  const connected = useAppStore((s) => s.bridgeConnected)
   const setActiveFlow = useAppStore((s) => s.setActiveFlow)
+  const startScript = useAppStore((s) => s.startScript)
 
-  const [custom, setCustom] = useState<TaskFlow[]>([])
-  const [state, setState] = useState<FlowState | null>(null)
-  const [editing, setEditing] = useState<TaskFlow | null>(null)
+  const [tab, setTab] = useState<Tab>('tasks')
+  const [status, setStatus] = useState<PythonStatus | null>(null)
+  const [scripts, setScripts] = useState<ScriptFile[]>([])
+  const [dirs, setDirs] = useState<ScriptDirs | null>(null)
+  const [editing, setEditing] = useState<EditorTarget | null>(null)
+  const [running, setRunning] = useState('')
+  const [note, setNote] = useState('')
+  const [lines, setLines] = useState<string[]>([])
+  const [filter, setFilter] = useState('')
 
-  // Said out loud rather than left as a flow that quietly is not in the list.
-  // A rejected flow and a flow that was never saved look identical from here,
-  // and they need different things from the player. See customFlowNote().
+  const refresh = useCallback(async () => {
+    const [st, files, where] = await Promise.all([pythonStatus(), listScripts(), scriptDirs()])
+    setStatus(st)
+    setScripts(files)
+    setDirs(where)
+    // Asked, never assumed. A task that exited on its own leaves no event for
+    // a panel that mounted afterwards, and a remembered "running" that has
+    // gone stale is indistinguishable from a live one.
+    const state = await taskState()
+    setRunning(state.running ? state.task : '')
+    setActiveFlow(state.running ? state.task : null)
+  }, [setActiveFlow])
+
   useEffect(() => {
-    setCustom(loadCustomFlows())
-    const note = customFlowNote()
-    if (note) addLog(note, 'warn')
-  }, [addLog])
+    void refresh()
+  }, [refresh])
 
-  const driver = useRef<FlowDriver | null>(null)
-  if (!driver.current) {
-    driver.current = new FlowDriver({
-      send: (commands) => {
-        requestIntent('run_macro', { commands })
-        return true
-      },
-      onChange: (s) => {
-        setState(s)
-        // Published as well as held locally. The safety bar reports what the
-        // app is doing, and a flow is the most likely thing it is doing: with
-        // this state living only here, the bar read Idle through an hour-long
-        // hunting loop.
-        setActiveFlow(isFinished(s) ? null : describeFlow(s))
-      },
-      log: addLog,
-      // Read fresh from the store on every call rather than closed over —
-      // the driver instance is created once, but the character's vitals
-      // change every tick, and a condition checked against whatever health
-      // the character happened to have when the flow started would defeat
-      // the entire point of it being conditional.
-      evaluateCondition: (condition) =>
-        evaluateCondition(condition, contextFromCharacter(useAppStore.getState().character)),
-    })
-  }
-
-  // A flow driving a character through a bridge that has gone away is the
-  // worst case here: the steps keep firing into nothing and the panel keeps
-  // saying it is working.
-  useEffect(() => {
-    if (!connected) driver.current?.interrupt('the bridge went down')
-  }, [connected])
-
-  // SafetyFooter's Stop all lives outside this panel and has no reference to
-  // this driver — see flowStop.ts. Without this, pressing it aborted the
-  // in-flight step at the bridge while the driver's own timer, none the
-  // wiser, fired the next one on schedule: the flow kept running and the
-  // panel kept reporting it as active. A player's stop, not the bridge going
-  // away, so `stop()` and not `interrupt()`.
-  useEffect(() => onStopAll(() => driver.current?.stop()), [])
-
-  // Same reasoning as Stop all, for the other two buttons that claimed to
-  // reach this driver and never did: "Hold automation where it is" held
-  // nothing, and "Carry on from where it paused" had nothing to carry on
-  // from, because nothing client-side had a pause/resume at all.
-  useEffect(() => onPauseAll(() => driver.current?.pause()), [])
-  useEffect(() => onResumeAll(() => driver.current?.resume()), [])
-
-  // The timer outlives the component otherwise, and a popped-out panel
-  // unmounts while a hunting loop is mid-pass.
-  useEffect(
-    () => () => {
-      driver.current?.dispose()
-      setActiveFlow(null)
-    },
-    [setActiveFlow]
-  )
-
-  const flows = useMemo(() => allFlows(custom), [custom])
-
-  // The Command Palette starts a flow by id with no reference to this
-  // driver, same shape as Stop/Pause/Resume above. Re-subscribes when the
-  // flow list changes so a flow added or edited this session is reachable
-  // immediately rather than only after a remount.
   useEffect(
     () =>
-      onStartFlow((flowId) => {
-        const flow = flows.find((f) => f.id === flowId)
-        if (flow) driver.current?.start(flow)
+      onTaskState((st) => {
+        setRunning(st.running ? st.task : '')
+        setNote(st.note)
+        // Published to the store as well as held here: the safety bar reports
+        // what the app is doing, and with this state living only in this
+        // component the bar read Idle through an hour-long hunting loop.
+        setActiveFlow(st.running ? st.task : null)
+        if (st.note) addLog(st.note, 'info')
       }),
-    [flows]
+    [addLog, setActiveFlow]
   )
 
-  const running = state && !isFinished(state) ? state : null
+  useEffect(
+    () =>
+      onTaskLine((line) => {
+        setLines((prev) => [...prev, line.text].slice(-KEEP_LINES))
+        if (line.error) addLog(`${line.task}: ${line.text}`, 'warn')
+      }),
+    [addLog]
+  )
 
-  const persist = useCallback((next: TaskFlow[]) => {
-    setCustom(next.filter((f) => f.custom))
-    saveCustomFlows(next)
+  const start = useCallback(
+    async (id: string) => {
+      setLines([])
+      setNote('')
+      try {
+        const st = await startTask(id)
+        setRunning(st.running ? st.task : '')
+        setActiveFlow(st.running ? st.task : null)
+      } catch (e) {
+        // Named, never swallowed. No interpreter, a task that will not import,
+        // a missing folder — each says something specific and actionable, and
+        // a button that quietly does nothing says none of it.
+        const message = e instanceof Error ? e.message : String(e)
+        setNote(message)
+        addLog(`Could not start ${id}: ${message}`, 'error')
+      }
+    },
+    [addLog, setActiveFlow]
+  )
+
+  const stop = useCallback(async () => {
+    const st = await stopTask()
+    setRunning('')
+    setNote(st.note || 'Stopped.')
+    setActiveFlow(null)
+  }, [setActiveFlow])
+
+  // SafetyFooter's Stop holds no reference to this panel. Pause and Resume are
+  // deliberately not wired here any more: they are enforced in Rust at the
+  // script-API dispatch point, so they hold every automated command including
+  // scripts this app did not start. That is a widening, not an omission — the
+  // old Pause only ever paused the seven flows this app shipped.
+  useEffect(() => onStopAll(() => void stopTask()), [])
+
+  // The Command Palette starts a task by id with no reference to this panel.
+  useEffect(() => onStartFlow((id) => void start(id)), [start])
+
+  // A task outlives this component — it is a separate process. Unmounting
+  // clears only what this component published and deliberately does not stop
+  // it: popping the panel out unmounts it, and that must not kill a hunt.
+  useEffect(() => () => setActiveFlow(null), [setActiveFlow])
+
+  const tasks: TaskInfo[] = useMemo(() => status?.tasks ?? [], [status])
+
+  // Filtered and grouped, with the denominator kept: Lich's folder holds the
+  // whole dr-scripts suite, so a player's own two files would otherwise be lost
+  // among two hundred installed ones. "Yours" is the app's Python folder, which
+  // only ever contains what the player wrote here; "Lich's folder" is mixed and
+  // is labelled as mixed rather than implied to be theirs.
+  const shown = useMemo(() => {
+    const q = filter.trim().toLowerCase()
+    const match = (s: ScriptFile) =>
+      !q || s.name.toLowerCase().includes(q) || s.summary.toLowerCase().includes(q)
+    const hit = scripts.filter(match)
+    return {
+      yours: hit.filter((s) => s.lang === 'python'),
+      lich: hit.filter((s) => s.lang === 'ruby'),
+      shownCount: hit.length,
+      total: scripts.length,
+    }
+  }, [scripts, filter])
+
+  const openNew = useCallback((lang: ScriptLang) => {
+    setEditing({ name: '', lang })
+    setTab('scripts')
   }, [])
 
   if (editing) {
     return (
-      <FlowEditor
-        flow={editing}
-        onCancel={() => setEditing(null)}
-        onDelete={() => {
-          persist(custom.filter((f) => f.id !== editing.id))
+      <ScriptEditor
+        target={editing}
+        dirs={dirs}
+        onClose={() => setEditing(null)}
+        onSaved={() => void refresh()}
+        onRun={(id) => {
           setEditing(null)
-        }}
-        onSave={(f) => {
-          persist([...custom.filter((x) => x.id !== f.id), f])
-          setEditing(null)
+          setTab('tasks')
+          void start(id)
         }}
       />
     )
@@ -155,393 +244,273 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
 
   return (
     <div className="flex min-h-0 flex-col gap-1.5">
-      {/* What it is doing, in words, above the buttons.
-       *
-       * Reserved whether or not a flow is running, so starting one does not
-       * push every button down by a line. */}
-      <div
-        className={cn(
-          'flex items-center justify-between gap-2 rounded border px-2 py-1 text-xs',
-          running
-            ? 'border-accent/40 bg-accent/10 text-accent'
-            : 'border-transparent text-ink-faint'
-        )}
-      >
-        <span className="truncate">
-          {state ? describeFlow(state) : 'No flow running'}
+      {/* One row carrying three things: which browser, what is running, and
+       * the control for it. Reserved whether or not something runs, so
+       * starting a task does not push every tile down by a line. */}
+      <div className="flex items-center gap-1">
+        {(['tasks', 'scripts'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={cn(
+              'rounded border px-2 py-0.5 text-xs capitalize',
+              tab === t
+                ? 'border-accent bg-accent/15 text-accent'
+                : 'border-transparent text-ink-faint hover:text-ink'
+            )}
+          >
+            {t}
+            <span className="ml-1 opacity-60">
+              {t === 'tasks' ? tasks.length : scripts.length}
+            </span>
+          </button>
+        ))}
+
+        <span
+          className={cn(
+            'ml-1 min-w-0 flex-1 truncate text-xs',
+            running ? 'text-accent' : 'text-ink-faint'
+          )}
+          title={note || undefined}
+        >
+          {running ? `Running ${running}` : note || ''}
         </span>
-        {running && (
+
+        {running ? (
           <button
             type="button"
-            onClick={() => driver.current?.stop()}
-            className="shrink-0 rounded border border-danger/40 bg-danger/15 px-2 py-0.5 font-semibold text-danger hover:bg-danger/25"
+            onClick={() => void stop()}
+            className="shrink-0 rounded border border-danger/40 bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger hover:bg-danger/25"
           >
+            <Square className="mr-1 inline h-3 w-3" />
             Stop
           </button>
-        )}
-      </div>
-
-      <div className="grid min-h-0 grid-cols-2 gap-1 overflow-auto">
-        {flows.map((f) => {
-          const active = running?.flow.id === f.id
-          return (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => driver.current?.start(f)}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                // Right-click edits. A built-in is copied rather than changed,
-                // so the seven defaults are always there to fall back to.
-                setEditing(
-                  f.custom
-                    ? f
-                    : { ...f, id: `${f.id}-${Date.now().toString(36)}`, title: `${f.title} (mine)`, custom: true }
-                )
-              }}
-              title={`${f.summary}\n\n${f.steps
-                .map((s, i) => {
-                  const cond = describeCondition(s.condition)
-                  return `${i + 1}. ${s.label}: ${s.commands.join('; ')}${cond ? ` (${cond})` : ''}`
-                })
-                .join('\n')}\n\nRight-click to ${f.custom ? 'edit' : 'copy and edit'}`}
-              className={cn(
-                'rounded border px-2 py-1.5 text-left transition-colors',
-                active
-                  ? 'border-accent bg-accent/15'
-                  : 'border-border bg-surface-raised hover:border-ink-faint'
-              )}
-            >
-              <div className="flex items-center gap-1">
-                <span className="truncate text-xs font-medium text-ink">{f.title}</span>
-                {/* An endless flow has to look different before it is pressed. */}
-                {f.loops && <span className="shrink-0 text-xs text-ink-faint" title="Repeats until stopped">↻</span>}
-                {f.custom && <span className="shrink-0 text-xs text-accent" title="Yours">•</span>}
-              </div>
-              {!dense && (
-                <p className="truncate text-xs leading-tight text-ink-faint">{f.summary}</p>
-              )}
-            </button>
-          )
-        })}
-
-        <button
-          type="button"
-          onClick={() => setEditing(newFlow(`flow-${Date.now().toString(36)}`))}
-          className="rounded border border-dashed border-border px-2 py-1.5 text-xs text-ink-faint hover:border-ink-faint hover:text-ink"
-        >
-          + New flow
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/**
- * The editor.
- *
- * Commands are edited as plain text, one per line, because that is what they
- * are. A builder with dropdowns would have to know every command in
- * DragonRealms, and the ones a player most wants in their own flow are exactly
- * the ones a fixed list would not have.
- */
-function FlowEditor({
-  flow,
-  onSave,
-  onCancel,
-  onDelete,
-}: {
-  flow: TaskFlow
-  onSave: (f: TaskFlow) => void
-  onCancel: () => void
-  onDelete: () => void
-}) {
-  const [draft, setDraft] = useState<TaskFlow>(flow)
-  const known = DEFAULT_FLOWS.some((f) => f.id === flow.id)
-
-  // Live, not evaluated once — a condition someone is typing right now
-  // should show whether it currently holds, and health changes mid-edit
-  // same as it does mid-flow.
-  const character = useAppStore((s) => s.character)
-  const ctx = useMemo(() => contextFromCharacter(character), [character])
-
-  /**
-   * The first step that would make `loadCustomFlows()` reject this whole flow,
-   * or null.
-   *
-   * Held here rather than inlined into `disabled` so the same answer drives
-   * both the gate and the message beside it. Two conditions that mean the same
-   * thing drift, and the drift this replaces was exactly that: the gate asked
-   * whether *some* step had commands while the loader required *every* step to.
-   */
-  const emptyStep = (() => {
-    const i = draft.steps.findIndex((s) => s.commands.filter((c) => c.trim()).length === 0)
-    return i === -1 ? null : i
-  })()
-
-  const setStep = (i: number, patch: Partial<TaskFlow['steps'][number]>) =>
-    setDraft((d) => ({
-      ...d,
-      steps: d.steps.map((s, n) => (n === i ? { ...s, ...patch } : s)),
-    }))
-
-  return (
-    <div className="flex min-h-0 flex-col gap-1.5 overflow-auto text-xs">
-      <input
-        value={draft.title}
-        onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-        placeholder="Name"
-        className="rounded border border-border bg-surface px-2 py-1 text-ink"
-      />
-      <input
-        value={draft.summary}
-        onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
-        placeholder="What it does, and where it stops"
-        className="rounded border border-border bg-surface px-2 py-1 text-ink-muted"
-      />
-
-      <label className="flex items-center gap-1.5 text-ink-muted">
-        <input
-          type="checkbox"
-          checked={!!draft.loops}
-          onChange={(e) => setDraft({ ...draft, loops: e.target.checked })}
-        />
-        Repeat until stopped
-      </label>
-
-      {draft.steps.map((s, i) => (
-        <div key={i} className="rounded border border-border p-1.5">
-          <div className="flex gap-1">
-            <input
-              value={s.label}
-              onChange={(e) => setStep(i, { label: e.target.value })}
-              placeholder={`Step ${i + 1}`}
-              className="min-w-0 flex-1 rounded border border-border bg-surface px-1.5 py-0.5 text-ink"
-            />
-            <input
-              type="number"
-              min={0}
-              value={s.settle ?? 0}
-              onChange={(e) => setStep(i, { settle: Number(e.target.value) || undefined })}
-              title="Seconds to wait after this step, for things the game gives no roundtime for"
-              className="w-12 rounded border border-border bg-surface px-1 py-0.5 text-ink-muted"
-            />
-            <button
-              type="button"
-              onClick={() => setDraft({ ...draft, steps: draft.steps.filter((_, n) => n !== i) })}
-              className="rounded border border-border px-1.5 text-ink-faint hover:text-danger"
-              title="Remove this step"
-            >
-              ×
-            </button>
-          </div>
-          <textarea
-            value={s.commands.join('\n')}
-            onChange={(e) =>
-              setStep(i, { commands: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })
-            }
-            rows={Math.max(2, s.commands.length)}
-            placeholder="One command per line"
-            className="mt-1 w-full rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-ink-muted"
-          />
-          <ConditionEditor
-            condition={s.condition}
-            onChange={(condition) => setStep(i, { condition })}
-            ctx={ctx}
-            connected={!!character}
-          />
-        </div>
-      ))}
-
-      <button
-        type="button"
-        onClick={() =>
-          setDraft({ ...draft, steps: [...draft.steps, { label: `Step ${draft.steps.length + 1}`, commands: [] }] })
-        }
-        className="rounded border border-dashed border-border px-2 py-1 text-ink-faint hover:text-ink"
-      >
-        + Step
-      </button>
-
-      {/* Named, not just disabled. Save going dead with no reason given is its
-          own small mystery, and "+ Step" produces an empty step by design, so
-          this is the ordinary state of a half-finished edit rather than an
-          error the player has to have made. */}
-      {emptyStep !== null && (
-        <span className="text-xs text-warn">
-          Step {emptyStep + 1} sends nothing. Give it a command, or remove it.
-        </span>
-      )}
-
-      <div className="flex gap-1">
-        <button
-          type="button"
-          // `every`, not `some`. A flow with one empty step among several saves
-          // happily and is then rejected wholesale by loadCustomFlows(), which
-          // requires every step to send something - so the player adds a step,
-          // gets distracted, saves, sees the flow in the list, and finds the
-          // whole thing gone on next launch. The loss is logged, but from where
-          // they were standing the save worked.
-          //
-          // Repairing it instead - dropping empty steps on save - was the other
-          // option and is the wrong one here: an empty step is a decision about
-          // what the flow does, and this app's rule is repair what cannot reach
-          // the game, reject what can. Rejecting in front of the player beats
-          // discarding behind them.
-          disabled={emptyStep !== null}
-          onClick={() => onSave(draft)}
-          className="flex-1 rounded border border-accent/40 bg-accent/15 px-2 py-1 font-semibold text-accent disabled:opacity-40"
-        >
-          Save
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded border border-border px-2 py-1 text-ink-muted"
-        >
-          Cancel
-        </button>
-        {!known && (
+        ) : (
           <button
             type="button"
-            onClick={onDelete}
-            className="rounded border border-danger/40 px-2 py-1 text-danger"
+            onClick={() => void refresh()}
+            title="Re-read the task catalog and the scripts folders"
+            className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
           >
-            Delete
+            <RefreshCw className="h-3 w-3" />
           </button>
         )}
       </div>
-    </div>
-  )
-}
 
-/**
- * A step's condition — the "big deal" workflow feature, coordinator.lic's
- * start_on/stop_on in one line instead of a YAML block (DESIGN.md §2.2).
- *
- * A gauge comparison (`health<50`) gets a real dial: a dropdown for which
- * gauge, a dropdown for the direction, and a slider for the number, because
- * "advanced players want dials and sliders, not typing" was the ask this
- * exists to answer. Anything else — a bare situation flag like `bleeding`,
- * blank, or hand-written text the player prefers to type — gets the plain
- * field, since there is no dial for "is this flag set" beyond a checkbox
- * naming a flag we do not enumerate.
- *
- * The two modes are the same underlying string, not two different pieces of
- * state: `parseGaugeCondition` decides which UI to show, and every slider
- * drag calls `formatGaugeCondition` to write back the same grammar
- * `evaluateCondition` reads. A player who prefers typing `health<50` by hand
- * gets the slider anyway, because the string parses the same either way.
- */
-function ConditionEditor({
-  condition,
-  onChange,
-  ctx,
-  connected,
-}: {
-  condition: string | undefined
-  onChange: (condition: string | undefined) => void
-  ctx: ReturnType<typeof contextFromCharacter>
-  connected: boolean
-}) {
-  const gauge = parseGaugeCondition(condition)
-  const badgeTitle = connected
-    ? 'Checked against the connected character, right now'
-    : 'No character connected — conditions read as true until one is'
-
-  if (gauge) {
-    const holds = evaluateCondition(condition, ctx)
-    const set = (patch: Partial<GaugeCondition>) => onChange(formatGaugeCondition({ ...gauge, ...patch }))
-    return (
-      <div className="mt-1 flex flex-wrap items-center gap-1.5 rounded border border-border bg-surface px-1.5 py-1">
-        <span className="text-ink-faint">only if</span>
-        <button
-          type="button"
-          onClick={() => set({ negate: !gauge.negate })}
-          title="Negate — flip to the opposite condition"
-          className={cn(
-            'rounded border px-1 font-mono',
-            gauge.negate ? 'border-warn/50 bg-warn/15 text-warn' : 'border-border text-ink-faint'
-          )}
-        >
-          !
-        </button>
-        <select
-          value={gauge.gauge}
-          onChange={(e) => set({ gauge: e.target.value as GaugeCondition['gauge'] })}
-          className="rounded border border-border bg-surface-raised px-1 py-0.5 text-ink"
-        >
-          {GAUGE_NAMES.map((g) => (
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </select>
-        <select
-          value={gauge.op}
-          onChange={(e) => set({ op: e.target.value as GaugeCondition['op'] })}
-          className="rounded border border-border bg-surface-raised px-1 py-0.5 text-ink"
-        >
-          <option value="<">&lt;</option>
-          <option value="<=">&le;</option>
-          <option value=">">&gt;</option>
-          <option value=">=">&ge;</option>
-        </select>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={gauge.value}
-          onChange={(e) => set({ value: Number(e.target.value) })}
-          className="min-w-[5rem] flex-1 accent-accent"
-        />
-        <span className="w-9 shrink-0 text-right tabular-nums text-ink">{gauge.value}%</span>
-        <span
-          className={cn(
-            'shrink-0 rounded px-1.5 py-0.5 font-semibold',
-            holds ? 'bg-good/15 text-good' : 'bg-ink-faint/15 text-ink-faint'
-          )}
-          title={badgeTitle}
-        >
-          {holds ? 'true now' : 'false now'}
-        </span>
-        <button
-          type="button"
-          onClick={() => onChange(undefined)}
-          className="ml-auto shrink-0 text-ink-faint hover:text-danger"
-          title="Remove this condition"
-        >
-          ×
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="mt-1 flex items-center gap-1.5">
-      <input
-        value={condition ?? ''}
-        onChange={(e) => onChange(e.target.value || undefined)}
-        placeholder="Only if… (a flag like bleeding, !stunned — or switch to a gauge)"
-        className="min-w-0 flex-1 rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-ink-muted"
-      />
-      {condition?.trim() && (
-        <span
-          className={cn(
-            'shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold',
-            evaluateCondition(condition, ctx) ? 'bg-good/15 text-good' : 'bg-ink-faint/15 text-ink-faint'
-          )}
-          title={badgeTitle}
-        >
-          {evaluateCondition(condition, ctx) ? 'true now' : 'false now'}
-        </span>
+      {/* Why a list is empty, when it is. Never a bare "nothing here": the
+       * causes need different fixes and the note carries Python's own words
+       * when a task failed to import. */}
+      {tab === 'tasks' && status && tasks.length === 0 && (
+        <p className="whitespace-pre-wrap rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
+          {status.note || 'No tasks were listed.'}
+        </p>
       )}
-      <button
-        type="button"
-        onClick={() => onChange('health<50')}
-        className="shrink-0 rounded border border-dashed border-border px-1.5 py-0.5 text-[11px] text-ink-faint hover:text-ink"
-        title="Switch to a gauge slider"
-      >
-        + gauge
-      </button>
+      {tab === 'scripts' && dirs?.note && (
+        <p className="rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
+          {dirs.note}
+        </p>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-auto">
+        {tab === 'tasks' ? (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-1">
+            {tasks.map((t) => {
+              const Icon = iconFor(t.id)
+              const active = running === t.id
+              const readOnly = t.kind === 'read-only'
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => void start(t.id)}
+                  title={
+                    `${t.title}\n${t.summary}\n\n${t.id} — ${t.kind}\n\n` +
+                    `Runs the same outside the app:\npython python/runner.py run ${t.id}`
+                  }
+                  className={cn(
+                    'flex flex-col items-center gap-0.5 rounded border px-1 py-1.5 transition-colors',
+                    active
+                      ? 'border-accent bg-accent/15'
+                      : readOnly
+                        ? 'border-border bg-surface-raised hover:border-ink-faint'
+                        : 'border-border bg-surface-raised hover:border-accent/60'
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      'h-4 w-4',
+                      active ? 'text-accent' : readOnly ? 'text-ink-faint' : 'text-ink'
+                    )}
+                  />
+                  <span className="w-full truncate text-center text-xs leading-tight text-ink">
+                    {t.title}
+                  </span>
+                  {/* The one distinction never left to a tooltip. */}
+                  {readOnly && !dense && (
+                    <span className="text-xs leading-none text-ink-faint">watches</span>
+                  )}
+                  {active && <Play className="h-3 w-3 text-accent" />}
+                </button>
+              )
+            })}
+
+            <button
+              type="button"
+              onClick={() => openNew('python')}
+              title="Write a new Python task. Saved into python/tasks/user/, where it is picked up automatically."
+              className="flex flex-col items-center gap-0.5 rounded border border-dashed border-border px-1 py-1.5 text-ink-faint hover:border-ink-faint hover:text-ink"
+            >
+              <FilePlus2 className="h-4 w-4" />
+              <span className="w-full truncate text-center text-xs leading-tight">New</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => openNew('python')}
+                className="flex items-center gap-1 rounded border border-dashed border-border px-2 py-0.5 text-xs text-ink-faint hover:border-ink-faint hover:text-ink"
+              >
+                <FilePlus2 className="h-3 w-3" />
+                New Python
+              </button>
+              <button
+                type="button"
+                onClick={() => openNew('ruby')}
+                title={
+                  dirs?.rubyDir
+                    ? 'A Lich script, in Ruby, saved into Lich’s scripts folder.'
+                    : 'Needs Lich. Finish Lich setup first.'
+                }
+                className="flex items-center gap-1 rounded border border-dashed border-border px-2 py-0.5 text-xs text-ink-faint hover:border-ink-faint hover:text-ink"
+              >
+                <FilePlus2 className="h-3 w-3" />
+                New Ruby
+              </button>
+              {dirs?.pythonDir && (
+                <button
+                  type="button"
+                  onClick={() => void invokeTauri('reveal_file', { path: dirs.pythonDir })}
+                  title={dirs.pythonDir}
+                  className="ml-auto rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
+                >
+                  <FolderOpen className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* A filter, because Lich's folder alone holds the whole dr-scripts
+              * suite. The count says how many of how many, so a filter that
+              * matches nothing reads as "0 of 234" rather than as an empty
+              * folder - those are different problems and they look identical
+              * without the denominator. */}
+            <div className="flex items-center gap-1">
+              <Search className="h-3 w-3 shrink-0 text-ink-faint" />
+              <input
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filter scripts"
+                spellCheck={false}
+                className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-0.5 text-xs text-ink placeholder:text-ink-faint"
+              />
+              <span className="shrink-0 text-xs text-ink-faint">
+                {filter ? `${shown.shownCount} of ${shown.total}` : shown.total}
+              </span>
+            </div>
+
+            {scripts.length === 0 && !dirs?.note && (
+              <p className="px-1 text-xs text-ink-faint">
+                No scripts yet. Python becomes a task in this app; Ruby is a Lich script.
+              </p>
+            )}
+
+            {filter && shown.shownCount === 0 && (
+              <p className="px-1 text-xs text-ink-faint">
+                Nothing matches "{filter}" in {shown.total} scripts.
+              </p>
+            )}
+
+            {[
+              { label: 'Yours', hint: 'Python, in this app. Each becomes a task.', items: shown.yours },
+              {
+                label: "Lich's folder",
+                hint: 'Ruby. Includes dr-scripts and anything else installed, not only what you wrote.',
+                items: shown.lich,
+              },
+            ].map((group) =>
+              group.items.length === 0 ? null : (
+                <div key={group.label} className="flex flex-col gap-1">
+                  <p
+                    className="px-1 text-xs font-medium text-ink-faint"
+                    title={group.hint}
+                  >
+                    {group.label}
+                    <span className="ml-1 opacity-60">{group.items.length}</span>
+                  </p>
+                  {group.items.map((s) => (
+              <div
+                key={`${s.lang}:${s.name}`}
+                className="flex items-center gap-1 rounded border border-border bg-surface-raised px-1.5 py-1"
+              >
+                <button
+                  type="button"
+                  onClick={() => setEditing({ name: s.name, lang: s.lang })}
+                  title={`${s.path}\n${s.bytes} bytes\n\n${s.summary || 'No description in the file.'}\n\nClick to edit.`}
+                  className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                >
+                  <FileCode2
+                    className={cn(
+                      'h-3.5 w-3.5 shrink-0',
+                      s.lang === 'python' ? 'text-accent' : 'text-ink-faint'
+                    )}
+                  />
+                  <span className="truncate text-xs text-ink">{s.name}</span>
+                  {!dense && s.summary && (
+                    <span className="truncate text-xs text-ink-faint">{s.summary}</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (s.lang === 'python') {
+                      void start(`user.${s.name}`)
+                    } else {
+                      startScript(s.name)
+                      addLog(`Asked Lich to start ${s.name}`, 'info')
+                    }
+                  }}
+                  title={
+                    s.lang === 'python'
+                      ? `Run as user.${s.name}`
+                      : `Ask Lich to run ${s.name}`
+                  }
+                  className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:border-accent/60 hover:text-accent"
+                >
+                  <Play className="h-3 w-3" />
+                </button>
+              </div>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* What the task itself said. The old panel could only report which step
+       * it was on, because it was the thing running the steps; a task can say
+       * what it observed and why it branched. */}
+      {lines.length > 0 && (
+        <div className="max-h-28 shrink-0 overflow-auto rounded border border-border bg-surface px-2 py-1 font-mono text-xs leading-tight text-ink-faint">
+          {lines.map((l, i) => (
+            <div key={i} className="whitespace-pre-wrap">
+              {l}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

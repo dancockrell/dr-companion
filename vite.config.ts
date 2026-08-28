@@ -52,45 +52,54 @@ export default defineConfig({
      * Together with the host binding above it is the second of two reasons
      * `tauri dev` had never produced a window on this machine.
      *
-     * `data/` needs the same treatment, for the same reason with a worse
-     * outcome. It holds the art pipeline's vendored ComfyUI venv
-     * (`data/art/comfy-venv`, tens of thousands of files under
-     * site-packages - torch, setuptools, comfy_angle) which `art-daemon.mjs`
-     * writes into continuously. Watching it unignored crashed a dev server
-     * outright: chokidar held the whole tree open, the daemon kept touching
-     * files under it, and the process ran out of heap and died with
-     * "JavaScript heap out of memory" after about 74 minutes - not a hang, a
-     * hard crash that took the dev server, and whatever was attached to it,
-     * down without warning. Measured on this machine, not assumed: the
-     * crash log names data/art/comfy-venv specifically as what was still
-     * being reloaded in the seconds before it went down.
+     * `data/art/comfy-venv` and `data/art/out` need the same treatment, for
+     * the same reason with a worse outcome. `comfy-venv` is the art
+     * pipeline's vendored ComfyUI venv - tens of thousands of files under
+     * site-packages (torch, setuptools, comfy_angle) - and `out` is its
+     * generated renders, both written into continuously by
+     * `art-daemon.mjs`. Watching either unignored crashed a dev server
+     * outright: chokidar held the tree open, the daemon kept touching files
+     * under it, and the process ran out of heap and died with "JavaScript
+     * heap out of memory" after about 74 minutes - not a hang, a hard
+     * crash that took the dev server, and whatever was attached to it, down
+     * without warning. Measured on this machine, not assumed: the crash log
+     * named data/art/comfy-venv specifically as what was still being
+     * reloaded in the seconds before it went down.
      *
-     * # Anchored to the project root, and that is not a detail
+     * # Two wrong-shaped fixes already tried, both measured rather than
+     * # assumed correct before being narrowed further
      *
-     * The first version was an unanchored double-star glob around `data`, and
-     * that also matches **`src/data/`** - 23 source files including
-     * `taskFlows.ts`,
-     * `scriptCatalog.ts`, `macros.ts`, `demoMap.ts` and the bestiary. Editing
-     * any of them stopped triggering a reload, silently, while every other
-     * source file kept working normally.
+     * The first version was an unanchored double-star glob around `data`,
+     * which also matched **`src/data/`** - 23 source files including
+     * `taskFlows.ts`, `scriptCatalog.ts`, `macros.ts`, `demoMap.ts` and the
+     * bestiary. Editing any of them stopped triggering a reload, silently.
+     * The failure was nothing like the cause: an export added to
+     * `src/data/taskFlows.ts` never reached the dev server, its importer
+     * asked for a name the served module did not have, that threw a
+     * `SyntaxError` during module evaluation, React never mounted, and
+     * **the app opened as a blank white window**. Fixed by anchoring to
+     * `root`.
      *
-     * The failure it produced was nothing like its cause. An export added to
-     * `src/data/taskFlows.ts` never reached the dev server, its importer asked
-     * for a name the served module did not have, that threw a `SyntaxError`
-     * during module evaluation, React never mounted, and **the app opened as a
-     * blank white window**. The production build was clean throughout, because
-     * the build does not use the watcher at all.
-     *
-     * Measured rather than reasoned: picomatch returns true for
-     * `src/data/taskFlows.ts` against that glob. Anchoring to `root` keeps the
-     * fix that was
-     * intended (the whole top-level `data/`, venv included) and stops it
-     * reaching into `src/`.
+     * The second version ignored all of `data/` (root-anchored, so it did
+     * not repeat the first mistake) - and that silently broke hot-reload
+     * for `data/audio/manifest.json`, which the ambient-audio system reads
+     * as a real ES module import (`with { type: 'json' }`), not just a
+     * static asset. Editing the manifest updated the file on disk and
+     * nothing else: Vite kept serving a stale cached transform of it
+     * indefinitely, because its watcher was told never to look at anything
+     * under `data/` in the first place. A radio/zone-playlist change that
+     * looked correct in every static read of the source produced zero new
+     * `Audio.play()` calls in the running app until the dev server was
+     * restarted by hand - the exact "looks right, does nothing" shape this
+     * whole file exists to prevent, just moved one directory over. Fixed by
+     * naming the two churny directories specifically rather than their
+     * parent.
      */
     watch: {
       ignored: [
         path.resolve(root, 'src-tauri') + '/**',
-        path.resolve(root, 'data') + '/**',
+        path.resolve(root, 'data/art/comfy-venv') + '/**',
+        path.resolve(root, 'data/art/out') + '/**',
       ],
     },
   },

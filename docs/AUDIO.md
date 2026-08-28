@@ -1,37 +1,176 @@
 # The soundscape
 
-Two systems, easy to confuse because they share `data/audio/` and a mute
-button each, but built for different things.
+**Status, 28 Aug 2026 (updated same day): ambience is gone for good; music
+is back.** The ambient/zone-music/radio layer was disabled first, then Dan
+clarified within the hour that only the *ambient* half of that was the
+problem: "the idea for that ambiance is bad anyways. pull out that kind of
+stuff. lets not," followed immediately by "i do want music. not
+ambiant...just the music...lots of songs we had." So `ambientSound.ts` was
+rewritten rather than left disabled: the terrain-texture `Layer` instance,
+`BIOME_FILES`, `ZONE_BIOMES` and `biomeFor()` are deleted from the module
+entirely (not just unwired), while `RadioPlayer`, `ZoneMusicPlayer`,
+`RADIO_STATIONS`, `setZone()`, `setRadioStation()` and `setMusicVolume()`
+are back and `GamePane.tsx` calls them again. The four biome ambience audio
+files under `public/audio/biome/` are now unreferenced by any code path -
+left on disk rather than deleted, same as the module logic was left in
+place during the brief disabled window, in case biome-level texture is
+wanted again later in some non-overlapping form. Everything in this file
+that describes ambience as active is historical - the "Layers" section
+below still names three layers because that is what was built and why, not
+what plays today; read this status block as authoritative over it.
+
+Two systems, easy to confuse because they share `data/audio/` and share a
+control panel, but built for different things.
 
 **Alerts** (`src/lib/alertSound.ts`) — short one-shots tied to Genie
 highlight lines: `dr-genie-settings/Config/highlights.cfg`, played through
-Tauri's `read_sound` from the player's own Genie install. Unrelated to
-everything below.
+Tauri's `read_sound` from the player's own Genie install. Unaffected by any
+of the ambience/music churn. Tuned to blend in rather than sit forward -
+Dan's instruction (28 Aug 2026): "tune down your sound effects to be
+background, to blend in generally."
 
-**Ambience** (`src/lib/ambientSound.ts`) — the background layer covered
-here: terrain texture, per-zone music, and an optional radio override.
-Files live under `public/audio/`, served as plain static assets, not routed
-through Tauri at all - they ship with the app rather than living in a
-player's Genie folder.
+**Music** (`src/lib/ambientSound.ts` - the filename predates the rewrite
+and still describes what's inside the module, not what's on the label) —
+per-zone playlists plus an optional radio-station override, covered in the
+rest of this file. No terrain-texture layer under it any more; there is
+only ever one thing playing in the module's `music` slot. Files live under
+`public/audio/`, served as plain static assets, not routed through Tauri at
+all - they ship with the app rather than living in a player's Genie folder.
+
+## Controls
+
+`SoundControls.tsx` shows two sliders (Alerts, Music), a quick-mute button,
+and a radio station picker - no Ambience slider; that channel is gone, not
+hidden. One button "Sound" opens a popover with the sliders and the
+`<select>`, rather than several separate icon-toggle buttons crammed into
+the toolbar. Dan's ask (28 Aug 2026): "full and strong sound controls...
+obvious but... easier to use and more intuitive than now."
+
+**No separate mute flag anywhere - a slider at 0% is silent, and that is
+the only state there is.** `alertsVolume()`/`musicVolume()` are plain
+0-to-1.5 numbers (0% to 150%); a `setAlertsMuted`-style boolean was
+considered and rejected, because a mute flag and a remembered volume level
+are two pieces of state that can disagree with each other, and a control
+that can silently disagree with what it shows is worse than one fewer
+control. Persisted in `PersistedPrefs` (`src/lib/persistence.ts`) -
+`alertsVolume`/`musicVolume`, both defaulting to 0 (muted) - not the earlier
+0.45/1 - since a first run should never make noise nobody asked for; sound
+is opt-in via the sliders, not opt-out (there is no `ambientVolume` field
+any more either - removed rather than left dead, since a stale field that
+nothing reads is exactly the kind of drift rule 1 in the working agreements
+warns about) - and applied once at `GamePane` mount, since neither sound
+module has (or should have) an opinion about storage.
+
+**Quick mute** (28 Aug 2026, Dan: "mute quickly or whatever," reconfirmed
+"that will need a volume control and mute too" when music came back) is a
+separate button next to "Sound," not something you open the panel and drag
+sliders to reach - one click sets both channels to 0, saving exactly where
+they were; the same click again restores those exact numbers, not a
+guessed default. Manually moving either slider while quick-muted clears the
+saved state, so the button doesn't fight a deliberate adjustment.
+
+Also removed from the toolbar, per Dan's instruction, to make room: the
+`{link.lines} lines` counter (gone entirely) and the numeric `host:port`
+display, replaced with a plain "Attached" - the number is still in the
+connection indicator's `title` tooltip for anyone who needs it, just not
+rendered inline.
+
+**"Blend into the background" as actual numbers:** each `Layer.play()`
+call site's base level (`Layer`'s `mix` in `ambientSound.ts`) was lowered
+- ambient 0.3 → 0.15, zone/radio music 0.4 → 0.22 - so the 100% slider
+position is already the tuned-down level Dan asked for, not a starting
+point a listener has to find by ear. The slider then multiplies that base
+by up to 1.5x, so turning it up is still available without touching the
+source.
+
+## "They are a menace" (28 Aug 2026) - what was actually wrong, and the fix
+
+Two separate real problems, plus two bugs found while fixing them.
+
+**The alert WAVs were mastered to 0 dBFS peak - maximum digital loudness,
+zero headroom.** Measured with `ffmpeg -af volumedetect` on all six files
+in `dr-genie-settings/Sounds/`: every one showed `max_volume: -0.0 dB`.
+Combined with an 80% default multiplier on top, that is most of the way
+to as loud as a WAV file can be, played on every idle warning, every
+creature entering, every whisper. Cut to -8 dB peak with
+`ffmpeg -af "volume=-8dB"`, originals kept in
+`dr-genie-settings/Sounds/.originals-backup/`, redeployed to both
+`dr-genie-settings/Sounds/` and the live `C:\Genie4\Sounds\` (diffed
+after to confirm the two copies match). The default multiplier was also
+lowered, 0.8 → 0.45 - fixing only the file or only the multiplier would
+have still left alerts loud most of the way up the slider.
+
+**Alerts now route through Web Audio (`AudioContext` → `GainNode`)
+instead of the element's own `.volume`.** `HTMLAudioElement.volume` is
+spec-clamped to [0, 1] - it cannot express the 100%-to-150% half of the
+slider range at all, silently doing nothing past 100% (or throwing, in a
+strict implementation). A `GainNode` per loaded sound, created once and
+cached alongside the `<audio>` element (`createMediaElementSource` can
+only be called once per element, ever), carries the real level instead;
+the element itself stays at full scale. Falls back to the native
+`.volume`, capped at 100%, if Web Audio is unavailable for any reason -
+a real ceiling stated honestly, not a silent failure to boost.
+
+**Bug found while building quick mute: clicking it closed the Sound
+panel.** The outside-click-closes handler checked two separate refs
+(the panel, the "Sound" trigger) and the new mute button was neither -
+clicking it read as a click outside the control and closed whatever was
+open, which is the opposite of "easier to use." Fixed by giving the
+whole control (mute button, Sound trigger, panel) one wrapping ref and
+checking that instead of two ad hoc ones.
+
+**Bug found verifying the fix: the slider's displayed percentage could
+silently disagree with what was actually playing.** `SoundControls`
+initialized its React state by reading `alertsVolume()` directly from the
+module at mount; `GamePane` applies the persisted level to that same
+module in its own effect, in a separate render pass. Which one a
+listener saw depended on which ran first, and on a fresh profile the two
+defaults had already drifted apart (`persistence.ts`'s `alertsVolume`
+default was still 0.8 from before the module's own default was lowered
+to 0.45 - the same commit that introduced the first problem this section
+describes reintroduced a version of it here). Fixed by having
+`SoundControls` read the same `loadPrefs()` snapshot `GamePane`'s effect
+reads, rather than the module's live value - removing the race instead of
+correcting the one instance of it that happened to be caught.
+
+All of this was verified in the running app rather than assumed: cleared
+persisted prefs, hard-reloaded, and read actual DOM/slider state after
+each step (mute, unmute, panel-still-open) - the first pass at this
+verification gave contradictory results from querying too fast for
+React's render to land and from testing across app restarts that raced
+each other, both corrected by testing methodically rather than trusting
+the first answer. The Web Audio gain-boost path itself was not exercised
+live (would have meant real audible playback, and Dan had just reported
+these very sounds as a problem) - checked instead that `AudioContext`/
+`GainNode` are present in this WebView2's environment, and by code
+review of otherwise-standard Web Audio API usage.
 
 ## Layers
 
-1. **Biome ambience.** Every one of the 85 zones in `src/data/map/*.json`
+**Only #2 and #3 below actually play, as of the status block at the top of
+this file.** #1 (biome ambience) is described here because it's what got
+built and the reasoning is worth keeping, not because it runs.
+
+1. **Biome ambience — removed from the running app, 28 Aug 2026.** Every one of the 85 zones in `src/data/map/*.json`
    is classified into a biome in `data/audio/zone-biomes.json` (forest,
    town, cave, road, etc. — see that file's `classify()` origin in this
    doc's history if the categories ever need revisiting). Each biome maps
    to a file in `BIOME_FILES` in `ambientSound.ts`. This is the fallback
    that covers everything, including roads and zones nobody has hand-tuned
    yet.
-2. **Zone music.** One theme per zone id, tried by convention at
-   `/audio/zone/<id>.mp3` — not looked up in a manifest at runtime, just
-   attempted, and a missing file silently falls back to biome-only (same
-   shape as `roomArtUrl` degrading to the generated room stand-in). This is
-   the layer that makes a hunting region feel distinct, and it is almost
-   entirely unbuilt: `data/audio/manifest.json`'s `zone` object is empty.
-   Adding a zone's theme is: source a track, add a `zone` entry to the
-   manifest with the file at `zone/<id>.mp3`, run
-   `node tools/vendor-audio.mjs`.
+2. **Zone music.** A roughly-one-hour *playlist* per zone (`ZoneMusicPlayer`
+   in `ambientSound.ts`, same shuffle/loop/advance-on-`ended` shape as
+   `RadioPlayer`), not a single file — Dan's ask (28 Aug 2026): "one hour
+   playlists for each region," aware of what a zone actually is, not just
+   its biome. `manifest.json`'s `zone` object maps a zone id to a track-id
+   list drawn from the *same pool* radio stations use (no separate
+   zone-only files). All 85 zones are built: `tools/build-zone-playlists.mjs`
+   assigns each one a station-weighted mix from `characterFor()` — a
+   thief-passage zone gets Halls of Shadow, a coastal one gets Salt and
+   Sail, a real named city gets Throne and Temple, and so on — then fills
+   it with shuffled tracks until the total passes an hour. Re-run it after
+   adding radio tracks to redistribute; `--zone <id> --dry-run` previews
+   one zone without writing.
 3. **Radio.** A player-toggled override of the music layer only — ambience
    keeps playing underneath. Fallout-style, not a jukebox: selecting a
    station starts a *playlist* (`RadioPlayer` in `ambientSound.ts`) that
@@ -50,12 +189,11 @@ player's Genie folder.
 reports a room on every step, and GamePane's own header already measured
 eighteen movement events in ninety seconds in one room (Firulf Vista) — a
 naive "play on every room update" design would restart background music
-that often. Crossfading between zones (2.5s, in `ambientSound.ts`'s
-`Layer`) is the only thing that ever changes what is playing, and — an
-emergent property worth knowing about, not something separately coded —
-moving between two zones that share a biome doesn't even restart the
-ambience layer, only the zone-music layer, because `Layer.play()` is
-itself a no-op on an unchanged source.
+that often. Crossfading (2.5s, in `ambientSound.ts`'s `Layer`) is the only
+thing that ever changes what is playing, and it applies to one layer now,
+not two — the note this section used to have about a biome-sharing pair of
+zones not restarting the ambience layer no longer applies now that there is
+no ambience layer to not-restart.
 
 ## Sourcing discipline
 
@@ -72,42 +210,93 @@ Dan's call, 27-28 Aug 2026. Never DragonRealms' own audio.
 
 ## What's actually done as of this writing
 
-Four biome tracks (forest, town, cave, dungeon — the remaining seven
-biomes in `BIOME_FILES` point at one of those four as a stand-in, see the
-comment above `FALLBACK_BIOME`), the full 85-zone biome classification,
-the crossfade engine, the vendor/manifest pipeline, and the mute toggle.
-Zero zone themes.
+Two biome tracks actually carry their own ambient audio (forest, dungeon)
+— every other biome, including `town` and `cave`, points at one of those
+two as a stand-in, see the comment above `FALLBACK_BIOME` in
+`ambientSound.ts`. `town` and `cave` *did* have their own fetched files
+(`biome/town.mp3` "Peaceful Village Loop", `biome/cave.mp3` "Cave Loop"),
+but both turned out to be 16-second melodic tunes - a plucked/flute-led
+tune, not the wind/water/drips texture this slot is for - measured with
+`ffprobe` after a player heard it as "an annoying flute and guitar
+plays over the music on a short loop," which it did, constantly, since
+`town` is the biome for Crossing and every settlement/interior. Repointed
+to the stand-ins rather than deleted; **town and cave still need their own
+genuinely textural ambient track** (short is fine for a real texture loop -
+see ambient-test.mjs's own comment on why that property is intentionally
+*not* checked here the way it is for radio tracks; melodic is the actual
+defect, not duration) - this is a
+regression fix, not the fix for the underlying gap.
 
-Radio: **three stations, thirteen tracks** — The Old Concert Hall (western
-orchestral/piano, 6 tracks), Six Strings (classical guitar/lute, 4 tracks),
-The Silk Road (Chinese/Japanese/Persian traditional and traditional-style,
-3 tracks). See `data/audio/ATTRIBUTIONS.md` for every track and its
-licence. `tools/ambient-test.mjs` checks the manifest mechanically:
-every station a track names actually got built, no station has fewer than
-two tracks (the whole point of "station" over the old "one track = one
-station" model), every entry the vendor script would fetch has a file,
-download URL and licence, every attribution-required entry actually
-carries its attribution text, and — added after three tracks turned out
-to be 49s/63s/70s demo clips wearing a full song's metadata — every radio
-track measures at least 90 seconds by `ffprobe`, skipping (not failing)
-if `ffprobe` isn't on PATH or the file hasn't been fetched yet. Sabotage-
-verified — a missing licence, a track pointed at an undeclared station, a
-one-track station, and a truncated file were each introduced on a scratch
-copy and confirmed to fail before being trusted. Not yet wired into
-`npm run test` — `package.json` was mid-edit by another session when this
-landed; add `test:ambient` there when it's free.
+The full 85-zone biome classification, the crossfade engine, the
+vendor/manifest pipeline, and the mute toggle are done.
 
-The engine-level claims (crossfade, no-restart-on-same-zone, the radio
-picker calling the file it says it will) were verified separately by
-measuring `Audio.play()` calls against the fixture and directly — same
-method as the alert-sound fix, see that commit for why that discipline
-matters here. `tools/ambient-test.mjs` cannot make that claim: it runs in
-plain Node, which has no `Audio` constructor, so it only reaches the
-module's data (station grouping, the manifest) and the pure `shuffled`
-helper — see the file's own header. Two tracks (`satie-gymnopedie-3.ogg`,
-Ogg-FLAC; `albeniz-asturias.ogg`, Ogg Skeleton-multiplexed) are unusual
-enough containers that they're flagged with a `note` in the manifest and
-still owed a real playback check, not just an HTTP 200.
+**Radio: six stations, 233 tracks.** Six Strings (61, guitar/lute/cello,
+including a large Spanish/flamenco folk batch), The Old Concert Hall (42,
+western orchestral/piano), Throne and Temple (39, grand/ceremonial —
+Handel, Purcell), Halls of Shadow (36, dark/dramatic — split out because
+Brahms' and Beethoven's turbulent movements suit undead/dungeon zones
+far better than a town square), The Silk Road (35, Chinese/Japanese/
+Arabic/Persian, including six genuine 1914-1931 Egyptian recordings —
+see "Roadmap" below), Salt and Sail (20, sea shanties/nautical folk, the
+thinnest of the six — good folk maritime instrumental material is
+scarcer on Commons than classical repertoire).
+See `data/audio/ATTRIBUTIONS.md` (generated, not hand-maintained — run
+`node tools/vendor-audio.mjs --attributions` after adding tracks).
+
+**Zone music: all 85 zones**, each a roughly-one-hour playlist built by
+`tools/build-zone-playlists.mjs` from the radio pool — see "Layers" above
+and that script's own header for how `characterFor()` reads a zone's name
+and biome into a station mix.
+
+`tools/ambient-test.mjs` checks the manifest mechanically: every station
+a track names actually got built, no station has fewer than two tracks,
+every vendor-fetchable entry has a file/download/licence, every
+attribution-required entry carries its text, every radio track measures
+at least 90 seconds by `ffprobe` (added after three tracks turned out to
+be 49s/63s/70s demo clips wearing a full song's metadata), and every zone
+playlist references real track ids and totals at least 45 minutes
+(reading `data/audio/.track-durations-cache.json`, committed specifically
+so this check works on a fresh checkout before `public/audio/` exists to
+re-probe). Sabotage-verified against real defects — a missing licence, an
+undeclared station, a one-track station, a track pointed at a nonexistent
+station, an empty zone playlist, and an unknown track id in a zone
+playlist were each introduced on a scratch copy and confirmed to fail
+before being trusted. Not yet wired into `npm run test` — `package.json`
+was mid-edit by another session when this landed; add `test:ambient`
+there when it's free.
+
+The engine-level claims (crossfade, no-restart-on-same-zone, a station or
+zone playlist actually calling the files it says it will) were verified
+separately by measuring `Audio.play()` calls against the fixture and
+directly — same method as the alert-sound fix, see that commit for why
+that discipline matters here. `tools/ambient-test.mjs` cannot make that
+claim: it runs in plain Node, which has no `Audio` constructor, so it
+only reaches the module's data and the pure `shuffled` helper — see the
+file's own header. A few tracks use unusual containers (Ogg-FLAC, Ogg
+Skeleton-multiplexed) and are flagged with a `note` in the manifest,
+confirmed serving correctly over HTTP but still owed a real playback
+check in a browser.
+
+## A real trap this system hit: Vite's watcher and `data/audio/`
+
+`vite.config.ts`'s dev-server watcher used to ignore all of `data/` (to
+stop an OOM crash from the art pipeline's ComfyUI venv — see that file's
+own history). That silently broke hot-reload for
+`data/audio/manifest.json`, which `ambientSound.ts` reads as a real ES
+module import, not a static asset: editing the manifest updated the file
+on disk and nothing else, because Vite's watcher was told never to look
+under `data/` at all. Every radio/zone-playlist edit looked correct
+against the source and produced zero new `Audio.play()` calls in the
+running app until the dev server was restarted by hand — the same
+"looks right, does nothing" shape the whole test suite here exists to
+prevent, just moved into a layer no amount of `ambient-test.mjs` coverage
+can see, because the bug wasn't in the data or the code, it was in what
+Vite was willing to notice changed. Fixed by naming the two actually-
+churny directories (`data/art/comfy-venv`, `data/art/out`) instead of
+their parent. If a `data/audio/*` edit ever again looks correct but
+doesn't reach the running app, check whether the dev server has been
+restarted since — this exact failure has now happened twice with two
+different unrelated symptoms.
 
 Sourcing went through OpenGameArt (biome tracks) and Wikimedia Commons
 (radio) - the second because a scripted `imageinfo` API call returns an
@@ -153,28 +342,47 @@ too short. The Andalusian/Ottoman batch that filled out Arabic
 representation in The Silk Road worked because it searched by tradition
 and repertoire name, not by instrument.
 
-## Roadmap: what "hundreds of songs" and real zone-matching still need
+## Roadmap: what's still open
 
-Dan's direction (28 Aug 2026), not yet built:
+Dan's direction (28 Aug 2026). **Done since it was written:** "hundreds of
+songs" (233 as of this writing), "a good number of stations matched to
+region types" (six,
+each with a `characterFor()` reason — see "What's actually done"), and
+"one hour playlists for each region... aware of more than just maps"
+(all 85 zones, `tools/build-zone-playlists.mjs`). Still open:
 
-- **A good number of stations**, matched as closely as possible to region
-  types - hunting areas, towns, rural areas, and *places of interest
-  within towns* (building interiors specifically named, not just "town").
-  Today there are four (The Old Concert Hall, Six Strings, The Silk Road,
-  Salt and Sail for sea shanties/pirates). Take inspiration from monster
-  types and scenery when choosing what a region's station should be, not
-  only its biome - Arabic/Andalusian music for pirate and coastal
-  content was Dan's own example.
 - **Player-created custom stations.** Not built at all. The manifest
   schema (`radioStations` + a `station` tag per track) already supports
   an arbitrary number of stations, so the data model doesn't block this,
   but there is no UI for a player to build their own station from
   tracks, name it, or persist it. This is the next real feature, not a
   content-sourcing task.
-- **Zone/interior-level music matching**, not just biome-level. The
-  `zone` layer in `manifest.json` is still empty - see "Layers" above.
-  "Places of interest in towns like building interiors" implies
-  finer-than-zone granularity eventually (a temple or guild hall inside
-  a town zone getting its own theme), which the current `place` field
-  already carried in `src/data/map/*.json`'s room records could key off
-  of, but nothing reads it for audio yet.
+- **Interior-level music matching, finer than zone.** "Places of
+  interest in towns like building interiors" implies going below the
+  85-zone granularity eventually (a temple or guild hall inside a town
+  zone getting its own theme distinct from the zone's playlist), which
+  the `place` field already carried in `src/data/map/*.json`'s room
+  records could key off of, but nothing reads it for audio yet.
+- **`characterFor()`'s heuristics are a first pass, not lore.** It reads
+  zone names and biomes; it does not know what actually lives in a zone.
+  Cross-referencing `src/data/hunting.ts`'s `HUNTING_GROUNDS` was tried
+  and abandoned for now — its `area` field names regions ("Zoluren"), not
+  specific zone ids, too loosely to map reliably. A better creature/zone
+  data source, if one exists or gets built, would let a genuinely
+  undead-heavy zone get Halls of Shadow regardless of what its name
+  happens to say.
+- **More stations as content allows.** Six is not a ceiling — a "Court
+  and Ceremony" split from Throne and Temple, a lighter "Tavern and
+  Hearth" folk station, or others Dan names are all just another
+  `radioStations` entry plus a `tools/source-radio.mjs` run away.
+- ~~The genuine pre-1900 Arabic gap.~~ **Filled, 28 Aug 2026.** Dan's
+  clarification was pre-1960, not pre-1900 - the mid-20th-century Arabic
+  golden age (Umm Kulthum/Abdel Wahab era), not medieval. Named-artist
+  Commons searches came up empty (that era's actual commercial
+  recordings are mostly still copyrighted), but Wikimedia's
+  `Category:Music of Egypt` had six genuine historical recordings, all
+  Public domain: five dated 1914-1931 (`Aldahre Kata Awsali`, two-part
+  `Baschrav Kuzum Maqam Hijaz`, `Art-song Maqam Sika`, `Ala fi Sabil
+  Allah`) plus one undated orchestral anthem. The Silk Road is now 35
+  tracks with real period-authentic Arabic material anchoring it the way
+  Grieg/Handel anchor their stations.

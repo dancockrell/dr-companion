@@ -31,7 +31,7 @@
  * is the next thing to build.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Send, Plug, PlugZap, Volume2, VolumeX, Music, Music2 } from 'lucide-react'
+import { Send, Plug, PlugZap } from 'lucide-react'
 import {
   attachGame,
   clearGame,
@@ -51,15 +51,10 @@ import { useHighlights } from '../../lib/useHighlights'
 import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
-import { playAlert, setAlertsMuted, alertsMuted } from '../../lib/alertSound'
-import {
-  setZone,
-  setAmbienceMuted,
-  ambienceMuted,
-  setRadioStation,
-  currentRadioStation,
-  RADIO_STATIONS,
-} from '../../lib/ambientSound'
+import { playAlert, setAlertsVolume } from '../../lib/alertSound'
+import { setZone, setMusicVolume } from '../../lib/ambientSound'
+import { SoundControls } from './SoundControls'
+import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 
@@ -205,20 +200,31 @@ export function GamePane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlights])
 
-  const [muted, setMuted] = useState(alertsMuted())
-
   /**
-   * The background layer: terrain ambience plus per-zone music, driven by the
-   * live bridge's zone report rather than the room line stream this pane
-   * otherwise reads. See ambientSound.ts's header for why zone rather than
-   * room, and why a no-op on an unchanged zone id is the whole point.
+   * The ambient terrain-texture layer stays out - Dan's call, 28 Aug 2026:
+   * "the idea for that ambiance is bad anyways. pull out that kind of
+   * stuff. lets not." But music itself came back the same day: "i do want
+   * music. not ambiant...just the music...lots of songs we had." One layer
+   * now (ambientSound.ts's `music` slot), driven by the live bridge's zone
+   * report rather than the room line stream this pane otherwise reads - see
+   * ambientSound.ts's header for why zone rather than room, and why a
+   * no-op on an unchanged zone id is the whole point.
+   *
+   * Persisted volumes are applied here, once, rather than read fresh by
+   * alertSound.ts/ambientSound.ts themselves - those modules have no
+   * opinion about storage (see their own headers), so something has to
+   * hand them the remembered levels on startup. SoundControls only writes
+   * the levels back out when a slider is actually moved.
    */
+  useEffect(() => {
+    const prefs = loadPrefs()
+    setAlertsVolume(prefs.alertsVolume ?? 0)
+    setMusicVolume(prefs.musicVolume ?? 0)
+  }, [])
   const mapZone = useAppStore((s) => s.mapZone)
   useEffect(() => {
     setZone(mapZone?.ok ? (mapZone.zone ?? null) : null)
   }, [mapZone])
-  const [ambienceOff, setAmbienceOff] = useState(ambienceMuted())
-  const [radioId, setRadioId] = useState(currentRadioStation())
 
   /**
    * Follow the bottom, unless the reader has deliberately scrolled away.
@@ -254,7 +260,50 @@ export function GamePane() {
     if (el && atBottom.current) el.scrollTop = el.scrollHeight
   }, [lines])
 
-  const visible: GameLine[] = lines.length > shown ? lines.slice(-shown) : lines
+  /**
+   * Search the scrollback.
+   *
+   * This file's own header named it - "which is what a search is for anyway
+   * and is the next thing to build" - and the reason is the virtualised tail:
+   * only the newest `shown` lines are rendered, so something said an hour ago
+   * cannot be found by eye without paging back to it.
+   *
+   * A filter rather than a jump-to-next-match. Filtering answers the question
+   * people actually have in a MUD - "what did Wipsy say", "when did I last see
+   * that creature" - and it answers it across the *whole* buffer rather than
+   * the rendered window, which is the entire point.
+   *
+   * Plain case-insensitive substring, not a regex. A regex box invites a typo
+   * that silently matches nothing, and "no results" and "your pattern is
+   * broken" would render identically - which is the failure this app has been
+   * bitten by repeatedly. A literal substring can only fail in the way the
+   * reader expects.
+   *
+   * Searching the whole buffer, not `visible`: a search restricted to what
+   * happens to be rendered would be a search that lies about what it looked at.
+   */
+  const [query, setQuery] = useState('')
+  const trimmedQuery = query.trim()
+  const searching = trimmedQuery.length > 0
+
+  const matches: GameLine[] = searching
+    ? lines.filter((l) => l.text.toLowerCase().includes(trimmedQuery.toLowerCase()))
+    : []
+
+  /**
+   * While searching, the pane shows matches and nothing else.
+   *
+   * The window cap still applies, so a query matching thousands does not
+   * render thousands - but it is applied *after* filtering, so the newest
+   * matches are the ones kept rather than the newest lines.
+   */
+  const visible: GameLine[] = searching
+    ? matches.length > shown
+      ? matches.slice(-shown)
+      : matches
+    : lines.length > shown
+      ? lines.slice(-shown)
+      : lines
 
   const send = () => {
     const text = command.trim()
@@ -342,12 +391,8 @@ export function GamePane() {
           title={link.note || `${link.host}:${link.port}`}
         >
           {link.connected ? <PlugZap className="h-3 w-3" /> : <Plug className="h-3 w-3" />}
-          {link.connected ? `${link.host}:${link.port}` : link.note || 'not attached'}
+          {link.connected ? 'Attached' : link.note || 'not attached'}
         </span>
-
-        {link.connected && (
-          <span className="tabular-nums text-ink-faint">{link.lines} lines</span>
-        )}
 
         {/* "Connection lost" was the same sentence whether our socket dropped
             or Lich exited underneath us, and those need opposite actions -
@@ -388,70 +433,24 @@ export function GamePane() {
         )}
 
         <span className="ml-auto flex items-center gap-1">
-          {/* Mute, and it is a real control rather than a courtesy.
-            *
-            * The corpus is deliberately quiet - 13 of 57 entries make a sound -
-            * because a client that pings constantly gets muted at the operating
-            * system, and a client muted there has no alerts at all including
-            * the idle warning that costs a session. A mute inside the app is
-            * how somebody turns it down for an hour instead of forever. */}
-          <button
-            type="button"
-            className={cn(
-              'rounded px-1.5 py-0.5',
-              muted ? 'text-warn' : 'text-ink-faint hover:text-ink'
-            )}
-            onClick={() => {
-              const next = !muted
-              setMuted(next)
-              setAlertsMuted(next)
+          <SoundControls />
+          {/* Searches the whole buffer, not the rendered window - see the
+            * `matches` note. Escape clears, because a filter you cannot get
+            * out of quickly is one people stop using. */}
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                setQuery('')
+              }
             }}
-            title={muted ? 'Alerts are muted' : 'Mute alerts'}
-          >
-            {muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-          </button>
-          {/* Ambience: terrain and per-zone music, separate from alerts on
-            * purpose - somebody who wants the idle warning but not a music bed
-            * running under everything should be able to have exactly that. */}
-          <button
-            type="button"
-            className={cn(
-              'rounded px-1.5 py-0.5',
-              ambienceOff ? 'text-warn' : 'text-ink-faint hover:text-ink'
-            )}
-            onClick={() => {
-              const next = !ambienceOff
-              setAmbienceOff(next)
-              setAmbienceMuted(next)
-            }}
-            title={ambienceOff ? 'Ambience is muted' : 'Mute ambience'}
-          >
-            {ambienceOff ? <Music2 className="h-3 w-3" /> : <Music className="h-3 w-3" />}
-          </button>
-          {/* The radio: a station, not a track. Selecting one starts its
-            * playlist looping and advancing on its own - see RadioPlayer in
-            * ambientSound.ts. An override of the music layer only; ambience
-            * keeps playing under whatever the station is playing. */}
-          <select
-            className="w-32 truncate rounded border border-border bg-surface px-1 py-0.5 text-ink-muted"
-            value={radioId ?? ''}
-            onChange={(e) => {
-              const next = e.target.value || null
-              setRadioId(next)
-              setRadioStation(next)
-            }}
-            title={
-              RADIO_STATIONS.find((s) => s.id === radioId)?.description ??
-              'Radio: overrides zone music, ambience keeps playing'
-            }
-          >
-            <option value="">Zone music</option>
-            {RADIO_STATIONS.map((s) => (
-              <option key={s.id} value={s.id} title={s.description}>
-                {s.name} ({s.tracks.length})
-              </option>
-            ))}
-          </select>
+            placeholder="Find in scrollback"
+            title="Filter the whole scrollback, including lines older than the rendered window. Plain text, not a pattern. Escape clears."
+            className="w-32 rounded border border-border bg-surface px-1.5 py-0.5 text-ink-muted placeholder:text-ink-faint focus:border-accent/40 focus:text-ink"
+          />
           <button
             type="button"
             className="rounded px-1.5 py-0.5 text-ink-faint hover:text-ink"
@@ -510,9 +509,40 @@ export function GamePane() {
         onScroll={onScroll}
         className="min-h-0 flex-1 overflow-y-auto px-2 py-1"
       >
-        {lines.length > shown && (
+        {/* A filtered pane and a quiet game look identical, and that is the
+          * failure mode this app has paid for more than any other. So while a
+          * search is active the pane says so at the top of its own scroller,
+          * in the reader's line of sight rather than only in the header, and
+          * states the denominator: how many matched, out of how many lines
+          * were actually looked at. "3 lines" alone could mean a quiet room. */}
+        {searching && (
+          <div className="sticky top-0 z-10 -mx-2 mb-1 flex items-center justify-between gap-2 border-b border-accent/30 bg-surface-raised px-2 py-1 text-xs">
+            <span className="text-accent">
+              {matches.length === 0
+                ? `No match for “${trimmedQuery}” in ${lines.length.toLocaleString()} lines`
+                : `${matches.length.toLocaleString()} of ${lines.length.toLocaleString()} lines match “${trimmedQuery}”`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="shrink-0 rounded border border-border px-1.5 text-ink-muted hover:bg-surface-overlay hover:text-ink"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Only meaningful when not filtering - while searching, `shown` caps
+          * matches rather than lines, so this count would describe something
+          * the reader is not looking at. */}
+        {!searching && lines.length > shown && (
           <div className="py-1 text-center text-xs text-ink-faint">
             {lines.length - shown} earlier lines, scroll up to load
+          </div>
+        )}
+        {searching && matches.length > shown && (
+          <div className="py-1 text-center text-xs text-ink-faint">
+            showing the newest {shown.toLocaleString()} matches
           </div>
         )}
 

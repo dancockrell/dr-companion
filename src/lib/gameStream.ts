@@ -320,10 +320,19 @@ function parseRoomPlayers(raw: string): RoomPlayer[] {
   })
 }
 
+/**
+ * Module-level rather than built fresh per call: `attrs()` runs once per tag,
+ * and this is the single busiest code path in the app - every progressBar,
+ * indicator, pushStream and component the live socket sends, all session
+ * long. `matchAll` clones the regex's internal state per call, so a shared
+ * global-flag instance is safe to reuse rather than a correctness risk.
+ */
+const ATTR_RE = /([a-zA-Z_][\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s/>]+))/g
+
 /** Attributes, tolerating single quotes, double quotes and bare values. */
 function attrs(tag: string): Record<string, string> {
   const out: Record<string, string> = {}
-  for (const m of tag.matchAll(/([a-zA-Z_][\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s/>]+))/g)) {
+  for (const m of tag.matchAll(ATTR_RE)) {
     out[m[1].toLowerCase()] = unescape(m[2] ?? m[3] ?? m[4] ?? '')
   }
   return out

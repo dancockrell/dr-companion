@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { FileWarning, FileCheck2, RefreshCw, ChevronRight } from 'lucide-react'
+import { FileWarning, FileCheck2, ChevronRight } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
+import { CheckPanel } from './CheckPanel'
 
 /**
  * Which dr-scripts settings files are being read, in what order, and which one
@@ -48,34 +49,15 @@ export function SettingsFilesPanel() {
   const broken = files?.filter((f) => !f.ok) ?? []
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded border border-border px-2 py-1 text-xs text-ink-muted hover:bg-surface-overlay hover:text-ink disabled:opacity-50"
-          onClick={readSettings}
-          disabled={!connected}
-          title={
-            connected
-              ? 'Ask Lich which dr-scripts settings files apply to this character'
-              : 'Needs a bridge connection'
-          }
-        >
-          <RefreshCw className="h-3 w-3" />
-          {files ? 'Check again' : 'Check settings files'}
-        </button>
-
-        {character && <span className="text-xs text-ink-faint">for {character}</span>}
-      </div>
-
-      {/* No answer yet is not the same as no files, and must not look like it. */}
-      {!files && (
-        <p className="text-xs text-ink-faint">
-          Not checked yet. This reads your dr-scripts YAML profiles and reports the
-          load order and any that will not parse. Nothing is written.
-        </p>
-      )}
-
+    <CheckPanel
+      label="Check settings files"
+      checkTitle="Ask Lich which dr-scripts settings files apply to this character"
+      notCheckedText="Not checked yet. This reads your dr-scripts YAML profiles and reports the load order and any that will not parse. Nothing is written."
+      connected={connected}
+      hasData={!!files}
+      onCheck={readSettings}
+      headerExtra={character && <span className="text-xs text-ink-faint">for {character}</span>}
+    >
       {files && files.length === 0 && (
         <p className="text-xs text-ink-faint">
           No dr-scripts profiles found. That is fine if you do not use them; this app
@@ -172,6 +154,6 @@ export function SettingsFilesPanel() {
           earlier one.
         </p>
       )}
-    </div>
+    </CheckPanel>
   )
 }

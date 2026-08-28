@@ -1,5 +1,6 @@
-import { AlertTriangle, CheckCircle2, HelpCircle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
+import { CheckPanel } from './CheckPanel'
 
 /**
  * BRIEF, INVBRIEF and ShowRoomID, read from the game rather than guessed.
@@ -50,66 +51,46 @@ export function TogglesPanel() {
   ]
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded border border-border px-2 py-1 text-xs text-ink-muted hover:bg-surface-overlay hover:text-ink disabled:opacity-50"
-          onClick={checkToggles}
-          disabled={!connected}
-          title={
-            connected
-              ? 'Ask the game for BRIEF, INVBRIEF and ShowRoomID'
-              : 'Needs a bridge connection'
-          }
-        >
-          <RefreshCw className="h-3 w-3" />
-          {toggles ? 'Check again' : 'Check toggles'}
-        </button>
-      </div>
+    <CheckPanel
+      label="Check toggles"
+      checkTitle="Ask the game for BRIEF, INVBRIEF and ShowRoomID"
+      notCheckedText="Not checked yet. BRIEF and INVBRIEF shorten what the game prints, which breaks anything reading room or inventory text; ShowRoomID needs to be on for Lich to know which room you're in. Nothing here is changed, only read."
+      connected={connected}
+      hasData={!!toggles}
+      onCheck={checkToggles}
+    >
+      <ul className="flex flex-col gap-1">
+        {rows.map((r) => {
+          // A row's own state decides which icon it gets, independent of
+          // the others - BRIEF being unknown says nothing about ShowRoomID.
+          const known = r.state !== null
+          const good = known && r.state === r.goodWhen
+          const bad = known && r.state !== r.goodWhen
 
-      {!toggles && (
-        <p className="text-xs text-ink-faint">
-          Not checked yet. BRIEF and INVBRIEF shorten what the game prints, which
-          breaks anything reading room or inventory text; ShowRoomID needs to be on
-          for Lich to know which room you're in. Nothing here is changed, only read.
-        </p>
-      )}
+          return (
+            <li
+              key={r.label}
+              className="flex items-center gap-2 rounded border border-border bg-surface px-2 py-1"
+            >
+              {good && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-good" />}
+              {bad && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-danger" />}
+              {!known && <HelpCircle className="h-3.5 w-3.5 shrink-0 text-ink-faint" />}
 
-      {toggles && (
-        <ul className="flex flex-col gap-1">
-          {rows.map((r) => {
-            // A row's own state decides which icon it gets, independent of
-            // the others - BRIEF being unknown says nothing about ShowRoomID.
-            const known = r.state !== null
-            const good = known && r.state === r.goodWhen
-            const bad = known && r.state !== r.goodWhen
+              <span className={`text-xs ${bad ? 'text-danger' : 'text-ink'}`}>{r.label}</span>
 
-            return (
-              <li
-                key={r.label}
-                className="flex items-center gap-2 rounded border border-border bg-surface px-2 py-1"
-              >
-                {good && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-good" />}
-                {bad && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-danger" />}
-                {!known && <HelpCircle className="h-3.5 w-3.5 shrink-0 text-ink-faint" />}
-
-                <span className={`text-xs ${bad ? 'text-danger' : 'text-ink'}`}>{r.label}</span>
-
-                <span className="ml-auto text-xs text-ink-faint">
-                  {!known
-                    ? 'not confirmed'
-                    : r.state
-                      ? r.onWord
-                      : r.label === 'ShowRoomID'
-                        ? 'off — turn on with FLAGS ShowRoomID ON'
-                        : 'off'}
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </div>
+              <span className="ml-auto text-xs text-ink-faint">
+                {!known
+                  ? 'not confirmed'
+                  : r.state
+                    ? r.onWord
+                    : r.label === 'ShowRoomID'
+                      ? 'off — turn on with FLAGS ShowRoomID ON'
+                      : 'off'}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </CheckPanel>
   )
 }

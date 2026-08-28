@@ -139,6 +139,49 @@ export interface ActiveSpell {
   minutes: number
 }
 
+/** Engagement distance, as DR's own `assess` command buckets it. */
+export type CombatRange = 'melee' | 'pole' | 'missile'
+
+/**
+ * One entity Lich's creature tracker (lib/dragonrealms/creature.rb) is
+ * watching in the room, with whatever combat detail `assess` has supplied.
+ *
+ * Two feeds, two schedules: `id`/`name`/`noun`/`dead`/`hostile`/`disengaged`/
+ * `statuses` come from `<crtrStatus>`, pushed automatically on every room
+ * refresh. `range`/`relation`/`target`/`targetNumber`/`balance`/
+ * `offBalance`/`conditions` come from `assess`, a pull — they are null until
+ * a player or script has actually run it, and `enrichedAgeSeconds` is how
+ * old that assess is (null = never). Treat range/target/balance as
+ * potentially stale past a few dozen seconds, not as a live feed.
+ */
+export interface RoomCombatant {
+  id: string
+  name: string | null
+  noun: string | null
+  dead: boolean
+  hostile: boolean
+  /** Broken off combat — still in the room, not fighting. The honest answer
+   * to "not engaged at all," distinct from range simply being unknown. */
+  disengaged: boolean
+  range: CombatRange | null
+  /** Positional phrase from assess, e.g. "in front of you", "behind you". */
+  relation: string | null
+  /** Who this is engaging — "you", another PC's name, or another creature's. */
+  target: string | null
+  /** The target's own assess list number, when the target is also assessed. */
+  targetNumber: number | null
+  /** DR_BALANCE_VALUES descriptor, e.g. "solidly", "off", "extremely". */
+  balance: string | null
+  /** Below "solidly balanced" — a softer target, if balance is known at all. */
+  offBalance: boolean
+  /** Assess-only afflictions crtrStatus does not carry, e.g. "cursed". */
+  conditions: string[]
+  /** crtrStatus flags, e.g. "stunned", "prone", "hidden". */
+  statuses: string[]
+  /** Seconds since the last assess enriched this entry; null if never. */
+  enrichedAgeSeconds: number | null
+}
+
 export interface CharacterStatus {
   name: string
   instance: GameInstance
@@ -255,6 +298,21 @@ export interface CharacterStatus {
   /** Corpses, from DRRoom.dead_npcs. They stay on screen: a skinnable one
    * with boxes is a task, not a footnote. */
   roomDeadCreatures?: string[]
+  /**
+   * Combat detail for whatever Lich's own creature tracker has assessed —
+   * additive to roomCreatures, not a replacement. Correlate to a RoomCard by
+   * noun (see combatantFor in lib/combat.ts), never by array position: this
+   * list can be shorter than roomCreatures (nothing has assessed a given
+   * creature yet) or differently ordered.
+   *
+   * `range`/`relation`/`target`/`balance` are null until an `assess` has
+   * actually landed for that creature — not defaulted to a guess — and
+   * `enrichedAgeSeconds` says how stale that assess is (null = never
+   * assessed). A creature that has broken off combat is `disengaged: true`
+   * rather than merely missing range data: that is the real answer to "not
+   * fighting anyone," and the UI must not render it the same as "unknown."
+   */
+  roomCombatants?: RoomCombatant[]
   /**
    * Loose items on the ground here, from GameObj.loot.
    *

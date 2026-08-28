@@ -20,7 +20,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, CornerDownLeft } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
-import { allFlows, loadCustomFlows } from '../../data/taskFlows'
+import { pythonStatus, type TaskInfo } from '../../lib/pythonTasks'
 import {
   requestStopAll,
   requestPauseAll,
@@ -33,7 +33,7 @@ interface Command {
   id: string
   label: string
   hint?: string
-  group: 'Safety' | 'Task Flows' | 'Scripts' | 'App'
+  group: 'Safety' | 'Tasks' | 'Scripts' | 'App'
   run: () => void
   /**
    * Already started, so offering to start it is a lie.
@@ -82,6 +82,8 @@ function isStarted(runningByName: Map<string, string>, name: string): boolean {
 
 function buildCommands(deps: {
   scriptCatalog: string[] | null
+  /** Python tasks, read from the same catalog the Tasks panel shows. */
+  tasks: TaskInfo[]
   // Not `string`. A palette entry naming an intent that does not exist
   // used to compile and fail against a live bridge; the union makes the
   // typo a build error at the entry itself.
@@ -130,13 +132,15 @@ function buildCommands(deps: {
     },
   ]
 
-  for (const flow of allFlows(loadCustomFlows())) {
+  for (const task of deps.tasks) {
     commands.push({
-      id: `flow:${flow.id}`,
-      label: flow.title,
-      hint: flow.summary,
-      group: 'Task Flows',
-      run: () => requestStartFlow(flow.id),
+      id: `task:${task.id}`,
+      label: task.title,
+      // The kind rides along, because "watches" and "drives your character"
+      // are the difference worth seeing before pressing Enter on a fuzzy match.
+      hint: `${task.summary} (${task.kind})`,
+      group: 'Tasks',
+      run: () => requestStartFlow(task.id),
     })
   }
 
@@ -188,13 +192,23 @@ function buildCommands(deps: {
   return commands
 }
 
-const GROUP_ORDER: Command['group'][] = ['Safety', 'Task Flows', 'Scripts', 'App']
+const GROUP_ORDER: Command['group'][] = ['Safety', 'Tasks', 'Scripts', 'App']
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const [tasks, setTasks] = useState<TaskInfo[]>([])
+
+  // Re-read every time the palette opens rather than once at mount. A task
+  // saved in the editor a minute ago must be findable now, and a list
+  // captured at startup would never contain it.
+  useEffect(() => {
+    if (!open) return
+    void pythonStatus().then((st) => setTasks(st.tasks))
+  }, [open])
 
   const scriptCatalog = useAppStore((s) => s.scriptCatalog)
   const scriptStates = useAppStore((s) => s.scriptStates)
@@ -241,6 +255,7 @@ export function CommandPalette() {
     () =>
       buildCommands({
         scriptCatalog,
+        tasks,
         requestIntent,
         startScript,
         uiMode,

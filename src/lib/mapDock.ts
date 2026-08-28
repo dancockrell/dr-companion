@@ -20,6 +20,7 @@
  * survives a reload.
  */
 import { useSyncExternalStore } from 'react'
+import { readJSON, writeJSON } from './storage'
 
 const KEY = 'drc.map.v1'
 
@@ -68,24 +69,20 @@ export const WINDOW_ZOOM_MAX = 6
 export const MIN_WIDTH_PX = 80
 
 function read(): MapDock {
-  try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null')
-    if (!raw || typeof raw !== 'object') return DEFAULT
-    return {
-      docked: typeof raw.docked === 'boolean' ? raw.docked : DEFAULT.docked,
-      width: Number.isFinite(raw.width) ? Math.max(MIN_WIDTH_PX, raw.width) : DEFAULT.width,
-      zoom: Number.isFinite(raw.zoom)
-        ? Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, raw.zoom))
-        : DEFAULT.zoom,
-      windowZoom: Number.isFinite(raw.windowZoom)
-        ? Math.min(WINDOW_ZOOM_MAX, Math.max(WINDOW_ZOOM_MIN, raw.windowZoom))
-        : DEFAULT.windowZoom,
-    }
-  } catch {
-    // Private mode, or something else wrote nonsense to the key. A default
-    // layout is a worse answer than the player's own and a much better one
-    // than a crash on boot.
-    return DEFAULT
+  // readJSON's own catch covers a malformed JSON string; the type/shape
+  // checks below cover valid JSON that is not the shape expected (private
+  // mode is not the only way this key ends up holding nonsense).
+  const raw = readJSON<Record<string, unknown> | null>(KEY, null)
+  if (!raw || typeof raw !== 'object') return DEFAULT
+  return {
+    docked: typeof raw.docked === 'boolean' ? raw.docked : DEFAULT.docked,
+    width: Number.isFinite(raw.width) ? Math.max(MIN_WIDTH_PX, raw.width as number) : DEFAULT.width,
+    zoom: Number.isFinite(raw.zoom)
+      ? Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, raw.zoom as number))
+      : DEFAULT.zoom,
+    windowZoom: Number.isFinite(raw.windowZoom)
+      ? Math.min(WINDOW_ZOOM_MAX, Math.max(WINDOW_ZOOM_MIN, raw.windowZoom as number))
+      : DEFAULT.windowZoom,
   }
 }
 
@@ -129,11 +126,7 @@ export function setMapDock(patch: Partial<MapDock>) {
     return
   }
   current = next
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next))
-  } catch {
-    // Losing the setting is not worth failing the drag that set it.
-  }
+  writeJSON(KEY, next)
   for (const fn of listeners) fn()
 }
 

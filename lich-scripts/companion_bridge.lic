@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.10.3'
+  BRIDGE_VERSION = '0.10.5'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -414,6 +414,66 @@ module Companion
       end.compact
     end
 
+    # Named entities Lich is tracking in the room right now, with as much
+    # combat detail as it actually has - not just names, which DRRoom.npcs
+    # already sends. This is a genuinely separate feed: Lich::DragonRealms::
+    # Creature is built id-first from <crtrStatus> (automatic, every room
+    # refresh - hostile/dead/stunned/etc, no name and no range) and enriched
+    # from `assess` (name, range bucket, relation, who it's targeting,
+    # balance, conditions) whenever a player or script has actually run
+    # assess. The two halves arrive on different schedules, which is why
+    # `enrichedAgeSeconds` is sent honestly rather than assumed fresh - a
+    # creature can be real and current on crtrStatus while its range/target
+    # are minutes stale from the last assess. See docs/BRIDGE_CONTRACT.md.
+    #
+    # Optional module, guarded rather than assumed: it does not touch DRRoom
+    # or the plain-string roster every existing script already reads, so a
+    # Lich build without it degrades to an empty list, not an error.
+    COMBATANT_STATUS_FLAGS = %w[
+      stunned prone sitting kneeling sleeping hidden immobilized webbed
+      rooted disoriented flying hovering calm
+    ].freeze
+
+    def combatants
+      return [] unless defined?(Lich::DragonRealms::Creature)
+
+      safe([]) do
+        Lich::DragonRealms::Creature.in_room.map do |c|
+          {
+            'id'                 => safe(nil) { c.id.to_s },
+            'name'               => safe(nil) { c.name },
+            'noun'               => safe(nil) { c.noun },
+            'dead'               => safe(false) { c.crtr_flag?(:dead) },
+            'hostile'            => safe(false) { c.crtr_flag?(:hostile) },
+            # True once the creature has broken off - still in the room, no
+            # longer fighting. The client's honest answer to "not engaged at
+            # all", when it can tell rather than guess.
+            'disengaged'         => safe(false) { c.crtr_flag?(:disengaged) },
+            # 'melee' | 'pole' | 'missile' | nil - nil means not yet assessed
+            # this room, not "at range zero". See enrichedAgeSeconds below.
+            'range'              => safe(nil) { c.range&.to_s },
+            'relation'           => safe(nil) { c.relation },
+            'target'             => safe(nil) { c.target },
+            'targetNumber'       => safe(nil) { c.target_number },
+            'balance'            => safe(nil) { c.balance },
+            'offBalance'         => safe(false) { c.off_balance? },
+            'conditions'         => safe([]) { c.conditions } || [],
+            'statuses'           => COMBATANT_STATUS_FLAGS.select do |f|
+              safe(false) { c.flag_active?(f) }
+            end,
+            # Whole seconds since the last assess enriched this entry, or nil
+            # if it never has been. The client's call whether to still show
+            # range/target/balance past some age, or grey them out as stale -
+            # this field is what makes that an honest choice rather than a
+            # guess dressed as current data.
+            'enrichedAgeSeconds' => safe(nil) {
+              c.enriched? ? (Time.now - c.enriched_at).round : nil
+            }
+          }
+        end
+      end || []
+    end
+
     # Held between polls rather than re-read from a passive stream, because DR
     # has none for wounds - Intents.check_health sends HEALTH and parses the
     # reply, on demand, not on this tick. nil means "never successfully
@@ -566,6 +626,11 @@ module Companion
         # Corpses stay reported rather than dropped. A skinnable one with boxes
         # in it is a task the player has not done yet.
         'roomDeadCreatures' => safe([]) { DRRoom.dead_npcs } || [],
+        # Combat detail (range, target, balance, statuses) for whatever Lich
+        # has assessed - additive to roomCreatures above, not a replacement:
+        # this can be a shorter or differently-ordered list, and empty is a
+        # real answer ("nobody has assessed yet"), not a failure.
+        'roomCombatants' => combatants,
         # Loose items on the floor. GameObj.loot is the game's own list of
         # what is lying here, which is not the same as what a script decided
         # was worth picking up.
@@ -738,9 +803,21 @@ module Companion
     ROUNDTIME = /^\[?\(?Roundtime:?/i.freeze
 
     # Per-intent expectations. Keys are stable; values are what we hope to see.
+    #
+    # This table is the whole point of the module comment above - one place a
+    # tester can fix - and it only holds that promise if every `expect:` in
+    # the file actually reads from it rather than writing its own regex.
+    # `health` and the fallback `Cmd.exec('health', expect: [...])` used to be
+    # two separate literals and had already drifted: the fallback was missing
+    # the `You are in good` alternative present here, so a healthy character's
+    # health check would never match on that path. Caught by the table saying
+    # something the code no longer did, which is what having one table is for.
     EXPECT = {
       health: [/You have|You feel|You are in good/i],
       stow:   [/You put|You (?:can't|cannot)|is too/i],
+      toggle: [/BRIEF|INVBRIEF|Toggle settings|You have the following/i],
+      flags:  [/ShowRoomID|Flags|You have the following/i],
+      escape: [/You have fled|You can't flee|nowhere to flee|too hurt|You gather yourself/i],
       # Filled in as intents land. Unknown keys fall through to no expectation,
       # which sends the command and does not pretend to have read the answer.
     }.freeze
@@ -1555,13 +1632,18 @@ module Companion
       'check_toggles' => ->(_args, server) { check_toggles(server) },
       'list_vars'     => ->(_args, server) { list_vars(server) },
 
-      # --- map queries, all read-only -------------------------------------
+      # --- map queries ------------------------------------------------------
       #
-      # These answer questions rather than taking the character anywhere. A
-      # route is shown, never walked; deciding to move stays a separate
-      # decision the player makes with the route in front of them.
+      # map_here/map_path/map_zone/install_mapdb are read-only: they answer
+      # questions rather than taking the character anywhere. map_walk is the
+      # one deliberate exception - clicking a room on the map is now a travel
+      # command, at Dan's explicit instruction ("when you click on a location
+      # on the map, you go there using lich"), reversing the "not a travel
+      # control" design this panel shipped with. See map_walk's own comment
+      # for why it delegates to go2 rather than reimplementing movement.
       'map_here' => ->(_args, server) { map_here(server) },
       'map_path' => ->(args, server) { map_path(args, server) },
+      'map_walk' => ->(args, server) { map_walk(args, server) },
       'map_zone' => ->(args, server) { map_zone(args, server) },
       'install_mapdb' => ->(_args, server) { install_mapdb(server) },
       'list_scripts'  => ->(_args, server) { list_scripts(server) },
@@ -1619,6 +1701,59 @@ module Companion
       # Says "not moving" out loud. A route appearing on screen looks like the
       # start of a journey, and this one is not.
       [true, "#{result['steps']} rooms from #{result['from']} to #{result['to']}. Not moving."]
+    end
+
+    # Actually walks there, unlike map_path above.
+    #
+    # Deliberately not a reimplementation of movement. `move()`
+    # (lib/global_defs.rb) is a couple hundred lines of DragonRealms-specific
+    # recovery - retreating out of combat, unhiding, retrying a door by
+    # ordinal, waiting out an ice patch, standing back up after a bad climb -
+    # built up over years of bug reports, and go2.lic (installed with the
+    # standard Lich script suite) already drives that loop room by room with
+    # Dijkstra pathing on top: day passes, portmasters, urchins, the Ta'Vaalor
+    # shortcut, elemental confluence handling. Re-deriving any slice of that
+    # here would be slower to build, worse per fix, and a second copy of logic
+    # that already has its own maintainers - the same §7 reasoning
+    # install_mapdb above already applies to fetching the map database.
+    #
+    # Started, not awaited - same reason install_mapdb doesn't wait for its
+    # download: this method is called from the socket-handling thread, and
+    # blocking it for the length of a cross-zone walk would freeze every other
+    # panel until the character arrived. go2 runs as its own Lich script
+    # (Script.start), so Stop/Escape already reaches it - stop_all kills every
+    # running script by name, go2 included, with nothing new to wire up.
+    #
+    # A bare room number is go2's own "just go there" form (go2.lic: a numeric
+    # target skips its confirmation prompt entirely, `confirm = false`), which
+    # is exactly the contract this needs: no interactive prompt for a bridge
+    # request to get stuck waiting on.
+    def map_walk(args, server)
+      return no_map unless MapInfo.available?
+
+      dest = (args.is_a?(Hash) ? args['to'] : args).to_i
+      return [false, 'no destination given'] if dest.zero?
+
+      room = MapInfo.current
+      return [false, 'Lich does not know which room you are in yet.'] unless room
+      return [true, 'already there'] if State.safe(nil) { room.id } == dest
+
+      path = State.safe(nil) { room.path_to(dest) }
+      return [false, "no route from #{State.safe(nil) { room.id }} to #{dest}"] unless path
+
+      return [false, 'go2 is not installed. Install the standard Lich script suite to travel by click.'] \
+        unless State.safe(false) { Script.exists?('go2') }
+
+      already_walking = State.safe([]) { Script.running }.any? do |s|
+        State.safe(nil) { s.name }.to_s.casecmp?('go2')
+      end
+      return [false, 'already traveling (go2 is running) - stop it, or wait for it to arrive, first'] if already_walking
+
+      started = State.safe(false) { Script.start('go2', dest.to_s) }
+      return [false, 'could not start go2'] unless started
+
+      server.log("Walking to room #{dest} (#{path.length} rooms) via go2.")
+      [true, "walking to #{dest} (#{path.length} rooms)"]
     end
 
     # Fetch Lich's map database by running the script that already does it.
@@ -1868,7 +2003,7 @@ module Companion
     def check_toggles(server)
       line = Cmd.exec(
         'toggle',
-        expect: [/BRIEF|INVBRIEF|Toggle settings|You have the following/i],
+        expect: Patterns.expect(:toggle),
         timeout: 8,
         label: 'toggles'
       )
@@ -1949,7 +2084,7 @@ module Companion
     def check_room_id_flag(server)
       line = Cmd.exec(
         'flags',
-        expect: [/ShowRoomID|Flags|You have the following/i],
+        expect: Patterns.expect(:flags),
         timeout: 8,
         label: 'flags'
       )
@@ -2010,7 +2145,7 @@ module Companion
       # been hiding a broken body the whole time nobody could reach it.
       unless data.respond_to?(:wounds)
         # Fall back to reading the raw reply ourselves rather than giving up.
-        line = Cmd.exec('health', expect: [/You have|You feel/i], timeout: 8)
+        line = Cmd.exec('health', expect: Patterns.expect(:health), timeout: 8)
         return [false, 'Could not read health.'] if line.nil?
         server.log(line.to_s)
         return [true, 'health read']
@@ -2085,7 +2220,7 @@ module Companion
         end
         next if name.empty?
 
-        line = Cmd.exec("stow #{name}", expect: [/You put|You (?:can't|cannot)|is too/i], timeout: 6)
+        line = Cmd.exec("stow #{name}", expect: Patterns.expect(:stow), timeout: 6)
         if line.nil?
           server.log("stow #{name}: no reply", 'warn')
         elsif line =~ /You put/i
@@ -2175,7 +2310,7 @@ module Companion
       Runaway.reset
       line = Cmd.exec(
         'flee',
-        expect: [/You have fled|You can't flee|nowhere to flee|too hurt|You gather yourself/i],
+        expect: Patterns.expect(:escape),
         timeout: 6
       )
       server.log("Escape: #{line || 'no response from flee'}", line ? 'info' : 'warn')
