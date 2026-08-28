@@ -152,6 +152,41 @@ untested against the same fixtures would risk a second, silently-disagreeing
 parser, which is worse than a documented absence. Stream/bold extraction for
 scripts is future work, not something faked in the meantime.
 
+## Scripting: TypeScript, alongside Python
+
+Decided 28 Aug 2026, on Dan's direct call rather than found and justified
+afterward - flagged here because it revises "three runtimes ship" above,
+which named Ruby, Python and the app as the deliberate, closed set.
+
+**Why this is a smaller decision than Python was, not the same one again.**
+The Python section above earned its "cost was put in front of Dan" framing
+because Python was a genuinely new dependency, introduced solely so this
+project would have a scripting language. TypeScript is not that: Node is
+already an unconditional prerequisite for developing and building this app
+(the frontend is Node/npm, and `DEPENDENCIES.md` already lists "Node 24 or
+newer"), and `src-tauri/src/script_api.rs` was never Python-specific -
+`python/dr_companion.py`'s own docs say so: "If you are not using
+dr_companion.py - a script in another language, say - this is everything it
+does for you." So this is a second client of an already-generic protocol, not
+a fourth runtime the installer has to carry the way Ruby and Python are.
+
+**Built:** `typescript/dr_companion.ts` and `typescript/drtask.ts`, direct
+counterparts to the Python client and task layer - same wire protocol, same
+parsing rules for `progressBar`/`roundTime`/`pushStream` (shared reasoning,
+not re-derived, so the two runtimes cannot quietly disagree about what a tag
+means), same rate cap. Node's lack of a blocking socket read means the API
+shape differs where it has to: `dr_companion.ts` is an `EventEmitter` over an
+async socket rather than Python's `on_line`/blocking `run()` loop. See
+`typescript/README.md`.
+
+**Not built yet:** a TypeScript `flow.py`/task-catalog equivalent. `Task` is
+the whole of what ships today; a `Flow` port is the obvious next step and
+should follow `flow.py`'s shape (`when`/`until`/`settle`) rather than
+inventing a second one. Not deciding this now for the same reason the
+Ruby-to-Python port path wasn't decided above: picking it before more than
+one TypeScript task exists to learn from would be answering a question that
+has not been asked yet by real use.
+
 ## Display: 1080p, 1440p, 2160p
 
 Three targets, and the failure mode differs at each end.
