@@ -45,6 +45,7 @@ const MOCK_ALL_INTENTS: string[] = [
   'escape_heal', 'go_healer', 'town_run', 'start_training', 'loot', 'buffs',
   'escape', 'stow_all', 'check_health', 'check_toggles', 'reset_runaway',
   'read_settings', 'run_macro', 'map_here', 'list_vars',
+  'check_teaching', 'listen_to', 'stop_listening',
   'map_path', 'map_walk', 'map_nearest', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
 ]
 
@@ -991,6 +992,58 @@ export class MockBridge {
     const cap = capabilitiesForCharacter(this.character)
 
     switch (intent) {
+      // DR's teaching mechanic, mocked so the panel is developable without a
+      // live game AND a live class - a combination nobody can arrange on
+      // demand, which would otherwise make this a branch only a real player
+      // ever reaches, and only by luck.
+      //
+      // Deliberately includes the awkward cases the happy path hides:
+      // a teacher whose skill nobody in the party wants, and (via
+      // `stop_listening`) the empty roster, so the client's "nobody is
+      // teaching" wording gets exercised as well as its list rendering.
+      case 'check_teaching': {
+        this.character = {
+          ...this.character,
+          teaching: [
+            { teacher: 'Wipsy', skill: 'Small Edged' },
+            { teacher: 'Alrenai', skill: 'Attunement' },
+          ],
+          // Zero, not absent: this list was just taken. The client should
+          // show it as current, and this is what proves that path works.
+          teachingAgeSeconds: 0,
+        }
+        this.emitStatus()
+        this.emit({ type: 'log', line: 'Wipsy is teaching Small Edged' })
+        this.emit({ type: 'log', line: 'Alrenai is teaching Attunement' })
+        break
+      }
+
+      case 'listen_to': {
+        const teacher = typeof _args?.teacher === 'string' ? _args.teacher : ''
+        // Refuses an unknown teacher rather than cheerfully succeeding. A mock
+        // that always says yes trains the UI to have no failure path, and the
+        // real bridge certainly has one.
+        const known = (this.character?.teaching ?? []).some((c) => c.teacher === teacher)
+        if (!known) {
+          this.emit({
+            type: 'log',
+            line: `${teacher || 'nobody'} is not teaching a class you can join.`,
+            level: 'warn',
+          })
+          break
+        }
+        this.emit({ type: 'log', line: `Listening to ${teacher}.` })
+        break
+      }
+
+      case 'stop_listening':
+        this.emit({ type: 'log', line: 'Stopped listening.' })
+        // The roster empties, which is how the empty-array-versus-absent
+        // distinction becomes reachable in the demo at all.
+        this.character = { ...this.character, teaching: [], teachingAgeSeconds: 0 }
+        this.emitStatus()
+        break
+
       // Map queries, answered from an invented zone. data/demoMap.ts explains
       // why it is invented rather than a copy of real geography.
       case 'map_zone':
