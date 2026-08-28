@@ -35,6 +35,11 @@
  * unusual. This skips what it does not recognise and keeps the text, which is
  * the behaviour every working MUD client has.
  */
+import type {
+  StreamCharacterState,
+  StreamVital,
+  IndicatorState,
+} from '../types/stream'
 
 /** A line ready to render, with what the game said it was. */
 export interface StreamLine {
@@ -58,6 +63,30 @@ export interface StreamState {
   /** Stream stack: the game pushes and pops, and they nest. */
   stack: string[]
   boldDepth: number
+  /**
+   * Vitals, status icons, compass and spell, as the game last reported them.
+   *
+   * Accumulated here rather than emitted per line because these are *state*,
+   * not text: a `progressBar` says what health is now, and the reader wants
+   * the current value rather than a history of announcements. Callers read
+   * this after `feed` returns - see `characterState`.
+   *
+   * See `src/types/stream.ts` for why vitals are parsed from `text` and never
+   * `value`, why the indicator map has three states plus absence, and why
+   * hands and wounds are deliberately not here.
+   */
+  character: StreamCharacterState
+  /**
+   * Whether anything on the line being built was a state tag.
+   *
+   * Needed to tell "a line that was nothing but tags" from "a genuinely blank
+   * line". The game paragraphs with real blank lines and the parser keeps
+   * them on purpose, so blanks cannot simply be dropped - but Lich's attach
+   * dump is a dozen state tags and a newline with no text at all, and
+   * emitting that as an empty line puts a mystery blank at the top of every
+   * session's scrollback.
+   */
+  partialWasStateOnly: boolean
   /**
    * Whether the line being built contains any bold text.
    *
@@ -119,7 +148,18 @@ const MAX_TAG = 256
 const MAX_STREAM_DEPTH = 32
 
 export function newStreamState(): StreamState {
-  return { buffer: '', stack: [], boldDepth: 0, partialBold: false, inPrompt: false, afterPrompt: false, afterTagBreak: false, partial: '' }
+  return {
+    buffer: '', stack: [], boldDepth: 0, partialBold: false, inPrompt: false,
+    afterPrompt: false, afterTagBreak: false, partial: '',
+    partialWasStateOnly: false,
+    // Empty rather than absent, and the two are different on purpose: an
+    // empty indicator map means no icon has ever been reported, which a
+    // reader must be able to tell from an icon reported as 'unknown'.
+    character: {
+      vitals: { value: {}, from: 'stream', at: 0 },
+      indicators: { value: {}, from: 'stream', at: 0 },
+    },
+  }
 }
 
 /**
@@ -138,6 +178,51 @@ function unescape(s: string): string {
     .replace(/&apos;/g, "'")
     // Last, so an escaped ampersand in "&amp;lt;" does not become a tag.
     .replace(/&amp;/g, '&')
+}
+
+/**
+ * A vital from a `progressBar`'s **`text`**, never its `value`.
+ *
+ * This is the trap the stream routing is most likely to reintroduce, so it
+ * lives in one function with the reason attached rather than inline.
+ *
+ * Lich's attach dump hardcodes `value='0'` on every bar it synthesises and
+ * puts the real numbers in the text:
+ *
+ *     <progressBar id='health' value='0' text='health 100/100'/>
+ *
+ * Lich's own parser reads it the same way (`attributes['text'].scan(/-?d+/)`,
+ * xmlparser.rb:709). A reader taking `value` shows zero health on a healthy
+ * character and nothing errors anywhere: confidently wrong, which is worse
+ * than blank.
+ *
+ * Returns null rather than guessing when the text carries no pair of numbers.
+ * A bar with one number is not a vital with an unknown maximum, it is a shape
+ * this does not understand, and inventing a max puts a plausible bar on screen
+ * built from something nobody parsed.
+ */
+function vitalFromText(text: string | undefined): StreamVital | null {
+  if (!text) return null
+  const nums = text.match(/-?\d+/g)
+  if (!nums || nums.length < 2) return null
+  const current = Number(nums[0])
+  const max = Number(nums[1])
+  if (!Number.isFinite(current) || !Number.isFinite(max)) return null
+  return { current, max }
+}
+
+/**
+ * The game's three-state `visible`, kept as three states.
+ *
+ * 'y' and 'n' are the game speaking. Anything else - and empty is what turns
+ * up, observed as `visible=''` on IconPOISONED in a real capture - is an icon
+ * nobody has been told about. Collapsing that to 'off' asserts "not poisoned"
+ * about something unknown.
+ */
+function indicatorState(visible: string | undefined): IndicatorState {
+  if (visible === 'y') return 'on'
+  if (visible === 'n') return 'off'
+  return 'unknown'
 }
 
 /** Attributes, tolerating single quotes, double quotes and bare values. */
@@ -163,6 +248,22 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
   const emit = (prompt = false) => {
     // Empty lines are kept: the game paragraphs with them, and stripping them
     // turns readable output into a wall.
+    // The one exception to keeping empty lines: a line that was *nothing but
+    // state tags*. Lich's attach dump is a dozen progressBar/indicator/compass
+    // tags and a newline with no text at all, so without this every session
+    // opens with a mystery blank at the top of its scrollback, and every
+    // ongoing state update adds another.
+    //
+    // Different from the game's own paragraphing blank, which arrives as a
+    // newline with no tags before it. The two must not be conflated -
+    // dropping all blanks would wall the text back up, which is the bug the
+    // "empty lines are kept" rule above exists to prevent.
+    if (state.partial.length === 0 && state.partialWasStateOnly) {
+      state.partialWasStateOnly = false
+      state.partialBold = false
+      return
+    }
+
     out.push({
       text: state.partial,
       stream: state.stack[state.stack.length - 1] ?? '',
@@ -171,6 +272,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
     })
     state.partial = ''
     state.partialBold = false
+    state.partialWasStateOnly = false
   }
 
   /** Throw away what is buffered without emitting it. */
@@ -320,6 +422,57 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
           // definition.
           if (state.stack.length > 0) state.stack.length = 0
         }
+      } else if (name === 'progressbar') {
+        // State, not text. See vitalFromText for why this reads `text` and
+        // never `value`, and types/stream.ts for why only these four ids
+        // matter to a DragonRealms client.
+        const a = attrs(tag)
+        const id = (a.id ?? '').toLowerCase()
+        const vital = vitalFromText(a.text)
+        if (vital && (id === 'health' || id === 'mana' || id === 'spirit' || id === 'stamina')) {
+          state.character.vitals = {
+            value: { ...state.character.vitals.value, [id]: vital },
+            from: 'stream',
+            at: Date.now(),
+          }
+        }
+        state.partialWasStateOnly = state.partial.length === 0
+      } else if (name === 'indicator') {
+        const a = attrs(tag)
+        // Ids arrive as 'IconBLEEDING'; stored as 'bleeding' so a reader is
+        // not carrying the game's Hungarian prefix around. The raw id is
+        // recoverable from the game if anyone ever needs it; the prefix
+        // carries no information a caller wants.
+        const raw = a.id ?? ''
+        const key = raw.replace(/^Icon/i, '').toLowerCase()
+        if (key) {
+          state.character.indicators = {
+            value: { ...state.character.indicators.value, [key]: indicatorState(a.visible) },
+            from: 'stream',
+            at: Date.now(),
+          }
+        }
+        state.partialWasStateOnly = state.partial.length === 0
+      } else if (name === 'compass') {
+        // An opening <compass> replaces the previous exits rather than
+        // merging: the game re-sends the whole set on every room change, and
+        // merging would accumulate exits from rooms already left - a west
+        // door that is not there any more is worse than no compass at all.
+        if (!closing) {
+          state.character.compass = { value: [], from: 'stream', at: Date.now() }
+        }
+        state.partialWasStateOnly = state.partial.length === 0
+      } else if (name === 'dir') {
+        const a = attrs(tag)
+        const dir = a.value
+        if (dir && state.character.compass) {
+          state.character.compass = {
+            value: [...state.character.compass.value, dir],
+            from: 'stream',
+            at: Date.now(),
+          }
+        }
+        state.partialWasStateOnly = state.partial.length === 0
       } else if (name === 'clearstream') {
         // Not our business to clear anything: a client that dropped
         // scrollback because the game asked would lose the line somebody was
@@ -397,4 +550,20 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
  */
 export function looksTagged(sample: string): boolean {
   return /<(pushStream|popStream|prompt|pushBold|popBold|streamWindow|component)\b/i.test(sample)
+}
+
+/**
+ * What the stream currently knows about the character.
+ *
+ * A read, not an event. `progressBar` says what health *is*, so a caller
+ * wants the present value rather than a history of announcements - and a
+ * reader that arrives late still gets the truth rather than having missed it.
+ *
+ * Returned by reference on purpose: `feed` replaces these objects wholesale
+ * rather than mutating them, so a caller comparing identity sees a change
+ * exactly when one happened. That is what makes it usable from
+ * `useSyncExternalStore` without copying on every read.
+ */
+export function characterState(state: StreamState): StreamCharacterState {
+  return state.character
 }
