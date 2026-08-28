@@ -11,6 +11,7 @@ import { Console } from './components/layout/Console'
 import { MapWindow } from './components/MapWindow'
 import { PanelWindow } from './components/PanelWindow'
 import { PanelBoundary } from './components/shared/PanelBoundary'
+import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock, setMapDock } from './lib/mapDock'
 import { fitColumns } from './lib/columns'
 import type { PanelId } from './lib/layout'
@@ -237,6 +238,7 @@ export default function App() {
       </main>
       {setupComplete && <Console />}
       {setupComplete && <SafetyFooter />}
+      {setupComplete && <CommandPalette />}
     </div>
   )
 }

@@ -9,7 +9,7 @@ import {
   type TaskFlow,
 } from '../../data/taskFlows'
 import { FlowDriver } from '../../lib/flowDriver'
-import { onStopAll, onPauseAll, onResumeAll } from '../../lib/flowStop'
+import { onStopAll, onPauseAll, onResumeAll, onStartFlow } from '../../lib/flowStop'
 import { describeFlow, isFinished, type FlowState } from '../../lib/flowRunner'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
@@ -99,6 +99,20 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   )
 
   const flows = useMemo(() => allFlows(custom), [custom])
+
+  // The Command Palette starts a flow by id with no reference to this
+  // driver, same shape as Stop/Pause/Resume above. Re-subscribes when the
+  // flow list changes so a flow added or edited this session is reachable
+  // immediately rather than only after a remount.
+  useEffect(
+    () =>
+      onStartFlow((flowId) => {
+        const flow = flows.find((f) => f.id === flowId)
+        if (flow) driver.current?.start(flow)
+      }),
+    [flows]
+  )
+
   const running = state && !isFinished(state) ? state : null
 
   const persist = useCallback((next: TaskFlow[]) => {

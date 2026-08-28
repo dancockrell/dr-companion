@@ -15,19 +15,19 @@
  * the instance. One factory, three independent channels, so Pause firing
  * never also fires Stop's subscribers or vice versa.
  */
-type Listener = () => void
+type Listener<T> = (payload: T) => void
 
-function createSignal() {
-  const listeners = new Set<Listener>()
+function createSignal<T = void>() {
+  const listeners = new Set<Listener<T>>()
   return {
     /** Subscribe. Returns the unsubscribe function. */
-    on(listener: Listener): () => void {
+    on(listener: Listener<T>): () => void {
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
     /** Runs every current subscriber once, synchronously. */
-    request(): void {
-      for (const listener of listeners) listener()
+    request(payload: T): void {
+      for (const listener of listeners) listener(payload)
     },
   }
 }
@@ -35,12 +35,20 @@ function createSignal() {
 const stopAll = createSignal()
 const pauseAll = createSignal()
 const resumeAll = createSignal()
+// Carries a flow id, so the Command Palette (or any future caller outside
+// TaskFlowPanel) can start a specific flow without a handle to the driver —
+// same reasoning as the three above, extended to the one verb they didn't
+// cover.
+const startFlow = createSignal<string>()
 
 export const onStopAll = stopAll.on
-export const requestStopAll = stopAll.request
+export const requestStopAll = () => stopAll.request()
 
 export const onPauseAll = pauseAll.on
-export const requestPauseAll = pauseAll.request
+export const requestPauseAll = () => pauseAll.request()
 
 export const onResumeAll = resumeAll.on
-export const requestResumeAll = resumeAll.request
+export const requestResumeAll = () => resumeAll.request()
+
+export const onStartFlow = startFlow.on
+export const requestStartFlow = (flowId: string) => startFlow.request(flowId)
