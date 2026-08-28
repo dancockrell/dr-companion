@@ -16,10 +16,12 @@ import {
   ShieldAlert,
   ListChecks,
   ListTree,
+  MessagesSquare,
 } from 'lucide-react'
 import type { PanelId } from '../../lib/layout'
 import { ActionsPanel } from '../shared/ActionsPanel'
 import { MapPanel } from '../shared/MapPanel'
+import { RoomColumn } from '../room/RoomColumn'
 import { TrainingPanel } from '../shared/TrainingPanel'
 import { MindstateBoard } from '../shared/MindstateBoard'
 import { useAppStore } from '../../store/useAppStore'
@@ -42,6 +44,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   vitals: 'Vitals',
   mindstate: 'Mindstate',
   room: 'Battle',
+  game: 'Game',
   scripts: 'Script Library',
 }
 
@@ -55,6 +58,7 @@ export const PANEL_ICONS: Record<PanelId, ReactNode> = {
   vitals: <Zap className="w-3.5 h-3.5" />,
   mindstate: <Brain className="w-3.5 h-3.5" />,
   room: <Users className="w-3.5 h-3.5" />,
+  game: <MessagesSquare className="w-3.5 h-3.5" />,
   scripts: <ListTree className="w-3.5 h-3.5" />,
 }
 
@@ -81,6 +85,11 @@ type Render = (dense: boolean, filled: boolean, ctx?: PanelContext) => ReactNode
 export const PANEL_CONTENT: Record<PanelId, Render> = {
   actions: (dense) => <ActionsPanel dense={dense} />,
   map: (_dense, filled) => <MapPanel plane={filled} />,
+  // The whole right-hand column - room scene, game text, command line -
+  // as one panel. Not decomposed into several: those pieces are useless
+  // apart, and splitting them would be a layout decision dressed as a
+  // refactor.
+  game: () => <RoomColumn />,
   training: (dense) => <TrainingPanel dense={dense} />,
   inventory: () => <InventoryPanel />,
   risk: () => <RiskBar />,

@@ -56,6 +56,56 @@ export function clampToBounds(r: Rect, bounds: { w: number; h: number }): Rect {
 }
 
 /**
+ * Where a panel goes when it has never been placed.
+ *
+ * The first version handed every panel a fixed 360x220 and packed them with
+ * `firstFreeSlot`. On a narrow window that wraps into something reasonable. On
+ * a wide one - which is most of them, and certainly this machine's - ten
+ * panels fit in a single row, so entering freeform put the map and the game
+ * text into 360px boxes across the top and left four fifths of the screen
+ * empty. It worked exactly as written and was useless to look at.
+ *
+ * So the seed fills the canvas instead: a grid whose column count follows the
+ * canvas's own aspect, which keeps cells near square rather than becoming
+ * letterboxes on a wide monitor or towers on a narrow one.
+ *
+ * This is only ever a starting point. Nothing re-runs it, and the moment a
+ * panel is dragged its own rect is what persists - a layout that rearranged
+ * itself under the player would be worse than a bad first guess.
+ */
+export function gridSlot(
+  index: number,
+  total: number,
+  bounds: { w: number; h: number }
+): Rect {
+  const w = Math.max(bounds.w, MIN_W)
+  const h = Math.max(bounds.h, MIN_H)
+  const count = Math.max(1, total)
+
+  // Aspect-aware: on a 2:1 canvas ten panels want more columns than rows, and
+  // sqrt(count) alone would give a square grid of letterboxed cells.
+  const ideal = Math.sqrt((count * w) / Math.max(1, h))
+  const cols = Math.min(count, Math.max(1, Math.round(ideal)))
+  const rows = Math.max(1, Math.ceil(count / cols))
+
+  // A gap, so the opening arrangement reads as separate panels. Panels may
+  // overlap once someone moves them; they should not start overlapping.
+  const GAP = 6
+  const cellW = w / cols
+  const cellH = h / rows
+
+  const col = index % cols
+  const row = Math.floor(index / cols)
+
+  return {
+    x: Math.round(col * cellW + GAP / 2),
+    y: Math.round(row * cellH + GAP / 2),
+    w: Math.max(MIN_W, Math.round(cellW - GAP)),
+    h: Math.max(MIN_H, Math.round(cellH - GAP)),
+  }
+}
+
+/**
  * Push a rectangle clear of everything it overlaps.
  *
  * NOT USED BY THE CANVAS ANY MORE. Panels are allowed to overlap and stack;

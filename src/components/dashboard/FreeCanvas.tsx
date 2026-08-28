@@ -5,7 +5,7 @@ import {
   MIN_H,
   MIN_W,
   clampToBounds,
-  firstFreeSlot,
+  gridSlot,
   type Rect,
 } from '../../lib/freeLayout'
 import type { PanelId } from '../../lib/layout'
@@ -100,7 +100,7 @@ export function FreeCanvas({
   for (const item of items) {
     const rect =
       item.rect ??
-      firstFreeSlot({ w: Math.min(360, bounds.w || 360), h: 220 }, taken, {
+      gridSlot(items.indexOf(item), items.length, {
         w: bounds.w || 1200,
         h: bounds.h || 800,
       })

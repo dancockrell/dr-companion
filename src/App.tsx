@@ -14,6 +14,7 @@ import { PanelBoundary } from './components/shared/PanelBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock, setMapDock } from './lib/mapDock'
 import { fitColumns } from './lib/columns'
+import { useFreeform } from './lib/useLayout'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
@@ -130,6 +131,11 @@ export default function App() {
   }
 
   const dock = useMapDock()
+  // Read through a subscription rather than a second useLayout: that hook
+  // holds its state per component, so a copy here would keep saying false
+  // after the dashboard turned freeform on, and the columns would never go.
+  const uiMode = useAppStore((s) => s.uiMode)
+  const freeform = useFreeform(uiMode)
 
   /**
    * How wide `main` is right now.
@@ -277,7 +283,7 @@ export default function App() {
              * chrome saying the map is elsewhere would cost width for nothing.
              * The remembered width survives, and the map comes back at it, so
              * popping out and back is not a move that costs you the layout. */}
-            {dock.docked && (
+            {dock.docked && !freeform && (
               <>
                 <div
                   className="min-w-0 shrink-0 overflow-hidden border-r border-border"
@@ -295,21 +301,37 @@ export default function App() {
                 />
               </>
             )}
-            <div className="min-w-0 shrink-0 overflow-auto" style={{ width: fit.dash }}>
+            {/* In freeform the dashboard IS the window. Giving it a fixed
+              * width and parking two columns beside it is the arrangement
+              * freeform exists to escape: panels that move freely inside a
+              * third of the screen are still panels in a column. */}
+            <div
+              className={freeform ? 'min-w-0 flex-1 overflow-hidden' : 'min-w-0 shrink-0 overflow-auto'}
+              style={freeform ? undefined : { width: fit.dash }}
+            >
               <PanelBoundary label="Dashboard">
                 <Dashboard />
               </PanelBoundary>
             </div>
-            <Splitter
-              value={hostW > 0 ? (mapW + mapSplit + fit.dash) / hostW : 0.66}
-              onChange={moveDashEdge}
-              min={0}
-              max={1}
-            />
-            {/* The column that absorbs a window resize. */}
-            <div className="min-w-0 flex-1 overflow-auto">
-              <RoomColumn />
-            </div>
+            {!freeform && (
+              <Splitter
+                value={hostW > 0 ? (mapW + mapSplit + fit.dash) / hostW : 0.66}
+                onChange={moveDashEdge}
+                min={0}
+                max={1}
+              />
+            )}
+            {/* The column that absorbs a window resize.
+              *
+              * Hidden in freeform along with the map column and both
+              * splitters: a canvas you can arrange freely inside one third of
+              * the window is still a column, which is the thing freeform is
+              * for escaping. */}
+            {!freeform && (
+              <div className="min-w-0 flex-1 overflow-auto">
+                <RoomColumn />
+              </div>
+            )}
           </>
         ) : (
           <div className="flex-1 overflow-y-auto">

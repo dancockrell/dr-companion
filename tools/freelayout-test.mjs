@@ -65,6 +65,49 @@ const b = m.firstFreeSlot({ w: 200, h: 100 }, [a], BOUNDS)
 check('first goes to the origin', a, { x: 0, y: 0, w: 200, h: 100 })
 ok('second does not overlap the first', !m.overlaps(a, b), JSON.stringify(b))
 
+console.log('\n-- the opening arrangement fills the canvas --')
+{
+  // The defect this replaced: a fixed 360x220 per panel, packed in a row. On a
+  // wide canvas all ten fit side by side, so entering freeform put the map and
+  // the game text in small boxes across the top and left four fifths of the
+  // window empty. It behaved exactly as written and was useless to look at, so
+  // the property to assert is coverage, not placement.
+  const WIDE = { w: 3072, h: 1549 }
+  const seeds = Array.from({ length: 10 }, (_, i) => m.gridSlot(i, 10, WIDE))
+
+  const covered = seeds.reduce((s, r) => s + r.w * r.h, 0)
+  const share = covered / (WIDE.w * WIDE.h)
+  ok('ten panels cover most of a wide canvas', share > 0.75, `${Math.round(share * 100)}%`)
+
+  // More than one row, which is the specific thing that was wrong.
+  const rows = new Set(seeds.map((r) => r.y)).size
+  ok('and use more than a single row', rows > 1, `${rows} rows`)
+
+  ok('nothing starts outside the canvas',
+    seeds.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= WIDE.w && r.y + r.h <= WIDE.h),
+    JSON.stringify(seeds[seeds.length - 1]))
+
+  // Nothing overlaps at rest. Panels may be dragged into overlap on purpose;
+  // they must not arrive that way.
+  let collisions = 0
+  for (let i = 0; i < seeds.length; i++)
+    for (let j = i + 1; j < seeds.length; j++)
+      if (m.overlaps(seeds[i], seeds[j])) collisions++
+  ok('the opening arrangement does not overlap itself', collisions === 0, `${collisions} overlaps`)
+
+  // A tall narrow window is the other shape, and a column count derived from
+  // the panel count alone would letterbox every cell on one of the two.
+  const TALL = { w: 700, h: 1600 }
+  const tall = Array.from({ length: 6 }, (_, i) => m.gridSlot(i, 6, TALL))
+  ok('a tall canvas gets more rows than columns',
+    new Set(tall.map((r) => r.y)).size > new Set(tall.map((r) => r.x)).size,
+    `${new Set(tall.map((r) => r.x)).size} cols x ${new Set(tall.map((r) => r.y)).size} rows`)
+
+  // One panel should take the room it has rather than a 360px box in a corner.
+  const solo = m.gridSlot(0, 1, WIDE)
+  ok('a single panel fills the canvas', solo.w > WIDE.w * 0.9, JSON.stringify(solo))
+}
+
 console.log('\n-- stacking order survives a drop --')
 // The bug this exists for, found before it shipped: clampToBounds builds a
 // fresh object, and every drop goes through it. A `z` it forgot to copy would
