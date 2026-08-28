@@ -56,6 +56,28 @@ import type { DeckPref } from '../../lib/layout'
  *     Seated here by hand rather than by wiring up `order`, because this file
  *     is deliberately fixed rather than assembled from a registry (see above).
  *
+ *   **Basic and Power now genuinely differ in what's on screen, not just how
+ *   verbosely each panel talks** (issue #33 — before this, both modes
+ *   rendered the identical eleven boxes and the doc comment on `layout.ts`
+ *   describing them as "different arrangements" was aspirational). Dan's own
+ *   framing, and the line the split follows exactly: *Basic should feel
+ *   refreshing to someone coming from Genie/Lich and have everything they
+ *   want plus more; Power gives maximum information density and tracking,
+ *   tight on space, easy on the eye, maximum customization.*
+ *
+ *   So Basic ships what a Genie/Lich session already gives a player —
+ *   vitals, wounds, hands, room contents, Stop — plus the two things that
+ *   are the actual reason to open this app instead: the mindstate/
+ *   throughput board (nothing in the dr-scripts suite shows it, DESIGN.md
+ *   §2.35) and Task Flows. Risk, Training, Inventory and the 234-script
+ *   Library are real, live-wired panels, and they are exactly the panels a
+ *   newcomer never asked Genie for — they are Power's to show, not Basic's
+ *   to bury a beginner under. `dense` also tightens gaps and padding, since
+ *   "uses space tightly" is Power's whole brief, not just which panels
+ *   exist. Nothing is lost by hiding a panel: the Command Palette (Ctrl+K)
+ *   and Script Library still reach every script from Basic, and switching
+ *   to Power is one click.
+ *
  *     That leaves two sources of truth for "what panels exist" — this grid,
  *     and `layout.order` / `PANEL_CONTENT` in `panels.tsx`, which still feeds
  *     `FreeCanvas` and pop-out windows. **This file is authoritative for what
@@ -126,12 +148,21 @@ export function DashboardLayout({
   const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
   const vitals = vitalsFor(character, stream.vitals.value)
 
+  // "Uses space tightly" is part of Power's brief, not just which panels
+  // show — a Power dashboard with Basic's breathing room would still look
+  // like Basic with more boxes crammed into it. Never below the 12px type
+  // floor DESIGN.md §1.5 sets; this only tightens the air around the type.
+  const gap = dense ? 'gap-1.5' : 'gap-2'
+  const pad = dense ? 'p-1.5' : 'p-2'
+
   return (
     // The map row has a floor. With plain 1fr it resolved to whatever was
     // left after the auto rows, so a full character with seventy skills ate
     // the height and collapsed the map to two pixels. The most important
     // element on the dashboard cannot be the one that yields.
-    <div className="grid h-full min-h-0 flex-1 gap-2 p-2 [grid-template-columns:1fr_minmax(15rem,22rem)] [grid-template-rows:minmax(0,1fr)_auto]">
+    <div
+      className={`grid h-full min-h-0 flex-1 ${gap} ${pad} [grid-template-columns:1fr_minmax(15rem,22rem)] [grid-template-rows:minmax(0,1fr)_auto]`}
+    >
       {/* Experience now has the whole left column.
        *
        * It used to sit under the map and get whatever height was left, which
@@ -145,7 +176,7 @@ export function DashboardLayout({
       </Box>
 
       {/* You, and then the room, down the right. */}
-      <div className="col-start-2 row-start-1 flex min-h-0 flex-col gap-2 overflow-y-auto">
+      <div className={`col-start-2 row-start-1 flex min-h-0 flex-col ${gap} overflow-y-auto`}>
         {/* The doll stays, and it stays whole.
          *
          * A version of this replaced it with a list of only the parts that
@@ -204,17 +235,16 @@ export function DashboardLayout({
           </PanelBoundary>
         </Box>
 
-        {/* Risk, right under the vitals it qualifies.
-         *
-         * Registered as a panel since its own file was written and never
-         * seated anywhere a player could see it - see the note at the top of
-         * this file. Favors and burden are read the same way vitals are, in
-         * passing, so it sits beside them rather than lower in the rail. */}
-        <Box className="min-h-0">
-          <PanelBoundary label="Risk">
-            <RiskBar />
-          </PanelBoundary>
-        </Box>
+        {/* Risk, right under the vitals it qualifies. Power only: burden and
+         * favor tracking is exactly the kind of continuous-tracking extra
+         * Genie never gave a player, not something Basic should open onto. */}
+        {dense && (
+          <Box className="min-h-0">
+            <PanelBoundary label="Risk">
+              <RiskBar />
+            </PanelBoundary>
+          </Box>
+        )}
 
         {/* Task flows, on the first page.
          *
@@ -228,14 +258,15 @@ export function DashboardLayout({
           </PanelBoundary>
         </Box>
 
-        {/* Training, same reason as Risk above: built, live-wired, and dark
-            until now. Sits after Task flows because it is the next thing you
-            check once you are not mid-fight, not something read continuously. */}
-        <Box className="min-h-0">
-          <PanelBoundary label="Training">
-            <TrainingPanel dense={dense} />
-          </PanelBoundary>
-        </Box>
+        {/* Training, Power only, same reason as Risk: real continuous-tracking
+            depth Genie never had, not a beginner's first screen. */}
+        {dense && (
+          <Box className="min-h-0">
+            <PanelBoundary label="Training">
+              <TrainingPanel dense={dense} />
+            </PanelBoundary>
+          </Box>
+        )}
 
         <Box tone="danger" action={popper('room')} className="min-h-0">
           <PanelBoundary label="Battle">
@@ -268,14 +299,17 @@ export function DashboardLayout({
           </PanelBoundary>
         </Box>
 
-        {/* Inventory, third of the three orphaned panels. Sits beside Objects
-            because both answer "what do I have or could have" - what's carried
-            versus what's on the floor. */}
-        <Box className="min-h-0">
-          <PanelBoundary label="Inventory">
-            <InventoryPanel dense={dense} />
-          </PanelBoundary>
-        </Box>
+        {/* Inventory, Power only. Objects and People above answer "what's in
+            the room", which Genie always showed; this answers "how full are
+            my containers", a measurement Genie never had at all — genuine
+            extra tracking, not baseline parity a newcomer is missing. */}
+        {dense && (
+          <Box className="min-h-0">
+            <PanelBoundary label="Inventory">
+              <InventoryPanel dense={dense} />
+            </PanelBoundary>
+          </Box>
+        )}
 
         <Box title="People" count={people.length}>
           <PanelBoundary label="People">
@@ -292,26 +326,28 @@ export function DashboardLayout({
           </PanelBoundary>
         </Box>
 
-        {/* Script Library, last in the rail on purpose. It is the whole Lich
-            script library, not something read during a fight — everything
-            above it answers "what's happening right now"; this answers "what
-            else could I run". Same orphan risk as Risk/Training/Inventory
-            above: built and registered in panels.tsx, invisible until seated
-            here by hand.
+        {/* Script Library, Power only, last in the rail. All 234 scripts is
+            the deepest well of "more information density" this app has —
+            exactly Power's brief — and exactly what would swamp a Basic
+            newcomer's first screen. The Command Palette (Ctrl+K) still
+            reaches every script from Basic; this is the browse-and-scan
+            view, which is Power's job.
 
             categoryOf/filter come from scriptCatalog.ts: hidden (Lich's own
             tooling, including our bridge) never renders, and promoted (a
             script with a real dedicated control elsewhere) doesn't get a
             second, redundant raw button here. */}
-        <Box className="min-h-0">
-          <PanelBoundary label="Script Library">
-            <ScriptLibraryPanel
-              dense={dense}
-              filter={(n) => getScriptCatalogEntry(n).tier === 'standard'}
-              categoryOf={(n) => getScriptCatalogEntry(n).category}
-            />
-          </PanelBoundary>
-        </Box>
+        {dense && (
+          <Box className="min-h-0">
+            <PanelBoundary label="Script Library">
+              <ScriptLibraryPanel
+                dense={dense}
+                filter={(n) => getScriptCatalogEntry(n).tier === 'standard'}
+                categoryOf={(n) => getScriptCatalogEntry(n).category}
+              />
+            </PanelBoundary>
+          </Box>
+        )}
       </div>
 
       {/* What to start. Stop, pause and resume are in the bar below this
