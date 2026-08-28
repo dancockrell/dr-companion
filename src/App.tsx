@@ -11,6 +11,7 @@ import { AppControls } from './components/layout/AppControls'
 import { SafetyFooter } from './components/layout/SafetyFooter'
 import { SituationBanner } from './components/layout/SituationBanner'
 import { Console } from './components/layout/Console'
+import { QuickSwitchBar } from './components/layout/QuickSwitchBar'
 import { MapWindow } from './components/MapWindow'
 import { PanelWindow } from './components/PanelWindow'
 import { PanelBoundary } from './components/shared/PanelBoundary'
@@ -21,7 +22,7 @@ import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
 import { sendGame } from './lib/gameLink'
-import { requestStopAll } from './lib/flowStop'
+import { requestStartFlow, requestStopAll } from './lib/flowStop'
 
 /**
  * Which window this is.
@@ -101,6 +102,17 @@ export default function App() {
       stopAll: () => {
         requestIntent('stop_all')
         requestStopAll()
+      },
+      quickSwitch: (slot) => {
+        const { quickSwitchPins, activeFlow, startScript } = useAppStore.getState()
+        const pin = quickSwitchPins[slot]
+        if (!pin) return
+        if (pin.kind === 'script') {
+          startScript(pin.name)
+          return
+        }
+        if (pin.id === activeFlow) requestStopAll()
+        else requestStartFlow(pin.id)
       },
     })
   }, [setupComplete, requestIntent])
@@ -343,6 +355,7 @@ export default function App() {
         )}
       </main>
       {setupComplete && <Console />}
+      {setupComplete && <QuickSwitchBar />}
       {setupComplete && <SafetyFooter />}
       {setupComplete && <CommandPalette />}
     </div>

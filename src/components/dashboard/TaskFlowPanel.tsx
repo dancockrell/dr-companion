@@ -46,7 +46,29 @@
  * here, because there is no timer to get out of step with.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FilePlus2, FolderOpen, Gem, Pencil, Play, RefreshCw, Search, Square } from 'lucide-react'
+import {
+  BookOpen,
+  Coins,
+  Eye,
+  EyeOff,
+  FileCode2,
+  FilePlus2,
+  FolderOpen,
+  Gem,
+  HeartPulse,
+  LogOut,
+  type LucideIcon,
+  Pencil,
+  Play,
+  RefreshCw,
+  Search,
+  Shield,
+  Square,
+  Star,
+  Stethoscope,
+  Swords,
+  Terminal,
+} from 'lucide-react'
 import {
   onTaskLine,
   onTaskState,
@@ -76,6 +98,7 @@ import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 import { readJSON, writeJSON } from '../../lib/storage'
+import type { QuickSwitchPin } from '../../lib/quickSwitch'
 
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200
@@ -179,6 +202,8 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const addLog = useAppStore((s) => s.addLog)
   const setActiveFlow = useAppStore((s) => s.setActiveFlow)
   const startScript = useAppStore((s) => s.startScript)
+  const quickSwitchPins = useAppStore((s) => s.quickSwitchPins)
+  const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
 
   const [status, setStatus] = useState<PythonStatus | null>(null)
   const [scripts, setScripts] = useState<ScriptFile[]>([])
@@ -517,6 +542,18 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                   const isDragging = draggingId === entry.id
                   const isDropTarget =
                     dropTargetId === entry.id && draggingId !== null && draggingId !== entry.id
+                  // Ruby scripts are identified to the bridge by name, not by
+                  // the synthetic `ruby.${name}` id this panel groups them
+                  // under - see quickSwitch.ts's own header on why a pin is a
+                  // tagged union rather than a bare id.
+                  const quickSwitchPin: QuickSwitchPin = entry.id.startsWith('ruby.')
+                    ? { kind: 'script', name: entry.id.slice('ruby.'.length) }
+                    : { kind: 'task', id: entry.id }
+                  const pinned = quickSwitchPins.some((p) =>
+                    p.kind === 'script'
+                      ? quickSwitchPin.kind === 'script' && p.name === quickSwitchPin.name
+                      : quickSwitchPin.kind === 'task' && p.id === quickSwitchPin.id
+                  )
                   return (
                     <div
                       key={entry.id}
@@ -582,6 +619,25 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                       {active && (
                         <Play className="pointer-events-none absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-surface text-accent" />
                       )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleQuickSwitchPin(quickSwitchPin)
+                        }}
+                        title={
+                          pinned
+                            ? 'Unpin from the Quick Switch bar'
+                            : 'Pin to the Quick Switch bar — one click or a number key from anywhere in the app'
+                        }
+                        className={cn(
+                          'absolute -left-1 -top-1 rounded-full bg-surface p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
+                          pinned && 'opacity-100',
+                          pinned ? 'text-accent' : 'text-ink-faint/70 hover:text-ink-faint'
+                        )}
+                      >
+                        <Star className="h-2.5 w-2.5" fill={pinned ? 'currentColor' : 'none'} />
+                      </button>
                       {entry.editTarget && !dense && (
                         <button
                           type="button"

@@ -33,6 +33,7 @@ import {
   type PinIcon,
   type PinColor,
 } from '../lib/mapPins'
+import { loadPins as loadQuickSwitchPins, togglePin, MAX_SLOTS } from '../lib/quickSwitch'
 
 const prefs = loadPrefs()
 
@@ -389,6 +390,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   scriptStates: [],
   scriptCatalog: null,
   activeFlow: null,
+  quickSwitchPins: loadQuickSwitchPins(),
   settingsFiles: null,
   settingsCharacter: null,
   toggles: null,
@@ -495,6 +497,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setActiveFlow: (v) => set({ activeFlow: v }),
+
+  toggleQuickSwitchPin: (pin) => {
+    const { pins, refused } = togglePin(get().quickSwitchPins, pin)
+    if (refused) {
+      get().addLog(`Quick Switch is full (${MAX_SLOTS} slots) — unpin something first.`, 'warn')
+      return
+    }
+    set({ quickSwitchPins: pins })
+  },
 
   clearLog: () => set({ logLines: [], trace: [] }),
 
