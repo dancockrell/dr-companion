@@ -37,6 +37,9 @@ import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
 import type { PlaceHit } from '../../lib/placeSearch'
+import { MapPinBar } from './MapPinBar'
+import { PinEditor } from './PinEditor'
+import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
 
 /**
  * @param plane Fill the height given rather than a fixed box. Set when the map
@@ -183,6 +186,68 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const { containerRef, x: panX, y: panY, dragging, handlers, zoomBy, centerOn, resetPan } = viewport
 
   const here = useAppStore((s) => s.mapHere)
+  const character = useAppStore((s) => s.character)
+
+  /**
+   * Saved places, and the hotbar under the map that walks to them.
+   *
+   * Loaded per character (Home for one is not Home for another - see
+   * mapPins.ts) straight from localStorage during render rather than kept
+   * only in this component's state, so a pin added in the popped-out window
+   * shows up here too the next time either one re-renders - both windows
+   * read the same storage. `pinVersion` exists only to force a re-read after
+   * a write this component made itself, since editing a pin doesn't
+   * otherwise touch anything React tracks as having changed.
+   */
+  const [pinVersion, setPinVersion] = useState(0)
+  const { pins, pinsByRoom } = useMemo(() => {
+    const list = character ? loadPins(character.name, character.instance) : []
+    return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
+  }, [character, pinVersion])
+
+  // Either a fresh pin on this room (no `existing`) or an edit of one already
+  // there - one piece of state either way, since PinEditor is the same modal
+  // for both and only ever one can be open.
+  const [editingRoom, setEditingRoom] = useState<{ id: number; title: string; existing?: MapPin } | null>(
+    null
+  )
+
+  function goThere(roomId: number) {
+    // The preview still fires alongside it - a route highlighted on the
+    // chart is useful information about a trip that is now actually
+    // happening, not just theoretical. See the comment on the room click
+    // handler below for why this now moves the character at all.
+    bridge.requestIntent('map_path', { to: roomId })
+    bridge.requestIntent('map_walk', { to: roomId })
+  }
+
+  function pinRoom(id: number) {
+    const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
+    setEditingRoom({ id, title, existing: pinFor(pins, id) })
+  }
+
+  function savePin(label: string, color: MapPin['color']) {
+    if (!character || !editingRoom) return
+    if (editingRoom.existing) {
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color })
+    } else {
+      addPin(character.name, character.instance, {
+        roomId: editingRoom.id,
+        zone: zone?.zone ?? '',
+        label,
+        color,
+      })
+    }
+    setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+
+  function deletePin() {
+    if (!character || !editingRoom?.existing) return
+    removePin(character.name, character.instance, editingRoom.existing.id)
+    setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
   // Recenter when the character moves, the zone/level changes, or zoom
   // itself changes - the last one only matters here because the toolbar
   // zoom buttons are the only way in (no wheel while at fit), so unlike the
@@ -316,6 +381,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const demoStandIn = connected && liveZone !== null && !liveZone.ok
 
   return (
+    <>
     <Shell
       plane={plane}
       title={zone.name ?? `Zone ${zone.zone}`}
@@ -401,6 +467,15 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           gives is a place on the map and the two want to be read together.
           It costs one row and gives back the thing the map could not do. */}
       <PlaceSearch here={zone.zone} onPick={goToPlace} />
+
+      {/* Home, hangouts, whatever is worth one click - independent of
+          whichever zone is currently drawn, since these walk by room id. */}
+      <MapPinBar
+        pins={pins}
+        onGo={(pin) => goThere(pin.roomId)}
+        onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+        onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+      />
 
       {/*
        * This is the common shape of "no map database", not the `!zone.ok`
@@ -491,10 +566,12 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               zone={zone}
               level={z}
               onRoute={onRoute}
-              onPick={(id) => bridge.requestIntent('map_path', { to: id })}
+              onPick={goThere}
               onZone={(id) => setZoneStack((st) => [...st, id])}
               trail={trail}
               onHereAt={onHereAt}
+              pins={pinsByRoom}
+              onPinRoom={pinRoom}
             />
           </div>
         ) : (
@@ -514,9 +591,11 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               level={z}
               onRoute={onRoute}
               fit
-              onPick={(id) => bridge.requestIntent('map_path', { to: id })}
+              onPick={goThere}
               onZone={(id) => setZoneStack((st) => [...st, id])}
               trail={trail}
+              pins={pinsByRoom}
+              onPinRoom={pinRoom}
             />
           </div>
         )}
@@ -594,7 +673,18 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       {path && !path.ok && (
         <p className="text-xs text-warn leading-snug">{path.reason}</p>
       )}
-    </Shell>
+      </Shell>
+      {editingRoom && (
+        <PinEditor
+          roomId={editingRoom.id}
+          roomTitle={editingRoom.title}
+          existing={editingRoom.existing}
+          onSave={savePin}
+          onDelete={editingRoom.existing ? deletePin : undefined}
+          onClose={() => setEditingRoom(null)}
+        />
+      )}
+    </>
   )
 }
 

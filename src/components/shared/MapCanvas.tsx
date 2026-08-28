@@ -15,6 +15,7 @@ import type { MapZone, MapZoneRoom } from '../../bridge/types'
 import { inkFor } from '../../lib/mapInk'
 import { recency, segments, type Trail } from '../../lib/trail'
 import { roomKind, type RoomKind } from '../../lib/mapData'
+import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
 
 /**
  * Colour by what the place is.
@@ -86,6 +87,10 @@ export function MapCanvas({
    *  room, not just the first; a room change is exactly when re-centering
    *  is wanted. */
   onHereAt,
+  /** Saved places, keyed by room id, for the small colour-coded marker on a pinned room. */
+  pins,
+  /** Right-click (or long-press, once this has a touch input) a room to pin it - offered on any room, not just the one you're standing in, since browsing a distant zone to mark its bank is a real use of this. */
+  onPinRoom,
 }: {
   zone: MapZone
   level: number
@@ -98,6 +103,8 @@ export function MapCanvas({
   fit?: boolean
   trail?: Trail
   onHereAt?: (x: number, y: number) => void
+  pins?: Map<number, MapPin>
+  onPinRoom?: (id: number) => void
 }) {
   /**
    * The cartography is authored on a 10-unit grid: 1,221 of Crossing's
@@ -385,6 +392,11 @@ export function MapCanvas({
               if (r.gateway && onZone) onZone(r.gateway.zone)
               else if (r.id) onPick(r.id)
             }}
+            onContextMenu={(e) => {
+              if (!onPinRoom || r.id == null) return
+              e.preventDefault()
+              onPinRoom(r.id)
+            }}
             onMouseEnter={() => r.id != null && setHoverId(r.id)}
             onMouseLeave={() => r.id != null && setHoverId((h) => (h === r.id ? null : h))}
           >
@@ -445,7 +457,12 @@ export function MapCanvas({
                 (r.tags?.length ? `\n${r.tags.join(', ')}` : '') +
                 (times ? `\nvisited ${times === 1 ? 'once' : `${times} times`} this session` : '') +
                 (r.gateway ? `\n→ ${r.gateway.name}  (click to follow)` : '') +
-                (r.leaves?.length ? `\nleaves the zone: ${r.leaves.join(', ')}` : '')}
+                (r.leaves?.length ? `\nleaves the zone: ${r.leaves.join(', ')}` : '') +
+                (r.id != null && pins?.has(r.id)
+                  ? `\n📍 ${pins.get(r.id)?.label}`
+                  : onPinRoom
+                    ? '\n(right-click to pin)'
+                    : '')}
             </title>
             {/* Hovering a room lifts it: a touch bigger, its own outline, and
                 its immediate neighbours dimmed slightly rather than lit -
@@ -495,6 +512,23 @@ export function MapCanvas({
               >
                 {r.title}
               </text>
+            )}
+            {/* A saved place, marked on the chart itself rather than only in
+                the hotbar below it - so browsing toward one, or noticing you
+                are near Home, doesn't require reading a row of buttons that
+                may not even be in view in a small docked panel. Drawn above
+                everything else on the room: a pin is a fact about the place
+                that outranks what kind of room it happens to be. */}
+            {r.id != null && pins?.has(r.id) && (
+              <circle
+                cx={px(r) + box * 0.62}
+                cy={py(r) - box * 0.62}
+                r={Math.max(1.6, 1.8 * scale)}
+                fill={PIN_COLOR_HEX[pins.get(r.id)!.color]}
+                stroke="var(--map-ground)"
+                strokeWidth={Math.max(0.5, 0.5 * scale)}
+                className="pointer-events-none"
+              />
             )}
           </g>
         )

@@ -277,11 +277,17 @@ export type IntentName =
    * args: { commands: string[] }
    */
   | 'run_macro'
-  // Map queries. All read-only: they answer questions about geography and
-  // never move the character. 'map_path' returns a route rather than walking
-  // it, so deciding to go stays a separate decision.
+  // Map queries. 'map_here'/'map_path'/'map_zone' are read-only: they answer
+  // questions about geography and never move the character.
+  //
+  // 'map_walk' is the deliberate exception - clicking a room on the map is a
+  // travel command, not a preview. args: { to: number } (a Lich room id).
+  // The bridge starts Lich's own go2 script rather than us reimplementing
+  // movement; progress arrives through the ordinary game stream, the same as
+  // if the player had typed ;go2 <room> themselves, not a payload of its own.
   | 'map_here'
   | 'map_path'
+  | 'map_walk'
   | 'map_zone'
   | 'install_mapdb'
   // Raw script library access. Distinct from the curated activity intents

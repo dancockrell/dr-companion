@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.10.4'
+  BRIDGE_VERSION = '0.10.5'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1632,13 +1632,18 @@ module Companion
       'check_toggles' => ->(_args, server) { check_toggles(server) },
       'list_vars'     => ->(_args, server) { list_vars(server) },
 
-      # --- map queries, all read-only -------------------------------------
+      # --- map queries ------------------------------------------------------
       #
-      # These answer questions rather than taking the character anywhere. A
-      # route is shown, never walked; deciding to move stays a separate
-      # decision the player makes with the route in front of them.
+      # map_here/map_path/map_zone/install_mapdb are read-only: they answer
+      # questions rather than taking the character anywhere. map_walk is the
+      # one deliberate exception - clicking a room on the map is now a travel
+      # command, at Dan's explicit instruction ("when you click on a location
+      # on the map, you go there using lich"), reversing the "not a travel
+      # control" design this panel shipped with. See map_walk's own comment
+      # for why it delegates to go2 rather than reimplementing movement.
       'map_here' => ->(_args, server) { map_here(server) },
       'map_path' => ->(args, server) { map_path(args, server) },
+      'map_walk' => ->(args, server) { map_walk(args, server) },
       'map_zone' => ->(args, server) { map_zone(args, server) },
       'install_mapdb' => ->(_args, server) { install_mapdb(server) },
       'list_scripts'  => ->(_args, server) { list_scripts(server) },
@@ -1696,6 +1701,59 @@ module Companion
       # Says "not moving" out loud. A route appearing on screen looks like the
       # start of a journey, and this one is not.
       [true, "#{result['steps']} rooms from #{result['from']} to #{result['to']}. Not moving."]
+    end
+
+    # Actually walks there, unlike map_path above.
+    #
+    # Deliberately not a reimplementation of movement. `move()`
+    # (lib/global_defs.rb) is a couple hundred lines of DragonRealms-specific
+    # recovery - retreating out of combat, unhiding, retrying a door by
+    # ordinal, waiting out an ice patch, standing back up after a bad climb -
+    # built up over years of bug reports, and go2.lic (installed with the
+    # standard Lich script suite) already drives that loop room by room with
+    # Dijkstra pathing on top: day passes, portmasters, urchins, the Ta'Vaalor
+    # shortcut, elemental confluence handling. Re-deriving any slice of that
+    # here would be slower to build, worse per fix, and a second copy of logic
+    # that already has its own maintainers - the same §7 reasoning
+    # install_mapdb above already applies to fetching the map database.
+    #
+    # Started, not awaited - same reason install_mapdb doesn't wait for its
+    # download: this method is called from the socket-handling thread, and
+    # blocking it for the length of a cross-zone walk would freeze every other
+    # panel until the character arrived. go2 runs as its own Lich script
+    # (Script.start), so Stop/Escape already reaches it - stop_all kills every
+    # running script by name, go2 included, with nothing new to wire up.
+    #
+    # A bare room number is go2's own "just go there" form (go2.lic: a numeric
+    # target skips its confirmation prompt entirely, `confirm = false`), which
+    # is exactly the contract this needs: no interactive prompt for a bridge
+    # request to get stuck waiting on.
+    def map_walk(args, server)
+      return no_map unless MapInfo.available?
+
+      dest = (args.is_a?(Hash) ? args['to'] : args).to_i
+      return [false, 'no destination given'] if dest.zero?
+
+      room = MapInfo.current
+      return [false, 'Lich does not know which room you are in yet.'] unless room
+      return [true, 'already there'] if State.safe(nil) { room.id } == dest
+
+      path = State.safe(nil) { room.path_to(dest) }
+      return [false, "no route from #{State.safe(nil) { room.id }} to #{dest}"] unless path
+
+      return [false, 'go2 is not installed. Install the standard Lich script suite to travel by click.'] \
+        unless State.safe(false) { Script.exists?('go2') }
+
+      already_walking = State.safe([]) { Script.running }.any? do |s|
+        State.safe(nil) { s.name }.to_s.casecmp?('go2')
+      end
+      return [false, 'already traveling (go2 is running) - stop it, or wait for it to arrive, first'] if already_walking
+
+      started = State.safe(false) { Script.start('go2', dest.to_s) }
+      return [false, 'could not start go2'] unless started
+
+      server.log("Walking to room #{dest} (#{path.length} rooms) via go2.")
+      [true, "walking to #{dest} (#{path.length} rooms)"]
     end
 
     # Fetch Lich's map database by running the script that already does it.

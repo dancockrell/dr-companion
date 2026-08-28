@@ -45,7 +45,7 @@ const MOCK_ALL_INTENTS: string[] = [
   'escape_heal', 'go_healer', 'town_run', 'start_training', 'loot', 'buffs',
   'escape', 'stow_all', 'check_health', 'check_toggles', 'reset_runaway',
   'read_settings', 'run_macro', 'map_here', 'list_vars',
-  'map_path', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
+  'map_path', 'map_walk', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
 ]
 
 /**
@@ -1053,6 +1053,22 @@ export class MockBridge {
                 }),
               }
             : { ok: false, reason: `no route from ${DEMO_ZONE.here} to ${to}` },
+        })
+        break
+      }
+
+      case 'map_walk': {
+        // No real Lich to hand a room number to in demo mode - the honest
+        // answer is to say so, the same way MapPanel already says "No
+        // bridge" rather than pretending to show a live position.
+        const to = Number(_args?.to ?? 0)
+        const route = demoPath(DEMO_ZONE.here as number, to)
+        this.emit({
+          type: 'log',
+          line: route
+            ? `Demo: would walk ${route.length} room${route.length === 1 ? '' : 's'} to ${to} — connect to Lich to actually travel.`
+            : `Demo: no route from ${DEMO_ZONE.here} to ${to}.`,
+          level: route ? 'info' : 'warn',
         })
         break
       }

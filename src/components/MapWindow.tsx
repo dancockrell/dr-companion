@@ -16,6 +16,9 @@ import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
+import { MapPinBar } from './shared/MapPinBar'
+import { PinEditor } from './shared/PinEditor'
+import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
 import { useMapDock, setMapDock, WINDOW_ZOOM_MIN, WINDOW_ZOOM_MAX } from '../lib/mapDock'
 import { useMapViewport } from '../lib/useMapViewport'
 
@@ -81,11 +84,61 @@ export function MapWindow() {
   }, [zone])
 
   const trail = useAppStore((s) => s.mapTrail)
+  const character = useAppStore((s) => s.character)
+  const hereId = useAppStore((s) => s.mapHere?.id ?? null)
 
   const onRoute = useMemo(
     () => new Set((path?.ok ? (path.rooms ?? []) : []).map((r) => r.id)),
     [path]
   )
+
+  // Same pin store as the docked panel (see MapPanel.tsx) - a separate
+  // webview with its own JavaScript context, but the same localStorage, so a
+  // pin added in either window is there the next time this one re-renders.
+  // Read straight from storage during render; pinVersion exists only to
+  // force a re-read after a write this window made itself.
+  const [pinVersion, setPinVersion] = useState(0)
+  const { pins, pinsByRoom } = useMemo(() => {
+    const list = character ? loadPins(character.name, character.instance) : []
+    return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
+  }, [character, pinVersion])
+
+  const [editingRoom, setEditingRoom] = useState<{ id: number; title: string; existing?: MapPin } | null>(
+    null
+  )
+
+  function goThere(roomId: number) {
+    bridge.requestIntent('map_path', { to: roomId })
+    bridge.requestIntent('map_walk', { to: roomId })
+  }
+
+  function pinRoom(id: number) {
+    const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
+    setEditingRoom({ id, title, existing: pinFor(pins, id) })
+  }
+
+  function savePin(label: string, color: MapPin['color']) {
+    if (!character || !editingRoom) return
+    if (editingRoom.existing) {
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color })
+    } else {
+      addPin(character.name, character.instance, {
+        roomId: editingRoom.id,
+        zone: zone?.zone ?? '',
+        label,
+        color,
+      })
+    }
+    setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
+
+  function deletePin() {
+    if (!character || !editingRoom?.existing) return
+    removePin(character.name, character.instance, editingRoom.existing.id)
+    setPinVersion((v) => v + 1)
+    setEditingRoom(null)
+  }
 
   const z = level ?? levels[0] ?? 0
 
@@ -109,6 +162,7 @@ export function MapWindow() {
   )
 
   return (
+    <>
     <div className="h-full w-full flex flex-col bg-surface text-ink">
       <header className="shrink-0 flex items-center justify-between gap-3 border-b border-border px-3 py-2">
         <div className="min-w-0">
@@ -195,6 +249,17 @@ export function MapWindow() {
         </div>
       </header>
 
+      {(pins.length > 0 || hereId != null) && (
+        <div className="shrink-0 border-b border-border px-3 py-1.5">
+          <MapPinBar
+            pins={pins}
+            onGo={(pin) => goThere(pin.roomId)}
+            onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+            onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+          />
+        </div>
+      )}
+
       <main
         ref={containerRef}
         className={`flex-1 min-h-0 overflow-hidden relative ${
@@ -221,9 +286,11 @@ export function MapWindow() {
               level={z}
               onRoute={onRoute}
               labels={labels}
-              onPick={(id) => bridge.requestIntent('map_path', { to: id })}
+              onPick={goThere}
               trail={trail}
               onHereAt={onHereAt}
+              pins={pinsByRoom}
+              onPinRoom={pinRoom}
             />
           </div>
         ) : (
@@ -243,9 +310,20 @@ export function MapWindow() {
             ? `${path.steps} rooms to ${
                 path.rooms?.[path.rooms.length - 1]?.title ?? path.to
               }`
-            : 'Scroll to zoom, drag to pan, click a room for its route'}
+            : 'Scroll to zoom, drag to pan, click a room to walk there'}
         </span>
       </footer>
-    </div>
+      </div>
+      {editingRoom && (
+        <PinEditor
+          roomId={editingRoom.id}
+          roomTitle={editingRoom.title}
+          existing={editingRoom.existing}
+          onSave={savePin}
+          onDelete={editingRoom.existing ? deletePin : undefined}
+          onClose={() => setEditingRoom(null)}
+        />
+      )}
+    </>
   )
 }
