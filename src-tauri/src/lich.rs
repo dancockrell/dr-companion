@@ -164,11 +164,9 @@ fn gui_login_usable() -> bool {
         roots.push(PathBuf::from(format!("{letter}:\\SIMU")));
     }
 
-    roots.iter().any(|root| {
-        GUI_FRONTEND_EXES
-            .iter()
-            .any(|exe| root.join(exe).exists())
-    })
+    roots
+        .iter()
+        .any(|root| GUI_FRONTEND_EXES.iter().any(|exe| root.join(exe).exists()))
 }
 
 fn lich_launcher(dir: &Path) -> Option<PathBuf> {
@@ -290,10 +288,12 @@ fn valid_character_name(name: &str) -> bool {
 /// command can start. This one is not fast: measured against the running app,
 /// three times in a row on a settled process,
 ///
-///     bridge_default_url:      2ms
-///     lich_status:          5447ms
-///     lich_status:          5424ms
-///     game_status:             2ms
+/// ```text
+/// bridge_default_url:      2ms
+/// lich_status:          5447ms
+/// lich_status:          5424ms
+/// game_status:             2ms
+/// ```
 ///
 /// Consistent, so it is real work rather than startup contention. It is spread
 /// across filesystem probing - `detect_ruby`, `rank_lich_installs`,
@@ -459,7 +459,9 @@ pub fn launch_lich(character: Option<String>) -> Result<String, String> {
     let s = lich_status_blocking();
 
     let launcher = s.launcher.ok_or("Could not find lich.rbw")?;
-    let ruby = s.ruby.ok_or("Could not find Ruby, which Lich needs to run")?;
+    let ruby = s
+        .ruby
+        .ok_or("Could not find Ruby, which Lich needs to run")?;
 
     // Refuse rather than race. A second Lich takes the port the first one is
     // holding, and the failure shows up later as the game disconnecting, which
@@ -469,7 +471,10 @@ pub fn launch_lich(character: Option<String>) -> Result<String, String> {
     // to start a second one, but it is not a reason to refuse forever either -
     // the message says which it was.
     if s.running_known && s.running {
-        return Err("Lich looks like it is already running. Close it first, or use the one that is up.".into());
+        return Err(
+            "Lich looks like it is already running. Close it first, or use the one that is up."
+                .into(),
+        );
     }
 
     let args = launch_args(&launcher, character.as_deref())?;
@@ -487,7 +492,9 @@ pub fn launch_lich(character: Option<String>) -> Result<String, String> {
 
     Ok(match character {
         Some(name) => format!("Starting Lich for {name}."),
-        None => "Opened Lich's login window. Sign in there and it will remember the character.".into(),
+        None => {
+            "Opened Lich's login window. Sign in there and it will remember the character.".into()
+        }
     })
 }
 
@@ -514,12 +521,16 @@ mod tests {
     fn opens_the_detachable_client_port() {
         let args = launch_args("lich.rbw", Some("Phemius")).unwrap();
         assert!(
-            args.iter().any(|a| a == &format!("--headless={DETACHABLE_PORT}")),
+            args.iter()
+                .any(|a| a == &format!("--headless={DETACHABLE_PORT}")),
             "{args:?}"
         );
         // And not the older two-token form Lich also accepts - a mismatch
         // here would silently pass Lich's own parser and still be wrong.
-        assert!(!args.iter().any(|a| a.starts_with("--detachable-client")), "{args:?}");
+        assert!(
+            !args.iter().any(|a| a.starts_with("--detachable-client")),
+            "{args:?}"
+        );
     }
 
     /// The bare launch (no character) must stay bare. Adding a frontend or
@@ -559,7 +570,9 @@ mod tests {
             "Saga.exe",
         ];
         assert!(
-            !GUI_FRONTEND_EXES.iter().any(|e| e.to_lowercase().contains("genie")),
+            !GUI_FRONTEND_EXES
+                .iter()
+                .any(|e| e.to_lowercase().contains("genie")),
             "Lich's Frontend.definitions(gui_selectable: true) is \
              [stormfront, wizard, avalon, saga] - genie is registered with \
              capabilities only and no gui_selectable metadata, so it can never \
@@ -586,7 +599,11 @@ mod tests {
 
         assert_eq!(note(true, false), "deadlock");
         assert_eq!(note(true, true), "ordinary first run");
-        assert_eq!(note(false, false), "ready", "a saved character makes the GUI moot");
+        assert_eq!(
+            note(false, false),
+            "ready",
+            "a saved character makes the GUI moot"
+        );
     }
 
     /// The whole point of the narrow parse, asserted rather than described.
@@ -634,10 +651,17 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
 
-        assert!(saved_characters(&dir).is_none(), "no file must not read as no characters");
+        assert!(
+            saved_characters(&dir).is_none(),
+            "no file must not read as no characters"
+        );
 
         std::fs::write(dir.join("entry.yaml"), "---\naccounts: {}\n").unwrap();
-        assert_eq!(saved_characters(&dir), Some(vec![]), "an empty file is an answer");
+        assert_eq!(
+            saved_characters(&dir),
+            Some(vec![]),
+            "an empty file is an answer"
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -669,7 +693,10 @@ mod tests {
 
         // Without rubyw beside it, it must hand back what it was given rather
         // than inventing a path that does not exist.
-        assert_eq!(windowed_ruby(&ruby.to_string_lossy()), ruby.to_string_lossy());
+        assert_eq!(
+            windowed_ruby(&ruby.to_string_lossy()),
+            ruby.to_string_lossy()
+        );
 
         std::fs::write(dir.join("rubyw.exe"), b"").unwrap();
         assert!(windowed_ruby(&ruby.to_string_lossy()).ends_with("rubyw.exe"));

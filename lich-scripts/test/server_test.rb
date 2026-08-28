@@ -1733,6 +1733,38 @@ begin
   )
   $drch_reply = :raise
 
+  puts '-- record_health: the abbreviated l./r. prefix maps to the same key as the spelled-out side --'
+  # map_body_part's side detection is `s.start_with?('l.', 'left')` / `('r.',
+  # 'right')` - a distinct branch from anything the boundary/worst-wins/
+  # unmapped tests above exercise, all of which use spelled-out sides. If that
+  # alternation regressed to only match the spelled-out form, every check
+  # above would stay green and this would be the only one to catch it.
+  $drch_reply = FakeHealthResult.new(
+    {
+      'moderate' => [DRCHWoundFull.new('r. arm', 3, false, nil)],
+      'minor'    => [DRCHWoundFull.new('l. eye', 2, false, nil)]
+    },
+    {},
+    false,
+    false
+  )
+  c.send_json(type: 'intent', intent: 'check_health')
+  c.read_until('intent_ack')
+  c.read_until('status') # the broadcast from that intent, drained
+  c.send_json(type: 'get_status')
+  abbrev = c.read_until('status')['payload']
+  check(
+    "'r. arm' maps to the same rightArm key as the spelled-out form",
+    abbrev['injuries'] && abbrev['injuries']['rightArm'] == { 'wound' => 1, 'scar' => 0 },
+    abbrev['injuries'].inspect
+  )
+  check(
+    "'l. eye' maps to leftEye, not left unmapped or confused with leftArm",
+    abbrev['injuries'] && abbrev['injuries']['leftEye'] == { 'wound' => 1, 'scar' => 0 },
+    abbrev['injuries'].inspect
+  )
+  $drch_reply = :raise
+
   puts ''
   puts '-- degraded: Thread.current isolation actually holds under real overlap, not just sequentially --'
   # 3b08dd2's whole argument for thread-local over module state is that

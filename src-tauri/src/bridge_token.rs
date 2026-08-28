@@ -34,7 +34,7 @@
 //! saved account file.
 
 use std::io::Read as _;
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::setup::bridge_target_dir;
 
@@ -60,7 +60,7 @@ pub fn read_bridge_token() -> String {
 /// truncates into something that fails the length check anyway.
 const MAX_READ: u64 = 256;
 
-fn read_token_from(dir: &PathBuf) -> String {
+fn read_token_from(dir: &Path) -> String {
     let path = dir.join("companion_bridge.token");
 
     // Bounded before the read, not after.
@@ -87,10 +87,7 @@ fn read_token_from(dir: &PathBuf) -> String {
     // wrote, and sending whatever happened to be in the file would hand an
     // arbitrary string to whatever is listening on that port - which, on the
     // day somebody else is listening on that port, is the whole problem again.
-    if token.len() < 32
-        || token.len() > 128
-        || !token.chars().all(|c| c.is_ascii_hexdigit())
-    {
+    if token.len() < 32 || token.len() > 128 || !token.chars().all(|c| c.is_ascii_hexdigit()) {
         return String::new();
     }
 
@@ -100,6 +97,7 @@ fn read_token_from(dir: &PathBuf) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     fn temp(name: &str) -> PathBuf {
         let d = std::env::temp_dir().join(name);

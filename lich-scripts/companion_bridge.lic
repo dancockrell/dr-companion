@@ -1505,53 +1505,83 @@ module Companion
       end
     end
 
-    def dispatch(intent, args, server)
-      case intent
-      when 'stop_all' then stop_all(server)
-      when 'reset_runaway'
+    # One entry per real intent, name mapped to what runs it. This is the
+    # thing BRIDGE_CONTRACT.md's implemented-intents contract asked for: a
+    # plain `case/when` gives the interpreter no runtime reflection over its
+    # own literals, so there was nothing to introspect to build
+    # `implementedIntents` honestly. `HANDLERS.keys` is a genuine
+    # enumeration of the same object dispatch actually uses - it cannot
+    # drift from reality the way a hand-maintained list (or worse, parsing
+    # this file's own source text for `when` patterns, which a `when`
+    # sitting in a comment or a string would lie to) already has, twice,
+    # tonight.
+    #
+    # Lambdas rather than method symbols so the several intents whose whole
+    # body was previously an inline `when` branch (reset_runaway, trace_on,
+    # trace_off, trace_dump) don't need a new named method invented purely
+    # to have something to dispatch to - the branch just moves here intact.
+    HANDLERS = {
+      'stop_all' => ->(_args, server) { stop_all(server) },
+      'reset_runaway' => lambda { |_args, server|
         Runaway.reset
         server.log('Runaway detection reset.')
         [true, 'reset']
-      when 'pause'    then pause_all(server)
-      when 'resume'   then resume_all(server)
-      when 'escape'   then escape(server)
-      when 'run_macro' then run_macro(args, server)
-      when 'check_health' then check_health(server)
-      when 'stow_all'     then stow_all(server)
-      when 'trace_on'
+      },
+      'pause'    => ->(_args, server) { pause_all(server) },
+      'resume'   => ->(_args, server) { resume_all(server) },
+      'escape'   => ->(_args, server) { escape(server) },
+      'run_macro' => ->(args, server) { run_macro(args, server) },
+      'check_health' => ->(_args, server) { check_health(server) },
+      'stow_all'     => ->(_args, server) { stow_all(server) },
+      'trace_on' => lambda { |_args, server|
         Trace.enable(true)
         server.log('Trace on. Every command, reply and failed match will appear here.')
         [true, 'trace on']
-      when 'trace_off'
+      },
+      'trace_off' => lambda { |_args, server|
         Trace.enable(false)
         server.log('Trace off.')
         [true, 'trace off']
-      when 'trace_dump'
-        # The tail is kept even when tracing is off, so someone who turns it on
-        # after something went wrong still has the last few lines.
+      },
+      'trace_dump' => lambda { |_args, server|
+        # The tail is kept even when tracing is off, so someone who turns it
+        # on after something went wrong still has the last few lines.
         rows = Trace.recent
         server.log("Replaying the last #{rows.size} trace rows.")
         rows.each { |r| server.trace(r) }
         [true, "#{rows.size} rows"]
-      when 'read_settings' then read_settings(server)
-      when 'check_toggles' then check_toggles(server)
+      },
+      'read_settings' => ->(_args, server) { read_settings(server) },
+      'check_toggles' => ->(_args, server) { check_toggles(server) },
 
       # --- map queries, all read-only -------------------------------------
       #
       # These answer questions rather than taking the character anywhere. A
       # route is shown, never walked; deciding to move stays a separate
       # decision the player makes with the route in front of them.
-      when 'map_here' then map_here(server)
-      when 'map_path' then map_path(args, server)
-      when 'map_zone' then map_zone(args, server)
-      when 'install_mapdb' then install_mapdb(server)
-      when 'list_scripts' then list_scripts(server)
-      when 'start_script' then start_script(args, server)
+      'map_here' => ->(_args, server) { map_here(server) },
+      'map_path' => ->(args, server) { map_path(args, server) },
+      'map_zone' => ->(args, server) { map_zone(args, server) },
+      'install_mapdb' => ->(_args, server) { install_mapdb(server) },
+      'list_scripts'  => ->(_args, server) { list_scripts(server) },
+      'start_script'  => ->(args, server) { start_script(args, server) },
+    }.freeze
 
-      else
-        [false, "'#{intent}' is not implemented in bridge v#{BRIDGE_VERSION} yet. " \
-                'The panel can read state and stop scripts; it cannot run this activity.']
-      end
+    # The three-state contract this feeds (BRIDGE_CONTRACT.md): absent means
+    # an older bridge that never advertised anything, present-and-listed
+    # means implemented, present-and-not-listed means genuinely refused.
+    # Called fresh on every hello rather than cached, so nothing can hold a
+    # stale copy across a future reload of this module.
+    def implemented_intents
+      HANDLERS.keys
+    end
+
+    def dispatch(intent, args, server)
+      handler = HANDLERS[intent]
+      return [false, "'#{intent}' is not implemented in bridge v#{BRIDGE_VERSION} yet. " \
+                      'The panel can read state and stop scripts; it cannot run this activity.'] unless handler
+
+      handler.call(args, server)
     end
 
     # ------------------------------------------------------------------ map --
@@ -2267,7 +2297,14 @@ module Companion
                     # somewhere a person actually looks rather than only in
                     # Lich's log, which the app never reads.
                     auth: Companion.auth_mode,
-                    authNote: Companion.auth_note)
+                    authNote: Companion.auth_note,
+                    # BRIDGE_CONTRACT.md's implemented-intents contract: a
+                    # real enumeration of Intents.dispatch's own routing
+                    # table, so this can never drift from what dispatch
+                    # actually does. Absent on any bridge old enough not to
+                    # send it at all; present-and-not-listed is the honest
+                    # "not implemented", never inferred from absence.
+                    implementedIntents: Intents.implemented_intents)
       send_to(sock, type: 'status', payload: State.status)
       send_to(sock, type: 'inventory', payload: State.inventory)
       send_to(sock, type: 'scripts', payload: State.other_scripts)

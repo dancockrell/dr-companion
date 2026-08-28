@@ -85,10 +85,10 @@ pub struct LinkState {
     /// Three states, never two:
     ///
     /// - `"alive"`  - the port accepted a connection, so Lich is up and we
-    ///                lost only our socket.
+    ///   lost only our socket.
     /// - `"gone"`   - the connection was refused, so nothing is listening.
     /// - `"unknown"` - the probe could not answer: it timed out, failed for
-    ///                its own reasons, or was never run.
+    ///   its own reasons, or was never run.
     ///
     /// The third is the point. Folding "could not determine" into "gone"
     /// would tell somebody to restart a Lich that is running perfectly, which
@@ -484,7 +484,11 @@ mod tests {
 
         client.write_all(b"look\r\n").unwrap();
         client.flush().unwrap();
-        assert_eq!(server.join().unwrap(), "look\r\n", "commands go out as typed, CRLF");
+        assert_eq!(
+            server.join().unwrap(),
+            "look\r\n",
+            "commands go out as typed, CRLF"
+        );
     }
 
     /// Invalid UTF-8 must not kill the reader.
@@ -499,7 +503,8 @@ mod tests {
 
         std::thread::spawn(move || {
             let (mut sock, _) = listener.accept().unwrap();
-            sock.write_all(b"a rusty \xFF dagger\r\nstill here\r\n").unwrap();
+            sock.write_all(b"a rusty \xFF dagger\r\nstill here\r\n")
+                .unwrap();
             std::thread::sleep(Duration::from_millis(50));
         });
 
@@ -508,7 +513,9 @@ mod tests {
 
         let mut first = Vec::new();
         reader.read_until(b'\n', &mut first).unwrap();
-        let text = String::from_utf8_lossy(&first).trim_end_matches(['\n', '\r']).to_string();
+        let text = String::from_utf8_lossy(&first)
+            .trim_end_matches(['\n', '\r'])
+            .to_string();
         assert!(text.contains("dagger"), "the line survived: {text:?}");
 
         let mut second = Vec::new();

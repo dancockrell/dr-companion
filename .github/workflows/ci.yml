@@ -9,17 +9,44 @@ on:
   pull_request:
   workflow_dispatch:
 
+# On a pull request only the tip matters, so superseding a run is right. On
+# main it is not: each commit is a distinct state somebody may build on, and
+# several sessions push here, so cancelling threw away the verdict for 21 of
+# the last 57 pushes. A commit nobody verified is indistinguishable from one
+# that passed.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Per-commit on main, per-branch everywhere else.
+  #
+  # Scoping cancel-in-progress to non-main was necessary and not sufficient,
+  # which is only visible by measuring: run 33141537207 was cancelled anyway,
+  # with zero jobs, while still queued. cancel-in-progress governs the RUNNING
+  # member of a group; a newly queued run always supersedes a PENDING one, and
+  # that happens whatever the flag says. With several sessions pushing, the
+  # middle of any burst is dropped.
+  #
+  # Giving each main commit its own group is what actually delivers a verdict
+  # per commit. Nothing to supersede, nothing to cancel. Pull requests keep
+  # sharing a group per branch, where superseding is the right behaviour -
+  # only the tip of a PR matters.
+  group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'shared' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # Everything that does not need Rust.
   checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 39 suites including a build; the old 15 was sized for ten of them.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      # test:all includes the Ruby bridge suites. Without Ruby they report
+      # NOT RUN, which the runner exits non-zero for on purpose - a check that
+      # was skipped must never be able to read as one that passed.
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: false
 
       - uses: actions/setup-node@v4
         with:
@@ -34,15 +61,14 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Listed individually so a failure names itself in the job list.
-      - name: Contrast (WCAG AA)
-        run: npm run test:contrast
-      - name: Log scrubbing
-        run: npm run test:scrub
-      - name: Frontend
-        run: npm run test:frontend
-      - name: Bundle integrity
-        run: npm run test:bundle
+      # Every suite, through the runner that names all failures rather than
+      # stopping at the first. Listing them by hand here covered 10 of 39, so
+      # 29 suites had no CI at all - test:contrast was red for 24 commits and
+      # was one of the ten. The runner reports passed/failed/NOT RUN and exits
+      # non-zero for either of the last two, so a suite that could not execute
+      # can never be read as one that passed.
+      - name: Test suites
+        run: npm run test:all
 
   # The Rust half. Separate so it does not hold up the fast feedback.
   tauri:
@@ -65,6 +91,15 @@ jobs:
           workspaces: src-tauri
 
       - run: npm ci
+
+      # tauri.conf.json bundles src-tauri/vendor/Ruby4Lich5.exe, and that
+      # directory is gitignored (65 MB, rebuilt on Lich's own schedule).
+      # build.rs validates resource paths, so with it absent EVERY Rust step
+      # fails before compiling anything - clippy and cargo test included, not
+      # only the packaging one. Fetch it up front. The script verifies the
+      # download against GitHub's published sha256 and no-ops when current.
+      - name: Vendor Ruby4Lich5
+        run: npm run vendor:fetch
 
       - name: Rust format
         working-directory: src-tauri
