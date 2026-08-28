@@ -232,6 +232,12 @@ function handleBridgeMessage(
       // existed, with no field for a screen to read instead of the log pane.
       set({ toggles: { brief: msg.brief, invBrief: msg.invBrief, showRoomId: msg.showRoomId } })
       break
+    case 'vars':
+      // Third of the same shape: list_vars has broadcast Lich::Common::Vars
+      // for this character since before this case existed. VarsPanel.tsx
+      // reads `vars` for its list.
+      set({ vars: msg.entries })
+      break
     case 'trace':
       get().addTrace(msg.row)
       break
@@ -303,6 +309,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   settingsFiles: null,
   settingsCharacter: null,
   toggles: null,
+  vars: null,
   logLines: [
     { at: new Date().toLocaleTimeString(), text: 'Companion started.', seq: nextSeq() },
   ],
@@ -386,6 +393,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     bridge.requestIntent('check_toggles')
   },
 
+  listVars: () => {
+    set({ vars: null })
+    bridge.requestIntent('list_vars')
+  },
+
   listScripts: () => {
     bridge.requestIntent('list_scripts')
   },
@@ -443,7 +455,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     bridge.setMode(m)
     savePrefs({ bridgeMode: m })
-    set({ bridgeMode: m, bridgeConnected: false, bridgeAuth: 'unknown', bridgeAuthNote: '', bridgeIntents: null, character: null, characterAt: 0, scriptStates: [], runningScripts: [], scriptCatalog: null, settingsFiles: null, toggles: null })
+    set({ bridgeMode: m, bridgeConnected: false, bridgeAuth: 'unknown', bridgeAuthNote: '', bridgeIntents: null, character: null, characterAt: 0, scriptStates: [], runningScripts: [], scriptCatalog: null, settingsFiles: null, toggles: null, vars: null })
     get().addLog(
       m === 'mock' ? 'Switched to mock bridge' : 'Switched to live Lich bridge'
     )

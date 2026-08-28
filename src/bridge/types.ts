@@ -52,6 +52,7 @@ export type BridgeServerMessage =
   | { type: 'error'; message: string }
   | { type: 'settings'; character: string; files: SettingsFile[] }
   | ({ type: 'toggles' } & ToggleStatus)
+  | { type: 'vars'; character: string; entries: VarsEntry[] }
   | { type: 'map_here'; payload: MapRoom & { available: boolean } }
   | { type: 'map_path'; payload: MapPath }
   | { type: 'map_zone'; payload: MapZone }
@@ -125,6 +126,22 @@ export interface ToggleStatus {
   brief: boolean | null
   invBrief: boolean | null
   showRoomId: boolean | null
+}
+
+/**
+ * One entry from `Lich::Common::Vars`, as `list_vars` reports it.
+ *
+ * `kind` matches what the bridge actually did rather than a guess at every
+ * type `Vars` could hold: a String passes through as `'string'`; anything
+ * else - `companion_bridge.lic`'s own comment cites Lich's `vars.lic` doing
+ * the same - is rendered as `"#{value.class}: #{value.inspect}"` and marked
+ * `'other'`, read-only, since a stringified inspect of an arbitrary Ruby
+ * object is not something this app could safely write back.
+ */
+export interface VarsEntry {
+  name: string
+  value: string
+  kind: 'string' | 'other'
 }
 
 /**
@@ -250,6 +267,7 @@ export type IntentName =
   | 'check_toggles'
   | 'reset_runaway'
   | 'read_settings'
+  | 'list_vars'
   /**
    * Send literal game commands, from a macro the player pressed.
    *
