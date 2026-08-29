@@ -17,6 +17,12 @@ import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
 import { loadPrefs } from '../../lib/persistence'
+import {
+  MIDDLE_PANEL_IDS,
+  MIDDLE_PANEL_LABELS,
+  setPanelHidden,
+  useHiddenMiddlePanels,
+} from '../../lib/panelVisibility'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -50,6 +56,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // it and does not report it back; the select would otherwise sit on its
   // default while the app showed somebody else.
   const [demoPreset, setDemoPreset] = useState(() => loadPrefs().demoPreset ?? 'basic_prime')
+  const hiddenPanels = useHiddenMiddlePanels()
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-3">
@@ -89,6 +96,42 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             <p className="text-xs text-ink-faint leading-snug">
               Power adds rankings and denser controls. Either way the panels
               move and resize.
+            </p>
+          </section>
+
+          {/* One lever per box, on top of whichever set Basic/Power already
+              picked - see panelVisibility.ts's own header for why this isn't
+              part of the mode toggle above it. Unticking one here removes it
+              regardless of mode; a box the current mode doesn't show at all
+              (Risk, say, in Basic) still lists here so switching to Power
+              later doesn't silently un-hide something turned off on purpose. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
+              Middle pane panels
+            </h3>
+            <div className="grid grid-cols-2 gap-1.5">
+              {MIDDLE_PANEL_IDS.map((id) => {
+                const on = !hiddenPanels.has(id)
+                return (
+                  <label
+                    key={id}
+                    className="flex items-center gap-2 rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={(e) => setPanelHidden(id, !e.target.checked)}
+                    />
+                    {MIDDLE_PANEL_LABELS[id]}
+                  </label>
+                )
+              })}
+            </div>
+            <p className="text-xs text-ink-faint leading-snug">
+              Turn any box in the middle column off entirely. A box only
+              Power shows stays off in Basic either way — this only ever
+              removes further, never brings back something the mode itself
+              hides.
             </p>
           </section>
 
