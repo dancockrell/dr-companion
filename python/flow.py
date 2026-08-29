@@ -107,10 +107,42 @@ class Flow(Task):
     #: Repeat until stopped. An endless flow has to be obvious rather than a
     #: surprise, so this is printed at the start.
     loops: bool = False
+    #: Opt in to `Task.enable_sight_picture()` - see drtask.py. Named
+    #: distinctly from `Task.sight_picture` (the live `SightPicture` instance
+    #: once enabled, or `None`) on purpose: `Task.__init__` runs first via
+    #: `super().__init__()` below and would otherwise set an *instance*
+    #: attribute of the same name, permanently shadowing this class-level
+    #: default the moment a `Flow` is constructed without passing the kwarg -
+    #: found by testing `recover()` (which does not opt in) and seeing `None`
+    #: instead of `False`. Off by default: a short, one-shot flow like
+    #: `recover` or `to_healer` is done before a 20-second rotation would
+    #: ever fire, so there is nothing for it to buy there. The two flows that
+    #: actually loop for a while (`hunt`, `ambush`) turn it on in
+    #: `tasks/flows.py`.
+    sight_picture_enabled: bool = False
+    #: Seconds between rotation topics - see `SightPicture.interval`.
+    sight_picture_interval: float = 20.0
 
-    def __init__(self, **kw) -> None:
-        super().__init__()
-        for key in ("title", "summary", "steps", "loops"):
+    def __init__(self, companion: Optional[object] = None, **kw) -> None:
+        # Forwarded rather than dropped. `Task.__init__(companion=None)`
+        # constructs a real `Companion()` when none is given, which reads
+        # token/port files from the app's data directory and raises if
+        # they're not there - so a bare `Flow(...)` used to work only by
+        # accident, on a machine that happened to have those files left over
+        # from a previous real run (see `dr_companion.py`'s own note that it
+        # rewrites them on start and leaves them behind on close). On a clean
+        # checkout, or in CI, that constructor call would simply raise.
+        # Forwarding `companion` is what makes `Flow(companion=Fake(), ...)`
+        # possible at all - found writing this file's own tests.
+        super().__init__(companion)
+        for key in (
+            "title",
+            "summary",
+            "steps",
+            "loops",
+            "sight_picture_enabled",
+            "sight_picture_interval",
+        ):
             if key in kw:
                 setattr(self, key, kw.pop(key))
         if kw:
@@ -172,8 +204,12 @@ class Flow(Task):
         finally:
             self._waiting = None
 
-    def run(self) -> None:
-        """Connect, then walk the steps.
+    def _connect_and_start_reader(self) -> None:
+        """Connect, background the reader, and start the sight picture if
+        asked for. Split out of `run()` so a subclass that drives its own
+        loop - `Routine` in `tasks/routine.py`, choosing which step list to
+        run rather than walking one fixed list - gets this plumbing without
+        duplicating it.
 
         The reader runs on its own thread so `on_clean` keeps firing while a
         step waits - without that, `until` could never match, because the line
@@ -185,9 +221,51 @@ class Flow(Task):
         self.c.on_line(self._feed)
         threading.Thread(target=self.c.run, daemon=True).start()
 
+        if self.sight_picture_enabled:
+            self.enable_sight_picture(self.sight_picture_interval)
+
+    def _run_step(self, i: int, step: Step) -> None:
+        """Run one step: the `when` gate, the commands, then `until` or
+        `settle`. Pulled out of `run()`'s loop body for the same reason as
+        `_connect_and_start_reader` - `Routine` runs steps drawn from
+        whichever of several step lists the character's state currently
+        calls for, one at a time, and needs this exact logic without a fixed
+        `self.steps` to loop over."""
+        if step.when and not step.when(self):
+            print(f"  {i}. {step.label} - skipped, condition not met")
+            return
+
+        print(f"  {i}. {step.label}")
+        for command in step.commands:
+            if self._stopping:
+                return
+            self.do(command)
+
+        if step.until:
+            if not self._await(step.until, step.timeout):
+                # Said out loud rather than moving on quietly. A step whose
+                # expected message never arrived is the single most useful
+                # thing to know when a flow behaves oddly, and it is
+                # invisible otherwise.
+                print(
+                    f"     (timed out after {step.timeout:.0f}s waiting for "
+                    f"/{step.until}/ - continuing)"
+                )
+        elif step.settle:
+            time.sleep(step.settle)
+
+    def run(self) -> None:
+        """Connect, then walk `self.steps` in order, looping if `self.loops`."""
+        self._connect_and_start_reader()
+
         print(f"{self.title}" + (f" - {self.summary}" if self.summary else ""))
         if self.loops:
             print("This flow repeats until stopped. Ctrl+C to stop.")
+        if self.sight_picture_enabled:
+            print(
+                f"Building a sight picture in the background every "
+                f"~{self.sight_picture_interval:.0f}s, between real actions."
+            )
         print()
 
         try:
@@ -195,29 +273,7 @@ class Flow(Task):
                 for i, step in enumerate(self.steps, 1):
                     if self._stopping:
                         return
-
-                    if step.when and not step.when(self):
-                        print(f"  {i}. {step.label} - skipped, condition not met")
-                        continue
-
-                    print(f"  {i}. {step.label}")
-                    for command in step.commands:
-                        if self._stopping:
-                            return
-                        self.do(command)
-
-                    if step.until:
-                        if not self._await(step.until, step.timeout):
-                            # Said out loud rather than moving on quietly. A
-                            # step whose expected message never arrived is the
-                            # single most useful thing to know when a flow
-                            # behaves oddly, and it is invisible otherwise.
-                            print(
-                                f"     (timed out after {step.timeout:.0f}s waiting for "
-                                f"/{step.until}/ - continuing)"
-                            )
-                    elif step.settle:
-                        time.sleep(step.settle)
+                    self._run_step(i, step)
 
                 if not self.loops:
                     print("\ndone.")
@@ -225,6 +281,12 @@ class Flow(Task):
         except KeyboardInterrupt:
             print("\nstopped.")
         finally:
+            # Set first, same reasoning as `self.c.stop()` below applied to
+            # the sight-picture thread: it polls `self._stopping` once a
+            # second (see `Task.enable_sight_picture`) and would otherwise
+            # keep trying to tick - harmlessly, since `self.c.send` still
+            # works, but pointlessly, on a flow that has already finished.
+            self._stopping = True
             # Tell the reader to stop *before* closing the socket it is
             # blocked on, so it treats the close as expected rather than as a
             # failure. Closing first is a race the reader loses noisily.

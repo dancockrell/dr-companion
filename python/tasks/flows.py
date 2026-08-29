@@ -41,6 +41,12 @@ def hunt() -> Flow:
         title="Hunt cycle",
         summary="Attack, loot, skin, tend. Repeats until stopped.",
         loops=True,
+        # A hunt runs for a long time and spends real stretches waiting -
+        # `wait_rt()` before the next attack, `until` while looting settles -
+        # which is exactly the downtime a sight picture is for. See
+        # drtask.py's SightPicture: this never delays an attack, it only
+        # spends seconds the flow was already going to spend waiting.
+        sight_picture_enabled=True,
         steps=[
             # `until` rather than a bare settle: the game says when the swing
             # resolved, and waiting for that beats guessing at a duration that
@@ -60,6 +66,7 @@ def ambush() -> Flow:
         title="Ambush cycle",
         summary="Hidden opener, loot, back to guarded. Repeats until stopped.",
         loops=True,
+        sight_picture_enabled=True,
         steps=[
             Step("Setting the stance", ["stance offensive"]),
             Step("Ambushing", ["ambush"], until=r"you (hit|miss)|roundtime", timeout=20),

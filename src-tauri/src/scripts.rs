@@ -123,12 +123,60 @@ fn dir_for(app: &AppHandle, lang: Lang) -> Option<PathBuf> {
     }
 }
 
+/// The first substantive line inside a Ruby `=begin`...`=end` header block -
+/// dr-scripts' own convention (measured against a real install at
+/// `C:\Ruby4Lich5\Lich5\scripts`: 223 of 234 files use it, `#` line comments
+/// are the exception in that suite, not the rule the rest of `summarise`
+/// assumed). `#trim_start_matches('#')` on a line that starts with `=begin`
+/// leaves it unchanged, which `summarise` reads as "this is code, stop" -
+/// so every dr-scripts file was getting an empty summary before this, not
+/// because it had none but because the reader was looking for the wrong
+/// comment style entirely.
+///
+/// Most of those files' blocks hold nothing but `Documentation: <url>`,
+/// which is skipped rather than returned: a link is not a description, and
+/// every script with only a link would otherwise show the identical
+/// non-answer. `None` when the file has no `=begin` block at all (a
+/// hand-written script using ordinary `#` comments), so the caller falls
+/// back to that reading instead.
+fn summarise_ruby_block(body: &str) -> Option<String> {
+    let mut lines = body.lines();
+    // The block is sometimes preceded by a magic comment
+    // (`# frozen_string_literal: true`), so `=begin` is looked for within
+    // the first few lines rather than required to be the very first one.
+    let opened = lines.by_ref().take(5).any(|l| l.trim() == "=begin");
+    if !opened {
+        return None;
+    }
+    for line in lines.take(20) {
+        let text = line.trim();
+        if text == "=end" {
+            break;
+        }
+        if text.is_empty() || text.starts_with("Documentation:") {
+            continue;
+        }
+        return Some(text.chars().take(120).collect());
+    }
+    // The block exists and holds nothing usable (only the doc link, or
+    // nothing at all) - that is a real answer, not a missing block, and
+    // falling through to the `#`-comment reader below would misread `=end`
+    // or `=begin` itself as a line of code and (correctly) still find
+    // nothing, just by a slower and less honest route.
+    Some(String::new())
+}
+
 /// The first line of a script's header comment or docstring.
 ///
 /// Best effort by design: a script with no header gets an empty summary and
 /// the UI says nothing rather than inventing something. Guessing a purpose
 /// from the code would be a claim the file does not make.
 fn summarise(body: &str, lang: Lang) -> String {
+    if lang == Lang::Ruby {
+        if let Some(text) = summarise_ruby_block(body) {
+            return text;
+        }
+    }
     for raw in body.lines().take(12) {
         let line = raw.trim();
         if line.is_empty() {
@@ -405,5 +453,56 @@ mod tests {
         // first line of logic presented as a description.
         assert_eq!(summarise("import sys\nprint(1)\n", Lang::Python), "");
         assert_eq!(summarise("fput 'look'\n", Lang::Ruby), "");
+    }
+
+    /// dr-scripts' own convention, not a hand-written `#` comment - see
+    /// `summarise_ruby_block`'s doc comment for where the sample shapes
+    /// below actually came from.
+    #[test]
+    fn ruby_begin_end_blocks_are_read_dr_scripts_style() {
+        // The common case: only a documentation link, which is not a
+        // description and must not be returned as one.
+        assert_eq!(
+            summarise(
+                "=begin\n  Documentation: https://elanthipedia.play.net/Lich_script_repository#afk\n=end\n\nfput 'afk'\n",
+                Lang::Ruby
+            ),
+            ""
+        );
+        // Real prose after the doc link - the link is skipped, the prose is not.
+        assert_eq!(
+            summarise(
+                "=begin\n  Documentation: https://elanthipedia.play.net/Lich_script_repository#corn-maze\n  This script runs non-combat tasks for sleeping dragon maze.\n=end\n",
+                Lang::Ruby
+            ),
+            "This script runs non-combat tasks for sleeping dragon maze."
+        );
+        // Real prose with no doc link at all.
+        assert_eq!(
+            summarise(
+                "=begin\n  Collects insects from a fixed circuit of Crossing-area rooms.\n=end\n",
+                Lang::Ruby
+            ),
+            "Collects insects from a fixed circuit of Crossing-area rooms."
+        );
+        // A magic comment before the block - astrology.lic's own shape - must
+        // not stop the block from being found.
+        assert_eq!(
+            summarise(
+                "# frozen_string_literal: true\n\n=begin\n  A working example.\n=end\n",
+                Lang::Ruby
+            ),
+            "A working example."
+        );
+        // An empty block: a real answer (no description written), not a
+        // reason to fall through to the plain `#`-comment reader and quote
+        // `=end` or a line of code instead.
+        assert_eq!(summarise("=begin\n=end\n\nfput 'hi'\n", Lang::Ruby), "");
+        // No `=begin` block at all - the ordinary `#`-comment path still
+        // works exactly as it did before this existed.
+        assert_eq!(
+            summarise("# A hand-written script.\nfput 'hi'\n", Lang::Ruby),
+            "A hand-written script."
+        );
     }
 }
