@@ -130,23 +130,24 @@ const RANGE_DELTA_PCT: Record<'pole' | 'missile', number> = { pole: 4, missile: 
  * The actual radius to draw each range ring at — the fixed floor above,
  * widened just enough that four pucks at the compass's four cardinal
  * positions (0/90/180/270, the only angles `angleFor` ever returns) can sit
- * on the melee ring at once without their circles overlapping. Circumference
- * needed for four circles of diameter `portraitPx`, each with 30% breathing
- * room, divided among four quadrants — solved for radius, then compared
- * against the floor and the larger one wins. Unmeasured (`boardWidth` is 0
- * on the very first render, before the ResizeObserver fires) falls back to
- * the floor outright, same as everything else keyed off `compact`.
+ * on the melee ring at once without their circles overlapping. Solved from
+ * the real chord distance between two points 90° apart on the ring, not the
+ * arc between them (see the inline comment below for why that distinction
+ * mattered), then compared against the floor and the larger one wins.
+ * Unmeasured (`boardWidth` is 0 on the very first render, before the
+ * ResizeObserver fires) falls back to the floor outright, same as
+ * everything else keyed off `compact`.
  */
 function rangeRadiusPct(boardWidth: number, portraitPx: number): Record<'melee' | 'pole' | 'missile', number> {
   if (boardWidth <= 0) return { ...RANGE_RADIUS_FLOOR_PCT }
   const CARDINAL_SLOTS = 4
   const BREATHING_ROOM = 1.5
   // The straight-line distance between two of the four cardinal points is
-  // the chord `2R·sin(π/N)`, not the arc between them — a first pass here
+  // the chord `2R·sin(Ϭ/N)`, not the arc between them — a first pass here
   // used circumference/N instead, which measures distance *around* the
   // ring rather than *across* it and quietly asked for a smaller radius
   // than four 90°-apart circles actually need. Solved for R instead of
-  // guessed at:  R = (diameter · breathing room) / (2·sin(π/N)).
+  // guessed at:  R = (diameter · breathing room) / (2·sin(Ϭ/N)).
   const neededRadiusPx = (portraitPx * BREATHING_ROOM) / (2 * Math.sin(Math.PI / CARDINAL_SLOTS))
   const neededRadiusPct = (neededRadiusPx / boardWidth) * 100
   const melee = Math.max(RANGE_RADIUS_FLOOR_PCT.melee, neededRadiusPct)
@@ -397,25 +398,31 @@ function PlayerPortrait({
   url,
   height,
   className,
+  focus = 'center',
 }: {
   name: string
   url: string
   height: number
   className?: string
+  /** Same meaning as `CreatureArt`'s own `focus` — see its doc comment. */
+  focus?: 'center' | 'top'
 }) {
   const [failed, setFailed] = useState(false)
   if (failed) return null
   return (
-    <div
-      className={`relative w-full overflow-hidden rounded-full bg-surface-overlay ${className ?? ''}`}
-      style={{ height }}
-    >
+    // The shape (circle on the compass, rectangle in a corner) lives
+    // entirely in the caller-supplied className now — this frame no longer
+    // hardcodes `rounded-full` of its own. Both classes present at once
+    // used to fight over the same CSS property with no reliable winner,
+    // since Tailwind's generated stylesheet order (not the order classes
+    // appear in this string) decides which wins.
+    <div className={`relative w-full overflow-hidden bg-surface-overlay ${className ?? ''}`} style={{ height }}>
       <img
         src={url}
         alt=""
         loading="lazy"
         decoding="async"
-        className="h-full w-full object-cover"
+        className={`h-full w-full object-cover ${focus === 'top' ? 'object-top' : ''}`}
         onError={() => {
           notePlayerArtMissing(name)
           setFailed(true)
@@ -487,6 +494,188 @@ function detailFor(card: RoomCard, combatant: RoomCombatant | undefined, presenc
 }
 
 /**
+ * A hover/focus popover anchored to whatever it wraps, escaping the corner
+ * pane's own `overflow-y-auto` clip via `position: fixed` computed from the
+ * trigger's real screen position rather than CSS positioning relative to an
+ * ancestor — a tooltip that inherited the pane's own clipping would get cut
+ * off at the pane's edge exactly when a puck near that edge needed it most.
+ * `display: contents` on the wrapper keeps it invisible to the corner's own
+ * flex-wrap layout, so wrapping a puck in this never changes where it sits
+ * in the grid.
+ */
+/** Below this much clearance above the anchor, the card has nowhere to
+ * fit if it opens upward — an estimate, not a measurement, because the
+ * card hasn't rendered yet at the moment this decision has to be made. */
+const HOVER_CARD_MIN_CLEARANCE_PX = 260
+
+function HoverCard({ children, content }: { children: ReactNode; content: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ top: number; left: number; flip: boolean } | null>(null)
+  const anchorRef = useRef<HTMLSpanElement>(null)
+
+  const show = () => {
+    const r = anchorRef.current?.getBoundingClientRect()
+    if (r) {
+      // Opens upward by default (the usual case: a puck low enough on the
+      // board that there's room above it). Not enough clearance above —
+      // the Mobs corner sits at the board's own top edge, which in this
+      // app's layout is close to the window's top edge too — and it opens
+      // downward instead, or it renders with a negative `top` and sits
+      // entirely off-screen, invisible, which is exactly what shipped
+      // before this was measured against the real page rather than assumed
+      // to always have room above.
+      const flip = r.top < HOVER_CARD_MIN_CLEARANCE_PX
+      setPos({ top: flip ? r.bottom + 8 : r.top - 8, left: r.left + r.width / 2, flip })
+    }
+    setOpen(true)
+  }
+  const hide = () => setOpen(false)
+
+  return (
+    // A plain span, not `display: contents` — a contents element generates
+    // no box of its own, so `getBoundingClientRect()` on it returns an
+    // empty rect and every card opened pinned to the corner of the screen
+    // instead of the puck it was describing. A flex item is blockified
+    // regardless of its own declared display, so a bare span here still
+    // behaves correctly as one of CornerPane's flex-wrap children — it
+    // just also, usefully, now has a real position to report.
+    <span
+      ref={anchorRef}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+    >
+      {children}
+      {open && pos && (
+        <div
+          role="tooltip"
+          className={`pointer-events-none fixed z-50 w-64 -translate-x-1/2 rounded border border-border bg-surface-overlay p-2 shadow-xl ${pos.flip ? '' : '-translate-y-full'}`}
+          style={{ top: pos.top, left: Math.min(Math.max(pos.left, 132), window.innerWidth - 132) }}
+        >
+          {content}
+        </div>
+      )}
+    </span>
+  )
+}
+
+/** One labelled row in an InfoCard's fact list — `dt`/`dd` so the pair
+ * reads correctly to a screen reader as a term and its value, not just two
+ * unrelated lines of text. */
+function Fact({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <>
+      <dt className="text-ink-faint">{label}</dt>
+      <dd className="text-ink">{value}</dd>
+    </>
+  )
+}
+
+/**
+ * The rich version of `detailFor` — the same two sources (live `assess`
+ * detail, then the bestiary's own static facts) laid out as labelled rows
+ * under their own headings instead of run together into one sentence. The
+ * plain sentence still exists (`detailFor`, used for the `aria-label` this
+ * card's trigger carries) because a screen reader gets one linear read
+ * either way; this is the version for a sighted hover.
+ *
+ * The bestiary facts here are exactly what `data/bestiary.json` already
+ * ships (scraped from Elanthipedia once, at build time — see
+ * `tools/bestiary-index.mjs`), not a live re-scrape: this app has no route
+ * to fetch a wiki page at runtime, and a card mid-fight is the wrong place
+ * to first attempt one. A genuinely live pipeline — folding what a
+ * character's own `assess`/`diagnose` output reveals turn to turn back into
+ * this same static index, so an approximate match sharpens the more this
+ * particular creature gets fought — is a real, separate feature and not
+ * this one; nothing here pretends to do that yet.
+ */
+function InfoCard({
+  card,
+  combatant,
+  presence,
+}: {
+  card: RoomCard
+  combatant?: RoomCombatant
+  presence: string
+}) {
+  const lore = card.lore
+  const stale =
+    combatant?.enrichedAgeSeconds != null && combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS
+
+  return (
+    <div className="flex flex-col gap-1.5 text-xs">
+      <div className="flex items-start gap-2">
+        <div className="shrink-0">
+          <Puck card={card} px={44} ringClass="border-surface" shape="rect" />
+        </div>
+        <div className="min-w-0 pt-0.5">
+          <p className="text-sm font-semibold leading-tight text-ink">{card.name}</p>
+          {card.status === 'dead' && <p className="text-danger">dead</p>}
+          {card.status === 'stunned' && <p className="text-warn">stunned</p>}
+        </div>
+      </div>
+
+      {combatant ? (
+        <div className="border-t border-border/60 pt-1.5">
+          <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+            Right now{stale ? ` (${combatant.enrichedAgeSeconds}s ago)` : ''}
+          </p>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5">
+            {combatant.relation && <Fact label="Position" value={combatant.relation} />}
+            {combatant.range && <Fact label="Range" value={RANGE_WORD[combatant.range]} />}
+            {combatant.target && <Fact label="Targeting" value={combatant.target} />}
+            {(combatant.balance || combatant.offBalance) && (
+              <Fact label="Balance" value={combatant.offBalance ? 'off balance' : combatant.balance} />
+            )}
+            {combatant.conditions.length > 0 && <Fact label="Conditions" value={combatant.conditions.join(', ')} />}
+            {combatant.statuses.length > 0 && <Fact label="Status" value={combatant.statuses.join(', ')} />}
+          </dl>
+        </div>
+      ) : (
+        presence &&
+        card.status !== 'dead' && <p className="border-t border-border/60 pt-1.5 text-ink-faint">{presence}</p>
+      )}
+
+      {lore && (
+        <div className="border-t border-border/60 pt-1.5">
+          <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+            Bestiary{card.loreApproximate ? ' — approximate match' : ''}
+          </p>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5">
+            {lore.level != null && <Fact label="Level" value={lore.level} />}
+            {(lore.minCap != null || lore.maxCap != null) && (
+              <Fact
+                label="HP"
+                value={
+                  lore.minCap != null && lore.maxCap != null
+                    ? `${lore.minCap}-${lore.maxCap}`
+                    : `up to ${lore.minCap ?? lore.maxCap}`
+                }
+              />
+            )}
+            {(lore.bodySize || lore.bodyType) && (
+              <Fact label="Body" value={[lore.bodySize, lore.bodyType].filter(Boolean).join(' ').toLowerCase()} />
+            )}
+            {lore.attackRange && <Fact label="Attacks at" value={lore.attackRange} />}
+            {lore.castsSpells && <Fact label="Casts" value="spells" />}
+            {lore.stealthy && <Fact label="Stealthy" value="yes" />}
+            {(lore.hasCoins || lore.hasGems || lore.hasBoxes || lore.skinnable) && (
+              <Fact
+                label="Carries"
+                value={[lore.hasCoins && 'coins', lore.hasGems && 'gems', lore.hasBoxes && 'boxes', lore.skinnable && 'skinnable']
+                  .filter(Boolean)
+                  .join(', ')}
+              />
+            )}
+          </dl>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
  * A puck reads as a small physical token sitting on the board rather than a
  * flat icon printed on it — a soft shadow beneath, a highlight along the
  * top edge, a shade along the bottom, the way light actually falls on a
@@ -497,6 +686,13 @@ function detailFor(card: RoomCard, combatant: RoomCombatant | undefined, presenc
 const PUCK_SHADOW =
   '0 3px 6px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 3px rgba(255,255,255,0.25), inset 0 -3px 4px rgba(0,0,0,0.35)'
 
+/** How much taller than wide a `shape="rect"` puck draws — a portrait
+ * aspect, not a square crop of one. Chosen to read as "a small picture of
+ * the creature" rather than "a small circle with a creature-shaped smear
+ * in it": most of a creature's silhouette (the bestiary's own art crops)
+ * reads better tall than wide. */
+const PORTRAIT_ASPECT = 1.3
+
 /** One puck: a real portrait when the bestiary has one, a submitted player
  * picture when the bestiary doesn't but the person does, otherwise
  * `CreatureArt`'s own fallback chain — a body-shape silhouette from the
@@ -505,18 +701,31 @@ const PUCK_SHADOW =
  * tiers a card in the dashboard's own decks already draws, so a goblin
  * looks like the same goblin everywhere it can appear in this app, art pack
  * installed or not. Shared by the compass and the four corners for exactly
- * that reason. */
+ * that reason.
+ *
+ * `shape` picks how the frame is cropped: `circle` (the compass's own
+ * pucks, and the default) fills a square and clips it to a disc; `rect`
+ * (the four corners) keeps the art's own portrait aspect uncropped instead
+ * — a full picture rather than a coin with a fragment of one stamped into
+ * it, since a corner has the width to spare and a hover card right next to
+ * it to carry the rest of the detail regardless. */
 function Puck({
   card,
   px,
   ringClass,
   pulse,
+  shape = 'circle',
 }: {
   card: RoomCard
   px: number
   ringClass: string
   pulse?: boolean
+  shape?: 'circle' | 'rect'
 }) {
+  const height = shape === 'rect' ? Math.round(px * PORTRAIT_ASPECT) : px
+  const frameClass = shape === 'rect' ? 'rounded-md' : 'rounded-full'
+  const frameRadius = shape === 'rect' ? '10px' : '9999px'
+
   // A person's own submitted picture, checked only for the people deck and
   // only before falling back to the bestiary lookup — a hostile or an
   // allied summon is never a candidate for this, so there is no path by
@@ -526,8 +735,18 @@ function Puck({
 
   if (own) {
     return (
-      <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: '9999px' }}>
-        <PlayerPortrait name={own.name} url={own.url} height={px} className={`border ${ringClass}`} />
+      <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}>
+        {/* A person, not a creature — the part of the picture that tells
+            the story is the face, not whatever a center crop happens to
+            keep. Biased to the top regardless of shape: even the small
+            circular compass token is a face crop, not a chest crop. */}
+        <PlayerPortrait
+          name={own.name}
+          url={own.url}
+          height={height}
+          className={`border ${ringClass} ${frameClass}`}
+          focus="top"
+        />
       </div>
     )
   }
@@ -535,7 +754,10 @@ function Puck({
   // People without a submitted picture are the one case with no bestiary
   // answer to fall back to — a person is not a creature, so CreatureArt's
   // silhouette-by-body-type has nothing to draw. A plain coloured dot,
-  // which is what this whole board used to draw for everyone.
+  // which is what this whole board used to draw for everyone. `rect` mode
+  // keeps it a circle regardless — there is no portrait to give an aspect
+  // to, and a coloured rectangle reads as a broken image rather than a
+  // deliberate placeholder.
   if (card.deck === 'people') {
     const style = DECK_STYLE[card.deck]
     return (
@@ -559,14 +781,19 @@ function Puck({
   return (
     <div
       className={pulse ? 'animate-pulse' : ''}
-      style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: '9999px' }}
+      style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}
     >
       <CreatureArt
         name={card.name}
         noun={card.noun}
         lore={card.lore}
-        height={px}
-        className={`rounded-full border ${ringClass}`}
+        height={height}
+        className={`${frameClass} border ${ringClass}`}
+        // Only in the tall portrait frame — a small circular compass token
+        // is close enough to square that a center crop already keeps the
+        // subject; a tall rectangle is where a center crop starts cutting
+        // heads off.
+        focus={shape === 'rect' ? 'top' : 'center'}
       />
     </div>
   )
@@ -632,7 +859,28 @@ export function CombatRadar({
   const portraitPx = compact ? 60 : 84
   const dotPx = compact ? 28 : 36
   const cornerPx = compact ? 52 : 72
-  const RANGE_RADIUS_PCT = rangeRadiusPct(boardWidth, portraitPx)
+
+  // The compass doesn't get that deal. A corner can always add another row
+  // and scroll; the compass has nowhere to put an oversized puck but
+  // outside the disc. Sized as a fraction of the board's own measured
+  // width instead of the same compact/full toggle everything else uses, so
+  // it shrinks continuously as the board narrows rather than snapping
+  // between two fixed sizes with a dead zone between them — the exact gap
+  // that let a 241px-wide board keep using 84px pucks and force the melee
+  // ring out past a third of the board's own radius to fit them.
+  //
+  // Halved again on top of that — the corner cards read as the right size
+  // once they went rectangular; the round compass tokens, sitting over a
+  // busy room picture rather than a scrollable pane of their own, read
+  // better smaller still.
+  const COMPASS_PUCK_FRACTION = 0.09
+  const COMPASS_PUCK_FLOOR_PX = 14
+  const compassPortraitPx =
+    boardWidth > 0
+      ? Math.min(portraitPx / 2, Math.max(COMPASS_PUCK_FLOOR_PX, boardWidth * COMPASS_PUCK_FRACTION))
+      : portraitPx / 2
+
+  const RANGE_RADIUS_PCT = rangeRadiusPct(boardWidth, compassPortraitPx)
 
   const positioned: Positioned[] = []
   const cornerHostiles: CornerEntry[] = []
@@ -679,7 +927,7 @@ export function CombatRadar({
   // whether the board is 200px or 800px wide.
   const FAN_COLS = 3
   const GAP_FALLBACK_PCT = 18
-  const gapPct = boardWidth > 0 ? Math.max((portraitPx * 1.4 * 100) / boardWidth, 6) : GAP_FALLBACK_PCT
+  const gapPct = boardWidth > 0 ? Math.max((compassPortraitPx * 1.4 * 100) / boardWidth, 6) : GAP_FALLBACK_PCT
 
   const groups = new Map<string, Positioned[]>()
   for (const p of positioned) {
@@ -850,10 +1098,10 @@ export function CombatRadar({
                 disabled={!canAttack}
                 onClick={attack}
                 className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full disabled:cursor-not-allowed ${stale ? 'opacity-60' : ''}`}
-                style={{ left: `${p.x}%`, top: `${p.y}%`, width: Math.max(24, portraitPx), height: Math.max(24, portraitPx) }}
+                style={{ left: `${p.x}%`, top: `${p.y}%`, width: Math.max(24, compassPortraitPx), height: Math.max(24, compassPortraitPx) }}
                 title={`${p.card.name} — ${detailFor(p.card, p.combatant, '')}\n${attackTitle('Attack')}`}
               >
-                <Puck card={p.card} px={portraitPx} ringClass={onYou ? 'border-danger' : 'border-surface'} pulse={onYou} />
+                <Puck card={p.card} px={compassPortraitPx} ringClass={onYou ? 'border-danger' : 'border-surface'} pulse={onYou} />
               </button>
             )
           })
@@ -873,7 +1121,16 @@ export function CombatRadar({
           no game command to send, so its click just promotes it to the top
           of its own pane instead — the same gesture either way, "I want
           this one", it just does different work depending on what there is
-          to do. */}
+          to do.
+
+          Corner pucks are the full rectangular portrait (`shape="rect"`)
+          rather than a circular crop — a corner has the width to spare, and
+          a small circle of a large creature was mostly cropped-off
+          background. Hover or focus opens an `InfoCard`: the same bestiary
+          and live-assess detail `detailFor` already carries, laid out under
+          headings instead of run into one sentence. `title` still carries
+          the flat sentence as an `aria-label` so a screen reader gets the
+          same information the hover card gives a sighted player. */}
       {embedded &&
         (Object.keys(CORNERS) as Deck[]).map((deck) => {
           const corner = CORNERS[deck]
@@ -888,29 +1145,36 @@ export function CombatRadar({
                 // than an attack — same as PCs and NPCs, which never had
                 // an attack to send in the first place.
                 const attackable = deck === 'hostile' && !dead
-                const body = <Puck card={entry.card} px={cornerPx} ringClass="border-surface" />
+                const body = <Puck card={entry.card} px={cornerPx} ringClass="border-surface" shape="rect" />
                 const onClick = attackable
                   ? () => {
                       attack()
                       promote(deck, entry.key)
                     }
                   : () => promote(deck, entry.key)
+                const label = attackable
+                  ? `${entry.card.name} — ${detail} — ${attackTitle('Attack')}`
+                  : `${entry.card.name} — ${detail} — click to bring to the top`
                 return (
-                  <button
+                  <HoverCard
                     key={entry.key}
-                    type="button"
-                    disabled={attackable && !canAttack}
-                    onClick={onClick}
-                    className="flex shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed"
-                    style={{ width: cornerPx, height: cornerPx, opacity: dead ? 0.55 : undefined }}
-                    title={
-                      attackable
-                        ? `${entry.card.name} — ${detail}\n${attackTitle('Attack')}`
-                        : `${entry.card.name} — ${detail}\nClick to bring to the top`
-                    }
+                    content={<InfoCard card={entry.card} combatant={entry.combatant} presence={corner.presence} />}
                   >
-                    {body}
-                  </button>
+                    <button
+                      type="button"
+                      disabled={attackable && !canAttack}
+                      onClick={onClick}
+                      aria-label={label}
+                      className="flex shrink-0 items-center justify-center disabled:cursor-not-allowed"
+                      style={{
+                        width: cornerPx,
+                        height: Math.round(cornerPx * PORTRAIT_ASPECT),
+                        opacity: dead ? 0.55 : undefined,
+                      }}
+                    >
+                      {body}
+                    </button>
+                  </HoverCard>
                 )
               })}
             </CornerPane>
