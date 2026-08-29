@@ -248,11 +248,24 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
        * the control for it. Reserved whether or not something runs, so
        * starting a task does not push every tile down by a line. */}
       <div className="flex items-center gap-1">
+        {/* Displayed as "Files" while the internal id stays 'scripts' — it
+         * is not persisted anywhere, so renaming the label costs nothing,
+         * but the id would be a needless diff through every tab === check
+         * below. "Scripts" is also the exact word ScriptLibraryPanel uses
+         * for a different, curated, read-only surface reading the same
+         * underlying files a different way; the two-word difference here
+         * ("Files" vs "Script Library") is the whole fix — see
+         * docs/PANEL-ARCHITECTURE.md §3. */}
         {(['tasks', 'scripts'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
+            title={
+              t === 'scripts'
+                ? 'Your own files, editable — save, rename, delete. For a curated, described, Start-only browse of everything Lich can run, see the Script Library panel.'
+                : undefined
+            }
             className={cn(
               'rounded border px-2 py-0.5 text-xs capitalize',
               tab === t
@@ -260,7 +273,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                 : 'border-transparent text-ink-faint hover:text-ink'
             )}
           >
-            {t}
+            {t === 'scripts' ? 'Files' : t}
             <span className="ml-1 opacity-60">
               {t === 'tasks' ? tasks.length : scripts.length}
             </span>

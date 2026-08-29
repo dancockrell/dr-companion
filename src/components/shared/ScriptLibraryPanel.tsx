@@ -97,7 +97,10 @@ export function ScriptLibraryPanel({
 
   return (
     <section className={dense ? 'px-3 pb-2' : 'px-4 pb-3'}>
-      <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+      <h2
+        className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5 flex items-center gap-1.5"
+        title="Curated and described, Start only. To edit a script's own file — save, rename, delete — use Tasks & Scripts' Files tab instead."
+      >
         <ListTree className="w-3.5 h-3.5" />
         Script Library
         <span className="text-ink-faint/70 normal-case font-normal">
