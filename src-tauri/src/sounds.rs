@@ -23,7 +23,6 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 
-use crate::setup::genie_install_dir;
 
 /// Base64, by hand.
 ///
@@ -128,12 +127,14 @@ pub struct SoundFile {
     pub note: String,
 }
 
+/// Built from `setup::genie_roots()`, the same root list `config_import.rs`
+/// builds `Config` paths from. See that function's own comment for why this
+/// used to be a separate, narrower list.
 fn sound_dirs() -> Vec<PathBuf> {
-    let mut out = vec![genie_install_dir().join("Sounds")];
-    for root in ["C:\\Genie4", "C:\\Genie"] {
-        out.push(PathBuf::from(root).join("Sounds"));
-    }
-    out
+    crate::setup::genie_roots()
+        .into_iter()
+        .map(|root| root.join("Sounds"))
+        .collect()
 }
 
 /// Every sound file a highlight could actually name, across every directory
