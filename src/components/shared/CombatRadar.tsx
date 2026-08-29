@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useDragScroll } from '../../lib/useDragScroll'
 import {
   Box,
   ChevronUp,
@@ -250,68 +251,6 @@ const CORNERS: Record<Deck, CornerBox> = {
 }
 
 const ITEM_BOX: CornerBox = { bottom: CORNER_MARGIN_PCT, right: CORNER_MARGIN_PCT, label: 'Items', presence: '' }
-
-/**
- * Grab-and-drag panning for a scrollable element, in place of hunting for a
- * thin scrollbar thumb on a board full of small touch-hostile controls.
- * The scrollbar itself is hidden (see the `no-scrollbar` class on
- * `CornerPane`) rather than removed — a trackpad or a mouse wheel still
- * scrolls it normally; this only adds "grab the content and pull".
- *
- * The one thing a drag must never do is also fire whatever it happened to
- * release on top of — a pan that ends over an attack button must not
- * attack. Past a small movement threshold the gesture is committed to being
- * a drag, and the click that the browser fires on release is swallowed with
- * a one-shot capture-phase listener, which runs before the target's own
- * click handler ever sees the event.
- */
-function useDragScroll() {
-  const ref = useRef<HTMLDivElement>(null)
-  const drag = useRef({ down: false, moved: false, x: 0, y: 0, left: 0, top: 0 })
-  const DRAG_THRESHOLD_PX = 4
-
-  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const el = ref.current
-    if (!el) return
-    drag.current = { down: true, moved: false, x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop }
-    el.setPointerCapture(e.pointerId)
-  }
-
-  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const el = ref.current
-    const d = drag.current
-    if (!el || !d.down) return
-    const dx = e.clientX - d.x
-    const dy = e.clientY - d.y
-    if (!d.moved && Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) d.moved = true
-    if (d.moved) {
-      el.scrollLeft = d.left - dx
-      el.scrollTop = d.top - dy
-    }
-  }
-
-  const endDrag = () => {
-    const el = ref.current
-    const d = drag.current
-    if (el && d.moved) {
-      const swallow = (ev: MouseEvent) => {
-        ev.stopPropagation()
-        ev.preventDefault()
-      }
-      el.addEventListener('click', swallow, { capture: true, once: true })
-    }
-    drag.current.down = false
-    drag.current.moved = false
-  }
-
-  return {
-    ref,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp: endDrag,
-    onPointerCancel: endDrag,
-  }
-}
 
 /** One scrollable corner pane — the container every corner and the floor
  * render their pucks into. A plain wrapping flexbox inside a fixed,
@@ -753,23 +692,28 @@ function Puck({
 
   // People without a submitted picture are the one case with no bestiary
   // answer to fall back to — a person is not a creature, so CreatureArt's
-  // silhouette-by-body-type has nothing to draw. A plain coloured dot,
-  // which is what this whole board used to draw for everyone. `rect` mode
-  // keeps it a circle regardless — there is no portrait to give an aspect
-  // to, and a coloured rectangle reads as a broken image rather than a
-  // deliberate placeholder.
+  // silhouette-by-body-type has nothing to draw. Framed the same as every
+  // other fallback on this board though (same shape, same shadow, an
+  // initial letter the way CreatureArt's own letter tier reads) rather
+  // than a visually distinct dot — a PC and a mob without art should read
+  // as the same *kind* of placeholder, not two different systems.
   if (card.deck === 'people') {
     const style = DECK_STYLE[card.deck]
+    const height = shape === 'rect' ? Math.round(px * PORTRAIT_ASPECT) : px
     return (
-      <span
-        className={`block rounded-full border border-surface ${pulse ? 'animate-pulse' : ''}`}
+      <div
+        className={`flex items-center justify-center border ${ringClass} ${frameClass} ${pulse ? 'animate-pulse' : ''}`}
         style={{
           width: px,
-          height: px,
+          height,
           background: `var(--color-${style.band.replace('bg-', '')})`,
           boxShadow: PUCK_SHADOW,
         }}
-      />
+      >
+        <span className="text-lg font-semibold leading-none text-ink" aria-hidden="true">
+          {card.name.charAt(0).toUpperCase()}
+        </span>
+      </div>
     )
   }
 
@@ -859,6 +803,14 @@ export function CombatRadar({
   const portraitPx = compact ? 60 : 84
   const dotPx = compact ? 28 : 36
   const cornerPx = compact ? 52 : 72
+  // Mobs read as the biggest thing in a corner on purpose — they're the
+  // reason a player is looking at this board at all. PCs and NPCs share
+  // the same frame and fallback chain (see Puck) so they read as the same
+  // *kind* of card, just not the loudest one on the board.
+  const hostileCornerPx = compact ? 68 : 94
+  // Items are the smallest corner citizen — an icon to recognise and click,
+  // not a portrait to study. Mouseover still carries the full name.
+  const itemCornerPx = compact ? 34 : 46
 
   // The compass doesn't get that deal. A corner can always add another row
   // and scroll; the compass has nowhere to put an oversized puck but
@@ -1145,7 +1097,8 @@ export function CombatRadar({
                 // than an attack — same as PCs and NPCs, which never had
                 // an attack to send in the first place.
                 const attackable = deck === 'hostile' && !dead
-                const body = <Puck card={entry.card} px={cornerPx} ringClass="border-surface" shape="rect" />
+                const px = deck === 'hostile' ? hostileCornerPx : cornerPx
+                const body = <Puck card={entry.card} px={px} ringClass="border-surface" shape="rect" />
                 const onClick = attackable
                   ? () => {
                       attack()
@@ -1167,8 +1120,8 @@ export function CombatRadar({
                       aria-label={label}
                       className="flex shrink-0 items-center justify-center disabled:cursor-not-allowed"
                       style={{
-                        width: cornerPx,
-                        height: Math.round(cornerPx * PORTRAIT_ASPECT),
+                        width: px,
+                        height: Math.round(px * PORTRAIT_ASPECT),
                         opacity: dead ? 0.55 : undefined,
                       }}
                     >
@@ -1190,30 +1143,59 @@ export function CombatRadar({
           `iconForItem`) rather than a bare dot — a generic "pile" shape for
           anything unrecognised, a specific one for the handful of things a
           player is actually digging through a corpse for. Click both takes
-          it and promotes it to the top, same as every other corner. */}
+          it and promotes it to the top, same as every other corner.
+
+          The smallest puck on the board on purpose — an icon to recognise
+          and click, not a portrait to study, and the name is a hover away
+          regardless. Identical names collapse into one puck with a count
+          badge (three piles of "some copper kronars" read as one pile
+          worth three, the same way CardDeck already collapses three
+          identical creatures into one card with a multiplier) rather than
+          three indistinguishable coin icons in a row. */}
       {embedded && orderedItems && orderedItems.length > 0 && (
         <CornerPane box={ITEM_BOX}>
-          {orderedItems.map((name, i) => {
-            const tooltip = takeReason ?? `${name} — get ${nounOf(name)}, or click to bring to the top`
-            const Icon = iconForItem(name)
-            return (
-              <button
-                key={`${name}-${i}`}
-                type="button"
-                disabled={!canTake}
-                onClick={() => {
-                  take(name)
-                  promote('items', name)
-                }}
-                title={tooltip}
-                className="flex shrink-0 items-center justify-center rounded-full border border-surface bg-surface-overlay hover:brightness-125 disabled:cursor-not-allowed"
-                style={{ width: cornerPx, height: cornerPx, boxShadow: PUCK_SHADOW }}
-              >
-                <Icon className="text-accent" style={{ width: dotPx, height: dotPx }} aria-hidden />
-                <span className="sr-only">{name}</span>
-              </button>
-            )
-          })}
+          {(() => {
+            const groups: { name: string; count: number }[] = []
+            const indexOf = new Map<string, number>()
+            for (const name of orderedItems) {
+              const i = indexOf.get(name)
+              if (i != null) groups[i].count++
+              else {
+                indexOf.set(name, groups.length)
+                groups.push({ name, count: 1 })
+              }
+            }
+            return groups.map(({ name, count }) => {
+              const label = count > 1 ? `${count}x ${name}` : name
+              const tooltip = takeReason ?? `${label} — get ${nounOf(name)}, or click to bring to the top`
+              const Icon = iconForItem(name)
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  disabled={!canTake}
+                  onClick={() => {
+                    take(name)
+                    promote('items', name)
+                  }}
+                  title={tooltip}
+                  className="relative flex shrink-0 items-center justify-center rounded-full border border-surface bg-surface-overlay hover:brightness-125 disabled:cursor-not-allowed"
+                  style={{ width: itemCornerPx, height: itemCornerPx, boxShadow: PUCK_SHADOW }}
+                >
+                  <Icon className="text-accent" style={{ width: dotPx * 0.7, height: dotPx * 0.7 }} aria-hidden />
+                  {count > 1 && (
+                    <span
+                      className="absolute -right-1.5 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full border border-surface bg-accent px-1 text-xs font-semibold leading-none text-surface"
+                      aria-hidden
+                    >
+                      {count}
+                    </span>
+                  )}
+                  <span className="sr-only">{label}</span>
+                </button>
+              )
+            })
+          })()}
         </CornerPane>
       )}
     </div>
