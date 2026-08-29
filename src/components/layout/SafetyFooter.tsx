@@ -201,6 +201,7 @@ export function SafetyFooter() {
           showVolume
           showInlineProgress
           showTransitions
+          showFavorite
           onTitleClick={requestOpenSoundPanel}
         />
       </div>

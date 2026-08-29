@@ -14,7 +14,7 @@
  * (`initMediaSession`), so this component, the footer, and Windows' own Now
  * Playing UI all agree on the same state through the same subscription.
  */
-import { SkipBack, SkipForward, Play, Pause, Volume2, Volume1, VolumeX } from 'lucide-react'
+import { SkipBack, SkipForward, Play, Pause, Volume2, Volume1, VolumeX, AudioLines, Star } from 'lucide-react'
 import {
   skipTrack,
   musicVolume,
@@ -23,6 +23,8 @@ import {
   pauseMusic,
   resumeMusic,
   currentCustomStream,
+  currentRadioStation,
+  RADIO_STATIONS,
   nowPlaying,
   onNowPlayingChange,
   playbackProgress,
@@ -37,7 +39,7 @@ import {
   type CrossfadeStyle,
 } from '../../lib/ambientSound'
 import { savePrefs } from '../../lib/persistence'
-import { AudioLines } from 'lucide-react'
+import { isFavorited, toggleFavorite, onFavoritesChange } from '../../lib/favorites'
 import { useEffect, useState } from 'react'
 import { cn } from '../../lib/cn'
 
@@ -122,6 +124,7 @@ export function MusicTransport({
   showInlineProgress = false,
   showVolume = false,
   showTransitions = false,
+  showFavorite = false,
   onTitleClick,
   className,
 }: {
@@ -166,6 +169,15 @@ export function MusicTransport({
    * a bare icon that changes what it does on every click has to say so.
    */
   showTransitions?: boolean
+  /**
+   * A star that favorites whatever's currently playing - a built-in station
+   * or a custom stream, the same two kinds SoundControls' own favorites list
+   * already supports (favorites.ts). Hidden entirely for zone music, which
+   * isn't a station a player picked and has nothing to star. Added 29 Aug
+   * 2026 so "save what's on right now" doesn't require opening the panel and
+   * finding the right row in the station list to click its own star.
+   */
+  showFavorite?: boolean
   /** Makes the title clickable - the footer's compact strip is a glance,
    * not the whole panel, so a click through to it (SoundControls, favorites,
    * the station list, crossfade style) has to go somewhere. */
@@ -218,6 +230,20 @@ export function MusicTransport({
   const playing = vol > 0
   // A live stream has no track to skip to - see skipTrack's own header.
   const canSkip = !currentCustomStream()
+
+  // Re-render on any favorites change - a station starred from the panel
+  // (or unstarred from this same star elsewhere) has to update this copy
+  // too, same reasoning as every other subscription in this component.
+  const [, setFavoritesTick] = useState(0)
+  useEffect(() => onFavoritesChange(() => setFavoritesTick((n) => n + 1)), [])
+  const radioId = currentRadioStation()
+  const customStream = currentCustomStream()
+  const favoriteTarget: { kind: 'builtin' | 'custom'; id: string; name: string } | null = radioId
+    ? { kind: 'builtin', id: radioId, name: RADIO_STATIONS.find((s) => s.id === radioId)?.name ?? radioId }
+    : customStream
+      ? { kind: 'custom', id: customStream, name: customStream.replace(/^https?:\/\//, '').slice(0, 40) }
+      : null
+  const favorited = favoriteTarget ? isFavorited(favoriteTarget.kind, favoriteTarget.id) : false
 
   return (
     <div className={cn('flex min-w-0 flex-col gap-1', className)}>
@@ -284,6 +310,23 @@ export function MusicTransport({
             </span>
           ))}
         {showInlineProgress && <ProgressBar compact />}
+        {showFavorite && favoriteTarget && (
+          <button
+            type="button"
+            className={cn(
+              'shrink-0 rounded p-1 hover:text-accent',
+              favorited ? 'text-accent' : 'text-ink-faint'
+            )}
+            onClick={() => favoriteTarget && toggleFavorite(favoriteTarget.kind, favoriteTarget.id, favoriteTarget.name)}
+            title={
+              favorited
+                ? `Remove ${favoriteTarget.name} from favorites`
+                : `Save ${favoriteTarget.name} to favorites`
+            }
+          >
+            <Star className={cn('h-3.5 w-3.5', favorited && 'fill-current')} />
+          </button>
+        )}
         {showTransitions && (
           <button
             type="button"
