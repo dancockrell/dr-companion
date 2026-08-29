@@ -18,10 +18,15 @@ import { cn } from '../../lib/cn'
 export const GameLineRow = memo(function GameLineRow({
   line,
   highlights,
+  offClasses,
   showStream = false,
 }: {
   line: GameLine
   highlights: Highlight[]
+  /** Classes a player has muted - Genie's `#class off`, given a real toggle.
+   * See lib/offClasses.ts. Optional and defaulting to nothing off, so every
+   * existing call site keeps working unchanged. */
+  offClasses?: ReadonlySet<string>
   /**
    * Prefix the channel name.
    *
@@ -33,7 +38,7 @@ export const GameLineRow = memo(function GameLineRow({
 }) {
   if (line.text === '') return <div className="font-mono text-xs leading-snug"> </div>
 
-  const painted = paint(line.text, highlights)
+  const painted = paint(line.text, highlights, offClasses)
   const pieces = segments(line.text, painted)
 
   return (

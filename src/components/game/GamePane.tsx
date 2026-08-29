@@ -48,6 +48,7 @@ import { useGameLines } from '../../lib/useGameLines'
 import { isTauri } from '../../lib/tauri'
 import { paint } from '../../lib/highlights'
 import { useHighlights } from '../../lib/useHighlights'
+import { useOffClasses } from '../../lib/offClasses'
 import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
@@ -152,6 +153,7 @@ export function GamePane() {
   const atBottom = useRef(true)
 
   const { highlights, note: hlNote } = useHighlights()
+  const offClasses = useOffClasses()
   const { aliases, note: aliasNote } = useAliases()
 
   /** What the last typed line expanded to, or empty. Cleared by the next send. */
@@ -192,7 +194,7 @@ export function GamePane() {
       // throttle by class rather than by filename. Deduped by sound name,
       // same as `.sounds` already was, so two matched entries sharing one
       // file within a line still only play it once.
-      const p = paint(l.text, highlights)
+      const p = paint(l.text, highlights, offClasses)
       const played = new Set<string>()
       for (const h of p.matched) {
         if (!h.sound || played.has(h.sound)) continue
@@ -206,7 +208,13 @@ export function GamePane() {
     // for 25s straight with playAlert never called once, while calling it
     // directly played the file correctly. That is the third occurrence of the
     // same defect, and the reason the hook exists rather than another comment.
-  }, [lines, highlights])
+    //
+    // `offClasses` is a real dependency, not a formality: without it, muting
+    // a class mid-session would keep using whichever `offClasses` value was
+    // captured the last time `lines`/`highlights` changed, so the mute would
+    // not actually take effect on the very next line - the exact bug the
+    // comment above already describes once for `lines` itself.
+  }, [lines, highlights, offClasses])
 
   // Anything already in the buffer when the config loads is history, not news.
   useEffect(() => {
@@ -614,7 +622,7 @@ export function GamePane() {
         )}
 
         {visible.map((l) => (
-          <GameLineRow key={l.seq} line={l} highlights={highlights} />
+          <GameLineRow key={l.seq} line={l} highlights={highlights} offClasses={offClasses} />
         ))}
 
         {lines.length === 0 && (
