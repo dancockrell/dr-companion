@@ -143,7 +143,10 @@ mod tests {
         // Still held after a beat - the positive control for this test. Without
         // it, a gate that never blocked at all would pass just as happily.
         std::thread::sleep(Duration::from_millis(150));
-        assert!(!waiter.is_finished(), "the gate let a paused command through");
+        assert!(
+            !waiter.is_finished(),
+            "the gate let a paused command through"
+        );
 
         p.set(false);
         assert_eq!(waiter.join().unwrap(), Gate::Proceed);
