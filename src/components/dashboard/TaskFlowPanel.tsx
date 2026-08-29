@@ -46,29 +46,7 @@
  * here, because there is no timer to get out of step with.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  BookOpen,
-  Coins,
-  Eye,
-  EyeOff,
-  FileCode2,
-  FilePlus2,
-  FolderOpen,
-  Gem,
-  HeartPulse,
-  LogOut,
-  type LucideIcon,
-  Pencil,
-  Play,
-  RefreshCw,
-  Repeat,
-  Search,
-  Shield,
-  Square,
-  Stethoscope,
-  Swords,
-  Terminal,
-} from 'lucide-react'
+import { FilePlus2, FolderOpen, Gem, Pencil, Play, RefreshCw, Search, Square } from 'lucide-react'
 import {
   onTaskLine,
   onTaskState,
@@ -87,7 +65,12 @@ import {
   type ScriptFile,
   type ScriptLang,
 } from '../../lib/scriptFiles'
+import { inferScriptIcon, type ScriptIconKey } from '../../lib/scriptIcons'
+import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
+import { iconOverrideFor, setIconOverride, clearIconOverride } from '../../lib/scriptIconOverrides'
+import { useDragScroll } from '../../lib/useDragScroll'
 import { ScriptEditor, type EditorTarget } from './ScriptEditor'
+import { ScriptIconPicker } from './ScriptIconPicker'
 import { onStopAll, onStartFlow } from '../../lib/flowStop'
 import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
@@ -101,34 +84,45 @@ const KEEP_LINES = 200
 const RUBY_CATEGORY = 'Lich scripts'
 
 /**
- * An icon per task, so a tile is recognisable before it is read.
- *
- * Matched by id, with a prefix fallback, and a generic icon when neither hits.
+ * The built-in tasks' own curated icon, by id - unrelated to
+ * `inferScriptIcon`'s guessing, since these are known exactly rather than
+ * pattern-matched from a name. Everything else (a saved Python task, a Lich
+ * script, an example) falls through to a guess in `baseIconKeyFor` below.
  */
-const ICONS: Record<string, LucideIcon> = {
-  'task.routine': Repeat,
-  'flow.hunt': Swords,
-  'flow.ambush': EyeOff,
-  'flow.recover': HeartPulse,
-  'flow.to_healer': Stethoscope,
-  'flow.town_run': Coins,
-  'flow.prepare': Shield,
-  'flow.disengage': LogOut,
-  'task.watch': Eye,
+const BASE_ICON_KEY: Record<string, ScriptIconKey> = {
+  'task.routine': 'repeat',
+  'flow.hunt': 'swords',
+  'flow.ambush': 'eye-off',
+  'flow.recover': 'heart-pulse',
+  'flow.to_healer': 'stethoscope',
+  'flow.town_run': 'coins',
+  'flow.prepare': 'shield',
+  'flow.disengage': 'log-out',
+  'task.watch': 'eye',
 }
 
-function iconFor(id: string): LucideIcon {
-  if (ICONS[id]) return ICONS[id]
-  if (id.startsWith('example.')) return BookOpen
-  if (id.startsWith('user.')) return FileCode2
-  return Terminal
+/**
+ * The icon a task or script gets before any player override - a known
+ * built-in's own curated choice, or a guess from its own name and summary
+ * (`inferScriptIcon`, shared with every Lich script - a saved Python task
+ * deserves the same variety a Ruby one gets, not a single generic icon
+ * repeated for every file a player has ever written).
+ */
+function baseIconKeyFor(id: string, name: string, summary: string): ScriptIconKey {
+  if (BASE_ICON_KEY[id]) return BASE_ICON_KEY[id]
+  if (id.startsWith('example.')) return 'book-open'
+  return inferScriptIcon(name, summary)
 }
 
 /** One tile: a task from the Python catalog, or a Ruby script - the two
  * things this grid can run, unified so the grid never has to know which. */
 type Entry = {
   id: string
-  icon: LucideIcon
+  title: string
+  /** What scriptIcons.ts (or a built-in's own curated choice) would show
+   * without a player's override - carried alongside the resolved icon so
+   * the picker's "reset to guess" can compare against it. */
+  baseIcon: ScriptIconKey
   tooltip: string
   category: string
   /** Shown as a small badge only while running; never printed on the tile
@@ -153,6 +147,16 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const [note, setNote] = useState('')
   const [lines, setLines] = useState<string[]>([])
   const [filter, setFilter] = useState('')
+  // Read straight from storage during render, the same pattern MapPanel's
+  // pins use - this exists only to force a re-render after a write this
+  // component made itself, since picking an icon doesn't otherwise touch
+  // anything React tracks as having changed. The value itself is never
+  // read; only the setter matters.
+  const [, bumpIconOverrides] = useState(0)
+  const [pickingIcon, setPickingIcon] = useState<{ id: string; title: string; base: ScriptIconKey } | null>(
+    null
+  )
+  const { containerRef: gridRef, dragging: gridDragging, handlers: gridHandlers } = useDragScroll<HTMLDivElement>()
 
   const refresh = useCallback(async () => {
     const [st, files, where] = await Promise.all([pythonStatus(), listScripts(), scriptDirs()])
@@ -256,7 +260,12 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
       .filter((t) => matches(t.title, t.summary))
       .map((t) => ({
         id: t.id,
-        icon: iconFor(t.id),
+        title: t.title,
+        baseIcon: baseIconKeyFor(
+          t.id,
+          t.id.startsWith('user.') ? t.id.slice('user.'.length) : t.title,
+          t.summary
+        ),
         tooltip:
           `${t.title}\n${t.summary}\n\n${t.id} — ${t.category}, ${t.kind}\n\n` +
           `Runs the same outside the app:\npython python/runner.py run ${t.id}`,
@@ -272,7 +281,8 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
       .filter((s) => matches(s.name, s.summary))
       .map((s) => ({
         id: `ruby.${s.name}`,
-        icon: Gem,
+        title: s.name,
+        baseIcon: inferScriptIcon(s.name, s.summary),
         tooltip:
           `${s.name}\n${s.summary || 'No description in the file.'}\n\n` +
           `${s.path} — ${s.bytes} bytes\n\nA Lich script - runs inside Lich, not as an app task.`,
@@ -400,7 +410,18 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         </p>
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div
+        ref={gridRef}
+        className={cn(
+          'min-h-0 flex-1 overflow-auto',
+          gridDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+        )}
+        style={{ touchAction: 'none' }}
+        onPointerDown={gridHandlers.onPointerDown}
+        onPointerMove={gridHandlers.onPointerMove}
+        onPointerUp={gridHandlers.onPointerUp}
+        onClickCapture={gridHandlers.onClickCapture}
+      >
         <div className="flex flex-col gap-1.5">
           {groups.map((group) => (
             <div key={group.category} className="flex flex-col gap-1">
@@ -410,14 +431,20 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
               </p>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1">
                 {group.items.map((entry) => {
-                  const Icon = entry.icon
+                  const overrideKey = iconOverrideFor(entry.id)
+                  const iconKey = overrideKey ?? entry.baseIcon
+                  const Icon = SCRIPT_ICON_COMPONENT[iconKey]
                   const active = running === entry.id
                   return (
                     <div key={entry.id} className="group relative">
                       <button
                         type="button"
                         onClick={entry.run}
-                        title={entry.tooltip}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
+                        }}
+                        title={`${entry.tooltip}\n\n(right-click to choose an icon)`}
                         className={cn(
                           'flex w-full items-center justify-center rounded border py-2 transition-colors',
                           active
@@ -481,6 +508,23 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
           </div>
         </div>
       </div>
+
+      {pickingIcon && (
+        <ScriptIconPicker
+          title={pickingIcon.title}
+          current={iconOverrideFor(pickingIcon.id) ?? pickingIcon.base}
+          guessed={pickingIcon.base}
+          onPick={(icon) => {
+            setIconOverride(pickingIcon.id, icon)
+            bumpIconOverrides((v) => v + 1)
+          }}
+          onReset={() => {
+            clearIconOverride(pickingIcon.id)
+            bumpIconOverrides((v) => v + 1)
+          }}
+          onClose={() => setPickingIcon(null)}
+        />
+      )}
 
       {/* What the task itself said. The old panel could only report which step
        * it was on, because it was the thing running the steps; a task can say

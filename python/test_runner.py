@@ -83,6 +83,89 @@ ok(
 )
 
 print()
+print("-- after_hunting (the bare-function example) is actually in the catalog --")
+# example_custom.py documents three ways a player might write a task - a
+# Flow instance (morning), a Flow subclass (SmartRecover), and a bare
+# function chaining two flows (after_hunting). Only the first two were ever
+# wired into REGISTRY; this is the id, not the object, so it needs no
+# factory call and no live Companion() - see the next section for why that
+# matters here.
+ok("example.after_hunting is registered", "example.after_hunting" in REGISTRY)
+
+print()
+print("-- _example()'s dispatch, against fakes rather than the real example file --")
+# Deliberately not calling the real REGISTRY factories here (e.g.
+# REGISTRY["example.morning"][3]()): example_custom.py builds `morning =
+# Flow(...)` at import time with no companion, and Task.__init__ constructs
+# a real Companion() when none is given - which reads
+# %LOCALAPPDATA%/DR Companion Data on this machine and would raise
+# ConnectionError on a clean one with no app ever having run. That is a
+# property of Flow's default construction, not of what this test is
+# actually checking (the isinstance/callable branching inside _example's
+# make()), so a `runner` module patched to use fakes exercises the same
+# logic without the same dependency.
+import types  # noqa: E402
+import runner as runner_module  # noqa: E402
+
+
+class _FakeFlowInstance:
+    def run(self) -> None:
+        pass
+
+
+class _FakeFlowSubclass:
+    def run(self) -> None:
+        pass
+
+
+def _fake_after_hunting() -> None:
+    raise AssertionError("a bare function factory must never be called eagerly")
+
+
+fake_module = types.SimpleNamespace(
+    plain_instance=_FakeFlowInstance(),
+    subclass=_FakeFlowSubclass,
+    bare_fn=_fake_after_hunting,
+)
+
+# `importlib.import_module` checks `sys.modules` before ever touching the
+# filesystem, so registering the fake there - rather than patching
+# `import_module` itself, which would affect every other import happening
+# anywhere in this process for as long as the patch is live - is what makes
+# `_example()`'s own `importlib.import_module("tasks.example_custom")`
+# resolve to the fake without touching Python's import machinery at all.
+real_module = sys.modules.get("tasks.example_custom")
+sys.modules["tasks.example_custom"] = fake_module
+try:
+    ok(
+        "a class is instantiated",
+        isinstance(runner_module._example("subclass")(), _FakeFlowSubclass),
+    )
+    ok(
+        "an already-built instance is returned as-is, not re-wrapped",
+        runner_module._example("plain_instance")() is fake_module.plain_instance,
+    )
+    wrapped = runner_module._example("bare_fn")()
+    ok(
+        "a bare function is wrapped rather than called immediately",
+        isinstance(wrapped, runner_module._RunFn),
+    )
+    raised = False
+    try:
+        wrapped.run()
+    except AssertionError:
+        raised = True
+    ok(
+        "...and calling .run() on the wrapper is what finally calls it",
+        raised,
+    )
+finally:
+    if real_module is None:
+        sys.modules.pop("tasks.example_custom", None)
+    else:
+        sys.modules["tasks.example_custom"] = real_module
+
+print()
 ok("enough was checked for a pass to mean something", checked >= 6, f"{checked} assertions")
 
 print()

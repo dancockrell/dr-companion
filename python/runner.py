@@ -62,14 +62,43 @@ def _routine():
     return importlib.import_module("tasks.routine").Routine()
 
 
+class _RunFn:
+    """Wraps a bare function so it satisfies the one contract every factory
+    below returns: something with a `.run()` to call. `after_hunting()` in
+    example_custom.py - "two flows, one after the other" - is exactly this
+    shape, and it could not be registered as-is: the old normalisation below
+    called a callable immediately to decide what it was, which for a plain
+    function *runs the whole thing* (two real Flow.run() calls, blocking, a
+    real socket) right there in the catalog-building step, then hands
+    `.run()` a `None` to call. This defers the call to the one place a task
+    is actually supposed to start.
+    """
+
+    def __init__(self, fn) -> None:
+        self._fn = fn
+
+    def run(self) -> None:
+        self._fn()
+
+
 def _example(attr: str):
     def make():
         mod = importlib.import_module("tasks.example_custom")
         thing = getattr(mod, attr)
-        # A Flow instance, a Flow subclass, or a plain function - all three
-        # appear in that file on purpose, since all three are things a player
-        # might write. Normalised here rather than forcing one shape on them.
-        return thing() if callable(thing) else thing
+        # Three shapes, because all three appear in that file on purpose -
+        # they are the three ways a player might reasonably write one:
+        #   a class (SmartRecover)     - instantiate it
+        #   a bare function (after_hunting) - defer calling it to run()
+        #   anything else (morning, a plain Flow instance) - already runnable
+        # `isinstance(thing, type)` is checked first and specifically,
+        # because a class is also `callable` - a callable-only test (the old
+        # code) cannot tell a class from a bare function, and calling a bare
+        # function here rather than deferring it is the bug this replaced.
+        if isinstance(thing, type):
+            return thing()
+        if callable(thing) and not hasattr(thing, "run"):
+            return _RunFn(thing)
+        return thing
 
     return make
 
@@ -142,6 +171,12 @@ REGISTRY: dict[str, tuple[str, str, str, object]] = {
         "Branches on what the game actually said.",
         "Examples",
         _example("SmartRecover"),
+    ),
+    "example.after_hunting": (
+        "After hunting",
+        "Two flows, one after the other - recover, then bank it.",
+        "Examples",
+        _example("after_hunting"),
     ),
 }
 
