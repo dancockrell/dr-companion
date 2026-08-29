@@ -108,13 +108,23 @@ def run_flow(flow: Flow, timeout: float = 5.0) -> str:
 
 
 print("-- sight_picture_enabled defaults to False, not to Task's own None --")
-plain = Flow(title="Plain", steps=[Step("Noop", [])])
+# FakeCompanion() explicitly, same as every other construction below - a
+# Flow built with no `companion` kwarg falls back to a real Companion(),
+# which needs LOCALAPPDATA (Windows-only) to find the app's data dir. This
+# test is about the sight_picture_enabled default, not about connecting to
+# anything real.
+plain = Flow(companion=FakeCompanion(), title="Plain", steps=[Step("Noop", [])])
 ok(
     "a Flow built without the kwarg reads back False, not None",
     plain.sight_picture_enabled is False,
     repr(plain.sight_picture_enabled),
 )
-opted_in = Flow(title="Opted in", steps=[Step("Noop", [])], sight_picture_enabled=True)
+opted_in = Flow(
+    companion=FakeCompanion(),
+    title="Opted in",
+    steps=[Step("Noop", [])],
+    sight_picture_enabled=True,
+)
 ok("passing the kwarg still works", opted_in.sight_picture_enabled is True)
 
 print()

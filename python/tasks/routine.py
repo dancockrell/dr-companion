@@ -77,11 +77,17 @@ class Routine(Flow):
         self._mode: Mode = "hunt"
 
     def _steps_for(self, mode: Mode) -> Sequence[Step]:
+        # `self.c` explicitly - without it, each of these builds its own
+        # throwaway Flow (and, by default, its own real Companion()), which
+        # re-reads the connection token/port off disk on every mode switch
+        # and needs a live one to test against. The step list is the only
+        # thing used from the result; the connection this Routine already
+        # holds is the one that should ever be asked to do anything.
         if mode == "hunt":
-            return _flows.hunt().steps
+            return _flows.hunt(self.c).steps
         if mode == "recover":
-            return _flows.recover().steps
-        return _flows.to_healer().steps
+            return _flows.recover(self.c).steps
+        return _flows.to_healer(self.c).steps
 
     def _pick_mode(self) -> Mode:
         """What mode the character's current health calls for.

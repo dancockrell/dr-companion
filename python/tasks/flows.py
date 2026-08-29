@@ -30,14 +30,17 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from dr_companion import Companion  # noqa: E402
 from flow import Flow, Step  # noqa: E402
 
 
-def hunt() -> Flow:
+def hunt(companion: Optional[Companion] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Hunt cycle",
         summary="Attack, loot, skin, tend. Repeats until stopped.",
         loops=True,
@@ -76,8 +79,9 @@ def ambush() -> Flow:
     )
 
 
-def recover() -> Flow:
+def recover(companion: Optional[Companion] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Recover",
         summary="Check the damage, tend it, rest.",
         steps=[
@@ -92,8 +96,9 @@ def recover() -> Flow:
     )
 
 
-def to_healer() -> Flow:
+def to_healer(companion: Optional[Companion] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Go to a healer",
         summary="Stow, walk to the healer, show the damage.",
         steps=[
