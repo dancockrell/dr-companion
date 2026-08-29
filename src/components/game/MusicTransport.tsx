@@ -28,11 +28,25 @@ import {
   playbackProgress,
   onProgressChange,
   seekMusic,
+  CROSSFADE_STYLES,
+  setCrossfadeStyle,
+  currentCrossfadeStyle,
+  onCrossfadeStyleChange,
   type NowPlaying,
   type Progress,
+  type CrossfadeStyle,
 } from '../../lib/ambientSound'
+import { savePrefs } from '../../lib/persistence'
+import { AudioLines } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '../../lib/cn'
+
+/** cut -> standard -> long -> cut. Same three values SoundControls' own
+ * picker offers - see CROSSFADE_STYLES in ambientSound.ts. */
+const CROSSFADE_ORDER: CrossfadeStyle[] = ['cut', 'standard', 'long']
+function nextCrossfadeStyle(style: CrossfadeStyle): CrossfadeStyle {
+  return CROSSFADE_ORDER[(CROSSFADE_ORDER.indexOf(style) + 1) % CROSSFADE_ORDER.length]
+}
 
 /** "125" -> "2:05". Caller guarantees a finite, non-negative input - see
  * ProgressBar's own guard on `duration`. */
@@ -107,6 +121,7 @@ export function MusicTransport({
   showProgress = false,
   showInlineProgress = false,
   showVolume = false,
+  showTransitions = false,
   onTitleClick,
   className,
 }: {
@@ -142,6 +157,15 @@ export function MusicTransport({
    * already existed.
    */
   showVolume?: boolean
+  /**
+   * A compact cut/standard/long crossfade-style cycle button, inline next to
+   * volume - added 29 Aug 2026 so the one player-feel setting a listener is
+   * likely to want to nudge ("faster fades", "slower fades") is reachable
+   * without opening the panel. Cycles through CROSSFADE_STYLES on click;
+   * the tooltip names the current style and what clicking does next, since
+   * a bare icon that changes what it does on every click has to say so.
+   */
+  showTransitions?: boolean
   /** Makes the title clickable - the footer's compact strip is a glance,
    * not the whole panel, so a click through to it (SoundControls, favorites,
    * the station list, crossfade style) has to go somewhere. */
@@ -181,6 +205,14 @@ export function MusicTransport({
       return prev === current ? prev : current
     })
     return onMusicVolumeChange(setVol)
+  }, [])
+  const [crossfade, setCrossfade] = useState<CrossfadeStyle>(() => currentCrossfadeStyle())
+  useEffect(() => {
+    setCrossfade((prev) => {
+      const current = currentCrossfadeStyle()
+      return prev === current ? prev : current
+    })
+    return onCrossfadeStyleChange(setCrossfade)
   }, [])
 
   const playing = vol > 0
@@ -252,7 +284,28 @@ export function MusicTransport({
             </span>
           ))}
         {showInlineProgress && <ProgressBar compact />}
+        {showTransitions && (
+          <button
+            type="button"
+            className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
+            onClick={() => {
+              const next = nextCrossfadeStyle(crossfade)
+              setCrossfade(next)
+              setCrossfadeStyle(next)
+              savePrefs({ crossfadeStyle: next })
+            }}
+            title={`Transitions: ${CROSSFADE_STYLES[crossfade].label} (${CROSSFADE_STYLES[crossfade].description}) — click for ${CROSSFADE_STYLES[nextCrossfadeStyle(crossfade)].label}`}
+          >
+            <AudioLines className="h-3.5 w-3.5" />
+          </button>
+        )}
         {showVolume && (
+          // min-w-24 (not `hidden ... xl:block`, 29 Aug 2026): the slider used
+          // to vanish below the xl breakpoint and leave only the mute icon,
+          // so at any window narrower than 1280px there was no visible way to
+          // set a level - only on/off. A footer this narrow still has room
+          // for a real slider; it just can't be the 4rem one the wide layout
+          // affords. Fixed at a usable minimum instead of disappearing.
           <div className="flex min-w-0 shrink-0 items-center gap-1">
             <button
               type="button"
@@ -274,7 +327,8 @@ export function MusicTransport({
               max={150}
               value={Math.round(vol * 100)}
               onChange={(e) => setMusicVolume(Number(e.currentTarget.value) / 100)}
-              className="hidden w-16 min-w-9 shrink accent-accent xl:block"
+              className="w-12 min-w-9 shrink accent-accent sm:w-16"
+              title={`Music volume: ${Math.round(vol * 100)}%`}
               aria-label="Music volume (quick)"
             />
           </div>

@@ -59,6 +59,7 @@ import {
   CROSSFADE_STYLES,
   setCrossfadeStyle,
   currentCrossfadeStyle,
+  onCrossfadeStyleChange,
   ALL_TRACKS,
   playTrack,
   nowPlaying,
@@ -245,6 +246,17 @@ export function SoundControls() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const [crossfade, setCrossfade] = useState<CrossfadeStyle>(() => loadPrefs().crossfadeStyle ?? currentCrossfadeStyle())
+  // SafetyFooter's own transitions button (29 Aug 2026) can change this
+  // without this panel's row ever being touched - same subscribe-and-resync
+  // pattern as `music`'s own OS-media-session note just below, or this row
+  // silently disagrees with the style actually in effect.
+  useEffect(() => {
+    setCrossfade((prev) => {
+      const current = currentCrossfadeStyle()
+      return prev === current ? prev : current
+    })
+    return onCrossfadeStyleChange(setCrossfade)
+  }, [])
   const [search, setSearch] = useState('')
   // Only for highlighting the active row in search results - title+composer
   // is a good enough proxy for "which track" in a pool this size; nothing

@@ -197,7 +197,12 @@ export function SafetyFooter() {
         * this bar has - a play/pause/skip/title deserves the space more
         * than an empty gap did. */}
       <div className="flex h-8 min-w-0 flex-1 items-center gap-1.5 border-l border-border pl-2">
-        <MusicTransport showVolume showInlineProgress onTitleClick={requestOpenSoundPanel} />
+        <MusicTransport
+          showVolume
+          showInlineProgress
+          showTransitions
+          onTitleClick={requestOpenSoundPanel}
+        />
       </div>
 
       {/* Its own basis so it drops to a second line in a narrow window rather
