@@ -1,5 +1,56 @@
 # The soundscape
 
+**Status, 29 Aug 2026 (later still): Salt and Sail and Silk Road are gone.
+Four stations now, not six, 178 tracks not 233.** Read this block first;
+everything below describing six stations, 217+ tracks, or either of those
+two by name is history.
+
+Salt and Sail (sea shanties/nautical folk) never actually had the
+inventory: a real check of all 20 tracks against their own Wikimedia
+descriptions found 4 genuine performances and 16 things that were not
+sea shanties at all - Toki Pona conlang covers, Kevin MacLeod stock
+tracks with "Shanty" in the name, a Swedish spoken-word lecture *about*
+shanties, a 1902 operetta love song. Cut to those 4 real tracks first;
+Dan's call after that: "salt and sail actually suck" - cut the last 4
+too rather than fold them into another station. A follow-up attempt to
+refill it from Jamendo (real popularity ranking, real per-track license
+metadata - see tools/source-jamendo.mjs) confirmed the genre just isn't
+there commercially-licensed on that platform either: "sailor"/"nautical"/
+"pirate"/"ship" all return zero tagged tracks, "shanty" returns two, both
+non-commercial-licensed. Mechanism validated, inventory didn't exist.
+Killed rather than left thin.
+
+Silk Road (Chinese/Japanese/Arabic/Persian) went the same way for a
+different reason: most of its 35 tracks carried the literal note "Added
+by tools/source-radio.mjs - composer/era not filled in, review before
+treating as finished" - and never got that review. A spot-check turned
+up Spanish flamenco/jota tracks miscategorized into an Arabic/Chinese
+station, a Quran recitation (not music in the sense a radio station
+plays), and a large cluster with blank composer/era fields and no
+verification at all. Dan, comparing it to the orchestral stations that
+*were* properly sourced: "not good in comparison." Killed rather than
+half-fixed.
+
+Both stations' tracks are removed from `manifest.json` entirely (not
+just unwired) and `tools/build-zone-playlists.mjs`'s `characterFor()`
+was rebalanced across the remaining four stations - coastal/maritime
+zones now weight to Six Strings (which is where the shanty station's
+one real strength, working folk vocal/guitar, already lived), zones
+that leaned on Silk Road's "exotic-world flavor" fall back to a broader
+Six Strings/Old Concert Hall mix. All 85 zone playlists still build and
+still clear 45 minutes; `tools/ambient-test.mjs` passes clean at 4
+stations / 178 tracks. Local orphaned audio files for both (69 of
+them, counting the earlier Salt and Sail partial cleanup) deleted from
+`public/audio/radio/` - gitignored, so nothing to commit there, but
+worth knowing the count if the local cache looks smaller than expected.
+
+Sourcing discipline going forward, stated plainly since this is the
+second time a batch shipped without it: a track added by an automated
+tool is not finished until someone actually checks it against its own
+source page. "Review before treating as finished" in a `note` field is
+a promise, not a disclaimer - if it's still there when this file is
+next touched, that batch was never actually reviewed.
+
 **Status, 29 Aug 2026 (later the same day): every radio/zone track is
 loudness-corrected.** `tools/measure-loudness.mjs` (`npm run audio:loudness`)
 measures each of the 233 radio tracks' mean volume (`ffmpeg -t 30 ... -af

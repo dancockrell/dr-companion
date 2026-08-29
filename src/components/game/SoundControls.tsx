@@ -72,9 +72,11 @@ import { onOpenSoundPanelRequest } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
 import { MusicTransport } from './MusicTransport'
 
-/** Search results cap - the pool is 217 tracks and growing; a query too
- * broad to narrow that gets capped rather than dumping the whole pool into
- * the panel. */
+/** Search results cap - the pool is 178 tracks (29 Aug 2026: down from 217
+ * after killing Salt and Sail and Silk Road, see docs/AUDIO.md - both were
+ * either too thin to hold a station or mostly never-reviewed bulk-adds) and
+ * still growing; a query too broad to narrow that gets capped rather than
+ * dumping the whole pool into the panel. */
 const SEARCH_LIMIT = 25
 
 /**
@@ -581,8 +583,8 @@ export function SoundControls() {
               </div>
             </div>
 
-            {/* Search across all 217 tracks by title or composer, not just
-              * the six stations they're grouped into - "search specific
+            {/* Search across all 178 tracks by title or composer, not just
+              * the four stations they're grouped into - "search specific
               * tracks" was a real gap: browsing could only ever land you on
               * a station and hope, never a song. Takes over the space below
               * while active; clearing it goes back to favorites/stations. */}
@@ -700,8 +702,9 @@ export function SoundControls() {
             )}
 
             {/* Every built-in station, shown off rather than tucked into a
-              * dropdown - real curated playlists (six stations, hundreds of
-              * tracks between them) deserve to be seen, not guessed at from
+              * dropdown - real curated playlists (four stations, 178
+              * tracks between them - two others were killed 29 Aug 2026,
+              * see docs/AUDIO.md) deserve to be seen, not guessed at from
               * a name in a <select>. Star toggles a favorite; clicking the
               * row plays it. Overrides zone music in the same slot - see
               * RadioPlayer in ambientSound.ts. */}
@@ -771,7 +774,7 @@ export function SoundControls() {
 
             {/* Any direct stream URL (an Icecast/Shoutcast station, or
               * whatever else someone points it at) - the "plug in other
-              * radio sources" ask, covering stations beyond the six curated
+              * radio sources" ask, covering stations beyond the four curated
               * ones. Mutually exclusive with the list above and with zone
               * music - see setCustomStream's own header. Naming it here is
               * what lets it become a favorite: a URL alone is not something

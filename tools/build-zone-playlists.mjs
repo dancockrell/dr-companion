@@ -110,7 +110,7 @@ function characterFor(zoneId, biomeEntry) {
 
   // Named-pattern overrides first - specific beats general.
   if (/thief passage|escape tunnel|tunnels/.test(name)) {
-    return { mix: { 'halls-of-shadow': 0.8, 'silk-road': 0.2 }, character: 'hidden passages beneath a town - furtive, not grand' }
+    return { mix: { 'halls-of-shadow': 0.8, 'six-strings': 0.2 }, character: 'hidden passages beneath a town - furtive, not grand' }
   }
   if (/cavern of fire|abandoned mine|dirge|sorrow|barrow|lost ground/.test(name)) {
     return { mix: { 'halls-of-shadow': 1.0 }, character: 'named for loss or ruin - leans on the dark/dramatic station entirely' }
@@ -125,7 +125,13 @@ function characterFor(zoneId, biomeEntry) {
     return { mix: { 'halls-of-shadow': 0.5, 'old-concert-hall': 0.5 }, character: 'a beast-tribe hold - dramatic orchestral rather than literal tribal instrumentation (Dan: avoid low-quality "tribal" demo material)' }
   }
   if (biome === 'water' || /gondola|cove|sea caves|bay|isle/.test(name)) {
-    return { mix: { 'salt-and-sail': 0.7, 'silk-road': 0.3 }, character: 'coastal/maritime - shanties, with some exotic-world flavor' }
+    // Salt and Sail and Silk Road were both killed 29 Aug 2026 (too thin to
+    // hold a station, and mostly never-actually-reviewed bulk-adds - see
+    // docs/AUDIO.md) - the handful of genuinely good shanty/working-folk
+    // tracks Salt and Sail had moved into Six Strings rather than being
+    // discarded, so coastal zones still get that character, just from the
+    // station that now actually holds it.
+    return { mix: { 'six-strings': 1.0 }, character: 'coastal/maritime - the shanty/working-folk material lives in Six Strings now' }
   }
   if (biome === 'road') {
     return { mix: { 'old-concert-hall': 0.5, 'six-strings': 0.5 }, character: 'a trade road - pastoral orchestral and solo string for travel' }
@@ -134,22 +140,25 @@ function characterFor(zoneId, biomeEntry) {
     return { mix: { 'throne-and-temple': 0.5, 'old-concert-hall': 0.5 }, character: 'a real town - grand/ceremonial mixed with general orchestral' }
   }
   if (biome === 'settlement') {
-    return { mix: { 'silk-road': 0.6, 'six-strings': 0.4 }, character: 'a non-human settlement - exotic-world flavor with intimate solo string' }
+    return { mix: { 'six-strings': 0.6, 'old-concert-hall': 0.4 }, character: 'a non-human settlement - intimate solo string with pastoral orchestral under it' }
   }
   if (biome === 'interior') {
     return { mix: { 'throne-and-temple': 0.6, 'six-strings': 0.4 }, character: 'a notable interior (manor/keep/guild) - grand with some intimacy' }
   }
   if (biome === 'badlands') {
-    return { mix: { 'halls-of-shadow': 0.6, 'salt-and-sail': 0.4 }, character: 'a canyon/barrow badland - dark with some working-folk texture' }
+    return { mix: { 'halls-of-shadow': 0.6, 'six-strings': 0.4 }, character: 'a canyon/barrow badland - dark with some working-folk texture' }
   }
   if (biome === 'liminal') {
-    return { mix: { 'silk-road': 1.0 }, character: 'a liminal/otherworldly space (Transports, Microcosm) - exotic and unmoored from any real geography' }
+    // Was Silk Road alone (killed 29 Aug 2026 - see docs/AUDIO.md); the
+    // dark/dramatic station reads as "unmoored from any real geography"
+    // about as well as anything left in the pool does.
+    return { mix: { 'halls-of-shadow': 0.7, 'old-concert-hall': 0.3 }, character: 'a liminal/otherworldly space (Transports, Microcosm) - dark and unmoored from any real geography' }
   }
   if (biome === 'forest') {
     return { mix: { 'six-strings': 0.6, 'old-concert-hall': 0.4 }, character: 'forest - intimate solo string leading, pastoral orchestral under it' }
   }
   // wilderness fallback, the largest bucket
-  return { mix: { 'old-concert-hall': 0.5, 'six-strings': 0.3, 'silk-road': 0.2 }, character: 'open wilderness, no stronger signal - a broad mix' }
+  return { mix: { 'old-concert-hall': 0.6, 'six-strings': 0.4 }, character: 'open wilderness, no stronger signal - a broad mix' }
 }
 
 function weightedTrackPool(mix) {
