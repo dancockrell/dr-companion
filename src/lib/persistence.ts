@@ -58,14 +58,14 @@ export interface PersistedPrefs {
   setupComplete?: boolean
   /**
    * Sound levels, 0 to 1.5 (0% to 150%) each, no separate mute flag - 0 is
-   * silent. Two independent channels (not three - the ambient terrain
-   * layer shipped once and was pulled back out, 28 Aug 2026) because a
-   * listener who wants the idle warning but not a music bed should be able
-   * to have exactly that - see ambientSound.ts and alertSound.ts for where
-   * these are actually applied.
+   * silent. Four channels as of 29 Aug 2026 (System/Danger/Speech split out
+   * of one "Alerts" channel, plus Music) because a listener bothered by one
+   * kind of ping used to have to mute all of them together - see
+   * alertSound.ts's and ambientSound.ts's headers for where these are
+   * actually applied.
    *
-   * Default is 0 (muted) for both, not some tuned "reasonable" level - Dan's
-   * call, 28 Aug 2026, after a night of dr-companion's own audio work
+   * Default is 0 (muted) for all four, not some tuned "reasonable" level -
+   * Dan's call, 28 Aug 2026, after a night of dr-companion's own audio work
    * repeatedly surprising him and, separately, other sessions' leftover
    * Browser-pane tabs leaving it playing unattended. A first run should
    * never make noise nobody asked for; turning sound on is something a
@@ -97,6 +97,25 @@ export interface PersistedPrefs {
   radioStation?: string | null
   /** A player-supplied stream URL - see ambientSound.ts's setCustomStream. */
   customStreamUrl?: string | null
+  /**
+   * A player's saved stations - a first-class list, not a side effect of
+   * whichever one happens to be playing. Two kinds, because a favorite can
+   * be either half of the radio system: `builtin` stars one of
+   * `RADIO_STATIONS` by id, `custom` saves a player-named stream URL (an
+   * Icecast/Shoutcast station, or anything else `setCustomStream` accepts)
+   * so it doesn't have to be retyped every session. Ordered - newest last -
+   * so the list has a stable, predictable order rather than jumping around
+   * on every save.
+   */
+  favoriteStations?: FavoriteStation[]
+}
+
+export interface FavoriteStation {
+  kind: 'builtin' | 'custom'
+  /** A RADIO_STATIONS id for `builtin`, the stream URL itself for `custom`. */
+  id: string
+  /** Display name - RADIO_STATIONS' own name for `builtin`, player-chosen for `custom`. */
+  name: string
 }
 
 const defaults: PersistedPrefs = {
@@ -127,6 +146,7 @@ const defaults: PersistedPrefs = {
   dangerVolume: 0,
   speechVolume: 0,
   musicVolume: 0,
+  favoriteStations: [],
 }
 
 export function loadPrefs(): PersistedPrefs {
