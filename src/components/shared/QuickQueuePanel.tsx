@@ -120,6 +120,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
           value={commandText}
           onChange={(e) => setCommandText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addCommand()}
+          aria-label="Command to queue"
           placeholder="Cue a command…"
           className="min-w-0 flex-1 rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-ink placeholder:text-ink-faint"
         />
@@ -141,6 +142,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
           onChange={(e) => setScriptText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addScript()}
           list="quick-queue-scripts"
+          aria-label="Script to queue, by name"
           placeholder="Cue a script by name…"
           className="min-w-0 flex-1 rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-ink placeholder:text-ink-faint"
         />

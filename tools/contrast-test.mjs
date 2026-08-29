@@ -170,6 +170,46 @@ for (const { ink, pct, where } of [...used.values()]) {
   }
 }
 
+// --- the game pane header must stay able to shrink ---------------------------
+
+console.log('')
+console.log('-- the game pane header can shrink, so Attach stays reachable --')
+
+// This bug was found twice, independently, within a day: the header's control
+// group - scrollback search, port box, Clear, Attach - left the pane in a
+// narrow window and sat inside an ancestor with overflow-x:hidden, so there
+// was nothing to scroll to it. Attach is the button you press to connect to
+// the game, and the pane beside it read "not attached" while the control that
+// would fix that was off-screen.
+//
+// Being found twice is the argument for a guard. The fix is `min-w-0` on the
+// row (so it may shrink below its content) plus `shrink-0` on the control
+// group (so the notes give way first, not the buttons). Either half alone
+// leaves it broken - measured.
+//
+// This checks the mechanism, not the property, and that is worth saying. The
+// property is "Attach is inside the window at 900px", which only a rendered
+// measurement proves; that was done across 1400/1300/1250/1200/1150/1120/
+// 1100/1050/1000/900 and is clean. What this catches is the one-word edit
+// that quietly reopens it.
+const gamePane = readFileSync('src/components/game/GamePane.tsx', 'utf8')
+const headerRow = gamePane
+  .split('\n')
+  .find((l) => l.includes('border-b border-border') && l.includes('items-center') && l.includes('className'))
+
+check(
+  'GamePane.tsx still has a header row to check',
+  Boolean(headerRow),
+  headerRow ? '' : 'no line matched - this check has stopped looking at anything'
+)
+if (headerRow) {
+  check(
+    'the header row can shrink (min-w-0, or it wraps)',
+    headerRow.includes('min-w-0') || headerRow.includes('flex-wrap'),
+    headerRow.trim().slice(0, 96)
+  )
+}
+
 console.log('')
 console.log(fails === 0 ? 'all passed' : `${fails} FAILED`)
 process.exit(fails === 0 ? 0 : 1)
