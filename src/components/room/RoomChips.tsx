@@ -194,6 +194,14 @@ export function RoomChips({
 
   const itemState = canSendMacro({ stopLatched: character?.stopLatched, inFlight, connected: !!character })
 
+  // Items lands alone in the grid's next row exactly when an odd number of
+  // deck cells came before it (1 or 3 populated decks) - spanning both
+  // columns there instead of leaving a dead gap beside it. With an even
+  // count (0, 2 populated) it already shares a row with something else and
+  // stays a normal half-width cell.
+  const populatedDecks = DECKS.filter((d) => byDeck[d].length > 0).length
+  const itemsSpanFull = populatedDecks % 2 === 1
+
   return (
     /*
      * Four quadrants, not one scrolling stack — Dan's own instruction: a
@@ -220,7 +228,7 @@ export function RoomChips({
         ) : null
       )}
       {itemsKnown && (
-        <div className="max-h-28 overflow-x-hidden overflow-y-auto">
+        <div className={`max-h-28 overflow-x-hidden overflow-y-auto ${itemsSpanFull ? 'col-span-2' : ''}`}>
           <Group label="On the floor" colorClass="text-ink-faint">
             {items!.length > 0 ? (
               items!.map((name, i) => (
