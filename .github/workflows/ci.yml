@@ -120,8 +120,21 @@ jobs:
         working-directory: src-tauri
         run: cargo test
 
+      # Flaky in a specific, narrow way: WiX's light.exe, freshly downloaded
+      # and extracted a few lines above, occasionally fails to launch at all
+      # (`failed to run ...\WixTools314\light.exe`, no stderr, no exit code) -
+      # Windows Defender holding a lock on the just-written binary is the
+      # usual cause of exactly this shape of failure. Rust and the NSIS
+      # installer build fine either way; only the WiX MSI step is affected.
+      # rust-cache above means a retry re-runs the flaky external-tool step,
+      # not a five-minute Rust recompile.
       - name: Build installer
-        run: npm run tauri:build
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 20
+          max_attempts: 3
+          retry_wait_seconds: 15
+          command: npm run tauri:build
 
   # The bridge runs under whatever Ruby the player has, so test the range.
   bridge:
