@@ -34,7 +34,6 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-
 #[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfigFile {
