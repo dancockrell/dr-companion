@@ -109,7 +109,7 @@ export function CombatRadar({
     if (g) g.push(p)
     else groups.set(k, [p])
   }
-  const spread: (Positioned & { x: number; y: number })[] = []
+  const spread: (Positioned & { x: number; y: number; stack: number })[] = []
   for (const group of groups.values()) {
     const n = group.length
     group.forEach((p, i) => {
@@ -119,6 +119,14 @@ export function CombatRadar({
         ...p,
         x: 50 + p.radiusPct * Math.cos(rad) + jitter,
         y: 50 + p.radiusPct * Math.sin(rad),
+        // Position within its own angle+range group, so the label can be
+        // stacked as well as the marker. 16px of jitter separates two dots
+        // fine and does nothing for their names: measured on the real radar,
+        // "a wild boar" and "Zdolyn's risen" sit on the same line 16px apart
+        // and are 68px and 82px wide, so they overlapped by 27px. The marker
+        // is the thing jitter was sized for; the label is three to five times
+        // wider than it.
+        stack: i,
       })
     })
   }
@@ -126,8 +134,24 @@ export function CombatRadar({
   const hasFight = positioned.length > 0
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="relative mx-auto aspect-square w-full max-w-[300px]">
+    <div className="flex flex-col gap-2 rounded border border-border bg-surface-raised p-2">
+      <div
+        className="relative mx-auto aspect-square w-full max-w-[300px] overflow-hidden rounded-full"
+        style={{
+          // A console, not a blank box — a faint radial vignette plus a hint
+          // of the accent colour reads as an instrument rather than a debug
+          // overlay, without competing with the markers drawn on top of it.
+          background:
+            'radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--color-accent) 7%, transparent) 0%, transparent 70%)',
+        }}
+      >
+        {/* A fixed compass grid, independent of who's actually on it — the
+            four rings/spokes this radar can ever place a marker on (angleFor
+            only ever returns 0/90/180/270), drawn once so the eye has a
+            frame of reference even before anything is assessed. */}
+        <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-border/40" aria-hidden />
+        <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-border/40" aria-hidden />
+
         {/* Range rings, in DR's own words, not a generic distance scale. */}
         {(['missile', 'pole', 'melee'] as const).map((range) => (
           <div
@@ -141,27 +165,55 @@ export function CombatRadar({
             }}
           />
         ))}
-        {/* Off to the side of top-center rather than directly above it, and
-            given real vertical clearance from the facing marker below - see
-            issue #64. Both used to hug the exact same point (top-0/top-[2%],
-            about 6px apart in a 300px frame) and collided regardless of how
-            many creatures were on the radar; this is two ring/compass labels
-            fighting for one spot, not a crowding problem. */}
-        <span className="absolute left-[62%] top-[3%] text-xs text-ink-faint/70">
-          {RANGE_WORD.missile}
+
+        {/* Each ring labelled on its own spoke, so the scale reads without a
+            hover — melee on the near-right spoke, pole below it, missile
+            above, each offset enough from the ring above/below it and from
+            the front/behind labels not to collide (issue #64 was exactly
+            this fight over one corner). */}
+        {/* Off the horizontal axis on purpose. This label sat at top 50%, the
+          * same line "right" is pinned to at the radar's right edge, and the
+          * two only cleared each other because this one was 10px. It is 12px
+          * now — DESIGN.md's floor, enforced by tools/contrast-test.mjs — and
+          * at 12px they collide on a small radar: the container is
+          * `min-w-[13rem]` inside BattlePanel, so 208px is reachable, and
+          * there "melee" spans 152→184px while "right" starts at ~180px.
+          *
+          * Raising it to 38% puts it between the melee and pole rings, clear
+          * of the axis the flank labels own, and keeps the vertical spacing
+          * against missile (3%) and pole (92%) that issue #64 established. */}
+        <span
+          className="absolute text-xs text-ink-faint/70"
+          style={{ left: `${50 + RANGE_RADIUS_PCT.melee + 3}%`, top: '38%' }}
+        >
+          {RANGE_WORD.melee}
         </span>
+        <span className="absolute left-[62%] top-[3%] text-xs text-ink-faint/70">{RANGE_WORD.missile}</span>
+        <span className="absolute bottom-[8%] left-[62%] text-xs text-ink-faint/70">{RANGE_WORD.pole}</span>
 
         {/* Facing marker — "in front of you" is up, matching the compass
-            every dot on this radar is drawn against. */}
+            every dot on this radar is drawn against — with its opposite and
+            the two flanks labelled too, since assess only ever reports these
+            four positions and a reader should not have to infer the other
+            three from the one that is spelled out. */}
         <span className="absolute left-1/2 top-0 -translate-x-1/2 text-xs text-ink-faint/50" aria-hidden>
           ▲ front
+        </span>
+        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-xs text-ink-faint/50" aria-hidden>
+          behind
+        </span>
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-xs text-ink-faint/50" aria-hidden>
+          left
+        </span>
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-ink-faint/50" aria-hidden>
+          right
         </span>
 
         {/* You, at the center — the one fixed point everything else is
             relative to, same as assess itself. Text, not a portrait — this
             app has never drawn the player character either. */}
         <div
-          className="absolute flex flex-col items-center gap-0.5 -translate-x-1/2 -translate-y-1/2"
+          className="absolute z-10 flex flex-col items-center gap-0.5 -translate-x-1/2 -translate-y-1/2"
           style={{ left: '50%', top: '50%' }}
         >
           <span className="h-2 w-2 rounded-full border-2 border-accent bg-surface" />
@@ -231,9 +283,15 @@ export function CombatRadar({
                   * already on the parent's title, so a clipped tail costs
                   * nothing that was not already a hover away. */}
                 <span
-                  className={`absolute top-3 max-w-[8rem] truncate rounded bg-surface/90 px-1 text-xs leading-tight shadow ${labelSide} ${
+                  className={`absolute max-w-[8rem] truncate rounded bg-surface/90 px-1 text-xs leading-tight shadow ${labelSide} ${
                     stale ? 'opacity-60' : ''
                   } ${onYou ? 'font-semibold text-danger' : 'text-ink'}`}
+                  // Stacked, not just jittered. Everything in one angle+range
+                  // group shared a single line, so names wider than the 16px
+                  // of horizontal jitter - which is all of them - landed on
+                  // top of each other. One line each instead: 12px below the
+                  // marker, then 16px per position in the group.
+                  style={{ top: 12 + p.stack * 16 }}
                 >
                   {p.card.name}
                   {p.card.count > 1 ? ` x${p.card.count}` : ''}
