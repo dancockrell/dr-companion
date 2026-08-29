@@ -51,7 +51,7 @@ import { useHighlights } from '../../lib/useHighlights'
 import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
-import { playAlert, setAlertsVolume } from '../../lib/alertSound'
+import { playAlert, setAlertsVolume, setDangerVolume, setSpeechVolume } from '../../lib/alertSound'
 import { setZone, setMusicVolume, setRadioStation, setCustomStream } from '../../lib/ambientSound'
 import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
@@ -178,7 +178,19 @@ export function GamePane() {
     soundedUpTo.current = newest
 
     for (const l of fresh) {
-      for (const s of paint(l.text, highlights).sounds) playAlert(s)
+      // Walk `.matched` rather than `.sounds` - it carries each entry's
+      // `class` alongside its sound file, which playAlert needs to pick a
+      // channel and (for classes in alertSound.ts's THROTTLE_MS_FOR_CLASS)
+      // throttle by class rather than by filename. Deduped by sound name,
+      // same as `.sounds` already was, so two matched entries sharing one
+      // file within a line still only play it once.
+      const p = paint(l.text, highlights)
+      const played = new Set<string>()
+      for (const h of p.matched) {
+        if (!h.sound || played.has(h.sound)) continue
+        played.add(h.sound)
+        playAlert(h.sound, h.cls)
+      }
     }
     // `[lines]` is honest now that useGameLines() gives it a fresh identity
     // per version. It was not always: with a raw gameLines() read this effect
@@ -218,6 +230,8 @@ export function GamePane() {
   useEffect(() => {
     const prefs = loadPrefs()
     setAlertsVolume(prefs.alertsVolume ?? 0)
+    setDangerVolume(prefs.dangerVolume ?? 0)
+    setSpeechVolume(prefs.speechVolume ?? 0)
     setMusicVolume(prefs.musicVolume ?? 0)
     // A remembered station or custom stream beats zone music on startup, the
     // same override relationship setZone() enforces afterward. Custom stream

@@ -1,5 +1,13 @@
 import { useCallback, useRef, useState } from 'react'
-import { sortCards, DECKS, DECK_LABEL, DECK_STYLE, type RoomCard, type Deck } from '../../lib/cards'
+import {
+  sortCards,
+  DECKS,
+  DECK_LABEL,
+  DECK_STYLE,
+  trailingCellSpansRow,
+  type RoomCard,
+  type Deck,
+} from '../../lib/cards'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from '../shared/CreatureArt'
 import { hasArt } from '../../lib/creatureArt'
@@ -194,6 +202,11 @@ export function RoomChips({
 
   const itemState = canSendMacro({ stopLatched: character?.stopLatched, inFlight, connected: !!character })
 
+  // See trailingCellSpansRow's own comment for the arithmetic and the
+  // screenshot that caught it shipped backwards the first time.
+  const populatedDecks = DECKS.filter((d) => byDeck[d].length > 0).length
+  const itemsSpanFull = trailingCellSpansRow(populatedDecks, 2)
+
   return (
     /*
      * Four quadrants, not one scrolling stack — Dan's own instruction: a
@@ -220,7 +233,7 @@ export function RoomChips({
         ) : null
       )}
       {itemsKnown && (
-        <div className="max-h-28 overflow-x-hidden overflow-y-auto">
+        <div className={`max-h-28 overflow-x-hidden overflow-y-auto ${itemsSpanFull ? 'col-span-2' : ''}`}>
           <Group label="On the floor" colorClass="text-ink-faint">
             {items!.length > 0 ? (
               items!.map((name, i) => (
