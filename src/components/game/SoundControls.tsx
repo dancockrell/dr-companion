@@ -45,6 +45,7 @@ import {
   setSpeechVolume,
   speechVolume,
   missingSounds,
+  resetAlerts,
 } from '../../lib/alertSound'
 import {
   setMusicVolume,
@@ -517,6 +518,20 @@ export function SoundControls() {
               <div className="mt-1 text-xs text-ink-faint">
                 Named by a highlight or alert but not found in the sounds folder.
               </div>
+              {/* resetAlerts() already existed and cleared exactly this cache -
+                * nothing called it, so a file dropped into the sounds folder
+                * to fix a miss stayed a miss until the app restarted. This is
+                * the button that was missing, not new plumbing. */}
+              <button
+                type="button"
+                className="mt-1.5 rounded border border-warn/40 px-1.5 py-0.5 text-xs text-warn hover:bg-warn/10"
+                onClick={() => {
+                  resetAlerts()
+                  setMissingList([...missingSounds().entries()])
+                }}
+              >
+                Reload sounds
+              </button>
             </div>
           )}
 
