@@ -121,6 +121,7 @@ export function PinEditor({
               key={c}
               type="button"
               title={c}
+              aria-label={`Colour: ${c}`}
               onClick={() => setColor(c)}
               className={`h-6 w-6 shrink-0 rounded-full border-2 ${
                 color === c ? 'border-ink' : 'border-transparent'
@@ -151,6 +152,7 @@ export function PinEditor({
                 key={key}
                 type="button"
                 title={key}
+                aria-label={`Icon: ${key}`}
                 onClick={() => setIcon(key)}
                 className={`flex h-7 w-7 items-center justify-center rounded border ${
                   icon === key ? 'border-accent text-accent' : 'border-border text-ink-faint'

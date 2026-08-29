@@ -110,6 +110,7 @@ function ChannelRow({
           muted ? 'text-warn' : 'text-ink-faint hover:text-ink'
         )}
         title={muted ? `Unmute ${label}` : `Mute ${label}`}
+        aria-label={muted ? `Unmute ${label}` : `Mute ${label}`}
       >
         <Icon className="h-3.5 w-3.5" />
       </button>
@@ -399,6 +400,7 @@ export function SoundControls() {
         className={cn('rounded px-1.5 py-0.5', preMute ? 'text-warn' : 'text-ink-faint hover:text-ink')}
         onClick={toggleQuickMute}
         title={preMute ? 'Unmute (restores previous levels)' : 'Mute everything'}
+        aria-label={preMute ? 'Unmute (restores previous levels)' : 'Mute everything'}
       >
         {preMute ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
       </button>

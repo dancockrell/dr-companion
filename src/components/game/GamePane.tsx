@@ -669,7 +669,7 @@ export function GamePane() {
           type="button"
           onClick={send}
           className="shrink-0 rounded border border-border p-1.5 text-ink-faint hover:text-ink"
-          title="Send"
+          title="Send" aria-label="Send"
         >
           <Send className="h-3.5 w-3.5" />
         </button>
