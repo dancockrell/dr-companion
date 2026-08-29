@@ -157,10 +157,12 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    * maps - don't feel like two different products once you try to move
    * around either one.
    *
-   * Only active once actually zoomed in (`dock.zoom > 1`): at zoom 1 the
+   * Active whenever `dock.zoom !== 1`, in either direction. At exactly 1 the
    * whole zone already fits the box by design ("a glance that is always
-   * complete, never clipped" - MapCanvas's own `fit` mode), and there is
-   * nothing to pan.
+   * complete, never clipped" - MapCanvas's own `fit` mode) and there is
+   * nothing to pan; any other zoom - in to read fine detail, or out past fit
+   * to see more margin around the zone - switches to the same natural-size
+   * transform the popped-out window always uses, which is draggable.
    */
   const viewport = useMapViewport({
     zoom: dock.zoom,
@@ -540,10 +542,10 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           which for a small zone is a stamp in the corner.
           In plane mode the height comes from the column instead. */}
       <div
-        ref={dock.zoom > 1 ? containerRef : undefined}
+        ref={dock.zoom !== 1 ? containerRef : undefined}
         title="Map colours: dark you, red hazard, blue bank/healer/guild/shop"
         className={`relative rounded ${
-          dock.zoom > 1 ? `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}` : 'overflow-hidden'
+          dock.zoom !== 1 ? `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}` : 'overflow-hidden'
         } ${plane ? 'flex-1 min-h-0' : ''}`}
         style={{
           // The page, behind and around the chart. Letterboxing in the app's
@@ -551,9 +553,9 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           // as a sheet that does not fill the box.
           background: 'var(--map-ground)',
           ...(plane ? {} : { height: tall ? 320 : 168 }),
-          ...(dock.zoom > 1 ? { touchAction: 'none' } : {}),
+          ...(dock.zoom !== 1 ? { touchAction: 'none' } : {}),
         }}
-        {...(dock.zoom > 1
+        {...(dock.zoom !== 1
           ? {
               onWheel: handlers.onWheel,
               onPointerDown: handlers.onPointerDown,
@@ -577,11 +579,11 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             Demo map — not your location
           </div>
         )}
-        {dock.zoom > 1 ? (
-          // Zoomed: natural-size drawing under a translate+scale transform,
-          // panned and zoomed the same way the popped-out window is (see
-          // useMapViewport) - click-and-drag, and the wheel anchored on the
-          // cursor rather than always re-centring on the box.
+        {dock.zoom !== 1 ? (
+          // Zoomed in or out: natural-size drawing under a translate+scale
+          // transform, panned and zoomed the same way the popped-out window
+          // is (see useMapViewport) - click-and-drag, and the wheel anchored
+          // on the cursor rather than always re-centring on the box.
           <div
             className={`${standingIn ? 'grayscale-[60%] opacity-70' : ''} ${
               dragging ? '' : 'transition-transform duration-150 ease-out'
