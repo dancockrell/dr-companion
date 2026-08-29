@@ -1,40 +1,56 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronUp, User } from 'lucide-react'
+import {
+  Box,
+  ChevronUp,
+  Coins,
+  Gem,
+  Package,
+  ScrollText,
+  Skull,
+  User,
+  Wand2,
+} from 'lucide-react'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { hasArt } from '../../lib/creatureArt'
+import { playerArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { nounOf } from '../../lib/room'
 import { useRoomItemTake } from '../../lib/useRoomItemTake'
+import { useMacroRunner } from '../../lib/useMacroRunner'
 import { RoomBackdrop } from '../room/RoomBackdrop'
-import { DECK_STYLE } from '../../lib/cards'
+import { DECK_STYLE, type Deck } from '../../lib/cards'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 
 /**
  * The room, with everyone and everything in it drawn where they actually
  * are — or, for the people and things `assess` says nothing about, honestly
- * placed as "somewhere in the room" rather than left off the picture or
- * shunted into a list beside it.
+ * placed as "somewhere in this room, not currently advancing on you" rather
+ * than left off the picture or shunted into a list beside it.
  *
- * `RoomChips` used to carry the ones this couldn't place: allied, people,
- * and any hostile without range/relation, as a row of icons under the
- * picture. That reads as two separate features that happen to agree — a
- * board with rings on it, and a list, both claiming to say who's here. One
- * of them has to be the answer. This is now the only one: everyone is on
- * the board, and the board is the only place they're drawn.
- *
- * Two tiers of honesty about position, and they look different on purpose:
+ * Three tiers of honesty about position, and they look different on purpose:
  *
  *   - **The compass** — hostiles `assess` gave a real range and relation
- *     for. Radius is the range word, angle is the relation word, same as
- *     before. This is the only place this component claims to know where
- *     something actually is.
- *   - **The gallery ring** — everyone else embedded gets a card for: allied,
- *     people, and any hostile assess has nothing positional to say about
- *     (unassessed, disengaged, hidden). A wider, evenly-spaced ring further
- *     out than any real range reading, dot or portrait only, full detail on
- *     tap or hover. It says "in this room" and nothing more precise than
- *     that, because that is all this app was ever told.
+ *     for: actively fighting, advancing, in range right now. Radius is the
+ *     range word, angle is the relation word. This is the only place this
+ *     component claims to know exactly where something is. Melee gets the
+ *     most room of the three rings, on purpose: most mobs spend most of a
+ *     fight at melee range, and flanking — several attackers sharing that
+ *     same ring — is the normal case there, not the exception. Pole and
+ *     missile are rarer and get correspondingly less.
+ *   - **The four corners** — everyone and everything else embedded gets a
+ *     puck for, grouped by what they are rather than scattered around a
+ *     ring: mobs (hostile, not currently advancing — unassessed,
+ *     disengaged, hidden) top-left, PCs (people) top-right, NPCs (allied)
+ *     bottom-left, floor items bottom-right. Corners because a circle
+ *     inscribed in a square board leaves its four corners empty regardless
+ *     of how big the circle is — real, otherwise-wasted space, not a
+ *     region carved out of the compass. A puck lands there only because
+ *     assess has nothing positional to say about it, not because it is
+ *     literally standing in that corner of the room.
+ *   - **The compass rings themselves** — melee wide, pole and missile
+ *     progressively tighter, so the four corners keep real room without the
+ *     compass losing the one ring that actually gets crowded.
  *
  * DR's own combat readout is two facts about each opponent, not one: range
  * ("at melee range", "at pole weapon range", "at missile range") and
@@ -48,56 +64,62 @@ import type { RoomCard } from '../../lib/cards'
  * own. A radar that looks like a different screen than the picture above it
  * reads as a second, unrelated feature; one that looks like the same room
  * with rings drawn over it reads as what it is, the same room, mid-fight.
- * A scrim sits between the two so the rings and names stay legible over
+ * A scrim sits between the two so the rings and pucks stay legible over
  * whatever the room happens to look like.
  *
- * Nothing on the board is ever an always-visible label — icon or dot, plus a
- * tooltip carrying the full sentence, everywhere. Text has a 12px floor in
- * this app (DESIGN.md, enforced by tools/contrast-test.mjs), a floor that
- * does not move for a small screen, so a board crowded with names was
- * always going to run out of room before the text ran out of length —
- * "Zdolyn's risen" at 12px is most of a 220px board on its own. Icons don't
- * have that problem: a marker shrinks, a tooltip does not, and nothing
- * shown here is ever more than a tap or a hover away from its full detail.
+ * Nothing on the board is ever an always-visible label — a puck (portrait,
+ * submitted player picture, item icon, or a coloured dot when none exists)
+ * plus a tooltip carrying the full sentence, everywhere. Text has a 12px
+ * floor in this app (DESIGN.md, enforced by tools/contrast-test.mjs), a
+ * floor that does not move for a small screen, so a board crowded with
+ * names was always going to run out of room before the text ran out of
+ * length. Pucks don't have that problem: a marker shrinks, a tooltip does
+ * not, and nothing shown here is ever more than a tap or a hover away from
+ * its full detail — including what a hostile's own bestiary entry says
+ * about it (level, HP range, size, whether it casts or hides) and whatever
+ * `assess` currently says is wrong with it (stunned, off balance, cursed),
+ * the closest thing this app has to "wounds" for something that is not
+ * you.
+ *
+ * Every puck is also a button. A hostile attacks on click, an item picks
+ * itself up — the tooltip exists for the player who forgot what's under a
+ * given icon, not as the only way to act on it.
  */
 
-/** Same threshold as RoomChips.tsx used — assess data past a minute old is
- * shown softened rather than at full confidence. */
+/** Same threshold as this board has always used — assess data past a
+ * minute old is shown softened rather than at full confidence. */
 const STALE_AFTER_SECONDS = 60
 
 /**
- * How many floor items the radar draws directly on the picture, named and
- * exported so `BattleColumn` can fold the overflow into the last marker's
- * tooltip instead of repeating every item twice. Five is already most of
- * the melee ring's width at the radius this cluster sits at, and a real
- * drop pile is not uncommon after a fight this radar exists for.
+ * How many floor items the board draws directly on the picture, named and
+ * exported so callers elsewhere can reason about the cap. Every item still
+ * gets a puck; past this many, the rest fold into the last puck's tooltip
+ * the same way an overcrowded corner does.
  */
-export const RADAR_ITEM_CAP = 5
+export const RADAR_ITEM_CAP = 6
 
-/** Same idea for the gallery ring — a room can hold more people than a
- * ring of dots can space out and stay tappable. Capped, with the rest
- * folded into the last dot's tooltip, the same pattern the floor cluster
- * already uses. */
-const GALLERY_CAP = 10
+/** Same idea, per corner — a room can hold more mobs, PCs or NPCs than a
+ * 2x3 grid of pucks can hold without either overlapping or shrinking past
+ * usefulness. Capped, with the rest folded into the last puck's tooltip. */
+const CORNER_CAP = 6
 
-/** Below this measured width, portraits and dots shrink too, so a marker
- * never claims more of a tiny board than the gap between two of them can
- * afford. Nothing on this board ever prints an always-visible name any
- * more — see the module doc comment — so this is the only responsive
- * threshold left: marker size, not label visibility. */
+/** Below this measured width, pucks shrink too, so a marker never claims
+ * more of a tiny board than the gap between two of them can afford.
+ * Nothing on this board ever prints an always-visible name, so this is the
+ * only responsive threshold left: marker size, not label visibility. */
 const COMPACT_MIN_PX = 160
 
+/**
+ * Melee wide, pole and missile progressively tighter — see the module doc
+ * comment for why. Together they still leave the four corners real room:
+ * the farthest ring (missile, 38%) is nowhere near the corner anchors at
+ * 7%/93%, whose diagonal distance from center is about 61%.
+ */
 const RANGE_RADIUS_PCT: Record<'melee' | 'pole' | 'missile', number> = {
-  melee: 20,
-  pole: 36,
-  missile: 48,
+  melee: 24,
+  pole: 31,
+  missile: 37,
 }
-
-/** Further out than any real range reading (missile tops out at 48), so a
- * gallery-ring dot never sits where a real compass marker could also land
- * and reads unambiguously as "position not tracked" rather than "far
- * away." */
-const GALLERY_RADIUS_PCT = 60
 
 /**
  * assess's own relation phrases, mapped to a compass angle (0 = in front of
@@ -117,8 +139,7 @@ function angleFor(relation: string, id: string): number {
 }
 
 /** A point on the unit circle, in this board's own convention: 0° is
- * straight up ("front"), clockwise. Shared by the compass and the gallery
- * ring so "up" means the same thing on both. */
+ * straight up ("front"), clockwise. */
 function pointOn(angleDeg: number, radiusPct: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180
   return { x: 50 + radiusPct * Math.cos(rad), y: 50 + radiusPct * Math.sin(rad) }
@@ -132,19 +153,68 @@ interface Positioned {
   radiusPct: number
 }
 
-/** Everyone the compass has no position for, drawn on the gallery ring
- * instead: allied, people, and any hostile assess left nothing positional
- * to say about. */
-interface GalleryEntry {
+/** Everyone the compass has no position for, drawn in a corner instead:
+ * mobs not currently advancing, allied, and people. */
+interface CornerEntry {
   key: string
   card: RoomCard
-  detail: string
+  combatant?: RoomCombatant
 }
 
 /**
- * Measures its own rendered width and reports whether it has crossed a
- * threshold — the board shrinking inside a resizable pane or a genuinely
- * small screen are the same event to this hook, neither is a media query.
+ * Where each of the four corners lives and which way it grows. A circle
+ * inscribed in a square leaves its corners empty at any radius, so this is
+ * real space, not space carved out of the compass — see the module doc
+ * comment. `dx`/`dy` are which direction (`+1` toward the middle, `-1` away)
+ * each successive puck in that corner steps, so a top-left corner's grid
+ * grows right-and-down while a bottom-right one grows left-and-up: every
+ * corner's own grid stays anchored to its actual corner instead of drifting
+ * toward the board's center as it fills up.
+ */
+const CORNERS: Record<Deck, { x: number; y: number; dx: number; dy: number; label: string; presence: string }> = {
+  hostile: { x: 7, y: 7, dx: 1, dy: 1, label: 'Mobs', presence: 'unassessed' },
+  people: { x: 93, y: 7, dx: -1, dy: 1, label: 'PCs', presence: 'here' },
+  allied: { x: 7, y: 93, dx: 1, dy: -1, label: 'NPCs', presence: 'allied' },
+}
+
+const ITEM_CORNER = { x: 93, y: 93, dx: -1, dy: -1, label: 'Items' }
+
+const CORNER_COLS = 2
+// Tight on purpose — these are bigger pucks now (see portraitPx/cornerPx
+// below) and a crowded corner reads better as a cluster of icons than as a
+// grid with daylight between every one of them.
+const CORNER_STEP = 9
+
+function cornerPoint(corner: { x: number; y: number; dx: number; dy: number }, index: number) {
+  const col = index % CORNER_COLS
+  const row = Math.floor(index / CORNER_COLS)
+  return { x: corner.x + corner.dx * col * CORNER_STEP, y: corner.y + corner.dy * row * CORNER_STEP }
+}
+
+/**
+ * A generic-but-good icon for a floor item, guessed from its name the same
+ * way a player glances at a pile and knows "that's coins" without reading a
+ * label. Only a handful of keywords get their own icon — the things people
+ * actually dig through a corpse for — everything else gets the same plain
+ * "pile of something" icon rather than a wrong specific guess. Nothing here
+ * is a claim about what the item actually is beyond what its own name
+ * already says; the full name is still the tooltip.
+ */
+function iconForItem(name: string) {
+  const n = name.toLowerCase()
+  if (/\bcoins?\b|\bkronars?\b|\blirums?\b|\bdokoras?\b/.test(n)) return Coins
+  if (/\bgems?\b|\bjewels?\b|\bstones?\b/.test(n)) return Gem
+  if (/\bbox\b|\bchest\b|\bcrate\b|\bcase\b/.test(n)) return Box
+  if (/\bcorpse\b|\bskull\b|\bbones?\b/.test(n)) return Skull
+  if (/\bscroll\b|\bletter\b|\bnote\b|\bbook\b/.test(n)) return ScrollText
+  if (/\bwand\b|\bstaff\b|\borb\b/.test(n)) return Wand2
+  return Package
+}
+
+/**
+ * Measures its own rendered width and reports it — the board shrinking
+ * inside a resizable pane or a genuinely small screen are the same event
+ * to this hook, neither is a media query.
  */
 function useMeasuredWidth() {
   const ref = useRef<HTMLDivElement>(null)
@@ -158,6 +228,159 @@ function useMeasuredWidth() {
     return () => ro.disconnect()
   }, [])
   return { ref, width }
+}
+
+/**
+ * A submitted player portrait, sized and framed the same as `CreatureArt`'s
+ * own image branch — so a board mixing a hostile with bestiary art and a
+ * person with their own submitted picture reads as one consistent set of
+ * pucks, not two different rendering styles stitched together. Kept
+ * separate from `CreatureArt` itself rather than teaching it a second
+ * source, because `CreatureArt`'s whole job is "what does the bestiary say
+ * this noun looks like" — a player's own picture is not a bestiary answer
+ * and must never be reachable through a creature-noun lookup by accident.
+ */
+function PlayerPortrait({
+  name,
+  url,
+  height,
+  className,
+}: {
+  name: string
+  url: string
+  height: number
+  className?: string
+}) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return null
+  return (
+    <div
+      className={`relative w-full overflow-hidden rounded-full bg-surface-overlay ${className ?? ''}`}
+      style={{ height }}
+    >
+      <img
+        src={url}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="h-full w-full object-cover"
+        onError={() => {
+          notePlayerArtMissing(name)
+          setFailed(true)
+        }}
+      />
+    </div>
+  )
+}
+
+/**
+ * Everything this app currently knows about one entry, in one sentence —
+ * the tooltip's whole content. `assess`'s own combat detail first (the
+ * closest thing to "wounds" this app has for anything that is not you:
+ * stunned, off balance, cursed, hidden are the afflictions the game
+ * actually reports on someone else), then the bestiary's static facts
+ * (level, HP range, size, attack range, whether it casts or hides, what it
+ * carries) for whatever has a lore entry at all. Nothing here is invented:
+ * a field that is null or absent just does not appear, rather than being
+ * guessed at or padded with a placeholder.
+ */
+function detailFor(card: RoomCard, combatant: RoomCombatant | undefined, presence: string): string {
+  const bits: string[] = []
+
+  if (card.status === 'dead') bits.push('dead')
+  if (card.status === 'stunned') bits.push('stunned')
+
+  if (combatant) {
+    if (combatant.relation) bits.push(combatant.relation)
+    if (combatant.range) bits.push(`${RANGE_WORD[combatant.range]} range`)
+    if (combatant.target) bits.push(`targeting ${combatant.target}`)
+    if (combatant.offBalance) bits.push('off balance')
+    else if (combatant.balance) bits.push(`balance: ${combatant.balance}`)
+    if (combatant.conditions.length) bits.push(combatant.conditions.join(', '))
+    if (combatant.statuses.length) bits.push(combatant.statuses.join(', '))
+    if (combatant.enrichedAgeSeconds != null && combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS) {
+      bits.push(`assessed ${combatant.enrichedAgeSeconds}s ago`)
+    }
+  } else if (presence) {
+    bits.push(presence)
+  }
+
+  if (card.lore) {
+    const l = card.lore
+    if (l.level != null) bits.push(`level ${l.level}`)
+    if (l.minCap != null || l.maxCap != null) {
+      bits.push(
+        l.minCap != null && l.maxCap != null
+          ? `${l.minCap}-${l.maxCap} HP`
+          : `up to ${l.minCap ?? l.maxCap} HP`
+      )
+    }
+    const shape = [l.bodySize, l.bodyType].filter(Boolean).join(' ').toLowerCase()
+    if (shape) bits.push(shape)
+    if (l.attackRange) bits.push(`attacks at ${l.attackRange}`)
+    if (l.castsSpells) bits.push('casts spells')
+    if (l.stealthy) bits.push('stealthy')
+    const loot = [l.hasCoins && 'coins', l.hasGems && 'gems', l.hasBoxes && 'boxes', l.skinnable && 'skinnable']
+      .filter(Boolean)
+      .join(', ')
+    if (loot) bits.push(loot)
+    if (card.loreApproximate) bits.push('bestiary match approximate')
+  }
+
+  return bits.join(' — ')
+}
+
+/** One puck: a real portrait when the bestiary has one, a submitted player
+ * picture when the bestiary doesn't but the person does, otherwise a
+ * coloured dot — never a guess dressed as either. Shared by the compass
+ * and the four corners so a goblin looks like the same goblin everywhere
+ * it can appear on this board. */
+function Puck({
+  card,
+  px,
+  ringClass,
+  pulse,
+}: {
+  card: RoomCard
+  px: number
+  ringClass: string
+  pulse?: boolean
+}) {
+  // A person's own submitted picture, checked only for the people deck and
+  // only before falling back to the bestiary lookup — a hostile or an
+  // allied summon is never a candidate for this, so there is no path by
+  // which a creature could borrow a player's art or a player's name could
+  // accidentally resolve to bestiary art.
+  const own = card.deck === 'people' ? playerArtFor(card.name) : undefined
+  const bestiary = !own && hasArt(card.name, card.noun)
+
+  if (own) {
+    return (
+      <div style={{ width: px }}>
+        <PlayerPortrait name={own.name} url={own.url} height={px} className={`border ${ringClass}`} />
+      </div>
+    )
+  }
+  if (bestiary) {
+    return (
+      <div style={{ width: px }}>
+        <CreatureArt
+          name={card.name}
+          noun={card.noun}
+          lore={card.lore}
+          height={px}
+          className={`rounded-full border ${ringClass}`}
+        />
+      </div>
+    )
+  }
+  const style = DECK_STYLE[card.deck]
+  return (
+    <span
+      className={`block rounded-full border border-surface ${pulse ? 'animate-pulse' : ''}`}
+      style={{ width: px, height: px, background: `var(--color-${style.band.replace('bg-', '')})` }}
+    />
+  )
 }
 
 export function CombatRadar({
@@ -185,14 +408,15 @@ export function CombatRadar({
   room?: number | null
   title?: string | null
   text?: string | null
-  /** Everyone in the room, every deck — hostile for the compass, all three
-   * for the gallery ring when `embedded`. `BattlePanel` (standalone) still
-   * passes hostile only; it keeps its own allied/people decks below the
-   * radar rather than adopting the ring, so handing it more decks would
-   * just show them twice. */
+  /** Everyone in the room, every deck — hostile for the compass and the
+   * mobs corner, all three for their corners when `embedded`. `BattlePanel`
+   * (standalone) still passes hostile only; it keeps its own allied/people
+   * decks below the radar rather than adopting the corners, so handing it
+   * more decks would just show them twice. */
   cards: RoomCard[]
   combatants: RoomCombatant[]
-  /** The floor, same feed `RoomChips` used to read. */
+  /** The floor — every item gets its own puck in the items corner now,
+   * capped the same way the other three corners are. */
   items?: string[]
   /**
    * True when `RoomScene` is passing this in as its own `overlay` — the room
@@ -201,34 +425,34 @@ export function CombatRadar({
    * scaled to a smaller circle inside a square box that already has the
    * full-size original) would put the same room on screen twice at once.
    * Embedded mode skips its own backdrop and the circular frame and fills
-   * whatever box it was handed instead, rings and markers only. It also
-   * turns on the gallery ring — see the module doc comment.
+   * whatever box it was handed instead, rings and pucks only. It also turns
+   * on the four corners — see the module doc comment.
    */
   embedded?: boolean
 }) {
   const index = indexCombatants(combatants)
-  const { take, canSend, reason } = useRoomItemTake()
+  const { take, canSend: canTake, reason: takeReason } = useRoomItemTake()
+  const { run: runMacro, canSend: canAttack, reason: attackReason } = useMacroRunner()
   const { ref: boardRef, width: boardWidth } = useMeasuredWidth()
   const compact = boardWidth > 0 && boardWidth < COMPACT_MIN_PX
 
   const positioned: Positioned[] = []
-  const galleryFromHostiles: GalleryEntry[] = []
+  const cornerHostiles: CornerEntry[] = []
 
   for (const card of cards) {
     if (card.deck !== 'hostile' || card.status === 'dead') continue
     const combatant = combatantFor(card, index)
     if (!combatant) {
-      galleryFromHostiles.push({ key: card.id, card, detail: 'unassessed — nobody has checked yet' })
+      cornerHostiles.push({ key: card.id, card })
       continue
     }
     if (combatant.disengaged || !combatant.range || !combatant.relation) {
-      galleryFromHostiles.push({
-        key: card.id,
-        card,
-        detail: combatant.disengaged ? 'not fighting' : combatant.relation ?? 'position not reported',
-      })
+      cornerHostiles.push({ key: card.id, card, combatant })
       continue
     }
+    // Advancing — a real range and relation, actively fighting. Stays on
+    // the compass; this is the one tier that claims to know exactly where
+    // something is.
     positioned.push({
       key: card.id,
       card,
@@ -240,8 +464,8 @@ export function CombatRadar({
 
   // Spread anything sharing the exact same angle+range apart a little, so
   // two creatures both "flanking" at melee range do not sit on top of each
-  // other. A real assess list would print them as separate lines; this is
-  // the visual equivalent.
+  // other — the ring most likely to hold several at once got the extra
+  // radius above for exactly this reason.
   const groups = new Map<string, Positioned[]>()
   for (const p of positioned) {
     const k = `${p.angleDeg}:${p.radiusPct}`
@@ -249,47 +473,36 @@ export function CombatRadar({
     if (g) g.push(p)
     else groups.set(k, [p])
   }
-  const spread: (Positioned & { x: number; y: number; stack: number })[] = []
+  const spread: (Positioned & { x: number; y: number })[] = []
   for (const group of groups.values()) {
     const n = group.length
     group.forEach((p, i) => {
-      const jitter = n > 1 ? (i - (n - 1) / 2) * 16 : 0
+      const jitter = n > 1 ? (i - (n - 1) / 2) * 10 : 0
       const { x, y } = pointOn(p.angleDeg, p.radiusPct)
-      spread.push({
-        ...p,
-        x: x + jitter,
-        y,
-        // Position within its own angle+range group, so the label can be
-        // stacked as well as the marker. 16px of jitter separates two dots
-        // fine and does nothing for their names: measured on the real radar,
-        // "a wild boar" and "Zdolyn's risen" sit on the same line 16px apart
-        // and are 68px and 82px wide, so they overlapped by 27px. The marker
-        // is the thing jitter was sized for; the label is three to five times
-        // wider than it.
-        stack: i,
-      })
+      spread.push({ ...p, x: x + jitter, y })
     })
   }
 
-  // The gallery ring: everyone embedded has no compass position for.
+  // The three corners: everyone embedded has no compass position for.
   // Standalone keeps its old hostile-only behaviour — see the `embedded`
   // prop's own doc comment for why allied/people never reach here
   // otherwise.
-  const gallery: GalleryEntry[] = embedded
-    ? [
-        ...galleryFromHostiles,
-        ...cards
-          .filter((c) => c.deck === 'allied')
-          .map((card) => ({ key: card.id, card, detail: 'allied' })),
-        ...cards
-          .filter((c) => c.deck === 'people')
-          .map((card) => ({ key: card.id, card, detail: 'here' })),
-      ]
-    : []
+  const cornerEntries: Record<Deck, CornerEntry[]> = embedded
+    ? {
+        hostile: cornerHostiles,
+        allied: cards.filter((c) => c.deck === 'allied').map((card) => ({ key: card.id, card })),
+        people: cards.filter((c) => c.deck === 'people').map((card) => ({ key: card.id, card })),
+      }
+    : { hostile: [], allied: [], people: [] }
 
   const hasFight = positioned.length > 0
-  const portraitPx = compact ? 20 : 28
-  const dotPx = compact ? 8 : 10
+  const portraitPx = compact ? 30 : 42
+  const dotPx = compact ? 14 : 18
+  const cornerPx = compact ? 26 : 36
+
+  const attack = () => runMacro(['attack'])
+  const attackTitle = (label: string) =>
+    attackReason ?? `${label} — attack (whatever is in front of you right now)`
 
   const disc = (
     <div
@@ -311,12 +524,10 @@ export function CombatRadar({
       )}
 
       {/* Between the room and the rings. Dark enough that white-on-anything
-          text and pale range rings hold up over a bright snowfield or a
+          pucks and pale range rings hold up over a bright snowfield or a
           washed-out real render alike; a radial vignette rather than a flat
           tint so "you", dead center, sits on the darkest point of the
-          picture no matter what the room looks like. One treatment for both
-          modes now — the compass fills the whole box either way, so there
-          is no "empty lower half" to spare from a full scrim any more. */}
+          picture no matter what the room looks like. */}
       <div
         className="absolute inset-0"
         style={{
@@ -332,12 +543,13 @@ export function CombatRadar({
       <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-border/40" aria-hidden />
       <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-border/40" aria-hidden />
 
-      {/* Range rings, in DR's own words, not a generic distance scale — on
-          the ring itself now (title, not a spoke label): three concentric
-          circles read as "distance" on sight the way a topographic map
-          does, and the word is a hover away for whoever wants the game's
-          own term for the one they're looking at rather than three lines
-          of always-on text competing with everything drawn inside them. */}
+      {/* Range rings, in DR's own words, not a generic distance scale — a
+          title rather than a spoke label: three concentric circles read as
+          "distance" on sight the way a topographic map does, and the word
+          is a hover away for whoever wants the game's own term for the one
+          they're looking at. Melee is the widest of the three — see
+          RANGE_RADIUS_PCT's own comment — to leave room for flanking
+          without crowding pole and missile out or eating the corners. */}
       {(['missile', 'pole', 'melee'] as const).map((range) => (
         <div
           key={range}
@@ -352,30 +564,14 @@ export function CombatRadar({
         />
       ))}
 
-      {/* The gallery ring itself, furthest out — drawn before its labelled
-          spoke text below so the compass's own front/behind/left/right
-          labels paint on top where the two would ever cross. */}
-      {embedded && (
-        <div
-          className="absolute rounded-full border border-dashed border-border/35"
-          style={{
-            left: `${50 - GALLERY_RADIUS_PCT}%`,
-            top: `${50 - GALLERY_RADIUS_PCT}%`,
-            width: `${GALLERY_RADIUS_PCT * 2}%`,
-            height: `${GALLERY_RADIUS_PCT * 2}%`,
-          }}
-          aria-hidden
-        />
-      )}
-
       {/* Facing marker — "in front of you" is up, matching the compass
-          every dot on this board is drawn against. Behind/left/right get no
-          icon of their own: three more markers on a compass that only ever
-          has one meaningful reference direction is noise, and every dot's
-          own tooltip already spells its relation out in words ("behind
-          you", "flanking") — the one thing worth a permanent icon is which
-          way is forward, since that's what every other position is read
-          relative to. */}
+          every puck on this board is drawn against. Behind/left/right get
+          no icon of their own: three more markers on a compass that only
+          ever has one meaningful reference direction is noise, and every
+          puck's own tooltip already spells its relation out in words
+          ("behind you", "flanking") — the one thing worth a permanent icon
+          is which way is forward, since that's what every other position
+          is read relative to. */}
       <span
         className="absolute left-1/2 top-0 -translate-x-1/2"
         title="Front — the direction you're facing. Everything else on this compass is positioned relative to this."
@@ -386,11 +582,9 @@ export function CombatRadar({
 
       {/* You, at the center — the one fixed point everything else is
           relative to, same as assess itself. An icon, not a portrait — this
-          app has never drawn the player character either — and not the
-          word "you" printed under it either any more: the center of the
-          board, ringed in the accent colour nothing else on it uses, is
-          already unambiguous, and the tooltip carries the word for anyone
-          who wants it spelled out. */}
+          app has never drawn the player character either — ringed in the
+          accent colour nothing else on the board uses, so the center is
+          unambiguous without a word under it. */}
       <div
         className="absolute z-10 flex items-center justify-center rounded-full border-2 border-accent bg-surface p-0.5 -translate-x-1/2 -translate-y-1/2"
         style={{ left: '50%', top: '50%' }}
@@ -399,174 +593,137 @@ export function CombatRadar({
         <User className="h-3 w-3 text-accent" aria-hidden />
       </div>
 
-      {/* The floor, at your feet — squares rather than the round creature
-          markers, so a dropped weapon is never mistaken for one more thing
-          fighting you. Capped with the rest folded into the last tag's
-          tooltip: five is already most of the melee ring's width at the
-          radius this cluster sits at, and a real drop pile is not
-          uncommon after a fight this board exists for. */}
-      {items && items.length > 0 && (
-        <>
-          {items.slice(0, RADAR_ITEM_CAP).map((name, i) => {
-            const n = Math.min(items.length, RADAR_ITEM_CAP)
-            const spreadDeg = Math.min(64, (n - 1) * 22)
-            const stepDeg = n > 1 ? spreadDeg / (n - 1) : 0
-            const angle = 180 + (n > 1 ? (i - (n - 1) / 2) * (spreadDeg / Math.max(n - 1, 1)) : 0)
-            const { x, y } = pointOn(angle, 13)
-            /*
-             * How large the target may be before it reaches its neighbour.
-             *
-             * The marker is 8px and the button sized to it, so the thing you
-             * had to hit was 8x8 - about two millimetres, measured on the
-             * real app - and a miss here is not a no-op, it sends a game
-             * command. WCAG 2.5.8 puts the floor at 24px, and this app's own
-             * design notes worry about players who are not twenty-five.
-             *
-             * 24 does not fit. These sit on an arc of radius 13% at 22
-             * degrees apart, which is 15px between centres on a 300px radar
-             * - measured, and why three items landed at cx 971, 986, 1001.
-             * Forcing 24 made every neighbouring pair overlap by 9px, and
-             * overlapping targets are the worse bug: a stray click stops
-             * being nothing and becomes the wrong item taken.
-             *
-             * So the arc distance is the ceiling and 24px (8% of a 300px
-             * radar) the cap. Three items get 15px, roughly double what they
-             * had, with no ambiguity anywhere; a single item gets the full
-             * 24. Expressed in percent so it holds when the radar is smaller
-             * than 300px, which it is inside a narrow dashboard.
-             */
-            const hitPct = Math.min(8, n > 1 ? 13 * ((stepDeg * Math.PI) / 180) : 100)
-            const overflow =
-              i === RADAR_ITEM_CAP - 1 && items.length > RADAR_ITEM_CAP
-                ? items.length - (RADAR_ITEM_CAP - 1)
-                : 0
-            const label = overflow > 0 ? `${name}, and ${overflow} more on the floor` : name
-            const tooltip = reason ?? `${label} — get ${nounOf(name)}`
+      {/* Advancing hostiles — the compass proper. Everyone else embedded is
+          in one of the four corners below instead. Each is its own attack
+          button: click to swing at whatever is in front of you (the game
+          does not let this app pick a target more specific than that — see
+          `attack`'s own note), tooltip for the full read on what you're
+          about to hit. */}
+      {hasFight
+        ? spread.map((p) => {
+            const stale =
+              p.combatant.enrichedAgeSeconds != null && p.combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS
+            const onYou = p.combatant.target?.toLowerCase() === 'you'
             return (
               <button
-                key={`${name}-${i}`}
+                key={p.key}
                 type="button"
-                disabled={!canSend}
-                onClick={() => take(name)}
-                title={tooltip}
-                /* The marker stays 8px; the thing you have to hit does not.
-                 * The button sized to its content, so the target was 8x8 -
-                 * about two millimetres, measured on the real app - and a
-                 * miss here is not a no-op, it sends a game command. WCAG
-                 * 2.5.8 puts the floor at 24x24 and this app's own design
-                 * notes worry about players who are not twenty-five.
-                 *
-                 * Centring is unchanged: -translate-*-1/2 is half the
-                 * button, so a 24x24 box lands centred on the same point the
-                 * 8x8 one did, with the dot centred inside it. */
-                className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center disabled:cursor-not-allowed"
-                style={{
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  width: `${hitPct}%`,
-                  height: `${hitPct}%`,
-                }}
+                disabled={!canAttack}
+                onClick={attack}
+                className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full disabled:cursor-not-allowed ${stale ? 'opacity-60' : ''}`}
+                style={{ left: `${p.x}%`, top: `${p.y}%`, width: Math.max(24, portraitPx), height: Math.max(24, portraitPx) }}
+                title={`${p.card.name} — ${detailFor(p.card, p.combatant, '')}\n${attackTitle('Attack')}`}
               >
-                <span className="block h-2 w-2 rounded-sm border border-surface bg-accent shadow hover:brightness-125" />
-                <span className="sr-only">{label}</span>
+                <Puck card={p.card} px={portraitPx} ringClass={onYou ? 'border-danger' : 'border-surface'} pulse={onYou} />
               </button>
             )
-          })}
-        </>
-      )}
+          })
+        : !embedded && (
+            <p className="absolute left-1/2 top-1/2 w-32 -translate-x-1/2 -translate-y-1/2 text-center text-xs text-ink-faint">
+              Nothing assessed yet
+            </p>
+          )}
 
-      {/* The gallery ring's markers — allied, people, and any hostile the
-          compass could not place. Dot or portrait only, never an
-          always-visible label: a room can hold more people than a ring of
-          text could ever avoid overlapping, and every one of these already
-          carries its full detail in its own tooltip. */}
-      {gallery.slice(0, GALLERY_CAP).map((g, i) => {
-        const n = Math.min(gallery.length, GALLERY_CAP)
-        const angle = (i / n) * 360
-        const { x, y } = pointOn(angle, GALLERY_RADIUS_PCT)
-        const overflow = i === GALLERY_CAP - 1 && gallery.length > GALLERY_CAP ? gallery.length - (GALLERY_CAP - 1) : 0
-        const portrait = hasArt(g.card.name, g.card.noun)
-        const style = DECK_STYLE[g.card.deck]
-        const label = overflow > 0 ? `and ${overflow} more` : null
-        return (
-          <div
-            key={g.key}
-            className="absolute -translate-x-1/2 -translate-y-1/2"
-            style={{ left: `${x}%`, top: `${y}%` }}
-            title={`${g.card.name} — ${g.detail}${label ? `, ${label} in the room` : ''}`}
-          >
-            {portrait ? (
-              // CreatureArt sizes its own width to 100% of whatever it is
-              // handed — see its own `frame` class — so a dynamic width
-              // (this board's compact/full sizing) has to come from a
-              // wrapper div, not a prop CreatureArt does not accept.
-              <div style={{ width: portraitPx }}>
-                <CreatureArt
-                  name={g.card.name}
-                  noun={g.card.noun}
-                  lore={g.card.lore}
-                  height={portraitPx}
-                  className={`rounded-full border ${style.text.replace('text-', 'border-')}`}
-                />
+      {/* The four corners: mobs not currently advancing, PCs, NPCs, and the
+          floor, each grouped in the corner a circle inscribed in this
+          square board always leaves empty. See CORNERS' own comment for
+          why each grid grows the direction it does. A mob corner puck is
+          also an attack button — closing the gap and swinging is one
+          click, same as the compass; PCs, NPCs and items are not (nothing
+          here should send a command against a person by accident). */}
+      {embedded &&
+        (Object.keys(CORNERS) as Deck[]).map((deck) => {
+          const corner = CORNERS[deck]
+          const entries = cornerEntries[deck]
+          const shown = entries.slice(0, CORNER_CAP)
+          const overflow = entries.length > CORNER_CAP ? entries.length - (CORNER_CAP - 1) : 0
+          return shown.map((entry, i) => {
+            const { x, y } = cornerPoint(corner, i)
+            const isLast = i === shown.length - 1
+            const detail = detailFor(entry.card, entry.combatant, corner.presence)
+            const overflowNote = isLast && overflow > 0 ? ` — and ${overflow} more ${corner.label.toLowerCase()}` : ''
+            const clickable = deck === 'hostile'
+            const body = <Puck card={entry.card} px={cornerPx} ringClass="border-surface" />
+            const commonStyle = { left: `${x}%`, top: `${y}%` }
+            if (clickable) {
+              return (
+                <button
+                  key={entry.key}
+                  type="button"
+                  disabled={!canAttack}
+                  onClick={attack}
+                  className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full disabled:cursor-not-allowed"
+                  style={{ ...commonStyle, width: Math.max(24, cornerPx), height: Math.max(24, cornerPx) }}
+                  title={`${entry.card.name} — ${detail}${overflowNote}\n${attackTitle('Attack')}`}
+                >
+                  {body}
+                </button>
+              )
+            }
+            return (
+              <div
+                key={entry.key}
+                className="absolute -translate-x-1/2 -translate-y-1/2"
+                style={commonStyle}
+                title={`${entry.card.name} — ${detail}${overflowNote}`}
+              >
+                {body}
               </div>
-            ) : (
-              <span
-                className="block rounded-full border border-surface"
-                style={{ width: dotPx, height: dotPx, background: `var(--color-${style.band.replace('bg-', '')})` }}
-              />
-            )}
-          </div>
-        )
-      })}
+            )
+          })
+        })}
 
-      {hasFight ? (
-        spread.map((p) => {
-          const stale =
-            p.combatant.enrichedAgeSeconds != null && p.combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS
-          const portrait = hasArt(p.card.name, p.card.noun)
-          const onYou = p.combatant.target?.toLowerCase() === 'you'
+      {/* The floor — its own corner now, the same as the other three,
+          rather than clustered at your feet: an item is exactly as
+          "somewhere in this room, not precisely located" as an NPC assess
+          never positioned, so it gets the same honest treatment instead of
+          a claim ("at your feet") this app was never actually told. Each
+          puck is an icon guessed from the item's own name (see
+          `iconForItem`) rather than a bare dot — a generic "pile" shape for
+          anything unrecognised, a specific one for the handful of things a
+          player is actually digging through a corpse for. */}
+      {items &&
+        items.length > 0 &&
+        items.slice(0, RADAR_ITEM_CAP).map((name, i) => {
+          const shownCount = Math.min(items.length, RADAR_ITEM_CAP)
+          const { x, y } = cornerPoint(ITEM_CORNER, i)
+          const isLast = i === shownCount - 1
+          const overflow = items.length > RADAR_ITEM_CAP ? items.length - (RADAR_ITEM_CAP - 1) : 0
+          const label = isLast && overflow > 0 ? `${name}, and ${overflow} more on the floor` : name
+          const tooltip = takeReason ?? `${label} — get ${nounOf(name)}`
+          const Icon = iconForItem(name)
           return (
-            <div
-              key={p.key}
-              className="absolute"
-              style={{ left: `${p.x}%`, top: `${p.y}%` }}
-              title={`${p.card.name} — ${p.combatant.relation}, at ${RANGE_WORD[p.combatant.range!]} range${
-                p.combatant.target ? `, targeting ${p.combatant.target}` : ''
-              }${stale ? ` (last assessed ${p.combatant.enrichedAgeSeconds}s ago)` : ''}`}
+            <button
+              key={`${name}-${i}`}
+              type="button"
+              disabled={!canTake}
+              onClick={() => take(name)}
+              title={tooltip}
+              /* 24x24 minimum hit target (WCAG 2.5.8) even though the puck
+                 itself is smaller — a miss here is not a no-op, it sends a
+                 game command. Centring unchanged either way:
+                 -translate-*-1/2 is half the button, so it lands centred
+                 on the same point regardless of which size wins. */
+              className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-surface bg-surface-overlay shadow hover:brightness-125 disabled:cursor-not-allowed"
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                width: Math.max(24, cornerPx),
+                height: Math.max(24, cornerPx),
+              }}
             >
-              <div className={`absolute -translate-x-1/2 -translate-y-1/2 ${stale ? 'opacity-60' : ''}`}>
-                {portrait ? (
-                  <div style={{ width: portraitPx }}>
-                    <CreatureArt
-                      name={p.card.name}
-                      noun={p.card.noun}
-                      lore={p.card.lore}
-                      height={portraitPx}
-                      className={`rounded-full border ${onYou ? 'border-danger' : 'border-surface'}`}
-                    />
-                  </div>
-                ) : (
-                  <span
-                    className={`rounded-full border border-surface ${onYou ? 'animate-pulse bg-danger' : 'bg-warn'}`}
-                    style={{ display: 'block', width: dotPx, height: dotPx }}
-                  />
-                )}
-              </div>
-            </div>
+              <Icon className="text-accent" style={{ width: dotPx, height: dotPx }} aria-hidden />
+              <span className="sr-only">{label}</span>
+            </button>
           )
-        })
-      ) : !embedded ? (
-        <p className="absolute left-1/2 top-1/2 w-32 -translate-x-1/2 -translate-y-1/2 text-center text-xs text-ink-faint">
-          Nothing assessed yet
-        </p>
-      ) : null}
+        })}
     </div>
   )
 
   if (embedded) return disc
 
-  const notFighting = galleryFromHostiles.filter((g) => g.detail !== 'unassessed — nobody has checked yet')
-  const unassessed = galleryFromHostiles.filter((g) => g.detail === 'unassessed — nobody has checked yet')
+  const notFighting = cornerHostiles.filter((g) => g.combatant)
+  const unassessed = cornerHostiles.filter((g) => !g.combatant)
 
   return (
     <div className="flex flex-col gap-2 rounded border border-border bg-surface-raised p-2">
@@ -574,8 +731,8 @@ export function CombatRadar({
 
       {(notFighting.length > 0 || unassessed.length > 0) && (
         <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-border pt-1.5 text-xs">
-          {notFighting.map(({ card, detail }) => (
-            <span key={card.id} className="text-ink-faint" title={detail}>
+          {notFighting.map(({ card, combatant }) => (
+            <span key={card.id} className="text-ink-faint" title={detailFor(card, combatant, '')}>
               {card.name} <span className="text-ink-faint">(not fighting)</span>
             </span>
           ))}
