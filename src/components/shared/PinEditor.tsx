@@ -8,8 +8,8 @@
  * each. A modal needs none - it is the same component either place, which is
  * the same reason MapCanvas itself is shared rather than drawn twice.
  */
-import { useRef, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Trash2, Search } from 'lucide-react'
 import {
   PIN_COLORS,
   PIN_COLOR_HEX,
@@ -56,41 +56,22 @@ export function PinEditor({
   }
 
   /**
-   * Drag-to-scroll for the icon row - see the row's own comment for why this
-   * exists instead of relying on overflow-x-auto's native wheel scrolling.
-   * `moved` is the only thing that decides drag-vs-click: a real click never
-   * moves the pointer more than a pixel or two, so 4px is a click, not a
-   * threshold that needs tuning per input device.
+   * Filtering 372 icons by name - a single scrolling row was the right call
+   * at 50 (see git history), and stopped being one well before 372: even
+   * grab-and-drag scrolling means dragging past three hundred icons to find
+   * one. Dan's own follow-up - "make the picker bigger so that we have more
+   * room to work in there" - is what makes the fix a wider dialog and a
+   * wrapping grid rather than a longer version of the same strip: a grid
+   * that wraps scrolls vertically, which is what a mouse wheel and a
+   * trackpad already do for free, so the custom drag-to-scroll this file
+   * used to carry is gone with it - there is nothing left for it to do.
    */
-  const iconRowRef = useRef<HTMLDivElement | null>(null)
-  const iconDragRef = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null)
-
-  const onIconPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = iconRowRef.current
-    if (!el) return
-    iconDragRef.current = { startX: e.clientX, startScroll: el.scrollLeft, moved: false }
-    el.setPointerCapture(e.pointerId)
-  }
-  const onIconPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = iconRowRef.current
-    const drag = iconDragRef.current
-    if (!el || !drag) return
-    const dx = e.clientX - drag.startX
-    if (Math.abs(dx) > 4) drag.moved = true
-    el.scrollLeft = drag.startScroll - dx
-  }
-  const onIconPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    iconRowRef.current?.releasePointerCapture(e.pointerId)
-  }
-  // Capture phase, so this runs before the icon button's own onClick - a
-  // drag that ended on top of a button must not also select that icon.
-  const onIconClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (iconDragRef.current?.moved) {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-    iconDragRef.current = null
-  }
+  const [iconFilter, setIconFilter] = useState('')
+  const filteredIcons = useMemo(() => {
+    const q = iconFilter.trim().toLowerCase()
+    if (!q) return PIN_ICONS
+    return PIN_ICONS.filter((k) => k.includes(q))
+  }, [iconFilter])
 
   return (
     <div
@@ -98,7 +79,7 @@ export function PinEditor({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xs rounded-lg border border-border bg-surface p-3 shadow-lg"
+        className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-lg border border-border bg-surface p-3 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-sm font-semibold text-ink">
@@ -170,48 +151,48 @@ export function PinEditor({
           ))}
         </div>
 
-        <p className="mt-3 text-xs text-ink-faint">Icon</p>
-        <div className="mt-1 flex items-center gap-1.5">
-          {/* No icon at all is a real, first-class choice - a plain dot on
-              the chart for a place that doesn't fit any of these. Kept
-              outside the scrolling row so it is never the thing a drag
-              scrolls past. */}
-          <button
-            type="button"
-            title="No icon" aria-label="No icon"
-            aria-pressed={icon === undefined}
-            onClick={() => setIcon(undefined)}
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded border ${
-              icon === undefined ? 'border-accent text-accent' : 'border-border text-ink-faint'
-            }`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          </button>
-
-          {/* Fifty icons do not fit in a row at any reasonable width, and
-            * wrapping them into a grid was the alternative - rejected because
-            * a grid this tall would push the colour swatches and the label
-            * field below the fold of a centered modal. A single scrolling
-            * row keeps the dialog's height fixed regardless of how many
-            * icons this list ever grows to.
-            *
-            * Real pointer-driven drag-to-scroll, not just the native
-            * wheel/trackpad scroll overflow-x-auto gives for free - Dan's
-            * ask was specifically "scrollable by grab and drag with mouse."
-            * A click and a drag start identically (pointerdown on a button),
-            * so onClickCapture below swallows the click that would otherwise
-            * fire at the end of a drag - a `moved` flag, not a time or
-            * distance guess, decides which one happened. */}
-          <div
-            ref={iconRowRef}
-            onPointerDown={onIconPointerDown}
-            onPointerMove={onIconPointerMove}
-            onPointerUp={onIconPointerUp}
-            onPointerLeave={onIconPointerUp}
-            onClickCapture={onIconClickCapture}
-            className="flex min-w-0 flex-1 cursor-grab gap-1.5 overflow-x-auto active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {PIN_ICONS.map((key) => {
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="text-xs text-ink-faint">
+            Icon
+            <span className="ml-1 text-ink-faint/70">
+              ({filteredIcons.length} of {PIN_ICONS.length})
+            </span>
+          </p>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-ink-faint" />
+            <input
+              type="text"
+              value={iconFilter}
+              onChange={(e) => setIconFilter(e.target.value)}
+              placeholder="Filter icons…"
+              className="w-36 rounded border border-border bg-surface-overlay py-1 pl-6 pr-2 text-xs text-ink placeholder:text-ink-faint"
+            />
+          </div>
+        </div>
+        {/* The grid is the part that grows and scrolls - everything else in
+          * this dialog (label, colour, story, the buttons) stays put. A
+          * bigger dialog was the actual ask ("make the picker bigger so
+          * that we have more room to work in there"), so the grid gets
+          * most of that new room rather than the whole card just growing
+          * around a picker that stayed the same size. */}
+        <div className="mt-1 min-h-0 flex-1 overflow-y-auto rounded border border-border bg-surface-overlay/40 p-1.5">
+          <div className="flex flex-wrap gap-1.5">
+            {/* No icon at all is a real, first-class choice - a plain dot on
+                the chart for a place that doesn't fit any of these. Excluded
+                from the filter so it's always reachable regardless of what's
+                typed. */}
+            <button
+              type="button"
+              title="No icon" aria-label="No icon"
+              aria-pressed={icon === undefined}
+              onClick={() => setIcon(undefined)}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded border ${
+                icon === undefined ? 'border-accent text-accent' : 'border-border text-ink-faint'
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            </button>
+            {filteredIcons.map((key) => {
               const Icon = PIN_ICON_COMPONENT[key]
               return (
                 <button
@@ -221,14 +202,17 @@ export function PinEditor({
                   aria-label={`Icon: ${key}`}
                   aria-pressed={icon === key}
                   onClick={() => setIcon(key)}
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded border ${
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded border ${
                     icon === key ? 'border-accent text-accent' : 'border-border text-ink-faint'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4.5 w-4.5" />
                 </button>
               )
             })}
+            {filteredIcons.length === 0 && (
+              <p className="p-2 text-xs text-ink-faint">No icon matches “{iconFilter}”.</p>
+            )}
           </div>
         </div>
 
