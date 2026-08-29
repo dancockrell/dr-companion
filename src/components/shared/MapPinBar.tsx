@@ -52,7 +52,7 @@ export function MapPinBar({
           </button>
           <button
             type="button"
-            title="Edit this pin"
+            title="Edit this pin" aria-label="Edit this pin"
             onClick={() => onEdit(pin)}
             className="px-1 py-0.5 text-ink-faint opacity-0 hover:text-ink group-hover:opacity-100"
           >

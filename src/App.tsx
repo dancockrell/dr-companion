@@ -13,7 +13,7 @@ import { PanelWindow } from './components/PanelWindow'
 import { PanelBoundary } from './components/shared/PanelBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock, setMapDock } from './lib/mapDock'
-import { fitColumns } from './lib/columns'
+import { fitColumns, pickReset } from './lib/columns'
 import { useFreeform } from './lib/useLayout'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
@@ -198,8 +198,13 @@ export default function App() {
    * way back except dragging precisely.
    */
   const resetWidths = () => {
-    setMapDock({ width: 300 })
-    setDashW(420)
+    // The decision (what to reset, and why only the offender) lives in
+    // pickReset (lib/columns.ts) - a pure function, so issue #63's scenario
+    // (a stored map of 1728.8px and a dashboard of 510px, only one of which
+    // overshoots) has a real test rather than only this call site.
+    const plan = pickReset({ hostW, mapDocked: dock.docked, mapWant: dock.width, dashWant: dashW, splitW: SPLIT_W })
+    if (plan.map !== null) setMapDock({ width: plan.map })
+    if (plan.dash !== null) setDashW(plan.dash)
   }
 
   /** Small enough to keep a column grabbable, and no opinion beyond that. */

@@ -139,7 +139,7 @@ export function PlaceSearch({
               setActive(0)
               inputRef.current?.focus()
             }}
-            title="Clear the search"
+            title="Clear the search" aria-label="Clear the search"
             className="shrink-0 rounded p-0.5 text-ink-faint hover:text-ink"
           >
             <X className="h-3 w-3" />

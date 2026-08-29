@@ -235,7 +235,7 @@ export function MapWindow() {
             className={`p-1 rounded border ${
               labels ? 'border-accent text-accent' : 'border-border text-ink-faint'
             }`}
-            title="Show room names"
+            title="Show room names" aria-label="Show room names"
             onClick={() => setLabels((v) => !v)}
           >
             <Tag className="w-3.5 h-3.5" />
@@ -244,7 +244,7 @@ export function MapWindow() {
           <button
             type="button"
             className="p-1 rounded border border-border text-ink-faint hover:text-ink disabled:opacity-40"
-            title="Zoom out"
+            title="Zoom out" aria-label="Zoom out"
             disabled={zoom <= WINDOW_ZOOM_MIN}
             onClick={() => zoomBy(1 / 1.3)}
           >
@@ -261,7 +261,7 @@ export function MapWindow() {
           <button
             type="button"
             className="p-1 rounded border border-border text-ink-faint hover:text-ink disabled:opacity-40"
-            title="Zoom in"
+            title="Zoom in" aria-label="Zoom in"
             disabled={zoom >= WINDOW_ZOOM_MAX}
             onClick={() => zoomBy(1.3)}
           >
@@ -270,7 +270,7 @@ export function MapWindow() {
           <button
             type="button"
             className="p-1 rounded border border-border text-ink-faint hover:text-ink"
-            title="Ask Lich for this zone again"
+            title="Ask Lich for this zone again" aria-label="Ask Lich for this zone again"
             onClick={() => bridge.requestIntent('map_zone')}
           >
             <RefreshCw className="w-3.5 h-3.5" />

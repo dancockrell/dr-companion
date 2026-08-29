@@ -48,19 +48,17 @@ import {
 import {
   setMusicVolume,
   musicVolume,
+  onMusicVolumeChange,
   setRadioStation,
   currentRadioStation,
   RADIO_STATIONS,
   setCustomStream,
   currentCustomStream,
-  skipTrack,
-  nowPlaying,
-  onNowPlayingChange,
-  type NowPlaying,
 } from '../../lib/ambientSound'
 import { externalMediaAvailable, sendMediaKey, type MediaAction } from '../../lib/externalMedia'
 import { loadPrefs, savePrefs, type FavoriteStation } from '../../lib/persistence'
 import { cn } from '../../lib/cn'
+import { MusicTransport } from './MusicTransport'
 
 /**
  * One row of the mixer: a mute toggle, a name, a plain-language description
@@ -155,23 +153,23 @@ function ExternalMediaControls() {
         External source (Spotify, browser, etc.)
       </div>
       <div className="flex items-center justify-between gap-1">
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('previous')} title="Previous">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('previous')} title="Previous" aria-label="Previous">
           <SkipBack className="h-3.5 w-3.5" />
         </button>
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('play_pause')} title="Play / pause">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('play_pause')} title="Play / pause" aria-label="Play / pause">
           <Play className="h-3.5 w-3.5" />
         </button>
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('next')} title="Next">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('next')} title="Next" aria-label="Next">
           <SkipForward className="h-3.5 w-3.5" />
         </button>
         <span className="mx-1 h-4 w-px bg-border" />
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_down')} title="Volume down">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_down')} title="Volume down" aria-label="Volume down">
           <Volume1 className="h-3.5 w-3.5" />
         </button>
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_up')} title="Volume up">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_up')} title="Volume up" aria-label="Volume up">
           <Volume2 className="h-3.5 w-3.5" />
         </button>
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('mute')} title="Mute / unmute">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('mute')} title="Mute / unmute" aria-label="Mute / unmute">
           <VolumeX className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -196,11 +194,12 @@ export function SoundControls() {
   const [customUrl, setCustomUrl] = useState(currentCustomStream() ?? '')
   const [customName, setCustomName] = useState('')
   const [favorites, setFavorites] = useState<FavoriteStation[]>(() => loadPrefs().favoriteStations ?? [])
-  const [now, setNow] = useState<NowPlaying | null>(() => nowPlaying())
-  // Subscribes rather than polls - a track change (radio/zone advancing on
-  // its own between user actions) has to reach this line without the player
-  // touching a slider first.
-  useEffect(() => onNowPlayingChange(setNow), [])
+  // The OS media-session play/pause buttons (initMediaSession in
+  // ambientSound.ts) can change this volume without this panel's own slider
+  // ever being touched - subscribe so the slider doesn't silently disagree
+  // with what's actually playing, which is exactly the failure mode "no
+  // separate mute flag" exists to prevent everywhere else in this file.
+  useEffect(() => onMusicVolumeChange(setMusic), [])
   // One ref for the whole control - the quick-mute button, the Sound
   // trigger, and the panel are all descendants of it. Two separate refs
   // (trigger, panel) missed the mute button once already: clicking it read
@@ -439,33 +438,12 @@ export function SoundControls() {
           />
 
           <div className="mt-3 border-t border-border pt-2">
-            {/* What's actually in the music slot right now, plus track-skip -
-              * a bare slider doesn't tell a listener what they're hearing or
-              * let them move past a track they don't want. */}
-            <div className="mb-2 flex items-center gap-1">
-              <button
-                type="button"
-                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
-                onClick={() => skipTrack(-1)}
-                disabled={!!customUrl}
-                title="Previous track"
-              >
-                <SkipBack className="h-3 w-3" />
-              </button>
-              <div className="flex-1 truncate text-xs text-ink" title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}>
-                {now ? now.title : 'Silent'}
-                {now?.composer ? <span className="text-ink-muted"> — {now.composer}</span> : null}
-              </div>
-              <button
-                type="button"
-                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
-                onClick={() => skipTrack(1)}
-                disabled={!!customUrl}
-                title="Next track"
-              >
-                <SkipForward className="h-3 w-3" />
-              </button>
-            </div>
+            {/* Prev/play-pause/next plus the title - a bare slider doesn't
+              * tell a listener what they're hearing, let them move past a
+              * track they don't want, or actually pause it. Shared with
+              * SafetyFooter's own copy - see MusicTransport's header. */}
+            <MusicTransport className="mb-2" />
+
 
             {/* Favorites, first class: a player's own saved stations up
               * front, not buried below a list of six they may not want. One
@@ -618,7 +596,7 @@ export function SoundControls() {
                 <button
                   type="submit"
                   className="shrink-0 rounded border border-border px-2 py-1 text-ink-faint hover:text-ink"
-                  title="Play this stream"
+                  title="Play this stream" aria-label="Play this stream"
                 >
                   <Radio className="h-3 w-3" />
                 </button>
@@ -626,7 +604,7 @@ export function SoundControls() {
                   type="button"
                   className="shrink-0 rounded border border-border px-2 py-1 text-ink-faint hover:text-accent disabled:opacity-30"
                   disabled={!customUrl.trim()}
-                  title="Save to favorites"
+                  title="Save to favorites" aria-label="Save to favorites"
                   onClick={() => {
                     const url = customUrl.trim()
                     if (!url) return

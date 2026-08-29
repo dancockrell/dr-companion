@@ -52,7 +52,7 @@ import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsVolume, setDangerVolume, setSpeechVolume } from '../../lib/alertSound'
-import { setZone, setMusicVolume, setRadioStation, setCustomStream } from '../../lib/ambientSound'
+import { setZone, setMusicVolume, setRadioStation, setCustomStream, initMediaSession } from '../../lib/ambientSound'
 import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
@@ -228,6 +228,9 @@ export function GamePane() {
    * the levels back out when a slider is actually moved.
    */
   useEffect(() => {
+    // Once, regardless of how many times this effect's dependencies change -
+    // registering the same media-key handlers twice is harmless but pointless.
+    initMediaSession()
     const prefs = loadPrefs()
     setAlertsVolume(prefs.alertsVolume ?? 0)
     setDangerVolume(prefs.dangerVolume ?? 0)

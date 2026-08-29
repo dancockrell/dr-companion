@@ -465,7 +465,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               <button
                 type="button"
                 className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-                title="Zoom out"
+                title="Zoom out" aria-label="Zoom out"
                 disabled={dock.zoom <= ZOOM_MIN}
                 onClick={() => zoomBy(1 / 1.3)}
               >
@@ -485,7 +485,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               <button
                 type="button"
                 className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-                title="Zoom in"
+                title="Zoom in" aria-label="Zoom in"
                 disabled={dock.zoom >= ZOOM_MAX}
                 onClick={() => zoomBy(1.3)}
               >
@@ -823,7 +823,7 @@ function Shell({
             <button
               type="button"
               className="p-1 rounded text-ink-faint hover:text-ink"
-              title="Open the map in its own window"
+              title="Open the map in its own window" aria-label="Open the map in its own window"
               onClick={onPopOut}
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -833,7 +833,7 @@ function Shell({
             <button
               type="button"
               className="p-1 rounded text-ink-faint hover:text-ink"
-              title="Ask Lich for this zone again"
+              title="Ask Lich for this zone again" aria-label="Ask Lich for this zone again"
               onClick={onRefresh}
             >
               <RefreshCw className="w-3.5 h-3.5" />

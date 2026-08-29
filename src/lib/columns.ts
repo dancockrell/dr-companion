@@ -59,6 +59,31 @@ export const ROOM_MIN = 380
 export const COL_MIN = 80
 
 /**
+ * The width below which the dashboard stops reflowing and starts hiding.
+ *
+ * COL_MIN is one number for two columns whose content behaves nothing alike.
+ * The map is a canvas: squeeze it and it shows less map, which is a smaller
+ * version of the same thing. The dashboard is a two-column grid —
+ * `[grid-template-columns:1fr_minmax(15rem,22rem)]` in DashboardLayout — and
+ * its right column cannot go under 15rem. Below the total it does not reflow
+ * to one column, because the panels are placed by explicit `col-start-2`. It
+ * overflows its own box and the surplus goes behind a horizontal scrollbar
+ * that Windows draws only on hover.
+ *
+ * Measured on the real app at an 1180px window: the column was fitted to
+ * 209px around content that laid out to 382px, so 173px of dashboard —
+ * four macro buttons among it — sat off-view with nothing saying so. The
+ * layout was scaling both columns by the same factor, which is fair and is
+ * the wrong rule when only one of them has a floor it must not cross.
+ *
+ * 240 (15rem, the pinned right column) + 130 (the left column at its own
+ * content minimum) + 12 (gap and padding). If the grid template above
+ * changes, this changes with it — see the fitColumns test that asserts the
+ * dashboard renders without horizontal overflow at exactly this width.
+ */
+export const DASH_MIN = 382
+
+/**
  * What an empty map column asks for, instead of the player's stored width.
  *
  * "Empty" here means literally nothing to look at - no bridge, or connected
@@ -73,6 +98,70 @@ export const MAP_EMPTY_WANT = 220
 
 /** Same reasoning, for the dashboard's "waiting for a character" state. */
 export const DASH_EMPTY_WANT = 300
+
+/** The widths the app ships with. The map's matches `DEFAULT` in mapDock.ts. */
+export const DEFAULT_MAP_W = 300
+export const DEFAULT_DASH_W = 420
+
+export interface ResetPlan {
+  /** New width to set, or null to leave that column's stored preference alone. */
+  map: number | null
+  dash: number | null
+}
+
+/**
+ * What "Reset widths" should actually change - see issue #63.
+ *
+ * It used to reset both columns unconditionally, on the reasoning that the
+ * banner only shows when something doesn't fit, so something must be wrong
+ * with both. Measured live: a stored map of 1728.8px and a dashboard of
+ * 510px in a 1518px window. The room floor leaves 1138px for the pair; the
+ * dashboard's 510 fits inside that on its own and only the map does not.
+ * Resetting both took a deliberately-set dashboard width back to default
+ * for a drag made on the *other* divider.
+ *
+ * So: try putting the bigger overshoot back to default on its own first. If
+ * that alone fits, the other column's preference was never the problem and
+ * is kept. Only when neither alone is enough do both reset - and on a
+ * window too narrow even for both defaults, that still won't fit, which is
+ * correct: there is no width to be found, and the banner staying up says so
+ * rather than a button that appears to have done nothing.
+ *
+ * A column already at its own default cannot be "the one that overshot",
+ * which is why this compares against DEFAULT_MAP_W/DEFAULT_DASH_W rather
+ * than just picking the larger of the two raw widths.
+ */
+export function pickReset({
+  hostW,
+  mapDocked,
+  mapWant,
+  dashWant,
+  splitW,
+}: {
+  hostW: number
+  mapDocked: boolean
+  /** dock.width - only meaningful while mapDocked. */
+  mapWant: number
+  dashWant: number
+  splitW: number
+}): ResetPlan {
+  // The map is not on screen to be blamed for anything.
+  if (!mapDocked) {
+    return { map: null, dash: DEFAULT_DASH_W }
+  }
+
+  const forColumns = hostW - splitW * 2 - ROOM_MIN
+  const mapOver = mapWant - DEFAULT_MAP_W
+  const dashOver = dashWant - DEFAULT_DASH_W
+
+  if (mapOver >= dashOver && DEFAULT_MAP_W + dashWant <= forColumns) {
+    return { map: DEFAULT_MAP_W, dash: null }
+  }
+  if (dashOver > mapOver && mapWant + DEFAULT_DASH_W <= forColumns) {
+    return { map: null, dash: DEFAULT_DASH_W }
+  }
+  return { map: DEFAULT_MAP_W, dash: DEFAULT_DASH_W }
+}
 
 export interface ColumnFit {
   /** The map column's width, or 0 when it is not docked. */
@@ -112,8 +201,12 @@ export function fitColumns({
   // it to justify the space.
   const mapWantEffective = mapEmpty ? Math.min(mapWant, MAP_EMPTY_WANT) : mapWant
   const dashWantEffective = dashEmpty ? Math.min(dashWant, DASH_EMPTY_WANT) : dashWant
+  // An empty dashboard has nothing to hide, so it keeps the grabbable sliver.
+  // A populated one may not go under DASH_MIN: below that it stops reflowing
+  // and starts concealing controls behind a hover-only scrollbar.
+  const dashFloor = dashEmpty ? COL_MIN : DASH_MIN
   const mapAsked = mapDocked ? Math.max(COL_MIN, mapWantEffective) : 0
-  const dashAsked = Math.max(COL_MIN, dashWantEffective)
+  const dashAsked = Math.max(dashFloor, dashWantEffective)
 
   // Before the layout has measured itself there is nothing to fit against, and
   // returning the requests unchanged is right: the very next frame corrects it,
@@ -135,13 +228,21 @@ export function fitColumns({
   }
 
   // Not enough. Scale both toward their minimum by the same factor.
-  const floor = (mapDocked ? COL_MIN : 0) + COL_MIN
+  //
+  // Same factor, different floors. Equal scaling is the right fairness rule
+  // between two preferences nobody ranked, and it was being applied as though
+  // both columns could absorb it equally. They cannot: the map degrades into
+  // less map, the dashboard degrades into hidden buttons. So each column now
+  // scales from its own floor, and the dashboard's floor is the width its
+  // content actually needs rather than the width a divider needs to be
+  // grabbable.
+  const floor = (mapDocked ? COL_MIN : 0) + dashFloor
   const slack = asked - floor
   const room = Math.max(0, forColumns - floor)
   const keep = slack > 0 ? Math.max(0, Math.min(1, room / slack)) : 0
 
   const map = mapDocked ? COL_MIN + (mapAsked - COL_MIN) * keep : 0
-  const dash = COL_MIN + (dashAsked - COL_MIN) * keep
+  const dash = dashFloor + (dashAsked - dashFloor) * keep
 
   return {
     map: Math.round(map),

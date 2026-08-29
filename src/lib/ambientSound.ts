@@ -94,6 +94,23 @@ const TRACK_META: Record<string, { title: string; composer: string }> = Object.f
   (manifest.radio ?? []).map((r) => [r.id, { title: r.title, composer: r.composer }])
 )
 
+/**
+ * Track id -> linear gain multiplier, from `tools/measure-loudness.mjs`'s
+ * `gainDb` (0 for a track it hasn't measured yet, or measured as already at
+ * the target). Sourced from a dozen-plus uploaders across Wikimedia and
+ * OpenGameArt with no consistent mastering between them - a real sample
+ * measured a 25+ dB spread in mean volume before this existed, meaning the
+ * quietest track in that sample was roughly a nineteenth the perceived
+ * loudness of the loudest at an identical slider position. This is the
+ * per-track correction; `Layer.play()`'s `trackGain` param is where it's
+ * actually applied, multiplied together with `mix` and the listener's own
+ * gain the same way alertSound.ts corrected the alert WAVs on 28 Aug 2026,
+ * just per-track instead of once for a handful of shared files.
+ */
+const TRACK_GAIN: Record<string, number> = Object.fromEntries(
+  (manifest.radio ?? []).map((r) => [r.id, 10 ** ((r.gainDb ?? 0) / 20)])
+)
+
 interface ZoneManifestEntry {
   tracks?: string[]
   character?: string
@@ -122,21 +139,34 @@ const TICK_MS = 50
  * The one music layer, faded rather than cut. Loops by default; radio and
  * zone playlists both turn that off and drive `onEnded` instead.
  *
- * Volume has two parts, multiplied together. `mix` is the level the caller
+ * Volume has three parts, multiplied together. `mix` is the level the caller
  * asks for at `play()` time - kept deliberately modest (0.22, Dan's "blend
  * into the background" instruction, 28 Aug 2026) so the 100% gain position
  * is already a reasonable level rather than a starting point to find by ear.
  * `gain` is the listener's own slider, 0 to 1.5 (0% to 150%), default 1 -
  * turning gain to 0 is how this goes silent; there is no separate mute flag
- * to fall out of sync with the slider.
+ * to fall out of sync with the slider. `trackGain` (29 Aug 2026) corrects
+ * for the source material itself - see `TRACK_GAIN`'s own header - and is
+ * the only one of the three that changes with every track rather than
+ * staying fixed for a whole listening session.
+ *
+ * The product of all three is clamped to 1.0 before ever reaching
+ * `el.volume` - `HTMLAudioElement.volume` is spec-clamped to [0, 1] and
+ * throws in a strict implementation past that, the same ceiling
+ * alertSound.ts already documented and worked around with a GainNode for
+ * alerts. Music doesn't get that route (its volume never needed to exceed
+ * 100% before `trackGain` existed), so the honest ceiling here is simpler:
+ * state the cap and clamp to it, same as alertSound.ts's Web-Audio-less
+ * fallback path does.
  */
 class Layer {
   private el: HTMLAudioElement | null = null
   private mix = 0
   private gain = 1
+  private trackGain = 1
 
   private get target(): number {
-    return this.mix * this.gain
+    return Math.min(1, this.mix * this.gain * this.trackGain)
   }
 
   setGain(v: number) {
@@ -151,9 +181,14 @@ class Layer {
    * station) should not rely on `play` for that; nothing here currently needs
    * to.
    */
-  play(src: string | null, mix = 0.22, opts?: { loop?: boolean; onEnded?: () => void }) {
+  play(
+    src: string | null,
+    mix = 0.22,
+    opts?: { loop?: boolean; onEnded?: () => void; trackGain?: number }
+  ) {
     if (src === (this.el?.dataset.src ?? null)) return
     this.mix = mix
+    this.trackGain = opts?.trackGain ?? 1
 
     const dying = this.el
     if (dying) this.fadeOutAndStop(dying)
@@ -289,7 +324,11 @@ class RadioPlayer {
   private playCurrent() {
     const track = this.queue[this.pos]
     if (!track) return
-    music.play(RADIO_FILES[track.id], 0.22, { loop: false, onEnded: () => this.advance() })
+    music.play(RADIO_FILES[track.id], 0.22, {
+      loop: false,
+      onEnded: () => this.advance(),
+      trackGain: TRACK_GAIN[track.id],
+    })
     setNowPlaying({ title: track.title, composer: track.composer, source: 'radio' })
   }
 
@@ -342,7 +381,11 @@ class ZoneMusicPlayer {
     const id = this.queue[this.pos]
     const file = id ? RADIO_FILES[id] : undefined
     if (!file) return
-    music.play(file, 0.22, { loop: false, onEnded: () => this.advance() })
+    music.play(file, 0.22, {
+      loop: false,
+      onEnded: () => this.advance(),
+      trackGain: id ? TRACK_GAIN[id] : undefined,
+    })
     const meta = id ? TRACK_META[id] : undefined
     setNowPlaying(meta ? { ...meta, source: 'zone' } : null)
   }
@@ -436,12 +479,45 @@ export function skipTrack(dir: 1 | -1) {
  * starts silent; kept in sync by hand with persistence.ts's own default.
  */
 let musicGain = 0
+const musicVolumeListeners = new Set<(v: number) => void>()
 export function setMusicVolume(v: number) {
   musicGain = Math.max(0, Math.min(1.5, v))
   music.setGain(musicGain)
+  for (const l of musicVolumeListeners) l(musicGain)
 }
 export function musicVolume(): number {
   return musicGain
+}
+/**
+ * Subscribe to volume changes made anywhere, not just by the caller's own
+ * slider - needed once something other than SoundControls' own slider can
+ * change this number, which `initMediaSession` below is: an OS-level pause
+ * has to be visible on the panel too, or the slider would silently disagree
+ * with what's actually playing, the exact bug class this file's own
+ * "no separate mute flag" design was built to avoid.
+ */
+export function onMusicVolumeChange(fn: (v: number) => void): () => void {
+  musicVolumeListeners.add(fn)
+  return () => musicVolumeListeners.delete(fn)
+}
+
+/**
+ * Pause/resume for the media-session play/pause buttons (initMediaSession
+ * below) - remembers the level muted from and restores exactly that, same
+ * "0% is the only mute state, but something has to remember where to go
+ * back to" contract as SoundControls' own per-channel mute buttons. Kept at
+ * the module level rather than in a component so it works regardless of
+ * which UI, if any, is mounted when the OS sends the action.
+ */
+let preMuteMusicGain: number | null = null
+export function pauseMusic() {
+  if (musicGain <= 0) return
+  preMuteMusicGain = musicGain
+  setMusicVolume(0)
+}
+export function resumeMusic() {
+  setMusicVolume(preMuteMusicGain ?? 0.45)
+  preMuteMusicGain = null
 }
 
 /** For a hard reset - leaving a character, or a settings reload. */
@@ -451,4 +527,39 @@ export function stopMusic() {
   customStreamUrl = null
   radio.select(null)
   setNowPlaying(null)
+}
+
+/**
+ * Wire the app's own music into the OS's media controls - Windows' Now
+ * Playing UI/taskbar thumbnail, and physical/software media keys - so
+ * DR Companion is a citizen of the same system it can already send media
+ * keys *to* (see externalMedia.ts). WebView2 is Chromium-based and
+ * `navigator.mediaSession` works the same way it does in a browser, but this
+ * still guards on the API's presence rather than assuming a Tauri build
+ * implies it: `ambient-test.mjs` imports this module in plain Node, where
+ * `navigator` does not exist at all, and a browser without the API should
+ * fail this check the same quiet way it falls back for Web Audio elsewhere
+ * in this file.
+ *
+ * Call once, from a mount effect - not at module scope, which is exactly
+ * where a Node-imported top-level `navigator` reference would throw before
+ * `ambient-test.mjs` ever got to the parts of this file it actually tests.
+ */
+export function initMediaSession() {
+  if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
+
+  const ms = navigator.mediaSession
+  onNowPlayingChange((np) => {
+    ms.metadata = np
+      ? new MediaMetadata({ title: np.title, artist: np.composer || 'DR Companion', album: 'DR Companion' })
+      : null
+    ms.playbackState = np ? 'playing' : 'none'
+  })
+  onMusicVolumeChange((v) => {
+    ms.playbackState = v > 0 ? 'playing' : 'paused'
+  })
+  ms.setActionHandler('play', resumeMusic)
+  ms.setActionHandler('pause', pauseMusic)
+  ms.setActionHandler('previoustrack', () => skipTrack(-1))
+  ms.setActionHandler('nexttrack', () => skipTrack(1))
 }

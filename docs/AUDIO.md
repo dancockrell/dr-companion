@@ -1,5 +1,69 @@
 # The soundscape
 
+**Status, 29 Aug 2026 (later the same day): every radio/zone track is
+loudness-corrected.** `tools/measure-loudness.mjs` (`npm run audio:loudness`)
+measures each of the 233 radio tracks' mean volume (`ffmpeg -t 30 ... -af
+volumedetect`, first 30 seconds - fast, and precise enough for what this is
+correcting rather than mastering to a broadcast spec) and writes a `gainDb`
+onto its `manifest.json` entry: `-20dB target - measured`, clamped to
+`±9dB` so one badly-mastered outlier doesn't get pushed hard enough to
+mostly amplify its own noise floor. A real sample measured a 25+ dB spread
+before this existed - fifteen random tracks ran -15.8 dB to -41.4 dB mean
+volume, meaning the quietest was roughly a nineteenth the perceived
+loudness of the loudest at an identical slider position - sourced from a
+dozen-plus uploaders across Wikimedia and OpenGameArt with no shared
+mastering. `ambientSound.ts`'s `Layer` applies it as `trackGain`, a third
+multiplicative factor alongside `mix` and the listener's slider, clamped to
+1.0 before ever reaching `el.volume` (`HTMLAudioElement.volume` is
+spec-clamped to [0, 1] and throws past that in a strict implementation -
+verified live at the worst case, slider at 150% on the single largest
++9dB-boosted track, no throw). `tools/ambient-test.mjs` asserts every radio
+track carries a `gainDb` and that none exceeds the clamp - sabotage-checked
+(stripped one track's `gainDb`, set another to 20) before being trusted.
+Re-run `npm run audio:loudness` after adding tracks; it skips (and reports)
+anything not vendored locally yet rather than measuring silence as 0.
+
+**Status, 29 Aug 2026: alerts are four channels with per-class throttling,
+the panel is a standard mixer with favorites, and the app talks to the OS's
+own media controls.** Everything below this block and above "What's new..."
+is 28 Aug history; read this one first.
+
+- **Alerts split into three channels** - System (idle warning, disconnects,
+  learning), Danger (creature entering, wounds, bleeding, lodged/attached),
+  Speech (whispers/tells) - so muting one kind of ping doesn't mean muting
+  all of them, which is what emptied the config of wound sounds the first
+  time. `alertGate.ts` (dependency-free, tested in plain Node by
+  `tools/alert-throttle-test.mjs`) is the channel-mapping and throttle logic;
+  `alertSound.ts` is the playback half.
+- **The `wounds` class throttles as a class**, one ding per 30 seconds no
+  matter how many wounds-class lines match in that window, not per sound
+  file. That's what let `dr-genie-settings` put sound back on bleeding,
+  severe wounds, lodged items and parasites without reproducing the
+  "cacophony" that took it off in the first place - see that repo's
+  `Config/highlights.cfg` for the config-side half and its own commit
+  history for the real recordings that replaced the initial Hit.wav
+  placeholder on those four.
+- **The panel (`SoundControls.tsx`) is a standard mixer now** - icon + name +
+  one-line description + slider + percent per channel, each with its own
+  mute button that remembers its level, grouped under "Alerts" and "Music"
+  headers. Opens upward from its footer-anchored trigger (a real bug from
+  the panel growing tall enough to run off the bottom of the window when it
+  still opened downward).
+- **Favorite stations are first class** (`persistence.ts`'s
+  `favoriteStations`) - star any built-in station or a named custom stream
+  URL, one list, one click to play, persists across restarts. The six
+  built-in stations are shown as a real list (name, track count,
+  description) rather than hidden in a `<select>`.
+- **The app is now a citizen of the OS's own media controls, not just a
+  sender to them.** `initMediaSession()` in `ambientSound.ts` sets
+  `navigator.mediaSession.metadata` from whatever's in the `music` slot and
+  answers play/pause/previoustrack/nexttrack - Windows' Now Playing UI and
+  physical media keys can drive the app's own zone/radio music, the mirror
+  image of `externalMedia.ts` sending media keys *to* Spotify or a browser.
+  Guarded on the API's presence (absent under plain Node, where
+  `ambient-test.mjs` imports this module directly) and called once from
+  `GamePane`'s mount effect, never at module scope.
+
 **Status, 28 Aug 2026 (updated same day): ambience is gone for good; music
 is back.** The ambient/zone-music/radio layer was disabled first, then Dan
 clarified within the hour that only the *ambient* half of that was the

@@ -222,7 +222,7 @@ export function Console() {
               type="button"
               className="text-xs flex items-center gap-1 text-ink-faint hover:text-ink"
               onClick={() => void copyAll()}
-              title="Copy everything here, for pasting into a bug report"
+              title="Copy everything here, for pasting into a bug report" aria-label="Copy everything here, for pasting into a bug report"
             >
               {copied ? (
                 <Check className="w-3 h-3 text-good" />
@@ -246,7 +246,7 @@ export function Console() {
               type="button"
               className="text-xs text-ink-faint hover:text-danger"
               onClick={clearLog}
-              title="Clear"
+              title="Clear" aria-label="Clear"
             >
               <Trash2 className="w-3 h-3" />
             </button>

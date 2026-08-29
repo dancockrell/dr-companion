@@ -1412,7 +1412,8 @@
       "download": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg",
       "license": "Public domain",
       "licenseUrl": "https://commons.wikimedia.org/wiki/File:Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg",
-      "attributionRequired": false
+      "attributionRequired": false,
+      "gainDb": 9
     },
     {
       "id": "beethoven-moonlight-2",
@@ -1426,7 +1427,8 @@
       "license": "CC BY-SA 2.0 DE",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/de/",
       "attributionRequired": true,
-      "attributionText": "Beethoven, Moonlight Sonata, 2nd movement, via Wikimedia Commons, CC BY-SA 2.0 DE"
+      "attributionText": "Beethoven, Moonlight Sonata, 2nd movement, via Wikimedia Commons, CC BY-SA 2.0 DE",
+      "gainDb": 2.7
     },
     {
       "id": "beethoven-moonlight-3",
@@ -1440,7 +1442,8 @@
       "license": "CC BY-SA 2.0 DE",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/de/",
       "attributionRequired": true,
-      "attributionText": "Beethoven, Moonlight Sonata, 3rd movement, via Wikimedia Commons, CC BY-SA 2.0 DE"
+      "attributionText": "Beethoven, Moonlight Sonata, 3rd movement, via Wikimedia Commons, CC BY-SA 2.0 DE",
+      "gainDb": -1.6
     },
     {
       "id": "chopin-nocturne-32-1",
@@ -1455,7 +1458,8 @@
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
       "attributionRequired": true,
       "attributionText": "Chopin, Nocturne Op. 32 No. 1, via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Replaced Op. 27 No. 1 (a 49-second excerpt, not the full piece) - Dan's call: stations need full songs, not short loops. Measured every track's duration with ffprobe after this."
+      "note": "Replaced Op. 27 No. 1 (a 49-second excerpt, not the full piece) - Dan's call: stations need full songs, not short loops. Measured every track's duration with ffprobe after this.",
+      "gainDb": 4.2
     },
     {
       "id": "vivaldi-autumn-3",
@@ -1470,7 +1474,8 @@
       "license": "CC BY-SA 4.0",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
       "attributionRequired": true,
-      "attributionText": "Vivaldi, The Four Seasons - Autumn, performed by John Harrison, via Wikimedia Commons, CC BY-SA 4.0"
+      "attributionText": "Vivaldi, The Four Seasons - Autumn, performed by John Harrison, via Wikimedia Commons, CC BY-SA 4.0",
+      "gainDb": 3
     },
     {
       "id": "satie-gymnopedie-3",
@@ -1484,7 +1489,8 @@
       "license": "CC0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "attributionRequired": false,
-      "note": "Ogg-FLAC container, not Ogg-Vorbis like the rest of this station - verify browser playback before trusting it as loud as the others."
+      "note": "Ogg-FLAC container, not Ogg-Vorbis like the rest of this station - verify browser playback before trusting it as loud as the others.",
+      "gainDb": 3.6
     },
     {
       "id": "tarrega-alhambra",
@@ -1498,7 +1504,8 @@
       "license": "CC BY-SA 3.0",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
       "attributionRequired": true,
-      "attributionText": "\"Recuerdos de la Alhambra\" by Francisco Tárrega, performance via Wikimedia Commons, CC BY-SA 3.0"
+      "attributionText": "\"Recuerdos de la Alhambra\" by Francisco Tárrega, performance via Wikimedia Commons, CC BY-SA 3.0",
+      "gainDb": -1
     },
     {
       "id": "romance-anonimo",
@@ -1511,7 +1518,8 @@
       "download": "https://upload.wikimedia.org/wikipedia/commons/3/33/Romance_An%C3%B3nimo_%28Jeux_interdits%29.ogg",
       "license": "CC0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "attributionRequired": false
+      "attributionRequired": false,
+      "gainDb": -0.2
     },
     {
       "id": "albeniz-asturias",
@@ -1527,7 +1535,8 @@
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
       "attributionRequired": true,
       "attributionText": "Albéniz, Asturias (Leyenda), performed by David Hernando Vitores, via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Ogg Skeleton-multiplexed container - verify browser playback before trusting it plays like the plain-Vorbis files in this station."
+      "note": "Ogg Skeleton-multiplexed container - verify browser playback before trusting it plays like the plain-Vorbis files in this station.",
+      "gainDb": -0.3
     },
     {
       "id": "bach-lute-gigue",
@@ -1541,7 +1550,8 @@
       "license": "CC BY-SA 2.0",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
       "attributionRequired": true,
-      "attributionText": "Bach, Lute Suite No. 2, BWV 997, IV. Gigue, via Wikimedia Commons, CC BY-SA 2.0"
+      "attributionText": "Bach, Lute Suite No. 2, BWV 997, IV. Gigue, via Wikimedia Commons, CC BY-SA 2.0",
+      "gainDb": 4.5
     },
     {
       "id": "erquan-yingyue",
@@ -1555,7 +1565,8 @@
       "license": "CC BY-SA 4.0",
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
       "attributionRequired": true,
-      "attributionText": "\"二泉映月\" (Erquan Yingyue), traditional/Abing, performance via Wikimedia Commons, CC BY-SA 4.0"
+      "attributionText": "\"二泉映月\" (Erquan Yingyue), traditional/Abing, performance via Wikimedia Commons, CC BY-SA 4.0",
+      "gainDb": -0.6
     },
     {
       "id": "shika-no-tone",
@@ -1568,7 +1579,8 @@
       "download": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Shikanotoone_new.ogg",
       "license": "Public domain",
       "licenseUrl": "https://commons.wikimedia.org/wiki/File:Shikanotoone_new.ogg",
-      "attributionRequired": false
+      "attributionRequired": false,
+      "gainDb": 7.2
     },
     {
       "id": "santur-concertino",
@@ -1583,7 +1595,8 @@
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
       "attributionRequired": true,
       "attributionText": "Sadeghi/Dehlavi, Concertino for Santur, via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Persian, not Arabic - labelled honestly rather than folded into 'Arabic' for a round genre count. Replaces two earlier picks (oud-jordan, santur-azadehfar) that measured 63s and 70s respectively - real recordings, but short-clip demo material rather than full songs. This one is 14 minutes. A genuine full-length Arabic piece is still worth finding; this station is 3 tracks (Chinese, Japanese, Persian) with no Arabic entry right now, which is more honest than the short Arabic clip it replaced."
+      "note": "Persian, not Arabic - labelled honestly rather than folded into 'Arabic' for a round genre count. Replaces two earlier picks (oud-jordan, santur-azadehfar) that measured 63s and 70s respectively - real recordings, but short-clip demo material rather than full songs. This one is 14 minutes. A genuine full-length Arabic piece is still worth finding; this station is 3 tracks (Chinese, Japanese, Persian) with no Arabic entry right now, which is more honest than the short Arabic clip it replaced.",
+      "gainDb": -3.8
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-ii-andante-musopen-sym",
@@ -1598,7 +1611,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 9
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-iv-allegro-musopen-sym",
@@ -1613,7 +1627,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 9
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-iii-poco-allegretto-mu",
@@ -1628,7 +1643,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 9
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio-mus",
@@ -1643,7 +1659,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": -0.6
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-ii-andante",
@@ -1658,7 +1675,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 9
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-iii-poco-allegretto",
@@ -1673,7 +1691,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 9
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-iv-allegro",
@@ -1688,7 +1707,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 5.9
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio",
@@ -1703,7 +1723,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": -0.6
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-ii-andante-moderato-mu",
@@ -1718,7 +1739,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 5.9
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo-m",
@@ -1733,7 +1755,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 4.3
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-iv-allegro-energico-e-",
@@ -1748,7 +1771,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": -0.4
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-iii-allegro-giocoso-po",
@@ -1763,7 +1787,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": -1.9
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-ii-andante-moderato",
@@ -1778,7 +1803,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 5.8
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-iii-allegro-giocoso",
@@ -1793,7 +1819,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": -1.9
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo",
@@ -1808,7 +1835,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 4.3
     },
     {
       "id": "brahms-symphony-no-1-in-c-minor-op-68-ii-andante-sostenuto-m",
@@ -1823,7 +1851,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 7.1
     },
     {
       "id": "brahms-symphony-no-1-in-c-minor-op-68-iii-un-poco-allegretto",
@@ -1838,7 +1867,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 9
     },
     {
       "id": "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven",
@@ -1853,7 +1883,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Moonlight Sonata (Sharp c minor Sonata) 2nd Movement Beethoven JMC,Han\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -3.4
     },
     {
       "id": "brahms-symphony-no-2-in-d-major-op-73-ii-adagio-non-troppo",
@@ -1868,7 +1899,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 4.3
     },
     {
       "id": "brahms-symphony-no-1-in-c-minor-op-68-i-un-poco-sostenuto-al",
@@ -1883,7 +1915,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": -0.1
     },
     {
       "id": "liszt-sonata-in-b-minor-piano-jorge-bolet-1960",
@@ -1898,7 +1931,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, turbulent"
+      "mood": "dark, turbulent",
+      "gainDb": 9
     },
     {
       "id": "brahms-symphony-no-1-in-c-minor-op-68-iv-adagio-piu-andante-",
@@ -1913,7 +1947,8 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well"
+      "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
+      "gainDb": 5.9
     },
     {
       "id": "sor-op-11-no-2",
@@ -1928,7 +1963,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Sor Op 11 No 2\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.1
     },
     {
       "id": "sor-op-35-no-17",
@@ -1943,7 +1979,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Sor Op 35 No. 17\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -3
     },
     {
       "id": "romance-anonimo-jeux-interdits",
@@ -1957,7 +1994,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.2
     },
     {
       "id": "romanza-espanola",
@@ -1971,7 +2009,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "el-noi-de-la-mare-guitar",
@@ -1986,7 +2025,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 1.5
     },
     {
       "id": "husseyni-saz-semayissi",
@@ -2001,7 +2041,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.7
     },
     {
       "id": "isfahan-gazel-uthman-al-mosuli",
@@ -2016,7 +2057,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.7
     },
     {
       "id": "8-qad-tala-shawqi",
@@ -2032,7 +2074,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"8 Qad tala shawqi\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 1.9
     },
     {
       "id": "marche-de-sa-majeste-imperiale-le-sultan-abdul-hamid-han-ii-",
@@ -2047,7 +2090,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -2.5
     },
     {
       "id": "2-rubba-laylin",
@@ -2063,7 +2107,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"2 Rubba laylin\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.2
     },
     {
       "id": "3-ya-ashiqin",
@@ -2079,7 +2124,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"3 Ya 'ashiqin\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.5
     },
     {
       "id": "1-sallu-ya-ibad",
@@ -2095,7 +2141,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"1 Sallu ya 'ibad\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 1.5
     },
     {
       "id": "7-ludh-bi-n-nabi",
@@ -2111,7 +2158,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"7 Ludh bi-n-nabi\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.3
     },
     {
       "id": "vatan-march",
@@ -2126,7 +2174,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -4.1
     },
     {
       "id": "5-ya-ashiqin",
@@ -2142,7 +2191,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"5 Ya 'ashiqin\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.6
     },
     {
       "id": "rani-ben-afrah",
@@ -2157,7 +2207,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.2
     },
     {
       "id": "istikhbar-zidan",
@@ -2172,7 +2223,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7.3
     },
     {
       "id": "istakhbar-mezmoum",
@@ -2187,7 +2239,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.2
     },
     {
       "id": "selli-houmoumek",
@@ -2202,7 +2255,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 1.7
     },
     {
       "id": "istikhbar-djarka",
@@ -2217,7 +2271,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.3
     },
     {
       "id": "piot-ettourase-elie-bensaid",
@@ -2232,7 +2287,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 0.2
     },
     {
       "id": "lalat-u-l-uns",
@@ -2247,7 +2303,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.4
     },
     {
       "id": "barichai-bocherh-aarbi-elie-bensaid",
@@ -2262,7 +2319,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.1
     },
     {
       "id": "flamenco-sample-by-franciscokeep",
@@ -2278,7 +2336,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Flamenco sample by FRANCISCOKEEP\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3
     },
     {
       "id": "cruz-de-el-bateo-version-couplet-restaurado",
@@ -2294,7 +2353,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"\"Cruz\" de El Bateo versión couplet - restaurado\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "cruz-de-el-bateo-version-couplet-original-01",
@@ -2310,7 +2370,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"\"Cruz\" de El Bateo versión couplet - original 01\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "verditorrijos",
@@ -2325,7 +2386,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3
     },
     {
       "id": "jan-ke-tami-ale-o-pali",
@@ -2341,7 +2403,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Jan Ke Tami - ale o pali\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.5
     },
     {
       "id": "jan-ke-tami-o-weka-tan-ona",
@@ -2357,7 +2420,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Jan Ke Tami - o weka tan ona\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.6
     },
     {
       "id": "jan-ke-tami-o-tawa-e-mi",
@@ -2373,7 +2437,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Jan Ke Tami - o tawa e mi\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.8
     },
     {
       "id": "jan-ke-tami-ma-pona-mawi",
@@ -2389,7 +2454,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Jan Ke Tami - ma pona Mawi\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.7
     },
     {
       "id": "netherworld-shanty-isrc-usuan1100138",
@@ -2405,7 +2471,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Netherworld Shanty (ISRC USUAN1100138)\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -2.6
     },
     {
       "id": "drunken-sailor-performed-by-the-midshipmen-glee-club-1977",
@@ -2420,7 +2487,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.2
     },
     {
       "id": "netherworld-shanty-macleod-kevin-isrc-usuan1100138",
@@ -2436,7 +2504,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Netherworld Shanty (MacLeod, Kevin ) (ISRC USUAN1100138)\", via Wikimedia Commons, CC BY 3.0 us",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -2.6
     },
     {
       "id": "the-natiobar-sea-shanty-vocal",
@@ -2452,7 +2521,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"The Natiobär - Sea Shanty (Vocal)\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.3
     },
     {
       "id": "johnbsails-prickly-bear",
@@ -2468,7 +2538,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JohnBSails - Prickly Bear\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.3
     },
     {
       "id": "howie-mitchell-04-haul-away-joe",
@@ -2484,7 +2555,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Howie Mitchell - 04 - Haul Away Joe\", via Wikimedia Commons, CC BY 3.0 us",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 1.2
     },
     {
       "id": "leis-a-lurrighan",
@@ -2500,7 +2572,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Leis a Lurrighan\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -5.5
     },
     {
       "id": "07-united-states-navy-band-victory-at-sea-songs-of-sailor-an",
@@ -2515,7 +2588,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "mozart-symphony-no-34-c-major-i-allegro-vivace-mozart-europe",
@@ -2530,7 +2604,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7.8
     },
     {
       "id": "mozart-symphony-no-19-in-e-flat-major-i-allegro-mozart-europ",
@@ -2545,7 +2620,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.4
     },
     {
       "id": "mozart-symphony-no-19-in-e-flat-major-iii-menuetto-mozart-eu",
@@ -2560,7 +2636,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.9
     },
     {
       "id": "mozart-symphony-no-19-in-e-flat-major-iv-allegro-mozart-euro",
@@ -2575,7 +2652,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.9
     },
     {
       "id": "mozart-symphony-no-40-in-g-minor-k550-i-molto-allegro-musope",
@@ -2590,7 +2668,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.4
     },
     {
       "id": "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
@@ -2605,7 +2684,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 8.3
     },
     {
       "id": "mozart-symphony-no-19-in-e-flat-major-ii-andantino-grazioso-",
@@ -2620,7 +2700,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.5
     },
     {
       "id": "mozart-symphony-no-34-c-major-ii-andante-di-molto-mozart-eur",
@@ -2635,7 +2716,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "symphony-no-35-in-d-haffner-k-385-iii-minuetto-mozart-europe",
@@ -2650,7 +2732,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.9
     },
     {
       "id": "symphony-no-35-in-d-haffner-k-385-ii-andante-mozart-european",
@@ -2665,7 +2748,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "symphony-no-18-in-f-major-k-130-iii-menuetto-mozart-european",
@@ -2680,7 +2764,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.8
     },
     {
       "id": "symphony-no-35-in-d-haffner-k-385-iv-finale-presto-mozart-eu",
@@ -2695,7 +2780,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.4
     },
     {
       "id": "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
@@ -2710,7 +2796,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.6
     },
     {
       "id": "mozart-symphony-36-kv-425-linz-2",
@@ -2726,7 +2813,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Mozart Symphony 36 KV 425 Linz 2\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "mozart-symphony-36-kv-425-linz-3",
@@ -2742,7 +2830,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Mozart Symphony 36 KV 425 Linz 3\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.6
     },
     {
       "id": "mozart-symphony-36-kv-425-linz-1",
@@ -2758,7 +2847,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Mozart Symphony 36 KV 425 Linz 1\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.2
     },
     {
       "id": "symphony-no-35-in-d-haffner-k-385-i-allegro-con-spirito-moza",
@@ -2773,7 +2863,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2
     },
     {
       "id": "mozart-symphony-36-kv-425-linz-4",
@@ -2789,7 +2880,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Mozart Symphony 36 KV 425 Linz 4\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6
     },
     {
       "id": "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
@@ -2804,7 +2896,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "w-a-mozart-symphony-n-25-ii-andante",
@@ -2820,7 +2913,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"W. A. Mozart - Symphony n. 25 - II. Andante\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "symphony-no-18-in-f-major-k-130-ii-andantino-grazioso-mozart",
@@ -2835,7 +2929,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.3
     },
     {
       "id": "w-a-mozart-symphony-n-25-iv-allegro",
@@ -2851,7 +2946,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"W. A. Mozart - Symphony n. 25 - IV. Allegro\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.4
     },
     {
       "id": "mozart-symphony-no-40-in-g-minor-k550-ii-andante-musopen-sym",
@@ -2866,7 +2962,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "jcza-jczarnecki-flamenco",
@@ -2882,7 +2979,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JCZA - JCzarnecki-Flamenco\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.6
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-02",
@@ -2897,7 +2995,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-13",
@@ -2912,7 +3011,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-06",
@@ -2927,7 +3027,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-08",
@@ -2942,7 +3043,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-07",
@@ -2957,7 +3059,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-04",
@@ -2972,7 +3075,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7.6
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-15",
@@ -2987,7 +3091,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-ii-all",
@@ -3002,7 +3107,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iii-al",
@@ -3017,7 +3123,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-i-adag",
@@ -3032,7 +3139,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iv-fin",
@@ -3047,7 +3155,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "tchaikovsky-theme-from-symphony-no-6-in-b-minor-op-74-pathet",
@@ -3062,7 +3171,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.2
     },
     {
       "id": "tchaikovsky-pathetique-wilhelm-furtwangler-ii-allegro-con-gr",
@@ -3077,7 +3187,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.5
     },
     {
       "id": "tchaikovsky-pathetique-wilhelm-furtwangler-iv-finale-adagio-",
@@ -3092,7 +3203,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.1
     },
     {
       "id": "tchaikovsky-pathetique-wilhelm-furtwangler-iii-allegro-molto",
@@ -3107,7 +3219,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "tchaikovsky-pathetique-wilhelm-furtwangler-i-adagio-allegro-",
@@ -3122,7 +3235,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-2nd-movement",
@@ -3138,7 +3252,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Sergei Rachmaninoff - Concerto 1 in F sharp minor, 2nd movement\", via Wikimedia Commons, CC BY-SA 2.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-1st-movement",
@@ -3154,7 +3269,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Sergei Rachmaninoff - Concerto 1 in F sharp minor, 1st movement\", via Wikimedia Commons, CC BY-SA 2.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.4
     },
     {
       "id": "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-3rd-movement",
@@ -3170,7 +3286,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Sergei Rachmaninoff - Concerto 1 in F sharp minor, 3rd movement\", via Wikimedia Commons, CC BY-SA 2.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 8.7
     },
     {
       "id": "mahler-symphony-no-6-andante-moderato",
@@ -3186,7 +3303,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Mahler Symphony No 6 Andante Moderato\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "mahler-symphony-no-2-iv-urlicht",
@@ -3201,7 +3319,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "mahler-symphony-no-2-ii-andante-moderato",
@@ -3216,7 +3335,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "george-frideric-handel-music-for-the-royal-fireworks-1-overt",
@@ -3232,7 +3352,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"George Frideric Handel - Music for the Royal Fireworks 1 (Overture)\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 0.3
     },
     {
       "id": "george-frideric-handel-music-for-the-royal-fireworks-5-minue",
@@ -3248,7 +3369,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"George Frideric Handel - Music for the Royal Fireworks 5 (Minuet)\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.4
     },
     {
       "id": "george-frideric-handel-music-for-the-royal-fireworks-3-peace",
@@ -3264,7 +3386,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"George Frideric Handel - Music for the Royal Fireworks 3 (Peace)\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "george-frideric-handel-music-for-the-royal-fireworks-4-la-re",
@@ -3280,7 +3403,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"George Frideric Handel - Music for the Royal Fireworks 4 (La Rejouissance)\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.4
     },
     {
       "id": "handel-messiah-44-hallelujah",
@@ -3296,7 +3420,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Handel - messiah - 44 hallelujah\", via Wikimedia Commons, CC BY-SA 2.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.2
     },
     {
       "id": "handel-messiah-01-sinfony-new-version-deleted-3-coughs",
@@ -3312,7 +3437,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Handel - messiah - 01 sinfony - New version (deleted 3 coughs)\", via Wikimedia Commons, CC BY-SA 2.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -2.2
     },
     {
       "id": "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-v-",
@@ -3327,7 +3453,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.4
     },
     {
       "id": "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-i-",
@@ -3342,7 +3469,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 0.2
     },
     {
       "id": "handel-messiah-hallelujah-by-oratorio-chorus",
@@ -3357,7 +3485,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.3
     },
     {
       "id": "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-iv",
@@ -3372,7 +3501,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.4
     },
     {
       "id": "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-ii",
@@ -3387,7 +3517,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "handel-messiah-part-2-scherchen-45-hallelujah",
@@ -3402,7 +3533,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 0.4
     },
     {
       "id": "handel-messiah-23-he-was-despised",
@@ -3418,7 +3550,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Handel - messiah - 23 he was despised\", via Wikimedia Commons, CC BY-SA 2.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "handel-messiah-part-1-scherchen-01-sinfony",
@@ -3433,7 +3566,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.2
     },
     {
       "id": "handel-messiah-01-sinfony",
@@ -3449,7 +3583,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Handel - messiah - 01 sinfony\", via Wikimedia Commons, CC BY-SA 2.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 8.4
     },
     {
       "id": "haydn-symphony-no-94-surprise-2-andante",
@@ -3464,7 +3599,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
@@ -3479,7 +3615,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "haydn-symphony-no-94-surprise-4-finale-allegro-molto",
@@ -3494,7 +3631,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto",
@@ -3509,7 +3647,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.6
     },
     {
       "id": "haydn-symphony-no-100-in-g-major-military-2-allegretto",
@@ -3524,7 +3663,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5
     },
     {
       "id": "haydn-symphony-no-100-in-g-major-military-3-menuetto-moderat",
@@ -3539,7 +3679,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.7
     },
     {
       "id": "haydn-symphony-no-100-in-g-major-military-1-adagio-allegro",
@@ -3554,7 +3695,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.9
     },
     {
       "id": "haydn-symphony-no-100-in-g-major-military-4-finale-presto",
@@ -3569,7 +3711,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 1
     },
     {
       "id": "haydn-surprise-symphony-second-movement",
@@ -3585,7 +3728,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Haydn Surprise Symphony Second Movement\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.7
     },
     {
       "id": "pdp-ch-london-symphony-orchestra-bruno-walter-symphony-no-9-",
@@ -3600,7 +3744,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.7
     },
     {
       "id": "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
@@ -3616,7 +3761,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"The Evergreen Symphony Orchestra - Haydn's Symphony No.104 in D major, Hob.I-104 - II. Andante\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "dvorak-antonin-symphony-no-8-op-88-2-adagio",
@@ -3632,7 +3778,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Dvořák, Antonin — Symphony No. 8, Op. 88 — 2. adagio\", via Wikimedia Commons, CC BY 3.0 us",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.1
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00804-07-jota-canto-de-trabajo-en",
@@ -3648,7 +3795,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00804 07 - Jota. Canto de trabajo (Envasando pipas en la fábrica Facundo)\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -6.1
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-allemande",
@@ -3664,7 +3812,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Allemande\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.3
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-prelude",
@@ -3680,7 +3829,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Prelude\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7.6
     },
     {
       "id": "bach-cello-suite-1-prelude-bwv-1007-played-by-chris",
@@ -3695,7 +3845,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.4
     },
     {
       "id": "bach-cello-suite-bwv-1008-gigue",
@@ -3711,7 +3862,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Bach Cello Suite BWV 1008 Gigue\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-i-prelude-lud-and-",
@@ -3727,7 +3879,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Bach - Cello Suite no. 1 in G major, BWV 1007 - I. Prélude, Lud and Schlatts Musical Emporium\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.2
     },
     {
       "id": "bach-cello-suite-no-5-1-prelude",
@@ -3743,7 +3896,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Bach - Cello Suite No. 5 - 1. Prelude\", via Wikimedia Commons, CC BY-SA 2.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-sarabande",
@@ -3759,7 +3913,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Sarabande\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.9
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-minuets",
@@ -3775,7 +3930,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Minuets\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.2
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-iv-sarabande",
@@ -3790,7 +3946,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7.2
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-prelude",
@@ -3806,7 +3963,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Prelude\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.8
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-i-prelude",
@@ -3821,7 +3979,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-courante",
@@ -3837,7 +3996,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Courante\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-ii-allemande",
@@ -3852,7 +4012,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.9
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-vi-gigue",
@@ -3867,7 +4028,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.3
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-iii-courante",
@@ -3882,7 +4044,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.1
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-g-bourees",
@@ -3898,7 +4061,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in G Bourees\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7.6
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-gigue",
@@ -3914,7 +4078,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Gigue\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7.4
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-courante",
@@ -3930,7 +4095,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Courante\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.9
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-gigue",
@@ -3946,7 +4112,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Gigue\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.7
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-allemande",
@@ -3962,7 +4129,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Allemande\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.4
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-sarabande",
@@ -3978,7 +4146,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Sarabande\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-v-menuets-i-and-ii",
@@ -3993,7 +4162,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.1
     },
     {
       "id": "kevin-macleod-j-s-bach-cello-suite-1-in-g-on-dulcimer-prelud",
@@ -4009,7 +4179,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Kevin MacLeod - J S Bach Cello Suite 1 in G on Dulcimer - Prelude\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -2
     },
     {
       "id": "cello-suite-1-in-g-prelude-isrc-usuan1100298",
@@ -4025,7 +4196,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Cello Suite -1 in G - Prelude (ISRC USUAN1100298)\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.9
     },
     {
       "id": "nadezhda-plevitskaya-za-morem-sinichka",
@@ -4040,7 +4212,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 1.2
     },
     {
       "id": "sargasso",
@@ -4056,7 +4229,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Sargasso\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.7
     },
     {
       "id": "tawtutb-whole-view-5-choruses-with-east-folk-dialogue",
@@ -4072,7 +4246,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"TAWTUTB whole view 5-choruses with East Folk Dialogue\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -4.3
     },
     {
       "id": "marching-through-georgia-by-henry-c-work-sung-by-harlan-stan",
@@ -4087,7 +4262,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.5
     },
     {
       "id": "inleiding-anima-eterna-brugge-jos-van-immerseel-audio",
@@ -4103,7 +4279,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Inleiding Anima Eterna Brugge & Jos van Immerseel (audio)\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "marc-antoine-charpentier-te-deum-h-146-prelude",
@@ -4118,7 +4295,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -3.1
     },
     {
       "id": "te-deum-charpentier",
@@ -4134,7 +4312,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Te Deum Charpentier\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 1.9
     },
     {
       "id": "charpentier-te-deum-prelude",
@@ -4149,7 +4328,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.8
     },
     {
       "id": "te-deum",
@@ -4164,7 +4344,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -3.7
     },
     {
       "id": "pasquale-amato-tosca-te-deum",
@@ -4179,7 +4360,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 8
     },
     {
       "id": "radio-herrijzend-nederland-3-7-1945-dodenherdenking-in-de-st",
@@ -4194,7 +4376,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "cra09583-43-miletin",
@@ -4210,7 +4393,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"CRA09583-43 Miletín\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.5
     },
     {
       "id": "inleiding-staatskoor-van-letland-audio",
@@ -4226,7 +4410,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Inleiding Staatskoor van Letland (audio)\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.4
     },
     {
       "id": "inleiding-le-concert-spirituel-olv-herve-niquet-charpentier-",
@@ -4242,7 +4427,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Inleiding Le Concert Spirituel olv. Hervé Niquet - Charpentier (audio)\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.7
     },
     {
       "id": "inleiding-koor-en-orkest-collegium-vocale-gent-olv-philippe-",
@@ -4258,7 +4444,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Inleiding Koor en Orkest Collegium Vocale Gent olv. Philippe Herreweghe (audio)\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "inleiding-le-concert-spirituel-herve-niquet-audio",
@@ -4274,7 +4461,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Inleiding Le Concert Spirituel - Hervé Niquet (audio)\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.6
     },
     {
       "id": "hmv-da1480-ola1015",
@@ -4289,7 +4477,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "handel-zadok-the-priest-hwv-258-st-matthew-s-concert-choir",
@@ -4305,7 +4494,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Handel - Zadok the Priest, HWV 258 (St Matthew's Concert Choir)\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "inleiding-koor-orkest-collegium-vocale-gent-audio",
@@ -4321,7 +4511,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Inleiding Koor & Orkest Collegium Vocale Gent (audio)\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -2.8
     },
     {
       "id": "inleiding-le-concert-spirituel-olv-herve-niquet-audio",
@@ -4337,7 +4528,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Inleiding Le Concert Spirituel olv. Hervé Niquet (audio)\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7
     },
     {
       "id": "cra09583-09a-dobruska",
@@ -4353,7 +4545,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"CRA09583-09a Dobruška\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.3
     },
     {
       "id": "cra09583-44-mirotice",
@@ -4369,7 +4562,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"CRA09583-44 Mirotice\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 1.5
     },
     {
       "id": "inleiding-anima-eterna-jos-van-immerseel-audio",
@@ -4385,7 +4579,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Inleiding Anima Eterna - Jos Van Immerseel (audio)\", via Wikimedia Commons, CC BY 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "kec-cioglu-m-h-mm-d-coban-bayat",
@@ -4400,7 +4595,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -6.6
     },
     {
       "id": "cabbar-qaryagd-oglu-bayat-qacar",
@@ -4415,7 +4611,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -4.2
     },
     {
       "id": "yaseen-surah-al-quran-ahmad-mulkliff-mohd-nor-haji-ibrahim-8",
@@ -4431,7 +4628,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"YASEEN Surah Al Quran - AHMAD MULKLIFF MOHD NOR HAJI IBRAHIM 870604 29 5559\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.7
     },
     {
       "id": "harry-martinson-berattar-om-olika-slags-sea-shanties-smv-sva",
@@ -4446,7 +4644,8 @@
       "license": "CC0",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.9
     },
     {
       "id": "maqam-sika-1931",
@@ -4460,7 +4659,8 @@
       "license": "Public domain",
       "licenseUrl": "https://commons.wikimedia.org/wiki/File:Art-song_Maqam_Sika_(1931).ogg",
       "attributionRequired": false,
-      "mood": "arabic, period-authentic (1931 recording)"
+      "mood": "arabic, period-authentic (1931 recording)",
+      "gainDb": 6.4
     },
     {
       "id": "baschrav-kuzum-hijaz-1",
@@ -4474,7 +4674,8 @@
       "license": "Public domain",
       "licenseUrl": "https://commons.wikimedia.org/wiki/File:Baschrav_Kuzum_Maqam_Hijaz_part_1_(1931).ogg",
       "attributionRequired": false,
-      "mood": "arabic, period-authentic (1931 recording)"
+      "mood": "arabic, period-authentic (1931 recording)",
+      "gainDb": 6.7
     },
     {
       "id": "baschrav-kuzum-hijaz-2",
@@ -4488,7 +4689,8 @@
       "license": "Public domain",
       "licenseUrl": "https://commons.wikimedia.org/wiki/File:Baschrav_Kuzum_Maqam_Hijaz_part_2_(1931).ogg",
       "attributionRequired": false,
-      "mood": "arabic, period-authentic (1931 recording)"
+      "mood": "arabic, period-authentic (1931 recording)",
+      "gainDb": 3.8
     },
     {
       "id": "ala-fi-sabil-allah",
@@ -4502,7 +4704,8 @@
       "license": "Public domain",
       "licenseUrl": "https://commons.wikimedia.org/wiki/File:Ala_fi_Sabil_Allah.ogg",
       "attributionRequired": false,
-      "mood": "arabic, period-authentic"
+      "mood": "arabic, period-authentic",
+      "gainDb": 1.1
     },
     {
       "id": "aldahre-kata-awsali-1914",
@@ -4516,7 +4719,8 @@
       "license": "Public domain",
       "licenseUrl": "https://commons.wikimedia.org/wiki/File:Aldahre_Kata_Awsali_(c._1914).ogg",
       "attributionRequired": false,
-      "mood": "arabic, genuinely pre-1960 (1914 recording, Dan asked for this specifically)"
+      "mood": "arabic, genuinely pre-1960 (1914 recording, Dan asked for this specifically)",
+      "gainDb": 0.6
     },
     {
       "id": "al-watan-al-akbar",
@@ -4530,7 +4734,8 @@
       "license": "Public domain",
       "licenseUrl": "https://commons.wikimedia.org/wiki/File:Al_Watan_Al_Akbar_-_Pan-Arabic_Patriotic_Anthem.ogg",
       "attributionRequired": false,
-      "mood": "arabic, grand/orchestral, period"
+      "mood": "arabic, grand/orchestral, period",
+      "gainDb": -2
     },
     {
       "id": "the-message-of-the-violet-from-the-prince-of-pilsen-1902-sun",
@@ -4545,7 +4750,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 2.7
     },
     {
       "id": "fiddles-mcginty-isrc-usuan1400051",
@@ -4561,7 +4767,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fiddles McGinty (ISRC USUAN1400051)\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -6.1
     },
     {
       "id": "cc0-ch-london-brass-players-a-trumpet-voluntary-jeremiah-cla",
@@ -4576,7 +4783,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -7.4
     },
     {
       "id": "clarke-trumpet-voluntary",
@@ -4592,7 +4800,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Clarke Trumpet Voluntary\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.5
     },
     {
       "id": "pdp-ch-the-halle-trumpet-voluntary-columbia-l1986-ax2660",
@@ -4607,7 +4816,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.9
     },
     {
       "id": "jeremiah-clarke-prince-of-denmarks-march-harpsichord",
@@ -4623,7 +4833,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Jeremiah Clarke - Prince of Denmarks March Harpsichord\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "funeral-march-for-queen-mary-h-purcell-opus",
@@ -4639,7 +4850,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Funeral March for Queen Mary - H. Purcell\", via Wikimedia Commons, CC BY 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.8
     },
     {
       "id": "columbia-dx1536-cax10357",
@@ -4654,7 +4866,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -7.4
     },
     {
       "id": "intermezzo-from-goyescas-u-s-marine-band",
@@ -4669,7 +4882,8 @@
       "license": "Public domain",
       "licenseUrl": "",
       "attributionRequired": false,
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -2.3
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00314b-10-fandanguillo-critica-a-",
@@ -4685,7 +4899,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00314B 10 - Fandanguillo. Crítica a la Iglesia\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 0.8
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00353-04-fandanguillos",
@@ -4701,7 +4916,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00353 04 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -3.7
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00237-03-fandanguillos",
@@ -4717,7 +4933,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00237 03 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -3.6
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00920-06-fandanguillos",
@@ -4733,7 +4950,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00920 06 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -0.3
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00278-04a-fandanguillo",
@@ -4749,7 +4967,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00278 04A - Fandanguillo\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.4
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00353-16-fandanguillos",
@@ -4765,7 +4984,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00353 16 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -3.1
     },
     {
       "id": "fermin-pardo-cinta-315-a",
@@ -4781,7 +5001,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 315-A\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.7
     },
     {
       "id": "fermin-pardo-cinta-65-b",
@@ -4797,7 +5018,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 65-B\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "fermin-pardo-cinta-53-a",
@@ -4813,7 +5035,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 53-A\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.4
     },
     {
       "id": "fermin-pardo-cinta-275-b",
@@ -4829,7 +5052,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 275-B\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 3.8
     },
     {
       "id": "fermin-pardo-cinta-147-b",
@@ -4845,7 +5069,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 147-B\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "fermin-pardo-cinta-145-a",
@@ -4861,7 +5086,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 145-A\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7.8
     },
     {
       "id": "fermin-pardo-cinta-146-b",
@@ -4877,7 +5103,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 146-B\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 9
     },
     {
       "id": "fermin-pardo-cinta-144-b",
@@ -4893,7 +5120,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 144-B\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 4.1
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00585b-19-el-pernales",
@@ -4909,7 +5137,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00585B 19 - El Pernales\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 0.3
     },
     {
       "id": "fermin-pardo-cinta-315-b",
@@ -4925,7 +5154,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 315-B\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 6.8
     },
     {
       "id": "fermin-pardo-cinta-26-b",
@@ -4941,7 +5171,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 26-B\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 7.9
     },
     {
       "id": "fermin-pardo-cinta-60-a",
@@ -4957,7 +5188,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 60-A\", via Wikimedia Commons, CC BY-SA 4.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": 5.9
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00920-15-fandango",
@@ -4973,7 +5205,8 @@
       "licenseUrl": "",
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00920 15 - Fandango\", via Wikimedia Commons, CC BY-SA 3.0",
-      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished."
+      "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
+      "gainDb": -1.5
     }
   ]
 }

@@ -34,6 +34,21 @@ export function AppControls() {
 
   const live = setupComplete && bridgeConnected && character?.connected === true
 
+  /*
+   * Named once and read twice, as `title` and as `aria-label`.
+   *
+   * These two are icon-only, so a `title` was their entire name - and a title
+   * is the last fallback in the accessible-name order as well as being a
+   * hover, which is no answer to a question asked by glancing. An
+   * `aria-label` is the name itself.
+   *
+   * A const rather than the expression written out twice: the two would agree
+   * today and drift the first time somebody rewords a toggle, and a label
+   * that disagrees with its own tooltip is worse than either alone.
+   */
+  const mapLabel = mapDock.docked ? 'Hide the map column' : 'Show the map column'
+  const pinLabel = alwaysOnTop ? 'Unpin' : 'Always on top'
+
   return (
     <>
       <div className="pointer-events-none absolute right-1 top-1 z-40 flex items-center gap-1">
@@ -88,7 +103,8 @@ export function AppControls() {
          * separately from whether it is showing. */}
         <button
           type="button"
-          title={mapDock.docked ? 'Hide the map column' : 'Show the map column'}
+          title={mapLabel}
+          aria-label={mapLabel}
           className={cn(
             'pointer-events-auto rounded p-1 text-ink-faint hover:text-ink',
             mapDock.docked && 'text-accent'
@@ -100,7 +116,8 @@ export function AppControls() {
 
         <button
           type="button"
-          title={alwaysOnTop ? 'Unpin' : 'Always on top'}
+          title={pinLabel}
+          aria-label={pinLabel}
           className={cn(
             'pointer-events-auto rounded p-1 text-ink-faint hover:text-ink',
             alwaysOnTop && 'text-accent'
@@ -116,7 +133,7 @@ export function AppControls() {
 
         <button
           type="button"
-          title="Settings"
+          title="Settings" aria-label="Settings"
           className="pointer-events-auto rounded p-1 text-ink-faint hover:text-ink"
           onClick={() => setSettingsOpen(true)}
         >

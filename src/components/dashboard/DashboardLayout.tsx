@@ -2,7 +2,6 @@ import { useSyncExternalStore } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
 import { Box } from '../shared/Box'
-import { CardDeck } from '../shared/CardDeck'
 import { TaskFlowPanel } from './TaskFlowPanel'
 import { QuickQueuePanel } from '../shared/QuickQueuePanel'
 import { MindstateBoard } from '../shared/MindstateBoard'
@@ -19,9 +18,6 @@ import { RiskBar } from '../shared/RiskBar'
 import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
 import { PanelBoundary } from '../shared/PanelBoundary'
-import { fromRoom } from '../../lib/room'
-import type { Deck } from '../../lib/cards'
-import type { DeckPref } from '../../lib/layout'
 import { useHiddenMiddlePanels } from '../../lib/panelVisibility'
 
 /**
@@ -40,14 +36,11 @@ import { useHiddenMiddlePanels } from '../../lib/panelVisibility'
  *     question in a fight and the answer never moves. The name is not in this
  *     box any more, it reads once beside the zone in the map header, so the
  *     height it was spending on a header row goes to the portrait and doll.
- *   - **Battle, People** stack under you, in that order: what is trying to
- *     kill you, and who else is here.
- *   - Room items are deliberately NOT here. They render as scene chips in
- *     RoomChips ("On the floor", with click-to-take), which is the same call
- *     already made for People and Hostile - one deck, one place it renders,
- *     rather than a list beside a picture saying the same thing twice. An
- *     Objects box was kept here as the exception only while nothing else
- *     showed the floor, and that stopped being true.
+ *   - **Objects** sits under you: what's on the floor worth taking. Who's
+ *     hostile and who's here used to duplicate here as list boxes — the same
+ *     cards RoomColumn's scene now shows as chips on the room picture itself.
+ *     One deck, one place it renders, not a list beside a picture saying the
+ *     same thing twice.
  *   - **Experience** runs under the map, because it is read between fights
  *     rather than during one, and it wants width more than height.
  *   - **Actions** pin to the bottom, and the one stop bar sits under them in
@@ -105,23 +98,19 @@ import { useHiddenMiddlePanels } from '../../lib/panelVisibility'
  *   **Every box here is also individually optional**, on top of whichever set
  *   Basic/Power already picked — `useHiddenMiddlePanels()`
  *   (`lib/panelVisibility.ts`), toggled from Settings. That module's own
- *   header explains why this isn't `layout.ts`'s `Layout`/`PanelId`: half
- *   these boxes (People, Quick Queue, You) have no `PanelId` at all, having
- *   never participated in freeform or pop-out. A box hidden this way is
- *   removed outright, not collapsed — Basic's curated baseline is a floor
+ *   header explains why this isn't `layout.ts`'s `Layout`/`PanelId`: several
+ *   of these boxes (Objects, Quick Queue, You) have no `PanelId` at all,
+ *   having never participated in freeform or pop-out. A box hidden this way
+ *   is removed outright, not collapsed — Basic's curated baseline is a floor
  *   this only ever subtracts from, never a ceiling it adds to: hiding
  *   something in Basic and switching to Power does not resurrect it, and a
  *   box gated to Power stays invisible in Basic regardless of this setting.
  */
 export function DashboardLayout({
   dense,
-  deckPrefs,
-  onCycleDeck,
   onPopOut,
 }: {
   dense: boolean
-  deckPrefs?: Partial<Record<Deck, DeckPref>>
-  onCycleDeck?: (deck: Deck) => void
   /** Tear a box into its own window, for a second monitor or a wide desk. */
   onPopOut?: (id: 'map' | 'room' | 'mindstate') => void
 }) {
@@ -138,11 +127,8 @@ export function DashboardLayout({
       </button>
     ) : undefined
   const character = useAppStore((s) => s.character)
-  const cards = fromRoom(character)
+  const items = character?.roomItems ?? []
   const hiddenPanels = useHiddenMiddlePanels()
-
-  const hostile = cards.filter((c) => c.deck === 'hostile')
-  const people = cards.filter((c) => c.deck === 'people')
 
   // Every vital the character reports, not a chosen three. Concentration only
   // exists for some guilds, so it appears when it exists rather than being
@@ -276,8 +262,8 @@ export function DashboardLayout({
          * Activities panel existed and was registered as a pop-out that the
          * dashboard never rendered. */}
         {!hiddenPanels.has('tasks') && (
-          <Box title="Tasks and scripts" className="min-h-0">
-            <PanelBoundary label="Tasks and scripts">
+          <Box title="Tasks & scripts" className="min-h-0">
+            <PanelBoundary label="Tasks & scripts">
               <TaskFlowPanel dense={dense} />
             </PanelBoundary>
           </Box>
@@ -307,48 +293,32 @@ export function DashboardLayout({
           </Box>
         )}
 
-        {!hiddenPanels.has('battle') && (
-          <Box tone="danger" action={popper('room')} className="min-h-0">
-            <PanelBoundary label="Battle">
-              {hostile.length ? (
-                <CardDeck
-                  deck="hostile"
-                  cards={hostile}
-                  pref={deckPrefs?.hostile ?? 'auto'}
-                  onCyclePref={onCycleDeck ? () => onCycleDeck('hostile') : undefined}
-                />
+        {!hiddenPanels.has('objects') && (
+          <Box title="Objects" count={items.length}>
+            <PanelBoundary label="Objects">
+              {items.length ? (
+                <ul className="flex flex-col gap-0.5">
+                  {items.map((name) => (
+                    <li key={name} className="truncate text-xs text-ink-muted">
+                      {name}
+                    </li>
+                  ))}
+                </ul>
               ) : (
-                <p className="text-xs text-ink-faint">Nothing hostile here.</p>
+                <p className="text-xs text-ink-faint">Floor is clear.</p>
               )}
             </PanelBoundary>
           </Box>
         )}
 
-        {/* Inventory, Power only. The room scene answers "what's in the
-            room", which Genie always showed; this answers "how full are
-            my containers", a measurement Genie never had at all — genuine
+        {/* Inventory, Power only. Objects above answers "what's in the room",
+            which Genie always showed; this answers "how full are my
+            containers", a measurement Genie never had at all — genuine
             extra tracking, not baseline parity a newcomer is missing. */}
         {dense && !hiddenPanels.has('inventory') && (
           <Box className="min-h-0">
             <PanelBoundary label="Inventory">
               <InventoryPanel dense={dense} />
-            </PanelBoundary>
-          </Box>
-        )}
-
-        {!hiddenPanels.has('people') && (
-          <Box title="People" count={people.length}>
-            <PanelBoundary label="People">
-              {people.length ? (
-                <CardDeck
-                  deck="people"
-                  cards={people}
-                  pref={deckPrefs?.people ?? 'auto'}
-                  onCyclePref={onCycleDeck ? () => onCycleDeck('people') : undefined}
-                />
-              ) : (
-                <p className="text-xs text-ink-faint">Nobody else here.</p>
-              )}
             </PanelBoundary>
           </Box>
         )}

@@ -35,6 +35,7 @@ import { GameLineRow } from './GameLineRow'
 import type { Highlight } from '../../lib/highlights'
 import { useAppStore } from '../../store/useAppStore'
 import { CHANNELS, linesFor, type Channel } from '../../lib/chatChannels'
+import { STREAM_LABELS } from '../../lib/streamLabels'
 import { cn } from '../../lib/cn'
 
 /**
@@ -55,24 +56,11 @@ const logChannel = (t: string) => t.slice(LOG_PREFIX.length) as Channel
 /**
  * Names the game uses, in words a player uses.
  *
- * Only for ids actually seen; anything unmapped shows its own id rather than
- * being hidden, because a channel we have no label for is still a channel and
- * dropping it would be the client deciding what matters.
+ * Moved to `lib/streamLabels.ts` so a test can import it without a JSX
+ * loader - it collides with the companion's own tab labels and something has
+ * to be able to check that the row still says which is which. See that file.
  */
-const LABELS: Record<string, string> = {
-  thoughts: 'Thoughts',
-  death: 'Deaths',
-  talk: 'Speech',
-  whispers: 'Whispers',
-  logons: 'Arrivals',
-  familiar: 'Familiar',
-  group: 'Group',
-  room: 'Room',
-  bounty: 'Bounty',
-  assess: 'Assess',
-  inv: 'Inventory',
-  society: 'Society',
-}
+const LABELS = STREAM_LABELS
 
 export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
   // Both of these subscribe, and both hand back a fresh identity when the
@@ -134,6 +122,32 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-border px-2 py-1 text-xs">
+        {/* Whose channels these are, said out loud, but only once there are
+          * two sets in the row to tell apart.
+          *
+          * The two vocabularies overlap and nothing stopped them: the game's
+          * `talk` stream renders through LABELS as "Speech", and the
+          * companion's own log has a tab labelled "Speech" too. With both
+          * present the row read
+          *
+          *     Speech  Thoughts  |  All  Speech  Combat  Game  Companion
+          *
+          * - two tabs, the same word, different content, four pixels and one
+          * thin pipe apart. Each button's `title` did say which was which,
+          * and a hover is not an answer to a question asked by glancing.
+          *
+          * Captioning the groups rather than renaming a tab, because neither
+          * name is wrong. The game's labels are the game's and not ours to
+          * change, and "Speech" is the right word for the companion's speech
+          * tab. What was missing was any account of which side of the pipe a
+          * tab came from, and that is a property of the row.
+          *
+          * It also fixes the next collision without anyone noticing there was
+          * one. `room` -> "Room" and `inv` -> "Inventory" are already close to
+          * other names here; one word added to either list would have been the
+          * same bug again. Scoped groups make an overlap harmless instead of
+          * making it forbidden. */}
+        {streams.length > 0 && <span className="text-ink-faint">game:</span>}
         {streams.map((id) => {
           const unread = unreadFor(id)
           return (
@@ -175,6 +189,11 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
             separated, because these are a different kind of thing: the app
             talking about itself rather than the game talking. */}
         <span className="mx-1 text-ink-faint">|</span>
+        {/* Paired with the "game:" caption above. Only when there is a game
+          * set to be distinguished from - alone in the row these tabs are
+          * unambiguous, and a caption would be a word charged for nothing in
+          * a column that is already short of width. */}
+        {streams.length > 0 && <span className="text-ink-faint">this app:</span>}
         {CHANNELS.map((c) => {
           const key = LOG_PREFIX + c.id
           return (

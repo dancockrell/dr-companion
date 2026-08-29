@@ -379,7 +379,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
           <button
             type="button"
             onClick={() => void refresh()}
-            title="Re-read the task catalog and the scripts folders"
+            title="Re-read the task catalog and the scripts folders" aria-label="Re-read the task catalog and the scripts folders"
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
           >
             <RefreshCw className="h-3 w-3" />
