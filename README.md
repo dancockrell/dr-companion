@@ -45,7 +45,7 @@ Your scripts stay yours. Companion calls them.
 | Per-character profiles | Works |
 | Tier gating (`intentBlockReason`) | Implemented. Safety intents are never gated. |
 | Preferred heal city | Works, with a scored fallback that says why |
-| Windows `.exe` and installer | Builds. NSIS, MSI, standalone exe. |
+| Windows `.exe` and installer | Builds. NSIS installer, standalone exe. |
 | Command layer (roundtime, stun, refusals) | Works against a fake game |
 | `check_health`, `stow_all` | Written, untested on a live game |
 | Console with command trace | Works |
@@ -76,7 +76,7 @@ npm run mock-lich
 Then switch the bridge to **Live Lich** in Settings.
 
 The native window needs Rust and the Visual Studio C++ build tools.
-`npm run tauri:build` produces an NSIS installer, an MSI and a standalone exe.
+`npm run tauri:build` produces an NSIS installer and a standalone exe.
 See [docs/PACKAGING.md](docs/PACKAGING.md).
 
 The setup wizard looks for Ruby, Lich, Genie, plugins and maps, and offers to

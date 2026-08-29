@@ -8,7 +8,12 @@ User double-clicks **DR Companion** and gets a ~520×780 window. No `cmd`, no `n
 
 - **Tauri 2** (Rust shell + system WebView)
 - Frontend: Vite + React (already built)
-- Bundle targets: **NSIS** + **MSI** on Windows
+- Bundle target: **NSIS** on Windows - current-user install, no admin
+  required, which is the whole target experience. MSI was dropped
+  (2026-08-29): it's the format for enterprise-managed rollout (Group
+  Policy/SCCM), which this app has no use for, and it was the one thing
+  in CI that was ever flaky (WiX's `light.exe` intermittently failing to
+  launch on a fresh Windows runner).
 
 ## Commands
 
@@ -36,7 +41,6 @@ Artifacts:
 
 - `src-tauri\target\release\dr-companion.exe`
 - `src-tauri\target\release\bundle\nsis\*.exe` installer
-- `src-tauri\target\release\bundle\msi\*.msi`
 
 ## App behavior for packaging
 
