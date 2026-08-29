@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
-import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
+import { isTauri } from '../../lib/tauri'
 import { TRAIN_FOCUS_OPTIONS } from '../../data/training'
 import { HEAL_CITIES } from '../../data/healers'
 import { ProfilesPanel } from './ProfilesPanel'
@@ -28,10 +28,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
   // button always matches what is actually rendering.
   const [scale, setScale] = useState(() => initTypeScale())
-  const uiMode = useAppStore((s) => s.uiMode)
-  const setUiMode = useAppStore((s) => s.setUiMode)
-  const alwaysOnTop = useAppStore((s) => s.alwaysOnTop)
-  const setAlwaysOnTopState = useAppStore((s) => s.setAlwaysOnTop)
   const bridgeMode = useAppStore((s) => s.bridgeMode)
   const setBridgeMode = useAppStore((s) => s.setBridgeMode)
   const connectBridge = useAppStore((s) => s.connectBridge)
@@ -73,42 +69,29 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-4 space-y-5 text-sm">
-          <section className="space-y-2">
-            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
-              Interface mode
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {(['basic', 'power'] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  className={`rounded-lg border px-2 py-2 capitalize ${
-                    uiMode === m
-                      ? 'border-accent text-accent bg-accent/10'
-                      : 'border-border text-ink-muted'
-                  }`}
-                  onClick={() => setUiMode(m)}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-ink-faint leading-snug">
-              Power adds rankings and denser controls. Either way the panels
-              move and resize.
-            </p>
-          </section>
-
-          {/* One lever per box, on top of whichever set Basic/Power already
-              picked - see panelVisibility.ts's own header for why this isn't
-              part of the mode toggle above it. Unticking one here removes it
+          {/* Interface mode (Basic/Power) itself isn't repeated here - it's
+              the always-visible toggle top-right in the window frame
+              (AppControls.tsx), and a second copy of the same two buttons in
+              a sheet you have to open to reach was a control with two homes
+              and no reason for the second one. This section is about a
+              different, finer-grained decision: which boxes show at all,
+              layered on top of whichever set Basic/Power already picked -
+              see panelVisibility.ts's own header for why that's not the same
+              lever as the mode toggle. Unticking one here removes it
               regardless of mode; a box the current mode doesn't show at all
               (Risk, say, in Basic) still lists here so switching to Power
-              later doesn't silently un-hide something turned off on purpose. */}
+              later doesn't silently un-hide something turned off on
+              purpose. */}
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
-              Middle pane panels
+              Dashboard panels
             </h3>
+            <p className="text-xs text-ink-faint leading-snug">
+              Basic/Power (top right of the window) picks the starting set;
+              Power adds rankings and denser controls. Turn any of these off
+              individually on top of that - this only ever removes further,
+              never brings back something the mode itself hides.
+            </p>
             <div className="grid grid-cols-2 gap-1.5">
               {MIDDLE_PANEL_IDS.map((id) => {
                 const on = !hiddenPanels.has(id)
@@ -127,12 +110,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 )
               })}
             </div>
-            <p className="text-xs text-ink-faint leading-snug">
-              Turn any box in the middle column off entirely. A box only
-              Power shows stays off in Basic either way — this only ever
-              removes further, never brings back something the mode itself
-              hides.
-            </p>
           </section>
 
           <ProfilesPanel />
@@ -241,30 +218,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               ))}
             </div>
           </section>
-
-          <section className="space-y-2">
-            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
-              Window
-            </h3>
-            <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-              <span className="text-ink-muted">Always on top</span>
-              <input
-                type="checkbox"
-                checked={alwaysOnTop}
-                onChange={async (e) => {
-                  const v = e.target.checked
-                  setAlwaysOnTopState(v)
-                  await setAlwaysOnTop(v)
-                }}
-              />
-            </label>
-            {!isTauri() && (
-              <p className="text-xs text-ink-faint">
-                Pin works fully inside the Tauri desktop app.
-              </p>
-            )}
-          </section>
-
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">

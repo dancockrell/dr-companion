@@ -14,6 +14,7 @@
 import type { IntentName } from '../../bridge/types'
 import { AlertTriangle, Heart, Swords, Skull, RotateCcw } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
+import { isLowHealth } from '../../lib/vitals'
 
 export function SituationBanner() {
   const character = useAppStore((s) => s.character)
@@ -51,9 +52,7 @@ export function SituationBanner() {
   if (!character) return null
 
   const flags = character.situation
-  const lowHealth =
-    flags.includes('low_health') ||
-    character.vitals.health / character.vitals.healthMax < 0.35
+  const lowHealth = flags.includes('low_health') || isLowHealth(character)
   const inCombat = flags.includes('in_combat')
   const dead = flags.includes('dead') || flags.includes('dying')
 

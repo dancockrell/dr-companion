@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pin, PinOff, Circle, Settings, Map as MapIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
-import { setAlwaysOnTop } from '../../lib/tauri'
+import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
 import { useMapDock, setMapDock } from '../../lib/mapDock'
 import { SettingsSheet } from './SettingsSheet'
 import { cn } from '../../lib/cn'
@@ -47,7 +47,9 @@ export function AppControls() {
    * that disagrees with its own tooltip is worse than either alone.
    */
   const mapLabel = mapDock.docked ? 'Hide the map column' : 'Show the map column'
-  const pinLabel = alwaysOnTop ? 'Unpin' : 'Always on top'
+  const pinLabel =
+    (alwaysOnTop ? 'Unpin' : 'Always on top') +
+    (isTauri() ? '' : ' (works fully in the desktop app)')
 
   return (
     <>
