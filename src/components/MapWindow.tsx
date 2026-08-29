@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
+import { roomKind } from '../lib/mapData'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
 import { MapPinBar } from './shared/MapPinBar'
 import { QuickTravel } from './shared/QuickTravel'
@@ -344,7 +345,15 @@ export function MapWindow() {
       </main>
 
       <footer className="shrink-0 flex items-center justify-between gap-3 border-t border-border px-3 py-2">
-        <MapLegend />
+        {/* Same `roomKind` and `onRoute` the canvas colours by (see MapPanel's
+            own copy of this line) - without it this legend always renders
+            with no `kinds` at all and silently shows only "you," forever,
+            no matter what the window is actually drawing. */}
+        <MapLegend
+          kinds={[
+            ...new Set((zone?.ok ? zone.rooms ?? [] : []).map((r) => roomKind(r, zone?.here, onRoute))),
+          ]}
+        />
         <span className="text-xs text-ink-faint">
           {path?.ok
             ? `${path.steps} rooms to ${
