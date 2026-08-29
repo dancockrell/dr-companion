@@ -13,9 +13,10 @@ import { MacrosEditor } from './MacrosEditor'
 import { VariablesEditor } from './VariablesEditor'
 import { SubstitutesEditor } from './SubstitutesEditor'
 import { GagsEditor } from './GagsEditor'
+import { PresetsEditor } from './PresetsEditor'
 import { cn } from '../../lib/cn'
 
-type Tab = 'highlights' | 'aliases' | 'macros' | 'variables' | 'substitutes' | 'gags'
+type Tab = 'highlights' | 'aliases' | 'macros' | 'variables' | 'substitutes' | 'gags' | 'presets'
 
 export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('highlights')
@@ -49,6 +50,9 @@ export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
             <TabButton active={tab === 'variables'} onClick={() => setTab('variables')}>
               Variables
             </TabButton>
+            <TabButton active={tab === 'presets'} onClick={() => setTab('presets')}>
+              Colours
+            </TabButton>
           </div>
           <button type="button" className="rounded-md p-1 text-ink-faint hover:text-ink" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -62,6 +66,7 @@ export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
           {tab === 'substitutes' && <SubstitutesEditor />}
           {tab === 'gags' && <GagsEditor />}
           {tab === 'variables' && <VariablesEditor />}
+          {tab === 'presets' && <PresetsEditor />}
         </div>
       </div>
     </div>

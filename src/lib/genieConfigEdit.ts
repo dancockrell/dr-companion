@@ -111,6 +111,18 @@ export function formatGagLine(g: GagFields): string {
   return `#gag {${g.pattern}}`
 }
 
+export interface PresetFields {
+  name: string
+  colours: string
+  bold: boolean
+}
+
+/** `#preset {name} {colours} {bold}`, confirmed against Dan's real 31-entry
+ * presets.cfg - see presets.ts's header. */
+export function formatPresetLine(p: PresetFields): string {
+  return `#preset {${p.name}} {${p.colours}} {${p.bold ? 'True' : 'False'}}`
+}
+
 /**
  * Replace exactly one source line, leaving every other line - including
  * every comment - byte-identical.
