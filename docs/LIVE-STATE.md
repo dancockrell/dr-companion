@@ -405,8 +405,16 @@ grep -n "broadcast" lich-scripts/companion_bridge.lic
 
 - **Python scripting API** — `python/dr_companion.py`, `docs/PYTHON_API.md`.
   Out-of-process, token-authed. `python/_play.py` drives the game with it.
-- **Bridge staleness detection** — `bridge_install_status`, wired into the
-  setup screen's bridge row.
+- **Bridge staleness detection** — `plan_setup_inner`'s `bridge_stale` field
+  (`src-tauri/src/setup.rs`), which hashes the installed and bundled
+  `companion_bridge.lic` with `compare_bridge` and is what actually feeds the
+  setup screen's bridge row. **Correction, 29 Aug 2026:** this used to name
+  `bridge_install_status` instead. That command implements the identical
+  comparison and is registered with Tauri, but nothing in `src/` calls it —
+  verified by grepping for the string, which returns zero hits outside its
+  own definition and registration. It is dead, not wired, and citing it here
+  as "wired in" would have sent the next reader to edit a command whose
+  output nothing renders.
 - **Vendored Ruby4Lich5** — `tools/vendor-fetch.mjs`, gitignored, re-verified
   at runtime.
 - **Fixture port** — `tools/fake-lich.mjs` defaults to **11124**, not 11024.
