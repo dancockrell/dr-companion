@@ -22,10 +22,38 @@
  *
  *   node tools/vendor-fetch.mjs              fetch the latest release
  *   node tools/vendor-fetch.mjs --check      report what is already vendored, fetch nothing
+ *   node tools/vendor-fetch.mjs --stub       write placeholders so a dev build compiles
+ *   node tools/vendor-fetch.mjs --require-real  refuse to continue if what is vendored is a stub
  *
  * Run before `npm run tauri:build` - wired into that script already, so a
  * normal release build does this automatically. Safe to run repeatedly: if
  * the vendored copy already matches the latest release, it does nothing.
+ *
+ * # Why --stub exists
+ *
+ * `tauri.conf.json` lists these two files under `bundle.resources`, and Tauri
+ * validates that list on every build - including a debug one. So on a fresh
+ * clone `cargo build` and `cargo test` both fail with:
+ *
+ *     resource path `vendor\Ruby4Lich5.exe` doesn't exist
+ *
+ * which gates 59 Rust unit tests behind a 65 MB download that none of them
+ * use. Measured: two placeholder files of four and fourteen bytes are enough
+ * for `cargo test` to run all 59 green. The tests never needed the installer;
+ * only the bundle declaration did.
+ *
+ * # Why --require-real exists, and why --stub is unsafe without it
+ *
+ * A stub that reached a release would ship an installer whose bundled Ruby is
+ * four bytes of the word "stub", and the failure would surface on a user's
+ * machine as a first run that cannot find Ruby - far from here, and very hard
+ * to trace back. `npm run tauri:build` therefore fetches and *then* runs
+ * `--require-real`, which exits non-zero on a stub or on bytes that do not
+ * match the manifest's own recorded hash.
+ *
+ * The guard is the thing that makes the convenience safe, so it is wired into
+ * the release script rather than left as a habit, and `tools/vendor-stub-test.mjs`
+ * proves it actually refuses a stub rather than merely being present.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -67,8 +95,67 @@ function readExistingManifest() {
   }
 }
 
+/** The marker that makes a placeholder recognisable rather than merely small. */
+const STUB_MARK = 'dr-companion-vendor-stub'
+
+/**
+ * Placeholders, so a fresh clone compiles and tests without the network.
+ *
+ * The exe carries the marker in its own bytes as well as the manifest saying
+ * so, because a manifest can be deleted and the file left behind - and then
+ * the only thing standing between a four-byte Ruby and a release is whether
+ * the guard can recognise the file itself.
+ */
+function writeStub() {
+  mkdirSync(VENDOR_DIR, { recursive: true })
+  writeFileSync(EXE_PATH, `${STUB_MARK}\nNOT Ruby4Lich5. Run: npm run vendor:fetch\n`)
+  writeFileSync(
+    MANIFEST_PATH,
+    JSON.stringify({ stub: true, marker: STUB_MARK, version: 'stub', sha256: null, bytes: null }, null, 2) + '\n'
+  )
+  console.log(`wrote placeholders to ${VENDOR_DIR}`)
+  console.log('cargo build and cargo test will now run. A release build will refuse these.')
+}
+
+/**
+ * Refuse to continue unless what is vendored is the real, verified article.
+ *
+ * Three distinct failures, all reported as themselves rather than collapsed
+ * into "not ok": nothing vendored, a stub, and bytes that disagree with the
+ * hash the manifest recorded when it was written.
+ */
+function requireReal() {
+  if (!existsSync(EXE_PATH)) {
+    console.error(`nothing vendored at ${EXE_PATH}. Run: npm run vendor:fetch`)
+    process.exit(1)
+  }
+  const bytes = readFileSync(EXE_PATH)
+  const manifest = readExistingManifest()
+
+  if (manifest?.stub || bytes.subarray(0, 200).includes(Buffer.from(STUB_MARK))) {
+    console.error(
+      `${EXE_PATH} is a placeholder written by --stub, not Ruby4Lich5. ` +
+        'Refusing to bundle it. Run: npm run vendor:fetch'
+    )
+    process.exit(1)
+  }
+  if (!manifest?.sha256) {
+    console.error(`${EXE_PATH} exists but no manifest records its hash, so it cannot be verified. Run: npm run vendor:fetch`)
+    process.exit(1)
+  }
+  const got = createHash('sha256').update(bytes).digest('hex')
+  if (got !== manifest.sha256) {
+    console.error(`${EXE_PATH} hashes to ${got}, but the manifest records ${manifest.sha256}. Refusing to bundle it.`)
+    process.exit(1)
+  }
+  console.log(`vendored Ruby4Lich5 ${manifest.version} verified against its manifest hash - safe to bundle`)
+}
+
 async function main() {
   const checkOnly = process.argv.includes('--check')
+
+  if (process.argv.includes('--stub')) return writeStub()
+  if (process.argv.includes('--require-real')) return requireReal()
 
   const existing = readExistingManifest()
   if (existing) {

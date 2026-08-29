@@ -76,6 +76,21 @@ npm run mock-lich
 Then switch the bridge to **Live Lich** in Settings.
 
 The native window needs Rust and the Visual Studio C++ build tools.
+
+On a fresh clone, run this once before building or testing the Rust side:
+
+```bash
+npm run vendor:stub
+```
+
+`tauri.conf.json` bundles a vendored `Ruby4Lich5.exe`, and Tauri checks that
+list on every build including a debug one - so without this, `cargo build` and
+`cargo test` both stop at `resource path vendor\Ruby4Lich5.exe doesn't exist`
+and 59 Rust unit tests cannot run behind a 65 MB download none of them use.
+`vendor:stub` writes placeholders that satisfy the check. A release build
+refuses them: `npm run tauri:build` fetches the real, hash-verified installer
+and then re-checks it, so a placeholder cannot reach an installer.
+
 `npm run tauri:build` produces an NSIS installer, an MSI and a standalone exe.
 See [docs/PACKAGING.md](docs/PACKAGING.md).
 
