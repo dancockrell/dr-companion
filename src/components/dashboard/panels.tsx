@@ -7,17 +7,6 @@
  * drift.
  */
 import type { ReactNode } from 'react'
-import {
-  Users,
-  Map as MapIcon,
-  Zap,
-  Brain,
-  Package,
-  ShieldAlert,
-  ListChecks,
-  ListTree,
-  MessagesSquare,
-} from 'lucide-react'
 import type { PanelId } from '../../lib/layout'
 import { ActionsPanel } from '../shared/ActionsPanel'
 import { MapPanel } from '../shared/MapPanel'
@@ -46,20 +35,6 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   room: 'Battle',
   game: 'Game',
   scripts: 'Script Library',
-}
-
-export const PANEL_ICONS: Record<PanelId, ReactNode> = {
-  actions: <Zap className="w-3.5 h-3.5" />,
-  map: <MapIcon className="w-3.5 h-3.5" />,
-  training: <Brain className="w-3.5 h-3.5" />,
-  inventory: <Package className="w-3.5 h-3.5" />,
-  risk: <ShieldAlert className="w-3.5 h-3.5" />,
-  launcher: <ListChecks className="w-3.5 h-3.5" />,
-  vitals: <Zap className="w-3.5 h-3.5" />,
-  mindstate: <Brain className="w-3.5 h-3.5" />,
-  room: <Users className="w-3.5 h-3.5" />,
-  game: <MessagesSquare className="w-3.5 h-3.5" />,
-  scripts: <ListTree className="w-3.5 h-3.5" />,
 }
 
 /**

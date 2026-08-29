@@ -22,15 +22,6 @@ export const DEFAULT_HOUSE_ENTRY: HouseEntryPrefs = {
   packName: 'backpack',
 }
 
-export const ENTRY_ROOMS = [
-  'kitchen',
-  'bedroom',
-  'workroom',
-  'sanctum',
-  'armory',
-  'library',
-] as const
-
 export interface GuildEntryPrep {
   guild: string
   buffs: string[]

@@ -1,11 +1,13 @@
 import { Package } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { capabilitiesForCharacter } from '../../lib/accountCapabilities'
 
 export function InventoryPanel({ dense = false }: { dense?: boolean }) {
   const inventory = useAppStore((s) => s.inventory)
   const character = useAppStore((s) => s.character)
   const requestIntent = useAppStore((s) => s.requestIntent)
+  const bridgeIntents = useAppStore((s) => s.bridgeIntents)
+  const lootAvailable = isIntentImplemented(bridgeIntents, 'loot')
 
   if (!inventory) {
     return (
@@ -136,7 +138,9 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
         <div className="flex gap-2">
           <button
             type="button"
-            className="flex-1 text-xs rounded-lg border border-border px-2 py-1.5 text-ink-muted hover:text-ink hover:bg-surface-overlay"
+            disabled={!lootAvailable}
+            className="flex-1 text-xs rounded-lg border border-border px-2 py-1.5 text-ink-muted hover:text-ink hover:bg-surface-overlay disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            title={lootAvailable ? undefined : 'Not yet implemented in the connected bridge.'}
             onClick={() => requestIntent('loot')}
           >
             Loot pass
