@@ -14,6 +14,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { Button } from '../shared/Button'
 import { buildReport, issueUrl } from '../../lib/bugReport'
 import { APP_VERSION } from '../../lib/versions'
+import { useDismiss } from '../../lib/useDismiss'
 
 
 export function ReportDialog({ onClose }: { onClose: () => void }) {
@@ -72,16 +73,24 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
   }
 
   const trimmed = report.body.length < report.full.length
+  useDismiss(onClose)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-3">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl max-h-[88vh] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-3"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl max-h-[88vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <h2 className="text-sm font-semibold text-ink">Report a problem</h2>
           <button
             type="button"
             className="p-1 rounded-md text-ink-faint hover:text-ink"
             onClick={onClose}
+            title="Close" aria-label="Close"
           >
             <X className="w-4 h-4" />
           </button>
