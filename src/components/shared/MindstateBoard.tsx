@@ -1,5 +1,5 @@
 import { cn } from '../../lib/cn'
-import { MINDSTATE_LABELS, SKILL_SETS, type SkillState } from '../../data/skills'
+import { MINDSTATE_LABELS, MINDSTATE_MAX, SKILL_SETS, isMindLocked, type SkillState } from '../../data/skills'
 
 /**
  * Every skill at once, read for where there is room.
@@ -20,8 +20,15 @@ import { MINDSTATE_LABELS, SKILL_SETS, type SkillState } from '../../data/skills
  * look away from the game to use.
  */
 
-/** Mindstate runs 0-34, and 34 means the pool will not take any more. */
-const LOCKED = MINDSTATE_LABELS.length - 1
+/**
+ * Mindstate runs 0-34, and 34 means the pool will not take any more.
+ *
+ * Was re-derived here as `MINDSTATE_LABELS.length - 1`, the same value
+ * `skills.ts` already exports as `MINDSTATE_MAX` and checks via
+ * `isMindLocked` - a second implementation of the one number this whole
+ * board is organized around, found while settling issue #73.
+ */
+const LOCKED = MINDSTATE_MAX
 
 /**
  * Mindstate as a spectrum, violet through red.
@@ -72,7 +79,7 @@ export function MindstateBoard({
   }
 
   const room = skills.filter((s) => s.mindstate < LOCKED * 0.4).length
-  const locked = skills.filter((s) => s.mindstate >= LOCKED).length
+  const locked = skills.filter(isMindLocked).length
 
   // Sorted by skillset so related skills sit together, but with no header
   // rows. Five headings cost five lines and pushed Survival and Lore out of
