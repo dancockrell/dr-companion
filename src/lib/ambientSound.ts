@@ -436,12 +436,45 @@ export function skipTrack(dir: 1 | -1) {
  * starts silent; kept in sync by hand with persistence.ts's own default.
  */
 let musicGain = 0
+const musicVolumeListeners = new Set<(v: number) => void>()
 export function setMusicVolume(v: number) {
   musicGain = Math.max(0, Math.min(1.5, v))
   music.setGain(musicGain)
+  for (const l of musicVolumeListeners) l(musicGain)
 }
 export function musicVolume(): number {
   return musicGain
+}
+/**
+ * Subscribe to volume changes made anywhere, not just by the caller's own
+ * slider - needed once something other than SoundControls' own slider can
+ * change this number, which `initMediaSession` below is: an OS-level pause
+ * has to be visible on the panel too, or the slider would silently disagree
+ * with what's actually playing, the exact bug class this file's own
+ * "no separate mute flag" design was built to avoid.
+ */
+export function onMusicVolumeChange(fn: (v: number) => void): () => void {
+  musicVolumeListeners.add(fn)
+  return () => musicVolumeListeners.delete(fn)
+}
+
+/**
+ * Pause/resume for the media-session play/pause buttons (initMediaSession
+ * below) - remembers the level muted from and restores exactly that, same
+ * "0% is the only mute state, but something has to remember where to go
+ * back to" contract as SoundControls' own per-channel mute buttons. Kept at
+ * the module level rather than in a component so it works regardless of
+ * which UI, if any, is mounted when the OS sends the action.
+ */
+let preMuteMusicGain: number | null = null
+export function pauseMusic() {
+  if (musicGain <= 0) return
+  preMuteMusicGain = musicGain
+  setMusicVolume(0)
+}
+export function resumeMusic() {
+  setMusicVolume(preMuteMusicGain ?? 0.45)
+  preMuteMusicGain = null
 }
 
 /** For a hard reset - leaving a character, or a settings reload. */
@@ -451,4 +484,39 @@ export function stopMusic() {
   customStreamUrl = null
   radio.select(null)
   setNowPlaying(null)
+}
+
+/**
+ * Wire the app's own music into the OS's media controls - Windows' Now
+ * Playing UI/taskbar thumbnail, and physical/software media keys - so
+ * DR Companion is a citizen of the same system it can already send media
+ * keys *to* (see externalMedia.ts). WebView2 is Chromium-based and
+ * `navigator.mediaSession` works the same way it does in a browser, but this
+ * still guards on the API's presence rather than assuming a Tauri build
+ * implies it: `ambient-test.mjs` imports this module in plain Node, where
+ * `navigator` does not exist at all, and a browser without the API should
+ * fail this check the same quiet way it falls back for Web Audio elsewhere
+ * in this file.
+ *
+ * Call once, from a mount effect - not at module scope, which is exactly
+ * where a Node-imported top-level `navigator` reference would throw before
+ * `ambient-test.mjs` ever got to the parts of this file it actually tests.
+ */
+export function initMediaSession() {
+  if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
+
+  const ms = navigator.mediaSession
+  onNowPlayingChange((np) => {
+    ms.metadata = np
+      ? new MediaMetadata({ title: np.title, artist: np.composer || 'DR Companion', album: 'DR Companion' })
+      : null
+    ms.playbackState = np ? 'playing' : 'none'
+  })
+  onMusicVolumeChange((v) => {
+    ms.playbackState = v > 0 ? 'playing' : 'paused'
+  })
+  ms.setActionHandler('play', resumeMusic)
+  ms.setActionHandler('pause', pauseMusic)
+  ms.setActionHandler('previoustrack', () => skipTrack(-1))
+  ms.setActionHandler('nexttrack', () => skipTrack(1))
 }

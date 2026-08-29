@@ -48,6 +48,7 @@ import {
 import {
   setMusicVolume,
   musicVolume,
+  onMusicVolumeChange,
   setRadioStation,
   currentRadioStation,
   RADIO_STATIONS,
@@ -201,6 +202,12 @@ export function SoundControls() {
   // its own between user actions) has to reach this line without the player
   // touching a slider first.
   useEffect(() => onNowPlayingChange(setNow), [])
+  // The OS media-session play/pause buttons (initMediaSession in
+  // ambientSound.ts) can change this volume without this panel's own slider
+  // ever being touched - subscribe so the slider doesn't silently disagree
+  // with what's actually playing, which is exactly the failure mode "no
+  // separate mute flag" exists to prevent everywhere else in this file.
+  useEffect(() => onMusicVolumeChange(setMusic), [])
   // One ref for the whole control - the quick-mute button, the Sound
   // trigger, and the panel are all descendants of it. Two separate refs
   // (trigger, panel) missed the mute button once already: clicking it read
