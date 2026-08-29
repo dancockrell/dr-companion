@@ -6,7 +6,7 @@
  * a sentence: a movement key firing while the player is composing a command,
  * and Escape being the one key that must reach them anyway.
  */
-import { isTypingTarget, resolveKeybinding } from '../src/lib/keybindings.ts'
+import { isTypingTarget, resolveKeybinding, codeToGenieKey } from '../src/lib/keybindings.ts'
 
 let failed = 0
 const ok = (name, got, want) => {
@@ -75,6 +75,27 @@ console.log('\n-- Escape is the one exception: it works even while typing --')
 // window" actually exists. Everything decided by resolveKeybinding and
 // isTypingTarget above it, which is where the actual logic lives, is
 // covered here.
+
+console.log('\n-- codeToGenieKey matches every key name Dan\'s real macros.cfg actually uses --')
+{
+  const cases = [
+    ['F1', 'F1'], ['F9', 'F9'], ['F12', 'F12'],
+    ['Numpad0', 'NumPad0'], ['Numpad9', 'NumPad9'],
+    ['NumpadDecimal', 'Decimal'], ['NumpadMultiply', 'Multiply'],
+    ['NumpadAdd', 'Add'], ['NumpadSubtract', 'Subtract'], ['NumpadDivide', 'Divide'],
+    ['Escape', 'Escape'],
+    ['KeyD', 'D'], ['KeyZ', 'Z'],
+    ['Digit0', 'D0'], ['Digit9', 'D9'],
+  ]
+  for (const [code, want] of cases) ok(`${code} -> ${want}`, codeToGenieKey(code), want)
+}
+console.log('\n-- codeToGenieKey refuses codes no macro in the corpus binds --')
+{
+  ok('ShiftLeft is a modifier, not a key', codeToGenieKey('ShiftLeft'), null)
+  ok('ControlLeft is a modifier, not a key', codeToGenieKey('ControlLeft'), null)
+  ok('Tab is unmapped (nothing in the file binds it)', codeToGenieKey('Tab'), null)
+  ok('F13 does not exist in the observed corpus', codeToGenieKey('F13'), null)
+}
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

@@ -136,8 +136,8 @@ export function AppControls() {
         {setupComplete && (
           <button
             type="button"
-            title="Highlights & aliases - add, edit, delete, search"
-            aria-label="Highlights & aliases"
+            title="Highlights, aliases & macros - add, edit, delete, search"
+            aria-label="Highlights, aliases & macros"
             className="pointer-events-auto rounded p-1 text-ink-faint hover:text-ink"
             onClick={() => setConfigOpen(true)}
           >
