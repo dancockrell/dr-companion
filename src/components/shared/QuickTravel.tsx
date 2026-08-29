@@ -12,18 +12,34 @@
  * pick from what's actually nearby.
  */
 import { useState } from 'react'
-import { Landmark, HeartPulse, Shield, ShoppingBag, type LucideIcon } from 'lucide-react'
+import { Landmark, HeartPulse, Shield, ShoppingBag, MapPin as MapPinIcon, Compass, type LucideIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
+import { PIN_DRAG_TYPE, PIN_COLOR_HEX, type PinIcon, type PinColor } from '../../lib/mapPins'
 
-const PRESETS: { tag: string; label: string; icon: LucideIcon }[] = [
-  { tag: 'bank', label: 'Bank', icon: Landmark },
-  { tag: 'healer', label: 'Healer', icon: HeartPulse },
-  { tag: 'guild', label: 'Guild', icon: Shield },
-  { tag: 'shop', label: 'Shop', icon: ShoppingBag },
+const PRESETS: { tag: string; label: string; icon: LucideIcon; pinIcon: PinIcon; color: PinColor }[] = [
+  { tag: 'bank', label: 'Bank', icon: Landmark, pinIcon: 'landmark', color: 'gold' },
+  { tag: 'healer', label: 'Healer', icon: HeartPulse, pinIcon: 'heart-pulse', color: 'green' },
+  { tag: 'guild', label: 'Guild', icon: Shield, pinIcon: 'shield', color: 'purple' },
+  { tag: 'shop', label: 'Shop', icon: ShoppingBag, pinIcon: 'shopping-bag', color: 'blue' },
 ]
 
-export function QuickTravel({ onWalk }: { onWalk: (roomId: number) => void }) {
+export function QuickTravel({
+  onWalk,
+  onPin,
+}: {
+  onWalk: (roomId: number) => void
+  /**
+   * Pin a nearest-search result directly, without walking there first.
+   *
+   * The nearest-bank/healer/guild/shop answer is exactly the pin a lot of
+   * players would want and never get around to setting - finding it once
+   * already did the work a pin exists to skip doing again. Optional: a
+   * caller with nowhere to put a pin (no character yet) just doesn't offer
+   * the button, same as MapPinBar's own onAddHere.
+   */
+  onPin?: (hit: { id: number; title: string }) => void
+}) {
   const mapNearest = useAppStore((s) => s.mapNearest)
   const [activeTag, setActiveTag] = useState<string | null>(null)
 
@@ -38,45 +54,85 @@ export function QuickTravel({ onWalk }: { onWalk: (roomId: number) => void }) {
   // instant before the fresh reply arrives.
   const answered = activeTag !== null && mapNearest?.tag === activeTag
 
+  // A fragment, not its own wrapping div - see MapPinBar.tsx's matching
+  // note. The caller puts this in a shared flex-wrap row with MapPinBar.
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-xs text-ink-faint">Nearest:</span>
-      {PRESETS.map(({ tag, label, icon: Icon }) => (
+    <>
+      <span className="flex items-center text-ink-faint" title="Nearest: find the closest bank, healer, guild or shop from here">
+        <Compass className="h-3 w-3" />
+      </span>
+      {PRESETS.map(({ tag, label, icon: Icon, pinIcon, color }) => (
         <button
           key={tag}
           type="button"
           onClick={() => ask(tag)}
-          className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
-            activeTag === tag
-              ? 'border-accent text-accent'
-              : 'border-border text-ink-muted hover:text-ink'
+          // Click still asks "nearest" - dragging is the second, separate
+          // gesture this same button now supports. The two never conflict:
+          // a click never fires a dragstart, and a drag that ends off any
+          // room just does nothing rather than also triggering a search.
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData(
+              PIN_DRAG_TYPE,
+              JSON.stringify({ label, icon: pinIcon, color })
+            )
+            e.dataTransfer.effectAllowed = 'copy'
+          }}
+          title={`Nearest ${label} (drag onto a room on the map to pin it there directly)`}
+          aria-label={`Nearest ${label}`}
+          className={`flex items-center rounded-full border px-1.5 py-0.5 ${
+            activeTag === tag ? 'border-accent' : 'border-border hover:border-accent/60'
           }`}
         >
-          <Icon className="h-3 w-3" />
-          {label}
+          {/* Tinted with the same colour this button pins with, at rest -
+            * not only once active. Four icon-only buttons with no colour cue
+            * read as "four copies of one button" at a glance (Dan: "these
+            * seem to be two copies of basically the same thing"), because
+            * the icon shape alone is too small to tell apart quickly. The
+            * colour is also a preview of what the pin will look like on the
+            * map once dropped, so it is not a cue invented just for this row. */}
+          <Icon className="h-3 w-3" style={{ color: PIN_COLOR_HEX[color] }} />
         </button>
       ))}
       {answered &&
         (mapNearest.ok && mapNearest.rooms?.length ? (
           <div className="flex flex-wrap items-center gap-1">
             {mapNearest.rooms.map((r) => (
-              <button
+              <div
                 key={r.id}
-                type="button"
-                title={r.title ?? undefined}
-                onClick={() => {
-                  if (r.id != null) onWalk(r.id)
-                  setActiveTag(null)
-                }}
-                className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent"
+                className="flex items-center overflow-hidden rounded-full border border-accent/40 bg-accent/10 text-xs text-accent"
               >
-                {r.title ?? `Room ${r.id}`} · {r.steps ?? '?'} rooms
-              </button>
+                <button
+                  type="button"
+                  title={r.title ?? undefined}
+                  onClick={() => {
+                    if (r.id != null) onWalk(r.id)
+                    setActiveTag(null)
+                  }}
+                  className="px-2 py-0.5"
+                >
+                  {r.title ?? `Room ${r.id}`} · {r.steps ?? '?'} rooms
+                </button>
+                {/* The point of asking "nearest bank" is usually to stop
+                    having to ask again - this is that, one click sooner
+                    than walk-there-then-right-click. */}
+                {onPin && r.id != null && (
+                  <button
+                    type="button"
+                    title={`Pin ${r.title ?? 'this room'}`}
+                    aria-label={`Pin ${r.title ?? 'this room'}`}
+                    onClick={() => onPin({ id: r.id as number, title: r.title ?? `Room ${r.id}` })}
+                    className="border-l border-accent/30 px-1.5 py-0.5 text-accent hover:bg-accent/20"
+                  >
+                    <MapPinIcon className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         ) : (
           <span className="text-xs text-ink-faint">{mapNearest.reason ?? 'none nearby'}</span>
         ))}
-    </div>
+    </>
   )
 }

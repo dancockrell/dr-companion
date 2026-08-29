@@ -36,11 +36,11 @@ import { useHiddenMiddlePanels } from '../../lib/panelVisibility'
  *     question in a fight and the answer never moves. The name is not in this
  *     box any more, it reads once beside the zone in the map header, so the
  *     height it was spending on a header row goes to the portrait and doll.
- *   - **Objects** sits under you: what's on the floor worth taking. Who's
- *     hostile and who's here used to duplicate here as list boxes — the same
- *     cards RoomColumn's scene now shows as chips on the room picture itself.
- *     One deck, one place it renders, not a list beside a picture saying the
- *     same thing twice.
+ *   - **Objects** no longer has a box here. Hostile, allied, people and the
+ *     floor all used to duplicate in this rail as list boxes — the same
+ *     things the battle board (`BattleColumn`/`CombatRadar`) now draws
+ *     directly on the room picture, as pucks. One place it renders, not a
+ *     list beside a picture saying the same thing twice.
  *   - **Experience** runs under the map, because it is read between fights
  *     rather than during one, and it wants width more than height.
  *   - **Actions** pin to the bottom, and the one stop bar sits under them in
@@ -127,7 +127,6 @@ export function DashboardLayout({
       </button>
     ) : undefined
   const character = useAppStore((s) => s.character)
-  const items = character?.roomItems ?? []
   const hiddenPanels = useHiddenMiddlePanels()
 
   // Every vital the character reports, not a chosen three. Concentration only
@@ -293,28 +292,13 @@ export function DashboardLayout({
           </Box>
         )}
 
-        {!hiddenPanels.has('objects') && (
-          <Box title="Objects" count={items.length}>
-            <PanelBoundary label="Objects">
-              {items.length ? (
-                <ul className="flex flex-col gap-0.5">
-                  {items.map((name) => (
-                    <li key={name} className="truncate text-xs text-ink-muted">
-                      {name}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-ink-faint">Floor is clear.</p>
-              )}
-            </PanelBoundary>
-          </Box>
-        )}
-
-        {/* Inventory, Power only. Objects above answers "what's in the room",
-            which Genie always showed; this answers "how full are my
-            containers", a measurement Genie never had at all — genuine
-            extra tracking, not baseline parity a newcomer is missing. */}
+        {/* Inventory, Power only. The room's own floor and its occupants
+            answer "what's in the room" now — the battle board's item corner
+            shows them as pucks (see CombatRadar), which is what replaced
+            this rail's old plain-text Objects box. This one answers a
+            different question, "how full are my containers", a measurement
+            Genie never had at all — genuine extra tracking, not baseline
+            parity a newcomer is missing. */}
         {dense && !hiddenPanels.has('inventory') && (
           <Box className="min-h-0">
             <PanelBoundary label="Inventory">

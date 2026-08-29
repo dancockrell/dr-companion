@@ -51,6 +51,22 @@ const SPLIT_W = 8
 /** Enough to keep a column grabbable so it can be dragged back. Nothing more. */
 const MIN_PX = 80
 
+/**
+ * The floor GameChatColumn keeps when the map above it grows - not MIN_PX.
+ *
+ * Found live: at a shorter window, `Math.min(mapH, hostH - MIN_PX)` let the
+ * map claim everything down to an 80px sliver for Game+Channels, which is
+ * this app's whole reason for existing, not a column somebody parked out of
+ * the way. Measured what that produced - a 98px-tall box, room for the
+ * header row and nothing else, the command input and every channel tab
+ * pushed out with no way to reach them - and it is exactly the "map
+ * squeezing the game pane to nothing" bug this app has already been broken
+ * by once (see columns.ts's ROOM_MIN, the same floor for the same reason on
+ * the horizontal axis). 240px holds the header, a handful of game lines and
+ * the input row without feeling cramped.
+ */
+const MIN_GAME_CHAT_H = 240
+
 export default function App() {
   const setupComplete = useAppStore((s) => s.setupComplete)
   const connectBridge = useAppStore((s) => s.connectBridge)
@@ -171,11 +187,17 @@ export default function App() {
    * flat `h-72` (288px) with no way to change it, which is a decision made
    * on the player's behalf every session: someone who wants to watch a
    * dense zone deserves more of it than someone glancing at Crossing.
+   *
+   * Default raised to 480 when GameChatColumn went from a vertical stack to
+   * a side-by-side row (Game and Channels are both text feeds at roughly the
+   * same reading pace, so one shared row costs one pane's worth of height
+   * instead of two stacked ones) - the room that saved is exactly the room
+   * this box should spend, not sit on unused.
    */
   const MIN_MAP_H = 120
   const [mapH, setMapHState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(MAP_HEIGHT_KEY))
-    return Number.isFinite(saved) && saved >= MIN_MAP_H ? saved : 288
+    return Number.isFinite(saved) && saved >= MIN_MAP_H ? saved : 480
   })
   const setMapH = (px: number) => {
     const next = Math.max(MIN_MAP_H, Math.round(px))
@@ -400,7 +422,12 @@ export default function App() {
                   <>
                     <div
                       className="shrink-0 overflow-hidden"
-                      style={{ height: hostH > 0 ? Math.min(mapH, hostH - MIN_PX) : mapH }}
+                      style={{
+                        height:
+                          hostH > 0
+                            ? Math.max(0, Math.min(mapH, hostH - MIN_GAME_CHAT_H - SPLIT_W))
+                            : mapH,
+                      }}
                     >
                       <PanelBoundary label="Map">
                         <MapColumn />
@@ -408,10 +435,10 @@ export default function App() {
                     </div>
                     <Splitter
                       orientation="horizontal"
-                      value={hostH > 0 ? mapH / hostH : 288 / 800}
+                      value={hostH > 0 ? mapH / hostH : 480 / 900}
                       onChange={(share) => setMapH(hostH * share)}
                       min={MIN_MAP_H / Math.max(hostH, 1)}
-                      max={0.8}
+                      max={hostH > 0 ? 1 - (MIN_GAME_CHAT_H + SPLIT_W) / hostH : 0.8}
                     />
                   </>
                 )}

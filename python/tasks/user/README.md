@@ -53,6 +53,40 @@ until a health bar arrives, so comparisons against it are false in both
 directions and your script does nothing rather than acting on a number nobody
 sent. Ask `f.health.known` if you need to tell the difference.
 
+## Getting a sight picture for free
+
+A long-running flow - a hunt, a training loop - spends real stretches of
+every cycle waiting: `wait_rt()` before the next attack, `until` while
+looting settles. `sight_picture_enabled=True` puts that waiting to use,
+without ever taking a turn away from a real action:
+
+```python
+return Flow(
+    title="Hunt rats",
+    sight_picture_enabled=True,
+    steps=[...],
+)
+```
+
+Turned on, the flow rotates through `health`, `exp`, `look` and `perc` in the
+background - a few seconds apart, only when nothing real is happening - and
+keeps whatever came back in `flow.sight_picture.snapshot`, a dict keyed by
+topic (`"health"`, `"exp"`, ...) of `SightTopic(text=..., at=...)`. A `when`
+condition can read it the same way it reads a vital:
+
+```python
+# An empty commands list sends nothing at all - `when` still runs, so this
+# is a step that only ever checks a condition. A real one would act on
+# f.sight_picture.snapshot["exp"].text instead of just noting it arrived.
+Step("Note the exp check", [], when=lambda f: "exp" in f.sight_picture.snapshot),
+```
+
+It never calls `wait_rt()` itself and stays under half the 40-a-minute cap,
+so the worst it can do is use up rate-cap headroom a real action would
+otherwise have had - never delay one. Off by default: a short flow like the
+built-in `recover` finishes before the first rotation would even fire, so
+there is nothing in it for those.
+
 ## What you cannot do
 
 Send commands faster than 40 a minute. That cap is enforced in `do()` and a

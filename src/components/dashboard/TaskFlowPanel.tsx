@@ -1,26 +1,55 @@
 /**
- * Tasks and scripts: what can be run, and where you write more.
+ * Tasks and scripts: one grid, one window.
  *
- * This used to be a flow engine. `FlowDriver` with a timer, a `FlowState`, a
- * condition grammar, and a step-list form writing custom flows to
- * localStorage — about 1,200 lines of TypeScript implementing a scripting
- * language inside a project whose scripting language is Python. All of it is
- * replaced: flows are Python tasks (`lib/pythonTasks.ts`), custom scripts are
- * real files in either language (`lib/scriptFiles.ts`, `ScriptEditor`).
+ * This used to be two tabs - "tasks" (Python, run from a catalog) and
+ * "scripts" (a text list split into "Yours" and "Lich's folder", edited in a
+ * view that replaced the whole panel). Splitting them was never true to what
+ * they are: every Python (or TypeScript) script a player saves *already*
+ * appears in its own task catalog (`runner.py`'s `user_tasks()` scans
+ * `tasks/user/*.py`, `runner.ts`'s scans `tasks/user/*.ts`, and both merge
+ * into the same list `flow.hunt` and `task.routine` come from), so the old
+ * Scripts tab's "Yours" section and the Tasks tab's `user.*` tiles were the
+ * same script, shown twice, with two different "run" buttons that did the
+ * same thing. Dan's own words on it: "I want to see them and I really do
+ * not. Your ways of interacting with them in the GUI suck. One simple
+ * window, not many." The only thing neither catalog can ever cover is
+ * Ruby - a Lich script, a different engine entirely - so that is the one
+ * real addition to the grid below, not a second tab.
  *
- * # Why the list is icons
+ * # Two catalogs, one grid
  *
- * Because the panel shares a window with a live game, and every row of chrome
- * is a row of game text nobody can see. An icon grid puts roughly three times
- * as many tasks in the same height as the old two-column text list, and the
- * name is one hover away rather than gone — every tile carries its title, its
- * summary, its id, and the command line that runs the same thing outside the
- * app.
+ * Python and TypeScript are two separate backends (`pythonTasks.ts`/
+ * `python.rs`, `nodeTasks.ts`/`node.rs` - see that file's own header for why
+ * they are not one parameterised module) but the same *kind* of thing to a
+ * player: a task, picked from a catalog, run as a background process. They
+ * are merged into one `tasks` list and rendered as one set of tiles rather
+ * than kept apart, the same way this file already refuses to give Ruby its
+ * own tab. Starting either stops whatever the *other* backend has running -
+ * enforced here, in `start()`, because "one task at a time" is a rule about
+ * this character, not about a single language's process table.
  *
- * The one thing that is never reduced to an icon is whether a task *sends
- * commands*. A task that watches and a task that drives a live character are
- * different in the way that matters most, so that difference is a visible
- * badge and a border colour, not a detail in a tooltip.
+ * # Icons, not text, and the text is one hover away
+ *
+ * Every tile is an icon and nothing else. No name, no summary, no "watches"
+ * badge printed on the tile - all of it is in the tooltip, which is where
+ * Dan asked for it to live rather than crowding the tile itself. The panel
+ * shares a window with a live game; an icon grid puts far more of these in
+ * the same height than a two-column text list ever could, and the one thing
+ * that still gets a visible signal - whether something is running right now
+ * - is a border colour and a small badge, not a sentence.
+ *
+ * An entry this file has never seen a good icon for still gets a tile
+ * (Terminal, as a fallback) rather than being silently dropped - the
+ * alternative is a list that omits whatever was added most recently, which
+ * is exactly the thing being looked for.
+ *
+ * # Editing, in place
+ *
+ * A pencil appears on hover for anything backed by a real file - a Python or
+ * TypeScript task saved under `tasks/user/`, or any Ruby script - and opens
+ * the same editor as before. Built-in flows and examples get no pencil: they
+ * are shipped source, not a player's file, and offering to "edit" one would
+ * open onto nothing a save button could write to.
  *
  * # Nothing here schedules anything
  *
@@ -30,26 +59,7 @@
  * here, because there is no timer to get out of step with.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  BookOpen,
-  Coins,
-  Eye,
-  EyeOff,
-  FileCode2,
-  FilePlus2,
-  FolderOpen,
-  HeartPulse,
-  LogOut,
-  type LucideIcon,
-  Play,
-  RefreshCw,
-  Search,
-  Shield,
-  Square,
-  Stethoscope,
-  Swords,
-  Terminal,
-} from 'lucide-react'
+import { FilePlus2, FolderOpen, Gem, Pencil, Play, RefreshCw, Search, Square } from 'lucide-react'
 import {
   onTaskLine,
   onTaskState,
@@ -69,6 +79,7 @@ import {
   nodeTaskState,
   type NodeStatus,
 } from '../../lib/nodeTasks'
+import { groupTasksByCategory } from '../../lib/taskGrouping'
 import {
   listScripts,
   scriptDirs,
@@ -76,7 +87,12 @@ import {
   type ScriptFile,
   type ScriptLang,
 } from '../../lib/scriptFiles'
+import { inferScriptIcon, type ScriptIconKey } from '../../lib/scriptIcons'
+import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
+import { iconOverrideFor, setIconOverride, clearIconOverride } from '../../lib/scriptIconOverrides'
+import { useDragScroll } from '../../lib/useDragScroll'
 import { ScriptEditor, type EditorTarget } from './ScriptEditor'
+import { ScriptIconPicker } from './ScriptIconPicker'
 import { onStopAll, onStartFlow } from '../../lib/flowStop'
 import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
@@ -85,55 +101,109 @@ import { cn } from '../../lib/cn'
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200
 
+/** Ruby scripts are grouped under this, after every task category - see the
+ * module comment: the only thing neither catalog can already cover. */
+const RUBY_CATEGORY = 'Lich scripts'
+
 /**
- * An icon per task, so a tile is recognisable before it is read.
- *
- * Matched by id, with a prefix fallback, and a generic icon when neither hits.
- * A task this map has never heard of still gets a tile — the alternative is a
- * list that silently omits whatever somebody added most recently, which is
- * exactly the task they are looking for.
+ * TypeScript tasks have no `category` of their own - `runner.ts` does not
+ * sort into "Combat"/"Recovery"/etc the way `runner.py`'s `CATEGORY_ORDER`
+ * does, since the built-in flows are Python-only and a player's own `.ts`
+ * tasks have no house convention to categorise by yet. One bucket, named for
+ * what it is, rather than guessing a category that would just be wrong.
  */
-const ICONS: Record<string, LucideIcon> = {
-  'flow.hunt': Swords,
-  'flow.ambush': EyeOff,
-  'flow.recover': HeartPulse,
-  'flow.to_healer': Stethoscope,
-  'flow.town_run': Coins,
-  'flow.prepare': Shield,
-  'flow.disengage': LogOut,
-  'task.watch': Eye,
+const TS_CATEGORY = 'TypeScript tasks'
+
+/**
+ * The built-in tasks' own curated icon, by id - unrelated to
+ * `inferScriptIcon`'s guessing, since these are known exactly rather than
+ * pattern-matched from a name. Everything else (a saved Python or TypeScript
+ * task, a Lich script, an example) falls through to a guess in
+ * `baseIconKeyFor` below.
+ */
+const BASE_ICON_KEY: Record<string, ScriptIconKey> = {
+  'task.routine': 'repeat',
+  'flow.hunt': 'swords',
+  'flow.ambush': 'eye-off',
+  'flow.recover': 'heart-pulse',
+  'flow.to_healer': 'stethoscope',
+  'flow.town_run': 'coins',
+  'flow.prepare': 'shield',
+  'flow.disengage': 'log-out',
+  'task.watch': 'eye',
 }
 
-function iconFor(id: string): LucideIcon {
-  if (ICONS[id]) return ICONS[id]
-  if (id.startsWith('example.')) return BookOpen
-  if (id.startsWith('user.')) return FileCode2
-  return Terminal
+/**
+ * The icon a task or script gets before any player override - a known
+ * built-in's own curated choice, or a guess from its own name and summary
+ * (`inferScriptIcon`, shared with every Lich script - a saved task deserves
+ * the same variety a Ruby one gets, not a single generic icon repeated for
+ * every file a player has ever written).
+ */
+function baseIconKeyFor(id: string, name: string, summary: string): ScriptIconKey {
+  if (BASE_ICON_KEY[id]) return BASE_ICON_KEY[id]
+  if (id.startsWith('example.')) return 'book-open'
+  return inferScriptIcon(name, summary)
 }
 
-type Tab = 'tasks' | 'scripts'
-type TaskLang = 'python' | 'typescript'
-type MergedTask = TaskInfo & { lang: TaskLang }
+/** One tile: a task from the Python or TypeScript catalog, or a Ruby script -
+ * the three things this grid can run, unified so the grid never has to know
+ * which. */
+type Entry = {
+  id: string
+  title: string
+  /** What scriptIcons.ts (or a built-in's own curated choice) would show
+   * without a player's override - carried alongside the resolved icon so
+   * the picker's "reset to guess" can compare against it. */
+  baseIcon: ScriptIconKey
+  tooltip: string
+  category: string
+  /** Shown as a small badge only while running; never printed on the tile
+   * otherwise - see the module comment on why text lives in the tooltip. */
+  readOnly: boolean
+  run: () => void
+  /** Present only for something backed by a real file - see the module
+   * comment on why built-ins get no pencil. */
+  editTarget?: EditorTarget
+}
 
 export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const addLog = useAppStore((s) => s.addLog)
   const setActiveFlow = useAppStore((s) => s.setActiveFlow)
   const startScript = useAppStore((s) => s.startScript)
 
-  const [tab, setTab] = useState<Tab>('tasks')
   const [status, setStatus] = useState<PythonStatus | null>(null)
   const [nodeSt, setNodeSt] = useState<NodeStatus | null>(null)
   const [scripts, setScripts] = useState<ScriptFile[]>([])
   const [dirs, setDirs] = useState<ScriptDirs | null>(null)
   const [editing, setEditing] = useState<EditorTarget | null>(null)
-  // Which task is running, and in which language — a bare id is not enough
-  // once two backends can each be running (or have just finished running)
-  // something: `user.hunt` could name a Python task or a TypeScript one, and
-  // Stop has to know which process to kill.
-  const [running, setRunning] = useState<{ id: string; lang: TaskLang } | null>(null)
+  // A bare entry id is enough here (unlike the two-backend `start`/`stop`
+  // logic below) because every Entry already carries a unique one - Python's
+  // own ids (`user.foo`, `flow.hunt`), TypeScript's own prefixed `ts.` to
+  // keep `user.foo` in one language from reading as active while the other
+  // language's `user.foo` runs, and Ruby's `ruby.` - same prefix Ruby always
+  // had.
+  const [running, setRunning] = useState('')
   const [note, setNote] = useState('')
   const [lines, setLines] = useState<string[]>([])
   const [filter, setFilter] = useState('')
+  // Read straight from storage during render, the same pattern MapPanel's
+  // pins use - this exists only to force a re-render after a write this
+  // component made itself, since picking an icon doesn't otherwise touch
+  // anything React tracks as having changed. The value itself is never
+  // read; only the setter matters.
+  const [, bumpIconOverrides] = useState(0)
+  const [pickingIcon, setPickingIcon] = useState<{ id: string; title: string; base: ScriptIconKey } | null>(
+    null
+  )
+  const {
+    ref: gridRef,
+    dragging: gridDragging,
+    onPointerDown: gridOnPointerDown,
+    onPointerMove: gridOnPointerMove,
+    onPointerUp: gridOnPointerUp,
+    onPointerCancel: gridOnPointerCancel,
+  } = useDragScroll()
 
   const refresh = useCallback(async () => {
     const [st, nst, files, where] = await Promise.all([
@@ -149,17 +219,17 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
     // Asked, never assumed. A task that exited on its own leaves no event for
     // a panel that mounted afterwards, and a remembered "running" that has
     // gone stale is indistinguishable from a live one. Checked in both
-    // backends — the invariant is "at most one task, of either language",
-    // not "at most one per language", so either could be the live one.
+    // backends - the invariant is "at most one task, of either language,"
+    // not "at most one per language," so either could be the live one.
     const [pyState, nodeState] = await Promise.all([taskState(), nodeTaskState()])
     if (pyState.running) {
-      setRunning({ id: pyState.task, lang: 'python' })
+      setRunning(pyState.task)
       setActiveFlow(pyState.task)
     } else if (nodeState.running) {
-      setRunning({ id: nodeState.task, lang: 'typescript' })
+      setRunning(`ts.${nodeState.task}`)
       setActiveFlow(nodeState.task)
     } else {
-      setRunning(null)
+      setRunning('')
       setActiveFlow(null)
     }
   }, [setActiveFlow])
@@ -171,7 +241,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   useEffect(
     () =>
       onTaskState((st) => {
-        setRunning(st.running ? { id: st.task, lang: 'python' } : null)
+        setRunning(st.running ? st.task : '')
         setNote(st.note)
         // Published to the store as well as held here: the safety bar reports
         // what the app is doing, and with this state living only in this
@@ -185,7 +255,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   useEffect(
     () =>
       onNodeTaskState((st) => {
-        setRunning(st.running ? { id: st.task, lang: 'typescript' } : null)
+        setRunning(st.running ? `ts.${st.task}` : '')
         setNote(st.note)
         setActiveFlow(st.running ? st.task : null)
         if (st.note) addLog(st.note, 'info')
@@ -211,23 +281,8 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
     [addLog]
   )
 
-  const tasks: MergedTask[] = useMemo(
-    () => [
-      ...(status?.tasks ?? []).map((t) => ({ ...t, lang: 'python' as const })),
-      ...(nodeSt?.tasks ?? []).map((t) => ({ ...t, lang: 'typescript' as const })),
-    ],
-    [status, nodeSt]
-  )
-
-  const start = useCallback(
-    async (id: string, lang?: TaskLang) => {
-      // `lang` is passed explicitly right after a save (see ScriptEditor's
-      // onRun below), because the catalog this would otherwise search may not
-      // have picked up the new file yet — refresh() is fired-and-forgotten
-      // from onSaved, not awaited before onRun runs. Everywhere else (a
-      // tile, the filtered script list, the Command Palette) it is looked up
-      // from the merged catalog, which both backends' ids are already in.
-      const resolved = lang ?? tasks.find((t) => t.id === id)?.lang ?? 'python'
+  const startPython = useCallback(
+    async (id: string) => {
       setLines([])
       setNote('')
       try {
@@ -236,17 +291,10 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         // already stops its own previous task on its own account
         // (python.rs/node.rs), so this only has work to do when the player
         // is switching from a task in one language to one in the other.
-        if (resolved === 'python') {
-          await stopNodeTask()
-          const st = await startTask(id)
-          setRunning(st.running ? { id: st.task, lang: 'python' } : null)
-          setActiveFlow(st.running ? st.task : null)
-        } else {
-          await stopTask()
-          const st = await startNodeTask(id)
-          setRunning(st.running ? { id: st.task, lang: 'typescript' } : null)
-          setActiveFlow(st.running ? st.task : null)
-        }
+        await stopNodeTask()
+        const st = await startTask(id)
+        setRunning(st.running ? st.task : '')
+        setActiveFlow(st.running ? st.task : null)
       } catch (e) {
         // Named, never swallowed. No interpreter, a task that will not import,
         // a missing folder — each says something specific and actionable, and
@@ -256,15 +304,34 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         addLog(`Could not start ${id}: ${message}`, 'error')
       }
     },
-    [addLog, setActiveFlow, tasks]
+    [addLog, setActiveFlow]
+  )
+
+  const startNode = useCallback(
+    async (id: string) => {
+      setLines([])
+      setNote('')
+      try {
+        await stopTask()
+        const st = await startNodeTask(id)
+        setRunning(st.running ? `ts.${st.task}` : '')
+        setActiveFlow(st.running ? st.task : null)
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e)
+        setNote(message)
+        addLog(`Could not start ${id}: ${message}`, 'error')
+      }
+    },
+    [addLog, setActiveFlow]
   )
 
   const stop = useCallback(async () => {
-    // Stopping both is cheap (each is a no-op when nothing of that language is
-    // running) and correct regardless of which one is actually live, without
-    // this component having to trust its own `running.lang` over the OS.
+    // Stopping both is cheap (each is a no-op when nothing of that language
+    // is running) and correct regardless of which one is actually live,
+    // without this component having to trust its own `running` string over
+    // the OS.
     const [pySt, nodeSt2] = await Promise.all([stopTask(), stopNodeTask()])
-    setRunning(null)
+    setRunning('')
     setNote(pySt.note || nodeSt2.note || 'Stopped.')
     setActiveFlow(null)
   }, [setActiveFlow])
@@ -284,35 +351,104 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   )
 
   // The Command Palette starts a task by id with no reference to this panel.
-  useEffect(() => onStartFlow((f) => void start(f.id, f.lang)), [start])
+  // `f.lang` names which catalog it came from - the palette's own list is
+  // built from the same merged `tasks` this panel derives below.
+  useEffect(
+    () => onStartFlow((f) => void (f.lang === 'typescript' ? startNode(f.id) : startPython(f.id))),
+    [startNode, startPython]
+  )
 
   // A task outlives this component — it is a separate process. Unmounting
   // clears only what this component published and deliberately does not stop
   // it: popping the panel out unmounts it, and that must not kill a hunt.
   useEffect(() => () => setActiveFlow(null), [setActiveFlow])
 
-  // Filtered and grouped, with the denominator kept: Lich's folder holds the
-  // whole dr-scripts suite, so a player's own few files would otherwise be
-  // lost among two hundred installed ones. "Yours" is this app's own task
-  // folders (Python and TypeScript), which only ever contain what the player
-  // wrote here; "Lich's folder" is mixed and is labelled as mixed rather than
-  // implied to be theirs.
-  const shown = useMemo(() => {
+  const tasks: TaskInfo[] = useMemo(() => status?.tasks ?? [], [status])
+  const nodeTasks = useMemo(() => nodeSt?.tasks ?? [], [nodeSt])
+  const rubyScripts = useMemo(() => scripts.filter((s) => s.lang === 'ruby'), [scripts])
+
+  /**
+   * One combined list: every Python task, then every TypeScript task, then
+   * every Ruby script, filtered by name/summary. Python tasks come first and
+   * already arrive sorted by `runner.py`'s `CATEGORY_ORDER`; appending
+   * TypeScript and then Ruby after them - rather than interleaving - is what
+   * keeps "Lich scripts" last once grouped, which is the right place for
+   * "the whole dr-scripts suite plus whatever else is installed," not only
+   * what a player wrote here.
+   */
+  const entries: Entry[] = useMemo(() => {
     const q = filter.trim().toLowerCase()
-    const match = (s: ScriptFile) =>
-      !q || s.name.toLowerCase().includes(q) || s.summary.toLowerCase().includes(q)
-    const hit = scripts.filter(match)
-    return {
-      yours: hit.filter((s) => s.lang !== 'ruby'),
-      lich: hit.filter((s) => s.lang === 'ruby'),
-      shownCount: hit.length,
-      total: scripts.length,
-    }
-  }, [scripts, filter])
+    const matches = (title: string, summary: string) =>
+      !q || title.toLowerCase().includes(q) || summary.toLowerCase().includes(q)
+
+    const fromTasks: Entry[] = tasks
+      .filter((t) => matches(t.title, t.summary))
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        baseIcon: baseIconKeyFor(
+          t.id,
+          t.id.startsWith('user.') ? t.id.slice('user.'.length) : t.title,
+          t.summary
+        ),
+        tooltip:
+          `${t.title}\n${t.summary}\n\n${t.id} — ${t.category}, ${t.kind}\n\n` +
+          `Runs the same outside the app:\npython python/runner.py run ${t.id}`,
+        category: t.category,
+        readOnly: t.kind === 'read-only',
+        run: () => void startPython(t.id),
+        editTarget: t.id.startsWith('user.')
+          ? { name: t.id.slice('user.'.length), lang: 'python' as ScriptLang }
+          : undefined,
+      }))
+
+    const fromNode: Entry[] = nodeTasks
+      .filter((t) => matches(t.title, t.summary))
+      .map((t) => ({
+        id: `ts.${t.id}`,
+        title: t.title,
+        baseIcon: baseIconKeyFor(
+          t.id,
+          t.id.startsWith('user.') ? t.id.slice('user.'.length) : t.title,
+          t.summary
+        ),
+        tooltip:
+          `${t.title}\n${t.summary}\n\n${t.id} — ${t.kind}\n\n` +
+          `Runs the same outside the app:\nnode typescript/runner.ts run ${t.id}`,
+        category: TS_CATEGORY,
+        readOnly: t.kind === 'read-only',
+        run: () => void startNode(t.id),
+        editTarget: t.id.startsWith('user.')
+          ? { name: t.id.slice('user.'.length), lang: 'typescript' as ScriptLang }
+          : undefined,
+      }))
+
+    const fromRuby: Entry[] = rubyScripts
+      .filter((s) => matches(s.name, s.summary))
+      .map((s) => ({
+        id: `ruby.${s.name}`,
+        title: s.name,
+        baseIcon: inferScriptIcon(s.name, s.summary),
+        tooltip:
+          `${s.name}\n${s.summary || 'No description in the file.'}\n\n` +
+          `${s.path} — ${s.bytes} bytes\n\nA Lich script - runs inside Lich, not as an app task.`,
+        category: RUBY_CATEGORY,
+        readOnly: false,
+        run: () => {
+          startScript(s.name)
+          addLog(`Asked Lich to start ${s.name}`, 'info')
+        },
+        editTarget: { name: s.name, lang: 'ruby' as ScriptLang },
+      }))
+
+    return [...fromTasks, ...fromNode, ...fromRuby]
+  }, [tasks, nodeTasks, rubyScripts, filter, startPython, startNode, startScript, addLog])
+
+  const groups = useMemo(() => groupTasksByCategory(entries), [entries])
+  const totalCount = tasks.length + nodeTasks.length + rubyScripts.length
 
   const openNew = useCallback((lang: ScriptLang) => {
     setEditing({ name: '', lang })
-    setTab('scripts')
   }, [])
 
   if (editing) {
@@ -324,8 +460,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         onSaved={() => void refresh()}
         onRun={(id, lang) => {
           setEditing(null)
-          setTab('tasks')
-          void start(id, lang)
+          void (lang === 'typescript' ? startNode(id) : startPython(id))
         }}
       />
     )
@@ -333,53 +468,49 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
 
   return (
     <div className="flex min-h-0 flex-col gap-1.5">
-      {/* One row carrying three things: which browser, what is running, and
-       * the control for it. Reserved whether or not something runs, so
-       * starting a task does not push every tile down by a line. */}
+      {/* One row: what is running and the control for it, plus the two
+       * folders a player might want to reveal - icons, tooltip-labelled,
+       * same as every tile below rather than a second row of text buttons.
+       * No heading here - the surrounding panel box already says "Tasks &
+       * scripts"; repeating it inline was the exact kind of redundancy this
+       * rewrite exists to remove. */}
       <div className="flex items-center gap-1">
-        {(['tasks', 'scripts'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={cn(
-              'rounded border px-2 py-0.5 text-xs capitalize',
-              tab === t
-                ? 'border-accent bg-accent/15 text-accent'
-                : 'border-transparent text-ink-faint hover:text-ink'
-            )}
-          >
-            {t}
-            <span className="ml-1 opacity-60">
-              {t === 'tasks' ? tasks.length : scripts.length}
-            </span>
-          </button>
-        ))}
-
         <span
           className={cn(
-            'ml-1 min-w-0 flex-1 truncate text-xs',
+            'min-w-0 flex-1 truncate text-xs',
             running ? 'text-accent' : 'text-ink-faint'
           )}
           title={note || undefined}
         >
-          {running ? `Running ${running.id}` : note || ''}
+          {running ? `Running ${running.replace(/^ts\.|^ruby\./, '')}` : note || ''}
         </span>
+
+        {dirs?.pythonDir && (
+          <button
+            type="button"
+            onClick={() => void invokeTauri('reveal_file', { path: dirs.pythonDir })}
+            title={`Open your Python folder\n${dirs.pythonDir}`}
+            className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
+          >
+            <FolderOpen className="h-3 w-3" />
+          </button>
+        )}
 
         {running ? (
           <button
             type="button"
             onClick={() => void stop()}
+            title="Stop"
             className="shrink-0 rounded border border-danger/40 bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger hover:bg-danger/25"
           >
-            <Square className="mr-1 inline h-3 w-3" />
-            Stop
+            <Square className="h-3 w-3" />
           </button>
         ) : (
           <button
             type="button"
             onClick={() => void refresh()}
-            title="Re-read the task catalog and the scripts folders" aria-label="Re-read the task catalog and the scripts folders"
+            title="Re-read the task catalogs and the scripts folders"
+            aria-label="Re-read the task catalogs and the scripts folders"
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
           >
             <RefreshCw className="h-3 w-3" />
@@ -387,237 +518,169 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         )}
       </div>
 
-      {/* Why a list is empty, when it is. Never a bare "nothing here": the
-       * causes need different fixes and each note carries that backend's own
-       * words when a task failed to import - both, when both are relevant,
-       * rather than picking one and hiding the other's problem. */}
-      {tab === 'tasks' && status && nodeSt && tasks.length === 0 && (
+      {/* A filter across everything - tasks and Ruby scripts alike - because
+       * Lich's folder alone can hold the whole dr-scripts suite. The count
+       * says how many of how many, so a filter that matches nothing reads as
+       * "0 of 40" rather than as an empty folder - those are different
+       * problems and look identical without the denominator. */}
+      <div className="flex items-center gap-1">
+        <Search className="h-3 w-3 shrink-0 text-ink-faint" />
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Filter tasks and scripts"
+          spellCheck={false}
+          className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-0.5 text-xs text-ink placeholder:text-ink-faint"
+        />
+        <span className="shrink-0 text-xs text-ink-faint">
+          {filter ? `${entries.length} of ${totalCount}` : totalCount}
+        </span>
+      </div>
+
+      {/* Why the grid is empty, when it is. Never a bare "nothing here": the
+       * causes need different fixes and the note carries each backend's own
+       * words when a task failed to import, or Lich's when its folder is
+       * missing - both, when both are relevant, rather than picking one and
+       * hiding the other's problem. */}
+      {status && nodeSt && tasks.length === 0 && nodeTasks.length === 0 && (
         <p className="whitespace-pre-wrap rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
           {[status.note, nodeSt.note].filter(Boolean).join('\n\n') || 'No tasks were listed.'}
         </p>
       )}
-      {tab === 'scripts' && dirs?.note && (
+      {dirs?.note && (
         <p className="rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
           {dirs.note}
         </p>
       )}
+      {filter && entries.length === 0 && (
+        <p className="px-1 text-xs text-ink-faint">
+          Nothing matches "{filter}" in {totalCount} tasks and scripts.
+        </p>
+      )}
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        {tab === 'tasks' ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-1">
-            {tasks.map((t) => {
-              const Icon = iconFor(t.id)
-              const active = running?.id === t.id && running.lang === t.lang
-              const readOnly = t.kind === 'read-only'
-              const runLine =
-                t.lang === 'python'
-                  ? `python python/runner.py run ${t.id}`
-                  : `node typescript/runner.ts run ${t.id}`
-              return (
-                <button
-                  key={`${t.lang}:${t.id}`}
-                  type="button"
-                  onClick={() => void start(t.id, t.lang)}
-                  title={
-                    `${t.title}\n${t.summary}\n\n${t.id} — ${t.kind}\n\n` +
-                    `Runs the same outside the app:\n${runLine}`
-                  }
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 rounded border px-1 py-1.5 transition-colors',
-                    active
-                      ? 'border-accent bg-accent/15'
-                      : readOnly
-                        ? 'border-border bg-surface-raised hover:border-ink-faint'
-                        : 'border-border bg-surface-raised hover:border-accent/60'
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      'h-4 w-4',
-                      active ? 'text-accent' : readOnly ? 'text-ink-faint' : 'text-ink'
-                    )}
-                  />
-                  <span className="w-full truncate text-center text-xs leading-tight text-ink">
-                    {t.title}
-                  </span>
-                  {/* Which engine runs it, and whether it watches or acts —
-                   * neither ever left to a tooltip alone. */}
-                  {!dense && (
-                    <span className="text-xs leading-none text-ink-faint">
-                      {readOnly ? 'watches' : t.lang === 'typescript' ? 'ts' : ''}
-                    </span>
-                  )}
-                  {active && <Play className="h-3 w-3 text-accent" />}
-                </button>
-              )
-            })}
+      <div
+        ref={gridRef}
+        className={cn(
+          'min-h-0 flex-1 overflow-auto',
+          gridDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+        )}
+        style={{ touchAction: 'none' }}
+        onPointerDown={gridOnPointerDown}
+        onPointerMove={gridOnPointerMove}
+        onPointerUp={gridOnPointerUp}
+        onPointerCancel={gridOnPointerCancel}
+      >
+        <div className="flex flex-col gap-1.5">
+          {groups.map((group) => (
+            <div key={group.category} className="flex flex-col gap-1">
+              <p className="px-1 text-xs font-medium text-ink-faint">
+                {group.category}
+                <span className="ml-1 opacity-60">{group.items.length}</span>
+              </p>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1">
+                {group.items.map((entry) => {
+                  const overrideKey = iconOverrideFor(entry.id)
+                  const iconKey = overrideKey ?? entry.baseIcon
+                  const Icon = SCRIPT_ICON_COMPONENT[iconKey]
+                  const active = running === entry.id
+                  return (
+                    <div key={entry.id} className="group relative">
+                      <button
+                        type="button"
+                        onClick={entry.run}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
+                        }}
+                        title={`${entry.tooltip}\n\n(right-click to choose an icon)`}
+                        className={cn(
+                          'flex w-full items-center justify-center rounded border py-2 transition-colors',
+                          active
+                            ? 'border-accent bg-accent/15'
+                            : entry.readOnly
+                              ? 'border-border bg-surface-raised hover:border-ink-faint'
+                              : 'border-border bg-surface-raised hover:border-accent/60'
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            'h-4 w-4',
+                            active ? 'text-accent' : entry.readOnly ? 'text-ink-faint' : 'text-ink'
+                          )}
+                        />
+                      </button>
+                      {active && (
+                        <Play className="pointer-events-none absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-surface text-accent" />
+                      )}
+                      {entry.editTarget && !dense && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditing(entry.editTarget!)
+                          }}
+                          title={`Edit ${entry.editTarget.name}`}
+                          className="absolute -right-1 -top-1 rounded border border-border bg-surface p-0.5 text-ink-faint opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
+                        >
+                          <Pencil className="h-2.5 w-2.5" />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
 
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => openNew('python')}
               title="Write a new Python task. Saved into python/tasks/user/, where it is picked up automatically."
-              className="flex flex-col items-center gap-0.5 rounded border border-dashed border-border px-1 py-1.5 text-ink-faint hover:border-ink-faint hover:text-ink"
+              className="flex flex-1 items-center justify-center rounded border border-dashed border-border py-2 text-ink-faint hover:border-ink-faint hover:text-ink"
             >
               <FilePlus2 className="h-4 w-4" />
-              <span className="w-full truncate text-center text-xs leading-tight">New</span>
             </button>
-
             <button
               type="button"
               onClick={() => openNew('typescript')}
               title="Write a new TypeScript task. Saved into typescript/tasks/user/, where it is picked up automatically. Needs Node.js 22.6+ or 24+."
-              className="flex flex-col items-center gap-0.5 rounded border border-dashed border-border px-1 py-1.5 text-ink-faint hover:border-ink-faint hover:text-ink"
+              className="flex flex-1 items-center justify-center rounded border border-dashed border-border py-2 text-ink-faint hover:border-ink-faint hover:text-ink"
             >
               <FilePlus2 className="h-4 w-4" />
-              <span className="w-full truncate text-center text-xs leading-tight">New TS</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openNew('ruby')}
+              title={
+                dirs?.rubyDir
+                  ? 'Write a new Lich script, in Ruby, saved into Lich’s scripts folder.'
+                  : 'New Ruby script - needs Lich. Finish Lich setup first.'
+              }
+              className="flex flex-1 items-center justify-center rounded border border-dashed border-border py-2 text-ink-faint hover:border-ink-faint hover:text-ink"
+            >
+              <Gem className="h-4 w-4" />
             </button>
           </div>
-        ) : (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => openNew('python')}
-                className="flex items-center gap-1 rounded border border-dashed border-border px-2 py-0.5 text-xs text-ink-faint hover:border-ink-faint hover:text-ink"
-              >
-                <FilePlus2 className="h-3 w-3" />
-                New Python
-              </button>
-              <button
-                type="button"
-                onClick={() => openNew('typescript')}
-                title="A TypeScript task, saved into typescript/tasks/user/. Needs Node.js 22.6+ or 24+."
-                className="flex items-center gap-1 rounded border border-dashed border-border px-2 py-0.5 text-xs text-ink-faint hover:border-ink-faint hover:text-ink"
-              >
-                <FilePlus2 className="h-3 w-3" />
-                New TypeScript
-              </button>
-              <button
-                type="button"
-                onClick={() => openNew('ruby')}
-                title={
-                  dirs?.rubyDir
-                    ? 'A Lich script, in Ruby, saved into Lich’s scripts folder.'
-                    : 'Needs Lich. Finish Lich setup first.'
-                }
-                className="flex items-center gap-1 rounded border border-dashed border-border px-2 py-0.5 text-xs text-ink-faint hover:border-ink-faint hover:text-ink"
-              >
-                <FilePlus2 className="h-3 w-3" />
-                New Ruby
-              </button>
-              {dirs?.pythonDir && (
-                <button
-                  type="button"
-                  onClick={() => void invokeTauri('reveal_file', { path: dirs.pythonDir })}
-                  title={dirs.pythonDir}
-                  className="ml-auto rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
-                >
-                  <FolderOpen className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-
-            {/* A filter, because Lich's folder alone holds the whole dr-scripts
-              * suite. The count says how many of how many, so a filter that
-              * matches nothing reads as "0 of 234" rather than as an empty
-              * folder - those are different problems and they look identical
-              * without the denominator. */}
-            <div className="flex items-center gap-1">
-              <Search className="h-3 w-3 shrink-0 text-ink-faint" />
-              <input
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                placeholder="Filter scripts"
-                spellCheck={false}
-                className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-0.5 text-xs text-ink placeholder:text-ink-faint"
-              />
-              <span className="shrink-0 text-xs text-ink-faint">
-                {filter ? `${shown.shownCount} of ${shown.total}` : shown.total}
-              </span>
-            </div>
-
-            {scripts.length === 0 && !dirs?.note && (
-              <p className="px-1 text-xs text-ink-faint">
-                No scripts yet. Python and TypeScript become tasks in this app; Ruby is a
-                Lich script.
-              </p>
-            )}
-
-            {filter && shown.shownCount === 0 && (
-              <p className="px-1 text-xs text-ink-faint">
-                Nothing matches "{filter}" in {shown.total} scripts.
-              </p>
-            )}
-
-            {[
-              {
-                label: 'Yours',
-                hint: 'Python or TypeScript, in this app. Each becomes a task.',
-                items: shown.yours,
-              },
-              {
-                label: "Lich's folder",
-                hint: 'Ruby. Includes dr-scripts and anything else installed, not only what you wrote.',
-                items: shown.lich,
-              },
-            ].map((group) =>
-              group.items.length === 0 ? null : (
-                <div key={group.label} className="flex flex-col gap-1">
-                  <p
-                    className="px-1 text-xs font-medium text-ink-faint"
-                    title={group.hint}
-                  >
-                    {group.label}
-                    <span className="ml-1 opacity-60">{group.items.length}</span>
-                  </p>
-                  {group.items.map((s) => (
-              <div
-                key={`${s.lang}:${s.name}`}
-                className="flex items-center gap-1 rounded border border-border bg-surface-raised px-1.5 py-1"
-              >
-                <button
-                  type="button"
-                  onClick={() => setEditing({ name: s.name, lang: s.lang })}
-                  title={`${s.path}\n${s.bytes} bytes\n\n${s.summary || 'No description in the file.'}\n\nClick to edit.`}
-                  className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-                >
-                  <FileCode2
-                    className={cn(
-                      'h-3.5 w-3.5 shrink-0',
-                      s.lang === 'ruby' ? 'text-ink-faint' : 'text-accent'
-                    )}
-                  />
-                  <span className="truncate text-xs text-ink">{s.name}</span>
-                  {!dense && s.lang === 'typescript' && (
-                    <span className="shrink-0 text-xs text-ink-faint">ts</span>
-                  )}
-                  {!dense && s.summary && (
-                    <span className="truncate text-xs text-ink-faint">{s.summary}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (s.lang === 'ruby') {
-                      startScript(s.name)
-                      addLog(`Asked Lich to start ${s.name}`, 'info')
-                    } else {
-                      void start(`user.${s.name}`, s.lang)
-                    }
-                  }}
-                  title={s.lang === 'ruby' ? `Ask Lich to run ${s.name}` : `Run as user.${s.name}`}
-                  className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:border-accent/60 hover:text-accent"
-                >
-                  <Play className="h-3 w-3" />
-                </button>
-              </div>
-                  ))}
-                </div>
-              )
-            )}
-          </div>
-        )}
+        </div>
       </div>
+
+      {pickingIcon && (
+        <ScriptIconPicker
+          title={pickingIcon.title}
+          current={iconOverrideFor(pickingIcon.id) ?? pickingIcon.base}
+          guessed={pickingIcon.base}
+          onPick={(icon) => {
+            setIconOverride(pickingIcon.id, icon)
+            bumpIconOverrides((v) => v + 1)
+          }}
+          onReset={() => {
+            clearIconOverride(pickingIcon.id)
+            bumpIconOverrides((v) => v + 1)
+          }}
+          onClose={() => setPickingIcon(null)}
+        />
+      )}
 
       {/* What the task itself said. The old panel could only report which step
        * it was on, because it was the thing running the steps; a task can say

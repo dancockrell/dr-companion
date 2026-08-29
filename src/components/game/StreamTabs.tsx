@@ -29,6 +29,7 @@
  * not sent one, which is a different thing from the client having lost it.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Info } from 'lucide-react'
 import { type GameLine } from '../../lib/gameLink'
 import { useGameLines, useGameStreams } from '../../lib/useGameLines'
 import { GameLineRow } from './GameLineRow'
@@ -123,7 +124,18 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-border px-2 py-1 text-xs">
+      {/* Scrolls sideways rather than wrapping, same reasoning as MacroBar:
+        * a channel row that wraps to a second line at a narrow width reads
+        * as broken chrome (tabs half on one line, half on the next) rather
+        * than as a tab bar with more in it than fits. No visible scrollbar -
+        * the row is shorter than one would be - reachable by wheel or drag,
+        * same as any tab strip. */}
+      <div
+        className={cn(
+          'flex shrink-0 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border px-2 py-1 text-xs',
+          '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        )}
+      >
         {/* Whose channels these are, said out loud, but only once there are
           * two sets in the row to tell apart.
           *
@@ -173,17 +185,18 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
           )
         })}
 
-        {/* Said plainly rather than left as an empty row.
-          *
-          * No channels can mean three different things and they need different
-          * actions: not attached, attached to a frontend without the streams
-          * capability, or attached and the game has simply not used one yet. */}
+        {/* An icon and a tooltip rather than a sentence in the row - said
+          * plainly once, in the title, not typeset permanently beside the
+          * tabs. No channels can mean three different things and they need
+          * different actions: not attached, attached to a frontend without
+          * the streams capability, or attached and the game has simply not
+          * used one yet - all still in the tooltip, just not on the row. */}
         {streams.length === 0 && (
           <span
-            className="text-ink-faint"
-            title="Channels appear as the game uses them. If none ever appear, the bridge may be identifying as a frontend without the streams capability - see docs/ENGINE.md."
+            title="No game channels yet. Channels appear as the game uses them. If none ever appear, the bridge may be identifying as a frontend without the streams capability - see docs/ENGINE.md."
+            aria-label="No game channels yet"
           >
-            no channels yet
+            <Info className="h-3 w-3 shrink-0 text-ink-faint" />
           </span>
         )}
 

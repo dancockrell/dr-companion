@@ -57,6 +57,17 @@ export type BridgeServerMessage =
   | { type: 'map_path'; payload: MapPath }
   | { type: 'map_nearest'; payload: MapNearest }
   | { type: 'map_zone'; payload: MapZone }
+  /**
+   * A script placing a pin, the same way a player drags a preset onto a
+   * room - see useAppStore.ts's handler for why icon/color are plain
+   * strings here rather than PinIcon/PinColor: a script is not bound by
+   * this app's own type system, so the handler is what validates them, not
+   * the wire type.
+   */
+  | {
+      type: 'map_pin'
+      payload: { roomId: number; zone?: string; label: string; icon?: string; color?: string }
+    }
   | { type: 'script_catalog'; payload: string[] }
 
 /**

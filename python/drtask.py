@@ -62,12 +62,15 @@ would not be.
 
 from __future__ import annotations
 
+import json
 import re
+import threading
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
-from dr_companion import Companion, Line
+from dr_companion import Companion, Line, app_data_dir
 
 
 class RateLimited(RuntimeError):
@@ -183,6 +186,144 @@ class _Rate:
         return len(self.sent)
 
 
+@dataclass
+class SightTopic:
+    """The last answer to one rotation question, and when it arrived."""
+
+    text: str
+    at: float
+
+
+class SightPicture:
+    """A rotating set of cheap, read-only commands, sent only during downtime.
+
+    This is the answer to "can we push commands for information without
+    impacting the ability to send combat or movement": every command this
+    sends goes through `Task.do(..., wait_rt=False)`, the same escape hatch
+    `walk_to` and a step's own `until`-wait already rely on for commands
+    DragonRealms accepts *during* roundtime. It never calls `wait_rt()`
+    itself, so it can never be the reason a real action was late - the worst
+    it can do is spend a slice of the rate cap that a real action would
+    otherwise have used, which is why it is capped at half of that budget
+    (see `maybe_refresh`) rather than left to compete for all of it.
+
+    A task opts in with `self.enable_sight_picture()` (see `Task`), which
+    starts a dedicated background thread ticking this once a second. That
+    thread is what lets it use the downtime *inside* a step's own wait - a
+    `until=r"Bank|teller"` wait on a long walk, or the seconds a `wait_rt()`
+    call is blocked before a real attack - not just the gaps between steps.
+
+    Storage is one topic's-worth of text per topic, overwritten in place, not
+    a growing log: this is a snapshot of "what do we currently know", not a
+    history, and its on-disk form (`save`/`load`) is capped at a few hundred
+    bytes per topic for the same reason a room description does not need to
+    be kept forever to be useful right now.
+    """
+
+    #: Commands DragonRealms accepts during roundtime and that drtask.py's own
+    #: `do()` docstring already names as the reason `wait_rt=False` exists.
+    #: `look` and `exp` are asked for by name in issue-tracking here; `perc`
+    #: (perception) rounds the set out to "where am I, what's nearby, how hurt
+    #: am I, how am I progressing" - the four questions a player glances at
+    #: between fights. Kept short on purpose: a longer rotation makes each
+    #: topic staler between refreshes for no benefit the app currently reads.
+    TOPICS: tuple[str, ...] = ("health", "exp", "look", "perc")
+
+    #: Response text is collected for this long after the command is sent,
+    #: then whatever arrived is kept as the answer. Long enough for a normal
+    #: multi-line room description or exp listing to land; short enough that
+    #: a slow or garbled reply does not hold the rotation open.
+    COLLECT_SECONDS = 3.0
+
+    #: The file this snapshot is saved to and loaded from - beside the script
+    #: API's own token/port files, which is where `dr_companion.py` already
+    #: knows to look, so nothing new has to be taught where "the app's data"
+    #: lives.
+    STORE_NAME = "sight-picture.json"
+
+    def __init__(self, interval: float = 20.0) -> None:
+        self.interval = interval
+        self.snapshot: dict[str, SightTopic] = {}
+        self._last_sent = 0.0
+        self._rotation_index = 0
+        self._collecting: Optional[str] = None
+        self._buffer: list[str] = []
+        self._collect_until = 0.0
+
+    def maybe_refresh(self, task: "Task") -> None:
+        """Called about once a second. Sends at most one command, and only
+        when it is genuinely free: nothing is already in flight, the
+        interval has elapsed, and the rate cap has headroom to spare."""
+        now = time.time()
+        if self._collecting is not None and now >= self._collect_until:
+            self._flush()
+        if self._collecting is not None or now - self._last_sent < self.interval:
+            return
+        # Half the cap, not all of it. `_rate.sent` is the same 60-second
+        # window `do()` itself enforces; reading it without recording into it
+        # is why this check can happen every tick with no side effect of its
+        # own. A real action always sees at least half the cap free, however
+        # aggressively this rotates.
+        with task._send_lock:
+            recent = len(task._rate.sent)
+        if recent >= MAX_COMMANDS_PER_MINUTE // 2:
+            return
+
+        topic = self.TOPICS[self._rotation_index % len(self.TOPICS)]
+        self._rotation_index += 1
+        self._last_sent = now
+        self._collecting = topic
+        self._buffer = []
+        self._collect_until = now + self.COLLECT_SECONDS
+        task.do(topic, wait_rt=False)
+
+    def capture(self, text: str) -> None:
+        """Every clean line, offered by `Task._feed`. Kept only while a
+        rotation answer is being collected; otherwise a no-op cheap enough to
+        call on every line the game sends."""
+        if self._collecting is not None:
+            self._buffer.append(text)
+
+    def _flush(self) -> None:
+        if self._collecting is not None and self._buffer:
+            # Capped rather than trusting the game to be brief - a room with a
+            # long description or a crowd of items should not turn one topic
+            # into the biggest thing in the snapshot.
+            text = " ".join(self._buffer).strip()[:400]
+            if text:
+                self.snapshot[self._collecting] = SightTopic(text=text, at=time.time())
+        self._collecting = None
+        self._buffer = []
+
+    def as_dict(self) -> dict[str, dict[str, object]]:
+        """The snapshot, with ages rather than timestamps - a consumer wants
+        "how stale is this," not the clock time it arrived."""
+        now = time.time()
+        return {
+            topic: {"text": t.text, "age_seconds": round(now - t.at, 1)}
+            for topic, t in self.snapshot.items()
+        }
+
+    def save(self, path: Optional[Path] = None) -> Path:
+        """Overwrite the store with the current snapshot. One small file,
+        not an appended log - see the class docstring."""
+        target = path or (app_data_dir() / self.STORE_NAME)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(self.as_dict(), indent=2), encoding="utf-8")
+        return target
+
+    @classmethod
+    def load(cls, path: Optional[Path] = None) -> dict[str, dict[str, object]]:
+        """Read what a (possibly different, possibly already-stopped) task
+        last saved. A consumer that only wants to know what is known - not to
+        run a task itself - never needs a `SightPicture` instance for this."""
+        target = path or (app_data_dir() / cls.STORE_NAME)
+        try:
+            return json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+
+
 class Task:
     """Subclass this and override the hooks you want.
 
@@ -198,6 +339,15 @@ class Task:
         self.roundtime_until: float = 0.0
         self._rate = _Rate()
         self._stopping = False
+        #: Guards `_rate` and the underlying socket write together, so a
+        #: background sight-picture tick and the main thread's own `do()`
+        #: calls cannot interleave on either. Held only around the rate check
+        #: and the send itself - never around `wait_rt()`'s sleep, which is
+        #: deliberately the one place a background tick is *supposed* to be
+        #: able to slip a command in. See `do()`.
+        self._send_lock = threading.Lock()
+        self.sight_picture: Optional[SightPicture] = None
+        self._sight_thread: Optional[threading.Thread] = None
 
     # -- hooks ---------------------------------------------------------
 
@@ -223,17 +373,25 @@ class Task:
         if wait_rt:
             self.wait_rt()
 
-        count = self._rate.record(time.time())
-        if count > MAX_COMMANDS_PER_MINUTE:
-            self.stop()
-            raise RateLimited(
-                f"{count} commands in the last minute, cap is "
-                f"{MAX_COMMANDS_PER_MINUTE}. The task has been stopped.\n"
-                "This is almost always a loop that never sees its own exit "
-                "condition - check what the task is waiting for, rather than "
-                "raising the cap."
-            )
-        self.c.send(command)
+        # Locked around the rate check and the send together, not around
+        # `wait_rt()` above - a background sight-picture tick is meant to be
+        # able to use exactly the seconds this call spends blocked there.
+        # Without the lock, that tick and this call could both read `_rate`
+        # before either recorded into it, or interleave two writes on the
+        # same socket - see `Companion.send`'s own note that it is not
+        # thread-safe.
+        with self._send_lock:
+            count = self._rate.record(time.time())
+            if count > MAX_COMMANDS_PER_MINUTE:
+                self.stop()
+                raise RateLimited(
+                    f"{count} commands in the last minute, cap is "
+                    f"{MAX_COMMANDS_PER_MINUTE}. The task has been stopped.\n"
+                    "This is almost always a loop that never sees its own exit "
+                    "condition - check what the task is waiting for, rather than "
+                    "raising the cap."
+                )
+            self.c.send(command)
 
     def walk_to(self, destination: "str | int") -> None:
         """Walk to a Lich room id (or one of go2's own named targets, e.g.
@@ -268,6 +426,42 @@ class Task:
         self._stopping = True
         self.c.stop()
 
+    def enable_sight_picture(self, interval: float = 20.0) -> SightPicture:
+        """Opt in to background, downtime-only info gathering.
+
+        Starts a daemon thread ticking roughly once a second, calling
+        `SightPicture.maybe_refresh` - which is what actually decides whether
+        anything is sent, and never touches `wait_rt()`. Call this from
+        `on_start()`; it is a no-op to call more than once (the existing
+        picture is returned unchanged), since restarting the rotation on
+        every reconnect would throw away whatever was already known for no
+        reason.
+
+        Returns the `SightPicture` so a task can read `.snapshot` /
+        `.as_dict()` itself, e.g. to decide "have I looked around recently"
+        without spending a command to find out.
+        """
+        if self.sight_picture is not None:
+            return self.sight_picture
+        self.sight_picture = SightPicture(interval)
+
+        def _tick() -> None:
+            while not self._stopping:
+                try:
+                    self.sight_picture.maybe_refresh(self)
+                except RateLimited:
+                    # The rate cap is shared with real actions on purpose -
+                    # see `maybe_refresh`'s own headroom check, which should
+                    # make this unreachable in practice. If it ever isn't,
+                    # the task has already been stopped by `do()`; this
+                    # thread's job is done either way.
+                    return
+                time.sleep(1.0)
+
+        self._sight_thread = threading.Thread(target=_tick, daemon=True)
+        self._sight_thread.start()
+        return self.sight_picture
+
     # -- plumbing ------------------------------------------------------
 
     def _feed(self, line: Line) -> None:
@@ -300,6 +494,13 @@ class Task:
 
         text = strip_tags(raw).strip()
         if text:
+            # Offered before `on_clean`, not after: a subclass's own
+            # `on_clean` (Flow's included) may stop the task or otherwise act
+            # on this line, and the sight picture's collection window should
+            # see every line that arrived regardless of what the task does
+            # with it afterward.
+            if self.sight_picture is not None:
+                self.sight_picture.capture(text)
             self.on_clean(CleanLine(seq=line.seq, text=text, stream=stream, raw=raw))
 
     def run(self) -> None:

@@ -12,18 +12,23 @@
  * if the main one is busy, and it means neither can corrupt the other's state.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag } from 'lucide-react'
+import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag, Download, Upload } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import { roomKind } from '../lib/mapData'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
 import { MapPinBar } from './shared/MapPinBar'
 import { QuickTravel } from './shared/QuickTravel'
+import { PinPalette } from './shared/PinPalette'
 import { PinEditor } from './shared/PinEditor'
 import { RoomNudge } from './shared/RoomNudge'
 import { PlaceSearch } from './shared/PlaceSearch'
 import { useZoneBrowsing } from '../lib/useZoneBrowsing'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
+import { exportPinsToFile, importPinsFromFile } from '../lib/pinsFile'
+import { loadPlayerMarker, savePlayerMarker } from '../lib/playerMarker'
+import { PlayerMarkerEditor } from './shared/PlayerMarkerEditor'
+import { PIN_ICON_COMPONENT } from '../lib/pinIcons'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../lib/scriptFiles'
@@ -99,6 +104,14 @@ export function MapWindow() {
   const addLog = useAppStore((s) => s.addLog)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
 
+  /** The character's own mark on the map - see playerMarker.ts and MapPanel.tsx's matching state. */
+  const [markerVersion, setMarkerVersion] = useState(0)
+  const [editingMarker, setEditingMarker] = useState(false)
+  const playerMarker = useMemo(
+    () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
+    [character, markerVersion]
+  )
+
   const onRoute = useMemo(
     () => new Set((path?.ok ? (path.rooms ?? []) : []).map((r) => r.id)),
     [path]
@@ -124,8 +137,10 @@ export function MapWindow() {
     bridge.requestIntent('map_walk', { to: roomId })
   }
 
-  function pinRoom(id: number) {
-    const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
+  // knownTitle: see MapPanel.tsx's matching note - a nearest-search result
+  // is often not in the currently drawn zone's room list at all.
+  function pinRoom(id: number, knownTitle?: string) {
+    const title = knownTitle ?? zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
 
@@ -138,10 +153,10 @@ export function MapWindow() {
     !pinFor(pins, hereId) &&
     !isDismissed(character.name, character.instance, hereId)
 
-  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon']) {
+  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon'], note: MapPin['note']) {
     if (!character || !editingRoom) return
     if (editingRoom.existing) {
-      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon })
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon, note })
     } else {
       addPin(character.name, character.instance, {
         roomId: editingRoom.id,
@@ -149,10 +164,54 @@ export function MapWindow() {
         label,
         color,
         icon,
+        note,
       })
     }
     setPinVersion((v) => v + 1)
     setEditingRoom(null)
+  }
+
+  /** A preset dragged in from QuickTravel and dropped on a room - see MapPanel.tsx's matching function for why this skips the editor modal. */
+  function dropPin(roomId: number, preset: { label: string; icon: MapPin['icon']; color: MapPin['color'] }) {
+    if (!character) return
+    const already = pinFor(pins, roomId)
+    if (already) {
+      updatePin(character.name, character.instance, already.id, preset)
+    } else {
+      addPin(character.name, character.instance, {
+        roomId,
+        zone: zone?.zone ?? '',
+        label: preset.label,
+        color: preset.color,
+        icon: preset.icon,
+      })
+    }
+    setPinVersion((v) => v + 1)
+  }
+
+  /** Save/load pins as a shared file - see pinsFile.ts and MapPanel.tsx's matching pair. */
+  async function doExportPins() {
+    try {
+      const { path } = await exportPinsToFile()
+      addLog(`Pins saved to ${path}`)
+    } catch (e) {
+      addLog(String(e), 'error')
+    }
+  }
+  async function doImportPins() {
+    try {
+      const { imported, skipped, note } = await importPinsFromFile()
+      if (note) {
+        addLog(note, 'warn')
+        return
+      }
+      addLog(
+        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
+      )
+      setPinVersion((v) => v + 1)
+    } catch (e) {
+      addLog(String(e), 'error')
+    }
   }
 
   async function createTaskForPin(pin: MapPin) {
@@ -280,6 +339,29 @@ export function MapWindow() {
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
+          {/* Pins as a file - see pinsFile.ts's header. */}
+          {isTauri() && character && (
+            <>
+              <button
+                type="button"
+                className="p-1 rounded border border-border text-ink-faint hover:text-ink"
+                title="Save every character's pins to dr-companion-pins.yaml, in your Genie Config folder"
+                aria-label="Export pins to file"
+                onClick={() => void doExportPins()}
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                className="p-1 rounded border border-border text-ink-faint hover:text-ink"
+                title="Load pins from dr-companion-pins.yaml in your Genie Config folder - a guildmate's shared file, or your own from another machine"
+                aria-label="Import pins from file"
+                onClick={() => void doImportPins()}
+              >
+                <Upload className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -317,13 +399,37 @@ export function MapWindow() {
 
         {(pins.length > 0 || hereId != null) && (
           <>
-            <MapPinBar
-              pins={pins}
-              onGo={(pin) => goThere(pin.roomId)}
-              onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-              onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-            />
-            <QuickTravel onWalk={goThere} />
+            {/* One shared flex-wrap row, not two - see MapPinBar.tsx's note. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <MapPinBar
+                pins={pins}
+                onGo={(pin) => goThere(pin.roomId)}
+                onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+                onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+              />
+              <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
+              {character && playerMarker && (
+                <button
+                  type="button"
+                  onClick={() => setEditingMarker(true)}
+                  title="Customize your mark on the map"
+                  aria-label="Customize your mark on the map"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border hover:border-accent/60"
+                >
+                  <span
+                    className="flex h-4 w-4 items-center justify-center rounded-full"
+                    style={{ background: playerMarker.color }}
+                  >
+                    {(() => {
+                      const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
+                      return <Icon className="h-2.5 w-2.5" color="var(--map-ground)" strokeWidth={3} />
+                    })()}
+                  </span>
+                </button>
+              )}
+            </div>
+            {/* Every preset pin type, drag-and-drop onto a room - see PinPalette.tsx's own header. */}
+            <PinPalette />
             {showNudge && hereId != null && (
               <RoomNudge
                 visits={hereVisits as number}
@@ -370,6 +476,8 @@ export function MapWindow() {
               onHereAt={onHereAt}
               pins={pinsByRoom}
               onPinRoom={pinRoom}
+              onDropPin={dropPin}
+              playerMarker={playerMarker}
             />
           </div>
         ) : (
@@ -410,6 +518,17 @@ export function MapWindow() {
           onDelete={editingRoom.existing ? deletePin : undefined}
           onClose={() => setEditingRoom(null)}
           onCreateTask={isTauri() ? createTaskForPin : undefined}
+        />
+      )}
+      {editingMarker && playerMarker && character && (
+        <PlayerMarkerEditor
+          marker={playerMarker}
+          onClose={() => setEditingMarker(false)}
+          onSave={(m) => {
+            savePlayerMarker(character.name, character.instance, m)
+            setMarkerVersion((v) => v + 1)
+            setEditingMarker(false)
+          }}
         />
       )}
     </>

@@ -59,6 +59,7 @@ import {
   CROSSFADE_STYLES,
   setCrossfadeStyle,
   currentCrossfadeStyle,
+  onCrossfadeStyleChange,
   ALL_TRACKS,
   playTrack,
   nowPlaying,
@@ -68,6 +69,7 @@ import {
 } from '../../lib/ambientSound'
 import { externalMediaAvailable, sendMediaKey, type MediaAction } from '../../lib/externalMedia'
 import { loadPrefs, savePrefs, type FavoriteStation } from '../../lib/persistence'
+import { favoriteStations, onFavoritesChange, toggleFavorite, removeFavorite } from '../../lib/favorites'
 import { onOpenSoundPanelRequest } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
 import { MusicTransport } from './MusicTransport'
@@ -219,33 +221,32 @@ export function SoundControls() {
   const [radioId, setRadioId] = useState(currentRadioStation())
   const [customUrl, setCustomUrl] = useState(currentCustomStream() ?? '')
   const [customName, setCustomName] = useState('')
-  // A `builtin` favorite that named a station killed since it was saved
-  // (Salt and Sail and Silk Road, 29 Aug 2026 - see docs/AUDIO.md) is a
-  // dead star: it still renders, still looks clickable, and clicking it
-  // silently falls back to zone music instead of doing what its label
-  // promises - RadioPlayer.select's own "refuse, don't guess" behavior for
-  // an id that isn't a real station, with nothing telling the panel the
-  // click did something different than expected. Filtered out of the very
-  // first render, not just hidden later, so a stale star never flashes on
-  // screen at all - and the cleaned list is what gets persisted back, so
-  // this only ever has to happen once per profile rather than on every
-  // load. `custom` favorites (a player's own stream URL) aren't checked
-  // here - there's no catalog for those to fall out of.
-  const [favorites, setFavorites] = useState<FavoriteStation[]>(() => {
-    const saved = loadPrefs().favoriteStations ?? []
-    const liveStationIds = new Set(RADIO_STATIONS.map((s) => s.id))
-    return saved.filter((f) => f.kind !== 'builtin' || liveStationIds.has(f.id))
-  })
+  // favorites.ts is the single source of truth now (29 Aug 2026) - the
+  // footer's own favorite-current star reads and writes the same module, so
+  // this panel has to subscribe rather than own the list, same
+  // subscribe-and-resync pattern as `now`/`crossfade` just below. Dead-station
+  // pruning (Salt and Sail, Silk Road) happens once inside favorites.ts
+  // itself now, not here - every reader benefits, not just this component.
+  const [favorites, setFavoritesState] = useState<FavoriteStation[]>(() => favoriteStations())
   useEffect(() => {
-    const saved = loadPrefs().favoriteStations ?? []
-    if (saved.length !== favorites.length) savePrefs({ favoriteStations: favorites })
-    // Once, on mount - `favorites`/`saved` deliberately excluded from deps.
-    // This is a one-time migration for whatever was on disk at load time,
-    // not a general "keep storage in sync" effect; every other write to
-    // favorites already calls savePrefs itself at the point of change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setFavoritesState((prev) => {
+      const current = favoriteStations()
+      return prev === current ? prev : current
+    })
+    return onFavoritesChange(setFavoritesState)
   }, [])
   const [crossfade, setCrossfade] = useState<CrossfadeStyle>(() => loadPrefs().crossfadeStyle ?? currentCrossfadeStyle())
+  // SafetyFooter's own transitions button (29 Aug 2026) can change this
+  // without this panel's row ever being touched - same subscribe-and-resync
+  // pattern as `music`'s own OS-media-session note just below, or this row
+  // silently disagrees with the style actually in effect.
+  useEffect(() => {
+    setCrossfade((prev) => {
+      const current = currentCrossfadeStyle()
+      return prev === current ? prev : current
+    })
+    return onCrossfadeStyleChange(setCrossfade)
+  }, [])
   const [search, setSearch] = useState('')
   // Only for highlighting the active row in search results - title+composer
   // is a good enough proxy for "which track" in a pool this size; nothing
@@ -361,28 +362,14 @@ export function SoundControls() {
    * side effect of whatever happens to be playing. Two kinds share one list
    * (see persistence.ts's FavoriteStation) because from a listener's chair
    * a curated station and a stream they found themselves are both just "a
-   * station," and one list is easier to scan than two.
+   * station," and one list is easier to scan than two. The actual reads and
+   * writes live in favorites.ts (29 Aug 2026) - this panel just renders
+   * `favorites` (the subscribed copy above) and calls through.
    */
   const isFavorited = (kind: FavoriteStation['kind'], id: string) =>
     favorites.some((f) => f.kind === kind && f.id === id)
 
-  const saveFavorites = (next: FavoriteStation[]) => {
-    setFavorites(next)
-    savePrefs({ favoriteStations: next })
-  }
-
-  const toggleBuiltinFavorite = (id: string, name: string) => {
-    const exists = isFavorited('builtin', id)
-    saveFavorites(
-      exists
-        ? favorites.filter((f) => !(f.kind === 'builtin' && f.id === id))
-        : [...favorites, { kind: 'builtin', id, name }]
-    )
-  }
-
-  const removeFavorite = (kind: FavoriteStation['kind'], id: string) => {
-    saveFavorites(favorites.filter((f) => !(f.kind === kind && f.id === id)))
-  }
+  const toggleBuiltinFavorite = (id: string, name: string) => toggleFavorite('builtin', id, name)
 
   const playFavorite = (f: FavoriteStation) => {
     if (f.kind === 'builtin') {
@@ -850,11 +837,7 @@ export function SoundControls() {
                     const url = customUrl.trim()
                     if (!url) return
                     const name = customName.trim() || url.replace(/^https?:\/\//, '').slice(0, 40)
-                    if (isFavorited('custom', url)) {
-                      removeFavorite('custom', url)
-                    } else {
-                      saveFavorites([...favorites, { kind: 'custom', id: url, name }])
-                    }
+                    toggleFavorite('custom', url, name)
                   }}
                 >
                   <Star className={cn('h-3 w-3', customUrl.trim() && isFavorited('custom', customUrl.trim()) && 'fill-current text-accent')} />

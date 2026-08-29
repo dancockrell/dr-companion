@@ -15,7 +15,8 @@ import type { MapZone, MapZoneRoom } from '../../bridge/types'
 import { inkFor } from '../../lib/mapInk'
 import { recency, segments, type Trail } from '../../lib/trail'
 import { roomKind, type RoomKind } from '../../lib/mapData'
-import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
+import { PIN_COLOR_HEX, PIN_DRAG_TYPE, type MapPin, type PinIcon, type PinColor } from '../../lib/mapPins'
+import type { PlayerMarker } from '../../lib/playerMarker'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 
 /**
@@ -75,6 +76,20 @@ export function MapCanvas({
   pins,
   /** Right-click (or long-press, once this has a touch input) a room to pin it - offered on any room, not just the one you're standing in, since browsing a distant zone to mark its bank is a real use of this. */
   onPinRoom,
+  /**
+   * A pin type dragged in from somewhere outside the map (QuickTravel's
+   * category buttons, for now) and dropped on a room - the instant-placement
+   * counterpart to onPinRoom's right-click-then-choose flow. Optional for
+   * the same reason onPinRoom is: a caller with nowhere to save a pin (no
+   * character yet) simply doesn't wire it up, and the room stops accepting
+   * drops rather than accepting one that goes nowhere.
+   */
+  onDropPin,
+  /** The character's own chosen symbol and colour - drawn bigger than any
+   *  pin, on the room the map already knows is "here". Optional: a caller
+   *  with no character yet just doesn't offer one, and the plain coloured
+   *  square kind === 'here' already draws is what shows instead. */
+  playerMarker,
 }: {
   zone: MapZone
   level: number
@@ -89,6 +104,8 @@ export function MapCanvas({
   onHereAt?: (x: number, y: number) => void
   pins?: Map<number, MapPin>
   onPinRoom?: (id: number) => void
+  onDropPin?: (roomId: number, preset: { label: string; icon: PinIcon; color: PinColor }) => void
+  playerMarker?: PlayerMarker
 }) {
   /**
    * The cartography is authored on a 10-unit grid: 1,221 of Crossing's
@@ -177,23 +194,6 @@ export function MapCanvas({
         link(r.id, l.to)
         link(l.to, r.id)
       }
-    }
-    return out
-  }, [rooms])
-
-  // One label per named place, at the first room of its cluster - depends
-  // only on which rooms exist, not on where the character is or the trail.
-  const labelEntries = useMemo(() => {
-    const seen = new Set<string>()
-    const out: { id: number | null; x: number; y: number; name: string }[] = []
-    for (const r of rooms) {
-      const place = (r.tags ?? [])[0]
-      if (!place) continue
-      const title = r.title ?? ''
-      const name = title.includes(',') ? title.slice(0, title.indexOf(',')) : title
-      if (!name || seen.has(name)) continue
-      seen.add(name)
-      out.push({ id: r.id, x: r.x as number, y: r.y as number, name })
     }
     return out
   }, [rooms])
@@ -335,30 +335,6 @@ export function MapCanvas({
         })
       )}
 
-      {/* One label per named place, at the first room of its cluster.
-          Labelling every room of an eight-room guild would print its name
-          eight times; labelling none is what made this a diagram. */}
-      {labelEntries.map((l) => (
-        <text
-          key={`label-${l.id}`}
-          x={l.x * scale - view.minX + pad + box}
-          y={l.y * scale - view.minY + pad - box * 0.4}
-          fill="var(--map-ink)"
-          style={{
-            fontSize: Math.max(7, 6.5 * scale),
-            pointerEvents: 'none',
-            // The annotations on a hand-drawn chart, not interface text:
-            // small, letter-spaced, and quiet enough that the geography
-            // stays the thing you read first.
-            letterSpacing: '0.04em',
-            fontVariant: 'small-caps',
-            opacity: 0.75,
-          }}
-        >
-          {l.name}
-        </text>
-      ))}
-
       {rooms.map((r) => {
         const kind = kindById.get(r.id) ?? 'plain'
         const been = r.id != null ? fresh?.get(r.id) : undefined
@@ -383,6 +359,32 @@ export function MapCanvas({
             }}
             onMouseEnter={() => r.id != null && setHoverId(r.id)}
             onMouseLeave={() => r.id != null && setHoverId((h) => (h === r.id ? null : h))}
+            // Drag-and-drop a pin type onto this room. Reuses the same hover
+            // lift a mouseenter gives - the room under the drag should read
+            // as the drop target the same way it reads as the click target,
+            // rather than needing a second visual language just for drags.
+            onDragOver={(e) => {
+              if (!onDropPin || r.id == null) return
+              e.preventDefault()
+            }}
+            onDragEnter={() => {
+              if (onDropPin && r.id != null) setHoverId(r.id)
+            }}
+            onDragLeave={() => r.id != null && setHoverId((h) => (h === r.id ? null : h))}
+            onDrop={(e) => {
+              if (!onDropPin || r.id == null) return
+              e.preventDefault()
+              setHoverId((h) => (h === r.id ? null : h))
+              const raw = e.dataTransfer.getData(PIN_DRAG_TYPE)
+              if (!raw) return
+              try {
+                const preset = JSON.parse(raw)
+                if (preset?.label && preset?.icon && preset?.color) onDropPin(r.id, preset)
+              } catch {
+                // Not our drag - some other payload landed here. Ignore it
+                // rather than creating a pin from garbage.
+              }
+            }}
           >
             {/* A ring on a room you have stood in.
              *
@@ -443,7 +445,11 @@ export function MapCanvas({
                 (r.gateway ? `\n→ ${r.gateway.name}  (click to follow)` : '') +
                 (r.leaves?.length ? `\nleaves the zone: ${r.leaves.join(', ')}` : '') +
                 (r.id != null && pins?.has(r.id)
-                  ? `\n📍 ${pins.get(r.id)?.label}`
+                  ? `\n📍 ${pins.get(r.id)?.label}` +
+                    // The story, not just the name - "pins tell stories."
+                    // A label says what to call the place; this says why
+                    // it's worth calling anything at all.
+                    (pins.get(r.id)?.note ? `\n${pins.get(r.id)?.note}` : '')
                   : onPinRoom
                     ? '\n(right-click to pin)'
                     : '')}
@@ -497,62 +503,111 @@ export function MapCanvas({
                 {r.title}
               </text>
             )}
-            {/* A saved place, marked on the chart itself rather than only in
-                the hotbar below it - so browsing toward one, or noticing you
-                are near Home, doesn't require reading a row of buttons that
-                may not even be in view in a small docked panel. Drawn above
-                everything else on the room: a pin is a fact about the place
-                that outranks what kind of room it happens to be.
-
-                Every pin used to draw as the same plain dot regardless of
-                which of the 16 icons PinEditor offers was picked - the icon
-                only ever reached MapPinBar's chip list, never the map itself,
-                which is the one place a player is actually looking while
-                deciding where to walk. Drawn here as the real icon (falling
-                back to the plain dot PinIcon leaves undefined for a pin saved
-                before icons existed, per mapPins.ts's own documented
-                contract), in the map's own background colour so it reads
-                against any pin colour without needing a second palette.
-                The corpse marker (MapPin.system) gets a visibly larger badge
-                and a heavier ring - it is the one pin the app drops for you
-                rather than you choosing it, and it is telling you where your
-                body is, which outranks every other fact a pin can carry. */}
-            {r.id != null &&
-              pins?.has(r.id) &&
-              (() => {
-                const pin = pins.get(r.id)!
-                const cx = px(r) + box * 0.62
-                const cy = py(r) - box * 0.62
-                const weight = pin.system ? 1.4 : 1
-                const radius = Math.max(1.6, 1.8 * scale) * weight
-                const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
-                return (
-                  <g className="pointer-events-none">
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r={radius}
-                      fill={PIN_COLOR_HEX[pin.color]}
-                      stroke="var(--map-ground)"
-                      strokeWidth={Math.max(0.5, 0.5 * scale) * (pin.system ? 1.6 : 1)}
-                    />
-                    {Icon && (
-                      <svg
-                        x={cx - radius * 0.8}
-                        y={cy - radius * 0.8}
-                        width={radius * 1.6}
-                        height={radius * 1.6}
-                        viewBox="0 0 24 24"
-                      >
-                        <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
-                      </svg>
-                    )}
-                  </g>
-                )
-              })()}
           </g>
         )
       })}
+
+      {/* A saved place, marked on the chart itself rather than only in the
+          hotbar below it - so browsing toward one, or noticing you are near
+          Home, doesn't require reading a row of buttons that may not even
+          be in view in a small docked panel.
+
+          A second, later pass over the rooms - not nested inside each
+          room's own <g> above - because SVG paints in document order and a
+          badge drawn as a room's own last child still loses to *any* later
+          room in the list that happens to overlap it. Dan: "pins go on top
+          of the background." Measured on Crossing: a pin one room short of
+          the drawing order's end was partly covered by its undecorated
+          neighbour. Painting every pin only after every room means a pin is
+          never under anything but another pin.
+
+          Every pin used to draw as the same plain dot regardless of which
+          icon PinEditor offered - the icon only ever reached MapPinBar's
+          chip list, never the map itself, which is the one place a player
+          is actually looking while deciding where to walk. Drawn here as
+          the real icon (falling back to the plain dot PinIcon leaves
+          undefined for a pin saved before icons existed, per mapPins.ts's
+          own documented contract), in the map's own background colour so it
+          reads against any pin colour without needing a second palette.
+          The corpse marker (MapPin.system) gets a visibly larger badge and
+          a heavier ring - it is the one pin the app drops for you rather
+          than you choosing it, and it is telling you where your body is,
+          which outranks every other fact a pin can carry. */}
+      {pins &&
+        rooms
+          .filter((r) => r.id != null && pins.has(r.id))
+          .map((r) => {
+            const pin = pins.get(r.id!)!
+            const cx = px(r) + box * 0.62
+            const cy = py(r) - box * 0.62
+            const weight = pin.system ? 1.4 : 1
+            // Sized off the room's own box, not a fixed constant - a pin is
+            // a fact worth noticing, and a badge smaller than the room it
+            // sits on (the old `1.8 * scale`, well under half of `box`)
+            // cannot carry an icon shape at all. Measured live: on
+            // Crossing's 903x1056 viewBox scaled into a 530px docked
+            // column, the old radius rendered at roughly one physical pixel
+            // - present in the DOM, invisible on screen. 1.15x the room box
+            // makes the badge the most prominent single mark on the room
+            // rather than the least.
+            const radius = Math.max(box * 1.15, 2.4 * scale) * weight
+            const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
+            return (
+              <g key={`pin-${r.id}`} className="pointer-events-none">
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={radius}
+                  fill={PIN_COLOR_HEX[pin.color]}
+                  stroke="var(--map-ground)"
+                  strokeWidth={Math.max(0.5, 0.5 * scale) * (pin.system ? 1.6 : 1)}
+                />
+                {Icon && (
+                  <svg
+                    x={cx - radius * 0.8}
+                    y={cy - radius * 0.8}
+                    width={radius * 1.6}
+                    height={radius * 1.6}
+                    viewBox="0 0 24 24"
+                  >
+                    <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
+                  </svg>
+                )}
+              </g>
+            )
+          })}
+
+      {/* The character's own mark, bigger than any pin and drawn last so
+          nothing else on the chart can sit on top of it - Dan: "show where
+          the character is with a big player icon coat of arms." A third
+          top-level pass for the same reason pins are their own pass now
+          (see that block's comment): document order is paint order in SVG,
+          and "here" has to outrank a pin on the same room, not just every
+          plain room. */}
+      {playerMarker &&
+        rooms
+          .filter((r) => kindById.get(r.id) === 'here')
+          .map((r) => {
+            const cx = px(r)
+            const cy = py(r)
+            const radius = Math.max(box * 1.6, 3.2 * scale)
+            const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
+            return (
+              <g key={`you-${r.id}`} className="pointer-events-none">
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={radius}
+                  fill={playerMarker.color}
+                  stroke="var(--map-ground)"
+                  strokeWidth={Math.max(0.7, 0.7 * scale)}
+                />
+                <svg x={cx - radius * 0.75} y={cy - radius * 0.75} width={radius * 1.5} height={radius * 1.5} viewBox="0 0 24 24">
+                  <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
+                </svg>
+              </g>
+            )
+          })}
     </svg>
   )
 }
@@ -599,20 +654,24 @@ export function MapLegend({ kinds }: { kinds?: RoomKind[] }) {
     ] as Array<[RoomKind, string]>
   ).filter(([k]) => k === 'here' || present.has(k))
 
+  // Swatches only, no words beside them - the row this used to be (colour
+  // plus its name, repeated per kind) cost real width for something a
+  // tooltip says exactly as well. Each swatch still carries its own title,
+  // so the information survives; it just is not typeset in the layout by
+  // default. "Less talk, more tooltips."
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-faint">
+    <div className="flex flex-wrap items-center gap-1.5" title="Map colours: dark you, red hazard, blue bank/healer/guild/shop">
       {items.map(([kind, label]) => (
-        <span key={kind} className="flex items-center gap-1">
+        <span
+          key={kind}
+          title={label}
+          className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-sm"
+          style={{ background: 'var(--map-ground)' }}
+        >
           <span
-            className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-sm"
-            style={{ background: 'var(--map-ground)' }}
-          >
-            <span
-              className="inline-block h-2 w-2 rounded-[1px]"
-              style={{ background: FILL[kind as RoomKind] }}
-            />
-          </span>
-          {label}
+            className="inline-block h-2 w-2 rounded-[1px]"
+            style={{ background: FILL[kind as RoomKind] }}
+          />
         </span>
       ))}
     </div>

@@ -39,7 +39,6 @@ export type MiddlePanelId =
   | 'tasks'
   | 'quickqueue'
   | 'training'
-  | 'objects'
   | 'inventory'
   | 'scripts'
 
@@ -51,7 +50,6 @@ export const MIDDLE_PANEL_IDS: MiddlePanelId[] = [
   'tasks',
   'quickqueue',
   'training',
-  'objects',
   'inventory',
   'scripts',
 ]
@@ -63,7 +61,6 @@ export const MIDDLE_PANEL_LABELS: Record<MiddlePanelId, string> = {
   tasks: 'Tasks and scripts',
   quickqueue: 'Quick Queue',
   training: 'Training',
-  objects: 'Objects (floor items)',
   inventory: 'Inventory',
   scripts: 'Script Library',
 }

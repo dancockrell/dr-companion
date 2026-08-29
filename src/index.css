@@ -108,6 +108,19 @@ body {
   background: #3a4255;
 }
 
+/* Opt out of the scrollbar above entirely — for the battle board's corner
+ * panes (CombatRadar.tsx), which sit directly over a room picture and grab
+ * their own scroll by drag instead. A permanently visible scrollbar track
+ * there reads as chrome laid over the room; the pane still scrolls by
+ * wheel or trackpad exactly as before, just without a visible rail. */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, new Edge */
+}
+
 /* Nothing in this window blinks.
  *
  * There was a two-second opacity pulse on the busy indicator and on low

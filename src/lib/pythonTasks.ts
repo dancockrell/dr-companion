@@ -48,6 +48,14 @@ export type TaskInfo = {
    * are different enough that the button should say so before it is pressed.
    */
   kind: string
+  /**
+   * "Combat", "Recovery", "Upkeep", "Utility", "Custom" or "Examples" -
+   * `runner.py`'s `CATEGORY_ORDER`. The catalog already arrives grouped by
+   * this (the Python side sorts it), so the UI only has to notice where one
+   * group ends and the next begins, never sort by it itself - see
+   * TaskFlowPanel.tsx.
+   */
+  category: string
 }
 
 export type PythonStatus = {

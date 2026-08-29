@@ -102,7 +102,9 @@ export function MacroBar({
                   e.preventDefault()
                   setOpen(isOpen ? null : m.id)
                 }}
-                title={`${v.label} — ${v.commands.join(' ; ')}${v.note ? `\n${v.note}` : ''}\nRight-click for ${m.variations.length} variations`}
+                title={`${v.label} — ${v.commands.join(' ; ')}${v.note ? `\n${v.note}` : ''}${
+                  m.variations.length > 1 ? `\nRight-click for ${m.variations.length} variations` : ''
+                }`}
                 className={cn(
                   'flex items-center gap-1.5 rounded border border-border px-2 py-1 text-xs',
                   'text-ink-muted hover:border-ink-faint hover:text-ink',

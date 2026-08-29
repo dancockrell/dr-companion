@@ -29,12 +29,21 @@ import {
   requestStartFlow,
 } from '../../lib/flowStop'
 import { KEYBINDING_HELP } from '../../lib/keybindings'
+import {
+  musicVolume,
+  pauseMusic,
+  resumeMusic,
+  skipTrack,
+  setRadioStation,
+  RADIO_STATIONS,
+} from '../../lib/ambientSound'
+import { requestOpenSoundPanel } from '../../lib/soundPanelOpen'
 
 interface Command {
   id: string
   label: string
   hint?: string
-  group: 'Safety' | 'Tasks' | 'Scripts' | 'App'
+  group: 'Safety' | 'Tasks' | 'Scripts' | 'Sound' | 'App'
   run: () => void
   /**
    * Already started, so offering to start it is a lie.
@@ -179,6 +188,49 @@ function buildCommands(deps: {
     })
   }
 
+  // The same three transport actions and the station list SafetyFooter's own
+  // MusicTransport already exposes - findable here too, because "what does
+  // this command palette not reach" was the whole point of Ctrl+K existing,
+  // and a player mid-search for a script shouldn't have to remember sound
+  // lives in a different corner of the app entirely.
+  commands.push(
+    {
+      id: 'sound:play-pause',
+      label: 'Play/pause music',
+      hint: 'Fades in or out, same as the footer button',
+      group: 'Sound',
+      run: () => (musicVolume() > 0 ? pauseMusic() : resumeMusic()),
+    },
+    {
+      id: 'sound:next',
+      label: 'Next track',
+      group: 'Sound',
+      run: () => skipTrack(1),
+    },
+    {
+      id: 'sound:prev',
+      label: 'Previous track',
+      group: 'Sound',
+      run: () => skipTrack(-1),
+    },
+    {
+      id: 'sound:open-panel',
+      label: 'Open Sound panel',
+      hint: 'Mixer, search, favorites, custom streams',
+      group: 'Sound',
+      run: () => requestOpenSoundPanel(),
+    }
+  )
+  for (const station of RADIO_STATIONS) {
+    commands.push({
+      id: `sound:station:${station.id}`,
+      label: `Play station: ${station.name}`,
+      hint: station.description,
+      group: 'Sound',
+      run: () => setRadioStation(station.id),
+    })
+  }
+
   commands.push(
     {
       id: 'app:toggle-mode',
@@ -210,7 +262,7 @@ function buildCommands(deps: {
   return commands
 }
 
-const GROUP_ORDER: Command['group'][] = ['Safety', 'Tasks', 'Scripts', 'App']
+const GROUP_ORDER: Command['group'][] = ['Safety', 'Tasks', 'Scripts', 'Sound', 'App']
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)

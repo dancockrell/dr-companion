@@ -60,7 +60,14 @@ export interface MapDock {
  */
 const DEFAULT: MapDock = { docked: true, width: 300, zoom: 1, windowZoom: 1.5 }
 
-export const ZOOM_MIN = 1
+/**
+ * 0.4, not 1 - Dan's call, 30 Aug 2026: "zoom out as well." The docked
+ * panel's zoom used to bottom out exactly at fit-the-whole-zone, so the
+ * zoom-out button was permanently disabled from the moment the map first
+ * rendered. Matches WINDOW_ZOOM_MIN below, which the popped-out window has
+ * used from the start.
+ */
+export const ZOOM_MIN = 0.4
 export const ZOOM_MAX = 6
 export const WINDOW_ZOOM_MIN = 0.4
 export const WINDOW_ZOOM_MAX = 6
