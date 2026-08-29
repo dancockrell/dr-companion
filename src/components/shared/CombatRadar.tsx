@@ -1,24 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useDragScroll } from '../../lib/useDragScroll'
-import {
-  Box,
-  ChevronUp,
-  Coins,
-  Gem,
-  Package,
-  ScrollText,
-  Skull,
-  User,
-  Wand2,
-} from 'lucide-react'
+import { ChevronUp, User } from 'lucide-react'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
 import { Paperdoll } from './Paperdoll'
 import { VitalCluster } from './VitalCluster'
 import { playerArtFor, notePlayerArtMissing } from '../../lib/playerArt'
-import { nounOf } from '../../lib/room'
-import { useRoomItemTake } from '../../lib/useRoomItemTake'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { RoomBackdrop } from '../room/RoomBackdrop'
 import { DECK_STYLE, type Deck } from '../../lib/cards'
@@ -255,8 +243,6 @@ const CORNERS: Record<Deck, CornerBox> = {
   allied: { bottom: CORNER_MARGIN_PCT, left: CORNER_MARGIN_PCT, label: 'NPCs', presence: 'allied' },
 }
 
-const ITEM_BOX: CornerBox = { bottom: CORNER_MARGIN_PCT, right: CORNER_MARGIN_PCT, label: 'Items', presence: '' }
-
 /** One scrollable corner pane — the container every corner and the floor
  * render their pucks into. A plain wrapping flexbox inside a fixed,
  * absolutely-positioned rectangle: position is set once by the box, content
@@ -286,26 +272,6 @@ function CornerPane({ box, children }: { box: CornerBox; children: ReactNode }) 
       <div className="flex flex-wrap content-start gap-1.5 p-1">{children}</div>
     </div>
   )
-}
-
-/**
- * A generic-but-good icon for a floor item, guessed from its name the same
- * way a player glances at a pile and knows "that's coins" without reading a
- * label. Only a handful of keywords get their own icon — the things people
- * actually dig through a corpse for — everything else gets the same plain
- * "pile of something" icon rather than a wrong specific guess. Nothing here
- * is a claim about what the item actually is beyond what its own name
- * already says; the full name is still the tooltip.
- */
-function iconForItem(name: string) {
-  const n = name.toLowerCase()
-  if (/\bcoins?\b|\bkronars?\b|\blirums?\b|\bdokoras?\b/.test(n)) return Coins
-  if (/\bgems?\b|\bjewels?\b|\bstones?\b/.test(n)) return Gem
-  if (/\bbox\b|\bchest\b|\bcrate\b|\bcase\b/.test(n)) return Box
-  if (/\bcorpse\b|\bskull\b|\bbones?\b/.test(n)) return Skull
-  if (/\bscroll\b|\bletter\b|\bnote\b|\bbook\b/.test(n)) return ScrollText
-  if (/\bwand\b|\bstaff\b|\borb\b/.test(n)) return Wand2
-  return Package
 }
 
 /**
@@ -755,7 +721,6 @@ export function CombatRadar({
   text,
   cards,
   combatants,
-  items,
   you,
   embedded = false,
 }: {
@@ -781,9 +746,6 @@ export function CombatRadar({
    * more decks would just show them twice. */
   cards: RoomCard[]
   combatants: RoomCombatant[]
-  /** The floor — every item gets its own puck in the items corner now,
-   * capped the same way the other three corners are. */
-  items?: string[]
   /**
    * You — the one fixed point everything else on the compass is drawn
    * relative to, same as `assess` itself. Optional, and only ever passed
@@ -813,7 +775,6 @@ export function CombatRadar({
   embedded?: boolean
 }) {
   const index = indexCombatants(combatants)
-  const { take, canSend: canTake, reason: takeReason } = useRoomItemTake()
   const { run: runMacro, canSend: canAttack, reason: attackReason } = useMacroRunner()
   const { ref: boardRef, width: boardWidth } = useMeasuredWidth()
   const compact = boardWidth > 0 && boardWidth < COMPACT_MIN_PX
@@ -823,16 +784,12 @@ export function CombatRadar({
   // there is no longer a ceiling on puck size fighting a ceiling on how
   // many can fit without overlapping.
   const portraitPx = compact ? 60 : 84
-  const dotPx = compact ? 28 : 36
   const cornerPx = compact ? 52 : 72
   // Mobs read as the biggest thing in a corner on purpose — they're the
   // reason a player is looking at this board at all. PCs and NPCs share
   // the same frame and fallback chain (see Puck) so they read as the same
   // *kind* of card, just not the loudest one on the board.
   const hostileCornerPx = compact ? 68 : 94
-  // Items are the smallest corner citizen — an icon to recognise and click,
-  // not a portrait to study. Mouseover still carries the full name.
-  const itemCornerPx = compact ? 34 : 46
 
   // The compass doesn't get that deal. A corner can always add another row
   // and scroll; the compass has nowhere to put an oversized puck but
@@ -937,16 +894,15 @@ export function CombatRadar({
       }
     : { hostile: [], allied: [], people: [] }
 
-  // Click anything in a corner (or the floor) and it jumps to the top of
-  // its own pane — a scrolling pile of hundreds is only useful if the one
-  // you're looking for can be pulled to where you can see it. Pins are
-  // per-room UI state, not game state: they reset the moment the character
-  // walks into a different room, same as the rest of this component.
-  const [pinned, setPinned] = useState<{ hostile: string[]; people: string[]; allied: string[]; items: string[] }>({
+  // Click anything in a corner and it jumps to the top of its own pane — a
+  // scrolling pile of hundreds is only useful if the one you're looking for
+  // can be pulled to where you can see it. Pins are per-room UI state, not
+  // game state: they reset the moment the character walks into a different
+  // room, same as the rest of this component.
+  const [pinned, setPinned] = useState<{ hostile: string[]; people: string[]; allied: string[] }>({
     hostile: [],
     people: [],
     allied: [],
-    items: [],
   })
   const promote = (bucket: keyof typeof pinned, key: string) =>
     setPinned((prev) => ({ ...prev, [bucket]: [key, ...prev[bucket].filter((k) => k !== key)] }))
@@ -956,7 +912,6 @@ export function CombatRadar({
     allied: reorderByPin(rawCornerEntries.allied, (e) => e.key, pinned.allied),
     people: reorderByPin(rawCornerEntries.people, (e) => e.key, pinned.people),
   }
-  const orderedItems = items ? reorderByPin(items, (name) => name, pinned.items) : items
 
   const hasFight = positioned.length > 0
 
@@ -1176,70 +1131,6 @@ export function CombatRadar({
           )
         })}
 
-      {/* The floor — its own scrollable pane now, the same as the other
-          three, rather than clustered at your feet: an item is exactly as
-          "somewhere in this room, not precisely located" as an NPC assess
-          never positioned, so it gets the same honest treatment instead of
-          a claim ("at your feet") this app was never actually told. Each
-          puck is an icon guessed from the item's own name (see
-          `iconForItem`) rather than a bare dot — a generic "pile" shape for
-          anything unrecognised, a specific one for the handful of things a
-          player is actually digging through a corpse for. Click both takes
-          it and promotes it to the top, same as every other corner.
-
-          The smallest puck on the board on purpose — an icon to recognise
-          and click, not a portrait to study, and the name is a hover away
-          regardless. Identical names collapse into one puck with a count
-          badge (three piles of "some copper kronars" read as one pile
-          worth three, the same way CardDeck already collapses three
-          identical creatures into one card with a multiplier) rather than
-          three indistinguishable coin icons in a row. */}
-      {embedded && orderedItems && orderedItems.length > 0 && (
-        <CornerPane box={ITEM_BOX}>
-          {(() => {
-            const groups: { name: string; count: number }[] = []
-            const indexOf = new Map<string, number>()
-            for (const name of orderedItems) {
-              const i = indexOf.get(name)
-              if (i != null) groups[i].count++
-              else {
-                indexOf.set(name, groups.length)
-                groups.push({ name, count: 1 })
-              }
-            }
-            return groups.map(({ name, count }) => {
-              const label = count > 1 ? `${count}x ${name}` : name
-              const tooltip = takeReason ?? `${label} — get ${nounOf(name)}, or click to bring to the top`
-              const Icon = iconForItem(name)
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  disabled={!canTake}
-                  onClick={() => {
-                    take(name)
-                    promote('items', name)
-                  }}
-                  title={tooltip}
-                  className="relative flex shrink-0 items-center justify-center rounded-full border border-surface bg-surface-overlay hover:brightness-125 disabled:cursor-not-allowed"
-                  style={{ width: itemCornerPx, height: itemCornerPx, boxShadow: PUCK_SHADOW }}
-                >
-                  <Icon className="text-accent" style={{ width: dotPx * 0.7, height: dotPx * 0.7 }} aria-hidden />
-                  {count > 1 && (
-                    <span
-                      className="absolute -right-1.5 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full border border-surface bg-accent px-1 text-xs font-semibold leading-none text-surface"
-                      aria-hidden
-                    >
-                      {count}
-                    </span>
-                  )}
-                  <span className="sr-only">{label}</span>
-                </button>
-              )
-            })
-          })()}
-        </CornerPane>
-      )}
     </div>
   )
 

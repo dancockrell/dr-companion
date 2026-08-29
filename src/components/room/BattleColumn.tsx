@@ -4,7 +4,8 @@ import { CombatRadar } from '../shared/CombatRadar'
 import { TeachingPanel } from './TeachingPanel'
 import { BattleStatus } from './BattleStatus'
 import { BattleActionBar } from './BattleActionBar'
-import { HighlightedText } from './HighlightedText'
+import { ClassicRoomText } from './ClassicRoomText'
+import { FloorItems } from './FloorItems'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
@@ -172,7 +173,6 @@ export function BattleColumn() {
                   embedded
                   cards={cards}
                   combatants={character?.roomCombatants ?? []}
-                  items={roomItems}
                   you={you}
                 />
               ) : undefined
@@ -192,15 +192,30 @@ export function BattleColumn() {
           <BattleActionBar />
         </PanelBoundary>
 
+        {/* The floor, pulled off the battle board itself — see FloorItems'
+            own doc comment. Grouped with Actions rather than given its own
+            border: taking something off the floor is an action, the same
+            kind of thing Attack or Tend already are here. */}
+        {roomItems && roomItems.length > 0 && (
+          <div className="mt-1.5 border-t border-border/60 pt-1.5">
+            <PanelBoundary label="Floor">
+              <FloorItems items={roomItems} />
+            </PanelBoundary>
+          </div>
+        )}
+
         <div className="mt-1.5 border-t border-border/60 pt-1.5">
-          {text?.text ? (
-            <p className="text-xs leading-relaxed text-ink-muted">
-              <HighlightedText text={text.text} highlights={highlights} offClasses={offClasses} />
-            </p>
+          {room === null ? (
+            <p className="text-xs text-ink-faint">Not in a room yet.</p>
           ) : (
-            <p className="text-xs text-ink-faint">
-              {room === null ? 'Not in a room yet.' : 'No description for this room.'}
-            </p>
+            <ClassicRoomText
+              title={title}
+              text={text?.text}
+              items={roomItems}
+              players={character?.roomPlayers}
+              highlights={highlights}
+              offClasses={offClasses}
+            />
           )}
           {/* Both ids, for the same reason the map tooltip carries both: Lich's
               room number is what #goto takes and the game's uid is what a player
