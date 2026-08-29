@@ -4,7 +4,7 @@ import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
 import { Paperdoll, type Pose } from './Paperdoll'
-import { StatusBoard } from './StatusBoard'
+import { Activity, Anchor, Ban, Bug, Droplet, FlaskConical, HeartCrack, HeartPulse, Skull, Zap, type LucideIcon } from 'lucide-react'
 import { playerArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { npcRoleGuessFor, npcDefaultFor } from '../../lib/npcDefaults'
 import { useMacroRunner } from '../../lib/useMacroRunner'
@@ -12,23 +12,29 @@ import { RoomBackdrop } from '../room/RoomBackdrop'
 import { DECK_STYLE, type Deck } from '../../lib/cards'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
-import type { BodyPart, Injury } from '../../lib/body'
+import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body'
 import type { Vital } from '../../lib/vitals'
 
 /**
- * The room, with everyone in it — a compass on the left doing most of the
- * work, a narrow roster strip pinned to the right edge, and you in the
- * middle of the compass where the fight actually is.
+ * The room, with everyone in it — a compass filling the whole board edge to
+ * edge, a narrow scrollable roster strip floating over its right side, and
+ * you near the middle of the compass where the fight actually is.
  *
  * A prior pass here replaced the compass with two bordered halves — a
  * misreading of "move the battle left, the enemies right" as license to
- * drop the radial geometry entirely. It was wrong: the compass is most of
- * the board on purpose, real assess range and relation mapped to an angle
- * and a radius so a flanking fight actually reads as one, and the roster is
- * a *strip*, two cards wide, not a second half-board competing with it for
- * space. Everyone not currently positioned by a real assess reading — dead,
- * or simply nothing on the wire to place them by — falls to that strip
- * instead of vanishing, same as it always has.
+ * drop the radial geometry entirely. It was wrong: the compass is the board,
+ * real assess range and relation mapped to an angle and a radius so a
+ * flanking fight actually reads as one. The roster does not carve its own
+ * share of that width out of the compass either — it is a single scrollable
+ * field (`RosterStrip`), two cards wide, laid *over* the compass's right
+ * edge rather than beside it, so the play area itself still reaches all the
+ * way to both edges the way the rest of the room picture does. The
+ * compass's own visual center shifts left by half the strip's width to
+ * compensate — see `centerXPct` — so `you` and anything positioned near the
+ * right edge sit clear of the overlay rather than under it. Everyone not
+ * currently positioned by a real assess reading — dead, or simply nothing
+ * on the wire to place them by — falls to that strip instead of vanishing,
+ * same as it always has.
  *
  * Colour lives on each card now, not on a region: a small red ring
  * (`border-danger`) for hostile, blue (`border-info`) for friendly, on the
@@ -91,16 +97,16 @@ const STRIP_COLS = 2
  * how big pucks get.
  */
 const RANGE_RADIUS_FLOOR_PCT: Record<'melee' | 'pole' | 'missile', number> = {
-  melee: 16,
-  pole: 22,
-  missile: 28,
+  melee: 20,
+  pole: 27,
+  missile: 34,
 }
 
 /** How much further out pole and missile sit than melee, once melee's own
  * radius is computed — a fixed gap rather than its own floor, so a melee
  * ring forced wider to fit its pucks still reads as "the same three rings,
  * further apart" instead of three radii drifting independently. */
-const RANGE_DELTA_PCT: Record<'pole' | 'missile', number> = { pole: 5, missile: 10 }
+const RANGE_DELTA_PCT: Record<'pole' | 'missile', number> = { pole: 6, missile: 12 }
 
 /**
  * The actual radius to draw each range ring at, as a percentage of the
@@ -144,13 +150,16 @@ function angleFor(relation: string, id: string): number {
   return hash % 2 === 0 ? 90 : 270
 }
 
-/** A point on the unit circle around the compass's own center (50/50 of
- * its own box — the compass is its own measured element now, so there is
- * no need to offset the center away from anything else), in this board's
- * own convention: 0° is straight up ("front"), clockwise. */
-function pointOn(angleDeg: number, radiusPct: number) {
+/** A point on the unit circle around a given center, in this board's own
+ * convention: 0° is straight up ("front"), clockwise. The center is a
+ * parameter rather than a fixed 50/50 because the compass now spans the
+ * whole board edge to edge (the roster floats over it as an overlay,
+ * rather than sharing the board's width) — the *visual* center still
+ * needs to sit clear of that overlay, so the caller nudges it left by
+ * however much of the right edge the strip actually covers. */
+function pointOn(cx: number, cy: number, angleDeg: number, radiusPct: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180
-  return { x: 50 + radiusPct * Math.cos(rad), y: 50 + radiusPct * Math.sin(rad) }
+  return { x: cx + radiusPct * Math.cos(rad), y: cy + radiusPct * Math.sin(rad) }
 }
 
 /**
@@ -246,7 +255,7 @@ function RosterStrip({
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar h-full shrink-0 cursor-grab overflow-x-hidden overflow-y-auto touch-none active:cursor-grabbing ${bordered ? 'border-l border-border/60 bg-surface/60' : ''}`}
+      className={`no-scrollbar h-full shrink-0 cursor-grab overflow-x-hidden overflow-y-auto touch-none active:cursor-grabbing ${bordered ? 'border-l border-border/60 bg-surface/85' : ''}`}
       style={{ width }}
       aria-label="Roster"
     >
@@ -739,20 +748,81 @@ function Puck({
   )
 }
 
-/** Green at full, red at empty, sliding through amber between — a gradient
- * rather than the app's usual three-band jump (VitalCluster's own
- * good/warn/danger steps), because a number reads its own severity once it
- * has a colour at all. Curved (`share**0.6`) rather than linear so the top
- * third of the range — where a bar this small would have made almost no
- * visible difference between "full" and "mostly full" anyway — moves
- * through more of the gradient sooner, and the danger end reads red well
- * before the number hits zero, which a linear map left too subtle to
- * notice at a glance. Full saturation, not the softened 70% a bar's fill
- * could afford, because a bare number carries the whole read by itself. */
+/**
+ * Green at full, quite yellow by 80%, orange by 60%, solidly red by 40% and
+ * below — four calibration points rather than one straight ramp, because a
+ * ramp that only reaches yellow around the halfway mark reads as "basically
+ * fine" for exactly the stretch where a player actually wants a warning. A
+ * hundred whole-percent steps each get their own point on this curve —
+ * hue between the calibration points, and below the red point, a darkening
+ * lightness instead (hue has nowhere further red to go) — so 39% and 5%
+ * still read as visibly different urgency rather than collapsing into one
+ * flat "red" the moment the number crosses 40.
+ */
+const VITAL_COLOR_STOPS: Array<{ pct: number; hue: number }> = [
+  { pct: 100, hue: 120 }, // green
+  { pct: 80, hue: 55 }, // quite yellow
+  { pct: 60, hue: 30 }, // orange
+  { pct: 40, hue: 0 }, // red
+]
+
 function vitalColor(share: number): string {
-  const clamped = Math.max(0, Math.min(1, share))
-  const hue = Math.pow(clamped, 0.6) * 120
-  return `hsl(${hue}, 90%, 50%)`
+  const pct = Math.max(0, Math.min(1, share)) * 100
+
+  if (pct <= 40) {
+    // Below the red point, hue is pinned — the remaining 40 steps read
+    // through lightness instead, darkening toward empty rather than
+    // sitting at one unchanging red the whole way down.
+    const lightness = 35 + (pct / 40) * 15
+    return `hsl(0, 90%, ${lightness}%)`
+  }
+
+  for (let i = 0; i < VITAL_COLOR_STOPS.length - 1; i++) {
+    const hi = VITAL_COLOR_STOPS[i]
+    const lo = VITAL_COLOR_STOPS[i + 1]
+    if (pct <= hi.pct && pct >= lo.pct) {
+      const t = (pct - lo.pct) / (hi.pct - lo.pct)
+      const hue = lo.hue + t * (hi.hue - lo.hue)
+      return `hsl(${hue}, 90%, 50%)`
+    }
+  }
+  return `hsl(${VITAL_COLOR_STOPS[0].hue}, 90%, 50%)`
+}
+
+/**
+ * The status flags worth a glance mid-fight, as an icon rather than a text
+ * chip — the full word-for-word list (with roundtime, spells, and the
+ * "good" band like hidden/invisible/joined) already renders above the
+ * picture in `BattleStatus`'s own `StatusBoard`; repeating all of that a
+ * second time, in the middle of the board, was chrome saying the same
+ * thing twice. `prone`/`kneeling`/`sitting` are left out on purpose too —
+ * the doll's own pose already draws those. What's left is exactly the
+ * injury-adjacent set: something actively hurting you, or costing you your
+ * turn.
+ */
+const STATUS_ICON: Partial<Record<string, { Icon: LucideIcon; label: string; tone: string }>> = {
+  dead: { Icon: Skull, label: 'Dead', tone: 'text-danger' },
+  dying: { Icon: HeartCrack, label: 'Dying', tone: 'text-danger' },
+  bleeding: { Icon: Droplet, label: 'Bleeding', tone: 'text-danger' },
+  low_health: { Icon: HeartPulse, label: 'Low health', tone: 'text-danger' },
+  poisoned: { Icon: FlaskConical, label: 'Poisoned', tone: 'text-danger' },
+  diseased: { Icon: Bug, label: 'Diseased', tone: 'text-danger' },
+  stunned: { Icon: Zap, label: 'Stunned', tone: 'text-warn' },
+  webbed: { Icon: Anchor, label: 'Webbed', tone: 'text-warn' },
+  immobilized: { Icon: Ban, label: 'Immobilised', tone: 'text-warn' },
+}
+
+/** Nerves, as the same three-step tone the doll's own parts use — plain,
+ * warn, danger — rather than the doll's own near-invisible sliver: `nsys`
+ * is a 2-unit-wide strip out of a 60-wide viewBox, which reads fine at the
+ * dashboard's full-size doll (S2) and is sub-pixel at this card's much
+ * smaller one. An icon carries the same fact at a size that's actually
+ * legible here, instead of asking the doll to do a job it can't at this
+ * scale. */
+function nsysTone(wound: number): string {
+  if (wound >= 2) return 'text-danger'
+  if (wound === 1) return 'text-warn'
+  return 'text-ink-faint'
 }
 
 /**
@@ -764,6 +834,12 @@ function vitalColor(share: number): string {
  * pose — standing, sitting cross-legged, or lying down — follows whatever
  * the character's situation currently says, so a downed or seated
  * character reads as one at a glance instead of standing through it.
+ *
+ * No border, and only just enough background to keep the numbers and
+ * icons legible over whatever the room picture happens to be doing behind
+ * them — a hard box edge was chrome the middle of a compass doesn't need,
+ * and every pixel it cost was a pixel not spent on the portrait or the
+ * doll.
  *
  * Exactly one of these ever renders (`CombatRadar` places it once, at the
  * compass center) — it never also appears as a puck in the roster strip.
@@ -779,41 +855,59 @@ function YouCard({
     injuriesKnown: boolean
     vitals: Vital[]
     pose: Pose
+    statusFlags: string[]
   }
   compact: boolean
 }) {
+  const nsysWound = you.injuries.nsys?.wound ?? 0
+  const statusIcons = you.statusFlags
+    .map((f) => STATUS_ICON[f])
+    .filter((s): s is NonNullable<typeof s> => s != null)
+  const dollHeight = compact ? 104 : 154
+
   return (
+    // Three columns sharing one row's height, not a row of two stacked
+    // over a second, shorter row underneath — the compass has width to
+    // spare and not much of it went to anything before. Putting the
+    // vitals and status icons beside the doll instead of below it uses
+    // that width and buys back the vertical space the second row cost.
     <div
-      className="pointer-events-auto flex max-w-[15rem] flex-col gap-1.5 rounded-lg border border-accent/60 bg-surface/90 p-2"
-      style={{ boxShadow: PUCK_SHADOW }}
+      className="pointer-events-auto flex max-w-[18rem] items-stretch gap-1.5 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
+      style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
     >
-      <div className="flex items-center gap-2">
-        <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 44 : 64} />
-        <Paperdoll
-          injuries={you.injuries}
-          height={compact ? 78 : 112}
-          known={you.injuriesKnown}
-          pose={you.pose}
-        />
-      </div>
-      {you.vitals.length > 0 && (
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-          {you.vitals.map((v) => {
-            const share = v.max > 0 ? v.value / v.max : 1
-            return (
-              <span
-                key={v.key}
-                className="text-sm font-bold tabular-nums"
-                style={{ color: vitalColor(share) }}
-                title={`${v.label}: ${v.value}/${v.max}`}
-              >
-                {v.label.slice(0, 2).toUpperCase()} {v.value}
+      <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 72 : 106} />
+      <Paperdoll injuries={you.injuries} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
+
+      <div className="flex flex-col justify-center gap-1" style={{ height: dollHeight }}>
+        {you.vitals.map((v) => {
+          const share = v.max > 0 ? v.value / v.max : 1
+          return (
+            <span key={v.key} className="whitespace-nowrap text-xs text-ink-muted" title={`${v.label}: ${v.value}/${v.max}`}>
+              {v.label.slice(0, 2).toUpperCase()}{' '}
+              <span className="text-base font-bold tabular-nums" style={{ color: vitalColor(share) }}>
+                {v.value}
               </span>
-            )
-          })}
+            </span>
+          )
+        })}
+
+        {/* Nerves and the injury-adjacent status flags, as small icons
+            under the vitals — see the doc comments above for why each
+            lives here instead of a full StatusBoard. Wraps rather than
+            overflowing: this column is narrow on purpose, and a fight
+            carrying five status flags at once is rare enough that
+            wrapping to a second line costs nothing most of the time. */}
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-border/30 pt-1">
+          <span title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
+            <Activity className={`h-4 w-4 ${nsysTone(nsysWound)}`} aria-hidden />
+          </span>
+          {statusIcons.map(({ Icon, label, tone }) => (
+            <span key={label} title={label}>
+              <Icon className={`h-4 w-4 ${tone}`} aria-hidden />
+            </span>
+          ))}
         </div>
-      )}
-      <StatusBoard />
+      </div>
     </div>
   )
 }
@@ -869,6 +963,10 @@ export function CombatRadar({
      * this from the character's own situation flags (see BattleColumn) and
      * hands it straight through to `Paperdoll`. */
     pose: Pose
+    /** The injury-adjacent situation flags worth an icon on `YouCard` —
+     * see that component's own doc comment for why this is a curated
+     * subset rather than the full list `StatusBoard` shows. */
+    statusFlags: string[]
   }
   /**
    * True when `RoomScene` is passing this in as its own `overlay` — the room
@@ -895,7 +993,16 @@ export function CombatRadar({
 
   const stripGapPx = 4
   const stripWidthPx = embedded ? STRIP_COLS * stripPx + (STRIP_COLS + 1) * stripGapPx + 1 : 0
-  const compassWidth = embedded ? Math.max(0, boardWidth - stripWidthPx) : boardWidth
+
+  // The compass now draws edge to edge — the roster floats over its right
+  // side as an overlay (see RosterStrip below) rather than sharing the
+  // board's width, so ring geometry is sized against the *whole* board.
+  // Only the visual center moves: nudged left by half the strip's own
+  // width so You and anything positioned near the right edge still sit in
+  // the clear, rather than under the overlay.
+  const compassWidth = boardWidth
+  const centerXPct = embedded && boardWidth > 0 ? 50 - ((stripWidthPx / 2) / boardWidth) * 100 : 50
+  const centerYPct = 50
 
   const RANGE_RADIUS_PCT = rangeRadiusPct(compassWidth, compassPortraitPx)
 
@@ -950,7 +1057,7 @@ export function CombatRadar({
   const fanned = new Map<string, { x: number; y: number }>()
   for (const group of byAngle.values()) {
     group.forEach((p, i) => {
-      const { x, y } = pointOn(p.angleDeg, p.radiusPct)
+      const { x, y } = pointOn(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
       const cols = Math.min(group.length, FAN_COLS)
       const col = i % cols
       const row = Math.floor(i / cols)
@@ -1021,69 +1128,81 @@ export function CombatRadar({
       ref={boardRef}
       className={
         embedded
-          ? 'absolute inset-0 flex gap-0'
+          ? 'absolute inset-0 overflow-hidden'
           : 'relative mx-auto flex aspect-square w-full max-w-[300px] flex-col overflow-hidden rounded border-2 border-danger/70'
       }
     >
       {embedded ? (
         <>
-          {/* The compass — most of the board, on purpose. A hostile assess
-              has given a real range and relation to sits on the ring at
-              that range and angle; the ring itself is drawn faint so a
-              player reads "closer means more dangerous" without the rings
-              competing with the room picture underneath. */}
-          <div className="relative min-w-0 flex-1 overflow-hidden">
-            {(['melee', 'pole', 'missile'] as const).map((r) => (
+          {/* The compass — the whole board, edge to edge. The roster floats
+              over its right side as an overlay (below) rather than sharing
+              the board's width with it, so the play area itself reaches
+              all the way to both edges the way the rest of the room
+              picture does. A hostile assess has given a real range and
+              relation to sits on the ring at that range and angle; the
+              ring itself is drawn faint so a player reads "closer means
+              more dangerous" without the rings competing with the room
+              picture underneath. */}
+          {(['melee', 'pole', 'missile'] as const).map((r) => (
+            <div
+              key={r}
+              aria-hidden
+              className="absolute rounded-full border border-danger/25"
+              style={{
+                left: `${centerXPct - RANGE_RADIUS_PCT[r]}%`,
+                top: `${centerYPct - RANGE_RADIUS_PCT[r]}%`,
+                width: `${RANGE_RADIUS_PCT[r] * 2}%`,
+                height: `${RANGE_RADIUS_PCT[r] * 2}%`,
+              }}
+            />
+          ))}
+
+          {positioned.map((p) => {
+            const pos = fanned.get(p.key) ?? pointOn(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
+            return (
               <div
-                key={r}
-                aria-hidden
-                className="absolute rounded-full border border-danger/25"
-                style={{
-                  left: `${50 - RANGE_RADIUS_PCT[r]}%`,
-                  top: `${50 - RANGE_RADIUS_PCT[r]}%`,
-                  width: `${RANGE_RADIUS_PCT[r] * 2}%`,
-                  height: `${RANGE_RADIUS_PCT[r] * 2}%`,
-                }}
-              />
-            ))}
-
-            {positioned.map((p) => {
-              const pos = fanned.get(p.key) ?? pointOn(p.angleDeg, p.radiusPct)
-              return (
-                <div
-                  key={p.key}
-                  className="absolute -translate-x-1/2 -translate-y-1/2"
-                  style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                >
-                  <EntryPuck card={p.card} combatant={p.combatant} px={compassPortraitPx} />
-                </div>
-              )
-            })}
-
-            {/* You, at the compass's own center — the one place on this
-                board that is never anyone else's. Exactly one copy: this is
-                the only spot `YouCard` ever renders. */}
-            {you && (
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                <YouCard you={you} compact={compact} />
+                key={p.key}
+                className="absolute -translate-x-1/2 -translate-y-1/2"
+                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+              >
+                <EntryPuck card={p.card} combatant={p.combatant} px={compassPortraitPx} />
               </div>
-            )}
+            )
+          })}
 
-            {positioned.length === 0 && !you && (
-              <p className="absolute left-1/2 top-1/2 w-32 -translate-x-1/2 -translate-y-1/2 text-center text-xs text-ink-faint">
-                Nothing engaged
-              </p>
-            )}
-          </div>
+          {/* You, at the compass's own (shifted-left) center — the one
+              place on this board that is never anyone else's. Exactly one
+              copy: this is the only spot `YouCard` ever renders. */}
+          {you && (
+            <div
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${centerXPct}%`, top: `${centerYPct}%` }}
+            >
+              <YouCard you={you} compact={compact} />
+            </div>
+          )}
+
+          {positioned.length === 0 && !you && (
+            <p
+              className="absolute w-32 -translate-x-1/2 -translate-y-1/2 text-center text-xs text-ink-faint"
+              style={{ left: `${centerXPct}%`, top: `${centerYPct}%` }}
+            >
+              Nothing engaged
+            </p>
+          )}
 
           {/* The roster — everyone the compass didn't get to place: dead or
-              unassessed hostiles, every ally, every person. Two cards wide,
-              pinned to the right edge, not a second half-board. */}
-          <RosterStrip width={stripWidthPx}>
-            {orderedStrip.map((entry) => (
-              <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
-            ))}
-          </RosterStrip>
+              unassessed hostiles, every ally, every person. Two cards
+              wide, floated over the compass's right edge rather than
+              sharing its width, so the compass itself still reaches all
+              the way across the board underneath it. */}
+          <div className="absolute right-0 top-0 h-full">
+            <RosterStrip width={stripWidthPx}>
+              {orderedStrip.map((entry) => (
+                <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
+              ))}
+            </RosterStrip>
+          </div>
         </>
       ) : (
         <>
