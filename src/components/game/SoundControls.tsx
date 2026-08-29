@@ -218,7 +218,32 @@ export function SoundControls() {
   const [radioId, setRadioId] = useState(currentRadioStation())
   const [customUrl, setCustomUrl] = useState(currentCustomStream() ?? '')
   const [customName, setCustomName] = useState('')
-  const [favorites, setFavorites] = useState<FavoriteStation[]>(() => loadPrefs().favoriteStations ?? [])
+  // A `builtin` favorite that named a station killed since it was saved
+  // (Salt and Sail and Silk Road, 29 Aug 2026 - see docs/AUDIO.md) is a
+  // dead star: it still renders, still looks clickable, and clicking it
+  // silently falls back to zone music instead of doing what its label
+  // promises - RadioPlayer.select's own "refuse, don't guess" behavior for
+  // an id that isn't a real station, with nothing telling the panel the
+  // click did something different than expected. Filtered out of the very
+  // first render, not just hidden later, so a stale star never flashes on
+  // screen at all - and the cleaned list is what gets persisted back, so
+  // this only ever has to happen once per profile rather than on every
+  // load. `custom` favorites (a player's own stream URL) aren't checked
+  // here - there's no catalog for those to fall out of.
+  const [favorites, setFavorites] = useState<FavoriteStation[]>(() => {
+    const saved = loadPrefs().favoriteStations ?? []
+    const liveStationIds = new Set(RADIO_STATIONS.map((s) => s.id))
+    return saved.filter((f) => f.kind !== 'builtin' || liveStationIds.has(f.id))
+  })
+  useEffect(() => {
+    const saved = loadPrefs().favoriteStations ?? []
+    if (saved.length !== favorites.length) savePrefs({ favoriteStations: favorites })
+    // Once, on mount - `favorites`/`saved` deliberately excluded from deps.
+    // This is a one-time migration for whatever was on disk at load time,
+    // not a general "keep storage in sync" effect; every other write to
+    // favorites already calls savePrefs itself at the point of change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [crossfade, setCrossfade] = useState<CrossfadeStyle>(() => loadPrefs().crossfadeStyle ?? currentCrossfadeStyle())
   const [search, setSearch] = useState('')
   // Only for highlighting the active row in search results - title+composer
