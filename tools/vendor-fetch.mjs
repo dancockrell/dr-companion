@@ -58,7 +58,11 @@ async function latestAsset() {
 }
 
 function readExistingManifest() {
-  if (!existsSync(MANIFEST_PATH)) return null
+  // Both files or neither - a manifest with no .exe next to it (a partial
+  // vendor directory, or one where only the exe was cleaned up) is not a
+  // usable vendored copy, and treating it as one would tell a caller "you
+  // have Ruby4Lich5.exe" right before a release build fails to find it.
+  if (!existsSync(MANIFEST_PATH) || !existsSync(EXE_PATH)) return null
   try {
     return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'))
   } catch {
@@ -80,7 +84,24 @@ async function main() {
   if (checkOnly) return
 
   console.log('checking the latest release…')
-  const latest = await latestAsset()
+  let latest
+  try {
+    latest = await latestAsset()
+  } catch (e) {
+    // A vendored copy that already passed this same sha256 check on some
+    // earlier run is not made unverified by a network hiccup or a rate
+    // limit today - "verify before use" (this file's own docstring) was
+    // already satisfied then, and a release build's whole point is that it
+    // "needs no network for Ruby or Lich at all" once vendored once. Only
+    // fatal when there is nothing to fall back to: no vendored copy means
+    // nothing to bundle, and that has to stop the build, network-caused or
+    // not.
+    if (existing) {
+      console.warn(`could not check the latest release (${e.message ?? e}) - keeping the vendored copy as is`)
+      return
+    }
+    throw e
+  }
 
   if (existing && existing.version === latest.version && existing.sha256 === latest.sha256) {
     console.log(`already up to date (${latest.version}) - nothing to fetch`)
