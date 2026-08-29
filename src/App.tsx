@@ -171,11 +171,17 @@ export default function App() {
    * flat `h-72` (288px) with no way to change it, which is a decision made
    * on the player's behalf every session: someone who wants to watch a
    * dense zone deserves more of it than someone glancing at Crossing.
+   *
+   * Default raised to 480 when GameChatColumn went from a vertical stack to
+   * a side-by-side row (Game and Channels are both text feeds at roughly the
+   * same reading pace, so one shared row costs one pane's worth of height
+   * instead of two stacked ones) - the room that saved is exactly the room
+   * this box should spend, not sit on unused.
    */
   const MIN_MAP_H = 120
   const [mapH, setMapHState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(MAP_HEIGHT_KEY))
-    return Number.isFinite(saved) && saved >= MIN_MAP_H ? saved : 288
+    return Number.isFinite(saved) && saved >= MIN_MAP_H ? saved : 480
   })
   const setMapH = (px: number) => {
     const next = Math.max(MIN_MAP_H, Math.round(px))
@@ -408,7 +414,7 @@ export default function App() {
                     </div>
                     <Splitter
                       orientation="horizontal"
-                      value={hostH > 0 ? mapH / hostH : 288 / 800}
+                      value={hostH > 0 ? mapH / hostH : 480 / 900}
                       onChange={(share) => setMapH(hostH * share)}
                       min={MIN_MAP_H / Math.max(hostH, 1)}
                       max={0.8}
