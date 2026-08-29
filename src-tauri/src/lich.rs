@@ -62,13 +62,30 @@
 //! included, falls through to a hardcoded `'profanity'`. So this app's actual
 //! resolved identity is `profanity`, whose capabilities are `[xml, streams]` -
 //! `streams` survives, which is why the channel tabs work, but `mono` and
-//! `room_window` do not. `--stormfront` is kept anyway: it is what a real
-//! stormfront session would pass, it is harmless (unread by the headless
-//! path), and it costs nothing to be ready for a future Lich version whose
-//! resolver honours it. Avoiding `--genie` is still correct and still the
-//! part that matters - `genie`'s capabilities are `[xml, mono]`, no `streams`
-//! at all, and unlike the `mono`/`room_window` gap that is a total loss for
-//! StreamTabs, not a partial one.
+//! `room_window` do not.
+//!
+//! Neither loss reaches this app, and it is worth citing where each is
+//! actually checked rather than asserting it, since the two are not the same
+//! mechanism and an earlier draft of this note conflated them. `mono`
+//! (`Frontend.supports_mono?`) gates `room_mono?` (`games.rb:64-66`), which
+//! only decides whether Lich wraps its own injected `Room Exits:`/
+//! `Room Number:` text lines in `<output class="mono"/>` formatting tags
+//! (`games.rb:80-82`, `148-149`, `1518`) - a rendering hint for a client
+//! displaying that text verbatim. `room_window` (`Frontend.supports_room_window?`)
+//! is unrelated: it gates injecting a second, separate `<streamWindow>` tag
+//! carrying a duplicate of the room's exits (`games.rb:1364-1367`,
+//! `1520-1522`). This app parses room state from its own commands rather
+//! than either injected form - `lich-scripts/companion_bridge.lic` has no
+//! reference to `Room Exits`, `room_mono`, or `streamWindow` - so losing
+//! both is inert for two independent reasons, not one shared one.
+//!
+//! `--stormfront` is kept anyway: it is what a real stormfront session
+//! would pass, it is harmless (unread by the headless path), and it costs
+//! nothing to be ready for a future Lich version whose resolver honours it.
+//! Avoiding `--genie` is still correct and still the part that matters -
+//! `genie`'s capabilities are `[xml, mono]`, no `streams` at all, and unlike
+//! the `mono`/`room_window` gap that is a total loss for StreamTabs, not a
+//! partial one.
 //!
 //! `--headless <port>` is also what actually opens the socket
 //! `src-tauri/src/game_link.rs` connects to. Its absence here was a second,
