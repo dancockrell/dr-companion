@@ -51,6 +51,15 @@ import type { RoomCard } from '../../lib/cards'
  * softened rather than at full confidence. */
 const STALE_AFTER_SECONDS = 60
 
+/**
+ * How many floor items the radar draws directly on the picture, named and
+ * exported so BattleColumn.tsx can hand the overflow to a chip list instead
+ * of repeating the same items twice. Five is already most of the melee
+ * ring's width at the radius this cluster sits at, and a real drop pile is
+ * not uncommon after a fight this radar exists for.
+ */
+export const RADAR_ITEM_CAP = 5
+
 const RANGE_RADIUS_PCT: Record<'melee' | 'pole' | 'missile', number> = {
   melee: 20,
   pole: 36,
@@ -211,18 +220,55 @@ export function CombatRadar({
 
         {/* Between the room and the rings. Dark enough that white-on-anything
             text and pale range rings hold up over a bright snowfield or a
-            washed-out real render alike; a radial vignette rather than a flat
-            tint so "you", dead center, sits on the darkest point of the
-            picture no matter what the room looks like. */}
+            washed-out real render alike.
+         *
+         * Embedded, this only darkens the top band the compass actually
+         * occupies — a top-to-bottom fade rather than the standalone disc's
+         * centered vignette, because the compass itself moved to a shorter
+         * square pinned at the top (see the wrapper below) and a full-box
+         * scrim would keep darkening the now-empty lower half for nothing:
+         * the picture has nothing drawn on it there, RoomChips' own gradient
+         * already handles its bar's legibility independently, and a big flat
+         * dark rectangle between the two read as broken chrome rather than
+         * as a fight happening in a lit room. Standalone keeps the radial
+         * vignette centered on "you", tuned for that circular presentation. */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-x-0 top-0"
           style={{
-            background:
-              'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.72) 100%)',
+            height: embedded ? '70%' : '100%',
+            background: embedded
+              ? 'linear-gradient(to bottom, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.42) 55%, transparent 100%)'
+              : 'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.72) 100%)',
           }}
           aria-hidden
         />
 
+      {/*
+       * Embedded, this is a HUD pinned to the top of the picture, not the
+       * whole box — RoomScene's chip bar lives along the bottom edge of the
+       * exact same box, and the compass used to reach all the way down to
+       * it: a "behind you, at missile range" marker sits at radius 48% below
+       * center, which is past where a two-row chip strip starts. Measured on
+       * the real app with Hostile and People both populated: the chip bar's
+       * own top edge landed at 56% down the box, squarely inside where the
+       * floor-item cluster, the "pole weapon" and "behind" labels, and any
+       * far/rear marker were already drawing. They were not gone, they were
+       * painting first and the chip bar was painting over them.
+       *
+       * A smaller square, pinned to the top and centered horizontally, keeps
+       * the compass circular (percentages inside it are of its own square,
+       * not the outer box, so a ring stays a ring rather than the ellipse a
+       * full-width/half-height box would squash it into) and keeps its
+       * lowest possible point — the "behind" label and any dead-behind
+       * marker at missile range, both at its own 100% — comfortably above
+       * where a chip bar has ever measured starting. Standalone this is a
+       * no-op: nothing else shares that box, so it still fills it exactly
+       * as it always has.
+       */}
+      <div
+        className={embedded ? 'absolute left-1/2 top-0 -translate-x-1/2' : 'absolute inset-0'}
+        style={embedded ? { width: '55%', height: '55%' } : undefined}
+      >
         {/* A fixed compass grid, independent of who's actually on it — the
             four rings/spokes this radar can ever place a marker on (angleFor
             only ever returns 0/90/180/270), drawn once so the eye has a
@@ -306,8 +352,8 @@ export function CombatRadar({
             uncommon after a fight this radar exists for. */}
         {items && items.length > 0 && (
           <>
-            {items.slice(0, 5).map((name, i) => {
-              const n = Math.min(items.length, 5)
+            {items.slice(0, RADAR_ITEM_CAP).map((name, i) => {
+              const n = Math.min(items.length, RADAR_ITEM_CAP)
               const spreadDeg = Math.min(64, (n - 1) * 22)
               const stepDeg = n > 1 ? spreadDeg / (n - 1) : 0
               const angle = 180 + (n > 1 ? (i - (n - 1) / 2) * (spreadDeg / Math.max(n - 1, 1)) : 0)
@@ -338,7 +384,10 @@ export function CombatRadar({
                * than 300px, which it is inside a narrow dashboard.
                */
               const hitPct = Math.min(8, n > 1 ? radiusPct * ((stepDeg * Math.PI) / 180) : 100)
-              const overflow = i === 4 && items.length > 5 ? items.length - 4 : 0
+              const overflow =
+                i === RADAR_ITEM_CAP - 1 && items.length > RADAR_ITEM_CAP
+                  ? items.length - (RADAR_ITEM_CAP - 1)
+                  : 0
               const label = overflow > 0 ? `${name}, and ${overflow} more on the floor` : name
               const tooltip = reason ?? `${label} — get ${nounOf(name)}`
               return (
@@ -470,6 +519,7 @@ export function CombatRadar({
             Nothing assessed yet
           </p>
         )}
+      </div>
       </div>
   )
 
