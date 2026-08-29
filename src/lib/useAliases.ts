@@ -47,3 +47,17 @@ export function useAliases(): { aliases: Alias[]; note: string } {
 
   return { aliases: cached ?? [], note }
 }
+
+/** Read the config again, for when it has been edited - same shape as
+ * `useHighlights`'s `reloadHighlights`, added 29 Aug 2026 alongside the
+ * in-app alias editor, which is the first thing that ever needed it. */
+export function reloadAliases() {
+  cached = null
+  note = ''
+  if (!inFlight) {
+    inFlight = load().finally(() => {
+      inFlight = null
+      for (const l of listeners) l()
+    })
+  }
+}

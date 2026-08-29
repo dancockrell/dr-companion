@@ -119,7 +119,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             bridge_token::read_bridge_token,
             config_import::read_genie_config,
+            config_import::write_genie_config,
+            config_import::restore_genie_config,
             sounds::read_sound,
+            sounds::list_sounds,
             media_keys::send_media_key,
             game_link::game_status,
             game_link::game_attach,

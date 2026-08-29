@@ -136,6 +136,46 @@ fn sound_dirs() -> Vec<PathBuf> {
     out
 }
 
+/// Every sound file a highlight could actually name, across every directory
+/// `read_sound` would search - so an editor can offer a picker instead of
+/// asking a player to type a filename they can only get right by already
+/// knowing it.
+///
+/// Same resolution order as `read_sound`: a name present in more than one
+/// directory is listed once, from the first directory that has it. Sorted
+/// case-insensitively so the picker doesn't put every capitalised name before
+/// every lowercase one, which is what a plain string sort would do.
+fn is_audio_filename(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    lower.ends_with(".wav") || lower.ends_with(".mp3") || lower.ends_with(".ogg")
+}
+
+#[tauri::command]
+pub fn list_sounds() -> Vec<String> {
+    let mut seen = std::collections::HashSet::new();
+    let mut out = Vec::new();
+
+    for dir in sound_dirs() {
+        let Ok(read) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in read.flatten() {
+            let Ok(name) = entry.file_name().into_string() else {
+                continue;
+            };
+            if !is_audio_filename(&name) || !entry.path().is_file() {
+                continue;
+            }
+            if seen.insert(name.to_ascii_lowercase()) {
+                out.push(name);
+            }
+        }
+    }
+
+    out.sort_by_key(|n| n.to_ascii_lowercase());
+    out
+}
+
 /// A named sound, as a data URL, or an honest account of not finding it.
 ///
 /// A missing sound is not an error worth interrupting anybody over. A config
@@ -216,6 +256,44 @@ pub fn read_sound(name: String) -> SoundFile {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn is_audio_filename_matches_the_three_extensions_case_insensitively() {
+        for good in ["Thunder.wav", "growl.mp3", "Bird.OGG", "x.Wav"] {
+            assert!(is_audio_filename(good), "{good:?} should be audio");
+        }
+        for bad in ["highlights.cfg", "readme.txt", "wav", "Thunder.wav.bak", ""] {
+            assert!(!is_audio_filename(bad), "{bad:?} should not be audio");
+        }
+    }
+
+    /// A live smoke test against this machine's real Sounds folders rather
+    /// than a mock - `sound_dirs()` is not injectable, and a test asserting
+    /// only "does not panic" would be exactly the check-that-cannot-fail this
+    /// codebase's own working agreements warn about. This machine's
+    /// `C:\Genie4\Sounds` is known to be populated (dr-genie-settings' own
+    /// sound corpus is deployed there), so the list must come back non-empty,
+    /// every name must end in a real audio extension, and it must contain no
+    /// duplicate names case-insensitively - the actual property `list_sounds`
+    /// exists to guarantee. Skips honestly (rather than passing vacuously) if
+    /// that directory is not present on whatever machine runs this suite.
+    #[test]
+    fn list_sounds_finds_the_real_corpus_with_no_duplicates() {
+        if !PathBuf::from("C:\\Genie4\\Sounds").is_dir() {
+            eprintln!("SKIPPED: C:\\Genie4\\Sounds not present on this machine");
+            return;
+        }
+        let names = list_sounds();
+        assert!(!names.is_empty(), "expected real sound files, found none");
+        for n in &names {
+            assert!(is_audio_filename(n), "{n:?} is not an audio filename");
+        }
+        let mut lower: Vec<String> = names.iter().map(|n| n.to_ascii_lowercase()).collect();
+        let before = lower.len();
+        lower.sort();
+        lower.dedup();
+        assert_eq!(lower.len(), before, "list_sounds returned a duplicate name");
+    }
 
     /// The name is joined onto a directory, so it does not get to be a path,
     /// and it does not get to be an executable either.
