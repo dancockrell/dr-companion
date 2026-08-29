@@ -107,10 +107,42 @@ class Flow(Task):
     #: Repeat until stopped. An endless flow has to be obvious rather than a
     #: surprise, so this is printed at the start.
     loops: bool = False
+    #: Opt in to `Task.enable_sight_picture()` - see drtask.py. Named
+    #: distinctly from `Task.sight_picture` (the live `SightPicture` instance
+    #: once enabled, or `None`) on purpose: `Task.__init__` runs first via
+    #: `super().__init__()` below and would otherwise set an *instance*
+    #: attribute of the same name, permanently shadowing this class-level
+    #: default the moment a `Flow` is constructed without passing the kwarg -
+    #: found by testing `recover()` (which does not opt in) and seeing `None`
+    #: instead of `False`. Off by default: a short, one-shot flow like
+    #: `recover` or `to_healer` is done before a 20-second rotation would
+    #: ever fire, so there is nothing for it to buy there. The two flows that
+    #: actually loop for a while (`hunt`, `ambush`) turn it on in
+    #: `tasks/flows.py`.
+    sight_picture_enabled: bool = False
+    #: Seconds between rotation topics - see `SightPicture.interval`.
+    sight_picture_interval: float = 20.0
 
-    def __init__(self, **kw) -> None:
-        super().__init__()
-        for key in ("title", "summary", "steps", "loops"):
+    def __init__(self, companion: Optional[object] = None, **kw) -> None:
+        # Forwarded rather than dropped. `Task.__init__(companion=None)`
+        # constructs a real `Companion()` when none is given, which reads
+        # token/port files from the app's data directory and raises if
+        # they're not there - so a bare `Flow(...)` used to work only by
+        # accident, on a machine that happened to have those files left over
+        # from a previous real run (see `dr_companion.py`'s own note that it
+        # rewrites them on start and leaves them behind on close). On a clean
+        # checkout, or in CI, that constructor call would simply raise.
+        # Forwarding `companion` is what makes `Flow(companion=Fake(), ...)`
+        # possible at all - found writing this file's own tests.
+        super().__init__(companion)
+        for key in (
+            "title",
+            "summary",
+            "steps",
+            "loops",
+            "sight_picture_enabled",
+            "sight_picture_interval",
+        ):
             if key in kw:
                 setattr(self, key, kw.pop(key))
         if kw:
@@ -185,9 +217,17 @@ class Flow(Task):
         self.c.on_line(self._feed)
         threading.Thread(target=self.c.run, daemon=True).start()
 
+        if self.sight_picture_enabled:
+            self.enable_sight_picture(self.sight_picture_interval)
+
         print(f"{self.title}" + (f" - {self.summary}" if self.summary else ""))
         if self.loops:
             print("This flow repeats until stopped. Ctrl+C to stop.")
+        if self.sight_picture_enabled:
+            print(
+                f"Building a sight picture in the background every "
+                f"~{self.sight_picture_interval:.0f}s, between real actions."
+            )
         print()
 
         try:
@@ -225,6 +265,12 @@ class Flow(Task):
         except KeyboardInterrupt:
             print("\nstopped.")
         finally:
+            # Set first, same reasoning as `self.c.stop()` below applied to
+            # the sight-picture thread: it polls `self._stopping` once a
+            # second (see `Task.enable_sight_picture`) and would otherwise
+            # keep trying to tick - harmlessly, since `self.c.send` still
+            # works, but pointlessly, on a flow that has already finished.
+            self._stopping = True
             # Tell the reader to stop *before* closing the socket it is
             # blocked on, so it treats the close as expected rather than as a
             # failure. Closing first is a race the reader loses noisily.

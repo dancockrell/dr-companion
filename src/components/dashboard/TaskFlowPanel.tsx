@@ -60,6 +60,7 @@ import {
   type PythonStatus,
   type TaskInfo,
 } from '../../lib/pythonTasks'
+import { groupTasksByCategory } from '../../lib/taskGrouping'
 import {
   listScripts,
   scriptDirs,
@@ -203,6 +204,17 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
 
   const tasks: TaskInfo[] = useMemo(() => status?.tasks ?? [], [status])
 
+  /**
+   * Grouped by category, in the order the categories first appear - which is
+   * `runner.py`'s `CATEGORY_ORDER`, since that is what already sorted
+   * `status.tasks`. Grouping here rather than trusting a flat scan by eye is
+   * the same reason the Scripts tab below splits "Yours" from "Lich's
+   * folder": ten task tiles with no structure answer "what can I run," not
+   * "what loop am I actually in," and the second is the question a player
+   * has mid-session far more often than the first.
+   */
+  const taskGroups = useMemo(() => groupTasksByCategory(tasks), [tasks])
+
   // Filtered and grouped, with the denominator kept: Lich's folder holds the
   // whole dr-scripts suite, so a player's own two files would otherwise be lost
   // among two hundred installed ones. "Yours" is the app's Python folder, which
@@ -314,55 +326,65 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
 
       <div className="min-h-0 flex-1 overflow-auto">
         {tab === 'tasks' ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-1">
-            {tasks.map((t) => {
-              const Icon = iconFor(t.id)
-              const active = running === t.id
-              const readOnly = t.kind === 'read-only'
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => void start(t.id)}
-                  title={
-                    `${t.title}\n${t.summary}\n\n${t.id} — ${t.kind}\n\n` +
-                    `Runs the same outside the app:\npython python/runner.py run ${t.id}`
-                  }
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 rounded border px-1 py-1.5 transition-colors',
-                    active
-                      ? 'border-accent bg-accent/15'
-                      : readOnly
-                        ? 'border-border bg-surface-raised hover:border-ink-faint'
-                        : 'border-border bg-surface-raised hover:border-accent/60'
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      'h-4 w-4',
-                      active ? 'text-accent' : readOnly ? 'text-ink-faint' : 'text-ink'
-                    )}
-                  />
-                  <span className="w-full truncate text-center text-xs leading-tight text-ink">
-                    {t.title}
-                  </span>
-                  {/* The one distinction never left to a tooltip. */}
-                  {readOnly && !dense && (
-                    <span className="text-xs leading-none text-ink-faint">watches</span>
-                  )}
-                  {active && <Play className="h-3 w-3 text-accent" />}
-                </button>
-              )
-            })}
+          <div className="flex flex-col gap-1.5">
+            {taskGroups.map((group) => (
+              <div key={group.category} className="flex flex-col gap-1">
+                <p className="px-1 text-xs font-medium text-ink-faint">
+                  {group.category}
+                  <span className="ml-1 opacity-60">{group.items.length}</span>
+                </p>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-1">
+                  {group.items.map((t) => {
+                    const Icon = iconFor(t.id)
+                    const active = running === t.id
+                    const readOnly = t.kind === 'read-only'
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => void start(t.id)}
+                        title={
+                          `${t.title}\n${t.summary}\n\n${t.id} — ${t.category}, ${t.kind}\n\n` +
+                          `Runs the same outside the app:\npython python/runner.py run ${t.id}`
+                        }
+                        className={cn(
+                          'flex flex-col items-center gap-0.5 rounded border px-1 py-1.5 transition-colors',
+                          active
+                            ? 'border-accent bg-accent/15'
+                            : readOnly
+                              ? 'border-border bg-surface-raised hover:border-ink-faint'
+                              : 'border-border bg-surface-raised hover:border-accent/60'
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            'h-4 w-4',
+                            active ? 'text-accent' : readOnly ? 'text-ink-faint' : 'text-ink'
+                          )}
+                        />
+                        <span className="w-full truncate text-center text-xs leading-tight text-ink">
+                          {t.title}
+                        </span>
+                        {/* The one distinction never left to a tooltip. */}
+                        {readOnly && !dense && (
+                          <span className="text-xs leading-none text-ink-faint">watches</span>
+                        )}
+                        {active && <Play className="h-3 w-3 text-accent" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
 
             <button
               type="button"
               onClick={() => openNew('python')}
               title="Write a new Python task. Saved into python/tasks/user/, where it is picked up automatically."
-              className="flex flex-col items-center gap-0.5 rounded border border-dashed border-border px-1 py-1.5 text-ink-faint hover:border-ink-faint hover:text-ink"
+              className="flex w-full items-center justify-center gap-1 rounded border border-dashed border-border px-1 py-1.5 text-ink-faint hover:border-ink-faint hover:text-ink"
             >
               <FilePlus2 className="h-4 w-4" />
-              <span className="w-full truncate text-center text-xs leading-tight">New</span>
+              <span className="text-xs leading-tight">New task</span>
             </button>
           </div>
         ) : (

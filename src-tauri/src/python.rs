@@ -184,6 +184,14 @@ pub struct TaskInfo {
     /// "read-only" or "sends commands". Shown, because a task that watches and
     /// a task that drives a live character deserve visibly different buttons.
     pub kind: String,
+    /// "Combat", "Recovery", "Upkeep", "Utility", "Custom" or "Examples" -
+    /// `runner.py`'s `CATEGORY_ORDER`. Serde would otherwise silently drop
+    /// this field from `runner.py --list`'s JSON rather than erroring, since
+    /// an unknown field is not a parse failure by default - the frontend's
+    /// grouping would have quietly stopped working with no message anywhere
+    /// saying why, which is worse than a struct that has to be kept in sync
+    /// by hand whenever `runner.py`'s catalog shape changes.
+    pub category: String,
 }
 
 #[derive(Serialize)]

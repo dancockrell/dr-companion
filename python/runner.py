@@ -70,20 +70,59 @@ def _example(attr: str):
     return make
 
 
-#: id -> (title, summary, factory). The order is the order the app shows.
-REGISTRY: dict[str, tuple[str, str, object]] = {
-    "flow.hunt": ("Hunt", "Find something, engage it, keep at it.", _flow("hunt")),
-    "flow.ambush": ("Ambush", "Hide, wait, strike from cover.", _flow("ambush")),
-    "flow.recover": ("Recover", "Tend what is bleeding, then rest.", _flow("recover")),
-    "flow.to_healer": ("To a healer", "Stow, walk, show the damage.", _flow("to_healer")),
-    "flow.town_run": ("Town run", "Bank the coins, then somewhere safe.", _flow("town_run")),
-    "flow.prepare": ("Prepare", "Refresh, harness, offensive stance.", _flow("prepare")),
-    "flow.disengage": ("Break off", "Defensive, retreat, flee.", _flow("disengage")),
-    "task.watch": ("Watch", "Read-only. Reports what it sees, sends nothing.", _watch),
-    "example.morning": ("Morning routine", "A plain step list, as an example.", _example("morning")),
+#: The order a category's tasks show in, top to bottom, when the app groups
+#: by category rather than listing everything flat. Not every category has to
+#: appear here - one that isn't is shown after all the ones that are, in
+#: whatever order `dict` iteration gives it, which for `USER_DIR`'s "Custom"
+#: is alphabetical by filename (see `user_tasks`'s own `sorted()`).
+#:
+#: "What loop am I actually in" is the question a player asks about their
+#: own play far more often than "what does this one task do," and a flat
+#: list of ten names answers neither - see PYTHON_API.md and the app's own
+#: Tasks & Scripts panel, which grouped by category the day this was added.
+CATEGORY_ORDER: tuple[str, ...] = ("Combat", "Recovery", "Upkeep", "Utility", "Custom", "Examples")
+
+#: id -> (title, summary, category, factory). The order within a category is
+#: the order the app shows; the category itself is ordered by CATEGORY_ORDER.
+REGISTRY: dict[str, tuple[str, str, str, object]] = {
+    "flow.hunt": ("Hunt", "Find something, engage it, keep at it.", "Combat", _flow("hunt")),
+    "flow.ambush": ("Ambush", "Hide, wait, strike from cover.", "Combat", _flow("ambush")),
+    "flow.disengage": ("Break off", "Defensive, retreat, flee.", "Combat", _flow("disengage")),
+    "flow.recover": ("Recover", "Tend what is bleeding, then rest.", "Recovery", _flow("recover")),
+    "flow.to_healer": (
+        "To a healer",
+        "Stow, walk, show the damage.",
+        "Recovery",
+        _flow("to_healer"),
+    ),
+    "flow.prepare": (
+        "Prepare",
+        "Refresh, harness, offensive stance.",
+        "Upkeep",
+        _flow("prepare"),
+    ),
+    "flow.town_run": (
+        "Town run",
+        "Bank the coins, then somewhere safe.",
+        "Upkeep",
+        _flow("town_run"),
+    ),
+    "task.watch": (
+        "Watch",
+        "Read-only. Reports what it sees, sends nothing.",
+        "Utility",
+        _watch,
+    ),
+    "example.morning": (
+        "Morning routine",
+        "A plain step list, as an example.",
+        "Examples",
+        _example("morning"),
+    ),
     "example.smart_recover": (
         "Smart recover",
         "Branches on what the game actually said.",
+        "Examples",
         _example("SmartRecover"),
     ),
 }
@@ -135,9 +174,9 @@ class _Done:
         pass
 
 
-def user_tasks() -> dict[str, tuple[str, str, object]]:
+def user_tasks() -> dict[str, tuple[str, str, str, object]]:
     """A player's own tasks, discovered from disk each time this is asked."""
-    found: dict[str, tuple[str, str, object]] = {}
+    found: dict[str, tuple[str, str, str, object]] = {}
     if not USER_DIR.is_dir():
         return found
     for path in sorted(USER_DIR.glob("*.py")):
@@ -157,23 +196,42 @@ def user_tasks() -> dict[str, tuple[str, str, object]]:
         found[f"user.{path.stem}"] = (
             path.stem.replace("_", " ").title(),
             summary or "Your script.",
+            # Every user file is "Custom" - there is no way to know a
+            # player's own script is really a recovery routine versus a
+            # combat one without running it, and guessing wrong would be
+            # worse than one honest bucket for "yours."
+            "Custom",
             _user(path),
         )
     return found
 
 
+def _category_key(category: str) -> tuple[int, str]:
+    """Sorts by CATEGORY_ORDER's position, then alphabetically for anything
+    (a future category, a typo) that order does not mention - so an unlisted
+    category is grouped and stable rather than scattered across the output
+    in dict-iteration order."""
+    try:
+        return (CATEGORY_ORDER.index(category), "")
+    except ValueError:
+        return (len(CATEGORY_ORDER), category)
+
+
 def catalog() -> list[dict[str, str]]:
+    combined = {**REGISTRY, **user_tasks()}
+    ordered_ids = sorted(combined, key=lambda tid: _category_key(combined[tid][2]))
     return [
         {
             "id": task_id,
-            "title": title,
-            "summary": summary,
+            "title": combined[task_id][0],
+            "summary": combined[task_id][1],
+            "category": combined[task_id][2],
             # Whether it can send commands. The app shows this, because
             # "reports what it sees" and "drives your character" deserve
             # visibly different buttons.
             "kind": "read-only" if task_id == "task.watch" else "sends commands",
         }
-        for task_id, (title, summary, _) in {**REGISTRY, **user_tasks()}.items()
+        for task_id in ordered_ids
     ]
 
 
@@ -193,13 +251,13 @@ def main(argv: list[str]) -> int:
             for known in registry:
                 print(f"  {known}", file=sys.stderr)
             return 2
-        registry[task_id][2]().run()
+        registry[task_id][3]().run()
         return 0
 
     print(__doc__.strip())
     print()
-    for task_id, (title, summary, _) in {**REGISTRY, **user_tasks()}.items():
-        print(f"  {task_id:24} {title} - {summary}")
+    for entry in catalog():
+        print(f"  {entry['id']:24} [{entry['category']:9}] {entry['title']} - {entry['summary']}")
     return 1
 
 
