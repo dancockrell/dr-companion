@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { SetupWizard } from './components/first-run/SetupWizard'
 import { Dashboard } from './components/dashboard/Dashboard'
-import { RoomColumn } from './components/room/RoomColumn'
+import { BattleColumn } from './components/room/BattleColumn'
+import { GameChatColumn } from './components/room/GameChatColumn'
 import { MapColumn } from './components/room/MapColumn'
 import { Splitter } from './components/layout/Splitter'
 import { AppControls } from './components/layout/AppControls'
@@ -12,7 +13,7 @@ import { MapWindow } from './components/MapWindow'
 import { PanelWindow } from './components/PanelWindow'
 import { PanelBoundary } from './components/shared/PanelBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
-import { useMapDock, setMapDock } from './lib/mapDock'
+import { useMapDock } from './lib/mapDock'
 import { fitColumns, pickReset } from './lib/columns'
 import { useFreeform } from './lib/useLayout'
 import type { PanelId } from './lib/layout'
@@ -41,6 +42,8 @@ function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app
 }
 
 const DASH_KEY = 'drc.dash-width.v1'
+const BATTLE_KEY = 'drc.battle-width.v1'
+const MAP_HEIGHT_KEY = 'drc.map-height.v1'
 
 /** The divider itself, which sits between the columns and has to be counted. */
 const SPLIT_W = 8
@@ -108,12 +111,21 @@ export default function App() {
    * a little wider to see the game text beside it, and the board reflows. The
    * setting they made was not a proportion, it was a width.
    *
-   * So a width is what is stored. The map and the dashboard keep the pixels
-   * they were given, and the room column takes whatever is left, which makes
-   * it the one that absorbs a resize. That is the right one to give the slack
-   * to: it holds a description and a chat log, both of which are text and
-   * reflow happily, while the other two hold charts and boards that have a
-   * size at which they are readable and no other.
+   * So a width is what is stored. The dashboard and the battle pane keep the
+   * pixels they were given, and the left column — the zone map stacked over
+   * the game text and channels — takes whatever is left, which makes it the
+   * one that absorbs a resize. That is the right one to give the slack to: it
+   * holds a description and a chat log, both of which are text and reflow
+   * happily, while the other two hold a picture and a set of boards that have
+   * a size at which they are readable and no other.
+   *
+   * The battle pane's width used to belong to the zone map — they swapped
+   * which side of the window they sit on, and which of them gets a fixed,
+   * player-set width rather than the flexible remainder. See the `<main>`
+   * JSX below for why: the map moved in beside the game text it was always
+   * conceptually paired with (both watched, not read), and the battle
+   * picture — the thing worth a deliberate width now that the radar draws on
+   * it — took the fixed slot instead.
    */
   const [dashW, setDashWState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(DASH_KEY))
@@ -125,6 +137,51 @@ export default function App() {
     setDashWState(next)
     try {
       localStorage.setItem(DASH_KEY, String(next))
+    } catch {
+      // Private mode. Losing a divider position is not worth an error.
+    }
+  }
+
+  const [battleW, setBattleWState] = useState<number>(() => {
+    const saved = Number(localStorage.getItem(BATTLE_KEY))
+    // 600, not columns.ts's DEFAULT_MAP_W (300) that "Reset widths" falls
+    // back to for this same slot — that constant is shared with a tested
+    // fallback path for a genuine overshoot recovery, and 300 is still a
+    // perfectly usable width there, just a plainer one. First launch gets
+    // the better number: measured against RoomScene's own 68vh ceiling
+    // (BattleColumn), the picture is still width-bound, not height-bound,
+    // all the way out to about 640px, so anything short of that is leaving
+    // real legibility on the table for no reason on a first run.
+    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 600
+  })
+
+  const setBattleW = (px: number) => {
+    const next = Math.max(MIN_PX, Math.round(px))
+    setBattleWState(next)
+    try {
+      localStorage.setItem(BATTLE_KEY, String(next))
+    } catch {
+      // Private mode. Losing a divider position is not worth an error.
+    }
+  }
+
+  /**
+   * How tall the map gets at the top of its shared column, in pixels -
+   * player-set, the same way the dashboard and battle widths are. It was a
+   * flat `h-72` (288px) with no way to change it, which is a decision made
+   * on the player's behalf every session: someone who wants to watch a
+   * dense zone deserves more of it than someone glancing at Crossing.
+   */
+  const MIN_MAP_H = 120
+  const [mapH, setMapHState] = useState<number>(() => {
+    const saved = Number(localStorage.getItem(MAP_HEIGHT_KEY))
+    return Number.isFinite(saved) && saved >= MIN_MAP_H ? saved : 288
+  })
+  const setMapH = (px: number) => {
+    const next = Math.max(MIN_MAP_H, Math.round(px))
+    setMapHState(next)
+    try {
+      localStorage.setItem(MAP_HEIGHT_KEY, String(next))
     } catch {
       // Private mode. Losing a divider position is not worth an error.
     }
@@ -146,11 +203,19 @@ export default function App() {
    * which is derived from it, stays in step with the render.
    */
   const [hostW, setHostW] = useState(0)
+  // Same measurement, for the map/game-chat column's own vertical split -
+  // that column is `<main>`'s full height, so no second ref is needed.
+  const [hostH, setHostH] = useState(0)
   useLayoutEffect(() => {
     const el = hostRef.current
     if (!el) return
-    setHostW(el.getBoundingClientRect().width)
-    const ro = new ResizeObserver(([entry]) => setHostW(entry.contentRect.width))
+    const box = el.getBoundingClientRect()
+    setHostW(box.width)
+    setHostH(box.height)
+    const ro = new ResizeObserver(([entry]) => {
+      setHostW(entry.contentRect.width)
+      setHostH(entry.contentRect.height)
+    })
     ro.observe(el)
     return () => ro.disconnect()
   }, [setupComplete])
@@ -166,25 +231,36 @@ export default function App() {
    * src/lib/columns.ts, which carries the measurements.
    */
   // What each column actually has to show right now, not what it is capable
-  // of showing. A stored width is a real preference and stays stored; it is
-  // only capped while there is nothing behind it - see MAP_EMPTY_WANT.
-  const mapZone = useAppStore((s) => s.mapZone)
-  const bridgeConnected = useAppStore((s) => s.bridgeConnected)
+  // of showing. A stored width is a real preference and stays stored.
   const character = useAppStore((s) => s.character)
-  const mapEmpty = !bridgeConnected || mapZone === null
   const dashEmpty = !character
 
+  /*
+   * `fitColumns`/`pickReset` (lib/columns.ts) still speak of "map" and
+   * "room" — they were written for the arrangement before the swap, and
+   * renaming their parameters is a bigger, riskier edit than this layout
+   * change needs: that module is small, carefully tuned against real
+   * overshoot bugs, and has its own test suite asserting those exact names.
+   * Their shapes still fit perfectly, because nothing in the arithmetic
+   * actually depends on which physical column is which — `mapWant` is just
+   * "the first fixed-width ask", `room` is just "whatever guarantees a
+   * floor and takes the leftover". Battle plays the part `mapWant`/`map`
+   * used to play (a fixed, player-set width); the left column (zone map
+   * over game text) plays the part `room` used to play (the flexible one,
+   * with the floor that used to protect the game pane specifically now
+   * protecting the same game pane, just relocated). Only the call site
+   * needs to know that; the module itself never has to change or care.
+   */
   const fit = fitColumns({
     hostW,
-    mapWant: dock.width,
+    mapWant: battleW,
     dashWant: dashW,
-    mapDocked: dock.docked,
+    mapDocked: true, // The battle pane isn't poppable — always in the row.
     splitW: SPLIT_W,
-    mapEmpty,
     dashEmpty,
   })
-  const mapW = fit.map
-  const mapSplit = dock.docked ? SPLIT_W : 0
+  const battleWFit = fit.map
+  const leftWFit = fit.room
 
   /**
    * Put the columns back to the widths the app ships with.
@@ -201,9 +277,10 @@ export default function App() {
     // The decision (what to reset, and why only the offender) lives in
     // pickReset (lib/columns.ts) - a pure function, so issue #63's scenario
     // (a stored map of 1728.8px and a dashboard of 510px, only one of which
-    // overshoots) has a real test rather than only this call site.
-    const plan = pickReset({ hostW, mapDocked: dock.docked, mapWant: dock.width, dashWant: dashW, splitW: SPLIT_W })
-    if (plan.map !== null) setMapDock({ width: plan.map })
+    // overshoots) has a real test rather than only this call site. Same
+    // "map" ↔ battle relabeling as fitColumns above.
+    const plan = pickReset({ hostW, mapDocked: true, mapWant: battleW, dashWant: dashW, splitW: SPLIT_W })
+    if (plan.map !== null) setBattleW(plan.map)
     if (plan.dash !== null) setDashW(plan.dash)
   }
 
@@ -211,20 +288,34 @@ export default function App() {
   const atLeastVisible = (px: number) => Math.max(MIN_PX, px)
 
   /**
-   * A divider sits at an absolute x, and moving it sets the width to its left.
+   * A divider sits at an absolute x, and moving it sets the width of exactly
+   * one neighbour — the fixed-width one, never the room column, which has no
+   * width of its own to set and simply keeps whatever the fixed columns
+   * leave it.
    *
-   * Only the column immediately left of the divider changes. Everything to its
-   * right is either fixed or flex, so nothing further along the row twitches
-   * while a near divider is being adjusted, which is what made the earlier
-   * share-based version feel like the layout was arguing back.
+   * The room column sits first now (see `<main>` below — it swapped places
+   * with the map), so the two dividers no longer both measure from the left
+   * edge the way they did when map, dashboard and room ran in that order.
+   * The room/dashboard divider still does: room has no explicit width, so
+   * moving it to some absolute x just says "the dashboard should start
+   * here", i.e. dashW = the remaining distance from that x out to wherever
+   * the map begins (or the window edge, if the map is not docked). The
+   * dashboard/map divider is the one that flipped — with the map now last,
+   * its width is the distance from the divider to the *right* edge of the
+   * window, not to the left, so this one measures from `hostW` inward
+   * instead of from 0 outward. Get this backwards and dragging the map
+   * divider right would shrink the map while it visibly grows, which is
+   * exactly the kind of bug that only shows up by looking at the dragged
+   * result rather than at the arithmetic.
    *
    * A column can be dragged down to a sliver. It cannot be dragged over the
    * top of the rest of the app - that used to be allowed on the reasoning that
    * the content would scroll, and it does not.
    */
-  const moveMapEdge = (share: number) => setMapDock({ width: atLeastVisible(share * hostW) })
   const moveDashEdge = (share: number) =>
-    setDashW(atLeastVisible(share * hostW - mapW - mapSplit))
+    setDashW(atLeastVisible(hostW * (1 - share) - battleWFit - SPLIT_W))
+  const moveBattleEdge = (share: number) =>
+    setBattleW(atLeastVisible(hostW * (1 - share)))
 
   // A popped-out panel is the whole window: no header, no console, no setup
   // wizard. The window *is* the panel, and chrome here would be space charged
@@ -276,35 +367,68 @@ export default function App() {
       <main ref={hostRef} className="flex min-h-0 flex-1 overflow-hidden">
         {setupComplete ? (
           <>
-            {/* The map gets a column of its own, when it is docked.
-             *
-             * It was a cell in the dashboard grid, competing for vertical
-             * space with everything else in that column and losing. The map is
-             * the one surface that is watched rather than consulted - players
-             * keep it in view while doing something else - so it gets full
-             * height and a width the player sets.
-             *
-             * Popped out, the column is not narrowed, it is gone: a strip of
-             * chrome saying the map is elsewhere would cost width for nothing.
-             * The remembered width survives, and the map comes back at it, so
-             * popping out and back is not a move that costs you the layout. */}
-            {dock.docked && !freeform && (
-              <>
-                <div
-                  className="min-w-0 shrink-0 overflow-hidden border-r border-border"
-                  style={{ width: mapW }}
-                >
-                  <PanelBoundary label="Map">
-                    <MapColumn />
+            {/* The column that absorbs a window resize, first now: the zone
+              * map stacked over the game text and channels, rather than the
+              * battle picture. Both halves of this column are things you
+              * watch or half-read continuously — the map for which rooms
+              * break a script, the chat for what is being said — which is
+              * exactly the "text and a chart reflow happily" reasoning that
+              * used to justify giving this slot to the room column. See
+              * columns.ts's ROOM_MIN for the floor this column has always
+              * had regardless of what is actually inside it: it exists to
+              * keep the game header, the input and the channel tabs usable,
+              * and that content lives here now, not in the battle pane.
+              *
+              * Hidden in freeform along with the map's own box and both
+              * splitters: a canvas you can arrange freely inside one third of
+              * the window is still a column, which is the thing freeform is
+              * for escaping. */}
+            {!freeform && (
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                {/* The map, above the chat rather than sharing width with
+                 * anything — it used to be its own column, full height, a
+                 * width the player set; now it is paired with the chat below
+                 * it the way Dan's own Genie layout pairs the AutoMapper with
+                 * the game window. Its height is player-set the same way,
+                 * through the horizontal splitter below it, rather than the
+                 * flat 288px it used to be stuck at — someone watching a
+                 * dense zone wants more of it than someone glancing at
+                 * Crossing. Popped out, this box is simply absent and the
+                 * chat column below takes the full height, same "gone, not
+                 * narrowed" reasoning the old column had. */}
+                {dock.docked && (
+                  <>
+                    <div
+                      className="shrink-0 overflow-hidden"
+                      style={{ height: hostH > 0 ? Math.min(mapH, hostH - MIN_PX) : mapH }}
+                    >
+                      <PanelBoundary label="Map">
+                        <MapColumn />
+                      </PanelBoundary>
+                    </div>
+                    <Splitter
+                      orientation="horizontal"
+                      value={hostH > 0 ? mapH / hostH : 288 / 800}
+                      onChange={(share) => setMapH(hostH * share)}
+                      min={MIN_MAP_H / Math.max(hostH, 1)}
+                      max={0.8}
+                    />
+                  </>
+                )}
+                <div className="min-h-0 flex-1 overflow-auto">
+                  <PanelBoundary label="Game and chat">
+                    <GameChatColumn />
                   </PanelBoundary>
                 </div>
-                <Splitter
-                  value={hostW > 0 ? mapW / hostW : 0.33}
-                  onChange={moveMapEdge}
-                  min={0}
-                  max={1}
-                />
-              </>
+              </div>
+            )}
+            {!freeform && (
+              <Splitter
+                value={hostW > 0 ? leftWFit / hostW : 0.34}
+                onChange={moveDashEdge}
+                min={0}
+                max={1}
+              />
             )}
             {/* In freeform the dashboard IS the window. Giving it a fixed
               * width and parking two columns beside it is the arrangement
@@ -318,24 +442,32 @@ export default function App() {
                 <Dashboard />
               </PanelBoundary>
             </div>
+            {/* The battle pane, last — against the window's right edge, a
+             * fixed width the player sets, the same slot the zone map used
+             * to occupy on the left. This is the picture worth a deliberate
+             * width now that the radar draws on it: legible portraits and
+             * name tags need real pixels, the way the interactive map always
+             * did, and it should not be left with whatever the map and
+             * dashboard happen to leave over. Not poppable (no `dock`-style
+             * toggle) — unlike the map, there is no separate OS window for
+             * it yet. */}
             {!freeform && (
-              <Splitter
-                value={hostW > 0 ? (mapW + mapSplit + fit.dash) / hostW : 0.66}
-                onChange={moveDashEdge}
-                min={0}
-                max={1}
-              />
-            )}
-            {/* The column that absorbs a window resize.
-              *
-              * Hidden in freeform along with the map column and both
-              * splitters: a canvas you can arrange freely inside one third of
-              * the window is still a column, which is the thing freeform is
-              * for escaping. */}
-            {!freeform && (
-              <div className="min-w-0 flex-1 overflow-auto">
-                <RoomColumn />
-              </div>
+              <>
+                <Splitter
+                  value={hostW > 0 ? 1 - battleWFit / hostW : 0.67}
+                  onChange={moveBattleEdge}
+                  min={0}
+                  max={1}
+                />
+                <div
+                  className="min-w-0 shrink-0 overflow-hidden border-l border-border"
+                  style={{ width: battleWFit }}
+                >
+                  <PanelBoundary label="Battle">
+                    <BattleColumn />
+                  </PanelBoundary>
+                </div>
+              </>
             )}
           </>
         ) : (

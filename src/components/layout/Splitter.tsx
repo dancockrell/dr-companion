@@ -18,25 +18,38 @@ export function Splitter({
   onChange,
   min = 0.25,
   max = 0.75,
+  /**
+   * 'vertical' (default) draws a vertical bar and splits left/right columns
+   * by X - the original shape. 'horizontal' draws a horizontal bar and
+   * splits top/bottom panes by Y, for a column that stacks rather than sits
+   * side by side (Game above Channels, say). Same drag mechanics either
+   * way; only the axis read from the pointer and the bar's own dimensions
+   * change.
+   */
+  orientation = 'vertical',
 }: {
-  /** Left column's share, 0 to 1. */
+  /** The first column/pane's share, 0 to 1. */
   value: number
   onChange: (v: number) => void
   min?: number
   max?: number
+  orientation?: 'vertical' | 'horizontal'
 }) {
   const [dragging, setDragging] = useState(false)
   const host = useRef<HTMLDivElement>(null)
+  const horizontal = orientation === 'horizontal'
 
   const shareAt = useCallback(
-    (clientX: number) => {
+    (clientPos: number) => {
       const parent = host.current?.parentElement
       if (!parent) return null
       const box = parent.getBoundingClientRect()
-      if (box.width <= 0) return null
-      return Math.min(max, Math.max(min, (clientX - box.left) / box.width))
+      const extent = horizontal ? box.height : box.width
+      const origin = horizontal ? box.top : box.left
+      if (extent <= 0) return null
+      return Math.min(max, Math.max(min, (clientPos - origin) / extent))
     },
-    [max, min]
+    [max, min, horizontal]
   )
 
   /**
@@ -78,7 +91,7 @@ export function Splitter({
       // is the gate, so the drag still works without it.
     }
     setDragging(true)
-    document.body.style.cursor = 'col-resize'
+    document.body.style.cursor = horizontal ? 'row-resize' : 'col-resize'
     // Otherwise the drag selects whatever text it passes over.
     document.body.style.userSelect = 'none'
   }
@@ -111,29 +124,38 @@ export function Splitter({
     <div
       ref={host}
       role="separator"
-      aria-orientation="vertical"
+      aria-orientation={horizontal ? 'horizontal' : 'vertical'}
       aria-valuenow={Math.round(value * 100)}
       tabIndex={0}
       title="Drag to resize. Double-click to even them up."
       onPointerDown={start}
       onPointerMove={(e) => {
         if (activePointer.current !== e.pointerId) return
-        const next = shareAt(e.clientX)
+        const next = shareAt(horizontal ? e.clientY : e.clientX)
         if (next !== null) onChange(next)
       }}
       onPointerUp={end}
       onPointerCancel={end}
       onDoubleClick={() => onChange(0.5)}
       // Arrow keys, because a divider that only answers to the mouse is one
-      // more thing that cannot be reached without it.
+      // more thing that cannot be reached without it. Up/down for a
+      // horizontal bar, left/right for a vertical one - whichever axis the
+      // bar actually moves along.
       onKeyDown={(e) => {
-        if (e.key === 'ArrowLeft') onChange(Math.max(min, value - 0.02))
-        if (e.key === 'ArrowRight') onChange(Math.min(max, value + 0.02))
+        const [dec, inc] = horizontal ? ['ArrowUp', 'ArrowDown'] : ['ArrowLeft', 'ArrowRight']
+        if (e.key === dec) onChange(Math.max(min, value - 0.02))
+        if (e.key === inc) onChange(Math.min(max, value + 0.02))
         if (e.key === 'Home') onChange(0.5)
       }}
-      className={`w-2 shrink-0 cursor-col-resize touch-none border-x transition-colors ${
-        dragging ? 'border-accent bg-accent/25' : 'border-border bg-surface hover:bg-surface-overlay'
-      }`}
+      className={
+        horizontal
+          ? `h-2 w-full shrink-0 cursor-row-resize touch-none border-y transition-colors ${
+              dragging ? 'border-accent bg-accent/25' : 'border-border bg-surface hover:bg-surface-overlay'
+            }`
+          : `w-2 shrink-0 cursor-col-resize touch-none border-x transition-colors ${
+              dragging ? 'border-accent bg-accent/25' : 'border-border bg-surface hover:bg-surface-overlay'
+            }`
+      }
     />
   )
 }
