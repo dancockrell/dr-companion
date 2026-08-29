@@ -67,7 +67,16 @@ function ok(label, cond, detail = '') {
 console.log('-- round trip: what goes in comes back out --')
 const store = {
   'Prime:dan the bold': [
-    { id: '1', roomId: 82, zone: '312', label: 'Bank', color: 'gold', icon: 'landmark', createdAt: 1 },
+    {
+      id: '1',
+      roomId: 82,
+      zone: '312',
+      label: 'Bank',
+      color: 'gold',
+      icon: 'landmark',
+      note: "Lost my whole coin purse to a pickpocket right here. Never again.",
+      createdAt: 1,
+    },
     { id: '2', roomId: 445, zone: '', label: "Thieves' Den", color: 'purple', icon: 'lock', createdAt: 2 },
     // A system pin (the corpse marker) must never reach the file - see this
     // module's own header for why.
@@ -86,6 +95,11 @@ ok('both hand-made pins survived', pins.length === 2, String(pins.length))
 ok('the label with an apostrophe survived intact', pins.some((p) => p.label === "Thieves' Den"))
 ok('room id survived as a number, not a string', pins.find((p) => p.label === 'Bank')?.roomId === 82)
 ok('icon survived', pins.find((p) => p.label === 'Bank')?.icon === 'landmark')
+ok(
+  "the story survived - a pin shared without it is a label with the point removed",
+  pins.find((p) => p.label === 'Bank')?.note === "Lost my whole coin purse to a pickpocket right here. Never again."
+)
+ok('a pin with no story round-trips with note left undefined, not an empty string', pins.find((p) => p.label === "Thieves' Den")?.note === undefined)
 ok('color survived', pins.find((p) => p.label === 'Bank')?.color === 'gold')
 ok('zone survived when present', pins.find((p) => p.label === 'Bank')?.zone === '312')
 

@@ -40,10 +40,14 @@ import { PlaceSearch } from './PlaceSearch'
 import { useZoneBrowsing } from '../../lib/useZoneBrowsing'
 import { MapPinBar } from './MapPinBar'
 import { QuickTravel } from './QuickTravel'
+import { PinPalette } from './PinPalette'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
 import { exportPinsToFile, importPinsFromFile } from '../../lib/pinsFile'
+import { loadPlayerMarker, savePlayerMarker } from '../../lib/playerMarker'
+import { PlayerMarkerEditor } from './PlayerMarkerEditor'
+import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../../lib/scriptFiles'
@@ -180,6 +184,19 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const addLog = useAppStore((s) => s.addLog)
 
   /**
+   * The character's own mark on the map - see playerMarker.ts. Loaded the
+   * same on-demand-from-storage way pins are (not kept only in state),
+   * `markerVersion` forcing a re-read after this component's own save the
+   * same way `pinVersion` does for pins.
+   */
+  const [markerVersion, setMarkerVersion] = useState(0)
+  const [editingMarker, setEditingMarker] = useState(false)
+  const playerMarker = useMemo(
+    () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
+    [character, markerVersion]
+  )
+
+  /**
    * Saved places, and the hotbar under the map that walks to them.
    *
    * Loaded per character (Home for one is not Home for another - see
@@ -238,10 +255,10 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     !pinFor(pins, hereId) &&
     !isDismissed(character.name, character.instance, hereId)
 
-  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon']) {
+  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon'], note: MapPin['note']) {
     if (!character || !editingRoom) return
     if (editingRoom.existing) {
-      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon })
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon, note })
     } else {
       addPin(character.name, character.instance, {
         roomId: editingRoom.id,
@@ -249,6 +266,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         label,
         color,
         icon,
+        note,
       })
     }
     setPinVersion((v) => v + 1)
@@ -526,7 +544,30 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
         />
         <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
+        {character && playerMarker && (
+          <button
+            type="button"
+            onClick={() => setEditingMarker(true)}
+            title="Customize your mark on the map"
+            aria-label="Customize your mark on the map"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border hover:border-accent/60"
+          >
+            <span
+              className="flex h-4 w-4 items-center justify-center rounded-full"
+              style={{ background: playerMarker.color }}
+            >
+              {(() => {
+                const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
+                return <Icon className="h-2.5 w-2.5" color="var(--map-ground)" strokeWidth={3} />
+              })()}
+            </span>
+          </button>
+        )}
       </div>
+
+      {/* Every preset pin type, drag-and-drop onto a room - see PinPalette's
+          own header for why this can't just be more QuickTravel buttons. */}
+      <PinPalette />
 
       {showNudge && hereId != null && (
         <RoomNudge
@@ -636,6 +677,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               pins={pinsByRoom}
               onPinRoom={pinRoom}
               onDropPin={dropPin}
+              playerMarker={playerMarker}
             />
           </div>
         ) : (
@@ -661,6 +703,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               pins={pinsByRoom}
               onPinRoom={pinRoom}
               onDropPin={dropPin}
+              playerMarker={playerMarker}
             />
           </div>
         )}
@@ -730,6 +773,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onDelete={editingRoom.existing ? deletePin : undefined}
           onClose={() => setEditingRoom(null)}
           onCreateTask={isTauri() ? createTaskForPin : undefined}
+        />
+      )}
+      {editingMarker && playerMarker && character && (
+        <PlayerMarkerEditor
+          marker={playerMarker}
+          onClose={() => setEditingMarker(false)}
+          onSave={(m) => {
+            savePlayerMarker(character.name, character.instance, m)
+            setMarkerVersion((v) => v + 1)
+            setEditingMarker(false)
+          }}
         />
       )}
     </>

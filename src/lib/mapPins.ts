@@ -113,6 +113,16 @@ export interface MapPin {
   color: PinColor
   icon?: PinIcon
   /**
+   * The place's own story, in the player's words - what happened here,
+   * why it's worth remembering, who died on that spot. Optional and free
+   * text, on purpose: a label is a name, this is the reason the name was
+   * worth giving. Dan's own framing: "pins tell stories." Shown in the
+   * room's tooltip under the label, never as visible chrome on the chart
+   * itself - a badge already carries the icon and colour; a story is read,
+   * not glanced at.
+   */
+  note?: string
+  /**
    * Set only on the auto-dropped corpse marker (see the death-detection
    * code that creates it). Distinguishes it from anything the player made by
    * hand: the picker never offers to create one, and it is the one pin the
@@ -255,7 +265,15 @@ export function loadPins(name: string, instance: GameInstance): MapPin[] {
 export function addPin(
   name: string,
   instance: GameInstance,
-  pin: { roomId: number; zone: string; label: string; color: PinColor; icon?: PinIcon; system?: boolean }
+  pin: {
+    roomId: number
+    zone: string
+    label: string
+    color: PinColor
+    icon?: PinIcon
+    note?: string
+    system?: boolean
+  }
 ): MapPin[] {
   const store = loadStore()
   const key = profileKey(name, instance)
@@ -283,7 +301,7 @@ export function updatePin(
   name: string,
   instance: GameInstance,
   id: string,
-  patch: Partial<Pick<MapPin, 'label' | 'color' | 'icon'>>
+  patch: Partial<Pick<MapPin, 'label' | 'color' | 'icon' | 'note'>>
 ): MapPin[] {
   const store = loadStore()
   const key = profileKey(name, instance)

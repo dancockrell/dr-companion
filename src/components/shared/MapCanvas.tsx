@@ -16,6 +16,7 @@ import { inkFor } from '../../lib/mapInk'
 import { recency, segments, type Trail } from '../../lib/trail'
 import { roomKind, type RoomKind } from '../../lib/mapData'
 import { PIN_COLOR_HEX, PIN_DRAG_TYPE, type MapPin, type PinIcon, type PinColor } from '../../lib/mapPins'
+import type { PlayerMarker } from '../../lib/playerMarker'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 
 /**
@@ -84,6 +85,11 @@ export function MapCanvas({
    * drops rather than accepting one that goes nowhere.
    */
   onDropPin,
+  /** The character's own chosen symbol and colour - drawn bigger than any
+   *  pin, on the room the map already knows is "here". Optional: a caller
+   *  with no character yet just doesn't offer one, and the plain coloured
+   *  square kind === 'here' already draws is what shows instead. */
+  playerMarker,
 }: {
   zone: MapZone
   level: number
@@ -99,6 +105,7 @@ export function MapCanvas({
   pins?: Map<number, MapPin>
   onPinRoom?: (id: number) => void
   onDropPin?: (roomId: number, preset: { label: string; icon: PinIcon; color: PinColor }) => void
+  playerMarker?: PlayerMarker
 }) {
   /**
    * The cartography is authored on a 10-unit grid: 1,221 of Crossing's
@@ -479,7 +486,11 @@ export function MapCanvas({
                 (r.gateway ? `\n→ ${r.gateway.name}  (click to follow)` : '') +
                 (r.leaves?.length ? `\nleaves the zone: ${r.leaves.join(', ')}` : '') +
                 (r.id != null && pins?.has(r.id)
-                  ? `\n📍 ${pins.get(r.id)?.label}`
+                  ? `\n📍 ${pins.get(r.id)?.label}` +
+                    // The story, not just the name - "pins tell stories."
+                    // A label says what to call the place; this says why
+                    // it's worth calling anything at all.
+                    (pins.get(r.id)?.note ? `\n${pins.get(r.id)?.note}` : '')
                   : onPinRoom
                     ? '\n(right-click to pin)'
                     : '')}
@@ -533,71 +544,111 @@ export function MapCanvas({
                 {r.title}
               </text>
             )}
-            {/* A saved place, marked on the chart itself rather than only in
-                the hotbar below it - so browsing toward one, or noticing you
-                are near Home, doesn't require reading a row of buttons that
-                may not even be in view in a small docked panel. Drawn above
-                everything else on the room: a pin is a fact about the place
-                that outranks what kind of room it happens to be.
-
-                Every pin used to draw as the same plain dot regardless of
-                which of the 16 icons PinEditor offers was picked - the icon
-                only ever reached MapPinBar's chip list, never the map itself,
-                which is the one place a player is actually looking while
-                deciding where to walk. Drawn here as the real icon (falling
-                back to the plain dot PinIcon leaves undefined for a pin saved
-                before icons existed, per mapPins.ts's own documented
-                contract), in the map's own background colour so it reads
-                against any pin colour without needing a second palette.
-                The corpse marker (MapPin.system) gets a visibly larger badge
-                and a heavier ring - it is the one pin the app drops for you
-                rather than you choosing it, and it is telling you where your
-                body is, which outranks every other fact a pin can carry. */}
-            {r.id != null &&
-              pins?.has(r.id) &&
-              (() => {
-                const pin = pins.get(r.id)!
-                const cx = px(r) + box * 0.62
-                const cy = py(r) - box * 0.62
-                const weight = pin.system ? 1.4 : 1
-                // Sized off the room's own box, not a fixed constant - a
-                // pin is a fact worth noticing, and a badge smaller than
-                // the room it sits on (the old `1.8 * scale`, well under
-                // half of `box`) cannot carry an icon shape at all. Measured
-                // live: on Crossing's 903x1056 viewBox scaled into a 530px
-                // docked column, the old radius rendered at roughly one
-                // physical pixel - present in the DOM, invisible on screen.
-                // 1.15x the room box makes the badge the most prominent
-                // single mark on the room rather than the least.
-                const radius = Math.max(box * 1.15, 2.4 * scale) * weight
-                const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
-                return (
-                  <g className="pointer-events-none">
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r={radius}
-                      fill={PIN_COLOR_HEX[pin.color]}
-                      stroke="var(--map-ground)"
-                      strokeWidth={Math.max(0.5, 0.5 * scale) * (pin.system ? 1.6 : 1)}
-                    />
-                    {Icon && (
-                      <svg
-                        x={cx - radius * 0.8}
-                        y={cy - radius * 0.8}
-                        width={radius * 1.6}
-                        height={radius * 1.6}
-                        viewBox="0 0 24 24"
-                      >
-                        <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
-                      </svg>
-                    )}
-                  </g>
-                )
-              })()}
           </g>
         )
       })}
+
+      {/* A saved place, marked on the chart itself rather than only in the
+          hotbar below it - so browsing toward one, or noticing you are near
+          Home, doesn't require reading a row of buttons that may not even
+          be in view in a small docked panel.
+
+          A second, later pass over the rooms - not nested inside each
+          room's own <g> above - because SVG paints in document order and a
+          badge drawn as a room's own last child still loses to *any* later
+          room in the list that happens to overlap it. Dan: "pins go on top
+          of the background." Measured on Crossing: a pin one room short of
+          the drawing order's end was partly covered by its undecorated
+          neighbour. Painting every pin only after every room means a pin is
+          never under anything but another pin.
+
+          Every pin used to draw as the same plain dot regardless of which
+          icon PinEditor offered - the icon only ever reached MapPinBar's
+          chip list, never the map itself, which is the one place a player
+          is actually looking while deciding where to walk. Drawn here as
+          the real icon (falling back to the plain dot PinIcon leaves
+          undefined for a pin saved before icons existed, per mapPins.ts's
+          own documented contract), in the map's own background colour so it
+          reads against any pin colour without needing a second palette.
+          The corpse marker (MapPin.system) gets a visibly larger badge and
+          a heavier ring - it is the one pin the app drops for you rather
+          than you choosing it, and it is telling you where your body is,
+          which outranks every other fact a pin can carry. */}
+      {pins &&
+        rooms
+          .filter((r) => r.id != null && pins.has(r.id))
+          .map((r) => {
+            const pin = pins.get(r.id!)!
+            const cx = px(r) + box * 0.62
+            const cy = py(r) - box * 0.62
+            const weight = pin.system ? 1.4 : 1
+            // Sized off the room's own box, not a fixed constant - a pin is
+            // a fact worth noticing, and a badge smaller than the room it
+            // sits on (the old `1.8 * scale`, well under half of `box`)
+            // cannot carry an icon shape at all. Measured live: on
+            // Crossing's 903x1056 viewBox scaled into a 530px docked
+            // column, the old radius rendered at roughly one physical pixel
+            // - present in the DOM, invisible on screen. 1.15x the room box
+            // makes the badge the most prominent single mark on the room
+            // rather than the least.
+            const radius = Math.max(box * 1.15, 2.4 * scale) * weight
+            const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
+            return (
+              <g key={`pin-${r.id}`} className="pointer-events-none">
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={radius}
+                  fill={PIN_COLOR_HEX[pin.color]}
+                  stroke="var(--map-ground)"
+                  strokeWidth={Math.max(0.5, 0.5 * scale) * (pin.system ? 1.6 : 1)}
+                />
+                {Icon && (
+                  <svg
+                    x={cx - radius * 0.8}
+                    y={cy - radius * 0.8}
+                    width={radius * 1.6}
+                    height={radius * 1.6}
+                    viewBox="0 0 24 24"
+                  >
+                    <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
+                  </svg>
+                )}
+              </g>
+            )
+          })}
+
+      {/* The character's own mark, bigger than any pin and drawn last so
+          nothing else on the chart can sit on top of it - Dan: "show where
+          the character is with a big player icon coat of arms." A third
+          top-level pass for the same reason pins are their own pass now
+          (see that block's comment): document order is paint order in SVG,
+          and "here" has to outrank a pin on the same room, not just every
+          plain room. */}
+      {playerMarker &&
+        rooms
+          .filter((r) => kindById.get(r.id) === 'here')
+          .map((r) => {
+            const cx = px(r)
+            const cy = py(r)
+            const radius = Math.max(box * 1.6, 3.2 * scale)
+            const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
+            return (
+              <g key={`you-${r.id}`} className="pointer-events-none">
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={radius}
+                  fill={playerMarker.color}
+                  stroke="var(--map-ground)"
+                  strokeWidth={Math.max(0.7, 0.7 * scale)}
+                />
+                <svg x={cx - radius * 0.75} y={cy - radius * 0.75} width={radius * 1.5} height={radius * 1.5} viewBox="0 0 24 24">
+                  <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
+                </svg>
+              </g>
+            )
+          })}
     </svg>
   )
 }

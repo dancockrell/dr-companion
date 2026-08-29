@@ -34,7 +34,7 @@ export function PinEditor({
   roomTitle: string
   /** Editing an existing pin rather than creating one on this room. */
   existing?: MapPin
-  onSave: (label: string, color: PinColor, icon: PinIcon | undefined) => void
+  onSave: (label: string, color: PinColor, icon: PinIcon | undefined, note: string | undefined) => void
   onDelete?: () => void
   onClose: () => void
   /**
@@ -48,10 +48,11 @@ export function PinEditor({
   const [label, setLabel] = useState(existing?.label ?? roomTitle)
   const [color, setColor] = useState<PinColor>(existing?.color ?? 'blue')
   const [icon, setIcon] = useState<PinIcon | undefined>(existing?.icon)
+  const [note, setNote] = useState(existing?.note ?? '')
 
   const save = () => {
     if (!label.trim()) return
-    onSave(label.trim(), color, icon)
+    onSave(label.trim(), color, icon, note.trim() || undefined)
   }
 
   /**
@@ -230,6 +231,20 @@ export function PinEditor({
             })}
           </div>
         </div>
+
+        {/* "Pins tell stories" - a label is a name; this is why the name was
+            worth giving. Free text, optional, shown in the room's tooltip
+            under the label - never as chrome on the chart itself. */}
+        <label className="mt-3 block text-xs text-ink-faint">
+          Story (optional)
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            className="mt-1 w-full resize-none rounded border border-border bg-surface-overlay px-2 py-1 text-sm text-ink placeholder:text-ink-faint"
+            placeholder="What happened here? Why does this place matter?"
+          />
+        </label>
 
         {existing && onCreateTask && (
           <button

@@ -47,12 +47,17 @@ interface PinRecord {
   zone?: string
   color: PinColor
   icon?: PinIcon
+  /** The story - see MapPin.note's own comment for why this exists. Carried
+   *  through export/import same as every other field: a pin shared without
+   *  its story is a label with the whole point removed. */
+  story?: string
 }
 
 function toRecord(pin: MapPin): PinRecord {
   const rec: PinRecord = { label: pin.label, room: pin.roomId, color: pin.color }
   if (pin.zone) rec.zone = pin.zone
   if (pin.icon) rec.icon = pin.icon
+  if (pin.note) rec.story = pin.note
   return rec
 }
 
@@ -68,12 +73,14 @@ function fromRecord(rec: unknown, id: string): MapPin | null {
   const icon: PinIcon | undefined = (PIN_ICONS as readonly string[]).includes(String(r.icon))
     ? (r.icon as PinIcon)
     : undefined
+  const note = typeof r.story === 'string' && r.story.trim() ? r.story : undefined
   return {
     id,
     roomId: room,
     zone: typeof r.zone === 'string' ? r.zone : '',
     label,
     color,
+    note,
     icon,
     createdAt: Date.now(),
   }
@@ -94,7 +101,8 @@ export function pinsToYaml(store: PinStore = loadAllPins()): string {
   const header =
     '# DR Companion pins - one list per character (name:instance).\n' +
     '# Safe to hand-edit: label, room (Lich room id), zone (optional),\n' +
-    `# color (${PIN_COLORS.join('/')}), icon (optional, see PIN_ICONS in mapPins.ts).\n` +
+    `# color (${PIN_COLORS.join('/')}), icon (optional, see PIN_ICONS in mapPins.ts),\n` +
+    '# story (optional - what happened here, why it matters).\n' +
     '# Share this file alongside highlights.cfg/aliases.cfg - it lives in the\n' +
     '# same Config folder and travels with the rest of your settings.\n'
   return header + toYaml(out, { sortKeys: false, lineWidth: -1 })
