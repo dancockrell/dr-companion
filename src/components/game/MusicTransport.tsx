@@ -63,7 +63,7 @@ function ProgressBar() {
   if (!p || !Number.isFinite(p.duration)) return null
 
   return (
-    <div className="flex w-full items-center gap-1.5 text-[10px] tabular-nums text-ink-faint">
+    <div className="flex w-full items-center gap-1.5 text-xs tabular-nums text-ink-faint">
       <span className="w-8 shrink-0 text-right">{formatTime(p.position)}</span>
       <input
         type="range"
