@@ -111,6 +111,39 @@ const TRACK_GAIN: Record<string, number> = Object.fromEntries(
   (manifest.radio ?? []).map((r) => [r.id, 10 ** ((r.gainDb ?? 0) / 20)])
 )
 
+/** Track id -> station id, for jumping straight to one track by search
+ * rather than only ever entering the pool through a station pick. */
+const TRACK_TO_STATION: Record<string, string> = Object.fromEntries(
+  (manifest.radio ?? []).map((r) => [r.id, r.station])
+)
+
+/**
+ * Every searchable track, flat, id + title + composer + which station it's
+ * on - what a search box filters over. Built once from the same manifest
+ * `RADIO_STATIONS` already reads, not a second copy of the pool that could
+ * drift from it.
+ */
+export interface SearchableTrack {
+  id: string
+  title: string
+  composer: string
+  stationId: string
+  stationName: string
+}
+export const ALL_TRACKS: SearchableTrack[] = buildSearchableTracks()
+function buildSearchableTracks(): SearchableTrack[] {
+  const stationName: Record<string, string> = Object.fromEntries(
+    Object.entries(STATION_META).map(([id, meta]) => [id, meta.name])
+  )
+  return (manifest.radio ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    composer: r.composer,
+    stationId: r.station,
+    stationName: stationName[r.station] ?? r.station,
+  }))
+}
+
 interface ZoneManifestEntry {
   tracks?: string[]
   character?: string
@@ -132,7 +165,36 @@ function shuffled<T>(items: T[]): T[] {
   return out
 }
 
-const FADE_MS = 2500
+/**
+ * How long a crossfade or a play/pause fade takes - one knob, not a
+ * separate one per event type (skip vs. pause vs. zone change), on purpose:
+ * "a few templates to choose from" (Dan, 29 Aug 2026) is a listener
+ * preference about *how transitions feel*, not a per-context tuning
+ * problem, and a single style keeps the mental model to "fast, normal, or
+ * slow" rather than a settings screen. `CROSSFADE_STYLES` is what a picker
+ * renders; `setCrossfadeStyle` changes `FADE_MS` for every future fade
+ * (mid-fade ones finish at whatever speed they started at - see
+ * `fadeMusicVolume`'s own note on why a *new* fade always starts fresh from
+ * the current level, but nothing here needs to reach into one already
+ * running to change its speed).
+ */
+export const CROSSFADE_STYLES = {
+  cut: { label: 'Cut', ms: 400, description: 'Snappy - barely a fade' },
+  standard: { label: 'Standard', ms: 2500, description: 'A couple of seconds' },
+  long: { label: 'Long', ms: 6000, description: 'A slow, cinematic bleed' },
+} as const
+export type CrossfadeStyle = keyof typeof CROSSFADE_STYLES
+
+let FADE_MS: number = CROSSFADE_STYLES.standard.ms
+let crossfadeStyle: CrossfadeStyle = 'standard'
+export function setCrossfadeStyle(style: CrossfadeStyle) {
+  crossfadeStyle = style
+  FADE_MS = CROSSFADE_STYLES[style].ms
+}
+export function currentCrossfadeStyle(): CrossfadeStyle {
+  return crossfadeStyle
+}
+
 const TICK_MS = 50
 
 /**
@@ -375,6 +437,30 @@ class RadioPlayer {
     this.playCurrent()
   }
 
+  /**
+   * Jump straight to one specific track by id, for search - "play this
+   * song" rather than "play this station and hope it comes up." Loads that
+   * track's own station's full queue (so skip/advance afterward still walk
+   * the whole station, shuffled, the same as picking the station normally
+   * would) but starts *at* the requested track instead of a random point in
+   * it. A no-op if the id isn't in the pool at all - refuse, don't guess.
+   */
+  playTrackDirectly(trackId: string) {
+    const stationId = TRACK_TO_STATION[trackId]
+    const station = stationId ? RADIO_STATIONS.find((s) => s.id === stationId) : undefined
+    if (!station) return
+
+    this.stationId = station.id
+    this.queue = shuffled(station.tracks)
+    const idx = this.queue.findIndex((t) => t.id === trackId)
+    if (idx > 0) {
+      const [chosen] = this.queue.splice(idx, 1)
+      this.queue.unshift(chosen)
+    }
+    this.pos = 0
+    this.playCurrent()
+  }
+
   private playCurrent() {
     const track = this.queue[this.pos]
     if (!track) return
@@ -482,6 +568,14 @@ export function setZone(zoneId: string | null) {
 export function setRadioStation(id: string | null) {
   if (id !== null) customStreamUrl = null
   radio.select(id)
+}
+
+/** Play one specific track by id (search's "play this song" - see
+ * RadioPlayer.playTrackDirectly). Clears a custom stream the same way
+ * picking a station does; a no-op if the id isn't in the pool. */
+export function playTrack(trackId: string) {
+  customStreamUrl = null
+  radio.playTrackDirectly(trackId)
 }
 
 export function currentRadioStation(): string | null {

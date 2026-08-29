@@ -34,8 +34,8 @@
  * you clicked it, the same way the whole-panel quick-mute button already did
  * for all four channels at once.
  */
-import { useEffect, useRef, useState } from 'react'
-import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio, Siren, Skull, MessageCircle, Music2, Star, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio, Search, Siren, Skull, MessageCircle, Music2, Star, X } from 'lucide-react'
 import {
   playAlert,
   setAlertsVolume,
@@ -54,11 +54,26 @@ import {
   RADIO_STATIONS,
   setCustomStream,
   currentCustomStream,
+  CROSSFADE_STYLES,
+  setCrossfadeStyle,
+  currentCrossfadeStyle,
+  ALL_TRACKS,
+  playTrack,
+  nowPlaying,
+  onNowPlayingChange,
+  type CrossfadeStyle,
+  type NowPlaying,
 } from '../../lib/ambientSound'
 import { externalMediaAvailable, sendMediaKey, type MediaAction } from '../../lib/externalMedia'
 import { loadPrefs, savePrefs, type FavoriteStation } from '../../lib/persistence'
+import { onOpenSoundPanelRequest } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
 import { MusicTransport } from './MusicTransport'
+
+/** Search results cap - the pool is 217 tracks and growing; a query too
+ * broad to narrow that gets capped rather than dumping the whole pool into
+ * the panel. */
+const SEARCH_LIMIT = 25
 
 /**
  * One row of the mixer: a mute toggle, a name, a plain-language description
@@ -179,6 +194,12 @@ function ExternalMediaControls() {
 
 export function SoundControls() {
   const [open, setOpen] = useState(false)
+  // The footer's own compact transport (MusicTransport) can ask this panel
+  // to open - a click on its now-playing title, since favorites, the
+  // station list and the crossfade picker only live here. See
+  // soundPanelOpen.ts's own header for why this is a subscription rather
+  // than a prop.
+  useEffect(() => onOpenSoundPanelRequest(() => setOpen(true)), [])
   // Read from `loadPrefs()`, not `alertsVolume()`/`musicVolume()` - those
   // return whatever the module's own default is *right now*, and GamePane
   // applies the persisted level to the same module in its own effect, in a
@@ -194,6 +215,26 @@ export function SoundControls() {
   const [customUrl, setCustomUrl] = useState(currentCustomStream() ?? '')
   const [customName, setCustomName] = useState('')
   const [favorites, setFavorites] = useState<FavoriteStation[]>(() => loadPrefs().favoriteStations ?? [])
+  const [crossfade, setCrossfade] = useState<CrossfadeStyle>(() => loadPrefs().crossfadeStyle ?? currentCrossfadeStyle())
+  const [search, setSearch] = useState('')
+  // Only for highlighting the active row in search results - title+composer
+  // is a good enough proxy for "which track" in a pool this size; nothing
+  // here needs a real track id back from the engine.
+  const [now, setNow] = useState<NowPlaying | null>(() => nowPlaying())
+  useEffect(() => {
+    setNow((prev) => {
+      const current = nowPlaying()
+      return prev === current ? prev : current
+    })
+    return onNowPlayingChange(setNow)
+  }, [])
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return []
+    return ALL_TRACKS.filter(
+      (t) => t.title.toLowerCase().includes(q) || t.composer.toLowerCase().includes(q)
+    ).slice(0, SEARCH_LIMIT)
+  }, [search])
   // The OS media-session play/pause buttons (initMediaSession in
   // ambientSound.ts) can change this volume without this panel's own slider
   // ever being touched - subscribe so the slider doesn't silently disagree
@@ -444,11 +485,106 @@ export function SoundControls() {
               * SafetyFooter's own copy - see MusicTransport's header. */}
             <MusicTransport className="mb-2" showProgress />
 
+            {/* How transitions feel - a listener preference, not a
+              * per-event tuning problem, so one style covers both
+              * track-to-track crossfades and the play/pause fade. See
+              * ambientSound.ts's CROSSFADE_STYLES for the actual values. */}
+            <div className="mb-2 flex items-center gap-1 text-xs">
+              <span className="shrink-0 text-ink-muted">Transitions</span>
+              <div className="flex flex-1 gap-1">
+                {(Object.keys(CROSSFADE_STYLES) as CrossfadeStyle[]).map((style) => (
+                  <button
+                    key={style}
+                    type="button"
+                    className={cn(
+                      'flex-1 rounded border px-1.5 py-0.5',
+                      crossfade === style
+                        ? 'border-accent bg-accent/15 text-ink'
+                        : 'border-border text-ink-muted hover:text-ink'
+                    )}
+                    title={CROSSFADE_STYLES[style].description}
+                    onClick={() => {
+                      setCrossfade(style)
+                      setCrossfadeStyle(style)
+                      savePrefs({ crossfadeStyle: style })
+                    }}
+                  >
+                    {CROSSFADE_STYLES[style].label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            {/* Favorites, first class: a player's own saved stations up
-              * front, not buried below a list of six they may not want. One
-              * click plays either kind - see playFavorite's own header. */}
-            {favorites.length > 0 && (
+            {/* Search across all 217 tracks by title or composer, not just
+              * the six stations they're grouped into - "search specific
+              * tracks" was a real gap: browsing could only ever land you on
+              * a station and hope, never a song. Takes over the space below
+              * while active; clearing it goes back to favorites/stations. */}
+            <label className="mb-2 flex items-center gap-1.5 rounded border border-border bg-surface px-1.5 py-1 text-xs">
+              <Search className="h-3 w-3 shrink-0 text-ink-faint" />
+              <input
+                type="text"
+                placeholder="Search tracks or composers…"
+                className="w-full bg-transparent text-ink outline-none placeholder:text-ink-faint"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button
+                  type="button"
+                  className="shrink-0 text-ink-faint hover:text-ink"
+                  onClick={() => setSearch('')}
+                  title="Clear search" aria-label="Clear search"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </label>
+
+            {search.trim() ? (
+              <div className="mb-2 flex flex-col gap-0.5">
+                {searchResults.length === 0 ? (
+                  <div className="px-1.5 py-1 text-xs text-ink-faint">No tracks match "{search.trim()}"</div>
+                ) : (
+                  searchResults.map((t) => {
+                    const active = radioId === t.stationId && now?.title === t.title
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={cn(
+                          'flex items-center gap-1.5 rounded px-1.5 py-1 text-left text-xs',
+                          active ? 'bg-accent/15 text-ink' : 'text-ink-muted hover:bg-border/40 hover:text-ink'
+                        )}
+                        onClick={() => {
+                          playTrack(t.id)
+                          setRadioId(t.stationId)
+                          setCustomUrl('')
+                          savePrefs({ radioStation: t.stationId, customStreamUrl: null })
+                        }}
+                      >
+                        {active ? <Play className="h-3 w-3 shrink-0 text-accent" /> : <span className="w-3 shrink-0" />}
+                        <span className="min-w-0 flex-1 truncate">
+                          {t.title}
+                          {t.composer && <span className="text-ink-faint"> — {t.composer}</span>}
+                        </span>
+                        <span className="shrink-0 text-ink-faint">{t.stationName}</span>
+                      </button>
+                    )
+                  })
+                )}
+                {searchResults.length === SEARCH_LIMIT && (
+                  <div className="px-1.5 py-1 text-xs text-ink-faint">
+                    Showing the first {SEARCH_LIMIT} - narrow the search for more.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Favorites, first class: a player's own saved stations up
+                  * front, not buried below a list of six they may not want. One
+                  * click plays either kind - see playFavorite's own header. */}
+                {favorites.length > 0 && (
               <div className="mb-2">
                 <div className="mb-1 flex items-center gap-1 text-xs font-medium text-ink-muted">
                   <Star className="h-3 w-3 fill-current text-accent" />
@@ -556,6 +692,8 @@ export function SoundControls() {
               <div className="mt-1 truncate text-xs text-ink-faint" title={RADIO_STATIONS.find((s) => s.id === radioId)?.description}>
                 {RADIO_STATIONS.find((s) => s.id === radioId)?.description}
               </div>
+            )}
+              </>
             )}
 
             {/* Any direct stream URL (an Icecast/Shoutcast station, or

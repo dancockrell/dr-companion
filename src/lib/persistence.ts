@@ -108,6 +108,13 @@ export interface PersistedPrefs {
    * on every save.
    */
   favoriteStations?: FavoriteStation[]
+  /**
+   * How long a crossfade or a play/pause fade takes - see ambientSound.ts's
+   * CROSSFADE_STYLES for the three named presets. Default 'standard' (2.5s,
+   * unchanged from before this was a choice) so an existing profile's
+   * transitions don't suddenly feel different.
+   */
+  crossfadeStyle?: 'cut' | 'standard' | 'long'
 }
 
 export interface FavoriteStation {

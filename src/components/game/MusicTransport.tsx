@@ -14,10 +14,11 @@
  * (`initMediaSession`), so this component, the footer, and Windows' own Now
  * Playing UI all agree on the same state through the same subscription.
  */
-import { SkipBack, SkipForward, Play, Pause } from 'lucide-react'
+import { SkipBack, SkipForward, Play, Pause, Volume2, Volume1, VolumeX } from 'lucide-react'
 import {
   skipTrack,
   musicVolume,
+  setMusicVolume,
   onMusicVolumeChange,
   pauseMusic,
   resumeMusic,
@@ -62,8 +63,12 @@ function ProgressBar() {
   // arrived - a bar with no end is not a progress bar, it's a lie.
   if (!p || !Number.isFinite(p.duration)) return null
 
+  // text-xs, not 10px: DESIGN.md 1.5 puts the floor at 12px and
+  // tools/contrast-test.mjs fails the build below it. Timecodes are exactly
+  // the kind of thing that gets shrunk because it is "only a number", and they
+  // are read by the same eyes as everything else.
   return (
-    <div className="flex w-full items-center gap-1.5 text-[10px] tabular-nums text-ink-faint">
+    <div className="flex w-full items-center gap-1.5 text-xs tabular-nums text-ink-faint">
       <span className="w-8 shrink-0 text-right">{formatTime(p.position)}</span>
       <input
         type="range"
@@ -83,6 +88,8 @@ function ProgressBar() {
 export function MusicTransport({
   showTitle = true,
   showProgress = false,
+  showVolume = false,
+  onTitleClick,
   className,
 }: {
   /** Off in the footer's tightest state - the badge row already truncates
@@ -92,6 +99,20 @@ export function MusicTransport({
    * the footer stays a glance-and-click strip, not a second copy of the
    * panel. */
   showProgress?: boolean
+  /**
+   * A compact volume slider inline, next to the transport buttons - added
+   * 29 Aug 2026 because the footer had play/pause/skip and nothing to
+   * adjust level with, so "turn the music down" meant opening the Sound
+   * panel for one slider drag. Real players (Spotify included) put volume
+   * where the transport already is; hiding it behind a click was the actual
+   * gap, not a missing feature so much as a missing shortcut to one that
+   * already existed.
+   */
+  showVolume?: boolean
+  /** Makes the title clickable - the footer's compact strip is a glance,
+   * not the whole panel, so a click through to it (SoundControls, favorites,
+   * the station list, crossfade style) has to go somewhere. */
+  onTitleClick?: () => void
   className?: string
 }) {
   const [now, setNow] = useState<NowPlaying | null>(() => nowPlaying())
@@ -162,13 +183,53 @@ export function MusicTransport({
         >
           <SkipForward className="h-3.5 w-3.5" />
         </button>
-        {showTitle && (
-          <span
-            className="min-w-0 truncate text-xs text-ink-muted"
-            title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}
-          >
-            {now ? now.title : 'Silent'}
-          </span>
+        {showTitle &&
+          (onTitleClick ? (
+            <button
+              type="button"
+              className="min-w-0 flex-1 truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
+              title={
+                (now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent') +
+                ' — open Sound'
+              }
+              onClick={onTitleClick}
+            >
+              {now ? now.title : 'Silent'}
+            </button>
+          ) : (
+            <span
+              className="min-w-0 flex-1 truncate text-xs text-ink-muted"
+              title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}
+            >
+              {now ? now.title : 'Silent'}
+            </span>
+          ))}
+        {showVolume && (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
+              onClick={() => (playing ? pauseMusic() : resumeMusic())}
+              title={playing ? 'Mute music' : 'Unmute music'}
+            >
+              {vol <= 0 ? (
+                <VolumeX className="h-3.5 w-3.5" />
+              ) : vol < 0.5 ? (
+                <Volume1 className="h-3.5 w-3.5" />
+              ) : (
+                <Volume2 className="h-3.5 w-3.5" />
+              )}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={150}
+              value={Math.round(vol * 100)}
+              onChange={(e) => setMusicVolume(Number(e.currentTarget.value) / 100)}
+              className="w-16 accent-accent"
+              aria-label="Music volume (quick)"
+            />
+          </div>
         )}
       </div>
       {showProgress && <ProgressBar />}
