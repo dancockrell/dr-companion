@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { roomArtUrl } from '../../lib/roomText'
 
 /**
@@ -100,16 +100,35 @@ export function RoomBackdrop({
 }) {
   const art = useRoomArt(zone, room, title, text)
 
+  /*
+   * Unique per rendered instance, not per room.
+   *
+   * The gradient id was `sky-${art.key}`, and art.key is zone+room - fine
+   * while exactly one backdrop existed. CombatRadar now draws one too, so
+   * standing in a room with a fight on renders two backdrops for the same
+   * room and therefore two elements carrying id="sky-1-1". Measured on the
+   * real app: one duplicate id, exactly that one.
+   *
+   * A duplicate id is not cosmetic in SVG. `fill="url(#sky-1-1)"` resolves to
+   * whichever definition the document happens to hold first, so both rects
+   * paint from one gradient. They agree today because both instances derive
+   * from the same room, which is precisely what makes it easy to leave in -
+   * it goes wrong the first time the two differ, and then the wrong one is
+   * silently right-looking.
+   */
+  const uid = useId()
+  const skyId = `sky-${art.key}-${uid}`
+
   return (
     <>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
         <defs>
-          <linearGradient id={`sky-${art.key}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={skyId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={art.light} stopOpacity="0.55" />
             <stop offset="100%" stopColor={art.dark} />
           </linearGradient>
         </defs>
-        <rect x="0" y="0" width="100" height="100" fill={`url(#sky-${art.key})`} />
+        <rect x="0" y="0" width="100" height="100" fill={`url(#${skyId})`} />
         <polygon
           points={`0,100 ${art.peaks.map((p) => `${p.x * 100},${p.y * 100}`).join(' ')} 100,100`}
           fill={art.dark}
