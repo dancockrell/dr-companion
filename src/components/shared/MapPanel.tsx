@@ -125,8 +125,8 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   // opened is still there or the user closed it by hand.
   useEffect(() => {
     if (!isTauri()) return
-    void invokeTauri('map_window_open')
-      .then((open) => setPoppedOut(open === true))
+    void invokeTauri('panel_windows')
+      .then((ids) => setPoppedOut(Array.isArray(ids) && ids.includes('map')))
       .catch(() => setPoppedOut(false))
   }, [])
 
@@ -148,7 +148,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
   async function popOut() {
     try {
-      await invokeTauri('open_map_window')
+      await invokeTauri('open_panel_window', { id: 'map', title: 'Map' })
       setPoppedOut(true)
     } catch {
       // Leave the inline map showing rather than hiding it behind a window
@@ -159,7 +159,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
   async function popBack() {
     try {
-      await invokeTauri('close_map_window')
+      await invokeTauri('close_panel_window', { id: 'map' })
     } finally {
       // In the `finally`, so a close that errored still returns the inline map
       // rather than leaving the panel pointing at a window that is not there.
