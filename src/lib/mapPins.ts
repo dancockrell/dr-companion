@@ -39,6 +39,15 @@ export const PIN_COLOR_HEX: Record<PinColor, string> = {
  * on older saved pins - PinEditor/MapPinBar fall back to a plain dot for
  * `undefined`, so this is additive and never breaks a pin saved before it
  * existed.
+ *
+ * Fifty rather than the original sixteen - Dan's ask was for enough variety
+ * that a player (or a script - see mapPins.ts's addPin, which takes any of
+ * these) never has to reuse "shield" for three unrelated things. Every name
+ * here was checked against the installed lucide-react build directly
+ * (`Object.keys` on the package, not a guess against the docs) before being
+ * added - a name that only exists in a newer lucide release renders nothing
+ * and fails silently, which is a worse bug than an icon list that is merely
+ * short.
  */
 export const PIN_ICONS = [
   'home',
@@ -57,6 +66,40 @@ export const PIN_ICONS = [
   'ghost',
   'sprout',
   'map-pin',
+  'castle',
+  'anvil',
+  'hammer',
+  'axe',
+  'flask-conical',
+  'gem',
+  'key-round',
+  'lock',
+  'star',
+  'compass',
+  'footprints',
+  'flame',
+  'droplet',
+  'snowflake',
+  'mountain',
+  'tree-pine',
+  'bird',
+  'fish',
+  'bug',
+  'crown',
+  'hourglass',
+  'scroll-text',
+  'book-open',
+  'package',
+  'gift',
+  'paw-print',
+  'wand',
+  'scale',
+  'target',
+  'anchor',
+  'waves',
+  'sun',
+  'moon',
+  'sparkles',
 ] as const
 export type PinIcon = (typeof PIN_ICONS)[number]
 
@@ -104,6 +147,16 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
   { label: 'Resource Node', icon: 'sprout', color: 'green' },
   { label: 'Return Point', icon: 'flag', color: 'slate' },
 ]
+
+/**
+ * The dataTransfer MIME type a dragged pin preset carries - shared between
+ * QuickTravel (the drag source) and MapCanvas (the drop target) so the two
+ * cannot drift into checking for two different strings. A drag from
+ * anywhere else on the page (selected text, another app) simply won't
+ * carry this key, and the drop handler ignores it rather than creating a
+ * pin from whatever else it finds in the drag payload.
+ */
+export const PIN_DRAG_TYPE = 'application/x-drc-pin'
 
 const STORAGE_KEY = 'drc.pins.v1'
 type PinStore = Record<string, MapPin[]>

@@ -38,7 +38,7 @@ export function MapPinBar({
   return (
     <>
       {pins.map((pin) => {
-        const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
+        const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : MapPinIcon
         return (
         <div
           key={pin.id}
@@ -49,11 +49,11 @@ export function MapPinBar({
             type="button"
             disabled={disabled}
             title={`Walk to ${pin.label} (room ${pin.roomId})`}
+            aria-label={`Walk to ${pin.label}`}
             onClick={() => onGo(pin)}
-            className="flex items-center gap-1 px-2 py-0.5 text-xs text-ink-muted hover:text-ink disabled:opacity-40"
+            className="flex items-center px-2 py-0.5 text-ink-muted hover:text-ink disabled:opacity-40"
           >
-            {Icon && <Icon className="h-3 w-3" style={{ color: PIN_COLOR_HEX[pin.color] }} />}
-            {pin.label}
+            <Icon className="h-3 w-3" style={{ color: PIN_COLOR_HEX[pin.color] }} />
           </button>
           <button
             type="button"
@@ -70,12 +70,12 @@ export function MapPinBar({
         <button
           type="button"
           title="Pin the room you are standing in"
+          aria-label="Pin the room you are standing in"
           onClick={onAddHere}
-          className="flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-xs text-ink-faint hover:border-accent/60 hover:text-accent"
+          className="flex items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-ink-faint hover:border-accent/60 hover:text-accent"
         >
           <Plus className="h-3 w-3" />
           <MapPinIcon className="h-3 w-3" />
-          Pin here
         </button>
       )}
     </>

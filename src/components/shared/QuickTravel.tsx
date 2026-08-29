@@ -12,15 +12,16 @@
  * pick from what's actually nearby.
  */
 import { useState } from 'react'
-import { Landmark, HeartPulse, Shield, ShoppingBag, MapPin as MapPinIcon, type LucideIcon } from 'lucide-react'
+import { Landmark, HeartPulse, Shield, ShoppingBag, MapPin as MapPinIcon, Compass, type LucideIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
+import { PIN_DRAG_TYPE, type PinIcon, type PinColor } from '../../lib/mapPins'
 
-const PRESETS: { tag: string; label: string; icon: LucideIcon }[] = [
-  { tag: 'bank', label: 'Bank', icon: Landmark },
-  { tag: 'healer', label: 'Healer', icon: HeartPulse },
-  { tag: 'guild', label: 'Guild', icon: Shield },
-  { tag: 'shop', label: 'Shop', icon: ShoppingBag },
+const PRESETS: { tag: string; label: string; icon: LucideIcon; pinIcon: PinIcon; color: PinColor }[] = [
+  { tag: 'bank', label: 'Bank', icon: Landmark, pinIcon: 'landmark', color: 'gold' },
+  { tag: 'healer', label: 'Healer', icon: HeartPulse, pinIcon: 'heart-pulse', color: 'green' },
+  { tag: 'guild', label: 'Guild', icon: Shield, pinIcon: 'shield', color: 'purple' },
+  { tag: 'shop', label: 'Shop', icon: ShoppingBag, pinIcon: 'shopping-bag', color: 'blue' },
 ]
 
 export function QuickTravel({
@@ -57,20 +58,35 @@ export function QuickTravel({
   // note. The caller puts this in a shared flex-wrap row with MapPinBar.
   return (
     <>
-      <span className="text-xs text-ink-faint">Nearest:</span>
-      {PRESETS.map(({ tag, label, icon: Icon }) => (
+      <span className="flex items-center text-ink-faint" title="Nearest: find the closest bank, healer, guild or shop from here">
+        <Compass className="h-3 w-3" />
+      </span>
+      {PRESETS.map(({ tag, label, icon: Icon, pinIcon, color }) => (
         <button
           key={tag}
           type="button"
           onClick={() => ask(tag)}
-          className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
+          // Click still asks "nearest" - dragging is the second, separate
+          // gesture this same button now supports. The two never conflict:
+          // a click never fires a dragstart, and a drag that ends off any
+          // room just does nothing rather than also triggering a search.
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData(
+              PIN_DRAG_TYPE,
+              JSON.stringify({ label, icon: pinIcon, color })
+            )
+            e.dataTransfer.effectAllowed = 'copy'
+          }}
+          title={`Nearest ${label} (drag onto a room on the map to pin it there directly)`}
+          aria-label={`Nearest ${label}`}
+          className={`flex items-center rounded-full border px-1.5 py-0.5 ${
             activeTag === tag
               ? 'border-accent text-accent'
               : 'border-border text-ink-muted hover:text-ink'
           }`}
         >
           <Icon className="h-3 w-3" />
-          {label}
         </button>
       ))}
       {answered &&

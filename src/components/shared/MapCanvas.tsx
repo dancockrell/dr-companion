@@ -15,7 +15,7 @@ import type { MapZone, MapZoneRoom } from '../../bridge/types'
 import { inkFor } from '../../lib/mapInk'
 import { recency, segments, type Trail } from '../../lib/trail'
 import { roomKind, type RoomKind } from '../../lib/mapData'
-import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
+import { PIN_COLOR_HEX, PIN_DRAG_TYPE, type MapPin, type PinIcon, type PinColor } from '../../lib/mapPins'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 
 /**
@@ -75,6 +75,15 @@ export function MapCanvas({
   pins,
   /** Right-click (or long-press, once this has a touch input) a room to pin it - offered on any room, not just the one you're standing in, since browsing a distant zone to mark its bank is a real use of this. */
   onPinRoom,
+  /**
+   * A pin type dragged in from somewhere outside the map (QuickTravel's
+   * category buttons, for now) and dropped on a room - the instant-placement
+   * counterpart to onPinRoom's right-click-then-choose flow. Optional for
+   * the same reason onPinRoom is: a caller with nowhere to save a pin (no
+   * character yet) simply doesn't wire it up, and the room stops accepting
+   * drops rather than accepting one that goes nowhere.
+   */
+  onDropPin,
 }: {
   zone: MapZone
   level: number
@@ -89,6 +98,7 @@ export function MapCanvas({
   onHereAt?: (x: number, y: number) => void
   pins?: Map<number, MapPin>
   onPinRoom?: (id: number) => void
+  onDropPin?: (roomId: number, preset: { label: string; icon: PinIcon; color: PinColor }) => void
 }) {
   /**
    * The cartography is authored on a 10-unit grid: 1,221 of Crossing's
@@ -383,6 +393,32 @@ export function MapCanvas({
             }}
             onMouseEnter={() => r.id != null && setHoverId(r.id)}
             onMouseLeave={() => r.id != null && setHoverId((h) => (h === r.id ? null : h))}
+            // Drag-and-drop a pin type onto this room. Reuses the same hover
+            // lift a mouseenter gives - the room under the drag should read
+            // as the drop target the same way it reads as the click target,
+            // rather than needing a second visual language just for drags.
+            onDragOver={(e) => {
+              if (!onDropPin || r.id == null) return
+              e.preventDefault()
+            }}
+            onDragEnter={() => {
+              if (onDropPin && r.id != null) setHoverId(r.id)
+            }}
+            onDragLeave={() => r.id != null && setHoverId((h) => (h === r.id ? null : h))}
+            onDrop={(e) => {
+              if (!onDropPin || r.id == null) return
+              e.preventDefault()
+              setHoverId((h) => (h === r.id ? null : h))
+              const raw = e.dataTransfer.getData(PIN_DRAG_TYPE)
+              if (!raw) return
+              try {
+                const preset = JSON.parse(raw)
+                if (preset?.label && preset?.icon && preset?.color) onDropPin(r.id, preset)
+              } catch {
+                // Not our drag - some other payload landed here. Ignore it
+                // rather than creating a pin from garbage.
+              }
+            }}
           >
             {/* A ring on a room you have stood in.
              *

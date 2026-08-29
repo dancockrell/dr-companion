@@ -157,6 +157,24 @@ export function MapWindow() {
     setEditingRoom(null)
   }
 
+  /** A preset dragged in from QuickTravel and dropped on a room - see MapPanel.tsx's matching function for why this skips the editor modal. */
+  function dropPin(roomId: number, preset: { label: string; icon: MapPin['icon']; color: MapPin['color'] }) {
+    if (!character) return
+    const already = pinFor(pins, roomId)
+    if (already) {
+      updatePin(character.name, character.instance, already.id, preset)
+    } else {
+      addPin(character.name, character.instance, {
+        roomId,
+        zone: zone?.zone ?? '',
+        label: preset.label,
+        color: preset.color,
+        icon: preset.icon,
+      })
+    }
+    setPinVersion((v) => v + 1)
+  }
+
   async function createTaskForPin(pin: MapPin) {
     const existingNames = (await listScripts()).filter((s) => s.lang === 'python').map((s) => s.name)
     const name = uniqueTaskName(existingNames, pin)
@@ -375,6 +393,7 @@ export function MapWindow() {
               onHereAt={onHereAt}
               pins={pinsByRoom}
               onPinRoom={pinRoom}
+              onDropPin={dropPin}
             />
           </div>
         ) : (

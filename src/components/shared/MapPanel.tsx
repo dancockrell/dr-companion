@@ -250,6 +250,32 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     setEditingRoom(null)
   }
 
+  /**
+   * A preset dragged in from QuickTravel and dropped on a room - creates the
+   * pin immediately, skipping the editor modal entirely. That is the whole
+   * point of a drag: the icon and label were already chosen by picking which
+   * button to drag, so asking again in a dialog would make the gesture no
+   * faster than right-click-and-fill-in-the-form. If the room already has a
+   * pin, it is overwritten rather than stacked - the same rule addPin's
+   * caller already follows everywhere else a room can only carry one pin.
+   */
+  function dropPin(roomId: number, preset: { label: string; icon: MapPin['icon']; color: MapPin['color'] }) {
+    if (!character) return
+    const already = pinFor(pins, roomId)
+    if (already) {
+      updatePin(character.name, character.instance, already.id, preset)
+    } else {
+      addPin(character.name, character.instance, {
+        roomId,
+        zone: zone?.zone ?? '',
+        label: preset.label,
+        color: preset.color,
+        icon: preset.icon,
+      })
+    }
+    setPinVersion((v) => v + 1)
+  }
+
   // Writes a real python/tasks/user/walk_to_<pin>.py - see pinTaskGenerator.ts
   // for why generation, not overwrite, is the right default the moment a
   // player might have edited a previously-generated file by hand.
@@ -577,6 +603,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               onHereAt={onHereAt}
               pins={pinsByRoom}
               onPinRoom={pinRoom}
+              onDropPin={dropPin}
             />
           </div>
         ) : (
@@ -601,6 +628,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               trail={trail}
               pins={pinsByRoom}
               onPinRoom={pinRoom}
+              onDropPin={dropPin}
             />
           </div>
         )}
