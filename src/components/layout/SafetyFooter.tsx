@@ -219,8 +219,17 @@ export function SafetyFooter() {
       </div>
 
       {/* Its own basis so it drops to a second line in a narrow window rather
-          than squeezing the three buttons it sits beside. */}
-      <div className="flex min-w-0 flex-1 basis-40 items-center justify-end gap-2 text-xs">
+          than squeezing the three buttons it sits beside. Not `flex-1` any
+          more (30 Aug 2026) - this and the music transport wrapper both
+          being flex-1 split every extra pixel of window width 50/50
+          regardless of which one actually wanted it, which is how "make the
+          track scrubber longer" cashed out: the scrubber was already full
+          width of its own wrapper, the wrapper just wasn't getting the
+          room. This readout is badges and short status text with no real
+          use for a wider box, so it keeps only `shrink` (it can still give
+          up width at a narrow window) and drops `grow` - every leftover
+          pixel now goes to the transport wrapper instead of being split. */}
+      <div className="flex min-w-0 shrink basis-40 items-center justify-end gap-2 text-xs">
         {/* First, because a bar full of controls that cannot reach Lich is the
             one state where pressing Stop achieves nothing at all. */}
         {!bridgeConnected && (
