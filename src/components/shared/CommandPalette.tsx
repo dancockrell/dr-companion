@@ -280,7 +280,12 @@ export function CommandPalette() {
     void Promise.all([pythonStatus(), nodeStatus()]).then(([py, node]) =>
       setTasks([
         ...py.tasks.map((t) => ({ ...t, lang: 'python' as const })),
-        ...node.tasks.map((t) => ({ ...t, lang: 'typescript' as const })),
+        // Node/TypeScript tasks carry no `category` of their own - see
+        // TaskFlowPanel.tsx's TS_CATEGORY for the same gap and the same
+        // fixed-bucket fix. Unused by this palette's own rendering (the
+        // Tasks loop below never reads `task.category`), but `MergedTask`
+        // requires the field since it's `TaskInfo & { lang }`.
+        ...node.tasks.map((t) => ({ ...t, lang: 'typescript' as const, category: 'TypeScript tasks' })),
       ])
     )
   }, [open])
