@@ -34,7 +34,6 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::setup::genie_install_dir;
 
 #[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -51,19 +50,15 @@ pub struct ConfigFile {
 
 /// Everywhere a Genie config plausibly lives.
 ///
-/// The install directory is asked first because `setup.rs` already does the
-/// work of finding it, including the layouts people actually have rather than
-/// the one the installer documents.
+/// Built from `setup::genie_roots()` - the same root list `sounds.rs` builds
+/// `Sounds` paths from - so the two can never independently drift about
+/// where "Genie" means again. See that function's own comment for the gap
+/// this closed.
 fn candidates(leaf: &str) -> Vec<PathBuf> {
-    let mut out = Vec::new();
-    out.push(genie_install_dir().join("Config").join(leaf));
-    for root in ["C:\\Genie4", "C:\\Genie", "C:\\Program Files (x86)\\Genie4"] {
-        out.push(PathBuf::from(root).join("Config").join(leaf));
-    }
-    if let Some(home) = std::env::var_os("USERPROFILE") {
-        out.push(PathBuf::from(home).join("Genie4").join("Config").join(leaf));
-    }
-    out
+    crate::setup::genie_roots()
+        .into_iter()
+        .map(|root| root.join("Config").join(leaf))
+        .collect()
 }
 
 /// A Genie config file by name, or an honest account of not finding one.

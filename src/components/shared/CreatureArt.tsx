@@ -166,6 +166,7 @@ export function CreatureArt({
   lore,
   height,
   className,
+  focus = 'center',
 }: {
   name: string
   noun: string
@@ -173,6 +174,17 @@ export function CreatureArt({
   /** Driven by the card tier, because full and compact want different art. */
   height: number
   className?: string
+  /**
+   * Which part of the source image `object-cover` keeps when the frame is
+   * taller or narrower than the picture — 'center' (the old, only, default)
+   * everywhere this crops close to square, 'top' where the frame is a tall
+   * portrait rectangle and cropping to the middle would as often cut off
+   * the head as keep it. The pack's own renders center their subject, so
+   * 'top' is a real bias, not a guess at where a specific picture's subject
+   * sits — the same bias applies uniformly rather than reading pixels to
+   * find a face, which this app has no way to do.
+   */
+  focus?: 'center' | 'top'
 }) {
   // Keyed by art key rather than a bare boolean, so a manifest entry that
   // will not decode falls through to the next candidate on the following
@@ -194,7 +206,7 @@ export function CreatureArt({
           alt=""
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover"
+          className={cn('h-full w-full object-cover', focus === 'top' && 'object-top')}
           onLoad={() => noteArtLoaded(source.key)}
           onError={() => {
             noteArtMissing(source.key)

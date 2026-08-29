@@ -6,9 +6,11 @@
  * actually typing it in-game; this doesn't.
  */
 import { useMemo, useState } from 'react'
-import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search } from 'lucide-react'
+import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste } from 'lucide-react'
 import { parseAliases, expandAlias, type Alias } from '../../lib/aliases'
 import { reloadAliases } from '../../lib/useAliases'
+import { referencedVariables } from '../../lib/variables'
+import { useVariables } from '../../lib/useVariables'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
 import {
   formatAliasLine,
@@ -50,6 +52,8 @@ export function AliasesEditor() {
   const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importText, setImportText] = useState('')
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -64,10 +68,59 @@ export function AliasesEditor() {
     return expandAlias(testCommand, editor.entries)
   }, [testCommand, editor.entries])
 
+  const { variables } = useVariables()
+  /** `$preposition`/`$shop`-style tokens left in the expansion, resolved
+   * against Genie's live `#var` table purely as a preview - what actually
+   * gets sent is still the unresolved text, exactly as Genie itself sends
+   * it. Without this a player has no way to know what `$shop` even means
+   * short of opening variables.cfg by hand. */
+  const testVariables = useMemo(() => {
+    if (!testResult?.text) return []
+    return referencedVariables(testResult.text).map((name) => ({
+      name,
+      value: variables.find((v) => v.name === name)?.value ?? null,
+    }))
+  }, [testResult, variables])
+
+  /** Same shape as MacrosEditor's importPreview: reuse the real parser, then
+   * add the one check a single add's validateDraft already gets for free -
+   * a name that collides with something already in the file. Genie has no
+   * such preview at all; a pasted block just silently shadows whatever it
+   * collides with the moment it is typed in. */
+  const importPreview = useMemo(() => {
+    if (!importText.trim()) return null
+    const { entries, skipped } = parseAliases(importText)
+    const existingNames = new Set(editor.entries.map((a) => a.name.toLowerCase()))
+    const seenInBatch = new Set<string>()
+    const valid: Alias[] = []
+    const clashes: string[] = []
+    for (const a of entries) {
+      const lower = a.name.toLowerCase()
+      if (existingNames.has(lower)) {
+        clashes.push(`${formatAliasLine(a)} - "${a.name}" already exists`)
+      } else if (seenInBatch.has(lower)) {
+        clashes.push(`${formatAliasLine(a)} - "${a.name}" appears twice in this paste`)
+      } else {
+        seenInBatch.add(lower)
+        valid.push(a)
+      }
+    }
+    return { valid, skipped: [...skipped, ...clashes] }
+  }, [importText, editor.entries])
+
   const startAdd = () => {
     setDraft(EMPTY_DRAFT)
     setEditingLine(null)
     setAdding(true)
+    setImporting(false)
+    setFormError('')
+  }
+
+  const startImport = () => {
+    setImportText('')
+    setImporting(true)
+    setAdding(false)
+    setEditingLine(null)
     setFormError('')
   }
 
@@ -75,13 +128,35 @@ export function AliasesEditor() {
     setDraft({ name: a.name, expansion: a.expansion })
     setEditingLine(a.sourceLine)
     setAdding(false)
+    setImporting(false)
     setFormError('')
   }
 
   const cancelForm = () => {
     setAdding(false)
     setEditingLine(null)
+    setImporting(false)
     setFormError('')
+  }
+
+  const submitImport = async () => {
+    if (!importPreview || importPreview.valid.length === 0) {
+      setFormError('Nothing valid to import - paste one or more #alias lines with names that are not already used.')
+      return
+    }
+    const pastedLines = importText.split(/\r\n|\n/)
+    const rawLines = importPreview.valid.map((a) => pastedLines[a.sourceLine].trim())
+
+    setBusy(true)
+    try {
+      const newText = rawLines.reduce((acc, line) => appendUnderPlayerSection(acc, line), editor.text)
+      await editor.applyAndSave(newText, reloadAliases)
+      cancelForm()
+    } catch (e) {
+      setFormError(String(e))
+    } finally {
+      setBusy(false)
+    }
   }
 
   const submitForm = async () => {
@@ -157,6 +232,20 @@ export function AliasesEditor() {
               : 'No alias matches the first word - this would be sent exactly as typed.'}
           </div>
         )}
+        {testVariables.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink-faint">
+            {testVariables.map(({ name, value }) => (
+              <span key={name}>
+                <code className="text-ink-muted">${name}</code> ={' '}
+                {value === null ? (
+                  <span className="italic">not set right now</span>
+                ) : (
+                  <code className="text-ink-muted">{value || '(empty)'}</code>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
@@ -172,6 +261,14 @@ export function AliasesEditor() {
         </div>
         <button
           type="button"
+          onClick={startImport}
+          title="Paste several #alias lines at once - from a guildmate's shared config, for instance"
+          className="flex shrink-0 items-center gap-1 rounded border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-ink hover:border-accent hover:text-accent"
+        >
+          <ClipboardPaste className="h-3.5 w-3.5" /> Import multiple
+        </button>
+        <button
+          type="button"
           onClick={startAdd}
           className="flex shrink-0 items-center gap-1 rounded border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-ink hover:border-accent hover:text-accent"
         >
@@ -183,6 +280,57 @@ export function AliasesEditor() {
       {editor.error && !editor.loading && editor.entries.length === 0 && (
         <div className="rounded border border-border bg-surface-raised p-3 text-sm text-ink-muted">
           {editor.error}
+        </div>
+      )}
+
+      {importing && (
+        <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold text-ink">Import multiple aliases - paste #alias lines below</span>
+            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder={'#alias {appc} {appraise $0 careful}\n#alias {anec} {accuse $1 necromancy}'}
+            rows={6}
+            className="w-full rounded border border-border bg-surface px-2 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint"
+          />
+          {importPreview && (
+            <div className="mt-2 text-xs">
+              <div className="text-good">
+                {importPreview.valid.length} {importPreview.valid.length === 1 ? 'alias' : 'aliases'} ready to import
+              </div>
+              {importPreview.skipped.length > 0 && (
+                <div className="mt-1 text-ink-faint">
+                  {importPreview.skipped.length} skipped:
+                  <ul className="mt-0.5 list-disc pl-4">
+                    {importPreview.skipped.slice(0, 5).map((s, i) => (
+                      <li key={i} className="truncate" title={s}>
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {formError && <div className="mt-2 rounded bg-danger/10 px-2 py-1 text-xs text-danger">{formError}</div>}
+          <div className="mt-3 flex justify-end gap-2">
+            <button type="button" onClick={cancelForm} className="rounded px-3 py-1.5 text-xs text-ink-muted hover:text-ink">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void submitImport()}
+              disabled={busy || !importPreview?.valid.length}
+              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+            >
+              {busy ? 'Importing…' : `Import ${importPreview?.valid.length ?? 0}`}
+            </button>
+          </div>
         </div>
       )}
 

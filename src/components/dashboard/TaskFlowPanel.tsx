@@ -156,7 +156,14 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const [pickingIcon, setPickingIcon] = useState<{ id: string; title: string; base: ScriptIconKey } | null>(
     null
   )
-  const { containerRef: gridRef, dragging: gridDragging, handlers: gridHandlers } = useDragScroll<HTMLDivElement>()
+  const {
+    ref: gridRef,
+    dragging: gridDragging,
+    onPointerDown: gridOnPointerDown,
+    onPointerMove: gridOnPointerMove,
+    onPointerUp: gridOnPointerUp,
+    onPointerCancel: gridOnPointerCancel,
+  } = useDragScroll()
 
   const refresh = useCallback(async () => {
     const [st, files, where] = await Promise.all([pythonStatus(), listScripts(), scriptDirs()])
@@ -417,10 +424,10 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
           gridDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
         )}
         style={{ touchAction: 'none' }}
-        onPointerDown={gridHandlers.onPointerDown}
-        onPointerMove={gridHandlers.onPointerMove}
-        onPointerUp={gridHandlers.onPointerUp}
-        onClickCapture={gridHandlers.onClickCapture}
+        onPointerDown={gridOnPointerDown}
+        onPointerMove={gridOnPointerMove}
+        onPointerUp={gridOnPointerUp}
+        onPointerCancel={gridOnPointerCancel}
       >
         <div className="flex flex-col gap-1.5">
           {groups.map((group) => (

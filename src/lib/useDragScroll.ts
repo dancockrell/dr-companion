@@ -1,114 +1,77 @@
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+
 /**
- * Grab-and-drag scrolling for a plain scrollable box - the Tasks & Scripts
- * grid, once "Lich scripts" alone can be 200+ tiles and a trackpad or a
- * thin scrollbar thumb is the only way to move through it otherwise.
+ * Grab-and-drag panning for a scrollable element, in place of hunting for a
+ * thin scrollbar thumb. Pair with a `no-scrollbar` class (see index.css) to
+ * hide the visible rail — a trackpad or a mouse wheel still scrolls the
+ * element normally either way; this only adds "grab the content and pull".
+ * Shared by `CombatRadar`'s corner panes, `ClassicRoomText`'s room-text box,
+ * and the Tasks & Scripts grid (200+ Lich script tiles), and meant for
+ * anywhere else that wants the same gesture rather than a second copy of it
+ * - this file was independently written twice in one evening before that,
+ * which is exactly the case for one shared version over two near-identical
+ * ones.
  *
- * Same shape as `useMapViewport.ts`'s pan handling, deliberately: a pointer
- * down/move/up sequence past a small threshold starts a drag, and the
- * following click is suppressed in the capture phase so a drag that happens
- * to end over a tile does not also run it - a real drag and a real click
- * are told apart by distance moved, not by which element the pointer
- * started on, for the same reason the map's own comment gives.
- *
- * Native `overflow: auto` scrolling still works underneath this (wheel,
- * trackpad, scrollbar drag) - this only adds the click-and-drag path on
- * top, the same way the map's zoom/pan hook adds a gesture rather than
- * replacing the browser's own.
+ * The one thing a drag must never do is also fire whatever it happened to
+ * release on top of — a pan that ends over a button must not click it.
+ * Past a small movement threshold the gesture is committed to being a
+ * drag, and the click the browser fires on release is swallowed with a
+ * one-shot capture-phase listener, which runs before the target's own
+ * click handler ever sees the event.
  */
-import { useCallback, useRef, useState } from 'react'
-
-/** Pointer movement below this, in CSS pixels, still counts as a click. */
-const DRAG_THRESHOLD_PX = 4
-
-export interface DragScroll<T extends HTMLElement> {
-  /** Attach to the scrollable element itself. */
-  containerRef: React.RefObject<T | null>
-  /** True while an actual drag (past the threshold) is in progress. */
-  dragging: boolean
-  handlers: {
-    onPointerDown: (e: React.PointerEvent) => void
-    onPointerMove: (e: React.PointerEvent) => void
-    onPointerUp: (e: React.PointerEvent) => void
-    onClickCapture: (e: React.MouseEvent) => void
-  }
-}
-
-export function useDragScroll<T extends HTMLElement>(): DragScroll<T> {
-  const containerRef = useRef<T | null>(null)
+export function useDragScroll() {
+  const ref = useRef<HTMLDivElement>(null)
+  const drag = useRef({ down: false, moved: false, x: 0, y: 0, left: 0, top: 0 })
+  const DRAG_THRESHOLD_PX = 4
+  // Exposed for a caller that wants a `cursor: grabbing` style during the
+  // drag (the Tasks & Scripts grid does) - optional to read, since the two
+  // existing callers only needed the gesture itself and never asked for it.
   const [dragging, setDragging] = useState(false)
 
-  const drag = useRef<{
-    startX: number
-    startY: number
-    startScrollLeft: number
-    startScrollTop: number
-    moved: boolean
-  } | null>(null)
-  // Set the instant a drag crosses the threshold, cleared by the next click
-  // - bridges pointerup (where "did this move" is known) and the click
-  // event that follows it, since stopPropagation on pointerup does not
-  // reach a click; they are unrelated events in the same interaction.
-  const suppressNextClick = useRef(false)
-
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return
-    const el = containerRef.current
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = ref.current
     if (!el) return
-    drag.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      startScrollLeft: el.scrollLeft,
-      startScrollTop: el.scrollTop,
-      moved: false,
-    }
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }, [])
+    drag.current = { down: true, moved: false, x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop }
+    el.setPointerCapture(e.pointerId)
+  }
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = ref.current
     const d = drag.current
-    const el = containerRef.current
-    if (!d || !el) return
-    const dx = e.clientX - d.startX
-    const dy = e.clientY - d.startY
+    if (!el || !d.down) return
+    const dx = e.clientX - d.x
+    const dy = e.clientY - d.y
     if (!d.moved && Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) {
       d.moved = true
       setDragging(true)
     }
     if (d.moved) {
-      // The content follows the pointer, same as a touch scroll: dragging
-      // down moves the scroll position up (toward the start of the list).
-      el.scrollLeft = d.startScrollLeft - dx
-      el.scrollTop = d.startScrollTop - dy
+      el.scrollLeft = d.left - dx
+      el.scrollTop = d.top - dy
     }
-  }, [])
+  }
 
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
+  const endDrag = () => {
+    const el = ref.current
     const d = drag.current
-    drag.current = null
-    if (d?.moved) {
-      suppressNextClick.current = true
-      setDragging(false)
+    if (el && d.moved) {
+      const swallow = (ev: MouseEvent) => {
+        ev.stopPropagation()
+        ev.preventDefault()
+      }
+      el.addEventListener('click', swallow, { capture: true, once: true })
     }
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId)
-    } catch {
-      // Already released, or capture was never set (a non-primary button).
-    }
-  }, [])
-
-  // Capture phase: runs before a tile's own onClick, so a drag that
-  // happened to end over a tile never also runs it.
-  const onClickCapture = useCallback((e: React.MouseEvent) => {
-    if (suppressNextClick.current) {
-      suppressNextClick.current = false
-      e.stopPropagation()
-      e.preventDefault()
-    }
-  }, [])
+    drag.current.down = false
+    drag.current.moved = false
+    setDragging(false)
+  }
 
   return {
-    containerRef,
+    ref,
     dragging,
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onClickCapture },
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: endDrag,
+    onPointerCancel: endDrag,
   }
 }

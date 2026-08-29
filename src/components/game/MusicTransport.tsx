@@ -14,7 +14,7 @@
  * (`initMediaSession`), so this component, the footer, and Windows' own Now
  * Playing UI all agree on the same state through the same subscription.
  */
-import { SkipBack, SkipForward, Play, Pause, Volume2, Volume1, VolumeX } from 'lucide-react'
+import { SkipBack, SkipForward, Play, Pause, Volume2, Volume1, VolumeX, AudioLines, Star } from 'lucide-react'
 import {
   skipTrack,
   musicVolume,
@@ -23,16 +23,32 @@ import {
   pauseMusic,
   resumeMusic,
   currentCustomStream,
+  currentRadioStation,
+  RADIO_STATIONS,
   nowPlaying,
   onNowPlayingChange,
   playbackProgress,
   onProgressChange,
   seekMusic,
+  CROSSFADE_STYLES,
+  setCrossfadeStyle,
+  currentCrossfadeStyle,
+  onCrossfadeStyleChange,
   type NowPlaying,
   type Progress,
+  type CrossfadeStyle,
 } from '../../lib/ambientSound'
+import { savePrefs } from '../../lib/persistence'
+import { isFavorited, toggleFavorite, onFavoritesChange } from '../../lib/favorites'
 import { useEffect, useState } from 'react'
 import { cn } from '../../lib/cn'
+
+/** cut -> standard -> long -> cut. Same three values SoundControls' own
+ * picker offers - see CROSSFADE_STYLES in ambientSound.ts. */
+const CROSSFADE_ORDER: CrossfadeStyle[] = ['cut', 'standard', 'long']
+function nextCrossfadeStyle(style: CrossfadeStyle): CrossfadeStyle {
+  return CROSSFADE_ORDER[(CROSSFADE_ORDER.indexOf(style) + 1) % CROSSFADE_ORDER.length]
+}
 
 /** "125" -> "2:05". Caller guarantees a finite, non-negative input - see
  * ProgressBar's own guard on `duration`. */
@@ -45,9 +61,22 @@ function formatTime(seconds: number): string {
 /**
  * A seekable progress bar - separate from the transport buttons because it
  * needs its own subscription (position changes on every `timeupdate`, far
- * more often than play state or the track itself) and because the footer's
- * compact transport deliberately doesn't show one, the same restraint that
- * keeps it from showing the title there.
+ * more often than play state or the track itself). One shape now (30 Aug
+ * 2026) - a bare, unlabelled sliver used to sit *inside* the button row for
+ * the footer specifically (`compact` mode), and it read as decoration, not
+ * a control: no time labels, easy to mistake for volume, easy to miss
+ * entirely next to the transitions/favorite/volume icons crowding the same
+ * row. Dan: "make the track scrubber long, clarify what it is with better
+ * design and make it next to the track skipper." This is that fix - the
+ * full mm:ss/slider/mm:ss row, same one the Sound panel already used, now
+ * also the footer's own second row directly under the skip buttons rather
+ * than squeezed between them and everything else.
+ *
+ * Returns null under one condition - a live stream, or before metadata has
+ * arrived (a bar with no end is not a progress bar, it's a lie) - which
+ * matters for the footer specifically: with nothing to render, the row it
+ * would have taken just isn't claimed, rather than a labelled bar for a
+ * duration that doesn't exist.
  */
 function ProgressBar() {
   const [p, setP] = useState<Progress | null>(() => playbackProgress())
@@ -59,8 +88,6 @@ function ProgressBar() {
     return onProgressChange(setP)
   }, [])
 
-  // No bar for a live stream (non-finite duration) or before metadata has
-  // arrived - a bar with no end is not a progress bar, it's a lie.
   if (!p || !Number.isFinite(p.duration)) return null
 
   // text-xs, not 10px: DESIGN.md 1.5 puts the floor at 12px and
@@ -77,7 +104,7 @@ function ProgressBar() {
         step={1}
         value={Math.min(p.position, p.duration)}
         onChange={(e) => seekMusic(Number(e.currentTarget.value))}
-        className="min-w-0 flex-1 accent-accent"
+        className="h-1.5 min-w-0 flex-1 accent-accent"
         aria-label="Playback position"
       />
       <span className="w-8 shrink-0">{formatTime(p.duration)}</span>
@@ -89,15 +116,23 @@ export function MusicTransport({
   showTitle = true,
   showProgress = false,
   showVolume = false,
+  showTransitions = false,
+  showFavorite = false,
   onTitleClick,
   className,
 }: {
   /** Off in the footer's tightest state - the badge row already truncates
    * hard, and the transport buttons matter more there than the title. */
   showTitle?: boolean
-  /** On only in the Sound panel - a real player deserves a scrub bar, but
-   * the footer stays a glance-and-click strip, not a second copy of the
-   * panel. */
+  /**
+   * A full mm:ss/slider/mm:ss row below the transport buttons - the Sound
+   * panel's own copy, and (30 Aug 2026) the footer's too. Used to be two
+   * different things: the footer had its own bare, unlabelled inline
+   * sliver squeezed into the button row itself, which read as decoration
+   * more than a control - no time labels, easy to lose next to the
+   * favorite/transitions/volume icons in the same row. One shape now,
+   * `ProgressBar`'s own header has the fuller story.
+   */
   showProgress?: boolean
   /**
    * A compact volume slider inline, next to the transport buttons - added
@@ -109,6 +144,24 @@ export function MusicTransport({
    * already existed.
    */
   showVolume?: boolean
+  /**
+   * A compact cut/standard/long crossfade-style cycle button, inline next to
+   * volume - added 29 Aug 2026 so the one player-feel setting a listener is
+   * likely to want to nudge ("faster fades", "slower fades") is reachable
+   * without opening the panel. Cycles through CROSSFADE_STYLES on click;
+   * the tooltip names the current style and what clicking does next, since
+   * a bare icon that changes what it does on every click has to say so.
+   */
+  showTransitions?: boolean
+  /**
+   * A star that favorites whatever's currently playing - a built-in station
+   * or a custom stream, the same two kinds SoundControls' own favorites list
+   * already supports (favorites.ts). Hidden entirely for zone music, which
+   * isn't a station a player picked and has nothing to star. Added 29 Aug
+   * 2026 so "save what's on right now" doesn't require opening the panel and
+   * finding the right row in the station list to click its own star.
+   */
+  showFavorite?: boolean
   /** Makes the title clickable - the footer's compact strip is a glance,
    * not the whole panel, so a click through to it (SoundControls, favorites,
    * the station list, crossfade style) has to go somewhere. */
@@ -149,10 +202,32 @@ export function MusicTransport({
     })
     return onMusicVolumeChange(setVol)
   }, [])
+  const [crossfade, setCrossfade] = useState<CrossfadeStyle>(() => currentCrossfadeStyle())
+  useEffect(() => {
+    setCrossfade((prev) => {
+      const current = currentCrossfadeStyle()
+      return prev === current ? prev : current
+    })
+    return onCrossfadeStyleChange(setCrossfade)
+  }, [])
 
   const playing = vol > 0
   // A live stream has no track to skip to - see skipTrack's own header.
   const canSkip = !currentCustomStream()
+
+  // Re-render on any favorites change - a station starred from the panel
+  // (or unstarred from this same star elsewhere) has to update this copy
+  // too, same reasoning as every other subscription in this component.
+  const [, setFavoritesTick] = useState(0)
+  useEffect(() => onFavoritesChange(() => setFavoritesTick((n) => n + 1)), [])
+  const radioId = currentRadioStation()
+  const customStream = currentCustomStream()
+  const favoriteTarget: { kind: 'builtin' | 'custom'; id: string; name: string } | null = radioId
+    ? { kind: 'builtin', id: radioId, name: RADIO_STATIONS.find((s) => s.id === radioId)?.name ?? radioId }
+    : customStream
+      ? { kind: 'custom', id: customStream, name: customStream.replace(/^https?:\/\//, '').slice(0, 40) }
+      : null
+  const favorited = favoriteTarget ? isFavorited(favoriteTarget.kind, favoriteTarget.id) : false
 
   return (
     <div className={cn('flex min-w-0 flex-col gap-1', className)}>
@@ -183,11 +258,25 @@ export function MusicTransport({
         >
           <SkipForward className="h-3.5 w-3.5" />
         </button>
+        {/* min-w-16, max-w-[12rem], no flex-grow - deliberately not `flex-1`
+          * (29 Aug 2026, still true after the scrubber moved to its own row
+          * 30 Aug 2026). `flex-1` gives an element `flex-basis: 0%`, so it
+          * grows to fill whatever space nothing else claims *regardless of
+          * how much its own content needs* - at a wide window this title
+          * was claiming a large box and then leaving most of it empty, since
+          * the text is left-aligned and usually shorter than the box it got.
+          * A bounded max-width means the box is never bigger than the text
+          * needs; default flex-shrink still lets it give up width at a
+          * narrow window, down to the same six-character floor this strip
+          * has always kept. The button row can sit left-packed now that
+          * nothing else in it claims the leftover space either - the thing
+          * that actually wants to be long is the scrubber below, which gets
+          * its own full-width row instead of fighting this one for it. */}
         {showTitle &&
           (onTitleClick ? (
             <button
               type="button"
-              className="min-w-16 flex-1 truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
+              className="min-w-16 max-w-[12rem] truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
               title={
                 (now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent') +
                 ' — open Sound'
@@ -198,33 +287,52 @@ export function MusicTransport({
             </button>
           ) : (
             <span
-              className="min-w-16 flex-1 truncate text-xs text-ink-muted"
+              className="min-w-16 max-w-[12rem] truncate text-xs text-ink-muted"
               title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}
             >
               {now ? now.title : 'Silent'}
             </span>
           ))}
-        {/* Shrinkable, where it used to be `shrink-0`.
-          *
-          * Everything else in this strip is a fixed width - three 22px buttons
-          * and this 90px group - so the title, the only `flex-1` here, was
-          * absorbing the whole shortfall on its own. Measured in the footer:
-          * at a 1366px window the strip is 291px and the title gets 127, and
-          * at 1180px the strip is 201px and the title gets 37. The strip lost
-          * 90px and the title paid all 90.
-          *
-          * 37px is about six characters. ""Drunken Sailor", performed by the
-          * Midshipmen Glee Club (1977)" rendered as `"Dru...`, which is not
-          * truncation, it is a blank with punctuation - and this strip exists
-          * to answer "what is playing" at a glance. The `title` hover carried
-          * the full name the whole time, which is a good fallback and not a
-          * substitute for the thing being legible.
-          *
-          * So the slider gives up width before the title starves. It keeps a
-          * floor of its own, because a 6px range input is no more use than a
-          * six-character title. */}
+        {showFavorite && favoriteTarget && (
+          <button
+            type="button"
+            className={cn(
+              'shrink-0 rounded p-1 hover:text-accent',
+              favorited ? 'text-accent' : 'text-ink-faint'
+            )}
+            onClick={() => favoriteTarget && toggleFavorite(favoriteTarget.kind, favoriteTarget.id, favoriteTarget.name)}
+            title={
+              favorited
+                ? `Remove ${favoriteTarget.name} from favorites`
+                : `Save ${favoriteTarget.name} to favorites`
+            }
+          >
+            <Star className={cn('h-3.5 w-3.5', favorited && 'fill-current')} />
+          </button>
+        )}
+        {showTransitions && (
+          <button
+            type="button"
+            className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
+            onClick={() => {
+              const next = nextCrossfadeStyle(crossfade)
+              setCrossfade(next)
+              setCrossfadeStyle(next)
+              savePrefs({ crossfadeStyle: next })
+            }}
+            title={`Transitions: ${CROSSFADE_STYLES[crossfade].label} (${CROSSFADE_STYLES[crossfade].description}) — click for ${CROSSFADE_STYLES[nextCrossfadeStyle(crossfade)].label}`}
+          >
+            <AudioLines className="h-3.5 w-3.5" />
+          </button>
+        )}
         {showVolume && (
-          <div className="flex min-w-0 shrink items-center gap-1">
+          // min-w-24 (not `hidden ... xl:block`, 29 Aug 2026): the slider used
+          // to vanish below the xl breakpoint and leave only the mute icon,
+          // so at any window narrower than 1280px there was no visible way to
+          // set a level - only on/off. A footer this narrow still has room
+          // for a real slider; it just can't be the 4rem one the wide layout
+          // affords. Fixed at a usable minimum instead of disappearing.
+          <div className="flex min-w-0 shrink-0 items-center gap-1">
             <button
               type="button"
               className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
@@ -245,7 +353,8 @@ export function MusicTransport({
               max={150}
               value={Math.round(vol * 100)}
               onChange={(e) => setMusicVolume(Number(e.currentTarget.value) / 100)}
-              className="hidden w-16 min-w-9 shrink accent-accent xl:block"
+              className="w-12 min-w-9 shrink accent-accent sm:w-16"
+              title={`Music volume: ${Math.round(vol * 100)}%`}
               aria-label="Music volume (quick)"
             />
           </div>

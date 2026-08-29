@@ -17,6 +17,8 @@ import { useMemo, useState } from 'react'
 import { Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste, Keyboard } from 'lucide-react'
 import { parseMacros, comboKey, normalizeModifiers, type Macro } from '../../lib/macros'
 import { reloadMacros } from '../../lib/useMacros'
+import { referencedVariables } from '../../lib/variables'
+import { useVariables } from '../../lib/useVariables'
 import { codeToGenieKey } from '../../lib/keybindings'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
 import {
@@ -69,6 +71,17 @@ export function MacrosEditor() {
   const [importing, setImporting] = useState(false)
   const [importText, setImportText] = useState('')
   const [recording, setRecording] = useState(false)
+
+  const { variables } = useVariables()
+  /** `$variable` tokens in the draft command, resolved against Genie's live
+   * table as a preview only - same reasoning as AliasesEditor's version of
+   * this. Doesn't change what gets saved to the file. */
+  const draftVariables = useMemo(() => {
+    return referencedVariables(draft.command).map((name) => ({
+      name,
+      value: variables.find((v) => v.name === name)?.value ?? null,
+    }))
+  }, [draft.command, variables])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -388,6 +401,20 @@ export function MacrosEditor() {
                 placeholder="e.g. look @"
               />
             </label>
+            {draftVariables.length > 0 && (
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-ink-faint">
+                {draftVariables.map(({ name, value }) => (
+                  <span key={name}>
+                    <code className="text-ink-muted">${name}</code> ={' '}
+                    {value === null ? (
+                      <span className="italic">not set right now</span>
+                    ) : (
+                      <code className="text-ink-muted">{value || '(empty)'}</code>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           {formError && <div className="mt-2 rounded bg-danger/10 px-2 py-1 text-xs text-danger">{formError}</div>}
           <div className="mt-3 flex justify-end gap-2">

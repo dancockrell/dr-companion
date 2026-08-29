@@ -17,7 +17,6 @@
  * a separate decision - see the comment on `goThere` below.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { roomKind } from '../../lib/mapData'
 import {
   Map as MapIcon,
   RefreshCw,
@@ -28,21 +27,27 @@ import {
   PanelRightClose,
   ZoomIn,
   ZoomOut,
+  Download,
+  Upload,
 } from 'lucide-react'
-import { describeTrail } from '../../lib/trail'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
 import { isTauri, invokeTauri } from '../../lib/tauri'
-import { MapCanvas, MapLegend } from './MapCanvas'
+import { MapCanvas } from './MapCanvas'
 import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
 import { useZoneBrowsing } from '../../lib/useZoneBrowsing'
 import { MapPinBar } from './MapPinBar'
 import { QuickTravel } from './QuickTravel'
+import { PinPalette } from './PinPalette'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
+import { exportPinsToFile, importPinsFromFile } from '../../lib/pinsFile'
+import { loadPlayerMarker, savePlayerMarker } from '../../lib/playerMarker'
+import { PlayerMarkerEditor } from './PlayerMarkerEditor'
+import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../../lib/scriptFiles'
@@ -159,10 +164,12 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    * maps - don't feel like two different products once you try to move
    * around either one.
    *
-   * Only active once actually zoomed in (`dock.zoom > 1`): at zoom 1 the
+   * Active whenever `dock.zoom !== 1`, in either direction. At exactly 1 the
    * whole zone already fits the box by design ("a glance that is always
-   * complete, never clipped" - MapCanvas's own `fit` mode), and there is
-   * nothing to pan.
+   * complete, never clipped" - MapCanvas's own `fit` mode) and there is
+   * nothing to pan; any other zoom - in to read fine detail, or out past fit
+   * to see more margin around the zone - switches to the same natural-size
+   * transform the popped-out window always uses, which is draggable.
    */
   const viewport = useMapViewport({
     zoom: dock.zoom,
@@ -175,6 +182,19 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const here = useAppStore((s) => s.mapHere)
   const character = useAppStore((s) => s.character)
   const addLog = useAppStore((s) => s.addLog)
+
+  /**
+   * The character's own mark on the map - see playerMarker.ts. Loaded the
+   * same on-demand-from-storage way pins are (not kept only in state),
+   * `markerVersion` forcing a re-read after this component's own save the
+   * same way `pinVersion` does for pins.
+   */
+  const [markerVersion, setMarkerVersion] = useState(0)
+  const [editingMarker, setEditingMarker] = useState(false)
+  const playerMarker = useMemo(
+    () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
+    [character, markerVersion]
+  )
 
   /**
    * Saved places, and the hotbar under the map that walks to them.
@@ -209,8 +229,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     bridge.requestIntent('map_walk', { to: roomId })
   }
 
-  function pinRoom(id: number) {
-    const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
+  /**
+   * @param knownTitle Pass this when the caller already has the room's real
+   *   name from somewhere other than the drawn zone - QuickTravel's nearest
+   *   results are found via a separate map_nearest query and are often not
+   *   in the currently drawn zone's room list at all, so the `zone?.rooms`
+   *   lookup below would silently fall back to "Room 1234" for a bank the
+   *   game happily named. Letting the caller hand over what it already
+   *   knows beats re-deriving it badly.
+   */
+  function pinRoom(id: number, knownTitle?: string) {
+    const title = knownTitle ?? zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
 
@@ -226,10 +255,10 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     !pinFor(pins, hereId) &&
     !isDismissed(character.name, character.instance, hereId)
 
-  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon']) {
+  function savePin(label: string, color: MapPin['color'], icon: MapPin['icon'], note: MapPin['note']) {
     if (!character || !editingRoom) return
     if (editingRoom.existing) {
-      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon })
+      updatePin(character.name, character.instance, editingRoom.existing.id, { label, color, icon, note })
     } else {
       addPin(character.name, character.instance, {
         roomId: editingRoom.id,
@@ -237,10 +266,62 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         label,
         color,
         icon,
+        note,
       })
     }
     setPinVersion((v) => v + 1)
     setEditingRoom(null)
+  }
+
+  /**
+   * A preset dragged in from QuickTravel and dropped on a room - creates the
+   * pin immediately, skipping the editor modal entirely. That is the whole
+   * point of a drag: the icon and label were already chosen by picking which
+   * button to drag, so asking again in a dialog would make the gesture no
+   * faster than right-click-and-fill-in-the-form. If the room already has a
+   * pin, it is overwritten rather than stacked - the same rule addPin's
+   * caller already follows everywhere else a room can only carry one pin.
+   */
+  function dropPin(roomId: number, preset: { label: string; icon: MapPin['icon']; color: MapPin['color'] }) {
+    if (!character) return
+    const already = pinFor(pins, roomId)
+    if (already) {
+      updatePin(character.name, character.instance, already.id, preset)
+    } else {
+      addPin(character.name, character.instance, {
+        roomId,
+        zone: zone?.zone ?? '',
+        label: preset.label,
+        color: preset.color,
+        icon: preset.icon,
+      })
+    }
+    setPinVersion((v) => v + 1)
+  }
+
+  async function doExportPins() {
+    try {
+      const { path } = await exportPinsToFile()
+      addLog(`Pins saved to ${path}`)
+    } catch (e) {
+      addLog(String(e), 'error')
+    }
+  }
+
+  async function doImportPins() {
+    try {
+      const { imported, skipped, note } = await importPinsFromFile()
+      if (note) {
+        addLog(note, 'warn')
+        return
+      }
+      addLog(
+        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
+      )
+      setPinVersion((v) => v + 1)
+    } catch (e) {
+      addLog(String(e), 'error')
+    }
   }
 
   // Writes a real python/tasks/user/walk_to_<pin>.py - see pinTaskGenerator.ts
@@ -357,60 +438,20 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       title={zone.name ?? `Zone ${zone.zone}`}
       onRefresh={refresh}
       onPopOut={isTauri() ? popOut : undefined}
+      onExportPins={isTauri() && character ? doExportPins : undefined}
+      onImportPins={isTauri() && character ? doImportPins : undefined}
       right={
-        !plane ? (
-          <div className="flex items-center gap-2">
-            {levels.length > 1 && (
-              <div className="flex items-center gap-1">
-                <Layers className="w-3 h-3 text-ink-faint" />
-                {levels.map((lv) => (
-                  <button
-                    key={lv}
-                    type="button"
-                    className={`text-xs rounded px-1.5 py-0.5 border ${
-                      z === lv
-                        ? 'border-accent text-accent bg-accent/10'
-                        : 'border-border text-ink-faint'
-                    }`}
-                    aria-label={`Level ${lv}`}
-                    aria-pressed={z === lv}
-                    onClick={() => setLevel(lv)}
-                  >
-                    {lv}
-                  </button>
-                ))}
-              </div>
-            )}
-            <button
-              type="button"
-              className="p-1 rounded text-ink-faint hover:text-ink"
-              title={tall ? 'Shrink the map' : 'Give the map more room'}
-              onClick={() => setTall((v) => !v)}
-            >
-              {tall ? (
-                <ChevronUp className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
-        ) : undefined
-      }
-    >
-      {/* Levels and zoom, on their own row rather than squeezed beside the
-          title. In a plane both can be on screen at once (five buttons plus
-          the Layers icon), and packed into the header they were winning the
-          fight for space against the one thing the header actually exists to
-          say: whose map this is. Measured on The Crossing (two z-levels) at
-          the default 300px dock width - the title's own flex box was left
-          75px for "Crossing · Dan the Bold" and the character's name
-          rendered at a literal 0px, not merely truncated. A plane has the
-          height to spare for a second row; a 168px docked box does not,
-          which is why the stack (`!plane`) keeps this in the header instead,
-          with only the height toggle and no zoom row to share it with. */}
-      {plane && (
-        <div className="flex items-center justify-between gap-2">
-          {levels.length > 1 ? (
+        <div className="flex items-center gap-2">
+          {/* Levels and zoom, in the header itself rather than a row of
+              their own below it. That second row was a real fix for a real
+              measurement once (the docked card's 300px title box left "Dan
+              the Bold" rendering at 0px when these were squeezed in beside
+              it), but the map now lives in a plane wide enough - 800px and
+              up, measured - that the old squeeze does not happen, and a
+              second row was 30px of chrome bought for a problem this layout
+              no longer has. Docked stays narrow and keeps only the levels
+              plus a height toggle, no zoom row it never had. */}
+          {levels.length > 1 && (
             <div className="flex items-center gap-1">
               <Layers className="w-3 h-3 text-ink-faint" />
               {levels.map((lv) => (
@@ -430,57 +471,103 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
                 </button>
               ))}
             </div>
-          ) : (
-            <span />
           )}
-          <div className="flex items-center gap-1">
+          {plane ? (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+                title="Zoom out"
+                aria-label="Zoom out"
+                disabled={dock.zoom <= ZOOM_MIN}
+                onClick={() => zoomBy(1 / 1.3)}
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
+                title="Back to the whole zone"
+                onClick={() => {
+                  setMapDock({ zoom: 1 })
+                  resetPan()
+                }}
+              >
+                {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
+              </button>
+              <button
+                type="button"
+                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+                title="Zoom in"
+                aria-label="Zoom in"
+                disabled={dock.zoom >= ZOOM_MAX}
+                onClick={() => zoomBy(1.3)}
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-              title="Zoom out" aria-label="Zoom out"
-              disabled={dock.zoom <= ZOOM_MIN}
-              onClick={() => zoomBy(1 / 1.3)}
+              className="p-1 rounded text-ink-faint hover:text-ink"
+              title={tall ? 'Shrink the map' : 'Give the map more room'}
+              onClick={() => setTall((v) => !v)}
             >
-              <ZoomOut className="w-3.5 h-3.5" />
+              {tall ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
             </button>
-            <button
-              type="button"
-              className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
-              title="Back to the whole zone"
-              onClick={() => {
-                setMapDock({ zoom: 1 })
-                resetPan()
-              }}
-            >
-              {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
-            </button>
-            <button
-              type="button"
-              className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-              title="Zoom in" aria-label="Zoom in"
-              disabled={dock.zoom >= ZOOM_MAX}
-              onClick={() => zoomBy(1.3)}
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          )}
         </div>
-      )}
-
+      }
+    >
       {/* Above the map rather than beside the title, because the answer it
           gives is a place on the map and the two want to be read together.
           It costs one row and gives back the thing the map could not do. */}
       <PlaceSearch here={zone.zone} onPick={goToPlace} />
 
-      {/* Home, hangouts, whatever is worth one click - independent of
-          whichever zone is currently drawn, since these walk by room id. */}
-      <MapPinBar
-        pins={pins}
-        onGo={(pin) => goThere(pin.roomId)}
-        onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-        onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-      />
-      <QuickTravel onWalk={goThere} />
+      {/* Pinned places and nearest-tag search, sharing one flex-wrap row
+          instead of two. Both are the same shape - a row of small pill
+          buttons - and neither reliably fills a row on its own (a fresh
+          character has one "Pin here" button; QuickTravel is four category
+          chips until you press one), so stacking them was two mostly-empty
+          rows costing 30px+ together. flex-wrap still drops MapPinBar's
+          pins to a second line once QuickTravel's answers actually arrive,
+          which is the one case that legitimately needs it. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <MapPinBar
+          pins={pins}
+          onGo={(pin) => goThere(pin.roomId)}
+          onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+        />
+        <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
+        {character && playerMarker && (
+          <button
+            type="button"
+            onClick={() => setEditingMarker(true)}
+            title="Customize your mark on the map"
+            aria-label="Customize your mark on the map"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border hover:border-accent/60"
+          >
+            <span
+              className="flex h-4 w-4 items-center justify-center rounded-full"
+              style={{ background: playerMarker.color }}
+            >
+              {(() => {
+                const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
+                return <Icon className="h-2.5 w-2.5" color="var(--map-ground)" strokeWidth={3} />
+              })()}
+            </span>
+          </button>
+        )}
+      </div>
+
+      {/* Every preset pin type, drag-and-drop onto a room - see PinPalette's
+          own header for why this can't just be more QuickTravel buttons. */}
+      <PinPalette />
 
       {showNudge && hereId != null && (
         <RoomNudge
@@ -526,9 +613,10 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           which for a small zone is a stamp in the corner.
           In plane mode the height comes from the column instead. */}
       <div
-        ref={dock.zoom > 1 ? containerRef : undefined}
+        ref={dock.zoom !== 1 ? containerRef : undefined}
+        title="Map colours: dark you, red hazard, blue bank/healer/guild/shop"
         className={`relative rounded ${
-          dock.zoom > 1 ? `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}` : 'overflow-hidden'
+          dock.zoom !== 1 ? `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}` : 'overflow-hidden'
         } ${plane ? 'flex-1 min-h-0' : ''}`}
         style={{
           // The page, behind and around the chart. Letterboxing in the app's
@@ -536,9 +624,9 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           // as a sheet that does not fill the box.
           background: 'var(--map-ground)',
           ...(plane ? {} : { height: tall ? 320 : 168 }),
-          ...(dock.zoom > 1 ? { touchAction: 'none' } : {}),
+          ...(dock.zoom !== 1 ? { touchAction: 'none' } : {}),
         }}
-        {...(dock.zoom > 1
+        {...(dock.zoom !== 1
           ? {
               onWheel: handlers.onWheel,
               onPointerDown: handlers.onPointerDown,
@@ -562,11 +650,11 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             Demo map — not your location
           </div>
         )}
-        {dock.zoom > 1 ? (
-          // Zoomed: natural-size drawing under a translate+scale transform,
-          // panned and zoomed the same way the popped-out window is (see
-          // useMapViewport) - click-and-drag, and the wheel anchored on the
-          // cursor rather than always re-centring on the box.
+        {dock.zoom !== 1 ? (
+          // Zoomed in or out: natural-size drawing under a translate+scale
+          // transform, panned and zoomed the same way the popped-out window
+          // is (see useMapViewport) - click-and-drag, and the wheel anchored
+          // on the cursor rather than always re-centring on the box.
           <div
             className={`${standingIn ? 'grayscale-[60%] opacity-70' : ''} ${
               dragging ? '' : 'transition-transform duration-150 ease-out'
@@ -588,6 +676,8 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               onHereAt={onHereAt}
               pins={pinsByRoom}
               onPinRoom={pinRoom}
+              onDropPin={dropPin}
+              playerMarker={playerMarker}
             />
           </div>
         ) : (
@@ -612,6 +702,8 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               trail={trail}
               pins={pinsByRoom}
               onPinRoom={pinRoom}
+              onDropPin={dropPin}
+              playerMarker={playerMarker}
             />
           </div>
         )}
@@ -662,33 +754,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2">
-        {/* The kinds the canvas actually draws, from the same `roomKind` and
-          * the same `onRoute` set it uses - so the legend and the map cannot
-          * disagree about what colour a room is.
-          *
-          * This passed raw `tags` before, which is what made the legend show
-          * three fixed entries forever and explain none of the dots on the
-          * map. See MapLegend's own comment for the measurement. */}
-        <MapLegend
-          kinds={[
-            ...new Set((zone?.rooms ?? []).map((r) => roomKind(r, zone?.here, onRoute))),
-          ]}
-        />
-        {/* What the trail says, in words.
-         *
-         * The stroke on the chart answers "where" and this answers "what is
-         * happening", which is the question you actually have when you look
-         * back at a window a script has been driving for an hour. It sits
-         * beside the room count because that is the line the eye already goes
-         * to for the state of the map rather than the state of the game. */}
-        <span className="text-xs text-ink-faint shrink-0 truncate" title={describeTrail(trail)}>
-          {trail.recent.length > 0
-            ? describeTrail(trail)
-            : `${zone.rooms?.length ?? 0} rooms${zone.truncated ? ` of ${zone.total}, capped` : ''}`}
-        </span>
-      </div>
-
       {path?.ok && (
         <p className="text-xs text-good leading-snug">
           {path.steps} rooms to{' '}
@@ -710,6 +775,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onCreateTask={isTauri() ? createTaskForPin : undefined}
         />
       )}
+      {editingMarker && playerMarker && character && (
+        <PlayerMarkerEditor
+          marker={playerMarker}
+          onClose={() => setEditingMarker(false)}
+          onSave={(m) => {
+            savePlayerMarker(character.name, character.instance, m)
+            setMarkerVersion((v) => v + 1)
+            setEditingMarker(false)
+          }}
+        />
+      )}
     </>
   )
 }
@@ -719,6 +795,8 @@ function Shell({
   title,
   onRefresh,
   onPopOut,
+  onExportPins,
+  onImportPins,
   right,
   plane = false,
 }: {
@@ -726,6 +804,10 @@ function Shell({
   title?: string
   onRefresh?: () => void
   onPopOut?: () => void
+  /** Write every character's pins to the shared Genie config file. See pinsFile.ts. */
+  onExportPins?: () => void
+  /** Read that same file back in, merging it into this browser's own pins. */
+  onImportPins?: () => void
   right?: React.ReactNode
   plane?: boolean
 }) {
@@ -813,6 +895,32 @@ function Shell({
               onClick={onRefresh}
             >
               <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {/* Pins as a file, not just this browser's own storage - saved into
+            * the same Config folder highlights.cfg/aliases.cfg already live
+            * in, so it travels with the rest of a shared config. See
+            * pinsFile.ts's header for the whole story. */}
+          {onExportPins && (
+            <button
+              type="button"
+              className="p-1 rounded text-ink-faint hover:text-ink"
+              title="Save every character's pins to dr-companion-pins.yaml, in your Genie Config folder"
+              aria-label="Export pins to file"
+              onClick={onExportPins}
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onImportPins && (
+            <button
+              type="button"
+              className="p-1 rounded text-ink-faint hover:text-ink"
+              title="Load pins from dr-companion-pins.yaml in your Genie Config folder - a guildmate's shared file, or your own from another machine"
+              aria-label="Import pins from file"
+              onClick={onImportPins}
+            >
+              <Upload className="w-3.5 h-3.5" />
             </button>
           )}
         </div>

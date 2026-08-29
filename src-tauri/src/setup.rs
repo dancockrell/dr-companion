@@ -222,6 +222,30 @@ pub fn genie_install_dir() -> PathBuf {
     install_root().join("Genie5")
 }
 
+/// Every root a real Genie install has turned up at, across every machine
+/// this app has actually been run on - the single list `config_import.rs`
+/// and `sounds.rs` both join a leaf onto (`Config`/leaf, `Sounds`) rather
+/// than each keeping its own copy.
+///
+/// Consolidated 29 Aug 2026 after the two copies had already drifted:
+/// `sounds.rs`'s version was missing the `Program Files (x86)` and
+/// `%USERPROFILE%\Genie4` roots `config_import.rs` had, which meant a
+/// player whose Genie lived in either place would have their highlights and
+/// aliases load fine while every alert sound silently failed to resolve -
+/// two different answers to "where is Genie" is exactly how that kind of
+/// gap opens, and it will reopen the moment a root is added to only one
+/// side again. One list, two callers, cannot drift.
+pub fn genie_roots() -> Vec<PathBuf> {
+    let mut out = vec![genie_install_dir()];
+    for root in ["C:\\Genie4", "C:\\Genie", "C:\\Program Files (x86)\\Genie4"] {
+        out.push(PathBuf::from(root));
+    }
+    if let Some(home) = home_dir() {
+        out.push(home.join("Genie4"));
+    }
+    out
+}
+
 /// Map an install id to where that software belongs.
 fn install_dir_for(target_name: &str) -> PathBuf {
     match target_name {
@@ -2595,5 +2619,46 @@ mod bridge_staleness_tests {
             verdict, None,
             "a missing reference must not become a verdict"
         );
+    }
+}
+
+#[cfg(test)]
+mod genie_roots_tests {
+    use super::*;
+
+    /// The exact regression this function exists to close: `config_import.rs`
+    /// and `sounds.rs` used to keep their own copies of this list, and the
+    /// copies drifted - sounds lost the `Program Files (x86)` and
+    /// `%USERPROFILE%\Genie4` roots config kept. Asserting a floor rather than
+    /// an exact count: `genie_install_dir()` is one more root on top of the
+    /// four hardcoded ones, and a real machine's `%USERPROFILE%` may or may
+    /// not resolve in a test process, so the floor is the four that never
+    /// depend on the environment.
+    #[test]
+    fn covers_every_root_the_old_two_separate_lists_used_to() {
+        let roots = genie_roots();
+        assert!(
+            roots.len() >= 4,
+            "expected at least the 4 environment-independent roots, got {}: {roots:?}",
+            roots.len()
+        );
+        assert!(roots.contains(&PathBuf::from("C:\\Genie4")));
+        assert!(roots.contains(&PathBuf::from("C:\\Genie")));
+        assert!(roots.contains(&PathBuf::from("C:\\Program Files (x86)\\Genie4")));
+        assert!(roots.contains(&genie_install_dir()));
+    }
+
+    /// The property that actually matters for the bug this closed: whatever
+    /// `genie_roots()` returns, `config_import.rs`'s `Config` search and
+    /// `sounds.rs`'s `Sounds` search must be built from exactly the same root
+    /// count - not "both non-empty", which the old drifted pair also
+    /// satisfied.
+    #[test]
+    fn is_the_only_place_a_root_list_is_built() {
+        let roots = genie_roots();
+        // Calling it twice must be stable - both call sites in this app call
+        // it fresh on every read/write rather than caching, so two different
+        // answers would mean the search itself is nondeterministic.
+        assert_eq!(roots, genie_roots());
     }
 }

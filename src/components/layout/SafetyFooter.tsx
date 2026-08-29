@@ -196,13 +196,40 @@ export function SafetyFooter() {
         * flex-1 so it's the one thing here that actually wants the slack
         * this bar has - a play/pause/skip/title deserves the space more
         * than an empty gap did. */}
-      <div className="flex h-8 min-w-0 flex-1 items-center gap-1.5 border-l border-border pl-2">
-        <MusicTransport showVolume onTitleClick={requestOpenSoundPanel} />
+      {/* No fixed height any more (30 Aug 2026) - the transport grew a
+        * second row (a real, labelled scrubber under the skip buttons
+        * instead of a bare unlabelled sliver squeezed into the button row
+        * itself - Dan: "make the track scrubber long, clarify what it is").
+        * `h-8` clipped that against a single-row assumption; letting the
+        * wrapper size to its content is what lets the footer grow to fit. */}
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 border-l border-border pl-2">
+        {/* w-full (30 Aug 2026): without it MusicTransport's column is only
+          * as wide as its own button row (skip buttons + title + icons, all
+          * `shrink-0` or bounded) - the scrubber's own `w-full` would then
+          * be full width *of that*, not of the space this wrapper actually
+          * has, so "long" silently capped out at the button row's width. */}
+        <MusicTransport
+          showVolume
+          showProgress
+          showTransitions
+          showFavorite
+          onTitleClick={requestOpenSoundPanel}
+          className="w-full"
+        />
       </div>
 
       {/* Its own basis so it drops to a second line in a narrow window rather
-          than squeezing the three buttons it sits beside. */}
-      <div className="flex min-w-0 flex-1 basis-40 items-center justify-end gap-2 text-xs">
+          than squeezing the three buttons it sits beside. Not `flex-1` any
+          more (30 Aug 2026) - this and the music transport wrapper both
+          being flex-1 split every extra pixel of window width 50/50
+          regardless of which one actually wanted it, which is how "make the
+          track scrubber longer" cashed out: the scrubber was already full
+          width of its own wrapper, the wrapper just wasn't getting the
+          room. This readout is badges and short status text with no real
+          use for a wider box, so it keeps only `shrink` (it can still give
+          up width at a narrow window) and drops `grow` - every leftover
+          pixel now goes to the transport wrapper instead of being split. */}
+      <div className="flex min-w-0 shrink basis-40 items-center justify-end gap-2 text-xs">
         {/* First, because a bar full of controls that cannot reach Lich is the
             one state where pressing Stop achieves nothing at all. */}
         {!bridgeConnected && (
