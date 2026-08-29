@@ -124,10 +124,24 @@ jobs:
       # and extracted a few lines above, occasionally fails to launch at all
       # (`failed to run ...\WixTools314\light.exe`, no stderr, no exit code) -
       # Windows Defender holding a lock on the just-written binary is the
-      # usual cause of exactly this shape of failure. Rust and the NSIS
-      # installer build fine either way; only the WiX MSI step is affected.
-      # rust-cache above means a retry re-runs the flaky external-tool step,
-      # not a five-minute Rust recompile.
+      # usual cause of exactly this shape of failure. Confirmed on 2026-08-29:
+      # WiX is re-downloaded and re-extracted by every `tauri build` call, not
+      # cached across retries, so light.exe is re-run within ~15s of being
+      # freshly written every single attempt - the retry wrapper below gives
+      # the *build* another try, but does nothing about the specific window
+      # each attempt lands in, which is why 3 attempts (and a 4th, by hand)
+      # failed identically in a row. The actual fix is not to keep re-rolling
+      # that window but to stop Defender from scanning that path at all.
+      - name: Exclude build tool paths from Windows Defender
+        shell: powershell
+        run: |
+          Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA\tauri"
+          Add-MpPreference -ExclusionPath "${{ github.workspace }}\src-tauri\target"
+
+      # Rust and the NSIS installer build fine either way; only the WiX MSI
+      # step was affected. rust-cache above means a retry re-runs the flaky
+      # external-tool step, not a five-minute Rust recompile - kept as a
+      # safety net now that the exclusion above should make it unnecessary.
       - name: Build installer
         uses: nick-fields/retry@v3
         with:
