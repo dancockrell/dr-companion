@@ -836,7 +836,15 @@ function Shell({
               whole point: both truncate, but the name gives up width ten times
               faster, so "Abandoned Mine and Lairocott Brach" stays readable
               while a long name loses its tail. The map is of a place. */}
-          <span className="min-w-0 shrink truncate">{title ?? 'Map'}</span>
+          {/* title on both, because the shrink ranking above decides who gets
+              cut and nothing was deciding where the cut text went. Measured on
+              the real app: "Dan the Bold" rendering in 30px of the 71 it wants
+              - about "Dan…" - and the zone 4px short of fitting, with no way
+              to read either in full. The ranking is right; losing the text
+              outright was not part of it. */}
+          <span className="min-w-0 shrink truncate" title={title ?? 'Map'}>
+            {title ?? 'Map'}
+          </span>
           {who && (
             <>
               <span className="shrink-0" aria-hidden="true">
@@ -853,7 +861,10 @@ function Shell({
                   remove. A `ch`-based floor guarantees a sliver survives
                   even when the header has almost no room left, while still
                   giving up width ten times faster than the zone name. */}
-              <span className="min-w-[3ch] shrink-[10] truncate normal-case tracking-normal text-ink-muted">
+              <span
+                className="min-w-[3ch] shrink-[10] truncate normal-case tracking-normal text-ink-muted"
+                title={who}
+              >
                 {who}
               </span>
             </>
