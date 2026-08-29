@@ -14,6 +14,7 @@ import { useHighlights } from '../../lib/useHighlights'
 import { useOffClasses } from '../../lib/offClasses'
 import { fromRoom } from '../../lib/room'
 import { vitalsFor } from '../../lib/vitals'
+import { situationFor } from '../../lib/situation'
 import { bridge } from '../../bridge'
 import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
 import { cn } from '../../lib/cn'
@@ -142,6 +143,17 @@ export function BattleColumn() {
   // something is. `character` is only ever absent before the bridge has
   // answered at all, which is also when `boardActive` is false and
   // CombatRadar isn't mounted to receive this.
+  // Standing unless the character's own situation says otherwise — prone
+  // reads as lying down, sitting or kneeling as sitting cross-legged, the
+  // same flags StatusBoard's own chips already come from (situationFor),
+  // so the doll's pose never disagrees with what the status row says.
+  const situation = character ? situationFor(character.situation, stream.indicators.value) : undefined
+  const pose = situation?.has('prone')
+    ? ('lying' as const)
+    : situation?.has('sitting') || situation?.has('kneeling')
+      ? ('sitting' as const)
+      : ('standing' as const)
+
   const you = character
     ? {
         character: character.name,
@@ -149,6 +161,7 @@ export function BattleColumn() {
         injuries: character.injuries ?? {},
         injuriesKnown: character.injuries !== undefined,
         vitals: vitalsFor(character, stream.vitals.value),
+        pose,
       }
     : undefined
 

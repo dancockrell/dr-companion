@@ -45,9 +45,19 @@ export type { BodyPart, Injury, Severity } from '../../lib/body'
  * loose cluster of boxes. It carries no data of its own and never changes
  * colour; it is stage lighting, not a seventeenth part.
  */
+/** What the doll is doing right now — driven by the character's own
+ * situation flags (prone/sitting/kneeling), not a choice this component
+ * makes. Standing is the layout this doll has always drawn. Sitting folds
+ * the legs into a cross-legged pose, same idea DR itself uses for "sit
+ * indian style" — knees out, feet tucked under, everything else untouched.
+ * Lying reuses the *standing* shapes verbatim, rotated 90° as a whole (see
+ * the render below) rather than a fourth hand-drawn layout: a body on its
+ * back is the same shapes, on their side. */
+export type Pose = 'standing' | 'sitting' | 'lying'
+
 /** Rounded boxes (and two circles for the head) on a 60x100 grid. Crude on
  * purpose: it reads as a body at 90px tall, not an anatomy chart. */
-const LAYOUT: Record<Exclude<BodyPart, 'head' | 'leftEye' | 'rightEye'>, [number, number, number, number]> = {
+const LAYOUT_STANDING: Record<Exclude<BodyPart, 'head' | 'leftEye' | 'rightEye'>, [number, number, number, number]> = {
   neck: [27, 15, 6, 4],
   chest: [21, 19, 15, 15],
   back: [17, 19, 3, 27],
@@ -63,6 +73,22 @@ const LAYOUT: Record<Exclude<BodyPart, 'head' | 'leftEye' | 'rightEye'>, [number
   rightFoot: [31, 75, 7, 6],
 }
 
+/** Cross-legged: torso, arms and hands stay exactly where standing put
+ * them (nothing above the waist changes when you sit down), only the legs
+ * and feet fold — wide at the knee, tucked in near the centre at the
+ * ankle, which is what "indian style" actually looks like from the front. */
+const LAYOUT_SITTING: typeof LAYOUT_STANDING = {
+  ...LAYOUT_STANDING,
+  leftLeg: [5, 50, 21, 11],
+  rightLeg: [34, 50, 21, 11],
+  leftFoot: [15, 63, 10, 7],
+  rightFoot: [35, 63, 10, 7],
+}
+
+function layoutFor(pose: Pose): typeof LAYOUT_STANDING {
+  return pose === 'sitting' ? LAYOUT_SITTING : LAYOUT_STANDING
+}
+
 const HEAD = { cx: 30, cy: 9, r: 7 }
 const EYES: Record<'leftEye' | 'rightEye', [number, number]> = {
   leftEye: [27.3, 7.5],
@@ -73,7 +99,7 @@ const EYE_R = 1.5
 /** Corner rounding, per part — the spine and the eyes want to read as a
  * line and a dot, not a rounded rectangle, so they get their own radius
  * rather than the one every limb and the torso share. */
-function radiusFor(part: keyof typeof LAYOUT, w: number, h: number): number {
+function radiusFor(part: keyof typeof LAYOUT_STANDING, w: number, h: number): number {
   if (part === 'nsys') return Math.min(w, h) / 2
   if (part === 'back') return 1.2
   return 1.8
@@ -91,12 +117,17 @@ export function Paperdoll({
   height = 100,
   /** Absent is not uninjured. Before the first parse this says so. */
   known = true,
+  /** standing (default), sitting cross-legged, or lying down — see the
+   * `Pose` type above for what each actually draws. */
+  pose = 'standing',
 }: {
   injuries: Partial<Record<BodyPart, Injury>>
   height?: number
   known?: boolean
+  pose?: Pose
 }) {
   const worst = Math.max(0, ...BODY_PARTS.map((p) => injuries[p]?.wound ?? 0))
+  const layout = layoutFor(pose)
 
   const injuryOf = (part: BodyPart) => injuries[part] ?? { wound: 0 as Severity, scar: 0 as Severity }
   const titleFor = (part: BodyPart) => {
@@ -111,8 +142,18 @@ export function Paperdoll({
       style={{ height }}
       className={cn('shrink-0', !known && 'opacity-40')}
       role="img"
-      aria-label={known ? `worst injury ${SEVERITY_LABEL[worst as Severity]}` : 'injuries unknown'}
+      aria-label={
+        (known ? `worst injury ${SEVERITY_LABEL[worst as Severity]}` : 'injuries unknown') +
+        (pose !== 'standing' ? `, ${pose}` : '')
+      }
     >
+      {/* Lying reuses the standing (upright) shapes wholesale, rotated as a
+          whole about the doll's own centre — a body on its back is the same
+          sixteen parts, on their side, not a seventeenth layout to draw and
+          keep in sync with the other two. Sitting gets its own real layout
+          above instead, since folded legs are a genuinely different shape,
+          not a rotation of a standing one. */}
+      <g transform={pose === 'lying' ? 'rotate(90 30 50)' : undefined}>
       {/* Stage lighting, not a part: a head halo and a torso glow so the
           sixteen independent shapes below read as one body at a glance. */}
       <g aria-hidden opacity={0.5}>
@@ -170,11 +211,11 @@ export function Paperdoll({
         )
       })}
 
-      {(Object.keys(LAYOUT) as Array<keyof typeof LAYOUT>).map((part) => {
+      {(Object.keys(layout) as Array<keyof typeof LAYOUT_STANDING>).map((part) => {
         const inj = injuryOf(part)
         const t = tone(inj.wound)
         const pretty = PRETTY[part] ?? part
-        const [x, y, w, h] = LAYOUT[part]
+        const [x, y, w, h] = layout[part]
         const rx = radiusFor(part, w, h)
         return (
           <g key={part}>
@@ -205,6 +246,7 @@ export function Paperdoll({
           </g>
         )
       })}
+      </g>
     </svg>
   )
 }

@@ -3,7 +3,7 @@ import { useDragScroll } from '../../lib/useDragScroll'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
-import { Paperdoll } from './Paperdoll'
+import { Paperdoll, type Pose } from './Paperdoll'
 import { StatusBoard } from './StatusBoard'
 import { playerArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { npcRoleGuessFor, npcDefaultFor } from '../../lib/npcDefaults'
@@ -16,39 +16,35 @@ import type { BodyPart, Injury } from '../../lib/body'
 import type { Vital } from '../../lib/vitals'
 
 /**
- * The room, with everyone in it — two sides, because a fight only ever has
- * two: you and your friends on one, everything hostile on the other.
+ * The room, with everyone in it — a compass on the left doing most of the
+ * work, a narrow roster strip pinned to the right edge, and you in the
+ * middle of the compass where the fight actually is.
  *
- * Earlier passes tried to draw this as a compass — real assess range and
- * relation mapped to an angle and a radius, everyone else parked in
- * whichever of four corners fit their deck. It looked like DR's own combat
- * readout and it cost more than it gave: a ring wide enough to hold a real
- * flanking fight left no room for the rest of the board, off-center it
- * fought the very corners it was supposed to leave free, and every one of
- * those problems came back the moment a puck grew past the size that made
- * the geometry work in the first place. The board is two bordered halves
- * instead — blue (`border-info`) for you and your friends on the left,
- * red (`border-danger`) for hostiles on the right, each a real scrollable
- * pane (`SidePane`) rather than a fixed number of points squeezed onto a
- * ring. Nothing about `assess`'s own detail was lost in the move: range,
- * relation, target, balance and conditions all still show, in `InfoCard`,
- * on hover or focus — this only changed how a card's *position on the
- * board* is decided, not what it's allowed to say about itself.
+ * A prior pass here replaced the compass with two bordered halves — a
+ * misreading of "move the battle left, the enemies right" as license to
+ * drop the radial geometry entirely. It was wrong: the compass is most of
+ * the board on purpose, real assess range and relation mapped to an angle
+ * and a radius so a flanking fight actually reads as one, and the roster is
+ * a *strip*, two cards wide, not a second half-board competing with it for
+ * space. Everyone not currently positioned by a real assess reading — dead,
+ * or simply nothing on the wire to place them by — falls to that strip
+ * instead of vanishing, same as it always has.
  *
- * Friendly is PCs above NPCs, sharing the left side's height evenly — two
- * panes stacked instead of split across opposite corners, so "the people"
- * reads as one cluster rather than two unrelated boxes. `you`, when the
- * caller has a character to hand, sits above both: face, doll, vitals (as
- * coloured numbers, not a bar — see `YouCard`) and status, together, since
- * those are the things about "you" that change every few seconds in a
- * fight and are worth a glance without looking away from the picture.
+ * Colour lives on each card now, not on a region: a small red ring
+ * (`border-danger`) for hostile, blue (`border-info`) for friendly, on the
+ * puck itself. A whole side of the board painted one colour said "friendly"
+ * and "hostile" about empty background as loudly as it said it about a
+ * card; putting the tinge on the token instead says it about the thing
+ * that's actually true of, and costs nothing when the board is crowded.
  *
- * Hostile is one pane, dead or alive, assessed or not — a corpse is dimmed
- * and un-clickable rather than dropped from the board, since it's still a
- * real thing in the room worth skinning. A live entry attacks on click; a
- * dead one, or anyone on the friendly side, only pins itself to the top of
- * its own pane, the same gesture either way ("I want this one") doing
- * whatever there actually is to do with it.
+ * `you`, when the caller has a character to hand, sits at the compass's own
+ * center — face, doll (posed standing, sitting cross-legged, or lying down,
+ * matching whatever the character's own situation currently says — see
+ * `Paperdoll`'s `pose` prop), vitals as coloured numbers (not a bar — see
+ * `YouCard`) and status, together, since those are the things that change
+ * every few seconds in a fight and are worth a glance without looking away
+ * from the picture. Exactly one copy of this card ever renders — it never
+ * also appears in the roster strip.
  *
  * The backdrop is the room itself — `RoomBackdrop`, the same fingerprint or
  * real render `RoomScene` draws for this exact room, not a flat panel of
@@ -81,6 +77,82 @@ const STALE_AFTER_SECONDS = 60
  * only responsive threshold left: marker size, not label visibility. */
 const COMPACT_MIN_PX = 160
 
+/** How wide the roster strip is, in cards — "2 cards wide" per spec,
+ * plus the gap and padding between them. Fixed in pucks rather than a
+ * percentage of the board, so it stays exactly two cards wide whether the
+ * board is a phone-sized pane or a full monitor; the compass gets
+ * whatever is left. */
+const STRIP_COLS = 2
+
+/**
+ * Melee wide, pole and missile progressively tighter. A floor, not the
+ * final answer — see `rangeRadiusPct` below, which widens the melee ring
+ * far enough that four cardinal-position pucks never overlap regardless of
+ * how big pucks get.
+ */
+const RANGE_RADIUS_FLOOR_PCT: Record<'melee' | 'pole' | 'missile', number> = {
+  melee: 16,
+  pole: 22,
+  missile: 28,
+}
+
+/** How much further out pole and missile sit than melee, once melee's own
+ * radius is computed — a fixed gap rather than its own floor, so a melee
+ * ring forced wider to fit its pucks still reads as "the same three rings,
+ * further apart" instead of three radii drifting independently. */
+const RANGE_DELTA_PCT: Record<'pole' | 'missile', number> = { pole: 5, missile: 10 }
+
+/**
+ * The actual radius to draw each range ring at, as a percentage of the
+ * *compass's own box* (not the whole board — the compass has its own
+ * measured width now that the roster lives in a separate strip). Widened
+ * just enough that four pucks at the compass's four cardinal positions
+ * (0/90/180/270, the only angles `angleFor` ever returns) can sit on the
+ * melee ring at once without their circles overlapping — solved from the
+ * real chord distance between two points 90° apart on the ring
+ * (`R = diameter · breathing room / (2·sin(π/N))`), not the arc between
+ * them, then compared against the floor and the larger one wins.
+ */
+function rangeRadiusPct(compassWidth: number, portraitPx: number): Record<'melee' | 'pole' | 'missile', number> {
+  if (compassWidth <= 0) return { ...RANGE_RADIUS_FLOOR_PCT }
+  const CARDINAL_SLOTS = 4
+  const BREATHING_ROOM = 1.5
+  const neededRadiusPx = (portraitPx * BREATHING_ROOM) / (2 * Math.sin(Math.PI / CARDINAL_SLOTS))
+  const neededRadiusPct = (neededRadiusPx / compassWidth) * 100
+  const melee = Math.max(RANGE_RADIUS_FLOOR_PCT.melee, neededRadiusPct)
+  return {
+    melee,
+    pole: Math.max(RANGE_RADIUS_FLOOR_PCT.pole, melee + RANGE_DELTA_PCT.pole),
+    missile: Math.max(RANGE_RADIUS_FLOOR_PCT.missile, melee + RANGE_DELTA_PCT.pole + RANGE_DELTA_PCT.missile),
+  }
+}
+
+/**
+ * assess's own relation phrases, mapped to a compass angle (0 = in front of
+ * you, clockwise). DR does not disambiguate which side "beside"/"flanking"/
+ * "next to" put someone on, so those alternate deterministically by id
+ * rather than always defaulting to the same side — real assess output would
+ * show them scattered too, this just cannot know which side without asking.
+ */
+function angleFor(relation: string, id: string): number {
+  const r = relation.toLowerCase()
+  if (r.includes('behind')) return 180
+  if (r.includes('left')) return 270
+  if (r.includes('right')) return 90
+  if (r.includes('front') || r.includes('facing') || r.includes('advancing')) return 0
+  const hash = Array.from(id).reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0)
+  return hash % 2 === 0 ? 90 : 270
+}
+
+/** A point on the unit circle around the compass's own center (50/50 of
+ * its own box — the compass is its own measured element now, so there is
+ * no need to offset the center away from anything else), in this board's
+ * own convention: 0° is straight up ("front"), clockwise. */
+function pointOn(angleDeg: number, radiusPct: number) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180
+  return { x: 50 + radiusPct * Math.cos(rad), y: 50 + radiusPct * Math.sin(rad) }
+}
+
 /**
  * Pinned keys move to the front, in the order they were pinned — the most
  * recently promoted lands first, same as bringing a card to the top of a
@@ -103,15 +175,25 @@ function reorderByPin<T>(entries: T[], keyOf: (t: T) => string, pins: string[]):
   return [...front, ...entries.filter((e) => byKey.has(keyOf(e)))]
 }
 
-/** Everyone in one deck, as a puck-worthy entry — the compass's old
- * "positioned vs corner" split is gone: there is no more radial geometry to
- * place someone precisely on, so every hostile, ally and person is the
- * same shape of entry now, differing only in what `detailFor`/`InfoCard`
- * happen to find to say about them. */
+/** Everyone the compass has no fixed position for, as a puck-worthy entry
+ * for the roster strip instead — a hostile with no real assess reading to
+ * place it by (dead, or simply not yet assessed), plus every ally and
+ * person, none of whom the game gives a range or relation for at all. */
 interface PaneEntry {
   key: string
   card: RoomCard
   combatant?: RoomCombatant
+}
+
+/** A hostile the compass *can* place precisely — assess gave it a real
+ * range and relation, which `angleFor`/`rangeRadiusPct` turn into an actual
+ * point on the ring. */
+interface Positioned {
+  key: string
+  card: RoomCard
+  combatant: RoomCombatant
+  angleDeg: number
+  radiusPct: number
 }
 
 /** What a pane needs beyond its list of entries: an accessible name, and
@@ -121,21 +203,41 @@ interface PaneEntry {
 interface PaneMeta {
   label: string
   presence: string
+  /** The per-card tinge — a small coloured ring on the puck itself, not a
+   * border around a whole region (see the module doc comment for why that
+   * changed). Hostile reads red, friendly reads blue, same tokens this
+   * app's danger/info colours already mean everywhere else. */
+  ringClass: string
 }
 
 const PANE_META: Record<Deck, PaneMeta> = {
-  hostile: { label: 'Mobs', presence: 'unassessed' },
-  people: { label: 'PCs', presence: 'here' },
-  allied: { label: 'NPCs', presence: 'allied' },
+  hostile: { label: 'Mobs', presence: 'unassessed', ringClass: 'border-danger/70' },
+  people: { label: 'PCs', presence: 'here', ringClass: 'border-info/70' },
+  allied: { label: 'NPCs', presence: 'allied', ringClass: 'border-info/70' },
 }
 
-/** One scrollable pane — the container every side of the board renders its
- * pucks into. A plain wrapping flexbox, `flex-1` so two panes stacked in
- * one bordered side share its height evenly. Grab-and-drag (see
- * useDragScroll) over a visible scrollbar — the pane sits over a picture,
- * where a permanently-visible scrollbar track reads as chrome on top of
- * the room. */
-function SidePane({ label, children }: { label: string; children: ReactNode }) {
+/** The roster strip — one scrollable pane, two cards wide, holding every
+ * entry the compass didn't get to place: dead or unassessed hostiles,
+ * every ally, every person. One list rather than three stacked panes,
+ * because the strip is narrow enough that three separate scroll regions
+ * would each be too short to be worth their own header; each card still
+ * carries its own deck (and so its own colour) via `EntryPuck`. Grab-and-
+ * drag (see useDragScroll) over a visible scrollbar — the strip sits over
+ * a picture, where a permanently-visible scrollbar track reads as chrome
+ * on top of the room. */
+function RosterStrip({
+  width,
+  bordered = true,
+  children,
+}: {
+  width: number
+  /** Off for `BattlePanel`'s standalone card, where this is the *only*
+   * thing on the board rather than a strip beside a compass — a left
+   * border and its own background would read as a stray line on an
+   * otherwise plain dark disc. */
+  bordered?: boolean
+  children: ReactNode
+}) {
   const drag = useDragScroll()
   return (
     <div
@@ -144,10 +246,11 @@ function SidePane({ label, children }: { label: string; children: ReactNode }) {
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className="no-scrollbar min-h-0 flex-1 cursor-grab overflow-x-hidden overflow-y-auto touch-none active:cursor-grabbing"
-      aria-label={label}
+      className={`no-scrollbar h-full shrink-0 cursor-grab overflow-x-hidden overflow-y-auto touch-none active:cursor-grabbing ${bordered ? 'border-l border-border/60 bg-surface/60' : ''}`}
+      style={{ width }}
+      aria-label="Roster"
     >
-      <div className="flex flex-wrap content-start gap-1.5 p-1">{children}</div>
+      <div className="flex flex-wrap content-start justify-center gap-1 p-1">{children}</div>
     </div>
   )
 }
@@ -636,22 +739,34 @@ function Puck({
   )
 }
 
-/** Green at full, red at empty, sliding smoothly through amber between —
- * a gradient rather than the app's usual three-band jump (VitalCluster's
- * own good/warn/danger steps), because a number reads its own severity
- * once it has a colour at all; the step boundaries that matter for a bar's
- * length stop mattering once the number itself is what's being read. */
+/** Green at full, red at empty, sliding through amber between — a gradient
+ * rather than the app's usual three-band jump (VitalCluster's own
+ * good/warn/danger steps), because a number reads its own severity once it
+ * has a colour at all. Curved (`share**0.6`) rather than linear so the top
+ * third of the range — where a bar this small would have made almost no
+ * visible difference between "full" and "mostly full" anyway — moves
+ * through more of the gradient sooner, and the danger end reads red well
+ * before the number hits zero, which a linear map left too subtle to
+ * notice at a glance. Full saturation, not the softened 70% a bar's fill
+ * could afford, because a bare number carries the whole read by itself. */
 function vitalColor(share: number): string {
-  const hue = Math.max(0, Math.min(1, share)) * 120
-  return `hsl(${hue}, 70%, 55%)`
+  const clamped = Math.max(0, Math.min(1, share))
+  const hue = Math.pow(clamped, 0.6) * 120
+  return `hsl(${hue}, 90%, 50%)`
 }
 
 /**
- * You — face, doll, pools and status, together, at the top of the
- * friendly side. The numbers stand in for a bar on purpose: a bar needs
- * width this card does not have to spare once the doll itself is sized to
+ * You — face, doll, pools and status, together, at the compass's own
+ * center. The numbers stand in for a bar on purpose: a bar needs width
+ * this card does not have to spare once the doll itself is sized to
  * actually read an injury, and a coloured number carries the same
- * "how worried should I be" read a bar does, just narrower.
+ * "how worried should I be" read a bar does, just narrower. The doll's own
+ * pose — standing, sitting cross-legged, or lying down — follows whatever
+ * the character's situation currently says, so a downed or seated
+ * character reads as one at a glance instead of standing through it.
+ *
+ * Exactly one of these ever renders (`CombatRadar` places it once, at the
+ * compass center) — it never also appears as a puck in the roster strip.
  */
 function YouCard({
   you,
@@ -663,17 +778,23 @@ function YouCard({
     injuries: Partial<Record<BodyPart, Injury>>
     injuriesKnown: boolean
     vitals: Vital[]
+    pose: Pose
   }
   compact: boolean
 }) {
   return (
     <div
-      className="m-1 flex flex-col gap-1.5 rounded-lg border border-accent/60 bg-surface/90 p-2"
+      className="pointer-events-auto flex max-w-[15rem] flex-col gap-1.5 rounded-lg border border-accent/60 bg-surface/90 p-2"
       style={{ boxShadow: PUCK_SHADOW }}
     >
       <div className="flex items-center gap-2">
         <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 44 : 64} />
-        <Paperdoll injuries={you.injuries} height={compact ? 78 : 112} known={you.injuriesKnown} />
+        <Paperdoll
+          injuries={you.injuries}
+          height={compact ? 78 : 112}
+          known={you.injuriesKnown}
+          pose={you.pose}
+        />
       </div>
       {you.vitals.length > 0 && (
         <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
@@ -682,7 +803,7 @@ function YouCard({
             return (
               <span
                 key={v.key}
-                className="text-xs font-semibold tabular-nums"
+                className="text-sm font-bold tabular-nums"
                 style={{ color: vitalColor(share) }}
                 title={`${v.label}: ${v.value}/${v.max}`}
               >
@@ -744,6 +865,10 @@ export function CombatRadar({
     injuries: Partial<Record<BodyPart, Injury>>
     injuriesKnown: boolean
     vitals: Vital[]
+    /** Standing, sitting cross-legged, or lying down — the caller derives
+     * this from the character's own situation flags (see BattleColumn) and
+     * hands it straight through to `Paperdoll`. */
+    pose: Pose
   }
   /**
    * True when `RoomScene` is passing this in as its own `overlay` — the room
@@ -761,93 +886,122 @@ export function CombatRadar({
   const { ref: boardRef, width: boardWidth } = useMeasuredWidth()
   const compact = boardWidth > 0 && boardWidth < COMPACT_MIN_PX
 
-  // Doubled — a pane is a real scrollable list now (see SidePane), not a
-  // fixed handful of points squeezed into a corner, so there is no longer
-  // a ceiling on puck size fighting a ceiling on how many can fit without
-  // overlapping.
   const portraitPx = compact ? 60 : 84
-  const cornerPx = compact ? 52 : 72
-  // Mobs read as the biggest thing on the board on purpose — they're the
-  // reason a player is looking at it at all. PCs and NPCs share the same
-  // frame and fallback chain (see Puck) so they read as the same *kind* of
-  // card, just not the loudest one.
-  const hostileCornerPx = compact ? 68 : 94
+  // The strip's own cards — smaller than a positioned compass puck, since
+  // "2 cards wide" only fits at a size the strip's own measured width
+  // actually allows.
+  const stripPx = compact ? 44 : 58
+  const compassPortraitPx = compact ? 40 : 56
 
-  // Every hostile is one flat list now — the old "positioned on the
-  // compass" vs "in a corner" split existed only to feed radial geometry
-  // that no longer exists (see the module doc comment on why the board
-  // moved to two bordered sides instead of a compass). `detailFor` and
-  // `InfoCard` still carry every bit of assess detail (range, relation,
-  // target, balance) regardless of which list a card sits in, so nothing
-  // about that information was lost, only the spatial drawing of it.
-  const hostileEntries: PaneEntry[] = []
+  const stripGapPx = 4
+  const stripWidthPx = embedded ? STRIP_COLS * stripPx + (STRIP_COLS + 1) * stripGapPx + 1 : 0
+  const compassWidth = embedded ? Math.max(0, boardWidth - stripWidthPx) : boardWidth
+
+  const RANGE_RADIUS_PCT = rangeRadiusPct(compassWidth, compassPortraitPx)
+
+  // Two buckets, decided per hostile: assess gave it a real range and
+  // relation, so the compass can place it precisely — or it did not (dead,
+  // or simply never assessed), and it falls to the roster strip instead,
+  // same list every ally and person lands in too (assess never describes
+  // either of those with a range or relation at all).
+  const positioned: Positioned[] = []
+  const stripEntries: PaneEntry[] = []
   for (const card of cards) {
-    if (card.deck !== 'hostile') continue
+    if (card.deck !== 'hostile') {
+      if (embedded) stripEntries.push({ key: card.id, card })
+      continue
+    }
     if (card.status === 'dead') {
       // A corpse is still a real thing in the room, worth skinning or
       // looting, so it still gets a puck rather than vanishing the moment
-      // it dies — dimmed at render time, not dropped here.
-      hostileEntries.push({ key: card.id, card })
+      // it dies — dimmed at render time, in the strip rather than on a
+      // ring it no longer has a live range or relation to sit on.
+      stripEntries.push({ key: card.id, card })
       continue
     }
-    hostileEntries.push({ key: card.id, card, combatant: combatantFor(card, index) })
+    const combatant = combatantFor(card, index)
+    // Standalone (`BattlePanel`) has no compass to place anything on — see
+    // that branch's own comment — so every live hostile stays in the flat
+    // list there regardless of what assess knew about it.
+    if (embedded && combatant?.range && combatant.relation) {
+      positioned.push({
+        key: card.id,
+        card,
+        combatant,
+        angleDeg: angleFor(combatant.relation, card.id),
+        radiusPct: RANGE_RADIUS_PCT[combatant.range],
+      })
+    } else {
+      stripEntries.push({ key: card.id, card, combatant })
+    }
   }
 
-  // Friendlies: embedded only — see the `embedded` prop's own doc comment
-  // for why allied/people never reach here otherwise (BattlePanel keeps
-  // its own decks below the radar).
-  const rawEntries: Record<Deck, PaneEntry[]> = embedded
-    ? {
-        hostile: hostileEntries,
-        allied: cards.filter((c) => c.deck === 'allied').map((card) => ({ key: card.id, card })),
-        people: cards.filter((c) => c.deck === 'people').map((card) => ({ key: card.id, card })),
-      }
-    : { hostile: hostileEntries, allied: [], people: [] }
-
-  // Click anything and it jumps to the top of its own pane — a scrolling
-  // pile of hundreds is only useful if the one you're looking for can be
-  // pulled to where you can see it. Pins are per-room UI state, not game
-  // state: they reset the moment the character walks into a different
-  // room, same as the rest of this component.
-  const [pinned, setPinned] = useState<{ hostile: string[]; people: string[]; allied: string[] }>({
-    hostile: [],
-    people: [],
-    allied: [],
-  })
-  const promote = (bucket: keyof typeof pinned, key: string) =>
-    setPinned((prev) => ({ ...prev, [bucket]: [key, ...prev[bucket].filter((k) => k !== key)] }))
-
-  const entries: Record<Deck, PaneEntry[]> = {
-    hostile: reorderByPin(rawEntries.hostile, (e) => e.key, pinned.hostile),
-    allied: reorderByPin(rawEntries.allied, (e) => e.key, pinned.allied),
-    people: reorderByPin(rawEntries.people, (e) => e.key, pinned.people),
+  // Same-angle jitter: two combatants sharing one of the four cardinal
+  // angles fan out into a small grid around their shared point rather than
+  // stacking exactly on top of each other.
+  const FAN_COLS = 3
+  const fanGapPct = compassWidth > 0 ? Math.max((compassPortraitPx * 1.3 * 100) / compassWidth, 5) : 8
+  const byAngle = new Map<number, Positioned[]>()
+  for (const p of positioned) {
+    const list = byAngle.get(p.angleDeg)
+    if (list) list.push(p)
+    else byAngle.set(p.angleDeg, [p])
   }
+  const fanned = new Map<string, { x: number; y: number }>()
+  for (const group of byAngle.values()) {
+    group.forEach((p, i) => {
+      const { x, y } = pointOn(p.angleDeg, p.radiusPct)
+      const cols = Math.min(group.length, FAN_COLS)
+      const col = i % cols
+      const row = Math.floor(i / cols)
+      const offsetX = (col - (cols - 1) / 2) * fanGapPct
+      const offsetY = row * fanGapPct
+      fanned.set(p.key, { x: x + offsetX, y: y + offsetY })
+    })
+  }
+
+  // Click anything and it jumps to the top of the strip — a scrolling pile
+  // of hundreds is only useful if the one you're looking for can be pulled
+  // to where you can see it. Pins are per-room UI state, not game state:
+  // they reset the moment the character walks into a different room, same
+  // as the rest of this component.
+  const [pinned, setPinned] = useState<string[]>([])
+  const promote = (key: string) => setPinned((prev) => [key, ...prev.filter((k) => k !== key)])
+  const orderedStrip = reorderByPin(stripEntries, (e) => e.key, pinned)
 
   const attack = () => runMacro(['attack'])
   const attackTitle = (label: string) =>
     attackReason ?? `${label} — attack (whatever is in front of you right now)`
 
-  /** One puck, wired for both the hostile side (attacks on click) and the
-   * friendly side (click only pins — nothing here should send a command
-   * against a person by accident). Shared between the two sides and
-   * between embedded/standalone so a goblin's puck behaves identically
-   * everywhere it can appear. */
-  function EntryPuck({ deck, entry, px }: { deck: Deck; entry: PaneEntry; px: number }) {
-    const meta = PANE_META[deck]
-    const detail = detailFor(entry.card, entry.combatant, meta.presence)
-    const dead = entry.card.status === 'dead'
-    const attackable = deck === 'hostile' && !dead
+  /** One puck — wired to attack on click for a live hostile, otherwise
+   * only to pin itself to the top of the strip. Shared by the compass and
+   * the strip so a goblin's puck behaves identically wherever it appears.
+   * Colour lives here: a small tinted ring per deck (`PANE_META.ringClass`)
+   * rather than a border around the region the puck happens to sit in. */
+  function EntryPuck({
+    card,
+    combatant,
+    px,
+  }: {
+    card: RoomCard
+    combatant?: RoomCombatant
+    px: number
+  }) {
+    const meta = PANE_META[card.deck]
+    const detail = detailFor(card, combatant, meta.presence)
+    const dead = card.status === 'dead'
+    const attackable = card.deck === 'hostile' && !dead
     const onClick = attackable
       ? () => {
           attack()
-          promote(deck, entry.key)
+          promote(card.id)
         }
-      : () => promote(deck, entry.key)
+      : () => promote(card.id)
     const label = attackable
-      ? `${entry.card.name} — ${detail} — ${attackTitle('Attack')}`
-      : `${entry.card.name} — ${detail} — click to bring to the top`
+      ? `${card.name} — ${detail} — ${attackTitle('Attack')}`
+      : `${card.name} — ${detail} — click to bring to the top`
     return (
-      <HoverCard content={<InfoCard card={entry.card} combatant={entry.combatant} presence={meta.presence} />}>
+      <HoverCard content={<InfoCard card={card} combatant={combatant} presence={meta.presence} />}>
         <button
           type="button"
           disabled={attackable && !canAttack}
@@ -856,7 +1010,7 @@ export function CombatRadar({
           className="flex shrink-0 items-center justify-center disabled:cursor-not-allowed"
           style={{ width: px, height: Math.round(px * PORTRAIT_ASPECT), opacity: dead ? 0.55 : undefined }}
         >
-          <Puck card={entry.card} px={px} ringClass="border-surface" shape="rect" />
+          <Puck card={card} px={px} ringClass={meta.ringClass} shape="rect" />
         </button>
       </HoverCard>
     )
@@ -867,61 +1021,90 @@ export function CombatRadar({
       ref={boardRef}
       className={
         embedded
-          ? 'absolute inset-0 flex gap-1 p-1'
+          ? 'absolute inset-0 flex gap-0'
           : 'relative mx-auto flex aspect-square w-full max-w-[300px] flex-col overflow-hidden rounded border-2 border-danger/70'
       }
     >
       {embedded ? (
         <>
-          {/* Two sides, not four corners around a compass — this board only
-              ever has two kinds of actors on it, friendly and not, and a
-              player reads "which side is which" faster from a solid
-              bordered half than from where a dot happens to sit on a
-              circle. Blue for friendly, red for hostile — this app's own
-              info/danger tokens, not a colour invented for this board. */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border-2 border-info/70 bg-surface/70">
-            {you && <YouCard you={you} compact={compact} />}
-            {/* PCs above NPCs, sharing this side's height evenly — two
-                friendly panes stacked instead of split across opposite
-                corners, so "the people" reads as one cluster. */}
-            <SidePane label={PANE_META.people.label}>
-              {entries.people.map((entry) => (
-                <EntryPuck key={entry.key} deck="people" entry={entry} px={cornerPx} />
-              ))}
-            </SidePane>
-            <SidePane label={PANE_META.allied.label}>
-              {entries.allied.map((entry) => (
-                <EntryPuck key={entry.key} deck="allied" entry={entry} px={cornerPx} />
-              ))}
-            </SidePane>
+          {/* The compass — most of the board, on purpose. A hostile assess
+              has given a real range and relation to sits on the ring at
+              that range and angle; the ring itself is drawn faint so a
+              player reads "closer means more dangerous" without the rings
+              competing with the room picture underneath. */}
+          <div className="relative min-w-0 flex-1 overflow-hidden">
+            {(['melee', 'pole', 'missile'] as const).map((r) => (
+              <div
+                key={r}
+                aria-hidden
+                className="absolute rounded-full border border-danger/25"
+                style={{
+                  left: `${50 - RANGE_RADIUS_PCT[r]}%`,
+                  top: `${50 - RANGE_RADIUS_PCT[r]}%`,
+                  width: `${RANGE_RADIUS_PCT[r] * 2}%`,
+                  height: `${RANGE_RADIUS_PCT[r] * 2}%`,
+                }}
+              />
+            ))}
+
+            {positioned.map((p) => {
+              const pos = fanned.get(p.key) ?? pointOn(p.angleDeg, p.radiusPct)
+              return (
+                <div
+                  key={p.key}
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                >
+                  <EntryPuck card={p.card} combatant={p.combatant} px={compassPortraitPx} />
+                </div>
+              )
+            })}
+
+            {/* You, at the compass's own center — the one place on this
+                board that is never anyone else's. Exactly one copy: this is
+                the only spot `YouCard` ever renders. */}
+            {you && (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <YouCard you={you} compact={compact} />
+              </div>
+            )}
+
+            {positioned.length === 0 && !you && (
+              <p className="absolute left-1/2 top-1/2 w-32 -translate-x-1/2 -translate-y-1/2 text-center text-xs text-ink-faint">
+                Nothing engaged
+              </p>
+            )}
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border-2 border-danger/70 bg-surface/70">
-            <SidePane label={PANE_META.hostile.label}>
-              {entries.hostile.map((entry) => (
-                <EntryPuck key={entry.key} deck="hostile" entry={entry} px={hostileCornerPx} />
-              ))}
-            </SidePane>
-          </div>
+          {/* The roster — everyone the compass didn't get to place: dead or
+              unassessed hostiles, every ally, every person. Two cards wide,
+              pinned to the right edge, not a second half-board. */}
+          <RosterStrip width={stripWidthPx}>
+            {orderedStrip.map((entry) => (
+              <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
+            ))}
+          </RosterStrip>
         </>
       ) : (
         <>
           {/* Standalone (`BattlePanel`): hostile only, the plain dark disc
               this radar has always drawn them on — see the `embedded`
               prop's own doc comment for why allied/people never reach
-              here. */}
+              here. No compass here either (BattlePanel never measured a
+              range/relation split before this pass and nothing asked for
+              one now) — same flat scrollable list it has always shown. */}
           {zone && room != null && <RoomBackdrop zone={zone} room={room} title={title} text={text} />}
           <div
             className="absolute inset-0"
             style={{ background: 'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.7) 100%)' }}
             aria-hidden
           />
-          {entries.hostile.length > 0 ? (
-            <SidePane label={PANE_META.hostile.label}>
-              {entries.hostile.map((entry) => (
-                <EntryPuck key={entry.key} deck="hostile" entry={entry} px={portraitPx} />
+          {orderedStrip.length > 0 ? (
+            <RosterStrip width={boardWidth} bordered={false}>
+              {orderedStrip.map((entry) => (
+                <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={portraitPx} />
               ))}
-            </SidePane>
+            </RosterStrip>
           ) : (
             <p className="absolute left-1/2 top-1/2 w-32 -translate-x-1/2 -translate-y-1/2 text-center text-xs text-ink-faint">
               Nothing hostile here
