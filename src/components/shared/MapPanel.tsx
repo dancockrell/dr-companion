@@ -435,65 +435,29 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       onRefresh={refresh}
       onPopOut={isTauri() ? popOut : undefined}
       right={
-        <div className="flex items-center gap-2">
-          {levels.length > 1 && (
-            <div className="flex items-center gap-1">
-              <Layers className="w-3 h-3 text-ink-faint" />
-              {levels.map((lv) => (
-                <button
-                  key={lv}
-                  type="button"
-                  className={`text-xs rounded px-1.5 py-0.5 border ${
-                    z === lv
-                      ? 'border-accent text-accent bg-accent/10'
-                      : 'border-border text-ink-faint'
-                  }`}
-                  onClick={() => setLevel(lv)}
-                >
-                  {lv}
-                </button>
-              ))}
-            </div>
-          )}
-          {/* Zoom belongs to the plane and height belongs to the stack.
-              In a plane the height already comes from the column and the
-              divider, so a grow/shrink toggle there would be a second control
-              fighting the first; in the stack the box is too small for zoom to
-              show you anything the fit does not. */}
-          {plane && (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-                title="Zoom out" aria-label="Zoom out"
-                disabled={dock.zoom <= ZOOM_MIN}
-                onClick={() => zoomBy(1 / 1.3)}
-              >
-                <ZoomOut className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
-                title="Back to the whole zone"
-                onClick={() => {
-                  setMapDock({ zoom: 1 })
-                  resetPan()
-                }}
-              >
-                {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
-              </button>
-              <button
-                type="button"
-                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-                title="Zoom in" aria-label="Zoom in"
-                disabled={dock.zoom >= ZOOM_MAX}
-                onClick={() => zoomBy(1.3)}
-              >
-                <ZoomIn className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-          {!plane && (
+        !plane ? (
+          <div className="flex items-center gap-2">
+            {levels.length > 1 && (
+              <div className="flex items-center gap-1">
+                <Layers className="w-3 h-3 text-ink-faint" />
+                {levels.map((lv) => (
+                  <button
+                    key={lv}
+                    type="button"
+                    className={`text-xs rounded px-1.5 py-0.5 border ${
+                      z === lv
+                        ? 'border-accent text-accent bg-accent/10'
+                        : 'border-border text-ink-faint'
+                    }`}
+                    aria-label={`Level ${lv}`}
+                    aria-pressed={z === lv}
+                    onClick={() => setLevel(lv)}
+                  >
+                    {lv}
+                  </button>
+                ))}
+              </div>
+            )}
             <button
               type="button"
               className="p-1 rounded text-ink-faint hover:text-ink"
@@ -506,10 +470,80 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
                 <ChevronDown className="w-3.5 h-3.5" />
               )}
             </button>
-          )}
-        </div>
+          </div>
+        ) : undefined
       }
     >
+      {/* Levels and zoom, on their own row rather than squeezed beside the
+          title. In a plane both can be on screen at once (five buttons plus
+          the Layers icon), and packed into the header they were winning the
+          fight for space against the one thing the header actually exists to
+          say: whose map this is. Measured on The Crossing (two z-levels) at
+          the default 300px dock width - the title's own flex box was left
+          75px for "Crossing · Dan the Bold" and the character's name
+          rendered at a literal 0px, not merely truncated. A plane has the
+          height to spare for a second row; a 168px docked box does not,
+          which is why the stack (`!plane`) keeps this in the header instead,
+          with only the height toggle and no zoom row to share it with. */}
+      {plane && (
+        <div className="flex items-center justify-between gap-2">
+          {levels.length > 1 ? (
+            <div className="flex items-center gap-1">
+              <Layers className="w-3 h-3 text-ink-faint" />
+              {levels.map((lv) => (
+                <button
+                  key={lv}
+                  type="button"
+                  className={`text-xs rounded px-1.5 py-0.5 border ${
+                    z === lv
+                      ? 'border-accent text-accent bg-accent/10'
+                      : 'border-border text-ink-faint'
+                  }`}
+                  aria-label={`Level ${lv}`}
+                  aria-pressed={z === lv}
+                  onClick={() => setLevel(lv)}
+                >
+                  {lv}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+              title="Zoom out" aria-label="Zoom out"
+              disabled={dock.zoom <= ZOOM_MIN}
+              onClick={() => zoomBy(1 / 1.3)}
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
+              title="Back to the whole zone"
+              onClick={() => {
+                setMapDock({ zoom: 1 })
+                resetPan()
+              }}
+            >
+              {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
+            </button>
+            <button
+              type="button"
+              className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+              title="Zoom in" aria-label="Zoom in"
+              disabled={dock.zoom >= ZOOM_MAX}
+              onClick={() => zoomBy(1.3)}
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Above the map rather than beside the title, because the answer it
           gives is a place on the map and the two want to be read together.
           It costs one row and gives back the thing the map could not do. */}
@@ -810,8 +844,16 @@ function Shell({
               </span>
               {/* Left in its own case. The zone is a heading and shouts; a
                   character's name is a name, and DAN THE BOLD reads like the
-                  app is addressing him. */}
-              <span className="min-w-0 shrink-[10] truncate normal-case tracking-normal text-ink-muted">
+                  app is addressing him.
+                  `min-w-0` here let flexbox take this span all the way to a
+                  literal zero pixels wide in a small card - not "Dan…", not
+                  one character, nothing rendered at all - which is worse
+                  than the truncation this was built for: a panel with no
+                  name in it is exactly the ambiguity this line exists to
+                  remove. A `ch`-based floor guarantees a sliver survives
+                  even when the header has almost no room left, while still
+                  giving up width ten times faster than the zone name. */}
+              <span className="min-w-[3ch] shrink-[10] truncate normal-case tracking-normal text-ink-muted">
                 {who}
               </span>
             </>

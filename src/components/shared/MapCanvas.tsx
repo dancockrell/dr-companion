@@ -18,23 +18,6 @@ import { roomKind, type RoomKind } from '../../lib/mapData'
 import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
 
 /**
- * Colour by what the place is.
- *
- * A map of identical boxes says where you are and nothing else. These are the
- * things players navigate by, so they are the things that get a colour.
- */
-const KIND_FILL: Record<string, string> = {
-  bank: 'var(--color-accent)',
-  healer: 'var(--color-good)',
-  guild: 'var(--color-info)',
-  temple: 'var(--color-info)',
-  shop: 'var(--map-ink)',
-  gate: 'var(--color-warn)',
-  bridge: 'var(--color-warn)',
-  park: 'var(--color-good)',
-}
-
-/**
  * How many rooms the map draws at once.
  *
  * The whole zone. Crossing is 1,060 rooms and Genie draws every one of them,
@@ -589,7 +572,7 @@ export function MapLegend({ kinds }: { kinds?: RoomKind[] }) {
           >
             <span
               className="inline-block h-2 w-2 rounded-[1px]"
-              style={{ background: KIND_FILL[kind] ?? FILL[kind as RoomKind] }}
+              style={{ background: FILL[kind as RoomKind] }}
             />
           </span>
           {label}
