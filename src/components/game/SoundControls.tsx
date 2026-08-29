@@ -105,7 +105,7 @@ function ChannelRow({
           <span className="text-xs font-medium text-ink">{label}</span>
           <span className="w-9 shrink-0 text-right text-xs tabular-nums text-ink-muted">{pct}%</span>
         </div>
-        <div className="mb-1 truncate text-[11px] text-ink-faint" title={description}>
+        <div className="mb-1 truncate text-xs text-ink-faint" title={description}>
           {description}
         </div>
         <input
@@ -129,7 +129,7 @@ function ChannelRow({
  * music" read as two groups rather than one undifferentiated stack. */
 function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint', className)}>
+    <div className={cn('mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint', className)}>
       {children}
     </div>
   )
@@ -472,7 +472,7 @@ export function SoundControls() {
               * click plays either kind - see playFavorite's own header. */}
             {favorites.length > 0 && (
               <div className="mb-2">
-                <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-ink-muted">
+                <div className="mb-1 flex items-center gap-1 text-xs font-medium text-ink-muted">
                   <Star className="h-3 w-3 fill-current text-accent" />
                   Favorites
                 </div>
@@ -518,7 +518,7 @@ export function SoundControls() {
               * a name in a <select>. Star toggles a favorite; clicking the
               * row plays it. Overrides zone music in the same slot - see
               * RadioPlayer in ambientSound.ts. */}
-            <div className="mb-1 text-[11px] font-medium text-ink-muted">Radio stations</div>
+            <div className="mb-1 text-xs font-medium text-ink-muted">Radio stations</div>
             <div className="flex flex-col gap-0.5">
               <button
                 type="button"
@@ -575,7 +575,7 @@ export function SoundControls() {
               })}
             </div>
             {radioId && (
-              <div className="mt-1 truncate text-[11px] text-ink-faint" title={RADIO_STATIONS.find((s) => s.id === radioId)?.description}>
+              <div className="mt-1 truncate text-xs text-ink-faint" title={RADIO_STATIONS.find((s) => s.id === radioId)?.description}>
                 {RADIO_STATIONS.find((s) => s.id === radioId)?.description}
               </div>
             )}
