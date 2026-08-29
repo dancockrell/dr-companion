@@ -54,14 +54,11 @@ import {
   RADIO_STATIONS,
   setCustomStream,
   currentCustomStream,
-  skipTrack,
-  nowPlaying,
-  onNowPlayingChange,
-  type NowPlaying,
 } from '../../lib/ambientSound'
 import { externalMediaAvailable, sendMediaKey, type MediaAction } from '../../lib/externalMedia'
 import { loadPrefs, savePrefs, type FavoriteStation } from '../../lib/persistence'
 import { cn } from '../../lib/cn'
+import { MusicTransport } from './MusicTransport'
 
 /**
  * One row of the mixer: a mute toggle, a name, a plain-language description
@@ -106,7 +103,7 @@ function ChannelRow({
           <span className="text-xs font-medium text-ink">{label}</span>
           <span className="w-9 shrink-0 text-right text-xs tabular-nums text-ink-muted">{pct}%</span>
         </div>
-        <div className="mb-1 truncate text-[11px] text-ink-faint" title={description}>
+        <div className="mb-1 truncate text-xs text-ink-faint" title={description}>
           {description}
         </div>
         <input
@@ -130,7 +127,7 @@ function ChannelRow({
  * music" read as two groups rather than one undifferentiated stack. */
 function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint', className)}>
+    <div className={cn('mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint', className)}>
       {children}
     </div>
   )
@@ -197,11 +194,6 @@ export function SoundControls() {
   const [customUrl, setCustomUrl] = useState(currentCustomStream() ?? '')
   const [customName, setCustomName] = useState('')
   const [favorites, setFavorites] = useState<FavoriteStation[]>(() => loadPrefs().favoriteStations ?? [])
-  const [now, setNow] = useState<NowPlaying | null>(() => nowPlaying())
-  // Subscribes rather than polls - a track change (radio/zone advancing on
-  // its own between user actions) has to reach this line without the player
-  // touching a slider first.
-  useEffect(() => onNowPlayingChange(setNow), [])
   // The OS media-session play/pause buttons (initMediaSession in
   // ambientSound.ts) can change this volume without this panel's own slider
   // ever being touched - subscribe so the slider doesn't silently disagree
@@ -446,40 +438,19 @@ export function SoundControls() {
           />
 
           <div className="mt-3 border-t border-border pt-2">
-            {/* What's actually in the music slot right now, plus track-skip -
-              * a bare slider doesn't tell a listener what they're hearing or
-              * let them move past a track they don't want. */}
-            <div className="mb-2 flex items-center gap-1">
-              <button
-                type="button"
-                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
-                onClick={() => skipTrack(-1)}
-                disabled={!!customUrl}
-                title="Previous track"
-              >
-                <SkipBack className="h-3 w-3" />
-              </button>
-              <div className="flex-1 truncate text-xs text-ink" title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}>
-                {now ? now.title : 'Silent'}
-                {now?.composer ? <span className="text-ink-muted"> — {now.composer}</span> : null}
-              </div>
-              <button
-                type="button"
-                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
-                onClick={() => skipTrack(1)}
-                disabled={!!customUrl}
-                title="Next track"
-              >
-                <SkipForward className="h-3 w-3" />
-              </button>
-            </div>
+            {/* Prev/play-pause/next plus the title - a bare slider doesn't
+              * tell a listener what they're hearing, let them move past a
+              * track they don't want, or actually pause it. Shared with
+              * SafetyFooter's own copy - see MusicTransport's header. */}
+            <MusicTransport className="mb-2" />
+
 
             {/* Favorites, first class: a player's own saved stations up
               * front, not buried below a list of six they may not want. One
               * click plays either kind - see playFavorite's own header. */}
             {favorites.length > 0 && (
               <div className="mb-2">
-                <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-ink-muted">
+                <div className="mb-1 flex items-center gap-1 text-xs font-medium text-ink-muted">
                   <Star className="h-3 w-3 fill-current text-accent" />
                   Favorites
                 </div>
@@ -525,7 +496,7 @@ export function SoundControls() {
               * a name in a <select>. Star toggles a favorite; clicking the
               * row plays it. Overrides zone music in the same slot - see
               * RadioPlayer in ambientSound.ts. */}
-            <div className="mb-1 text-[11px] font-medium text-ink-muted">Radio stations</div>
+            <div className="mb-1 text-xs font-medium text-ink-muted">Radio stations</div>
             <div className="flex flex-col gap-0.5">
               <button
                 type="button"
@@ -582,7 +553,7 @@ export function SoundControls() {
               })}
             </div>
             {radioId && (
-              <div className="mt-1 truncate text-[11px] text-ink-faint" title={RADIO_STATIONS.find((s) => s.id === radioId)?.description}>
+              <div className="mt-1 truncate text-xs text-ink-faint" title={RADIO_STATIONS.find((s) => s.id === radioId)?.description}>
                 {RADIO_STATIONS.find((s) => s.id === radioId)?.description}
               </div>
             )}

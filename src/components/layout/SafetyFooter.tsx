@@ -25,11 +25,21 @@
  * there at all, roundtime, the activity, and the running scripts by name.
  * Those are what you read before deciding whether to press Stop, and reading
  * them used to mean looking somewhere else.
+ *
+ * Also here (29 Aug 2026): a real music transport, not just the Sound
+ * button. Stop all used to be `flex-1`, so it - the single most dangerous
+ * button in the app - grew or shrank based on how much else happened to be
+ * in the bar that render, for no reason connected to what it does. Sized to
+ * its content now; the slack that freed up went to MusicTransport instead
+ * of sitting empty, since this bar is the one place guaranteed to always be
+ * on screen, which is exactly the argument Stop/Pause/Resume/Sound already
+ * made for living here rather than in a scrollable panel.
  */
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop'
 import { SoundControls } from '../game/SoundControls'
+import { MusicTransport } from '../game/MusicTransport'
 import { cn } from '../../lib/cn'
 
 export function SafetyFooter() {
@@ -134,7 +144,7 @@ export function SafetyFooter() {
 
       <button
         type="button"
-        className="flex min-w-[7.5rem] flex-1 items-center justify-center gap-1.5 rounded-lg bg-danger/90 px-3 py-2 text-sm font-semibold text-white hover:bg-danger"
+        className="flex min-w-[7.5rem] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-danger/90 px-3 py-2 text-sm font-semibold text-white hover:bg-danger"
         title="Stop every script the Companion started (or press Escape, anywhere)"
         onClick={() => {
           requestIntent('stop_all')
@@ -174,6 +184,20 @@ export function SafetyFooter() {
         <Play className="h-4 w-4" />
         Resume
       </button>
+
+      {/* Stop/Pause/Resume used to be flex-1 by way of Stop all alone,
+        * which meant the single most dangerous button in the app grew or
+        * shrank based on how much else happened to be in the bar - wide
+        * open one moment, cramped the next, for no reason connected to
+        * what it does. Sized to its content now, and the room that freed
+        * up is a real transport instead of empty bar: this app's own
+        * music, always visible, not one popover click away. Its own
+        * flex-1 so it's the one thing here that actually wants the slack
+        * this bar has - a play/pause/skip/title deserves the space more
+        * than an empty gap did. */}
+      <div className="flex h-8 min-w-0 flex-1 items-center gap-1.5 border-l border-border pl-2">
+        <MusicTransport />
+      </div>
 
       {/* Its own basis so it drops to a second line in a narrow window rather
           than squeezing the three buttons it sits beside. */}
