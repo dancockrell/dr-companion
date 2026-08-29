@@ -18,12 +18,31 @@ export interface WriteResult {
  * ever saved through this app. Throws with a message meant to be shown
  * directly - the Rust side already writes player-facing text, not an error
  * code.
+ *
+ * `expectedPrevious`, when given, is the text this save's patch was built
+ * from - what this caller last read or wrote. The Rust side refuses to write
+ * if the file no longer matches it, which is the only thing standing between
+ * "Genie's own editor touched this file while the sheet was open" and that
+ * edit vanishing with no trace. Pass it whenever there is a real "previous
+ * text" this save is a patch of - `useGenieConfigEditor` always can. Omit it
+ * only for a deliberate one-shot snapshot write with no such concept (e.g.
+ * `pinsFile.ts`'s export, which dumps localStorage in full rather than
+ * patching a previously-read file) - and know that means a hand-edit to that
+ * file gets silently overwritten the same way every save here used to risk.
  */
-export async function saveGenieConfig(leaf: string, text: string): Promise<WriteResult> {
+export async function saveGenieConfig(
+  leaf: string,
+  text: string,
+  expectedPrevious?: string
+): Promise<WriteResult> {
   if (!isTauri()) {
     throw new Error('No Genie install to save to outside the desktop app.')
   }
-  return (await invokeTauri('write_genie_config', { leaf, text })) as WriteResult
+  return (await invokeTauri('write_genie_config', {
+    leaf,
+    text,
+    expectedPrevious,
+  })) as WriteResult
 }
 
 /** Undo every change this app has made to a leaf by restoring its backup. */

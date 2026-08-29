@@ -12,8 +12,13 @@
  * save went - so it keeps its own copy here and calls the shared reload
  * hooks (`reloadHighlights`/`reloadAliases`) after a save so the game pane
  * picks up the change too.
+ *
+ * Every save also carries the text it patched *from*, so `write_genie_config`
+ * can refuse if the file changed since - see that command's own header for
+ * why silently winning a race against Genie's own editor is worse than
+ * refusing to.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { invokeTauri, isTauri } from './tauri'
 import { saveGenieConfig, restoreGenieConfigBackup } from './genieConfigWrite'
 
@@ -62,6 +67,14 @@ export function useGenieConfigEditor<T>(
     backedUp: false,
   })
 
+  // Read inside applyAndSave via this ref, not the `state` closed over by
+  // useCallback's [leaf, parse] deps - that callback identity is stable
+  // across a save, so a closure over `state` directly would keep reading
+  // whatever `text` was current the one time the callback was created,
+  // not the text the player's patch was actually built from.
+  const stateRef = useRef(state)
+  stateRef.current = state
+
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: '' }))
     if (!isTauri()) {
@@ -102,7 +115,7 @@ export function useGenieConfigEditor<T>(
   const applyAndSave = useCallback(
     async (newText: string, reloadShared: () => void) => {
       try {
-        const result = await saveGenieConfig(leaf, newText)
+        const result = await saveGenieConfig(leaf, newText, stateRef.current.text)
         const { entries, skipped } = parse(newText)
         setState((s) => ({
           ...s,
