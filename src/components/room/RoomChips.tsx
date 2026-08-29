@@ -1,5 +1,13 @@
 import { useCallback, useRef, useState } from 'react'
-import { sortCards, DECKS, DECK_LABEL, DECK_STYLE, type RoomCard, type Deck } from '../../lib/cards'
+import {
+  sortCards,
+  DECKS,
+  DECK_LABEL,
+  DECK_STYLE,
+  trailingCellSpansRow,
+  type RoomCard,
+  type Deck,
+} from '../../lib/cards'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from '../shared/CreatureArt'
 import { hasArt } from '../../lib/creatureArt'
@@ -194,13 +202,10 @@ export function RoomChips({
 
   const itemState = canSendMacro({ stopLatched: character?.stopLatched, inFlight, connected: !!character })
 
-  // Items lands alone in the grid's next row exactly when an odd number of
-  // deck cells came before it (1 or 3 populated decks) - spanning both
-  // columns there instead of leaving a dead gap beside it. With an even
-  // count (0, 2 populated) it already shares a row with something else and
-  // stays a normal half-width cell.
+  // See trailingCellSpansRow's own comment for the arithmetic and the
+  // screenshot that caught it shipped backwards the first time.
   const populatedDecks = DECKS.filter((d) => byDeck[d].length > 0).length
-  const itemsSpanFull = populatedDecks % 2 === 1
+  const itemsSpanFull = trailingCellSpansRow(populatedDecks, 2)
 
   return (
     /*

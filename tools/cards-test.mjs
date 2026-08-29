@@ -68,5 +68,19 @@ const sorted = m.sortCards([
 ])
 check('order', sorted.map((c) => c.name), ['beta', 'alpha2', 'zeta', 'alpha'])
 
+console.log('\n-- trailingCellSpansRow: does the last cell land alone in a fresh row --')
+// Real screenshot case: Hostile + People populated (2 preceding cells, 2
+// columns) left "On the floor" half-width with a dead gap beside it on the
+// first pass - the arithmetic was backwards and nobody caught it by reading
+// the code, only by looking at what it actually drew.
+check('0 preceding, 2 cols: nothing above it, spans alone', m.trailingCellSpansRow(0, 2), true)
+check('1 preceding, 2 cols: shares row 1 with the one cell before it', m.trailingCellSpansRow(1, 2), false)
+check('2 preceding, 2 cols: row 1 just filled, lands alone in row 2', m.trailingCellSpansRow(2, 2), true)
+check('3 preceding, 2 cols: shares row 2 with the last of the three', m.trailingCellSpansRow(3, 2), false)
+check('4 preceding, 2 cols: two full rows before it, lands alone', m.trailingCellSpansRow(4, 2), true)
+// Not hardcoded to 2 columns, in case the grid ever grows.
+check('3 preceding, 3 cols: exactly one full row before it, lands alone', m.trailingCellSpansRow(3, 3), true)
+check('2 preceding, 3 cols: shares the first row, which still has room', m.trailingCellSpansRow(2, 3), false)
+
 console.log(fails ? `\n${fails} failed` : '\nall passed')
 process.exit(fails ? 1 : 0)

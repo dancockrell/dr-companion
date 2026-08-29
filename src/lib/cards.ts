@@ -28,6 +28,25 @@ export const DECK_STYLE: Record<Deck, { band: string; corner: string; text: stri
   people: { band: 'bg-info', corner: 'rounded-xl', text: 'text-info' },
 }
 
+/**
+ * Whether a trailing cell (RoomChips's "On the floor" items group, always
+ * last) should span every column of an N-column grid, given how many
+ * regular cells came before it.
+ *
+ * Pulled out of RoomChips.tsx after shipping this backwards once: with
+ * `columns` cells per row, cell number `precedingCells + 1` starts a fresh
+ * row alone exactly when `precedingCells` is a multiple of `columns` - the
+ * previous row just filled up completely. Two Hostile+People (2 preceding,
+ * 2 columns) lands the items cell alone in row 2; one Hostile alone (1
+ * preceding) leaves it sharing row 1's second slot instead. Verified
+ * against a real screenshot where the first version left "On the floor"
+ * half-width with a dead gap beside it in exactly the 2-preceding case -
+ * eyeballing the arithmetic the first time was not enough.
+ */
+export function trailingCellSpansRow(precedingCells: number, columns: number): boolean {
+  return precedingCells % columns === 0
+}
+
 export type CardStatus = 'alive' | 'dead' | 'stunned'
 
 /**
