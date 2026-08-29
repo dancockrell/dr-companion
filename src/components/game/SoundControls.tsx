@@ -520,10 +520,13 @@ export function SoundControls() {
               * tracks" was a real gap: browsing could only ever land you on
               * a station and hope, never a song. Takes over the space below
               * while active; clearing it goes back to favorites/stations. */}
-            {/* focus-within on the wrapper, same pattern as PlaceSearch: the
-              * input itself drops its own ring (outline-none) for the plain
-              * bg-transparent look, so without this the box shows nothing at
-              * all when it has keyboard focus (issue #68). */}
+            {/* focus-within, because the input inside sets `outline-none` and
+              * so paints nothing of its own when tabbed to. Same widget and
+              * same fix as PlaceSearch.tsx:110, which has carried the class all
+              * along - measured there, the wrapper border really does go from
+              * rgb(46,42,32) to the accent on focus. This copy just never got
+              * it, so the box was the one input in the app you could focus
+              * with no way to tell. */}
             <label className="mb-2 flex items-center gap-1.5 rounded border border-border bg-surface px-1.5 py-1 text-xs focus-within:border-accent/60">
               <Search className="h-3 w-3 shrink-0 text-ink-faint" />
               <input
