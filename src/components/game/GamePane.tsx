@@ -52,10 +52,18 @@ import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsVolume, setDangerVolume, setSpeechVolume } from '../../lib/alertSound'
-import { setZone, setMusicVolume, setRadioStation, setCustomStream, initMediaSession } from '../../lib/ambientSound'
+import {
+  setZone,
+  setMusicVolume,
+  setRadioStation,
+  setCustomStream,
+  initMediaSession,
+  setCrossfadeStyle,
+} from '../../lib/ambientSound'
 import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
+import { instanceForPort } from '../../data/instances'
 
 /** How many lines are in the DOM at once. */
 const WINDOW = 400
@@ -236,6 +244,7 @@ export function GamePane() {
     setDangerVolume(prefs.dangerVolume ?? 0)
     setSpeechVolume(prefs.speechVolume ?? 0)
     setMusicVolume(prefs.musicVolume ?? 0)
+    setCrossfadeStyle(prefs.crossfadeStyle ?? 'standard')
     // A remembered station or custom stream beats zone music on startup, the
     // same override relationship setZone() enforces afterward. Custom stream
     // wins if somehow both are set - see persistence.ts's own comment.
@@ -397,8 +406,15 @@ export function GamePane() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-border px-2 py-1 text-xs">
-        <span className="font-medium uppercase tracking-wider text-ink-faint">Game</span>
+      {/* min-w-0, and the notes truncate, so the row can actually shrink.
+        * Without it every child keeps its content width, the row grows past
+        * the pane, and the overflow is clipped rather than scrolled. Measured
+        * on the real app at an 1180px window: this row ended at x=1232, so
+        * the Attach button sat 52px off the right edge where it could not be
+        * clicked - while the pane beside it read "not attached". The control
+        * that fixes the problem was the one the problem hid. */}
+      <div className="flex min-w-0 shrink-0 items-center gap-2 border-b border-border px-2 py-1 text-xs">
+        <span className="shrink-0 font-medium uppercase tracking-wider text-ink-faint">Game</span>
 
         {/* Connected or not, as a fact.
           *
@@ -409,13 +425,31 @@ export function GamePane() {
           * that is empty because the room is quiet. */}
         <span
           className={cn(
-            'flex items-center gap-1',
+            'flex min-w-0 items-center gap-1',
             link.connected ? 'text-good' : 'text-ink-faint'
           )}
           title={link.note || `${link.host}:${link.port}`}
         >
-          {link.connected ? <PlugZap className="h-3 w-3" /> : <Plug className="h-3 w-3" />}
-          {link.connected ? 'Attached' : link.note || 'not attached'}
+          {link.connected ? (
+            <PlugZap className="h-3 w-3 shrink-0" />
+          ) : (
+            <Plug className="h-3 w-3 shrink-0" />
+          )}
+          {/* truncate, like hlNote and aliasNote already do - link.note is the
+            * one unbounded string in this row that was not allowed to give up
+            * width, so a long disconnect reason pushed the controls off.
+            *
+            * With a floor, though. Plain `truncate` inside a `min-w-0` parent
+            * shrinks to nothing when the row is tight, and it did: measured at
+            * 0px wide, so the pane reported neither "Attached" nor "not
+            * attached" and looked like it had no opinion. Whether you are
+            * connected is the second most important thing in this row after
+            * the button that connects you, and second place still outranks
+            * the search box. 4.5rem keeps a readable stub; the full string
+            * stays in the title. */}
+          <span className="min-w-[4.5rem] truncate">
+            {link.connected ? 'Attached' : link.note || 'not attached'}
+          </span>
         </span>
 
         {/* "Connection lost" was the same sentence whether our socket dropped
@@ -456,7 +490,13 @@ export function GamePane() {
           </span>
         )}
 
-        <span className="ml-auto flex items-center gap-1">
+        {/* shrink-0: the connection controls are the last thing that may be
+          * given up, not the first. Everything to the left of this truncates
+          * instead. They already learned this once and moved Sound to the
+          * footer for it - "a control living only in this scrollable pane's
+          * own header disappeared the moment the pane scrolled". Same lesson,
+          * horizontal axis. */}
+        <span className="ml-auto flex shrink-0 items-center gap-1">
           {/* Sound moved to SafetyFooter (the persistent bottom bar) - a
               control living only in this scrollable pane's own header
               disappeared the moment the pane scrolled, and the footer is
@@ -580,8 +620,24 @@ export function GamePane() {
         {lines.length === 0 && (
           <p className="p-2 text-xs leading-relaxed text-ink-faint">
             Nothing yet. Start Lich with{' '}
-            <code className="text-ink">--detachable-client={port}</code> and press Attach,
-            and this becomes the client rather than a panel beside one.
+            <code className="text-ink">--detachable-client={port}</code>
+            {/* Which game that port is, when it is one of the four.
+              *
+              * This sentence is an instruction, and it was interpolating a
+              * remembered number without saying what the number meant. Seen on
+              * the real app: it read `--detachable-client=11124` while the
+              * character was on Prime. 11124 is Platinum. Following it exactly
+              * would have started Lich on the wrong instance, and the failure
+              * arrives as "Lich is not running".
+              *
+              * Unrecognised ports stay unlabelled rather than guessed at. */}
+            {instanceForPort(port) && (
+              <span className="text-ink-muted">
+                {' '}
+                (DragonRealms {instanceForPort(port)?.label})
+              </span>
+            )}{' '}
+            and press Attach, and this becomes the client rather than a panel beside one.
           </p>
         )}
       </div>

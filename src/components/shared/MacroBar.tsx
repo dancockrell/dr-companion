@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { MACROS, type Macro } from '../../data/macros'
@@ -15,6 +15,12 @@ import { MACROS, type Macro } from '../../data/macros'
  * 28px buttons is furniture taller than the thing it scrolls, and the
  * overflow is discoverable by dragging or with a wheel over the row. Edge
  * fades say there is more without spending a row on saying it.
+ *
+ * Those fades are the whole affordance, since the scrollbar is gone, so they
+ * have to be true: one at each end, each shown only while there is actually
+ * something past it. See the note on `edges` - the first version was a single
+ * fade on the right that was always lit, which is the same amount of
+ * information as no fade at all.
  *
  * Right-click a slot to change which variation it runs. That choice is the
  * customisation: the defaults are opinions, not decisions, and a player who
@@ -34,12 +40,47 @@ export function MacroBar({
 }) {
   const [open, setOpen] = useState<string | null>(null)
 
+  /* Which edges actually have something past them.
+   *
+   * The fade was one span, on the right, rendered unconditionally. That is a
+   * sign that is always lit: it said "there is more" when the row was scrolled
+   * to its end and when there was no overflow at all, so it carried no
+   * information in either direction, and there was nothing on the left at all.
+   * Since the scrollbar is deliberately hidden here, that left twelve macros
+   * with five off-view and no indication of it - measured on the real app,
+   * 990px of buttons shown through 418px.
+   *
+   * Measured rather than assumed: scrollLeft against scrollWidth, re-checked
+   * on scroll and on resize, because the row's width changes with the column. */
+  const scroller = useRef<HTMLDivElement>(null)
+  const [edges, setEdges] = useState({ start: false, end: false })
+
+  const measure = useCallback(() => {
+    const el = scroller.current
+    if (!el) return
+    const max = el.scrollWidth - el.clientWidth
+    // A pixel of slack: fractional layout leaves scrollLeft a hair under max,
+    // which would otherwise light the right fade forever at the far end.
+    setEdges({ start: el.scrollLeft > 1, end: el.scrollLeft < max - 1 })
+  }, [])
+
+  useEffect(() => {
+    const el = scroller.current
+    if (!el) return
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [measure])
+
   const variationOf = (m: Macro) =>
     m.variations.find((v) => v.id === choice[m.id]) ?? m.variations[0]
 
   return (
     <div className="relative min-w-0">
       <div
+        ref={scroller}
+        onScroll={measure}
         className={cn(
           'flex gap-1 overflow-x-auto pb-0.5',
           // No scrollbar. The row is shorter than a scrollbar would be.
@@ -99,8 +140,14 @@ export function MacroBar({
         })}
       </div>
 
-      {/* Says there is more without spending a row on saying it. */}
-      <span className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-surface to-transparent" />
+      {/* Says there is more, only when there is. Both edges, because after a
+        * scroll the macros you cannot see are the ones behind you. */}
+      {edges.start && (
+        <span className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-surface to-transparent" />
+      )}
+      {edges.end && (
+        <span className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-surface to-transparent" />
+      )}
     </div>
   )
 }
