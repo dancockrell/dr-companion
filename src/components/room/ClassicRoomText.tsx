@@ -34,6 +34,7 @@ export function ClassicRoomText({
   text,
   items,
   players,
+  exits,
   highlights,
   offClasses,
 }: {
@@ -43,6 +44,12 @@ export function ClassicRoomText({
   items?: string[]
   /** Same feed the battle board's PCs corner reads. */
   players?: string[]
+  /** Real compass directions ("north", "out"), from the live stream's own
+   * compass tag (`StreamCharacterState.compass`) — not `MapRoom.exits`,
+   * which is a list of Lich room ids the cartographer drew a link to, and
+   * printed "2, 335, 7" instead of a direction the one time this line
+   * pulled from it by mistake. */
+  exits?: string[]
   highlights: Highlight[]
   offClasses?: ReadonlySet<string>
 }) {
@@ -78,16 +85,11 @@ export function ClassicRoomText({
         <p className="mt-1 text-xs leading-relaxed text-info">Also here: {listFormatter.format(players)}.</p>
       )}
 
-      {/* No "Obvious paths" line. `MapRoom.exits` looked like the right
-          source and is not: it is a list of Lich room ids the cartographer
-          drew a link to (mockBridge.ts: `(here?.to ?? []).map(String)`),
-          which is why an earlier version of this line printed "2, 335, 7,
-          432, and 307" instead of compass directions. The real directions
-          live in the live stream's own compass tag
-          (StreamCharacterState.compass), which nothing currently carries
-          from there to this component's props — adding this line back
-          needs that wired through first, not a guess at which of the
-          numbers already in scope might look more like an exit. */}
+      {exits && exits.length > 0 && (
+        <p className="mt-1 text-xs leading-relaxed text-ink-faint">
+          Obvious paths: {listFormatter.format(exits)}.
+        </p>
+      )}
     </div>
   )
 }

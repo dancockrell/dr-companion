@@ -5,7 +5,6 @@ import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
 import { Paperdoll } from './Paperdoll'
-import { VitalCluster } from './VitalCluster'
 import { playerArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { RoomBackdrop } from '../room/RoomBackdrop'
@@ -13,7 +12,6 @@ import { DECK_STYLE, type Deck } from '../../lib/cards'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 import type { BodyPart, Injury } from '../../lib/body'
-import type { Vital } from '../../lib/vitals'
 
 /**
  * The room, with everyone and everything in it drawn where they actually
@@ -169,11 +167,30 @@ function angleFor(relation: string, id: string): number {
   return hash % 2 === 0 ? 90 : 270
 }
 
-/** A point on the unit circle, in this board's own convention: 0° is
- * straight up ("front"), clockwise. */
-function pointOn(angleDeg: number, radiusPct: number) {
+/**
+ * Where the compass is centered when embedded, off the board's own middle
+ * toward the hostile side — the mobs corner and the compass are both about
+ * the same thing, "what's dangerous and where," so putting them near each
+ * other reads as one cluster rather than two unrelated features sharing a
+ * board. Shifted left rather than centered leaves a real contiguous block
+ * on the right for the two friendly corners (PCs, NPCs) to stack in
+ * instead of splitting across opposite corners the way a centered compass
+ * forced them to. Standalone (`embedded` false, `BattlePanel`'s own card)
+ * has no corners to make room for, so it stays centered — see the
+ * `compassCenter` call site.
+ */
+const COMPASS_CENTER_EMBEDDED = { x: 38, y: 50 }
+const COMPASS_CENTER_STANDALONE = { x: 50, y: 50 }
+
+function compassCenter(embedded: boolean) {
+  return embedded ? COMPASS_CENTER_EMBEDDED : COMPASS_CENTER_STANDALONE
+}
+
+/** A point on the unit circle around the compass's own center, in this
+ * board's own convention: 0° is straight up ("front"), clockwise. */
+function pointOn(cx: number, cy: number, angleDeg: number, radiusPct: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180
-  return { x: 50 + radiusPct * Math.cos(rad), y: 50 + radiusPct * Math.sin(rad) }
+  return { x: cx + radiusPct * Math.cos(rad), y: cy + radiusPct * Math.sin(rad) }
 }
 
 /**
@@ -237,10 +254,15 @@ interface CornerBox {
   presence: string
 }
 
+// Mobs stays on the left, near the (now off-center) compass — the same
+// "what's dangerous" cluster. PCs and NPCs both stack on the right instead
+// of splitting across opposite corners: two friendly panes sharing one
+// side reads as "the people" in a way one top-right and one bottom-left
+// never did.
 const CORNERS: Record<Deck, CornerBox> = {
   hostile: { top: CORNER_MARGIN_PCT, left: CORNER_MARGIN_PCT, label: 'Mobs', presence: 'unassessed' },
   people: { top: CORNER_MARGIN_PCT, right: CORNER_MARGIN_PCT, label: 'PCs', presence: 'here' },
-  allied: { bottom: CORNER_MARGIN_PCT, left: CORNER_MARGIN_PCT, label: 'NPCs', presence: 'allied' },
+  allied: { bottom: CORNER_MARGIN_PCT, right: CORNER_MARGIN_PCT, label: 'NPCs', presence: 'allied' },
 }
 
 /** One scrollable corner pane — the container every corner and the floor
@@ -704,11 +726,13 @@ function Puck({
         lore={card.lore}
         height={height}
         className={`${frameClass} border ${ringClass}`}
-        // Only in the tall portrait frame — a small circular compass token
-        // is close enough to square that a center crop already keeps the
-        // subject; a tall rectangle is where a center crop starts cutting
-        // heads off.
-        focus={shape === 'rect' ? 'top' : 'center'}
+        // Always, not just in the tall rectangle — a center crop on even a
+        // small circular compass token still cuts off the face on some
+        // bestiary renders, the ones where the art itself isn't centered
+        // on its own subject. The token is what a player is actually
+        // looking at mid-fight; getting the face wrong there matters more
+        // than it does in a corner's hover-and-check card.
+        focus="top"
       />
     </div>
   )
@@ -760,7 +784,6 @@ export function CombatRadar({
     race?: string | null
     injuries: Partial<Record<BodyPart, Injury>>
     injuriesKnown: boolean
-    vitals: Vital[]
   }
   /**
    * True when `RoomScene` is passing this in as its own `overlay` — the room
@@ -778,6 +801,7 @@ export function CombatRadar({
   const { run: runMacro, canSend: canAttack, reason: attackReason } = useMacroRunner()
   const { ref: boardRef, width: boardWidth } = useMeasuredWidth()
   const compact = boardWidth > 0 && boardWidth < COMPACT_MIN_PX
+  const { x: compassCx, y: compassCy } = compassCenter(embedded)
 
   // Doubled — a corner is a real scrollable pane now (see CornerPane), not
   // a fixed handful of points squeezed into the board's own corner, so
@@ -877,7 +901,7 @@ export function CombatRadar({
       const row = Math.floor(i / cols)
       const dx = n > 1 ? (col - (cols - 1) / 2) * gapPct : 0
       const dy = n > 1 ? (row - (rows - 1) / 2) * gapPct : 0
-      const { x, y } = pointOn(p.angleDeg, p.radiusPct)
+      const { x, y } = pointOn(compassCx, compassCy, p.angleDeg, p.radiusPct)
       spread.push({ ...p, x: x + dx, y: y + dy })
     })
   }
@@ -954,9 +978,19 @@ export function CombatRadar({
       {/* A fixed compass grid, independent of who's actually on it — the
           four rings/spokes the compass can ever place a marker on (angleFor
           only ever returns 0/90/180/270), drawn once so the eye has a
-          frame of reference even before anything is assessed. */}
-      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-border/40" aria-hidden />
-      <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-border/40" aria-hidden />
+          frame of reference even before anything is assessed. Centered on
+          the compass's own center (`compassCx`/`compassCy`, see
+          `compassCenter`), not necessarily the board's middle. */}
+      <div
+        className="absolute top-0 h-full w-px bg-border/40"
+        style={{ left: `${compassCx}%` }}
+        aria-hidden
+      />
+      <div
+        className="absolute left-0 h-px w-full bg-border/40"
+        style={{ top: `${compassCy}%` }}
+        aria-hidden
+      />
 
       {/* Range rings, in DR's own words, not a generic distance scale — a
           title rather than a spoke label: three concentric circles read as
@@ -972,8 +1006,8 @@ export function CombatRadar({
           className="absolute rounded-full border border-border/60"
           title={`${RANGE_WORD[range]} range`}
           style={{
-            left: `${50 - RANGE_RADIUS_PCT[range]}%`,
-            top: `${50 - RANGE_RADIUS_PCT[range]}%`,
+            left: `${compassCx - RANGE_RADIUS_PCT[range]}%`,
+            top: `${compassCy - RANGE_RADIUS_PCT[range]}%`,
             width: `${RANGE_RADIUS_PCT[range] * 2}%`,
             height: `${RANGE_RADIUS_PCT[range] * 2}%`,
           }}
@@ -989,7 +1023,8 @@ export function CombatRadar({
           is which way is forward, since that's what every other position
           is read relative to. */}
       <span
-        className="absolute left-1/2 top-0 -translate-x-1/2"
+        className="absolute top-0 -translate-x-1/2"
+        style={{ left: `${compassCx}%` }}
         title="Front — the direction you're facing. Everything else on this compass is positioned relative to this."
       >
         <ChevronUp className="h-3 w-3 text-ink-faint" aria-hidden />
@@ -1001,28 +1036,31 @@ export function CombatRadar({
           caller has a character to hand (BattleColumn does; BattlePanel's
           standalone card already shows this above the radar, so it stays
           the plain icon there — see `you`'s own doc comment), draws the
-          same three things this app has always shown for "you" elsewhere:
-          the face, the doll, the pools. Everywhere else on this board a
-          creature without a submitted picture gets a letter instead of
-          nothing; you is the one card that was always the plain icon
-          regardless, and the middle of the fight is exactly where a player
-          actually wants those three glanced at without looking away. */}
+          face and the doll — the two things about "you" that change every
+          few seconds in a fight and are worth a glance without looking
+          away from the picture. Vitals stay out of this specific card on
+          purpose (see BattleColumn's own comment on why); everywhere else
+          on this board a creature without a submitted picture gets a
+          letter instead of nothing, and you is the one card that was
+          always the plain icon regardless. */}
       {you ? (
+        // No vitals here — they read fine at 12px in a header strip, not
+        // in a card sitting on top of a room picture, and the space they
+        // used to take goes to the one thing that actually needed it: the
+        // doll itself, big enough now to read at a glance which limb is
+        // hurt instead of just that something is.
         <div
-          className="absolute z-10 flex flex-col items-center gap-1 rounded-lg border border-accent/60 bg-surface/90 p-1.5 -translate-x-1/2 -translate-y-1/2"
-          style={{ left: '50%', top: '50%', width: compact ? 130 : 160, boxShadow: PUCK_SHADOW }}
+          className="absolute z-10 flex items-center gap-1.5 rounded-lg border border-accent/60 bg-surface/90 p-1.5 -translate-x-1/2 -translate-y-1/2"
+          style={{ left: `${compassCx}%`, top: `${compassCy}%`, boxShadow: PUCK_SHADOW }}
           title="You"
         >
-          <div className="flex items-center gap-1.5">
-            <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 28 : 36} />
-            <Paperdoll injuries={you.injuries} height={compact ? 28 : 36} known={you.injuriesKnown} />
-          </div>
-          <VitalCluster vitals={you.vitals} />
+          <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 34 : 44} />
+          <Paperdoll injuries={you.injuries} height={compact ? 62 : 82} known={you.injuriesKnown} />
         </div>
       ) : (
         <div
           className="absolute z-10 flex items-center justify-center rounded-full border-2 border-accent bg-surface p-0.5 -translate-x-1/2 -translate-y-1/2"
-          style={{ left: '50%', top: '50%' }}
+          style={{ left: `${compassCx}%`, top: `${compassCy}%` }}
           title="You"
         >
           <User className="h-3 w-3 text-accent" aria-hidden />

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { RoomScene } from './RoomScene'
 import { CombatRadar } from '../shared/CombatRadar'
 import { TeachingPanel } from './TeachingPanel'
@@ -12,8 +12,8 @@ import { useAppStore } from '../../store/useAppStore'
 import { useHighlights } from '../../lib/useHighlights'
 import { useOffClasses } from '../../lib/offClasses'
 import { fromRoom } from '../../lib/room'
-import { vitalsFor } from '../../lib/vitals'
 import { bridge } from '../../bridge'
+import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
 import { cn } from '../../lib/cn'
 
 /**
@@ -108,6 +108,15 @@ export function BattleColumn() {
   const { highlights } = useHighlights()
   const offClasses = useOffClasses()
 
+  // Compass directions ("north", "out"), from the live stream's own compass
+  // tag — see ClassicRoomText's own doc comment for why this is not
+  // `mapHere.exits` (a list of Lich room ids, not direction words).
+  // `streamCharacterState()` already parsed this; nothing had ever
+  // subscribed to it before now — see gameLink.ts's own comment on that
+  // function ("the missing wire, not new parsing").
+  const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
+  const exits = stream.compass?.value
+
   // Same source DashboardLayout's Battle/People boxes used to read — those
   // boxes are gone now that this is where the same cards show, drawn on the
   // scene rather than listed beside it. One deck of cards, one place it
@@ -122,18 +131,21 @@ export function BattleColumn() {
   // moment there is anyone or anything to put on it.
   const boardActive = cards.length > 0 || (roomItems?.length ?? 0) > 0
 
-  // Face, doll and pools, at the center of the board itself — see
-  // CombatRadar's own `you` doc comment for why they moved there instead
-  // of staying a header strip above the picture. `character` is only ever
-  // absent before the bridge has answered at all, which is also when
-  // `boardActive` is false and CombatRadar isn't mounted to receive this.
+  // Face and doll, at the center of the board itself — see CombatRadar's
+  // own `you` doc comment for why they moved there instead of staying a
+  // header strip above the picture. Vitals stayed out of this card
+  // specifically (they still show in the Dashboard's own "You" box): the
+  // space they would have taken here goes to the doll instead, big enough
+  // to read which limb is hurt at a glance rather than just that
+  // something is. `character` is only ever absent before the bridge has
+  // answered at all, which is also when `boardActive` is false and
+  // CombatRadar isn't mounted to receive this.
   const you = character
     ? {
         character: character.name,
         race: character.race,
         injuries: character.injuries ?? {},
         injuriesKnown: character.injuries !== undefined,
-        vitals: vitalsFor(character),
       }
     : undefined
 
@@ -213,6 +225,7 @@ export function BattleColumn() {
               text={text?.text}
               items={roomItems}
               players={character?.roomPlayers}
+              exits={exits}
               highlights={highlights}
               offClasses={offClasses}
             />
