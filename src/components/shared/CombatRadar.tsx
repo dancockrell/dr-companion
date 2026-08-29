@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   Box,
   ChevronUp,
@@ -47,7 +47,11 @@ import type { RoomCard } from '../../lib/cards'
  *     of how big the circle is — real, otherwise-wasted space, not a
  *     region carved out of the compass. A puck lands there only because
  *     assess has nothing positional to say about it, not because it is
- *     literally standing in that corner of the room.
+ *     literally standing in that corner of the room. Each corner is a real
+ *     rectangle that scrolls its own contents (`CornerPane`) — a room with
+ *     a hundred mobs in it does not lose ninety of them to a cap folded
+ *     into one puck's tooltip, it scrolls, the same as any other long list
+ *     in this app.
  *   - **The compass rings themselves** — melee wide, pole and missile
  *     progressively tighter, so the four corners keep real room without the
  *     compass losing the one ring that actually gets crowded.
@@ -90,19 +94,6 @@ import type { RoomCard } from '../../lib/cards'
  * minute old is shown softened rather than at full confidence. */
 const STALE_AFTER_SECONDS = 60
 
-/**
- * How many floor items the board draws directly on the picture, named and
- * exported so callers elsewhere can reason about the cap. Every item still
- * gets a puck; past this many, the rest fold into the last puck's tooltip
- * the same way an overcrowded corner does.
- */
-export const RADAR_ITEM_CAP = 6
-
-/** Same idea, per corner — a room can hold more mobs, PCs or NPCs than a
- * 2x3 grid of pucks can hold without either overlapping or shrinking past
- * usefulness. Capped, with the rest folded into the last puck's tooltip. */
-const CORNER_CAP = 6
-
 /** Below this measured width, pucks shrink too, so a marker never claims
  * more of a tiny board than the gap between two of them can afford.
  * Nothing on this board ever prints an always-visible name, so this is the
@@ -111,14 +102,16 @@ const COMPACT_MIN_PX = 160
 
 /**
  * Melee wide, pole and missile progressively tighter — see the module doc
- * comment for why. Together they still leave the four corners real room:
- * the farthest ring (missile, 38%) is nowhere near the corner anchors at
- * 7%/93%, whose diagonal distance from center is about 61%.
+ * comment for why. Shrunk again so the four corner panes (see CORNERS
+ * below) have real room: a corner pane is a real rectangle now, not a
+ * handful of points diagonally spaced from the edge, and it needs enough of
+ * the board's own width to hold more than one column of the bigger pucks
+ * below.
  */
 const RANGE_RADIUS_PCT: Record<'melee' | 'pole' | 'missile', number> = {
-  melee: 24,
-  pole: 31,
-  missile: 37,
+  melee: 12,
+  pole: 16,
+  missile: 20,
 }
 
 /**
@@ -162,33 +155,57 @@ interface CornerEntry {
 }
 
 /**
- * Where each of the four corners lives and which way it grows. A circle
- * inscribed in a square leaves its corners empty at any radius, so this is
- * real space, not space carved out of the compass — see the module doc
- * comment. `dx`/`dy` are which direction (`+1` toward the middle, `-1` away)
- * each successive puck in that corner steps, so a top-left corner's grid
- * grows right-and-down while a bottom-right one grows left-and-up: every
- * corner's own grid stays anchored to its actual corner instead of drifting
- * toward the board's center as it fills up.
+ * Where each of the four corners lives — a real rectangle now, not a
+ * handful of individually-placed points. A circle inscribed in a square
+ * leaves its corners empty at any radius, so this is real space, not space
+ * carved out of the compass — see the module doc comment. Each pane scrolls
+ * its own contents (`overflow-y-auto`), so a corner is never capped at
+ * however many pucks happen to fit before the next one overlaps: a room can
+ * genuinely hold a hundred mobs, and the pane holds all of them, in a
+ * wrapping grid the player scrolls the same way they scroll anything else
+ * in this app.
  */
-const CORNERS: Record<Deck, { x: number; y: number; dx: number; dy: number; label: string; presence: string }> = {
-  hostile: { x: 7, y: 7, dx: 1, dy: 1, label: 'Mobs', presence: 'unassessed' },
-  people: { x: 93, y: 7, dx: -1, dy: 1, label: 'PCs', presence: 'here' },
-  allied: { x: 7, y: 93, dx: 1, dy: -1, label: 'NPCs', presence: 'allied' },
+const CORNER_BOX_PCT = 34
+const CORNER_MARGIN_PCT = 2
+
+interface CornerBox {
+  top?: number
+  bottom?: number
+  left?: number
+  right?: number
+  label: string
+  presence: string
 }
 
-const ITEM_CORNER = { x: 93, y: 93, dx: -1, dy: -1, label: 'Items' }
+const CORNERS: Record<Deck, CornerBox> = {
+  hostile: { top: CORNER_MARGIN_PCT, left: CORNER_MARGIN_PCT, label: 'Mobs', presence: 'unassessed' },
+  people: { top: CORNER_MARGIN_PCT, right: CORNER_MARGIN_PCT, label: 'PCs', presence: 'here' },
+  allied: { bottom: CORNER_MARGIN_PCT, left: CORNER_MARGIN_PCT, label: 'NPCs', presence: 'allied' },
+}
 
-const CORNER_COLS = 2
-// Tight on purpose — these are bigger pucks now (see portraitPx/cornerPx
-// below) and a crowded corner reads better as a cluster of icons than as a
-// grid with daylight between every one of them.
-const CORNER_STEP = 9
+const ITEM_BOX: CornerBox = { bottom: CORNER_MARGIN_PCT, right: CORNER_MARGIN_PCT, label: 'Items', presence: '' }
 
-function cornerPoint(corner: { x: number; y: number; dx: number; dy: number }, index: number) {
-  const col = index % CORNER_COLS
-  const row = Math.floor(index / CORNER_COLS)
-  return { x: corner.x + corner.dx * col * CORNER_STEP, y: corner.y + corner.dy * row * CORNER_STEP }
+/** One scrollable corner pane — the container every corner and the floor
+ * render their pucks into. A plain wrapping flexbox inside a fixed,
+ * absolutely-positioned rectangle: position is set once by the box, content
+ * flows and scrolls independently of it. */
+function CornerPane({ box, children }: { box: CornerBox; children: ReactNode }) {
+  return (
+    <div
+      className="absolute overflow-x-hidden overflow-y-auto"
+      aria-label={box.label}
+      style={{
+        top: box.top != null ? `${box.top}%` : undefined,
+        bottom: box.bottom != null ? `${box.bottom}%` : undefined,
+        left: box.left != null ? `${box.left}%` : undefined,
+        right: box.right != null ? `${box.right}%` : undefined,
+        width: `${CORNER_BOX_PCT}%`,
+        height: `${CORNER_BOX_PCT}%`,
+      }}
+    >
+      <div className="flex flex-wrap content-start gap-1.5 p-1">{children}</div>
+    </div>
+  )
 }
 
 /**
@@ -508,9 +525,13 @@ export function CombatRadar({
     : { hostile: [], allied: [], people: [] }
 
   const hasFight = positioned.length > 0
-  const portraitPx = compact ? 30 : 42
-  const dotPx = compact ? 14 : 18
-  const cornerPx = compact ? 26 : 36
+  // Doubled — a corner is a real scrollable pane now (see CornerPane), not
+  // a fixed handful of points squeezed into the board's own corner, so
+  // there is no longer a ceiling on puck size fighting a ceiling on how
+  // many can fit without overlapping.
+  const portraitPx = compact ? 60 : 84
+  const dotPx = compact ? 28 : 36
+  const cornerPx = compact ? 52 : 72
 
   const attack = () => runMacro(['attack'])
   const attackTitle = (label: string) =>
@@ -637,63 +658,61 @@ export function CombatRadar({
           )}
 
       {/* The four corners: mobs not currently advancing, PCs, NPCs, and the
-          floor, each grouped in the corner a circle inscribed in this
-          square board always leaves empty. See CORNERS' own comment for
-          why each grid grows the direction it does. A mob corner puck is
-          also an attack button — closing the gap and swinging is one
-          click, same as the compass; PCs, NPCs and items are not (nothing
-          here should send a command against a person by accident). */}
+          floor, each in a scrollable pane in the corner a circle inscribed
+          in this square board always leaves empty. Every entry gets a
+          puck — no cap, no folding the rest into the last one's tooltip;
+          a room with a hundred mobs in it scrolls, the same way any other
+          long list in this app does. A mob puck is also an attack button —
+          closing the gap and swinging is one click, same as the compass;
+          PCs, NPCs and items are not (nothing here should send a command
+          against a person by accident). */}
       {embedded &&
         (Object.keys(CORNERS) as Deck[]).map((deck) => {
           const corner = CORNERS[deck]
           const entries = cornerEntries[deck]
-          const shown = entries.slice(0, CORNER_CAP)
-          const overflow = entries.length > CORNER_CAP ? entries.length - (CORNER_CAP - 1) : 0
-          return shown.map((entry, i) => {
-            const { x, y } = cornerPoint(corner, i)
-            const isLast = i === shown.length - 1
-            const detail = detailFor(entry.card, entry.combatant, corner.presence)
-            const overflowNote = isLast && overflow > 0 ? ` — and ${overflow} more ${corner.label.toLowerCase()}` : ''
-            const dead = entry.card.status === 'dead'
-            // A corpse is not a target — attacking it is not a command DR
-            // has any use for. Still a puck (see the loop above), just not
-            // a button: dimmed, tooltip only, the same treatment items and
-            // the other two corners already get.
-            const clickable = deck === 'hostile' && !dead
-            const body = (
-              <Puck card={entry.card} px={cornerPx} ringClass="border-surface" pulse={false} />
-            )
-            const commonStyle = { left: `${x}%`, top: `${y}%`, opacity: dead ? 0.55 : undefined }
-            if (clickable) {
-              return (
-                <button
-                  key={entry.key}
-                  type="button"
-                  disabled={!canAttack}
-                  onClick={attack}
-                  className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full disabled:cursor-not-allowed"
-                  style={{ ...commonStyle, width: Math.max(24, cornerPx), height: Math.max(24, cornerPx) }}
-                  title={`${entry.card.name} — ${detail}${overflowNote}\n${attackTitle('Attack')}`}
-                >
-                  {body}
-                </button>
-              )
-            }
-            return (
-              <div
-                key={entry.key}
-                className="absolute -translate-x-1/2 -translate-y-1/2"
-                style={commonStyle}
-                title={`${entry.card.name} — ${detail}${overflowNote}`}
-              >
-                {body}
-              </div>
-            )
-          })
+          return (
+            <CornerPane key={deck} box={corner}>
+              {entries.map((entry) => {
+                const detail = detailFor(entry.card, entry.combatant, corner.presence)
+                const dead = entry.card.status === 'dead'
+                // A corpse is not a target — attacking it is not a command
+                // DR has any use for. Still a puck, just not a button:
+                // dimmed, tooltip only, the same treatment items and the
+                // other two corners already get.
+                const clickable = deck === 'hostile' && !dead
+                const body = <Puck card={entry.card} px={cornerPx} ringClass="border-surface" />
+                if (clickable) {
+                  return (
+                    <button
+                      key={entry.key}
+                      type="button"
+                      disabled={!canAttack}
+                      onClick={attack}
+                      className="flex shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed"
+                      style={{ width: cornerPx, height: cornerPx }}
+                      title={`${entry.card.name} — ${detail}\n${attackTitle('Attack')}`}
+                    >
+                      {body}
+                    </button>
+                  )
+                }
+                return (
+                  <div
+                    key={entry.key}
+                    className="shrink-0"
+                    style={{ opacity: dead ? 0.55 : undefined }}
+                    title={`${entry.card.name} — ${detail}`}
+                  >
+                    {body}
+                  </div>
+                )
+              })}
+            </CornerPane>
+          )
         })}
 
-      {/* The floor — its own corner now, the same as the other three,
-          rather than clustered at your feet: an item is exactly as
+      {/* The floor — its own scrollable pane now, the same as the other
+          three, rather than clustered at your feet: an item is exactly as
           "somewhere in this room, not precisely located" as an NPC assess
           never positioned, so it gets the same honest treatment instead of
           a claim ("at your feet") this app was never actually told. Each
@@ -701,41 +720,28 @@ export function CombatRadar({
           `iconForItem`) rather than a bare dot — a generic "pile" shape for
           anything unrecognised, a specific one for the handful of things a
           player is actually digging through a corpse for. */}
-      {items &&
-        items.length > 0 &&
-        items.slice(0, RADAR_ITEM_CAP).map((name, i) => {
-          const shownCount = Math.min(items.length, RADAR_ITEM_CAP)
-          const { x, y } = cornerPoint(ITEM_CORNER, i)
-          const isLast = i === shownCount - 1
-          const overflow = items.length > RADAR_ITEM_CAP ? items.length - (RADAR_ITEM_CAP - 1) : 0
-          const label = isLast && overflow > 0 ? `${name}, and ${overflow} more on the floor` : name
-          const tooltip = takeReason ?? `${label} — get ${nounOf(name)}`
-          const Icon = iconForItem(name)
-          return (
-            <button
-              key={`${name}-${i}`}
-              type="button"
-              disabled={!canTake}
-              onClick={() => take(name)}
-              title={tooltip}
-              /* 24x24 minimum hit target (WCAG 2.5.8) even though the puck
-                 itself is smaller — a miss here is not a no-op, it sends a
-                 game command. Centring unchanged either way:
-                 -translate-*-1/2 is half the button, so it lands centred
-                 on the same point regardless of which size wins. */
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-surface bg-surface-overlay shadow hover:brightness-125 disabled:cursor-not-allowed"
-              style={{
-                left: `${x}%`,
-                top: `${y}%`,
-                width: Math.max(24, cornerPx),
-                height: Math.max(24, cornerPx),
-              }}
-            >
-              <Icon className="text-accent" style={{ width: dotPx, height: dotPx }} aria-hidden />
-              <span className="sr-only">{label}</span>
-            </button>
-          )
-        })}
+      {embedded && items && items.length > 0 && (
+        <CornerPane box={ITEM_BOX}>
+          {items.map((name, i) => {
+            const tooltip = takeReason ?? `${name} — get ${nounOf(name)}`
+            const Icon = iconForItem(name)
+            return (
+              <button
+                key={`${name}-${i}`}
+                type="button"
+                disabled={!canTake}
+                onClick={() => take(name)}
+                title={tooltip}
+                className="flex shrink-0 items-center justify-center rounded-full border border-surface bg-surface-overlay shadow hover:brightness-125 disabled:cursor-not-allowed"
+                style={{ width: cornerPx, height: cornerPx }}
+              >
+                <Icon className="text-accent" style={{ width: dotPx, height: dotPx }} aria-hidden />
+                <span className="sr-only">{name}</span>
+              </button>
+            )
+          })}
+        </CornerPane>
+      )}
     </div>
   )
 
