@@ -187,7 +187,7 @@ export function MusicTransport({
           (onTitleClick ? (
             <button
               type="button"
-              className="min-w-0 flex-1 truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
+              className="min-w-[4.5rem] flex-1 truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
               title={
                 (now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent') +
                 ' — open Sound'
@@ -198,14 +198,23 @@ export function MusicTransport({
             </button>
           ) : (
             <span
-              className="min-w-0 flex-1 truncate text-xs text-ink-muted"
+              className="min-w-[4.5rem] flex-1 truncate text-xs text-ink-muted"
               title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}
             >
               {now ? now.title : 'Silent'}
             </span>
           ))}
+        {/* min-w-[4.5rem] above gives the title a floor (issue #69): the
+          * title used to be the only flex-1 in this row, so in a narrow
+          * footer it absorbed the entire shortfall alone - "Dru..." at
+          * 1180px wide, not truncation but a blank with punctuation. The
+          * floor stops the title before it goes unreadable; letting the
+          * slider below shrink too (dropping its own shrink-0) is what
+          * actually gives the floor somewhere to take the rest of the
+          * shortfall from, instead of just moving the same clipping onto
+          * whichever element still has shrink-0. */}
         {showVolume && (
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex min-w-0 items-center gap-1">
             <button
               type="button"
               className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
@@ -226,7 +235,7 @@ export function MusicTransport({
               max={150}
               value={Math.round(vol * 100)}
               onChange={(e) => setMusicVolume(Number(e.currentTarget.value) / 100)}
-              className="w-16 accent-accent"
+              className="w-16 min-w-[2rem] accent-accent"
               aria-label="Music volume (quick)"
             />
           </div>

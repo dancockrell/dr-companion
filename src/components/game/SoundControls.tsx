@@ -520,7 +520,11 @@ export function SoundControls() {
               * tracks" was a real gap: browsing could only ever land you on
               * a station and hope, never a song. Takes over the space below
               * while active; clearing it goes back to favorites/stations. */}
-            <label className="mb-2 flex items-center gap-1.5 rounded border border-border bg-surface px-1.5 py-1 text-xs">
+            {/* focus-within on the wrapper, same pattern as PlaceSearch: the
+              * input itself drops its own ring (outline-none) for the plain
+              * bg-transparent look, so without this the box shows nothing at
+              * all when it has keyboard focus (issue #68). */}
+            <label className="mb-2 flex items-center gap-1.5 rounded border border-border bg-surface px-1.5 py-1 text-xs focus-within:border-accent/60">
               <Search className="h-3 w-3 shrink-0 text-ink-faint" />
               <input
                 type="text"
