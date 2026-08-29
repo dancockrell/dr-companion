@@ -27,6 +27,20 @@ export function nounOf(name: string): string {
   return words[words.length - 1] || cleaned
 }
 
+/**
+ * DR's own tell for "this name describes a creature, not someone with a
+ * proper name": a creature is written `a goblin`, `an ogre`, `the kobold`,
+ * `some copper kronars` — an article first. A player or a named NPC never
+ * is. Checked on top of (not instead of) the `people`-deck exclusion below,
+ * because a named NPC lands in the `allied` deck, not `people`, and a name
+ * like "Watcher 1" can collide with a real creature noun ("watcher") purely
+ * by coincidence — the same failure mode the `people` guard exists to
+ * prevent, one deck over.
+ */
+function isCreatureDescription(name: string): boolean {
+  return /^(a|an|the|some)\s+/i.test(name)
+}
+
 function card(
   deck: Deck,
   name: string,
@@ -34,9 +48,11 @@ function card(
   index: number
 ): RoomCard {
   const noun = nounOf(name)
-  // People are not in the bestiary and looking them up would be a coincidence
-  // waiting to happen: a player called Bear should not inherit a bear's level.
-  const lore = deck === 'people' ? undefined : loreFor(name, noun)
+  // People are never in the bestiary, and neither is anything else whose
+  // name is not itself a creature description — a player called Bear, or an
+  // NPC called Watcher, should not inherit a bear's or a watcher's level
+  // just because the last word of their name happens to match one.
+  const lore = deck === 'people' || !isCreatureDescription(name) ? undefined : loreFor(name, noun)
   return {
     id: `${deck}:${index}:${name}`,
     deck,

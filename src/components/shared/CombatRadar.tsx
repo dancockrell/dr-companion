@@ -301,7 +301,11 @@ function detailFor(card: RoomCard, combatant: RoomCombatant | undefined, presenc
     if (combatant.enrichedAgeSeconds != null && combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS) {
       bits.push(`assessed ${combatant.enrichedAgeSeconds}s ago`)
     }
-  } else if (presence) {
+  } else if (presence && card.status !== 'dead') {
+    // "Unassessed" answers "is anyone tracking this fight" — a question a
+    // corpse has already answered by being dead. Saying both is not wrong,
+    // just redundant every single time, since a dead card never has a
+    // combatant to report either way.
     bits.push(presence)
   }
 
@@ -440,7 +444,15 @@ export function CombatRadar({
   const cornerHostiles: CornerEntry[] = []
 
   for (const card of cards) {
-    if (card.deck !== 'hostile' || card.status === 'dead') continue
+    if (card.deck !== 'hostile') continue
+    // A corpse never gets a compass position — nothing about "dead" is
+    // "advancing" — but it is still a real thing in the room, worth
+    // skinning or looting, so it still gets a puck rather than vanishing
+    // from the board the moment it dies. Straight to its corner, dimmed.
+    if (card.status === 'dead') {
+      cornerHostiles.push({ key: card.id, card })
+      continue
+    }
     const combatant = combatantFor(card, index)
     if (!combatant) {
       cornerHostiles.push({ key: card.id, card })
@@ -642,9 +654,16 @@ export function CombatRadar({
             const isLast = i === shown.length - 1
             const detail = detailFor(entry.card, entry.combatant, corner.presence)
             const overflowNote = isLast && overflow > 0 ? ` — and ${overflow} more ${corner.label.toLowerCase()}` : ''
-            const clickable = deck === 'hostile'
-            const body = <Puck card={entry.card} px={cornerPx} ringClass="border-surface" />
-            const commonStyle = { left: `${x}%`, top: `${y}%` }
+            const dead = entry.card.status === 'dead'
+            // A corpse is not a target — attacking it is not a command DR
+            // has any use for. Still a puck (see the loop above), just not
+            // a button: dimmed, tooltip only, the same treatment items and
+            // the other two corners already get.
+            const clickable = deck === 'hostile' && !dead
+            const body = (
+              <Puck card={entry.card} px={cornerPx} ringClass="border-surface" pulse={false} />
+            )
+            const commonStyle = { left: `${x}%`, top: `${y}%`, opacity: dead ? 0.55 : undefined }
             if (clickable) {
               return (
                 <button
