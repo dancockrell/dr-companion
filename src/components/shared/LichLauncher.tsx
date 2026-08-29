@@ -167,7 +167,7 @@ export function LichLauncher() {
         <button
           type="button"
           onClick={() => void refresh()}
-          title="Check again"
+          title="Check again" aria-label="Check again"
           className="rounded p-1 text-ink-faint hover:text-ink"
         >
           <RefreshCw className="h-3 w-3" />

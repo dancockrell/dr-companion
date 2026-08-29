@@ -97,7 +97,7 @@ export function DockView({
               key={id}
               type="button"
               onClick={() => onPopBack?.(id)}
-              title="Bring this one back into the window"
+              title="Bring this one back into the window" aria-label="Bring this one back into the window"
               className="rounded border border-border bg-surface-raised px-1.5 py-0.5 text-xs text-ink-faint hover:text-ink"
             >
               {title(id)}

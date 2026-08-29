@@ -193,7 +193,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
                     onClick={() => move(item.id, -1)}
                     disabled={i === 0}
                     className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-30"
-                    title="Move earlier"
+                    title="Move earlier" aria-label="Move earlier"
                   >
                     <ArrowUp className="h-3 w-3" />
                   </button>
@@ -202,7 +202,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
                     onClick={() => move(item.id, 1)}
                     disabled={i === queue.length - 1}
                     className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-30"
-                    title="Move later"
+                    title="Move later" aria-label="Move later"
                   >
                     <ArrowDown className="h-3 w-3" />
                   </button>
@@ -210,7 +210,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
                     type="button"
                     onClick={() => remove(item.id)}
                     className="shrink-0 text-ink-faint hover:text-danger"
-                    title="Remove"
+                    title="Remove" aria-label="Remove"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -253,7 +253,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
           onClick={clear}
           disabled={queue.length === 0}
           className="shrink-0 rounded border border-border px-2 text-ink-faint hover:text-danger disabled:opacity-40"
-          title="Clear the queue"
+          title="Clear the queue" aria-label="Clear the queue"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>

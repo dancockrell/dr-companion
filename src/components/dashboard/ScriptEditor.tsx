@@ -226,7 +226,7 @@ export function ScriptEditor({
         <button
           type="button"
           onClick={onClose}
-          title="Close the editor"
+          title="Close the editor" aria-label="Close the editor"
           className="rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
         >
           <X className="h-3 w-3" />
@@ -303,7 +303,7 @@ export function ScriptEditor({
           <button
             type="button"
             onClick={() => void remove()}
-            title="Delete this script"
+            title="Delete this script" aria-label="Delete this script"
             className="ml-auto rounded border border-danger/40 px-1.5 py-0.5 text-danger hover:bg-danger/15"
           >
             <Trash2 className="h-3 w-3" />

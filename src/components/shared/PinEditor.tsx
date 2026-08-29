@@ -136,7 +136,7 @@ export function PinEditor({
               the chart for a place that doesn't fit any of these. */}
           <button
             type="button"
-            title="No icon"
+            title="No icon" aria-label="No icon"
             onClick={() => setIcon(undefined)}
             className={`flex h-7 w-7 items-center justify-center rounded border ${
               icon === undefined ? 'border-accent text-accent' : 'border-border text-ink-faint'

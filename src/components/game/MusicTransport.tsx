@@ -84,7 +84,7 @@ export function MusicTransport({
         className="shrink-0 rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
         onClick={() => skipTrack(-1)}
         disabled={!canSkip}
-        title="Previous track"
+        title="Previous track" aria-label="Previous track"
       >
         <SkipBack className="h-3.5 w-3.5" />
       </button>
@@ -101,7 +101,7 @@ export function MusicTransport({
         className="shrink-0 rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
         onClick={() => skipTrack(1)}
         disabled={!canSkip}
-        title="Next track"
+        title="Next track" aria-label="Next track"
       >
         <SkipForward className="h-3.5 w-3.5" />
       </button>

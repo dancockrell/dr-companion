@@ -294,7 +294,7 @@ export function Dashboard() {
                 key={id}
                 type="button"
                 onClick={() => popBack(id)}
-                title="Bring it back in here"
+                title="Bring it back in here" aria-label="Bring it back in here"
                 className="rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
               >
                 {PANEL_TITLES[id] ?? id}

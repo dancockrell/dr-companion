@@ -103,7 +103,7 @@ export function ProfilesPanel() {
                     type="button"
                     className="text-xs flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-ink-faint hover:text-danger"
                     onClick={() => deleteProfileByKey(key)}
-                    title="Forget this character"
+                    title="Forget this character" aria-label="Forget this character"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>

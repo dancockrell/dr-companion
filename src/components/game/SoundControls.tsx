@@ -153,23 +153,23 @@ function ExternalMediaControls() {
         External source (Spotify, browser, etc.)
       </div>
       <div className="flex items-center justify-between gap-1">
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('previous')} title="Previous">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('previous')} title="Previous" aria-label="Previous">
           <SkipBack className="h-3.5 w-3.5" />
         </button>
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('play_pause')} title="Play / pause">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('play_pause')} title="Play / pause" aria-label="Play / pause">
           <Play className="h-3.5 w-3.5" />
         </button>
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('next')} title="Next">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('next')} title="Next" aria-label="Next">
           <SkipForward className="h-3.5 w-3.5" />
         </button>
         <span className="mx-1 h-4 w-px bg-border" />
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_down')} title="Volume down">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_down')} title="Volume down" aria-label="Volume down">
           <Volume1 className="h-3.5 w-3.5" />
         </button>
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_up')} title="Volume up">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('volume_up')} title="Volume up" aria-label="Volume up">
           <Volume2 className="h-3.5 w-3.5" />
         </button>
-        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('mute')} title="Mute / unmute">
+        <button type="button" className="rounded p-1 text-ink-faint hover:text-ink" onClick={() => tap('mute')} title="Mute / unmute" aria-label="Mute / unmute">
           <VolumeX className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -596,7 +596,7 @@ export function SoundControls() {
                 <button
                   type="submit"
                   className="shrink-0 rounded border border-border px-2 py-1 text-ink-faint hover:text-ink"
-                  title="Play this stream"
+                  title="Play this stream" aria-label="Play this stream"
                 >
                   <Radio className="h-3 w-3" />
                 </button>
@@ -604,7 +604,7 @@ export function SoundControls() {
                   type="button"
                   className="shrink-0 rounded border border-border px-2 py-1 text-ink-faint hover:text-accent disabled:opacity-30"
                   disabled={!customUrl.trim()}
-                  title="Save to favorites"
+                  title="Save to favorites" aria-label="Save to favorites"
                   onClick={() => {
                     const url = customUrl.trim()
                     if (!url) return

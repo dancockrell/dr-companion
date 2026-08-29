@@ -33,7 +33,7 @@ export function RoomNudge({
         </button>
         <button
           type="button"
-          title="Don't ask about this room again"
+          title="Don't ask about this room again" aria-label="Don't ask about this room again"
           onClick={onDismiss}
           className="p-0.5 text-ink-faint hover:text-ink"
         >

@@ -142,7 +142,7 @@ export function Panel({
             <button
               type="button"
               className="p-0.5 rounded text-ink-faint hover:text-ink"
-              title="Open in its own window"
+              title="Open in its own window" aria-label="Open in its own window"
               onClick={onPopOut}
             >
               <ExternalLink className="w-3.5 h-3.5" />
