@@ -30,8 +30,13 @@ export function MapPinBar({
 }) {
   if (pins.length === 0 && !onAddHere) return null
 
+  // A fragment, not its own wrapping div: the caller (MapPanel.tsx,
+  // MapWindow.tsx) puts this in a shared flex-wrap row alongside
+  // QuickTravel, since both are the same shape - a row of small pill
+  // buttons - and stacking each in its own wrapper meant two mostly-empty
+  // rows instead of one that only wraps when it has to.
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <>
       {pins.map((pin) => {
         const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
         return (
@@ -73,6 +78,6 @@ export function MapPinBar({
           Pin here
         </button>
       )}
-    </div>
+    </>
   )
 }

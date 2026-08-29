@@ -358,59 +358,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       onRefresh={refresh}
       onPopOut={isTauri() ? popOut : undefined}
       right={
-        !plane ? (
-          <div className="flex items-center gap-2">
-            {levels.length > 1 && (
-              <div className="flex items-center gap-1">
-                <Layers className="w-3 h-3 text-ink-faint" />
-                {levels.map((lv) => (
-                  <button
-                    key={lv}
-                    type="button"
-                    className={`text-xs rounded px-1.5 py-0.5 border ${
-                      z === lv
-                        ? 'border-accent text-accent bg-accent/10'
-                        : 'border-border text-ink-faint'
-                    }`}
-                    aria-label={`Level ${lv}`}
-                    aria-pressed={z === lv}
-                    onClick={() => setLevel(lv)}
-                  >
-                    {lv}
-                  </button>
-                ))}
-              </div>
-            )}
-            <button
-              type="button"
-              className="p-1 rounded text-ink-faint hover:text-ink"
-              title={tall ? 'Shrink the map' : 'Give the map more room'}
-              onClick={() => setTall((v) => !v)}
-            >
-              {tall ? (
-                <ChevronUp className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
-        ) : undefined
-      }
-    >
-      {/* Levels and zoom, on their own row rather than squeezed beside the
-          title. In a plane both can be on screen at once (five buttons plus
-          the Layers icon), and packed into the header they were winning the
-          fight for space against the one thing the header actually exists to
-          say: whose map this is. Measured on The Crossing (two z-levels) at
-          the default 300px dock width - the title's own flex box was left
-          75px for "Crossing · Dan the Bold" and the character's name
-          rendered at a literal 0px, not merely truncated. A plane has the
-          height to spare for a second row; a 168px docked box does not,
-          which is why the stack (`!plane`) keeps this in the header instead,
-          with only the height toggle and no zoom row to share it with. */}
-      {plane && (
-        <div className="flex items-center justify-between gap-2">
-          {levels.length > 1 ? (
+        <div className="flex items-center gap-2">
+          {/* Levels and zoom, in the header itself rather than a row of
+              their own below it. That second row was a real fix for a real
+              measurement once (the docked card's 300px title box left "Dan
+              the Bold" rendering at 0px when these were squeezed in beside
+              it), but the map now lives in a plane wide enough - 800px and
+              up, measured - that the old squeeze does not happen, and a
+              second row was 30px of chrome bought for a problem this layout
+              no longer has. Docked stays narrow and keeps only the levels
+              plus a height toggle, no zoom row it never had. */}
+          {levels.length > 1 && (
             <div className="flex items-center gap-1">
               <Layers className="w-3 h-3 text-ink-faint" />
               {levels.map((lv) => (
@@ -430,57 +388,80 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
                 </button>
               ))}
             </div>
-          ) : (
-            <span />
           )}
-          <div className="flex items-center gap-1">
+          {plane ? (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+                title="Zoom out"
+                aria-label="Zoom out"
+                disabled={dock.zoom <= ZOOM_MIN}
+                onClick={() => zoomBy(1 / 1.3)}
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
+                title="Back to the whole zone"
+                onClick={() => {
+                  setMapDock({ zoom: 1 })
+                  resetPan()
+                }}
+              >
+                {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
+              </button>
+              <button
+                type="button"
+                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+                title="Zoom in"
+                aria-label="Zoom in"
+                disabled={dock.zoom >= ZOOM_MAX}
+                onClick={() => zoomBy(1.3)}
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-              title="Zoom out" aria-label="Zoom out"
-              disabled={dock.zoom <= ZOOM_MIN}
-              onClick={() => zoomBy(1 / 1.3)}
+              className="p-1 rounded text-ink-faint hover:text-ink"
+              title={tall ? 'Shrink the map' : 'Give the map more room'}
+              onClick={() => setTall((v) => !v)}
             >
-              <ZoomOut className="w-3.5 h-3.5" />
+              {tall ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
             </button>
-            <button
-              type="button"
-              className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
-              title="Back to the whole zone"
-              onClick={() => {
-                setMapDock({ zoom: 1 })
-                resetPan()
-              }}
-            >
-              {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
-            </button>
-            <button
-              type="button"
-              className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-              title="Zoom in" aria-label="Zoom in"
-              disabled={dock.zoom >= ZOOM_MAX}
-              onClick={() => zoomBy(1.3)}
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          )}
         </div>
-      )}
-
+      }
+    >
       {/* Above the map rather than beside the title, because the answer it
           gives is a place on the map and the two want to be read together.
           It costs one row and gives back the thing the map could not do. */}
       <PlaceSearch here={zone.zone} onPick={goToPlace} />
 
-      {/* Home, hangouts, whatever is worth one click - independent of
-          whichever zone is currently drawn, since these walk by room id. */}
-      <MapPinBar
-        pins={pins}
-        onGo={(pin) => goThere(pin.roomId)}
-        onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-        onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-      />
-      <QuickTravel onWalk={goThere} />
+      {/* Pinned places and nearest-tag search, sharing one flex-wrap row
+          instead of two. Both are the same shape - a row of small pill
+          buttons - and neither reliably fills a row on its own (a fresh
+          character has one "Pin here" button; QuickTravel is four category
+          chips until you press one), so stacking them was two mostly-empty
+          rows costing 30px+ together. flex-wrap still drops MapPinBar's
+          pins to a second line once QuickTravel's answers actually arrive,
+          which is the one case that legitimately needs it. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <MapPinBar
+          pins={pins}
+          onGo={(pin) => goThere(pin.roomId)}
+          onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+        />
+        <QuickTravel onWalk={goThere} />
+      </div>
 
       {showNudge && hereId != null && (
         <RoomNudge

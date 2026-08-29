@@ -38,8 +38,10 @@ export function QuickTravel({ onWalk }: { onWalk: (roomId: number) => void }) {
   // instant before the fresh reply arrives.
   const answered = activeTag !== null && mapNearest?.tag === activeTag
 
+  // A fragment, not its own wrapping div - see MapPinBar.tsx's matching
+  // note. The caller puts this in a shared flex-wrap row with MapPinBar.
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <>
       <span className="text-xs text-ink-faint">Nearest:</span>
       {PRESETS.map(({ tag, label, icon: Icon }) => (
         <button
@@ -77,6 +79,6 @@ export function QuickTravel({ onWalk }: { onWalk: (roomId: number) => void }) {
         ) : (
           <span className="text-xs text-ink-faint">{mapNearest.reason ?? 'none nearby'}</span>
         ))}
-    </div>
+    </>
   )
 }

@@ -123,7 +123,18 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-border px-2 py-1 text-xs">
+      {/* Scrolls sideways rather than wrapping, same reasoning as MacroBar:
+        * a channel row that wraps to a second line at a narrow width reads
+        * as broken chrome (tabs half on one line, half on the next) rather
+        * than as a tab bar with more in it than fits. No visible scrollbar -
+        * the row is shorter than one would be - reachable by wheel or drag,
+        * same as any tab strip. */}
+      <div
+        className={cn(
+          'flex shrink-0 items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border px-2 py-1 text-xs',
+          '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        )}
+      >
         {/* Whose channels these are, said out loud, but only once there are
           * two sets in the row to tell apart.
           *

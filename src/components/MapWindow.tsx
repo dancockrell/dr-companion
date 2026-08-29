@@ -317,13 +317,16 @@ export function MapWindow() {
 
         {(pins.length > 0 || hereId != null) && (
           <>
-            <MapPinBar
-              pins={pins}
-              onGo={(pin) => goThere(pin.roomId)}
-              onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-              onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-            />
-            <QuickTravel onWalk={goThere} />
+            {/* One shared flex-wrap row, not two - see MapPinBar.tsx's note. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <MapPinBar
+                pins={pins}
+                onGo={(pin) => goThere(pin.roomId)}
+                onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+                onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+              />
+              <QuickTravel onWalk={goThere} />
+            </div>
             {showNudge && hereId != null && (
               <RoomNudge
                 visits={hereVisits as number}
