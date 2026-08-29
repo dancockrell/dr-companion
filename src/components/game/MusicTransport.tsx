@@ -187,7 +187,7 @@ export function MusicTransport({
           (onTitleClick ? (
             <button
               type="button"
-              className="min-w-0 flex-1 truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
+              className="min-w-16 flex-1 truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
               title={
                 (now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent') +
                 ' — open Sound'
@@ -198,14 +198,33 @@ export function MusicTransport({
             </button>
           ) : (
             <span
-              className="min-w-0 flex-1 truncate text-xs text-ink-muted"
+              className="min-w-16 flex-1 truncate text-xs text-ink-muted"
               title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}
             >
               {now ? now.title : 'Silent'}
             </span>
           ))}
+        {/* Shrinkable, where it used to be `shrink-0`.
+          *
+          * Everything else in this strip is a fixed width - three 22px buttons
+          * and this 90px group - so the title, the only `flex-1` here, was
+          * absorbing the whole shortfall on its own. Measured in the footer:
+          * at a 1366px window the strip is 291px and the title gets 127, and
+          * at 1180px the strip is 201px and the title gets 37. The strip lost
+          * 90px and the title paid all 90.
+          *
+          * 37px is about six characters. ""Drunken Sailor", performed by the
+          * Midshipmen Glee Club (1977)" rendered as `"Dru...`, which is not
+          * truncation, it is a blank with punctuation - and this strip exists
+          * to answer "what is playing" at a glance. The `title` hover carried
+          * the full name the whole time, which is a good fallback and not a
+          * substitute for the thing being legible.
+          *
+          * So the slider gives up width before the title starves. It keeps a
+          * floor of its own, because a 6px range input is no more use than a
+          * six-character title. */}
         {showVolume && (
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex min-w-0 shrink items-center gap-1">
             <button
               type="button"
               className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
@@ -226,7 +245,7 @@ export function MusicTransport({
               max={150}
               value={Math.round(vol * 100)}
               onChange={(e) => setMusicVolume(Number(e.currentTarget.value) / 100)}
-              className="w-16 accent-accent"
+              className="hidden w-16 min-w-9 shrink accent-accent xl:block"
               aria-label="Music volume (quick)"
             />
           </div>
