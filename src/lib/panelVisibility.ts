@@ -4,7 +4,7 @@
  * `DashboardLayout.tsx` renders a fixed grid — map on the left (its own
  * plane), the room/game/chat column on the right (`RoomColumn`), and
  * everything else stacked in the middle: Experience, You, Risk, Tasks, Quick
- * Queue, Training, Battle, Inventory, People, Script Library. Until now that
+ * Queue, Training, Objects, Inventory, Script Library. Until now that
  * middle stack had exactly one on/off lever, Basic vs Power, which is a
  * curated *pair* of fixed sets, not a per-window choice — a player in Power
  * who wants Training but not Inventory had no way to say so. This is that
@@ -15,7 +15,7 @@
  * Not in `layout.ts`'s `Layout`/`PanelId`. That type already carries the
  * dock, freeform placement and pop-out membership for a *different* panel
  * set (documented in `layout.ts`'s own header as a second source of truth
- * `DashboardLayout` doesn't consult), and several of these boxes — People,
+ * `DashboardLayout` doesn't consult), and several of these boxes — Objects,
  * Quick Queue, the "You" cluster — have no `PanelId` at all because they
  * never participated in freeform or pop-out. Bolting visibility for a
  * different id space onto that type would be the third source of truth, not
@@ -39,9 +39,8 @@ export type MiddlePanelId =
   | 'tasks'
   | 'quickqueue'
   | 'training'
-  | 'battle'
+  | 'objects'
   | 'inventory'
-  | 'people'
   | 'scripts'
 
 /** Order they're offered in Settings — the same order they stack on screen. */
@@ -52,9 +51,8 @@ export const MIDDLE_PANEL_IDS: MiddlePanelId[] = [
   'tasks',
   'quickqueue',
   'training',
-  'battle',
+  'objects',
   'inventory',
-  'people',
   'scripts',
 ]
 
@@ -65,9 +63,8 @@ export const MIDDLE_PANEL_LABELS: Record<MiddlePanelId, string> = {
   tasks: 'Tasks and scripts',
   quickqueue: 'Quick Queue',
   training: 'Training',
-  battle: 'Battle',
+  objects: 'Objects (floor items)',
   inventory: 'Inventory',
-  people: 'People',
   scripts: 'Script Library',
 }
 
