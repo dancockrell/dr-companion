@@ -101,16 +101,60 @@ const COMPACT_MIN_PX = 160
 
 /**
  * Melee wide, pole and missile progressively tighter — see the module doc
- * comment for why. Shrunk again so the four corner panes (see CORNERS
- * below) have real room: a corner pane is a real rectangle now, not a
- * handful of points diagonally spaced from the edge, and it needs enough of
- * the board's own width to hold more than one column of the bigger pucks
- * below.
+ * comment for why. Shrunk so the four corner panes (see CORNERS below) have
+ * real room: a corner pane is a real rectangle now, not a handful of points
+ * diagonally spaced from the edge, and it needs enough of the board's own
+ * width to hold more than one column of the bigger pucks below.
+ *
+ * A floor, not the final answer — see `rangeRadiusPct` below. The board can
+ * genuinely hold four cardinal positions at once (front/behind/left/right),
+ * and once pucks doubled in size, a fixed 12% melee radius put those four
+ * points close enough together that they physically overlapped regardless
+ * of anything the same-angle jitter below could do about it, because that
+ * jitter only ever separates entries sharing one angle — it has nothing to
+ * say about two different angles crowding each other on too small a ring.
  */
-const RANGE_RADIUS_PCT: Record<'melee' | 'pole' | 'missile', number> = {
+const RANGE_RADIUS_FLOOR_PCT: Record<'melee' | 'pole' | 'missile', number> = {
   melee: 12,
   pole: 16,
   missile: 20,
+}
+
+/** How much further out pole and missile sit than melee, once melee's own
+ * radius is computed — kept as a fixed gap rather than its own floor, so a
+ * melee ring forced wider to fit its pucks still reads as "the same three
+ * rings, further apart" instead of three radii drifting independently. */
+const RANGE_DELTA_PCT: Record<'pole' | 'missile', number> = { pole: 4, missile: 8 }
+
+/**
+ * The actual radius to draw each range ring at — the fixed floor above,
+ * widened just enough that four pucks at the compass's four cardinal
+ * positions (0/90/180/270, the only angles `angleFor` ever returns) can sit
+ * on the melee ring at once without their circles overlapping. Circumference
+ * needed for four circles of diameter `portraitPx`, each with 30% breathing
+ * room, divided among four quadrants — solved for radius, then compared
+ * against the floor and the larger one wins. Unmeasured (`boardWidth` is 0
+ * on the very first render, before the ResizeObserver fires) falls back to
+ * the floor outright, same as everything else keyed off `compact`.
+ */
+function rangeRadiusPct(boardWidth: number, portraitPx: number): Record<'melee' | 'pole' | 'missile', number> {
+  if (boardWidth <= 0) return { ...RANGE_RADIUS_FLOOR_PCT }
+  const CARDINAL_SLOTS = 4
+  const BREATHING_ROOM = 1.5
+  // The straight-line distance between two of the four cardinal points is
+  // the chord `2R·sin(π/N)`, not the arc between them — a first pass here
+  // used circumference/N instead, which measures distance *around* the
+  // ring rather than *across* it and quietly asked for a smaller radius
+  // than four 90°-apart circles actually need. Solved for R instead of
+  // guessed at:  R = (diameter · breathing room) / (2·sin(π/N)).
+  const neededRadiusPx = (portraitPx * BREATHING_ROOM) / (2 * Math.sin(Math.PI / CARDINAL_SLOTS))
+  const neededRadiusPct = (neededRadiusPx / boardWidth) * 100
+  const melee = Math.max(RANGE_RADIUS_FLOOR_PCT.melee, neededRadiusPct)
+  return {
+    melee,
+    pole: Math.max(RANGE_RADIUS_FLOOR_PCT.pole, melee + RANGE_DELTA_PCT.pole),
+    missile: Math.max(RANGE_RADIUS_FLOOR_PCT.missile, melee + RANGE_DELTA_PCT.pole + RANGE_DELTA_PCT.missile),
+  }
 }
 
 /**
@@ -581,6 +625,15 @@ export function CombatRadar({
   const { ref: boardRef, width: boardWidth } = useMeasuredWidth()
   const compact = boardWidth > 0 && boardWidth < COMPACT_MIN_PX
 
+  // Doubled — a corner is a real scrollable pane now (see CornerPane), not
+  // a fixed handful of points squeezed into the board's own corner, so
+  // there is no longer a ceiling on puck size fighting a ceiling on how
+  // many can fit without overlapping.
+  const portraitPx = compact ? 60 : 84
+  const dotPx = compact ? 28 : 36
+  const cornerPx = compact ? 52 : 72
+  const RANGE_RADIUS_PCT = rangeRadiusPct(boardWidth, portraitPx)
+
   const positioned: Positioned[] = []
   const cornerHostiles: CornerEntry[] = []
 
@@ -615,10 +668,19 @@ export function CombatRadar({
     })
   }
 
-  // Spread anything sharing the exact same angle+range apart a little, so
-  // two creatures both "flanking" at melee range do not sit on top of each
-  // other — the ring most likely to hold several at once got the extra
-  // radius above for exactly this reason.
+  // Spread anything sharing the exact same angle+range apart, so several
+  // creatures all "flanking" at melee range — the normal case, not the
+  // exception, per the module doc comment — don't sit on top of each
+  // other. A single-axis jitter was sized for the old, much smaller pucks
+  // and stopped being enough the moment they doubled: five wild boars all
+  // flanking at melee overlapped into one brown smear. This fans a group
+  // out into a small grid instead of a line, spaced by the pucks' actual
+  // measured pixel size rather than a constant, so it keeps working
+  // whether the board is 200px or 800px wide.
+  const FAN_COLS = 3
+  const GAP_FALLBACK_PCT = 18
+  const gapPct = boardWidth > 0 ? Math.max((portraitPx * 1.4 * 100) / boardWidth, 6) : GAP_FALLBACK_PCT
+
   const groups = new Map<string, Positioned[]>()
   for (const p of positioned) {
     const k = `${p.angleDeg}:${p.radiusPct}`
@@ -629,10 +691,15 @@ export function CombatRadar({
   const spread: (Positioned & { x: number; y: number })[] = []
   for (const group of groups.values()) {
     const n = group.length
+    const cols = Math.min(n, FAN_COLS)
+    const rows = Math.ceil(n / cols)
     group.forEach((p, i) => {
-      const jitter = n > 1 ? (i - (n - 1) / 2) * 10 : 0
+      const col = i % cols
+      const row = Math.floor(i / cols)
+      const dx = n > 1 ? (col - (cols - 1) / 2) * gapPct : 0
+      const dy = n > 1 ? (row - (rows - 1) / 2) * gapPct : 0
       const { x, y } = pointOn(p.angleDeg, p.radiusPct)
-      spread.push({ ...p, x: x + jitter, y })
+      spread.push({ ...p, x: x + dx, y: y + dy })
     })
   }
 
@@ -670,13 +737,6 @@ export function CombatRadar({
   const orderedItems = items ? reorderByPin(items, (name) => name, pinned.items) : items
 
   const hasFight = positioned.length > 0
-  // Doubled — a corner is a real scrollable pane now (see CornerPane), not
-  // a fixed handful of points squeezed into the board's own corner, so
-  // there is no longer a ceiling on puck size fighting a ceiling on how
-  // many can fit without overlapping.
-  const portraitPx = compact ? 60 : 84
-  const dotPx = compact ? 28 : 36
-  const cornerPx = compact ? 52 : 72
 
   const attack = () => runMacro(['attack'])
   const attackTitle = (label: string) =>
@@ -725,9 +785,10 @@ export function CombatRadar({
           title rather than a spoke label: three concentric circles read as
           "distance" on sight the way a topographic map does, and the word
           is a hover away for whoever wants the game's own term for the one
-          they're looking at. Melee is the widest of the three — see
-          RANGE_RADIUS_PCT's own comment — to leave room for flanking
-          without crowding pole and missile out or eating the corners. */}
+          they're looking at. Melee is the widest of the three, and can grow
+          wider still — see `rangeRadiusPct`'s own comment — to leave room
+          for flanking without crowding pole and missile out or eating the
+          corners. */}
       {(['missile', 'pole', 'melee'] as const).map((range) => (
         <div
           key={range}
