@@ -43,6 +43,7 @@ import {
   type LucideIcon,
   Play,
   RefreshCw,
+  Repeat,
   Search,
   Shield,
   Square,
@@ -86,6 +87,7 @@ const KEEP_LINES = 200
  * exactly the task they are looking for.
  */
 const ICONS: Record<string, LucideIcon> = {
+  'task.routine': Repeat,
   'flow.hunt': Swords,
   'flow.ambush': EyeOff,
   'flow.recover': HeartPulse,

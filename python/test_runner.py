@@ -62,8 +62,16 @@ ok(
 )
 
 print()
-print("-- Combat comes first, matching what a player reaches for most --")
-ok("the first entry in the catalog is a Combat one", entries[0]["category"] == "Combat", entries[0])
+print("-- the first entry matches CATEGORY_ORDER's own first category --")
+# Not hardcoded to a specific category name: CATEGORY_ORDER is the thing
+# that actually decides this, and asserting a literal category here would
+# make the test wrong the next time a new category earns top billing
+# (as "Routines" did over "Combat") rather than catching a real regression.
+ok(
+    "the first catalog entry belongs to CATEGORY_ORDER[0]",
+    entries[0]["category"] == CATEGORY_ORDER[0],
+    f"{entries[0]['category']!r} vs {CATEGORY_ORDER[0]!r}",
+)
 
 print()
 print("-- an unknown category sorts after every known one, not scattered in --")

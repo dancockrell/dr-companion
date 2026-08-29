@@ -204,8 +204,12 @@ class Flow(Task):
         finally:
             self._waiting = None
 
-    def run(self) -> None:
-        """Connect, then walk the steps.
+    def _connect_and_start_reader(self) -> None:
+        """Connect, background the reader, and start the sight picture if
+        asked for. Split out of `run()` so a subclass that drives its own
+        loop - `Routine` in `tasks/routine.py`, choosing which step list to
+        run rather than walking one fixed list - gets this plumbing without
+        duplicating it.
 
         The reader runs on its own thread so `on_clean` keeps firing while a
         step waits - without that, `until` could never match, because the line
@@ -219,6 +223,40 @@ class Flow(Task):
 
         if self.sight_picture_enabled:
             self.enable_sight_picture(self.sight_picture_interval)
+
+    def _run_step(self, i: int, step: Step) -> None:
+        """Run one step: the `when` gate, the commands, then `until` or
+        `settle`. Pulled out of `run()`'s loop body for the same reason as
+        `_connect_and_start_reader` - `Routine` runs steps drawn from
+        whichever of several step lists the character's state currently
+        calls for, one at a time, and needs this exact logic without a fixed
+        `self.steps` to loop over."""
+        if step.when and not step.when(self):
+            print(f"  {i}. {step.label} - skipped, condition not met")
+            return
+
+        print(f"  {i}. {step.label}")
+        for command in step.commands:
+            if self._stopping:
+                return
+            self.do(command)
+
+        if step.until:
+            if not self._await(step.until, step.timeout):
+                # Said out loud rather than moving on quietly. A step whose
+                # expected message never arrived is the single most useful
+                # thing to know when a flow behaves oddly, and it is
+                # invisible otherwise.
+                print(
+                    f"     (timed out after {step.timeout:.0f}s waiting for "
+                    f"/{step.until}/ - continuing)"
+                )
+        elif step.settle:
+            time.sleep(step.settle)
+
+    def run(self) -> None:
+        """Connect, then walk `self.steps` in order, looping if `self.loops`."""
+        self._connect_and_start_reader()
 
         print(f"{self.title}" + (f" - {self.summary}" if self.summary else ""))
         if self.loops:
@@ -235,29 +273,7 @@ class Flow(Task):
                 for i, step in enumerate(self.steps, 1):
                     if self._stopping:
                         return
-
-                    if step.when and not step.when(self):
-                        print(f"  {i}. {step.label} - skipped, condition not met")
-                        continue
-
-                    print(f"  {i}. {step.label}")
-                    for command in step.commands:
-                        if self._stopping:
-                            return
-                        self.do(command)
-
-                    if step.until:
-                        if not self._await(step.until, step.timeout):
-                            # Said out loud rather than moving on quietly. A
-                            # step whose expected message never arrived is the
-                            # single most useful thing to know when a flow
-                            # behaves oddly, and it is invisible otherwise.
-                            print(
-                                f"     (timed out after {step.timeout:.0f}s waiting for "
-                                f"/{step.until}/ - continuing)"
-                            )
-                    elif step.settle:
-                        time.sleep(step.settle)
+                    self._run_step(i, step)
 
                 if not self.loops:
                     print("\ndone.")

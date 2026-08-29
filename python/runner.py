@@ -58,6 +58,10 @@ def _watch():
     return importlib.import_module("tasks.watch").Watch()
 
 
+def _routine():
+    return importlib.import_module("tasks.routine").Routine()
+
+
 def _example(attr: str):
     def make():
         mod = importlib.import_module("tasks.example_custom")
@@ -80,11 +84,25 @@ def _example(attr: str):
 #: own play far more often than "what does this one task do," and a flat
 #: list of ten names answers neither - see PYTHON_API.md and the app's own
 #: Tasks & Scripts panel, which grouped by category the day this was added.
-CATEGORY_ORDER: tuple[str, ...] = ("Combat", "Recovery", "Upkeep", "Utility", "Custom", "Examples")
+CATEGORY_ORDER: tuple[str, ...] = (
+    "Routines",
+    "Combat",
+    "Recovery",
+    "Upkeep",
+    "Utility",
+    "Custom",
+    "Examples",
+)
 
 #: id -> (title, summary, category, factory). The order within a category is
 #: the order the app shows; the category itself is ordered by CATEGORY_ORDER.
 REGISTRY: dict[str, tuple[str, str, str, object]] = {
+    "task.routine": (
+        "Hunt & recover",
+        "Hunts until hurt, recovers or finds a healer, then resumes on its own.",
+        "Routines",
+        _routine,
+    ),
     "flow.hunt": ("Hunt", "Find something, engage it, keep at it.", "Combat", _flow("hunt")),
     "flow.ambush": ("Ambush", "Hide, wait, strike from cover.", "Combat", _flow("ambush")),
     "flow.disengage": ("Break off", "Defensive, retreat, flee.", "Combat", _flow("disengage")),
