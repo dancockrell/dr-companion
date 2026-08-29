@@ -196,13 +196,25 @@ export function SafetyFooter() {
         * flex-1 so it's the one thing here that actually wants the slack
         * this bar has - a play/pause/skip/title deserves the space more
         * than an empty gap did. */}
-      <div className="flex h-8 min-w-0 flex-1 items-center gap-1.5 border-l border-border pl-2">
+      {/* No fixed height any more (30 Aug 2026) - the transport grew a
+        * second row (a real, labelled scrubber under the skip buttons
+        * instead of a bare unlabelled sliver squeezed into the button row
+        * itself - Dan: "make the track scrubber long, clarify what it is").
+        * `h-8` clipped that against a single-row assumption; letting the
+        * wrapper size to its content is what lets the footer grow to fit. */}
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 border-l border-border pl-2">
+        {/* w-full (30 Aug 2026): without it MusicTransport's column is only
+          * as wide as its own button row (skip buttons + title + icons, all
+          * `shrink-0` or bounded) - the scrubber's own `w-full` would then
+          * be full width *of that*, not of the space this wrapper actually
+          * has, so "long" silently capped out at the button row's width. */}
         <MusicTransport
           showVolume
-          showInlineProgress
+          showProgress
           showTransitions
           showFavorite
           onTitleClick={requestOpenSoundPanel}
+          className="w-full"
         />
       </div>
 

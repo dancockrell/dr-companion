@@ -61,19 +61,24 @@ function formatTime(seconds: number): string {
 /**
  * A seekable progress bar - separate from the transport buttons because it
  * needs its own subscription (position changes on every `timeupdate`, far
- * more often than play state or the track itself).
+ * more often than play state or the track itself). One shape now (30 Aug
+ * 2026) - a bare, unlabelled sliver used to sit *inside* the button row for
+ * the footer specifically (`compact` mode), and it read as decoration, not
+ * a control: no time labels, easy to mistake for volume, easy to miss
+ * entirely next to the transitions/favorite/volume icons crowding the same
+ * row. Dan: "make the track scrubber long, clarify what it is with better
+ * design and make it next to the track skipper." This is that fix - the
+ * full mm:ss/slider/mm:ss row, same one the Sound panel already used, now
+ * also the footer's own second row directly under the skip buttons rather
+ * than squeezed between them and everything else.
  *
- * `compact` (29 Aug 2026) drops the mm:ss labels for the footer's inline
- * copy, which sits *in* the button row rather than below it - see this
- * file's own header on `MusicTransport` for why the footer needed this at
- * all. Both variants return null under the same condition (a live stream,
- * or before metadata has arrived - a bar with no end is not a progress bar,
- * it's a lie), which matters for the footer specifically: with nothing to
- * render there, the space it would have filled just isn't claimed, rather
- * than sitting there empty. See MusicTransport's own note on why the old
- * layout gave that space to the title instead and it went to waste.
+ * Returns null under one condition - a live stream, or before metadata has
+ * arrived (a bar with no end is not a progress bar, it's a lie) - which
+ * matters for the footer specifically: with nothing to render, the row it
+ * would have taken just isn't claimed, rather than a labelled bar for a
+ * duration that doesn't exist.
  */
-function ProgressBar({ compact = false }: { compact?: boolean }) {
+function ProgressBar() {
   const [p, setP] = useState<Progress | null>(() => playbackProgress())
   useEffect(() => {
     setP((prev) => {
@@ -85,26 +90,6 @@ function ProgressBar({ compact = false }: { compact?: boolean }) {
 
   if (!p || !Number.isFinite(p.duration)) return null
 
-  const slider = (
-    <input
-      type="range"
-      min={0}
-      max={p.duration}
-      step={1}
-      value={Math.min(p.position, p.duration)}
-      onChange={(e) => seekMusic(Number(e.currentTarget.value))}
-      className="min-w-0 flex-1 accent-accent"
-      aria-label="Playback position"
-    />
-  )
-
-  if (compact) {
-    // No time labels - the footer strip is already tight, and the full
-    // mm:ss/mm:ss pair is one click away in the Sound panel's own copy of
-    // this bar. The slider alone is still real seeking, not decoration.
-    return <div className="flex min-w-16 flex-1 items-center">{slider}</div>
-  }
-
   // text-xs, not 10px: DESIGN.md 1.5 puts the floor at 12px and
   // tools/contrast-test.mjs fails the build below it. Timecodes are exactly
   // the kind of thing that gets shrunk because it is "only a number", and they
@@ -112,7 +97,16 @@ function ProgressBar({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex w-full items-center gap-1.5 text-xs tabular-nums text-ink-faint">
       <span className="w-8 shrink-0 text-right">{formatTime(p.position)}</span>
-      {slider}
+      <input
+        type="range"
+        min={0}
+        max={p.duration}
+        step={1}
+        value={Math.min(p.position, p.duration)}
+        onChange={(e) => seekMusic(Number(e.currentTarget.value))}
+        className="h-1.5 min-w-0 flex-1 accent-accent"
+        aria-label="Playback position"
+      />
       <span className="w-8 shrink-0">{formatTime(p.duration)}</span>
     </div>
   )
@@ -121,7 +115,6 @@ function ProgressBar({ compact = false }: { compact?: boolean }) {
 export function MusicTransport({
   showTitle = true,
   showProgress = false,
-  showInlineProgress = false,
   showVolume = false,
   showTransitions = false,
   showFavorite = false,
@@ -131,25 +124,16 @@ export function MusicTransport({
   /** Off in the footer's tightest state - the badge row already truncates
    * hard, and the transport buttons matter more there than the title. */
   showTitle?: boolean
-  /** On only in the Sound panel - a full mm:ss/slider/mm:ss row below the
-   * transport buttons. See `showInlineProgress` for the footer's copy. */
-  showProgress?: boolean
   /**
-   * The footer's scrubber - inline in the button row, no time labels
-   * (`ProgressBar`'s `compact` mode). Added 29 Aug 2026 to fix a real
-   * layout bug, not just to add a feature: the title used to be the only
-   * `flex-1` in this row, so at a wide window it claimed all the leftover
-   * space and then left most of it empty, since the text itself is
-   * left-aligned and usually shorter than the box it was given - a visibly
-   * broken-looking gap between the title and the volume control, not a
-   * deliberate design. The title is bounded now (`max-w-[16rem]`) and this
-   * bar is the thing that actually wants the slack: real, useful (you can
-   * seek from the footer now, not just watch it), and it simply doesn't
-   * render when there's nothing to show (a live stream, or before metadata
-   * arrives), so the gap only ever appears when there is truly nothing to
-   * put there instead of whenever the title happened to be short.
+   * A full mm:ss/slider/mm:ss row below the transport buttons - the Sound
+   * panel's own copy, and (30 Aug 2026) the footer's too. Used to be two
+   * different things: the footer had its own bare, unlabelled inline
+   * sliver squeezed into the button row itself, which read as decoration
+   * more than a control - no time labels, easy to lose next to the
+   * favorite/transitions/volume icons in the same row. One shape now,
+   * `ProgressBar`'s own header has the fuller story.
    */
-  showInlineProgress?: boolean
+  showProgress?: boolean
   /**
    * A compact volume slider inline, next to the transport buttons - added
    * 29 Aug 2026 because the footer had play/pause/skip and nothing to
@@ -275,19 +259,19 @@ export function MusicTransport({
           <SkipForward className="h-3.5 w-3.5" />
         </button>
         {/* min-w-16, max-w-[12rem], no flex-grow - deliberately not `flex-1`
-          * any more (29 Aug 2026). `flex-1` gives an element `flex-basis: 0%`,
-          * so it grows to fill whatever space nothing else claims *regardless
-          * of how much its own content needs* - at a wide window this title
+          * (29 Aug 2026, still true after the scrubber moved to its own row
+          * 30 Aug 2026). `flex-1` gives an element `flex-basis: 0%`, so it
+          * grows to fill whatever space nothing else claims *regardless of
+          * how much its own content needs* - at a wide window this title
           * was claiming a large box and then leaving most of it empty, since
           * the text is left-aligned and usually shorter than the box it got.
-          * Visibly broken-looking dead air, not a design. A bounded max-width
-          * means the box is never bigger than the text needs; default
-          * flex-shrink (every flex item's own default) still lets it give up
-          * width at a narrow window, down to the same six-character floor
-          * this strip has always kept, because a title that's shrunk past
-          * legibility is worse than one that's merely capped. The slack this
-          * used to (mis)absorb now goes to the scrubber below - see
-          * showInlineProgress's own header. */}
+          * A bounded max-width means the box is never bigger than the text
+          * needs; default flex-shrink still lets it give up width at a
+          * narrow window, down to the same six-character floor this strip
+          * has always kept. The button row can sit left-packed now that
+          * nothing else in it claims the leftover space either - the thing
+          * that actually wants to be long is the scrubber below, which gets
+          * its own full-width row instead of fighting this one for it. */}
         {showTitle &&
           (onTitleClick ? (
             <button
@@ -309,7 +293,6 @@ export function MusicTransport({
               {now ? now.title : 'Silent'}
             </span>
           ))}
-        {showInlineProgress && <ProgressBar compact />}
         {showFavorite && favoriteTarget && (
           <button
             type="button"
