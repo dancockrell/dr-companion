@@ -146,6 +146,16 @@ fn sound_dirs() -> Vec<PathBuf> {
 /// case-insensitively so the picker doesn't put every capitalised name before
 /// every lowercase one, which is what a plain string sort would do.
 fn is_audio_filename(name: &str) -> bool {
+    // A leading dot is a backup/hidden-file convention on this machine (see
+    // this file's own test below for a real example: the `.originals-backup`
+    // pass that gain-reduced the alert WAVs left `.Chatter-backup-....wav`
+    // siblings next to the real `Chatter.wav`). `read_sound` would still
+    // serve one of these if a highlights.cfg named it by exact filename -
+    // this only keeps it out of the *picker*, which is offering choices, not
+    // resolving a name someone already committed to.
+    if name.starts_with('.') {
+        return false;
+    }
     let lower = name.to_ascii_lowercase();
     lower.ends_with(".wav") || lower.ends_with(".mp3") || lower.ends_with(".ogg")
 }
@@ -262,7 +272,18 @@ mod tests {
         for good in ["Thunder.wav", "growl.mp3", "Bird.OGG", "x.Wav"] {
             assert!(is_audio_filename(good), "{good:?} should be audio");
         }
-        for bad in ["highlights.cfg", "readme.txt", "wav", "Thunder.wav.bak", ""] {
+        for bad in [
+            "highlights.cfg",
+            "readme.txt",
+            "wav",
+            "Thunder.wav.bak",
+            "",
+            // Real filenames this machine had sitting in Sounds/ at the time
+            // this exclusion was added - a backup convention from an earlier
+            // gain-reduction pass, not something a picker should offer.
+            ".Chatter-backup-20260828195704.wav",
+            ".Help-backup-20260828195704.wav",
+        ] {
             assert!(!is_audio_filename(bad), "{bad:?} should not be audio");
         }
     }
