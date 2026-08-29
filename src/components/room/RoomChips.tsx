@@ -1,4 +1,3 @@
-import { useCallback, useRef, useState } from 'react'
 import {
   sortCards,
   DECKS,
@@ -12,8 +11,7 @@ import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from '../shared/CreatureArt'
 import { hasArt } from '../../lib/creatureArt'
 import { nounOf } from '../../lib/room'
-import { canSendMacro } from '../../lib/canSendMacro'
-import { useAppStore } from '../../store/useAppStore'
+import { useRoomItemTake } from '../../lib/useRoomItemTake'
 import type { RoomCombatant } from '../../types'
 
 /**
@@ -39,7 +37,6 @@ import type { RoomCombatant } from '../../types'
  * "awful" earlier this session.
  */
 
-const IN_FLIGHT_MS = 900
 const STALE_AFTER_SECONDS = 60
 
 /** assess's own phrasing, shortest useful form — lives in the tooltip now,
@@ -168,28 +165,7 @@ export function RoomChips({
   items?: string[]
   className?: string
 }) {
-  const character = useAppStore((s) => s.character)
-  const requestIntent = useAppStore((s) => s.requestIntent)
-  const [inFlight, setInFlight] = useState(false)
-  const timer = useRef<number | null>(null)
-
-  const take = useCallback(
-    (name: string) => {
-      const state = canSendMacro({ stopLatched: character?.stopLatched, inFlight, connected: !!character })
-      if (!state.canSend) return
-
-      const noun = nounOf(name)
-      requestIntent('run_macro', { commands: [`get ${noun}`, `stow ${noun}`] })
-
-      setInFlight(true)
-      if (timer.current !== null) window.clearTimeout(timer.current)
-      timer.current = window.setTimeout(() => {
-        setInFlight(false)
-        timer.current = null
-      }, IN_FLIGHT_MS)
-    },
-    [character, inFlight, requestIntent]
-  )
+  const { take, canSend, reason } = useRoomItemTake()
 
   const shown = sortCards(cards)
   const index = indexCombatants(combatants)
@@ -199,8 +175,6 @@ export function RoomChips({
 
   const itemsKnown = items !== undefined
   if (shown.length === 0 && !itemsKnown) return null
-
-  const itemState = canSendMacro({ stopLatched: character?.stopLatched, inFlight, connected: !!character })
 
   // See trailingCellSpansRow's own comment for the arithmetic and the
   // screenshot that caught it shipped backwards the first time.
@@ -240,13 +214,13 @@ export function RoomChips({
                 <ItemChip
                   key={`${name}-${i}`}
                   name={name}
-                  canSend={itemState.canSend}
-                  reason={itemState.reason}
+                  canSend={canSend}
+                  reason={reason}
                   onTake={() => take(name)}
                 />
               ))
             ) : (
-              <span className="text-sm text-ink-faint/70">nothing</span>
+              <span className="text-sm text-ink-faint">nothing</span>
             )}
           </Group>
         </div>

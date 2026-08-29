@@ -1,6 +1,9 @@
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { hasArt } from '../../lib/creatureArt'
+import { nounOf } from '../../lib/room'
+import { useRoomItemTake } from '../../lib/useRoomItemTake'
+import { RoomBackdrop } from '../room/RoomBackdrop'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 
@@ -28,6 +31,20 @@ import type { RoomCard } from '../../lib/cards'
  * Only what assess actually reported gets a position. A creature with no
  * relation, or no range at all, is not guessed onto the radar — it goes in
  * the list below, honestly labelled unassessed or not fighting.
+ *
+ * The backdrop is the room itself — `RoomBackdrop`, the same fingerprint or
+ * real render `RoomScene` draws for this exact room, not a flat panel of its
+ * own. A radar that looks like a different screen than the picture above it
+ * reads as a second, unrelated feature; one that looks like the same room
+ * with rings drawn over it reads as what it is, the same room, mid-fight.
+ * A scrim sits between the two so the rings and names stay legible over
+ * whatever the room happens to look like.
+ *
+ * Floor items ride along too, clustered at your feet (radius ~12%, centered
+ * on "behind" since that is straight down on this compass) rather than
+ * scattered — `assess` says nothing about where a dropped weapon is lying,
+ * so guessing a scattered position for it would claim precision the game
+ * never gave. "At your feet" is the one position that is always true.
  */
 
 /** Same threshold as RoomChips.tsx — assess data past a minute old is shown
@@ -66,13 +83,35 @@ interface Positioned {
 }
 
 export function CombatRadar({
+  zone,
+  room,
+  title,
+  text,
   cards,
   combatants,
+  items,
 }: {
+  /** Which room's backdrop to draw — same identity `RoomScene` keys its own
+   * fingerprint by.
+   *
+   * Optional, because the backdrop is an enhancement and the radar is not.
+   * `RoomColumn` has a room identity to hand (it derives zone from the live
+   * zone payload and fetches the room text), and `BattlePanel` does not —
+   * making these required broke that call site, and the alternative was
+   * duplicating RoomColumn's fetch into a panel that has no business doing
+   * it. A caller with no room identity gets the radar without a backdrop,
+   * which is what it drew before there was one. */
+  zone?: string
+  room?: number | null
+  title?: string | null
+  text?: string | null
   cards: RoomCard[]
   combatants: RoomCombatant[]
+  /** The floor, same feed `RoomChips`' "On the floor" group reads. */
+  items?: string[]
 }) {
   const index = indexCombatants(combatants)
+  const { take, canSend, reason } = useRoomItemTake()
 
   const positioned: Positioned[] = []
   const notFighting: { card: RoomCard; combatant: RoomCombatant }[] = []
@@ -135,16 +174,29 @@ export function CombatRadar({
 
   return (
     <div className="flex flex-col gap-2 rounded border border-border bg-surface-raised p-2">
-      <div
-        className="relative mx-auto aspect-square w-full max-w-[300px] overflow-hidden rounded-full"
-        style={{
-          // A console, not a blank box — a faint radial vignette plus a hint
-          // of the accent colour reads as an instrument rather than a debug
-          // overlay, without competing with the markers drawn on top of it.
-          background:
-            'radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--color-accent) 7%, transparent) 0%, transparent 70%)',
-        }}
-      >
+      <div className="relative mx-auto aspect-square w-full max-w-[300px] overflow-hidden rounded-full">
+        {/* Only when the caller actually knows which room this is. Without an
+            identity there is no backdrop to look up, and drawing a wrong or
+            placeholder one behind a live fight would be worse than the plain
+            dark disc the radar has always had. */}
+        {zone && room != null && (
+          <RoomBackdrop zone={zone} room={room} title={title} text={text} />
+        )}
+
+        {/* Between the room and the rings. Dark enough that white-on-anything
+            text and pale range rings hold up over a bright snowfield or a
+            washed-out real render alike; a radial vignette rather than a flat
+            tint so "you", dead center, sits on the darkest point of the
+            picture no matter what the room looks like. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.72) 100%)',
+          }}
+          aria-hidden
+        />
+
         {/* A fixed compass grid, independent of who's actually on it — the
             four rings/spokes this radar can ever place a marker on (angleFor
             only ever returns 0/90/180/270), drawn once so the eye has a
@@ -183,29 +235,29 @@ export function CombatRadar({
           * of the axis the flank labels own, and keeps the vertical spacing
           * against missile (3%) and pole (92%) that issue #64 established. */}
         <span
-          className="absolute text-xs text-ink-faint/70"
+          className="absolute text-xs text-ink-faint"
           style={{ left: `${50 + RANGE_RADIUS_PCT.melee + 3}%`, top: '38%' }}
         >
           {RANGE_WORD.melee}
         </span>
-        <span className="absolute left-[62%] top-[3%] text-xs text-ink-faint/70">{RANGE_WORD.missile}</span>
-        <span className="absolute bottom-[8%] left-[62%] text-xs text-ink-faint/70">{RANGE_WORD.pole}</span>
+        <span className="absolute left-[62%] top-[3%] text-xs text-ink-faint">{RANGE_WORD.missile}</span>
+        <span className="absolute bottom-[8%] left-[62%] text-xs text-ink-faint">{RANGE_WORD.pole}</span>
 
         {/* Facing marker — "in front of you" is up, matching the compass
             every dot on this radar is drawn against — with its opposite and
             the two flanks labelled too, since assess only ever reports these
             four positions and a reader should not have to infer the other
             three from the one that is spelled out. */}
-        <span className="absolute left-1/2 top-0 -translate-x-1/2 text-xs text-ink-faint/50" aria-hidden>
+        <span className="absolute left-1/2 top-0 -translate-x-1/2 text-xs text-ink-faint" aria-hidden>
           ▲ front
         </span>
-        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-xs text-ink-faint/50" aria-hidden>
+        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-xs text-ink-faint" aria-hidden>
           behind
         </span>
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-xs text-ink-faint/50" aria-hidden>
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-xs text-ink-faint" aria-hidden>
           left
         </span>
-        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-ink-faint/50" aria-hidden>
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-ink-faint" aria-hidden>
           right
         </span>
 
@@ -219,6 +271,50 @@ export function CombatRadar({
           <span className="h-2 w-2 rounded-full border-2 border-accent bg-surface" />
           <span className="text-xs font-semibold text-accent">you</span>
         </div>
+
+        {/* The floor, at your feet — squares rather than the round creature
+            markers, so a dropped weapon is never mistaken for one more thing
+            fighting you. Capped at five with the rest folded into the last
+            tag's tooltip: five is already most of the melee ring's width at
+            the radius this cluster sits at, and a real drop pile is not
+            uncommon after a fight this radar exists for. */}
+        {items && items.length > 0 && (
+          <>
+            {items.slice(0, 5).map((name, i) => {
+              const n = Math.min(items.length, 5)
+              const spreadDeg = Math.min(64, (n - 1) * 22)
+              const angle = 180 + (n > 1 ? (i - (n - 1) / 2) * (spreadDeg / Math.max(n - 1, 1)) : 0)
+              const rad = ((angle - 90) * Math.PI) / 180
+              const radiusPct = 13
+              const x = 50 + radiusPct * Math.cos(rad)
+              const y = 50 + radiusPct * Math.sin(rad)
+              const overflow = i === 4 && items.length > 5 ? items.length - 4 : 0
+              const label = overflow > 0 ? `${name}, and ${overflow} more on the floor` : name
+              const tooltip = reason ?? `${label} — get ${nounOf(name)}`
+              return (
+                <button
+                  key={`${name}-${i}`}
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => take(name)}
+                  title={tooltip}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 disabled:cursor-not-allowed"
+                  style={{ left: `${x}%`, top: `${y}%` }}
+                >
+                  <span className="block h-2 w-2 rounded-sm border border-surface bg-accent shadow hover:brightness-125" />
+                  <span className="sr-only">{label}</span>
+                </button>
+              )
+            })}
+            <span
+              className="absolute -translate-x-1/2 text-xs text-ink-faint"
+              style={{ left: '50%', top: '69%' }}
+              aria-hidden
+            >
+              floor
+            </span>
+          </>
+        )}
 
         {hasFight ? (
           spread.map((p) => {
@@ -311,12 +407,12 @@ export function CombatRadar({
         <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-border pt-1.5 text-xs">
           {notFighting.map(({ card }) => (
             <span key={card.id} className="text-ink-faint" title="assess reports this one has broken off">
-              {card.name} <span className="text-ink-faint/60">(not fighting)</span>
+              {card.name} <span className="text-ink-faint">(not fighting)</span>
             </span>
           ))}
           {unassessed.map((card) => (
-            <span key={card.id} className="text-ink-faint/70" title="nobody has assessed this one yet">
-              {card.name} <span className="text-ink-faint/50">(unassessed)</span>
+            <span key={card.id} className="text-ink-faint" title="nobody has assessed this one yet">
+              {card.name} <span className="text-ink-faint">(unassessed)</span>
             </span>
           ))}
         </div>

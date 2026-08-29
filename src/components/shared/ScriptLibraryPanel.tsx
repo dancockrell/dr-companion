@@ -100,7 +100,7 @@ export function ScriptLibraryPanel({
       <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
         <ListTree className="w-3.5 h-3.5" />
         Script Library
-        <span className="text-ink-faint/70 normal-case font-normal">
+        <span className="text-ink-faint normal-case font-normal">
           ({visible.length})
         </span>
       </h2>
@@ -137,7 +137,7 @@ export function ScriptLibraryPanel({
         <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
           {grouped.map(([category, names]) => (
             <div key={category}>
-              <div className="text-xs font-medium text-ink-faint/80 uppercase tracking-wide mb-1">
+              <div className="text-xs font-medium text-ink-faint uppercase tracking-wide mb-1">
                 {category}
               </div>
               <div className="space-y-1">

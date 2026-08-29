@@ -106,6 +106,70 @@ check(
   offenders.length ? `${offenders.length} found, e.g. ${offenders[0]}` : ''
 )
 
+// --- the same inks, at the opacities the app actually renders them ----------
+
+/*
+ * The block above proves the palette. It does not prove the screen.
+ *
+ * Tailwind's `/NN` modifier makes a new colour out of a token, and this app
+ * uses it freely - `text-ink-faint/50` on the radar's compass labels,
+ * `text-ink-faint/80` on the script-library section headings. Those colours
+ * are not in the palette, so nothing here ever looked at them, and every one
+ * of them is dimmer than the token that was checked and passed.
+ *
+ * Measured in the running app rather than derived: composite the real
+ * background stack onto a 1x1 canvas, paint the computed text colour over it,
+ * read the pixel back. On surface-raised:
+ *
+ *     ink-faint        5.03:1   checked above, passes
+ *     ink-faint/80     3.64:1
+ *     ink-faint/70     3.08:1
+ *     ink-faint/60     2.60:1
+ *     ink-faint/50     2.19:1   the compass labels
+ *
+ * No reduction of ink-faint clears AA, because it only starts with 0.53 of
+ * margin to spend. The rule this encodes is not "50 is too low" - it is that
+ * a token passing says nothing about a fraction of it.
+ */
+
+/** `fg` at `alpha` over `bg`, both #rrggbb, composited in sRGB. */
+function blend(fg, bg, alpha) {
+  const hex = (h) => [0, 2, 4].map((i) => parseInt(h.replace('#', '').slice(i, i + 2), 16))
+  const f = hex(fg)
+  const b = hex(bg)
+  const to2 = (v) => Math.round(v).toString(16).padStart(2, '0')
+  return `#${[0, 1, 2].map((i) => to2(f[i] * alpha + b[i] * (1 - alpha))).join('')}`
+}
+
+console.log('')
+console.log('-- and at the reduced opacities the source actually uses --')
+
+/** Every `text-<token>/<n>` the codebase renders, found rather than assumed. */
+const used = new Map()
+for (const file of walk('src')) {
+  for (const m of readFileSync(file, 'utf8').matchAll(/\btext-([a-z-]+)\/(\d{1,3})\b/g)) {
+    if (!palette[m[1]]) continue
+    const key = `${m[1]}/${m[2]}`
+    if (!used.has(key)) used.set(key, { ink: m[1], pct: Number(m[2]), where: file })
+  }
+}
+
+// The denominator, so a regex that quietly stops matching cannot read as a
+// clean run - the failure this whole file exists to make impossible.
+console.log(`   ${used.size} token/opacity combination(s) found in src`)
+
+for (const { ink, pct, where } of [...used.values()]) {
+  for (const bg of surfaces) {
+    if (!palette[bg]) continue
+    const ratio = contrast(blend(palette[ink], palette[bg], pct / 100), palette[bg])
+    check(
+      `${ink}/${pct} on ${bg}`,
+      ratio >= AA,
+      `${ratio.toFixed(2)}:1${ratio >= AA ? '' : ` (needs ${AA}) - ${where}`}`
+    )
+  }
+}
+
 console.log('')
 console.log(fails === 0 ? 'all passed' : `${fails} FAILED`)
 process.exit(fails === 0 ? 0 : 1)
