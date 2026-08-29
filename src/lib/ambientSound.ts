@@ -345,7 +345,7 @@ let currentZone: string | null = null
 export interface NowPlaying {
   title: string
   composer: string
-  source: 'radio' | 'zone' | 'custom'
+  source: 'radio' | 'zone' | 'custom' | 'playlist'
 }
 let nowPlayingState: NowPlaying | null = null
 const nowPlayingListeners = new Set<(np: NowPlaying | null) => void>()
@@ -556,8 +556,82 @@ class ZoneMusicPlayer {
   }
 }
 
+/**
+ * Walks a player's own hand-picked playlist (30 Aug 2026) - same shape as
+ * `RadioPlayer`/`ZoneMusicPlayer` (shuffle on entry, advance on `ended`,
+ * reshuffle rather than repeat when the list loops), the only real
+ * difference being where the track list comes from: a station's is a fixed
+ * slice of `manifest.json`, a playlist's is whatever a player added, so the
+ * track ids arrive as a parameter at `select()` time rather than being
+ * looked up from a module-level table the way `RadioPlayer` looks up
+ * `RADIO_STATIONS`. This module owns no persisted state of its own -
+ * playlists.ts does (same split as favorites.ts owning the favorites list
+ * while this file only ever plays what it's told to).
+ */
+class PlaylistPlayer {
+  private playlistId: string | null = null
+  private queue: string[] = []
+  private pos = 0
+
+  get current(): string | null {
+    return this.playlistId
+  }
+
+  select(playlistId: string | null, trackIds: string[]) {
+    if (playlistId === this.playlistId) return
+    this.playlistId = playlistId
+
+    if (!playlistId || !trackIds.length) {
+      this.playlistId = null
+      return
+    }
+
+    this.queue = shuffled(trackIds)
+    this.pos = 0
+    this.playCurrent()
+  }
+
+  /** Clears the selection without playing anything else - the caller
+   * decides what happens next (zone music, a station, a stream), same
+   * division of responsibility as RadioPlayer.clearSilently. */
+  clearSilently() {
+    this.playlistId = null
+  }
+
+  /** Jump forward or back one track in the current playlist. */
+  skip(dir: 1 | -1) {
+    if (!this.playlistId || !this.queue.length) return
+    this.pos = (this.pos + dir + this.queue.length) % this.queue.length
+    this.playCurrent()
+  }
+
+  private playCurrent() {
+    const id = this.queue[this.pos]
+    const file = id ? RADIO_FILES[id] : undefined
+    if (!file) return
+    music.play(file, 0.22, {
+      loop: false,
+      onEnded: () => this.advance(),
+      trackGain: id ? TRACK_GAIN[id] : undefined,
+    })
+    const meta = id ? TRACK_META[id] : undefined
+    setNowPlaying(meta ? { ...meta, source: 'playlist' } : null)
+  }
+
+  private advance() {
+    if (this.playlistId === null) return
+    this.pos++
+    if (this.pos >= this.queue.length) {
+      this.queue = shuffled(this.queue)
+      this.pos = 0
+    }
+    this.playCurrent()
+  }
+}
+
 const zoneMusic = new ZoneMusicPlayer()
 const radio = new RadioPlayer()
+const playlist = new PlaylistPlayer()
 
 /**
  * Called on every zone report from the live bridge. A no-op unless the zone
@@ -567,25 +641,57 @@ export function setZone(zoneId: string | null) {
   if (zoneId === currentZone) return
   currentZone = zoneId
 
-  // Radio and a custom stream, once selected, keep playing across zone
-  // changes - both are a deliberate override, not a per-zone thing to
-  // interrupt.
-  if (!radio.current && !customStreamUrl) {
+  // Radio, a custom stream, and a playlist, once selected, keep playing
+  // across zone changes - all three are a deliberate override, not a
+  // per-zone thing to interrupt.
+  if (!radio.current && !customStreamUrl && !playlist.current) {
     zoneMusic.select(zoneId)
   }
 }
 
-/** id or null to go back to zone music. An id not in RADIO_STATIONS is refused, falling back to zone music. */
+/**
+ * id or null to go back to zone music. An id not in RADIO_STATIONS is
+ * refused, falling back to zone music.
+ *
+ * The `id === null` branch used to just call `radio.select(null)` and stop.
+ * That's correct only when a *station* was the thing overriding zone music:
+ * `RadioPlayer.select`'s own early-return ("already this value") also fires
+ * when radio was never the active source at all - a custom stream or a
+ * playlist was - because `radio.current` had been null the whole time.
+ * "Zone music" then looked like it worked (the row highlighted, no error)
+ * while the stream or playlist kept playing right through the click. Fixed
+ * by deciding the fallback here, based on what was actually overriding,
+ * rather than delegating entirely to a player that only knows its own
+ * state. The already-on-zone-music case still does nothing, same as
+ * before - a redundant click must not restart the current zone track from
+ * a fresh shuffle.
+ */
 export function setRadioStation(id: string | null) {
-  if (id !== null) customStreamUrl = null
-  radio.select(id)
+  if (id !== null) {
+    customStreamUrl = null
+    playlist.clearSilently()
+    radio.select(id)
+    return
+  }
+
+  const radioWasActive = radio.current !== null
+  const somethingWasOverriding = radioWasActive || customStreamUrl !== null || playlist.current !== null
+  customStreamUrl = null
+  playlist.clearSilently()
+  if (radioWasActive) {
+    radio.select(null) // clears radio's own state and falls back to zone music itself
+  } else if (somethingWasOverriding) {
+    zoneMusic.select(currentZone) // radio was never the override - fall back directly
+  }
 }
 
 /** Play one specific track by id (search's "play this song" - see
- * RadioPlayer.playTrackDirectly). Clears a custom stream the same way
- * picking a station does; a no-op if the id isn't in the pool. */
+ * RadioPlayer.playTrackDirectly). Clears a custom stream and a playlist
+ * the same way picking a station does; a no-op if the id isn't in the
+ * pool. */
 export function playTrack(trackId: string) {
   customStreamUrl = null
+  playlist.clearSilently()
   radio.playTrackDirectly(trackId)
 }
 
@@ -594,13 +700,43 @@ export function currentRadioStation(): string | null {
 }
 
 /**
+ * id or null to go back to zone music, plus the playlist's own track ids -
+ * this module has no persisted playlist state of its own (see
+ * `PlaylistPlayer`'s header), so the caller (playlists.ts's own reader, or
+ * GamePane's restore-on-mount effect) hands them over rather than this
+ * function looking them up itself. Mutually exclusive with a station and a
+ * custom stream, same as those are with each other - only one thing ever
+ * occupies the `music` slot.
+ */
+export function setPlaylist(id: string | null, trackIds: string[] = []) {
+  // Same top-level guard setCustomStream has, for the same reason: without
+  // it, calling setPlaylist(null) while no playlist is even playing would
+  // still fall through to zoneMusic.select(currentZone) and restart the
+  // current zone track from a freshly shuffled position - a redundant
+  // click producing an audible interruption.
+  if (id === playlist.current) return
+  if (id) {
+    customStreamUrl = null
+    radio.clearSilently()
+    playlist.select(id, trackIds)
+  } else {
+    playlist.clearSilently()
+    zoneMusic.select(currentZone)
+  }
+}
+
+export function currentPlaylistId(): string | null {
+  return playlist.current
+}
+
+/**
  * A player-supplied stream URL - an Icecast/Shoutcast station, or any other
  * direct audio URL - played in the same `music` slot the built-in radio
  * stations use. This is the literal "plug in other radio sources" ask: it
  * covers any station whose raw stream URL someone hands the app, not just
- * the four curated ones. Mutually exclusive with a built-in station and with
- * zone music, same as those are with each other - only one thing ever
- * occupies the slot. `null` goes back to zone music.
+ * the four curated ones. Mutually exclusive with a built-in station, a
+ * playlist, and zone music, same as those are with each other - only one
+ * thing ever occupies the slot. `null` goes back to zone music.
  *
  * No licence/attribution bookkeeping here, unlike the curated `manifest.json`
  * pool - a player pointing this at their own stream is responsible for what
@@ -612,6 +748,7 @@ export function setCustomStream(url: string | null) {
   customStreamUrl = url
   if (url) {
     radio.clearSilently()
+    playlist.clearSilently()
     music.play(url, 0.22, { loop: true })
     setNowPlaying({ title: url, composer: '', source: 'custom' })
   } else {
@@ -629,6 +766,7 @@ export function currentCustomStream(): string | null {
 export function skipTrack(dir: 1 | -1) {
   if (customStreamUrl) return
   if (radio.current) radio.skip(dir)
+  else if (playlist.current) playlist.skip(dir)
   else zoneMusic.skip(dir)
 }
 
@@ -716,6 +854,7 @@ export function stopMusic() {
   music.stop()
   currentZone = null
   customStreamUrl = null
+  playlist.clearSilently()
   radio.select(null)
   setNowPlaying(null)
 }
