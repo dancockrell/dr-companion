@@ -45,11 +45,19 @@ function formatTime(seconds: number): string {
 /**
  * A seekable progress bar - separate from the transport buttons because it
  * needs its own subscription (position changes on every `timeupdate`, far
- * more often than play state or the track itself) and because the footer's
- * compact transport deliberately doesn't show one, the same restraint that
- * keeps it from showing the title there.
+ * more often than play state or the track itself).
+ *
+ * `compact` (29 Aug 2026) drops the mm:ss labels for the footer's inline
+ * copy, which sits *in* the button row rather than below it - see this
+ * file's own header on `MusicTransport` for why the footer needed this at
+ * all. Both variants return null under the same condition (a live stream,
+ * or before metadata has arrived - a bar with no end is not a progress bar,
+ * it's a lie), which matters for the footer specifically: with nothing to
+ * render there, the space it would have filled just isn't claimed, rather
+ * than sitting there empty. See MusicTransport's own note on why the old
+ * layout gave that space to the title instead and it went to waste.
  */
-function ProgressBar() {
+function ProgressBar({ compact = false }: { compact?: boolean }) {
   const [p, setP] = useState<Progress | null>(() => playbackProgress())
   useEffect(() => {
     setP((prev) => {
@@ -59,9 +67,27 @@ function ProgressBar() {
     return onProgressChange(setP)
   }, [])
 
-  // No bar for a live stream (non-finite duration) or before metadata has
-  // arrived - a bar with no end is not a progress bar, it's a lie.
   if (!p || !Number.isFinite(p.duration)) return null
+
+  const slider = (
+    <input
+      type="range"
+      min={0}
+      max={p.duration}
+      step={1}
+      value={Math.min(p.position, p.duration)}
+      onChange={(e) => seekMusic(Number(e.currentTarget.value))}
+      className="min-w-0 flex-1 accent-accent"
+      aria-label="Playback position"
+    />
+  )
+
+  if (compact) {
+    // No time labels - the footer strip is already tight, and the full
+    // mm:ss/mm:ss pair is one click away in the Sound panel's own copy of
+    // this bar. The slider alone is still real seeking, not decoration.
+    return <div className="flex min-w-16 flex-1 items-center">{slider}</div>
+  }
 
   // text-xs, not 10px: DESIGN.md 1.5 puts the floor at 12px and
   // tools/contrast-test.mjs fails the build below it. Timecodes are exactly
@@ -70,16 +96,7 @@ function ProgressBar() {
   return (
     <div className="flex w-full items-center gap-1.5 text-xs tabular-nums text-ink-faint">
       <span className="w-8 shrink-0 text-right">{formatTime(p.position)}</span>
-      <input
-        type="range"
-        min={0}
-        max={p.duration}
-        step={1}
-        value={Math.min(p.position, p.duration)}
-        onChange={(e) => seekMusic(Number(e.currentTarget.value))}
-        className="min-w-0 flex-1 accent-accent"
-        aria-label="Playback position"
-      />
+      {slider}
       <span className="w-8 shrink-0">{formatTime(p.duration)}</span>
     </div>
   )
@@ -88,6 +105,7 @@ function ProgressBar() {
 export function MusicTransport({
   showTitle = true,
   showProgress = false,
+  showInlineProgress = false,
   showVolume = false,
   onTitleClick,
   className,
@@ -95,10 +113,25 @@ export function MusicTransport({
   /** Off in the footer's tightest state - the badge row already truncates
    * hard, and the transport buttons matter more there than the title. */
   showTitle?: boolean
-  /** On only in the Sound panel - a real player deserves a scrub bar, but
-   * the footer stays a glance-and-click strip, not a second copy of the
-   * panel. */
+  /** On only in the Sound panel - a full mm:ss/slider/mm:ss row below the
+   * transport buttons. See `showInlineProgress` for the footer's copy. */
   showProgress?: boolean
+  /**
+   * The footer's scrubber - inline in the button row, no time labels
+   * (`ProgressBar`'s `compact` mode). Added 29 Aug 2026 to fix a real
+   * layout bug, not just to add a feature: the title used to be the only
+   * `flex-1` in this row, so at a wide window it claimed all the leftover
+   * space and then left most of it empty, since the text itself is
+   * left-aligned and usually shorter than the box it was given - a visibly
+   * broken-looking gap between the title and the volume control, not a
+   * deliberate design. The title is bounded now (`max-w-[16rem]`) and this
+   * bar is the thing that actually wants the slack: real, useful (you can
+   * seek from the footer now, not just watch it), and it simply doesn't
+   * render when there's nothing to show (a live stream, or before metadata
+   * arrives), so the gap only ever appears when there is truly nothing to
+   * put there instead of whenever the title happened to be short.
+   */
+  showInlineProgress?: boolean
   /**
    * A compact volume slider inline, next to the transport buttons - added
    * 29 Aug 2026 because the footer had play/pause/skip and nothing to
@@ -183,11 +216,25 @@ export function MusicTransport({
         >
           <SkipForward className="h-3.5 w-3.5" />
         </button>
+        {/* min-w-16, max-w-[12rem], no flex-grow - deliberately not `flex-1`
+          * any more (29 Aug 2026). `flex-1` gives an element `flex-basis: 0%`,
+          * so it grows to fill whatever space nothing else claims *regardless
+          * of how much its own content needs* - at a wide window this title
+          * was claiming a large box and then leaving most of it empty, since
+          * the text is left-aligned and usually shorter than the box it got.
+          * Visibly broken-looking dead air, not a design. A bounded max-width
+          * means the box is never bigger than the text needs; default
+          * flex-shrink (every flex item's own default) still lets it give up
+          * width at a narrow window, down to the same six-character floor
+          * this strip has always kept, because a title that's shrunk past
+          * legibility is worse than one that's merely capped. The slack this
+          * used to (mis)absorb now goes to the scrubber below - see
+          * showInlineProgress's own header. */}
         {showTitle &&
           (onTitleClick ? (
             <button
               type="button"
-              className="min-w-16 flex-1 truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
+              className="min-w-16 max-w-[12rem] truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
               title={
                 (now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent') +
                 ' — open Sound'
@@ -198,33 +245,15 @@ export function MusicTransport({
             </button>
           ) : (
             <span
-              className="min-w-16 flex-1 truncate text-xs text-ink-muted"
+              className="min-w-16 max-w-[12rem] truncate text-xs text-ink-muted"
               title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}
             >
               {now ? now.title : 'Silent'}
             </span>
           ))}
-        {/* Shrinkable, where it used to be `shrink-0`.
-          *
-          * Everything else in this strip is a fixed width - three 22px buttons
-          * and this 90px group - so the title, the only `flex-1` here, was
-          * absorbing the whole shortfall on its own. Measured in the footer:
-          * at a 1366px window the strip is 291px and the title gets 127, and
-          * at 1180px the strip is 201px and the title gets 37. The strip lost
-          * 90px and the title paid all 90.
-          *
-          * 37px is about six characters. ""Drunken Sailor", performed by the
-          * Midshipmen Glee Club (1977)" rendered as `"Dru...`, which is not
-          * truncation, it is a blank with punctuation - and this strip exists
-          * to answer "what is playing" at a glance. The `title` hover carried
-          * the full name the whole time, which is a good fallback and not a
-          * substitute for the thing being legible.
-          *
-          * So the slider gives up width before the title starves. It keeps a
-          * floor of its own, because a 6px range input is no more use than a
-          * six-character title. */}
+        {showInlineProgress && <ProgressBar compact />}
         {showVolume && (
-          <div className="flex min-w-0 shrink items-center gap-1">
+          <div className="flex min-w-0 shrink-0 items-center gap-1">
             <button
               type="button"
               className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
