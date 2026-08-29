@@ -72,9 +72,11 @@ import { onOpenSoundPanelRequest } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
 import { MusicTransport } from './MusicTransport'
 
-/** Search results cap - the pool is 217 tracks and growing; a query too
- * broad to narrow that gets capped rather than dumping the whole pool into
- * the panel. */
+/** Search results cap - the pool is 178 tracks (29 Aug 2026: down from 217
+ * after killing Salt and Sail and Silk Road, see docs/AUDIO.md - both were
+ * either too thin to hold a station or mostly never-reviewed bulk-adds) and
+ * still growing; a query too broad to narrow that gets capped rather than
+ * dumping the whole pool into the panel. */
 const SEARCH_LIMIT = 25
 
 /**
@@ -217,7 +219,32 @@ export function SoundControls() {
   const [radioId, setRadioId] = useState(currentRadioStation())
   const [customUrl, setCustomUrl] = useState(currentCustomStream() ?? '')
   const [customName, setCustomName] = useState('')
-  const [favorites, setFavorites] = useState<FavoriteStation[]>(() => loadPrefs().favoriteStations ?? [])
+  // A `builtin` favorite that named a station killed since it was saved
+  // (Salt and Sail and Silk Road, 29 Aug 2026 - see docs/AUDIO.md) is a
+  // dead star: it still renders, still looks clickable, and clicking it
+  // silently falls back to zone music instead of doing what its label
+  // promises - RadioPlayer.select's own "refuse, don't guess" behavior for
+  // an id that isn't a real station, with nothing telling the panel the
+  // click did something different than expected. Filtered out of the very
+  // first render, not just hidden later, so a stale star never flashes on
+  // screen at all - and the cleaned list is what gets persisted back, so
+  // this only ever has to happen once per profile rather than on every
+  // load. `custom` favorites (a player's own stream URL) aren't checked
+  // here - there's no catalog for those to fall out of.
+  const [favorites, setFavorites] = useState<FavoriteStation[]>(() => {
+    const saved = loadPrefs().favoriteStations ?? []
+    const liveStationIds = new Set(RADIO_STATIONS.map((s) => s.id))
+    return saved.filter((f) => f.kind !== 'builtin' || liveStationIds.has(f.id))
+  })
+  useEffect(() => {
+    const saved = loadPrefs().favoriteStations ?? []
+    if (saved.length !== favorites.length) savePrefs({ favoriteStations: favorites })
+    // Once, on mount - `favorites`/`saved` deliberately excluded from deps.
+    // This is a one-time migration for whatever was on disk at load time,
+    // not a general "keep storage in sync" effect; every other write to
+    // favorites already calls savePrefs itself at the point of change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [crossfade, setCrossfade] = useState<CrossfadeStyle>(() => loadPrefs().crossfadeStyle ?? currentCrossfadeStyle())
   const [search, setSearch] = useState('')
   // Only for highlighting the active row in search results - title+composer
@@ -583,8 +610,8 @@ export function SoundControls() {
               </div>
             </div>
 
-            {/* Search across all 217 tracks by title or composer, not just
-              * the six stations they're grouped into - "search specific
+            {/* Search across all 178 tracks by title or composer, not just
+              * the four stations they're grouped into - "search specific
               * tracks" was a real gap: browsing could only ever land you on
               * a station and hope, never a song. Takes over the space below
               * while active; clearing it goes back to favorites/stations. */}
@@ -702,8 +729,9 @@ export function SoundControls() {
             )}
 
             {/* Every built-in station, shown off rather than tucked into a
-              * dropdown - real curated playlists (six stations, hundreds of
-              * tracks between them) deserve to be seen, not guessed at from
+              * dropdown - real curated playlists (four stations, 178
+              * tracks between them - two others were killed 29 Aug 2026,
+              * see docs/AUDIO.md) deserve to be seen, not guessed at from
               * a name in a <select>. Star toggles a favorite; clicking the
               * row plays it. Overrides zone music in the same slot - see
               * RadioPlayer in ambientSound.ts. */}
@@ -773,7 +801,7 @@ export function SoundControls() {
 
             {/* Any direct stream URL (an Icecast/Shoutcast station, or
               * whatever else someone points it at) - the "plug in other
-              * radio sources" ask, covering stations beyond the six curated
+              * radio sources" ask, covering stations beyond the four curated
               * ones. Mutually exclusive with the list above and with zone
               * music - see setCustomStream's own header. Naming it here is
               * what lets it become a favorite: a URL alone is not something

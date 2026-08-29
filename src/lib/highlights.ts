@@ -77,6 +77,76 @@ export interface Painted {
 const TYPES = new Set<HighlightType>(['line', 'string', 'beginswith', 'regexp'])
 
 /**
+ * How long one pattern may take on a short probe string before it is refused.
+ *
+ * A compiled regexp says nothing about what it costs to run. `(\w+\s?)+$` is
+ * a pattern somebody writes meaning "a run of words to the end of the line",
+ * it compiles without complaint, and against one ordinary room description it
+ * did not finish in thirty seconds. `paint()` runs per rendered line and
+ * GamePane keeps 400 in the DOM, so that is not a slow client, it is a client
+ * that never paints again.
+ *
+ * Catching it is possible because the cost is exponential in the input, so a
+ * deliberately short probe separates the two populations by orders of
+ * magnitude. Measured on `(a+)+$`: 4.7ms at 16 characters, 12.5 at 20, 40.7
+ * at 22, 159 at 24, 2513 at 28. Every ordinary pattern in a real config runs
+ * in well under a millisecond, so a budget of 20ms is not a close call in
+ * either direction.
+ */
+const PATTERN_BUDGET_MS = 20
+
+/**
+ * Strings that make an ambiguous quantifier do its worst, kept short on
+ * purpose - see PATTERN_BUDGET_MS.
+ *
+ * Backtracking is only expensive when the match *fails*: a pattern that
+ * matches returns as soon as it succeeds. So each body is tried against
+ * several terminators, because which one defeats a given pattern depends on
+ * what it is anchored to.
+ *
+ * That is not theoretical tidiness. A first version of this ended every probe
+ * with `!` and caught `(a+)+$` and `(\w+\s?)+$` but not `(\s*\w+\s*)+!` -
+ * which matched the probes instantly and then hung for thirty seconds on a
+ * real room description, because that one ends in a letter. A probe set that
+ * only fails one way only finds patterns that fail that way.
+ */
+const PROBE_BODIES = [
+  'a'.repeat(22),
+  'ab '.repeat(7).trim(),
+  'x1 y2 z3 w4 v5 u6 t7',
+  // A digit run, because `(\d+)+$` passed every other probe: none of them
+  // held enough consecutive digits to make it backtrack. Found by testing the
+  // guard rather than by reading it.
+  '1'.repeat(22),
+]
+const PROBE_TAILS = ['', '!', '.', '#']
+const PROBES = PROBE_BODIES.flatMap((body) => PROBE_TAILS.map((tail) => body + tail))
+
+/**
+ * Run a compiled pattern against the probes and report the worst time.
+ *
+ * There is no way to interrupt a running regexp in JavaScript, so this cannot
+ * be a timeout - it is a measurement taken once, on input short enough that
+ * even a catastrophic pattern returns quickly, and the entry is refused on
+ * what that measurement says. The alternative is discovering the cost on a
+ * real game line, on the render thread, forever.
+ */
+function slowestProbeMs(re: RegExp): number {
+  let worst = 0
+  for (const probe of PROBES) {
+    const t0 = performance.now()
+    try {
+      re.exec(probe)
+    } catch {
+      // A pattern that throws is the compile step's problem, not this one.
+    }
+    worst = Math.max(worst, performance.now() - t0)
+    if (worst > PATTERN_BUDGET_MS) break
+  }
+  return worst
+}
+
+/**
  * Parse a Genie config.
  *
  * Skips what it does not understand rather than throwing, because that is what
@@ -133,6 +203,17 @@ export function parseHighlights(text: string): { entries: Highlight[]; skipped: 
         entry.re = new RegExp(pattern)
       } catch (e) {
         skipped.push(`${line} - ${(e as Error).message}`)
+        continue
+      }
+
+      // Compiling is not the same as being safe to run. See PATTERN_BUDGET_MS.
+      const worst = slowestProbeMs(entry.re)
+      if (worst > PATTERN_BUDGET_MS) {
+        skipped.push(
+          `${line} - pattern took ${worst.toFixed(0)}ms on a 22-character probe ` +
+            '(nested quantifiers backtrack exponentially); it would freeze the game pane, ' +
+            'so it is not loaded'
+        )
         continue
       }
     }

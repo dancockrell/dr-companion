@@ -81,6 +81,27 @@ export type TaskLine = {
 
 const IDLE: TaskState = { running: false, task: '', note: '' }
 
+/** What a script needs to connect: the port it should dial, and where its token lives. */
+export type ScriptApiInfo = {
+  /** `null` before the socket has bound - no task or script has started it yet. */
+  port: number | null
+  tokenPath: string
+}
+
+/**
+ * `Companion()` (see `docs/PYTHON_API.md`) reads both of these off disk on its
+ * own, so nothing a player runs actually needs this call - it exists for a
+ * human confirming the socket is up, or pointing a non-Python client at it by
+ * hand. `script_api_info` on the Rust side has carried this since it was
+ * written and nothing called it until now - see ScriptApiPanel.tsx.
+ */
+export async function scriptApiInfo(): Promise<ScriptApiInfo> {
+  const raw = (await invokeTauri('script_api_info')) as
+    | { port?: number | null; tokenPath?: string }
+    | undefined
+  return { port: raw?.port ?? null, tokenPath: raw?.tokenPath ?? '' }
+}
+
 /** What can be run, and why nothing can, when nothing can. */
 export async function pythonStatus(): Promise<PythonStatus> {
   const raw = await invokeTauri('python_status')

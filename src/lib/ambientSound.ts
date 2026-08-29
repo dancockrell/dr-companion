@@ -587,7 +587,7 @@ export function currentRadioStation(): string | null {
  * direct audio URL - played in the same `music` slot the built-in radio
  * stations use. This is the literal "plug in other radio sources" ask: it
  * covers any station whose raw stream URL someone hands the app, not just
- * the six curated ones. Mutually exclusive with a built-in station and with
+ * the four curated ones. Mutually exclusive with a built-in station and with
  * zone music, same as those are with each other - only one thing ever
  * occupies the slot. `null` goes back to zone music.
  *

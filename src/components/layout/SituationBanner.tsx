@@ -13,7 +13,7 @@
  */
 import type { IntentName } from '../../bridge/types'
 import { AlertTriangle, Heart, Swords, Skull, RotateCcw } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { isLowHealth } from '../../lib/vitals'
 
 export function SituationBanner() {
@@ -22,6 +22,7 @@ export function SituationBanner() {
   const autoSuggestHealer = useAppStore((s) => s.autoSuggestHealer)
   const runawayReason = useAppStore((s) => s.runawayReason)
   const clearRunaway = useAppStore((s) => s.clearRunaway)
+  const bridgeIntents = useAppStore((s) => s.bridgeIntents)
 
   // A self-stop outranks everything else on this strip. The character has been
   // repeating itself, which is both useless and the thing that gets noticed.
@@ -105,15 +106,20 @@ export function SituationBanner() {
           </div>
         )}
       </div>
-      {action && (
-        <button
-          type="button"
-          className="shrink-0 text-xs font-semibold rounded-lg px-2.5 py-1.5 bg-surface/80 border border-border hover:bg-surface"
-          onClick={() => requestIntent(action!.intent)}
-        >
-          {action.label}
-        </button>
-      )}
+      {action && (() => {
+        const available = isIntentImplemented(bridgeIntents, action!.intent)
+        return (
+          <button
+            type="button"
+            disabled={!available}
+            className="shrink-0 text-xs font-semibold rounded-lg px-2.5 py-1.5 bg-surface/80 border border-border hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface/80"
+            title={available ? undefined : 'Not yet implemented in the connected bridge.'}
+            onClick={() => requestIntent(action!.intent)}
+          >
+            {action!.label}
+          </button>
+        )
+      })()}
     </div>
   )
 }

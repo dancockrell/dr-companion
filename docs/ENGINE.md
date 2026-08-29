@@ -281,6 +281,27 @@ build; `tauri.conf.json`'s `bundle.resources` ships whatever is there.
 `npm run tauri:build` runs the fetch first automatically, so this cannot be
 silently skipped.
 
+**What that cost, and the fix.** Tauri validates `bundle.resources` on *every*
+build, not only a bundling one, so a fresh clone could not run `cargo build`
+or `cargo test` at all - it stopped at `resource path vendor\Ruby4Lich5.exe
+doesn't exist`, gating 59 Rust unit tests behind a 65 MB download none of them
+use. Measured: two placeholder files, four and fourteen bytes, are enough for
+all 59 to run green.
+
+So `tools/vendor-fetch.mjs --stub` writes those placeholders (`npm run
+vendor:stub`), and `--require-real` refuses them, wired into `tauri:build`
+after the fetch. The guard is what makes the convenience safe: a placeholder
+reaching a release would ship an installer whose bundled Ruby is the word
+"stub", and that surfaces on a user's machine as a first run that cannot find
+Ruby - a long way from the decision that caused it. It recognises a stub by a
+marker in the file's own bytes as well as by the manifest, because a manifest
+can be deleted and the file left behind.
+
+`tools/vendor-stub-test.mjs` (`npm run test:vendor`) proves the guard refuses
+a stub, refuses one whose manifest has been deleted, refuses bytes that
+disagree with their recorded hash - **and accepts a genuine hash-matching
+file**, so a guard that simply always failed could not pass it either.
+
 At runtime, `setup::bundled_ruby4lich5` resolves the bundled copy through
 Tauri's own resource directory and re-verifies its SHA-256 against a manifest
 the fetch script wrote - not because the fetch script's own check could not

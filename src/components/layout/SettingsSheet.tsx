@@ -13,6 +13,7 @@ import { SettingsFilesPanel } from '../shared/SettingsFilesPanel'
 import { TogglesPanel } from '../shared/TogglesPanel'
 import { VarsPanel } from '../shared/VarsPanel'
 import { LinksPanel } from '../shared/LinksPanel'
+import { ScriptApiPanel } from '../shared/ScriptApiPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
@@ -421,6 +422,17 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               Reference links
             </h3>
             <LinksPanel />
+          </section>
+
+          {/* Fourth of the same shape as the three panels above: script_api_info
+              has been able to answer this since it was written - its own doc
+              comment says "for a settings panel to show it" - and nothing
+              called it until now. See ScriptApiPanel.tsx. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              Python scripting API
+            </h3>
+            <ScriptApiPanel />
           </section>
 
           <section className="space-y-2">

@@ -9,10 +9,11 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { HighlightsEditor } from './HighlightsEditor'
 import { AliasesEditor } from './AliasesEditor'
+import { MacrosEditor } from './MacrosEditor'
 import { cn } from '../../lib/cn'
 import { useDismiss } from '../../lib/useDismiss'
 
-type Tab = 'highlights' | 'aliases'
+type Tab = 'highlights' | 'aliases' | 'macros'
 
 export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('highlights')
@@ -28,12 +29,15 @@ export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
       <div className="flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-surface shadow-2xl max-h-[88vh]">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-1">
-            <h2 className="mr-2 text-sm font-semibold text-ink">Highlights &amp; aliases</h2>
+            <h2 className="mr-2 text-sm font-semibold text-ink">Highlights, aliases &amp; macros</h2>
             <TabButton active={tab === 'highlights'} onClick={() => setTab('highlights')}>
               Highlights
             </TabButton>
             <TabButton active={tab === 'aliases'} onClick={() => setTab('aliases')}>
               Aliases
+            </TabButton>
+            <TabButton active={tab === 'macros'} onClick={() => setTab('macros')}>
+              Macros
             </TabButton>
           </div>
           <button
@@ -47,7 +51,9 @@ export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="overflow-y-auto p-4">
-          {tab === 'highlights' ? <HighlightsEditor /> : <AliasesEditor />}
+          {tab === 'highlights' && <HighlightsEditor />}
+          {tab === 'aliases' && <AliasesEditor />}
+          {tab === 'macros' && <MacrosEditor />}
         </div>
       </div>
     </div>

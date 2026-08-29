@@ -15,11 +15,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
+import { roomKind } from '../lib/mapData'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
 import { MapPinBar } from './shared/MapPinBar'
 import { QuickTravel } from './shared/QuickTravel'
 import { PinEditor } from './shared/PinEditor'
 import { RoomNudge } from './shared/RoomNudge'
+import { PlaceSearch } from './shared/PlaceSearch'
+import { useZoneBrowsing } from '../lib/useZoneBrowsing'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../lib/pinTaskGenerator'
@@ -29,7 +32,9 @@ import { useMapDock, setMapDock, WINDOW_ZOOM_MIN, WINDOW_ZOOM_MAX } from '../lib
 import { useMapViewport } from '../lib/useMapViewport'
 
 export function MapWindow() {
-  const zone = useAppStore((s) => s.mapZone)
+  const liveZone = useAppStore((s) => s.mapZone)
+  const { zone, browsing, zoneStack, pushZone, popZone, resetZone, goToPlace } =
+    useZoneBrowsing(liveZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const connectBridge = useAppStore((s) => s.connectBridge)
@@ -278,27 +283,60 @@ export function MapWindow() {
         </div>
       </header>
 
-      {(pins.length > 0 || hereId != null) && (
-        <div className="shrink-0 space-y-1.5 border-b border-border px-3 py-1.5">
-          <MapPinBar
-            pins={pins}
-            onGo={(pin) => goThere(pin.roomId)}
-            onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-            onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-          />
-          <QuickTravel onWalk={goThere} />
-          {showNudge && hereId != null && (
-            <RoomNudge
-              visits={hereVisits as number}
-              onPin={() => pinRoom(hereId)}
-              onDismiss={() => {
-                if (character) dismissNudge(character.name, character.instance, hereId)
-                setPinVersion((v) => v + 1)
-              }}
+      <div className="shrink-0 space-y-1.5 border-b border-border px-3 py-1.5">
+        {/* Missing entirely before this: the window built to be left open and
+            watched could not search for a place or follow a gateway to
+            another zone, while the small docked panel beside it could do
+            both. Same component, same onZone wiring MapPanel.tsx uses -
+            useZoneBrowsing is the shared piece that makes both surfaces
+            capable of the same trip planning. */}
+        <PlaceSearch here={zone?.zone} onPick={goToPlace} />
+
+        {browsing && (
+          <div className="flex items-center gap-1 text-xs">
+            <button
+              type="button"
+              onClick={popZone}
+              className="rounded border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
+            >
+              ← Back
+            </button>
+            <button
+              type="button"
+              onClick={resetZone}
+              className="rounded border border-accent/40 bg-accent/10 px-2 py-0.5 text-accent"
+            >
+              Where I am
+            </button>
+            <span className="truncate text-ink-faint">
+              {zone?.name ?? 'Loading'}
+              {zoneStack.length > 1 ? ` — ${zoneStack.length} gates out` : ''}
+            </span>
+          </div>
+        )}
+
+        {(pins.length > 0 || hereId != null) && (
+          <>
+            <MapPinBar
+              pins={pins}
+              onGo={(pin) => goThere(pin.roomId)}
+              onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+              onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
             />
-          )}
-        </div>
-      )}
+            <QuickTravel onWalk={goThere} />
+            {showNudge && hereId != null && (
+              <RoomNudge
+                visits={hereVisits as number}
+                onPin={() => pinRoom(hereId)}
+                onDismiss={() => {
+                  if (character) dismissNudge(character.name, character.instance, hereId)
+                  setPinVersion((v) => v + 1)
+                }}
+              />
+            )}
+          </>
+        )}
+      </div>
 
       <main
         ref={containerRef}
@@ -327,6 +365,7 @@ export function MapWindow() {
               onRoute={onRoute}
               labels={labels}
               onPick={goThere}
+              onZone={pushZone}
               trail={trail}
               onHereAt={onHereAt}
               pins={pinsByRoom}
@@ -344,7 +383,15 @@ export function MapWindow() {
       </main>
 
       <footer className="shrink-0 flex items-center justify-between gap-3 border-t border-border px-3 py-2">
-        <MapLegend />
+        {/* Same `roomKind` and `onRoute` the canvas colours by (see MapPanel's
+            own copy of this line) - without it this legend always renders
+            with no `kinds` at all and silently shows only "you," forever,
+            no matter what the window is actually drawing. */}
+        <MapLegend
+          kinds={[
+            ...new Set((zone?.ok ? zone.rooms ?? [] : []).map((r) => roomKind(r, zone?.here, onRoute))),
+          ]}
+        />
         <span className="text-xs text-ink-faint">
           {path?.ok
             ? `${path.steps} rooms to ${

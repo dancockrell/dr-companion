@@ -90,6 +90,7 @@ export function CombatRadar({
   cards,
   combatants,
   items,
+  embedded = false,
 }: {
   /** Which room's backdrop to draw — same identity `RoomScene` keys its own
    * fingerprint by.
@@ -100,7 +101,8 @@ export function CombatRadar({
    * making these required broke that call site, and the alternative was
    * duplicating RoomColumn's fetch into a panel that has no business doing
    * it. A caller with no room identity gets the radar without a backdrop,
-   * which is what it drew before there was one. */
+   * which is what it drew before there was one. Ignored entirely when
+   * `embedded` is true — see that prop. */
   zone?: string
   room?: number | null
   title?: string | null
@@ -109,6 +111,23 @@ export function CombatRadar({
   combatants: RoomCombatant[]
   /** The floor, same feed `RoomChips`' "On the floor" group reads. */
   items?: string[]
+  /**
+   * True when `RoomScene` is passing this in as its own `overlay` — the room
+   * picture is already right there, one layer down in the same box, so
+   * drawing a second copy of it (this component's own circular backdrop,
+   * scaled to a smaller circle inside a square box that already has the
+   * full-size original) would put the same room on screen twice at once.
+   * Embedded mode skips its own backdrop and the circular frame and fills
+   * whatever box it was handed instead, rings and markers only.
+   *
+   * The "not fighting" / "unassessed" footer drops too, embedded — chips are
+   * already sharing this same picture along its bottom edge, and every one
+   * of those names is a hostile chip a hover away from the same words this
+   * footer would print. `BattlePanel` still gets the footer: it is not
+   * standing next to a chip row, so unpositioned hostiles need somewhere to
+   * be named or a player watching only the radar would not know they exist.
+   */
+  embedded?: boolean
 }) {
   const index = indexCombatants(combatants)
   const { take, canSend, reason } = useRoomItemTake()
@@ -172,16 +191,23 @@ export function CombatRadar({
 
   const hasFight = positioned.length > 0
 
-  return (
-    <div className="flex flex-col gap-2 rounded border border-border bg-surface-raised p-2">
-      <div className="relative mx-auto aspect-square w-full max-w-[300px] overflow-hidden rounded-full">
-        {/* Only when the caller actually knows which room this is. Without an
-            identity there is no backdrop to look up, and drawing a wrong or
-            placeholder one behind a live fight would be worse than the plain
-            dark disc the radar has always had. */}
-        {zone && room != null && (
-          <RoomBackdrop zone={zone} room={room} title={title} text={text} />
-        )}
+  const disc = (
+    <div
+      className={
+        embedded
+          ? 'absolute inset-0'
+          : 'relative mx-auto aspect-square w-full max-w-[300px] overflow-hidden rounded-full'
+      }
+    >
+      {/* Only when standalone and the caller actually knows which room this
+          is. Embedded, `RoomScene` already painted the real backdrop one
+          layer down — this box has no background of its own to fill.
+          Standalone with no identity (BattlePanel today) gets the plain
+          dark disc the radar has always had rather than a wrong or
+          placeholder picture. */}
+      {!embedded && zone && room != null && (
+        <RoomBackdrop zone={zone} room={room} title={title} text={text} />
+      )}
 
         {/* Between the room and the rings. Dark enough that white-on-anything
             text and pale range rings hold up over a bright snowfield or a
@@ -283,11 +309,35 @@ export function CombatRadar({
             {items.slice(0, 5).map((name, i) => {
               const n = Math.min(items.length, 5)
               const spreadDeg = Math.min(64, (n - 1) * 22)
+              const stepDeg = n > 1 ? spreadDeg / (n - 1) : 0
               const angle = 180 + (n > 1 ? (i - (n - 1) / 2) * (spreadDeg / Math.max(n - 1, 1)) : 0)
               const rad = ((angle - 90) * Math.PI) / 180
               const radiusPct = 13
               const x = 50 + radiusPct * Math.cos(rad)
               const y = 50 + radiusPct * Math.sin(rad)
+              /*
+               * How large the target may be before it reaches its neighbour.
+               *
+               * The marker is 8px and the button sized to it, so the thing you
+               * had to hit was 8x8 - about two millimetres, measured on the
+               * real app - and a miss here is not a no-op, it sends a game
+               * command. WCAG 2.5.8 puts the floor at 24px, and this app's own
+               * design notes worry about players who are not twenty-five.
+               *
+               * 24 does not fit. These sit on an arc of radius 13% at 22
+               * degrees apart, which is 15px between centres on a 300px radar
+               * - measured, and why three items landed at cx 971, 986, 1001.
+               * Forcing 24 made every neighbouring pair overlap by 9px, and
+               * overlapping targets are the worse bug: a stray click stops
+               * being nothing and becomes the wrong item taken.
+               *
+               * So the arc distance is the ceiling and 24px (8% of a 300px
+               * radar) the cap. Three items get 15px, roughly double what they
+               * had, with no ambiguity anywhere; a single item gets the full
+               * 24. Expressed in percent so it holds when the radar is smaller
+               * than 300px, which it is inside a narrow dashboard.
+               */
+              const hitPct = Math.min(8, n > 1 ? radiusPct * ((stepDeg * Math.PI) / 180) : 100)
               const overflow = i === 4 && items.length > 5 ? items.length - 4 : 0
               const label = overflow > 0 ? `${name}, and ${overflow} more on the floor` : name
               const tooltip = reason ?? `${label} — get ${nounOf(name)}`
@@ -298,8 +348,27 @@ export function CombatRadar({
                   disabled={!canSend}
                   onClick={() => take(name)}
                   title={tooltip}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 disabled:cursor-not-allowed"
-                  style={{ left: `${x}%`, top: `${y}%` }}
+                  /* The marker stays 8px; the thing you have to hit does not.
+                   * The button sized to its content, so the target was 8x8 -
+                   * about two millimetres, measured on the real app - and a
+                   * miss here is not a no-op, it sends a game command. WCAG
+                   * 2.5.8 puts the floor at 24x24 and this app's own design
+                   * notes worry about players who are not twenty-five.
+                   *
+                   * Centring is unchanged: -translate-*-1/2 is half the
+                   * button, so a 24x24 box lands centred on the same point the
+                   * 8x8 one did, with the dot centred inside it. */
+                  className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center disabled:cursor-not-allowed"
+                  style={{
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    // See hitPct. Centring is unchanged either way:
+                    // -translate-*-1/2 is half the button, so the box lands
+                    // centred on the same point the 8x8 one did, with the
+                    // marker centred inside it.
+                    width: `${hitPct}%`,
+                    height: `${hitPct}%`,
+                  }}
                 >
                   <span className="block h-2 w-2 rounded-sm border border-surface bg-accent shadow hover:brightness-125" />
                   <span className="sr-only">{label}</span>
@@ -402,6 +471,13 @@ export function CombatRadar({
           </p>
         )}
       </div>
+  )
+
+  if (embedded) return disc
+
+  return (
+    <div className="flex flex-col gap-2 rounded border border-border bg-surface-raised p-2">
+      {disc}
 
       {(notFighting.length > 0 || unassessed.length > 0) && (
         <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-border pt-1.5 text-xs">

@@ -1826,6 +1826,26 @@ module Companion
     # is exactly the contract this needs: no interactive prompt for a bridge
     # request to get stuck waiting on.
     def map_walk(args, server)
+      # A latched Stop refuses this before anything else, including the map
+      # lookup. map_walk is the only intent that moves the character, and it
+      # does it by starting go2 - a script that keeps sending movement
+      # commands on its own long after the click, which makes it a larger
+      # commitment than the run_macro the @stop_requested note already says
+      # "does not count as that decision".
+      #
+      # Without this, pressing Stop and then clicking a room walked the
+      # character away while the bridge was still publishing
+      # stopLatched=true to the panel: Stop absorbed by exactly the surface
+      # it exists to interrupt, which is the failure that note was written
+      # about. Measured before the fix - go2 was started with the latch set.
+      #
+      # Deliberately not modelled on the Rust side's pause gate, which lets a
+      # player type `stand` while paused. That is one command the player
+      # issues and watches; this starts an autonomous traveller.
+      if stop_requested?
+        return [false, 'Stop is still latched - press Resume before travelling.']
+      end
+
       return no_map unless MapInfo.available?
 
       dest = (args.is_a?(Hash) ? args['to'] : args).to_i
@@ -1970,6 +1990,20 @@ module Companion
     # away. Add arguments later only after reviewing what a specific
     # launchable script does with them.
     def start_script(args, server)
+      # Same latch as map_walk, and for the stronger reason: server_test.rb
+      # calls this "the only intent that causes Lich to execute arbitrary"
+      # code. A Stop that still lets a hunting script be started is not a
+      # Stop.
+      #
+      # This extends the @stop_requested note's own standard rather than
+      # inventing one. That note says a bare run_macro "does not count as
+      # that decision" - and pressing Start on a script list is the same kind
+      # of act as pressing a macro button, one layer more consequential.
+      # Resume is the decision; this is not.
+      if stop_requested?
+        return [false, 'Stop is still latched - press Resume before starting a script.']
+      end
+
       name = args.is_a?(Hash) ? args['name'].to_s : args.to_s
       return [false, 'no script name given'] if name.empty?
       return [false, "'#{name}' is not a valid script name"] unless name =~ /\A[\w.\-]+\z/

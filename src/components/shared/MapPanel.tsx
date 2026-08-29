@@ -17,8 +17,7 @@
  * a separate decision - see the comment on `goThere` below.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { loadZone, DEFAULT_ZONE, roomKind } from '../../lib/mapData'
-import type { MapZone } from '../../bridge/types'
+import { roomKind } from '../../lib/mapData'
 import {
   Map as MapIcon,
   RefreshCw,
@@ -38,7 +37,7 @@ import { MapCanvas, MapLegend } from './MapCanvas'
 import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
-import type { PlaceHit } from '../../lib/placeSearch'
+import { useZoneBrowsing } from '../../lib/useZoneBrowsing'
 import { MapPinBar } from './MapPinBar'
 import { QuickTravel } from './QuickTravel'
 import { PinEditor } from './PinEditor'
@@ -55,38 +54,8 @@ import { listScripts, writeScript } from '../../lib/scriptFiles'
  */
 export function MapPanel({ plane = false }: { plane?: boolean }) {
   const liveZone = useAppStore((s) => s.mapZone)
-  const [builtZone, setBuiltZone] = useState<MapZone | null>(null)
-
-  /**
-   * Which zone is on screen, and how you got here.
-   *
-   * A stack rather than a single id, because following gates without a way
-   * back is worse than not following them: three clicks into the trade road
-   * and the only route home is knowing which of 85 zones you started in.
-   * Empty means "wherever the character is", which is the normal state.
-   */
-  const [zoneStack, setZoneStack] = useState<string[]>([])
-  const browsing = zoneStack[zoneStack.length - 1] ?? null
-
-  // Lich wins when it is connected: it knows where the character actually is
-  // and carries tags the shipped cartography does not. But a map that is blank
-  // until you connect is a map nobody can judge, and the demo is where most
-  // people meet this first, so the built zones stand in.
-  useEffect(() => {
-    // Browsing wins over the live zone. Following a gate is a deliberate act
-    // and the map jumping back the moment Lich sends the next room would make
-    // the gates unusable.
-    if (liveZone?.ok && !browsing) return
-    let cancelled = false
-    loadZone(browsing ?? DEFAULT_ZONE).then((z) => {
-      if (!cancelled) setBuiltZone(z)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [liveZone?.ok, browsing])
-
-  const zone = browsing ? builtZone : liveZone?.ok ? liveZone : builtZone
+  const { zone, browsing, zoneStack, pushZone, popZone, resetZone, goToPlace } =
+    useZoneBrowsing(liveZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
@@ -311,52 +280,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     [here?.id, zoneStack, level, dock.zoom, centerOn]
   )
 
-  /**
-   * Going where the search says the place is.
-   *
-   * Two things happen and neither of them is walking there. The zone changes
-   * so you can see the answer, and a route is asked for so you can decide
-   * about it. That is the same contract clicking a room already has, and a
-   * search box that moved the character on Enter would be a very different
-   * tool from a map.
-   *
-   * A hit in the character's own zone empties the stack rather than pushing
-   * onto it. Pushing would leave a "← Back" that goes back to where you are
-   * already standing, which is a button that appears to do nothing.
-   */
-  function goToPlace(hit: PlaceHit) {
-    // The route first. It does not care which zone is drawn and it is the part
-    // with a round trip to Lich in it, so it goes out before anything here
-    // waits on a file read.
-    bridge.requestIntent('map_path', { to: hit.room })
-
-    if (hit.zone === zone?.zone) return
-
-    if (hit.zone === liveZone?.zone) {
-      setZoneStack([])
-      return
-    }
-
-    /*
-     * Loaded before it is pushed, which is the opposite of how the gateways do
-     * it and is the fix for something you can watch happen.
-     *
-     * Pushing first leaves `browsing` naming a zone `builtZone` has not caught
-     * up with, and for the length of the fetch `zone` is null: the panel falls
-     * through to its "nothing asked for yet" state and the title, the map and
-     * the search box all blink out together. Picking "Bathhouse, Throne City"
-     * from Crossing showed the header reading MAP with an empty panel under
-     * it. Loading first means the push and the map arrive in the same render.
-     */
-    void loadZone(hit.zone).then((z) => {
-      // No file for that zone means the index is ahead of the cartography.
-      // Staying put is the honest answer; the route was already asked for.
-      if (!z) return
-      setBuiltZone(z)
-      setZoneStack((st) => [...st, hit.zone])
-    })
-  }
-
   if (!connected) {
     return (
       <Shell plane={plane}>
@@ -435,8 +358,60 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       onRefresh={refresh}
       onPopOut={isTauri() ? popOut : undefined}
       right={
-        <div className="flex items-center gap-2">
-          {levels.length > 1 && (
+        !plane ? (
+          <div className="flex items-center gap-2">
+            {levels.length > 1 && (
+              <div className="flex items-center gap-1">
+                <Layers className="w-3 h-3 text-ink-faint" />
+                {levels.map((lv) => (
+                  <button
+                    key={lv}
+                    type="button"
+                    className={`text-xs rounded px-1.5 py-0.5 border ${
+                      z === lv
+                        ? 'border-accent text-accent bg-accent/10'
+                        : 'border-border text-ink-faint'
+                    }`}
+                    aria-label={`Level ${lv}`}
+                    aria-pressed={z === lv}
+                    onClick={() => setLevel(lv)}
+                  >
+                    {lv}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              className="p-1 rounded text-ink-faint hover:text-ink"
+              title={tall ? 'Shrink the map' : 'Give the map more room'}
+              aria-label={tall ? 'Shrink the map' : 'Give the map more room'}
+              onClick={() => setTall((v) => !v)}
+            >
+              {tall ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+        ) : undefined
+      }
+    >
+      {/* Levels and zoom, on their own row rather than squeezed beside the
+          title. In a plane both can be on screen at once (five buttons plus
+          the Layers icon), and packed into the header they were winning the
+          fight for space against the one thing the header actually exists to
+          say: whose map this is. Measured on The Crossing (two z-levels) at
+          the default 300px dock width - the title's own flex box was left
+          75px for "Crossing · Dan the Bold" and the character's name
+          rendered at a literal 0px, not merely truncated. A plane has the
+          height to spare for a second row; a 168px docked box does not,
+          which is why the stack (`!plane`) keeps this in the header instead,
+          with only the height toggle and no zoom row to share it with. */}
+      {plane && (
+        <div className="flex items-center justify-between gap-2">
+          {levels.length > 1 ? (
             <div className="flex items-center gap-1">
               <Layers className="w-3 h-3 text-ink-faint" />
               {levels.map((lv) => (
@@ -456,63 +431,43 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
                 </button>
               ))}
             </div>
+          ) : (
+            <span />
           )}
-          {/* Zoom belongs to the plane and height belongs to the stack.
-              In a plane the height already comes from the column and the
-              divider, so a grow/shrink toggle there would be a second control
-              fighting the first; in the stack the box is too small for zoom to
-              show you anything the fit does not. */}
-          {plane && (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-                title="Zoom out" aria-label="Zoom out"
-                disabled={dock.zoom <= ZOOM_MIN}
-                onClick={() => zoomBy(1 / 1.3)}
-              >
-                <ZoomOut className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
-                title="Back to the whole zone"
-                onClick={() => {
-                  setMapDock({ zoom: 1 })
-                  resetPan()
-                }}
-              >
-                {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
-              </button>
-              <button
-                type="button"
-                className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
-                title="Zoom in" aria-label="Zoom in"
-                disabled={dock.zoom >= ZOOM_MAX}
-                onClick={() => zoomBy(1.3)}
-              >
-                <ZoomIn className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-          {!plane && (
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              className="p-1 rounded text-ink-faint hover:text-ink"
-              title={tall ? 'Shrink the map' : 'Give the map more room'}
-              aria-label={tall ? 'Shrink the map' : 'Give the map more room'}
-              onClick={() => setTall((v) => !v)}
+              className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+              title="Zoom out" aria-label="Zoom out"
+              disabled={dock.zoom <= ZOOM_MIN}
+              onClick={() => zoomBy(1 / 1.3)}
             >
-              {tall ? (
-                <ChevronUp className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5" />
-              )}
+              <ZoomOut className="w-3.5 h-3.5" />
             </button>
-          )}
+            <button
+              type="button"
+              className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
+              title="Back to the whole zone"
+              onClick={() => {
+                setMapDock({ zoom: 1 })
+                resetPan()
+              }}
+            >
+              {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
+            </button>
+            <button
+              type="button"
+              className="rounded p-1 text-ink-faint hover:text-ink disabled:opacity-40"
+              title="Zoom in" aria-label="Zoom in"
+              disabled={dock.zoom >= ZOOM_MAX}
+              onClick={() => zoomBy(1.3)}
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-      }
-    >
+      )}
+
       {/* Above the map rather than beside the title, because the answer it
           gives is a place on the map and the two want to be read together.
           It costs one row and gives back the thing the map could not do. */}
@@ -629,7 +584,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               level={z}
               onRoute={onRoute}
               onPick={goThere}
-              onZone={(id) => setZoneStack((st) => [...st, id])}
+              onZone={pushZone}
               trail={trail}
               onHereAt={onHereAt}
               pins={pinsByRoom}
@@ -654,7 +609,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               onRoute={onRoute}
               fit
               onPick={goThere}
-              onZone={(id) => setZoneStack((st) => [...st, id])}
+              onZone={pushZone}
               trail={trail}
               pins={pinsByRoom}
               onPinRoom={pinRoom}
@@ -689,14 +644,14 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         <div className="flex items-center gap-1 text-xs">
           <button
             type="button"
-            onClick={() => setZoneStack((st) => st.slice(0, -1))}
+            onClick={popZone}
             className="rounded border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
           >
             ← Back
           </button>
           <button
             type="button"
-            onClick={() => setZoneStack([])}
+            onClick={resetZone}
             className="rounded border border-accent/40 bg-accent/10 px-2 py-0.5 text-accent"
           >
             Where I am
@@ -805,7 +760,15 @@ function Shell({
               whole point: both truncate, but the name gives up width ten times
               faster, so "Abandoned Mine and Lairocott Brach" stays readable
               while a long name loses its tail. The map is of a place. */}
-          <span className="min-w-0 shrink truncate">{title ?? 'Map'}</span>
+          {/* title on both, because the shrink ranking above decides who gets
+              cut and nothing was deciding where the cut text went. Measured on
+              the real app: "Dan the Bold" rendering in 30px of the 71 it wants
+              - about "Dan…" - and the zone 4px short of fitting, with no way
+              to read either in full. The ranking is right; losing the text
+              outright was not part of it. */}
+          <span className="min-w-0 shrink truncate" title={title ?? 'Map'}>
+            {title ?? 'Map'}
+          </span>
           {who && (
             <>
               <span className="shrink-0" aria-hidden="true">
@@ -813,8 +776,19 @@ function Shell({
               </span>
               {/* Left in its own case. The zone is a heading and shouts; a
                   character's name is a name, and DAN THE BOLD reads like the
-                  app is addressing him. */}
-              <span className="min-w-0 shrink-[10] truncate normal-case tracking-normal text-ink-muted">
+                  app is addressing him.
+                  `min-w-0` here let flexbox take this span all the way to a
+                  literal zero pixels wide in a small card - not "Dan…", not
+                  one character, nothing rendered at all - which is worse
+                  than the truncation this was built for: a panel with no
+                  name in it is exactly the ambiguity this line exists to
+                  remove. A `ch`-based floor guarantees a sliver survives
+                  even when the header has almost no room left, while still
+                  giving up width ten times faster than the zone name. */}
+              <span
+                className="min-w-[3ch] shrink-[10] truncate normal-case tracking-normal text-ink-muted"
+                title={who}
+              >
                 {who}
               </span>
             </>

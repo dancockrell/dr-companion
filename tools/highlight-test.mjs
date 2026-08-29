@@ -162,6 +162,46 @@ console.log('\n-- the real corpus, against the real lines it was written for --'
   }
 }
 
+// --- a pattern that compiles is not a pattern that is safe to run ----------
+
+// `paint()` runs per rendered line and GamePane keeps 400 in the DOM, so a
+// pattern that backtracks does not make the client slow, it makes it stop.
+// Measured before the guard existed: `(\w+\s?)+$` - which reads as "a run of
+// words to the end of the line", and which somebody would plausibly write -
+// did not finish in thirty seconds against one ordinary room description.
+console.log('\n-- patterns that backtrack are refused at load, not at render --')
+
+const cfg = (p) => `#highlight {regexp} {#FF0000} {${p}}`
+const load = (p) => parseHighlights(cfg(p))
+const refused = (p) => load(p).entries.length === 0
+
+// `ok` prints its third argument whether or not the check passed, so these
+// say what happened rather than what failure would have looked like.
+for (const p of ['(a+)+$', '(\\w+\\s?)+$', '(\\s*\\w+\\s*)+!', '([A-Za-z]+\\s*)+X', '(\\d+)+$']) {
+  const { skipped } = load(p)
+  ok(`refuses /${p}/`, refused(p), skipped[0]?.match(/took \d+ms/)?.[0] ?? 'was loaded')
+}
+
+// The floor, and it is the half that matters. A guard that refuses everything
+// would pass every check above and silently disable highlighting altogether -
+// which looks exactly like a clean run.
+for (const p of [
+  '\\bkobold\\s+guard\\b',
+  '([A-Za-z]+ )+\\.',
+  '(\\w+\\s+)+of the (\\w+\\s*)+$',
+  '\\d+ silver',
+  '^\\d+ of \\d+',
+  'You feel \\w+',
+  'Wipsy|Phemius',
+]) {
+  ok(`still loads /${p}/`, !refused(p), refused(p) ? 'wrongly refused' : 'ok')
+}
+
+// And the refusal has to say why, or the user sees a highlight quietly missing
+// with nothing to act on.
+const why = parseHighlights(cfg('(a+)+$')).skipped[0] ?? ''
+ok('the refusal explains itself', /ms on a .*probe/.test(why), why.slice(0, 80))
+
 console.log(
   failed
     ? `\n${failed} failed`

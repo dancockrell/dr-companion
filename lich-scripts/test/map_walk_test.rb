@@ -202,5 +202,42 @@ fails += 1 unless check(
 )
 
 puts ''
+puts '-- a latched Stop refuses a new walk --'
+
+# `stop_all` latches @stop_requested and only `resume` clears it, precisely so
+# a Stop survives whatever arrives next. The file's own note on that flag says
+# a bare run_macro "does not count as that decision" - and starting go2 is a
+# larger commitment than a macro, because go2 keeps sending movement commands
+# on its own long after the click.
+#
+# Without a check here, pressing Stop and then clicking a room walks the
+# character away while the bridge is still publishing stopLatched=true, which
+# is the shape the same note calls "Stop absorbed by exactly the surface it
+# exists to interrupt".
+reset!(1)
+StubMap.routes[[1, 4]] = [3, 4]
+FakeScriptRegistry.installed['go2'] = true
+I.request_stop!
+r = I.map_walk(4, FakeServer.new)
+fails += 1 unless check('refused while Stop is latched', r[0] == false, r[1])
+fails += 1 unless check('go2 was never started', FakeScriptRegistry.start_calls.empty?,
+                        FakeScriptRegistry.start_calls.inspect)
+fails += 1 unless check('the refusal names Resume, so the player knows the way out',
+                        r[1].to_s.downcase.include?('resume'), r[1])
+
+puts ''
+puts '-- and resume lets it walk again, so the guard is not a one-way door --'
+# Without this the suite would pass against a map_walk that refuses always,
+# which would break travel entirely and still look like safety.
+reset!(1)
+StubMap.routes[[1, 4]] = [3, 4]
+FakeScriptRegistry.installed['go2'] = true
+I.clear_stop!
+r = I.map_walk(4, FakeServer.new)
+fails += 1 unless check('walks after resume', r[0] == true, r[1])
+fails += 1 unless check('go2 started', FakeScriptRegistry.start_calls == [['go2', ['4']]],
+                        FakeScriptRegistry.start_calls.inspect)
+
+puts ''
 puts(fails.zero? ? 'all passed' : "#{fails} FAILED")
 exit(fails.zero? ? 0 : 1)

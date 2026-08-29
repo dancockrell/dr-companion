@@ -43,6 +43,32 @@ const F_KEYS: Record<string, string> = {
 const GAME_KEYS: Record<string, string> = { ...MOVEMENT, ...F_KEYS }
 
 /**
+ * `KeyboardEvent.code` → the key name Genie itself writes into `macros.cfg`
+ * (`System.Windows.Forms.Keys`, not a web key code). Read off every distinct
+ * key Dan's real 95-entry file actually uses - F1–F12, NumPad0–9 plus the
+ * four numpad operators, the digit row (only ever bound with Control, as
+ * `D0`…`D9`), and bare letters. Not attempting the rest of the `Keys` enum:
+ * a code this returns `null` for is one no macro in the observed corpus ever
+ * bound, so extending the map further would be guessing at a spec rather
+ * than reading one. Used by both the live keydown resolver (once macro.cfg
+ * bindings are wired up) and MacrosEditor's "press a key" capture, so the
+ * two can never name a combo differently.
+ */
+export function codeToGenieKey(code: string): string | null {
+  if (/^F(1[0-2]|[1-9])$/.test(code)) return code
+  if (/^Numpad[0-9]$/.test(code)) return `NumPad${code.slice(6)}`
+  if (code === 'NumpadDecimal') return 'Decimal'
+  if (code === 'NumpadMultiply') return 'Multiply'
+  if (code === 'NumpadAdd') return 'Add'
+  if (code === 'NumpadSubtract') return 'Subtract'
+  if (code === 'NumpadDivide') return 'Divide'
+  if (code === 'Escape') return 'Escape'
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3)
+  if (/^Digit[0-9]$/.test(code)) return `D${code.slice(5)}`
+  return null
+}
+
+/**
  * A short, human-readable list for wherever the bindings need to be shown —
  * the command palette entry and the Escape hint both read from this rather
  * than restating it, so the two can never drift apart.

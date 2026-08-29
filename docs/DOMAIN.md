@@ -423,7 +423,7 @@ not from the transport.
 repeat. Companion retries every 3 seconds forever with no cap, which is worse
 than what the community settled on years ago. (See review finding 8.)
 
-**The frontend itself desyncs.** There is a recovery path named `GENIE_FUCKUP`,
+**The frontend itself desyncs.** There is a recovery path named `GENIE_DESYNC`,
 triggered when `Your worn items are:` shows up unprompted, meaning Genie's
 parser has lost the plot. Recovery is to restart the frontend entirely. A tool
 built beside Genie should assume Genie can be the broken component.

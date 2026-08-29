@@ -77,6 +77,20 @@ export function formatAliasLine(a: AliasFields): string {
   return `#alias {${a.name}} {${a.expansion}}`
 }
 
+export interface MacroFields {
+  key: string
+  modifiers: string[]
+  command: string
+}
+
+/** `#macro {Key, Modifier1, Modifier2} {command}` - the modifier list is
+ * comma-joined inside the same brace group as the key, never its own group;
+ * every one of Dan's 95 real entries does it this way. */
+export function formatMacroLine(m: MacroFields): string {
+  const combo = [m.key, ...m.modifiers].join(', ')
+  return `#macro {${combo}} {${m.command}}`
+}
+
 /**
  * Replace exactly one source line, leaving every other line - including
  * every comment - byte-identical.

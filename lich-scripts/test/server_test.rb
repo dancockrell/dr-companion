@@ -1596,6 +1596,49 @@ begin
   $fake_scripts_installed = []
 
   puts ''
+  puts '-- a latched Stop refuses start_script, the arbitrary-code intent --'
+  # stop_all latches until resume, deliberately, so a Stop survives whatever
+  # arrives next. Without this check the latch stopped what was already
+  # running and then let the player start a hunting script straight back up,
+  # while the bridge went on publishing stopLatched=true.
+  $fake_scripts_installed = %w[hunting-buddy]
+  $fake_started = []
+  c.send_json(type: 'intent', intent: 'stop_all')
+  collect(c, 3)
+  c.send_json(type: 'intent', intent: 'start_script', args: { name: 'hunting-buddy' })
+  msgs = collect(c, 3)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' }
+  check(
+    'refused while Stop is latched, and says how to get out of it',
+    ack && ack['ok'] == false && ack['detail'].to_s.downcase.include?('resume'),
+    ack.inspect
+  )
+  check('floor: Script.start was never called', $fake_started.empty?, $fake_started.inspect)
+
+  puts ''
+  puts '-- and resume lets it start again, so the guard is not a one-way door --'
+  # Without this the two checks above would pass against a start_script that
+  # refuses everything, which would break the script list entirely and still
+  # look like safety.
+  c.send_json(type: 'intent', intent: 'resume')
+  # Drained generously on purpose: resume acks and also broadcasts state, so a
+  # tight window here swallows the ack the next intent is about to send and
+  # the check fails on nothing being wrong. Seen exactly that while writing it.
+  collect(c, 6)
+  $fake_started = []
+  c.send_json(type: 'intent', intent: 'start_script', args: { name: 'hunting-buddy' })
+  msgs = collect(c, 6)
+  ack = msgs.find { |m| m['type'] == 'intent_ack' && m['intent'] == 'start_script' }
+  check('starts after resume', ack && ack['ok'] == true, ack.inspect)
+  check(
+    'floor: Script.start really was called this time',
+    $fake_started.any? { |s| s[0] == 'hunting-buddy' },
+    $fake_started.inspect
+  )
+  $fake_scripts_installed = []
+  $fake_started = []
+
+  puts ''
   puts '-- list_scripts enumerates real files: root, custom/, every accepted extension --'
   # Ordinary by comparison to start_script - this reads the real filesystem
   # rather than a mocked API, so the test writes real files into

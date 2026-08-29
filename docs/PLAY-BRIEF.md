@@ -51,8 +51,8 @@ Sending anything at all resets it, so do not go quiet for long stretches.
 
 1. **Play aggressively.** Learn the game, do not narrate a plan for it.
 2. **Do not write scripts for other players while he is at the keyboard.**
-   His words: he does not want to be seen developing for them and get busted.
-   Scripting for our own character is what he asked for.
+   His words: he does not want other players to see him developing scripts
+   for them. Scripting for our own character is what he asked for.
 3. **Build highlights and sounds from what you actually see**, into
    `C:\Users\Admin\dev\dr-genie-settings` (public repo,
    github.com/dancockrell/dr-genie-settings). `node validate.mjs` before every
