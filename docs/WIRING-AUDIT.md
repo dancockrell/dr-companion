@@ -129,8 +129,15 @@ player actually reads it, and say so in the commit either way.
 Found while settling the streams question above, and it reframes several of
 the gaps in section 4.
 
-Declaring `--stormfront` gets this client the full StormFront protocol, not
-just text. Read off the live wire, these tags arrive unprompted:
+**Correction, 28 Aug 2026 (#31):** declaring `--stormfront` does not get
+this client the full StormFront protocol - Lich's headless resolver never
+reads that flag, and this session's `Frontend.client` is `'profanity'`,
+not `'stormfront'` (see `src-tauri/src/lich.rs`'s module doc). The table
+below is unaffected: none of these tags are gated behind `mono` or
+`room_window`, the two capabilities `profanity` actually lacks - they are
+the game server's own compact-XML feed, which `xml` alone (shared by both
+frontends) already carries. Read off the live wire, these tags arrive
+unprompted:
 
 | Tag | Carries | Sampled value |
 |---|---|---|

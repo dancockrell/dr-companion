@@ -41,6 +41,7 @@ import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flo
 import { SoundControls } from '../game/SoundControls'
 import { MusicTransport } from '../game/MusicTransport'
 import { isLowHealth } from '../../lib/vitals'
+import { requestOpenSoundPanel } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
 
 export function SafetyFooter() {
@@ -196,7 +197,7 @@ export function SafetyFooter() {
         * this bar has - a play/pause/skip/title deserves the space more
         * than an empty gap did. */}
       <div className="flex h-8 min-w-0 flex-1 items-center gap-1.5 border-l border-border pl-2">
-        <MusicTransport />
+        <MusicTransport showVolume onTitleClick={requestOpenSoundPanel} />
       </div>
 
       {/* Its own basis so it drops to a second line in a narrow window rather

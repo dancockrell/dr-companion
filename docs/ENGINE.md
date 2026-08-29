@@ -86,8 +86,22 @@ frontend and the same Lich, on the same port, sends strictly more.
 That is not a trick played on Lich. `register` is a public API taking a
 capability list, and since Lich is vendored here, `drcompanion` can be a
 registered frontend in its own right rather than borrowing Wrayth's name. That
-is the honest end state; declaring `--stormfront` is the way to get the full
-stream today, before any of Lich is modified.
+is the honest end state.
+
+**Correction, 28 Aug 2026 (#31).** The line above claimed declaring
+`--stormfront` gets the full stream today. It does not, and this was never
+verified against the actual resolver before being written. Lich's headless
+launch path (`main.rb:320`, `resolve_headless_frontend` in
+`login_helpers.rb`) only special-cases `--saga` and `--genie`; `--stormfront`
+falls through to `'profanity'`, so `Frontend.client` is `'profanity'` on
+every DR Companion session, never `'stormfront'`. This still gets `streams` -
+the row this whole section is actually about - and loses `mono` and
+`room_window`, two separate capabilities gating two separate things (a
+formatting wrapper on injected room-text lines, and a duplicate exits
+window), neither of which this app reads - see `src-tauri/src/lich.rs`'s
+module doc for the full verification, including where each is actually
+checked in Lich's source. The registered-frontend path above is still the
+honest end state; it is just not what declaring `--stormfront` gets today.
 
 Streams are the feature this unlocks and it is the one Genie users build named
 windows by hand to fake: the game tags thoughts, deaths, speech and room

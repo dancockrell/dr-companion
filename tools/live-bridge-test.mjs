@@ -16,6 +16,7 @@ import { readFileSync, writeFileSync, rmSync, mkdtempSync, readdirSync } from 'n
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { findRuby, notCheckedMessage } from './find-ruby.mjs'
 
 const PORT = 7894
 let fails = 0
@@ -74,7 +75,13 @@ writeFileSync(
   ].join('\n')
 )
 
-const rubyExe = process.env.DRC_RUBY || 'ruby'
+// Was `process.env.DRC_RUBY || 'ruby'`, which is ENOENT on a machine where
+// Ruby is installed as Lich's own interpreter and not on PATH. See find-ruby.
+const rubyExe = findRuby()
+if (!rubyExe) {
+  console.log(notCheckedMessage('the live bridge test'))
+  process.exit(0)
+}
 // Where the bridge will write its token, so the stub above can find it. Set
 // before the bridge starts, because the stub is read at connect time and the
 // bridge writes the file during start.

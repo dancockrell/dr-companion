@@ -22,52 +22,8 @@ import { Copy, Check, ExternalLink, Link2 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { FRONTENDS, frontendById, bridgeCommand } from '../../lib/frontends'
 import type { GameInstance } from '../../types'
+import { INSTANCES } from '../../data/instances'
 
-interface InstanceConfig {
-  id: GameInstance
-  label: string
-  port: number
-  /** Genie's licharguments value, which includes --genie. */
-  genieArgs: string
-  /** The instance flags Lich itself needs, without the frontend flag. */
-  lichArgs: string
-  suffix: string
-}
-
-const INSTANCES: InstanceConfig[] = [
-  {
-    id: 'Prime',
-    label: 'Prime',
-    port: 11024,
-    genieArgs: '--genie --dragonrealms',
-    lichArgs: '--dragonrealms',
-    suffix: 'DR',
-  },
-  {
-    id: 'Platinum',
-    label: 'Platinum',
-    port: 11124,
-    genieArgs: '--genie --platinum --dragonrealms',
-    lichArgs: '--platinum --dragonrealms',
-    suffix: 'DRX',
-  },
-  {
-    id: 'Fallen',
-    label: 'The Fallen',
-    port: 11324,
-    genieArgs: '--genie --fallen',
-    lichArgs: '--fallen',
-    suffix: 'DRF',
-  },
-  {
-    id: 'Test',
-    label: 'Test',
-    port: 11624,
-    genieArgs: '--genie --test --dragonrealms',
-    lichArgs: '--test --dragonrealms',
-    suffix: 'DRT',
-  },
-]
 
 function Line({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
