@@ -1,5 +1,28 @@
 # The soundscape
 
+**Status, 29 Aug 2026 (later the same day): every radio/zone track is
+loudness-corrected.** `tools/measure-loudness.mjs` (`npm run audio:loudness`)
+measures each of the 233 radio tracks' mean volume (`ffmpeg -t 30 ... -af
+volumedetect`, first 30 seconds - fast, and precise enough for what this is
+correcting rather than mastering to a broadcast spec) and writes a `gainDb`
+onto its `manifest.json` entry: `-20dB target - measured`, clamped to
+`±9dB` so one badly-mastered outlier doesn't get pushed hard enough to
+mostly amplify its own noise floor. A real sample measured a 25+ dB spread
+before this existed - fifteen random tracks ran -15.8 dB to -41.4 dB mean
+volume, meaning the quietest was roughly a nineteenth the perceived
+loudness of the loudest at an identical slider position - sourced from a
+dozen-plus uploaders across Wikimedia and OpenGameArt with no shared
+mastering. `ambientSound.ts`'s `Layer` applies it as `trackGain`, a third
+multiplicative factor alongside `mix` and the listener's slider, clamped to
+1.0 before ever reaching `el.volume` (`HTMLAudioElement.volume` is
+spec-clamped to [0, 1] and throws past that in a strict implementation -
+verified live at the worst case, slider at 150% on the single largest
++9dB-boosted track, no throw). `tools/ambient-test.mjs` asserts every radio
+track carries a `gainDb` and that none exceeds the clamp - sabotage-checked
+(stripped one track's `gainDb`, set another to 20) before being trusted.
+Re-run `npm run audio:loudness` after adding tracks; it skips (and reports)
+anything not vendored locally yet rather than measuring silence as 0.
+
 **Status, 29 Aug 2026: alerts are four channels with per-class throttling,
 the panel is a standard mixer with favorites, and the app talks to the OS's
 own media controls.** Everything below this block and above "What's new..."

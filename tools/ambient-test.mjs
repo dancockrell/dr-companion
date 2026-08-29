@@ -160,6 +160,35 @@ console.log('\n-- radio tracks are songs, not short loops --')
   }
 }
 
+console.log('\n-- every radio track has been loudness-measured --')
+{
+  // A dozen-plus uploaders across Wikimedia and OpenGameArt, no consistent
+  // mastering between them - a real sample measured a 25+ dB spread in mean
+  // volume before tools/measure-loudness.mjs existed. This check exists so a
+  // track added later (source-radio.mjs, vendor-audio.mjs) and never run
+  // through that tool doesn't silently ship un-normalized: it would play at
+  // whatever loudness its source happened to have, the exact problem this
+  // whole mechanism exists to prevent.
+  const MAX_ADJUST_DB = 9 // keep in sync with measure-loudness.mjs's own clamp
+  const radio = manifest.radio ?? []
+  const missingGain = radio.filter((t) => typeof t.gainDb !== 'number')
+  const outOfRange = radio.filter(
+    (t) => typeof t.gainDb === 'number' && Math.abs(t.gainDb) > MAX_ADJUST_DB + 0.05
+  )
+  ok(
+    'every track carries a gainDb',
+    missingGain.length === 0,
+    missingGain.length
+      ? `${missingGain.length} missing - run tools/measure-loudness.mjs: ${missingGain.map((t) => t.id).join(', ')}`
+      : `${radio.length} tracks`
+  )
+  ok(
+    `no gainDb exceeds the +-${MAX_ADJUST_DB} dB clamp`,
+    outOfRange.length === 0,
+    outOfRange.map((t) => `${t.id} (${t.gainDb})`).join(', ')
+  )
+}
+
 console.log('\n-- zone playlists reference real tracks and run roughly an hour --')
 {
   const zoneEntries = Object.entries(manifest.zone ?? {})
