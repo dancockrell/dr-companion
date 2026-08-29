@@ -1,19 +1,19 @@
 /**
- * The alias manager - same shape as HighlightsEditor, simpler fields (just
- * name and expansion), with the equivalent of its live tester: type a
- * command the way you'd type it in the game pane and see exactly what it
- * expands to, before saving anything. Testing an alias in Genie means
- * actually typing it in-game; this doesn't.
+ * The substitute manager - same CRUD/search/bulk-import shape as
+ * AliasesEditor, two fields (find/replace) instead of name/expansion.
+ *
+ * Format caveat, shown in the panel itself: `Config/substitutes.cfg` is
+ * empty on this machine, so unlike highlights/aliases/macros/variables this
+ * format was never confirmed against a real file - see substitutes.ts's
+ * header.
  */
 import { useMemo, useState } from 'react'
-import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste } from 'lucide-react'
-import { parseAliases, expandAlias, type Alias } from '../../lib/aliases'
-import { reloadAliases } from '../../lib/useAliases'
-import { referencedVariables } from '../../lib/variables'
-import { useVariables } from '../../lib/useVariables'
+import { Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste } from 'lucide-react'
+import { parseSubstitutes, type Substitute } from '../../lib/substitutes'
+import { reloadSubstitutes } from '../../lib/useSubstitutes'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
 import {
-  formatAliasLine,
+  formatSubstituteLine,
   hasUnsafeBraces,
   replaceLine,
   removeLine,
@@ -21,34 +21,26 @@ import {
   isPlayerAddedLine,
 } from '../../lib/genieConfigEdit'
 
-interface DraftAlias {
-  name: string
-  expansion: string
+interface DraftSubstitute {
+  find: string
+  replace: string
 }
 
-const EMPTY_DRAFT: DraftAlias = { name: '', expansion: '' }
+const EMPTY_DRAFT: DraftSubstitute = { find: '', replace: '' }
 
-function validateDraft(d: DraftAlias, existing: Alias[], editingLine: number | null): string | null {
-  const name = d.name.trim()
-  if (!name) return 'Name cannot be empty.'
-  if (/\s/.test(name)) return 'A name cannot contain spaces - it has to be one word to type.'
-  if (!d.expansion.trim()) return 'Expansion cannot be empty.'
-  if (hasUnsafeBraces(d.name) || hasUnsafeBraces(d.expansion)) {
+function validateDraft(d: DraftSubstitute): string | null {
+  if (!d.find.trim()) return 'Find text cannot be empty.'
+  if (hasUnsafeBraces(d.find) || hasUnsafeBraces(d.replace)) {
     return 'Neither field can contain { or } - Genie uses braces to separate fields.'
   }
-  const clash = existing.find(
-    (a) => a.name.toLowerCase() === name.toLowerCase() && a.sourceLine !== editingLine
-  )
-  if (clash) return `“${name}” is already an alias (expands to “${clash.expansion}”). Names must be unique.`
   return null
 }
 
-export function AliasesEditor() {
-  const editor = useGenieConfigEditor<Alias>('aliases.cfg', parseAliases)
+export function SubstitutesEditor() {
+  const editor = useGenieConfigEditor<Substitute>('substitutes.cfg', parseSubstitutes)
   const [search, setSearch] = useState('')
-  const [testCommand, setTestCommand] = useState('')
   const [editingLine, setEditingLine] = useState<number | null>(null)
-  const [draft, setDraft] = useState<DraftAlias>(EMPTY_DRAFT)
+  const [draft, setDraft] = useState<DraftSubstitute>(EMPTY_DRAFT)
   const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState('')
@@ -59,54 +51,15 @@ export function AliasesEditor() {
     const q = search.trim().toLowerCase()
     if (!q) return editor.entries
     return editor.entries.filter(
-      (a) => a.name.toLowerCase().includes(q) || a.expansion.toLowerCase().includes(q)
+      (s) => s.find.toLowerCase().includes(q) || s.replace.toLowerCase().includes(q)
     )
   }, [editor.entries, search])
 
-  const testResult = useMemo(() => {
-    if (!testCommand.trim()) return null
-    return expandAlias(testCommand, editor.entries)
-  }, [testCommand, editor.entries])
-
-  const { variables } = useVariables()
-  /** `$preposition`/`$shop`-style tokens left in the expansion, resolved
-   * against Genie's live `#var` table purely as a preview - what actually
-   * gets sent is still the unresolved text, exactly as Genie itself sends
-   * it. Without this a player has no way to know what `$shop` even means
-   * short of opening variables.cfg by hand. */
-  const testVariables = useMemo(() => {
-    if (!testResult?.text) return []
-    return referencedVariables(testResult.text).map((name) => ({
-      name,
-      value: variables.find((v) => v.name === name)?.value ?? null,
-    }))
-  }, [testResult, variables])
-
-  /** Same shape as MacrosEditor's importPreview: reuse the real parser, then
-   * add the one check a single add's validateDraft already gets for free -
-   * a name that collides with something already in the file. Genie has no
-   * such preview at all; a pasted block just silently shadows whatever it
-   * collides with the moment it is typed in. */
   const importPreview = useMemo(() => {
     if (!importText.trim()) return null
-    const { entries, skipped } = parseAliases(importText)
-    const existingNames = new Set(editor.entries.map((a) => a.name.toLowerCase()))
-    const seenInBatch = new Set<string>()
-    const valid: Alias[] = []
-    const clashes: string[] = []
-    for (const a of entries) {
-      const lower = a.name.toLowerCase()
-      if (existingNames.has(lower)) {
-        clashes.push(`${formatAliasLine(a)} - "${a.name}" already exists`)
-      } else if (seenInBatch.has(lower)) {
-        clashes.push(`${formatAliasLine(a)} - "${a.name}" appears twice in this paste`)
-      } else {
-        seenInBatch.add(lower)
-        valid.push(a)
-      }
-    }
-    return { valid, skipped: [...skipped, ...clashes] }
-  }, [importText, editor.entries])
+    const { entries, skipped } = parseSubstitutes(importText)
+    return { valid: entries, skipped }
+  }, [importText])
 
   const startAdd = () => {
     setDraft(EMPTY_DRAFT)
@@ -124,9 +77,9 @@ export function AliasesEditor() {
     setFormError('')
   }
 
-  const startEdit = (a: Alias) => {
-    setDraft({ name: a.name, expansion: a.expansion })
-    setEditingLine(a.sourceLine)
+  const startEdit = (s: Substitute) => {
+    setDraft({ find: s.find, replace: s.replace })
+    setEditingLine(s.sourceLine)
     setAdding(false)
     setImporting(false)
     setFormError('')
@@ -141,16 +94,16 @@ export function AliasesEditor() {
 
   const submitImport = async () => {
     if (!importPreview || importPreview.valid.length === 0) {
-      setFormError('Nothing valid to import - paste one or more #alias lines with names that are not already used.')
+      setFormError('Nothing valid to import - paste one or more #substitute lines.')
       return
     }
     const pastedLines = importText.split(/\r\n|\n/)
-    const rawLines = importPreview.valid.map((a) => pastedLines[a.sourceLine].trim())
+    const rawLines = importPreview.valid.map((s) => pastedLines[s.sourceLine].trim())
 
     setBusy(true)
     try {
       const newText = rawLines.reduce((acc, line) => appendUnderPlayerSection(acc, line), editor.text)
-      await editor.applyAndSave(newText, reloadAliases)
+      await editor.applyAndSave(newText, reloadSubstitutes)
       cancelForm()
     } catch (e) {
       setFormError(String(e))
@@ -160,12 +113,12 @@ export function AliasesEditor() {
   }
 
   const submitForm = async () => {
-    const err = validateDraft(draft, editor.entries, editingLine)
+    const err = validateDraft(draft)
     if (err) {
       setFormError(err)
       return
     }
-    const line = formatAliasLine({ name: draft.name.trim(), expansion: draft.expansion.trim() })
+    const line = formatSubstituteLine({ find: draft.find.trim(), replace: draft.replace.trim() })
 
     setBusy(true)
     try {
@@ -173,7 +126,7 @@ export function AliasesEditor() {
         editingLine !== null
           ? replaceLine(editor.text, editingLine, line)
           : appendUnderPlayerSection(editor.text, line)
-      await editor.applyAndSave(newText, reloadAliases)
+      await editor.applyAndSave(newText, reloadSubstitutes)
       cancelForm()
     } catch (e) {
       setFormError(String(e))
@@ -182,11 +135,11 @@ export function AliasesEditor() {
     }
   }
 
-  const deleteEntry = async (a: Alias) => {
-    if (!confirm(`Delete this alias?\n\n${formatAliasLine(a)}`)) return
+  const deleteEntry = async (s: Substitute) => {
+    if (!confirm(`Delete this substitute?\n\n${formatSubstituteLine(s)}`)) return
     setBusy(true)
     try {
-      await editor.applyAndSave(removeLine(editor.text, a.sourceLine), reloadAliases)
+      await editor.applyAndSave(removeLine(editor.text, s.sourceLine), reloadSubstitutes)
     } catch (e) {
       setFormError(String(e))
     } finally {
@@ -195,11 +148,13 @@ export function AliasesEditor() {
   }
 
   const restoreOriginal = async () => {
-    if (!confirm('Undo every alias change made in this editor and go back to the file as it was before?'))
+    if (
+      !confirm('Undo every substitute change made in this editor and go back to the file as it was before?')
+    )
       return
     setBusy(true)
     try {
-      await editor.restoreOriginal(reloadAliases)
+      await editor.restoreOriginal(reloadSubstitutes)
     } catch (e) {
       setFormError(String(e))
     } finally {
@@ -209,43 +164,10 @@ export function AliasesEditor() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-lg border border-border bg-surface-raised p-3">
-        <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-          <Play className="h-3 w-3" /> Test a command before you save anything
-        </label>
-        <input
-          type="text"
-          value={testCommand}
-          onChange={(e) => setTestCommand(e.target.value)}
-          placeholder="Type it the way you would in the game pane, e.g. appc my silver sword"
-          className="w-full rounded border border-border bg-surface px-2 py-1.5 font-mono text-sm text-ink placeholder:text-ink-faint placeholder:font-sans"
-        />
-        {testResult && (
-          <div className="mt-2 rounded border border-border bg-surface px-2 py-1.5 font-mono text-sm text-ink">
-            {testResult.text || <span className="text-ink-faint">(sends nothing)</span>}
-          </div>
-        )}
-        {testResult && (
-          <div className="mt-1 text-xs text-ink-faint">
-            {testResult.expanded
-              ? `Expanded via ${testResult.chain.join(' → ')}${testResult.capped ? ' — stopped early (a loop or too many steps)' : ''}`
-              : 'No alias matches the first word - this would be sent exactly as typed.'}
-          </div>
-        )}
-        {testVariables.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink-faint">
-            {testVariables.map(({ name, value }) => (
-              <span key={name}>
-                <code className="text-ink-muted">${name}</code> ={' '}
-                {value === null ? (
-                  <span className="italic">not set right now</span>
-                ) : (
-                  <code className="text-ink-muted">{value || '(empty)'}</code>
-                )}
-              </span>
-            ))}
-          </div>
-        )}
+      <div className="rounded-lg border border-border bg-surface-raised p-3 text-xs text-ink-muted">
+        Replaces text in what the game sends, before it's displayed - not what gets sent to the
+        game. Format unconfirmed against a real file on this machine (substitutes.cfg is empty
+        here); if a saved entry doesn't take effect in Genie, this is the first thing to check.
       </div>
 
       <div className="flex items-center gap-2">
@@ -255,14 +177,14 @@ export function AliasesEditor() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name or expansion"
+            placeholder="Search find or replace text"
             className="w-full rounded border border-border bg-surface py-1.5 pl-7 pr-2 text-sm text-ink placeholder:text-ink-faint"
           />
         </div>
         <button
           type="button"
           onClick={startImport}
-          title="Paste several #alias lines at once - from a guildmate's shared config, for instance"
+          title="Paste several #substitute lines at once"
           className="flex shrink-0 items-center gap-1 rounded border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-ink hover:border-accent hover:text-accent"
         >
           <ClipboardPaste className="h-3.5 w-3.5" /> Import multiple
@@ -272,7 +194,7 @@ export function AliasesEditor() {
           onClick={startAdd}
           className="flex shrink-0 items-center gap-1 rounded border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-ink hover:border-accent hover:text-accent"
         >
-          <Plus className="h-3.5 w-3.5" /> Add alias
+          <Plus className="h-3.5 w-3.5" /> Add substitute
         </button>
       </div>
 
@@ -286,7 +208,7 @@ export function AliasesEditor() {
       {importing && (
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold text-ink">Import multiple aliases - paste #alias lines below</span>
+            <span className="text-xs font-semibold text-ink">Import multiple substitutes - paste #substitute lines below</span>
             <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
               <X className="h-3.5 w-3.5" />
             </button>
@@ -294,14 +216,14 @@ export function AliasesEditor() {
           <textarea
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
-            placeholder={'#alias {appc} {appraise $0 careful}\n#alias {anec} {accuse $1 necromancy}'}
+            placeholder={'#substitute {ye olde} {the}'}
             rows={6}
             className="w-full rounded border border-border bg-surface px-2 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint"
           />
           {importPreview && (
             <div className="mt-2 text-xs">
               <div className="text-good">
-                {importPreview.valid.length} {importPreview.valid.length === 1 ? 'alias' : 'aliases'} ready to import
+                {importPreview.valid.length} {importPreview.valid.length === 1 ? 'substitute' : 'substitutes'} ready to import
               </div>
               {importPreview.skipped.length > 0 && (
                 <div className="mt-1 text-ink-faint">
@@ -337,34 +259,30 @@ export function AliasesEditor() {
       {(adding || editingLine !== null) && (
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold text-ink">{adding ? 'New alias' : 'Edit alias'}</span>
+            <span className="text-xs font-semibold text-ink">{adding ? 'New substitute' : 'Edit substitute'}</span>
             <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
           <div className="flex flex-col gap-2 text-xs">
             <label className="flex flex-col gap-1">
-              <span className="text-ink-muted">Name - one word, what you'll type</span>
+              <span className="text-ink-muted">Find - literal text to match</span>
               <input
                 type="text"
-                value={draft.name}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                value={draft.find}
+                onChange={(e) => setDraft({ ...draft, find: e.target.value })}
                 className="w-full rounded border border-border bg-surface px-2 py-1 font-mono text-ink"
-                placeholder="e.g. appc"
+                placeholder="e.g. ye olde"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-ink-muted">
-                Expansion - <code className="text-ink-faint">$0</code> is everything typed after the
-                name, <code className="text-ink-faint">$1</code>/<code className="text-ink-faint">$2</code>
-                /… are that split into words
-              </span>
+              <span className="text-ink-muted">Replace with - empty deletes the matched text</span>
               <input
                 type="text"
-                value={draft.expansion}
-                onChange={(e) => setDraft({ ...draft, expansion: e.target.value })}
+                value={draft.replace}
+                onChange={(e) => setDraft({ ...draft, replace: e.target.value })}
                 className="w-full rounded border border-border bg-surface px-2 py-1 font-mono text-ink"
-                placeholder="e.g. appraise $0 careful"
+                placeholder="e.g. the"
               />
             </label>
           </div>
@@ -386,25 +304,26 @@ export function AliasesEditor() {
       )}
 
       <div className="flex flex-col gap-1">
-        {filtered.map((a) => (
-          <div key={a.sourceLine} className="flex items-center gap-2 rounded border border-border bg-surface px-2 py-1.5">
-            <span className="w-28 shrink-0 truncate font-mono text-xs font-medium text-ink" title={a.name}>
-              {a.name}
+        {filtered.map((s) => (
+          <div key={s.sourceLine} className="flex items-center gap-2 rounded border border-border bg-surface px-2 py-1.5">
+            <span className="min-w-0 flex-1 truncate font-mono text-xs font-medium text-ink" title={s.find}>
+              {s.find}
             </span>
-            <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-muted" title={a.expansion}>
-              {a.expansion}
+            <span className="shrink-0 text-ink-faint">→</span>
+            <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-muted" title={s.replace}>
+              {s.replace || <span className="italic">(removed)</span>}
             </span>
-            {isPlayerAddedLine(editor.text, a.sourceLine) && (
+            {isPlayerAddedLine(editor.text, s.sourceLine) && (
               <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-[#1a1408]">
                 yours
               </span>
             )}
-            <button type="button" onClick={() => startEdit(a)} className="shrink-0 rounded p-1 text-ink-faint hover:text-ink" title="Edit">
+            <button type="button" onClick={() => startEdit(s)} className="shrink-0 rounded p-1 text-ink-faint hover:text-ink" title="Edit">
               <Pencil className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
-              onClick={() => void deleteEntry(a)}
+              onClick={() => void deleteEntry(s)}
               className="shrink-0 rounded p-1 text-ink-faint hover:text-danger"
               title="Delete"
             >
@@ -413,13 +332,13 @@ export function AliasesEditor() {
           </div>
         ))}
         {!editor.loading && filtered.length === 0 && editor.entries.length > 0 && (
-          <div className="py-6 text-center text-sm text-ink-faint">No alias matches “{search}”.</div>
+          <div className="py-6 text-center text-sm text-ink-faint">No substitute matches “{search}”.</div>
         )}
       </div>
 
       {editor.entries.length > 0 && (
         <div className="flex items-center justify-between border-t border-border pt-2">
-          <span className="text-xs text-ink-faint">{editor.entries.length} aliases</span>
+          <span className="text-xs text-ink-faint">{editor.entries.length} substitutes</span>
           <button
             type="button"
             onClick={() => void restoreOriginal()}

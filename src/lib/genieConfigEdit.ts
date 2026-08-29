@@ -91,6 +91,26 @@ export function formatMacroLine(m: MacroFields): string {
   return `#macro {${combo}} {${m.command}}`
 }
 
+export interface SubstituteFields {
+  find: string
+  replace: string
+}
+
+/** `#substitute {find} {replace}` - see substitutes.ts's header for why this
+ * shape is inferred rather than confirmed against a real file. */
+export function formatSubstituteLine(s: SubstituteFields): string {
+  return `#substitute {${s.find}} {${s.replace}}`
+}
+
+export interface GagFields {
+  pattern: string
+}
+
+/** `#gag {pattern}` - see gags.ts's header for the same caveat. */
+export function formatGagLine(g: GagFields): string {
+  return `#gag {${g.pattern}}`
+}
+
 /**
  * Replace exactly one source line, leaving every other line - including
  * every comment - byte-identical.
