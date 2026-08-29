@@ -123,6 +123,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   // Asked, not remembered. The map window is a separate webview with its own
   // state, so this panel cannot know from its own memory whether a window it
   // opened is still there or the user closed it by hand.
+  //
+  // `map_window_open`/`open_map_window`/`close_map_window` (the three
+  // map-specific commands this used to call) stopped existing on the Rust
+  // side days ago (fb381c5, "Any panel can have a window of its own") -
+  // replaced by generic ones keyed on a panel id, already wired up for
+  // every other panel through Dashboard.tsx's own popOut/popBack. This file
+  // never got the memo, so the map's own pop-out button has been silently
+  // failing since: `popOut` below caught the rejected invoke and quietly
+  // stayed docked, which is indistinguishable from "nothing to see here"
+  // instead of a broken feature. `panel_windows()` answers with which ids
+  // are currently out, not a single boolean the way the old command did.
   useEffect(() => {
     if (!isTauri()) return
     void invokeTauri('panel_windows')
