@@ -1,4 +1,3 @@
-import { Zap } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import {
   BODY_PARTS,
@@ -14,8 +13,20 @@ export type { BodyPart, Injury, Severity } from '../../lib/body'
 /**
  * The paperdoll, at a size that does not cost a column.
  *
- * Sixteen parts (S2), each carrying a wound 0-3 and a scar 0-3. Severity
- * labels are ours, not Lich's: 1 minor, 2 serious, 3 severe.
+ * All sixteen parts (S2) get a real place on the doll now, including the
+ * two that used to be missing one. `back` used to share `chest`'s exact
+ * box — drawn on top of it, at the same coordinates, so a back wound was
+ * never visually distinguishable from a chest one no matter how the data
+ * looked. It now runs as its own strip down the side of the torso. `nsys`
+ * (the nervous system) used to have no position on the doll at all — a
+ * floating icon beside it, shown only when something was actually wrong,
+ * because an indicator with nowhere to live and nothing to say felt like a
+ * rendering glitch on an uninjured character. It now runs as the spine,
+ * down the center of the torso, and reads exactly like every other part:
+ * present always, plain when unhurt, coloured when it isn't. Eyes were
+ * always there — two small circles set into the head — just easy to miss
+ * at a glance; they're bigger and better separated from the skull outline
+ * now.
  *
  * Three things carry severity so none of them carries it alone:
  *
@@ -28,24 +39,70 @@ export type { BodyPart, Injury, Severity } from '../../lib/body'
  *
  * Nothing is labelled on the doll. At this size text would break the 12px
  * floor in S1.5, so the part name lives in the title attribute.
+ *
+ * A soft silhouette sits behind the parts — a head halo and a torso glow —
+ * so sixteen independent shapes read as one body at a glance instead of a
+ * loose cluster of boxes. It carries no data of its own and never changes
+ * colour; it is stage lighting, not a seventeenth part.
  */
-/** Boxes on a 60x100 grid. Crude on purpose: it reads as a body at 90px tall. */
-const LAYOUT: Record<Exclude<BodyPart, 'nsys'>, [number, number, number, number]> = {
-  head: [24, 2, 12, 11],
-  leftEye: [26, 5, 3, 3],
-  rightEye: [31, 5, 3, 3],
-  neck: [27, 14, 6, 4],
-  chest: [21, 19, 18, 16],
-  back: [21, 19, 18, 16],
-  abdomen: [22, 36, 16, 12],
-  leftArm: [12, 20, 8, 18],
-  rightArm: [40, 20, 8, 18],
-  leftHand: [12, 40, 8, 7],
-  rightHand: [40, 40, 8, 7],
-  leftLeg: [22, 49, 7, 30],
-  rightLeg: [31, 49, 7, 30],
-  leftFoot: [22, 80, 7, 6],
-  rightFoot: [31, 80, 7, 6],
+/** What the doll is doing right now — driven by the character's own
+ * situation flags (prone/sitting/kneeling), not a choice this component
+ * makes. Standing is the layout this doll has always drawn. Sitting folds
+ * the legs into a cross-legged pose, same idea DR itself uses for "sit
+ * indian style" — knees out, feet tucked under, everything else untouched.
+ * Lying reuses the *standing* shapes verbatim, rotated 90° as a whole (see
+ * the render below) rather than a fourth hand-drawn layout: a body on its
+ * back is the same shapes, on their side. */
+export type Pose = 'standing' | 'sitting' | 'lying'
+
+/** Rounded boxes (and two circles for the head) on a 60x100 grid. Crude on
+ * purpose: it reads as a body at 90px tall, not an anatomy chart. */
+const LAYOUT_STANDING: Record<Exclude<BodyPart, 'head' | 'leftEye' | 'rightEye'>, [number, number, number, number]> = {
+  neck: [27, 15, 6, 4],
+  chest: [21, 19, 15, 15],
+  back: [17, 19, 3, 27],
+  abdomen: [22, 34, 13, 11],
+  nsys: [29, 20, 2, 24],
+  leftArm: [11, 20, 5, 17],
+  rightArm: [38, 20, 6, 17],
+  leftHand: [11, 38, 5, 6],
+  rightHand: [38, 38, 6, 6],
+  leftLeg: [23, 46, 6, 28],
+  rightLeg: [31, 46, 6, 28],
+  leftFoot: [22, 75, 7, 6],
+  rightFoot: [31, 75, 7, 6],
+}
+
+/** Cross-legged: torso, arms and hands stay exactly where standing put
+ * them (nothing above the waist changes when you sit down), only the legs
+ * and feet fold — wide at the knee, tucked in near the centre at the
+ * ankle, which is what "indian style" actually looks like from the front. */
+const LAYOUT_SITTING: typeof LAYOUT_STANDING = {
+  ...LAYOUT_STANDING,
+  leftLeg: [5, 50, 21, 11],
+  rightLeg: [34, 50, 21, 11],
+  leftFoot: [15, 63, 10, 7],
+  rightFoot: [35, 63, 10, 7],
+}
+
+function layoutFor(pose: Pose): typeof LAYOUT_STANDING {
+  return pose === 'sitting' ? LAYOUT_SITTING : LAYOUT_STANDING
+}
+
+const HEAD = { cx: 30, cy: 9, r: 7 }
+const EYES: Record<'leftEye' | 'rightEye', [number, number]> = {
+  leftEye: [27.3, 7.5],
+  rightEye: [32.7, 7.5],
+}
+const EYE_R = 1.5
+
+/** Corner rounding, per part — the spine and the eyes want to read as a
+ * line and a dot, not a rounded rectangle, so they get their own radius
+ * rather than the one every limb and the torso share. */
+function radiusFor(part: keyof typeof LAYOUT_STANDING, w: number, h: number): number {
+  if (part === 'nsys') return Math.min(w, h) / 2
+  if (part === 'back') return 1.2
+  return 1.8
 }
 
 function tone(wound: Severity) {
@@ -60,105 +117,136 @@ export function Paperdoll({
   height = 100,
   /** Absent is not uninjured. Before the first parse this says so. */
   known = true,
+  /** standing (default), sitting cross-legged, or lying down — see the
+   * `Pose` type above for what each actually draws. */
+  pose = 'standing',
 }: {
   injuries: Partial<Record<BodyPart, Injury>>
   height?: number
   known?: boolean
+  pose?: Pose
 }) {
-  const nsys = injuries.nsys ?? { wound: 0 as Severity, scar: 0 as Severity }
   const worst = Math.max(0, ...BODY_PARTS.map((p) => injuries[p]?.wound ?? 0))
+  const layout = layoutFor(pose)
+
+  const injuryOf = (part: BodyPart) => injuries[part] ?? { wound: 0 as Severity, scar: 0 as Severity }
+  const titleFor = (part: BodyPart) => {
+    const inj = injuryOf(part)
+    const pretty = PRETTY[part] ?? part
+    return `${pretty}: ${SEVERITY_LABEL[inj.wound]}` + (inj.scar > 0 ? `, ${SEVERITY_LABEL[inj.scar]} scar` : '')
+  }
 
   return (
-    <div className="flex items-start gap-1.5">
-      <svg
-        viewBox="0 0 60 90"
-        style={{ height }}
-        className={cn('shrink-0', !known && 'opacity-40')}
-        role="img"
-        aria-label={known ? `worst injury ${SEVERITY_LABEL[worst as Severity]}` : 'injuries unknown'}
-      >
-        {(Object.keys(LAYOUT) as Array<keyof typeof LAYOUT>).map((part) => {
-          const inj = injuries[part] ?? { wound: 0 as Severity, scar: 0 as Severity }
-          const t = tone(inj.wound)
-          const pretty = PRETTY[part] ?? part
-          const [x, y, w, h] = LAYOUT[part]
-          return (
-            <g key={part}>
-              <title>
-                {`${pretty}: ${SEVERITY_LABEL[inj.wound]}` +
-                  (inj.scar > 0 ? `, ${SEVERITY_LABEL[inj.scar]} scar` : '')}
-              </title>
-              <rect
-                x={x}
-                y={y}
-                width={w}
-                height={h}
-                rx={1.5}
-                fill={t.fill}
-                fillOpacity={t.opacity}
-                stroke="var(--color-border)"
-                strokeWidth={inj.wound >= 2 ? 1 : 0.4}
-              />
-              {/* Scars hatch rather than fill: history, not now. */}
-              {inj.scar > 0 && (
-                <line
-                  x1={x + 1}
-                  y1={y + h - 1}
-                  x2={x + w - 1}
-                  y2={y + 1}
-                  stroke="var(--color-ink-faint)"
-                  strokeWidth={0.6}
-                  strokeDasharray="1.5 1.5"
-                />
-              )}
-            </g>
-          )
-        })}
-      </svg>
+    <svg
+      viewBox="0 0 60 100"
+      style={{ height }}
+      className={cn('shrink-0', !known && 'opacity-40')}
+      role="img"
+      aria-label={
+        (known ? `worst injury ${SEVERITY_LABEL[worst as Severity]}` : 'injuries unknown') +
+        (pose !== 'standing' ? `, ${pose}` : '')
+      }
+    >
+      {/* Lying reuses the standing (upright) shapes wholesale, rotated as a
+          whole about the doll's own centre — a body on its back is the same
+          sixteen parts, on their side, not a seventeenth layout to draw and
+          keep in sync with the other two. Sitting gets its own real layout
+          above instead, since folded legs are a genuinely different shape,
+          not a rotation of a standing one. */}
+      <g transform={pose === 'lying' ? 'rotate(90 30 50)' : undefined}>
+      {/* Stage lighting, not a part: a head halo and a torso glow so the
+          sixteen independent shapes below read as one body at a glance. */}
+      <g aria-hidden opacity={0.5}>
+        <circle cx={HEAD.cx} cy={HEAD.cy} r={HEAD.r + 2} fill="var(--color-ink-faint)" opacity={0.08} />
+        <rect x={14} y={16} width={32} height={32} rx={10} fill="var(--color-ink-faint)" opacity={0.06} />
+      </g>
 
-      {/* The nervous system has nowhere to sit on a body, so it gets its own
-        * mark - but only when there is something to report.
-        *
-        * It used to render always, as a bare lowercase "n" beside an empty
-        * circle, with the word "nervous system" reachable only by hovering.
-        * On an uninjured character that is a stray letter and a dot floating
-        * next to the doll, and it was read as a rendering artifact rather than
-        * as information - which is the correct reading, because an indicator
-        * that permanently says "nothing is wrong" carries none.
-        *
-        * So it appears when it means something: a wound or a scar. The letter
-        * is now an icon, because at this size a word breaks the 12px floor the
-        * rest of this component is built around (see the header comment) and a
-        * single letter is not a label, it is a puzzle. */}
-      {known && (nsys.wound > 0 || nsys.scar > 0) && (
-      <div
-        className="flex flex-col items-center gap-0.5"
-        title={`nervous system: ${SEVERITY_LABEL[nsys.wound]}`}
-      >
-        <Zap
-          className={cn(
-            'h-3 w-3',
-            nsys.wound >= 2 ? 'text-danger' : nsys.wound === 1 ? 'text-warn' : 'text-ink-faint'
-          )}
-          aria-hidden
+      {/* The head, drawn separately from the rest of LAYOUT because it is a
+          circle, not a box — the one part of this doll a rectangle never
+          looked right for. */}
+      <g>
+        <title>{titleFor('head')}</title>
+        <circle
+          cx={HEAD.cx}
+          cy={HEAD.cy}
+          r={HEAD.r}
+          fill={tone(injuryOf('head').wound).fill}
+          fillOpacity={tone(injuryOf('head').wound).opacity}
+          stroke="var(--color-border)"
+          strokeWidth={injuryOf('head').wound >= 2 ? 1 : 0.4}
         />
-        <span
-          className={cn(
-            'h-3 w-3 rounded-full border',
-            nsys.wound >= 3
-              ? 'border-danger bg-danger'
-              : nsys.wound === 2
-                ? 'border-danger bg-danger/60'
-                : nsys.wound === 1
-                  ? 'border-warn bg-warn/50'
-                  // Reachable when the nerves are scarred but unwounded, which
-                  // is why this branch stays rather than being folded away with
-                  // the always-on rendering.
-                  : 'border-border bg-surface-overlay'
-          )}
-        />
-      </div>
-      )}
-    </div>
+        {injuryOf('head').scar > 0 && (
+          <line
+            x1={HEAD.cx - HEAD.r + 1.5}
+            y1={HEAD.cy + HEAD.r - 1.5}
+            x2={HEAD.cx + HEAD.r - 1.5}
+            y2={HEAD.cy - HEAD.r + 1.5}
+            stroke="var(--color-ink-faint)"
+            strokeWidth={0.6}
+            strokeDasharray="1.5 1.5"
+          />
+        )}
+      </g>
+
+      {/* Eyes — always present, bigger and better separated from the skull
+          outline than a first pass had them, so "the eyes are on this doll"
+          is true at a glance and not just true in the data. */}
+      {(['leftEye', 'rightEye'] as const).map((part) => {
+        const [cx, cy] = EYES[part]
+        const inj = injuryOf(part)
+        const t = tone(inj.wound)
+        return (
+          <g key={part}>
+            <title>{titleFor(part)}</title>
+            <circle
+              cx={cx}
+              cy={cy}
+              r={EYE_R}
+              fill={t.fill}
+              fillOpacity={t.opacity}
+              stroke="var(--color-surface)"
+              strokeWidth={0.4}
+            />
+          </g>
+        )
+      })}
+
+      {(Object.keys(layout) as Array<keyof typeof LAYOUT_STANDING>).map((part) => {
+        const inj = injuryOf(part)
+        const t = tone(inj.wound)
+        const pretty = PRETTY[part] ?? part
+        const [x, y, w, h] = layout[part]
+        const rx = radiusFor(part, w, h)
+        return (
+          <g key={part}>
+            <title>{`${pretty}: ${SEVERITY_LABEL[inj.wound]}${inj.scar > 0 ? `, ${SEVERITY_LABEL[inj.scar]} scar` : ''}`}</title>
+            <rect
+              x={x}
+              y={y}
+              width={w}
+              height={h}
+              rx={rx}
+              fill={t.fill}
+              fillOpacity={t.opacity}
+              stroke="var(--color-border)"
+              strokeWidth={inj.wound >= 2 ? 1 : 0.4}
+            />
+            {/* Scars hatch rather than fill: history, not now. */}
+            {inj.scar > 0 && (
+              <line
+                x1={x + 1}
+                y1={y + h - 1}
+                x2={x + w - 1}
+                y2={y + 1}
+                stroke="var(--color-ink-faint)"
+                strokeWidth={0.6}
+                strokeDasharray="1.5 1.5"
+              />
+            )}
+          </g>
+        )
+      })}
+      </g>
+    </svg>
   )
 }

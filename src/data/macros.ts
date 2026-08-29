@@ -26,7 +26,7 @@ export interface Macro {
   label: string
   /** Lucide icon name, resolved by the bar. */
   icon: string
-  group: 'combat' | 'health' | 'goods' | 'magic' | 'travel' | 'info'
+  group: 'combat' | 'health' | 'goods' | 'magic' | 'travel' | 'info' | 'hunt'
   variations: MacroVariation[]
 }
 
@@ -86,6 +86,41 @@ export const MACROS: Macro[] = [
       { id: 'health', label: 'Health', commands: ['health'], note: 'What is hurt and how badly.' },
       { id: 'diagnose', label: 'Diagnose', commands: ['diagnose'], note: 'A fuller reading.' },
       { id: 'perceive', label: 'Perceive health', commands: ['perceive health'], note: 'Empaths only.' },
+    ],
+  },
+  {
+    // "Hunt" isn't a DragonRealms verb on its own — in Lich circles it names
+    // whole automation scripts (see scriptCatalog.ts's `hunting-buddy`), not
+    // a command this bar could send. These three are the real one-word
+    // verbs a player actually types while moving room to room looking for
+    // something to fight: find what's hidden here, follow what already
+    // walked through, or stop being seen while you do either.
+    id: 'search',
+    label: 'Search',
+    icon: 'Search',
+    group: 'hunt',
+    variations: [
+      { id: 'search', label: 'Search', commands: ['search'], note: 'Hidden things in this room.' },
+    ],
+  },
+  {
+    id: 'stalk',
+    label: 'Stalk',
+    icon: 'Footprints',
+    group: 'hunt',
+    variations: [
+      { id: 'stalk', label: 'Stalk', commands: ['stalk'], note: 'Follow the freshest trail here.' },
+      { id: 'stalk-off', label: 'Stop stalking', commands: ['stalk off'], note: 'Lost the trail, or found what you wanted.' },
+    ],
+  },
+  {
+    id: 'stealth',
+    label: 'Hide',
+    icon: 'EyeOff',
+    group: 'hunt',
+    variations: [
+      { id: 'hide', label: 'Hide', commands: ['hide'], note: 'Slip out of sight where you stand.' },
+      { id: 'sneak', label: 'Sneak', commands: ['sneak'], note: 'Move to an exit without being seen.' },
     ],
   },
   {

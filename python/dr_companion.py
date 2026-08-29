@@ -107,6 +107,15 @@ def _data_dir() -> Path:
     return Path(local_app_data) / "DR Companion Data"
 
 
+def app_data_dir() -> Path:
+    """Public spelling of `_data_dir`, for anything that wants the app's data
+    folder without also wanting a connection - `drtask.py`'s `SightPicture`
+    saves its snapshot here, beside the token/port files this module itself
+    reads, rather than inventing a second place to look for "the app's data".
+    """
+    return _data_dir()
+
+
 def _read_connection_info(data_dir: Path) -> tuple[int, str]:
     port_file = data_dir / "script-api.port"
     token_file = data_dir / "script-api.token"

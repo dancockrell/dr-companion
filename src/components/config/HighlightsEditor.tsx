@@ -9,7 +9,7 @@
  * edit or delete touches only its own line. See that file's header for why.
  */
 import { useMemo, useState } from 'react'
-import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, Volume2, VolumeX } from 'lucide-react'
+import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, Volume2, VolumeX, ClipboardPaste } from 'lucide-react'
 import { parseHighlights, paint, segments, type Highlight, type HighlightType } from '../../lib/highlights'
 import { reloadHighlights } from '../../lib/useHighlights'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
@@ -65,6 +65,36 @@ function validateDraft(d: DraftHighlight): string | null {
   return null
 }
 
+/**
+ * Non-blocking heads-up when a new pattern exactly duplicates or overlaps an
+ * existing one - not an error, because Genie itself allows any number of
+ * overlapping highlights (first match wins, by design), but a player retyping
+ * something they already have, or shadowing an entry they forgot about, is
+ * worth a warning Genie itself never gives.
+ *
+ * Regexp entries are skipped on both sides: substring containment between two
+ * arbitrary patterns says nothing about whether the *regexes* overlap, and
+ * claiming it would would be a false signal, not a soft one. Capped at 3 so
+ * one very generic pattern (a single common word) can't produce a wall of
+ * warnings that bury the one worth reading.
+ */
+function findConflicts(d: DraftHighlight, existing: Highlight[], editingLine: number | null): string[] {
+  if (d.type === 'regexp' || !d.pattern.trim()) return []
+  const pattern = d.pattern.trim().toLowerCase()
+  const warnings: string[] = []
+  for (const h of existing) {
+    if (h.sourceLine === editingLine || h.type === 'regexp') continue
+    const hp = h.pattern.toLowerCase()
+    if (hp === pattern && h.type === d.type) {
+      warnings.push(`Identical to an existing ${h.type} entry for "${h.pattern}"`)
+    } else if (hp.includes(pattern) || pattern.includes(hp)) {
+      warnings.push(`Overlaps with "${h.pattern}" (${h.type})`)
+    }
+    if (warnings.length >= 3) break
+  }
+  return warnings
+}
+
 /** A short, silent-by-default preview player - deliberately not routed
  * through alertSound.ts's channels, so auditioning a sound in the picker
  * works even while every channel is muted, at one fixed sensible volume. */
@@ -92,6 +122,8 @@ export function HighlightsEditor() {
   const [sounds, setSounds] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importText, setImportText] = useState('')
 
   // Loaded once, lazily, the first time the sound picker could plausibly be
   // opened - a player who never adds a sound never pays for the directory
@@ -128,18 +160,51 @@ export function HighlightsEditor() {
 
   const testSegments = testResult ? segments(testLine, testResult) : []
 
+  const conflicts = useMemo(
+    () => findConflicts(draft, editor.entries, editingLine),
+    [draft, editor.entries, editingLine]
+  )
+
+  /** Reuses parseHighlights for the actual parsing - one parser, not two -
+   * then flags (not blocks) entries that exactly duplicate something already
+   * present, the bulk-paste version of `findConflicts` above. Genie has no
+   * bulk import at all; a pasted block there means retyping every line by
+   * hand. */
+  const importPreview = useMemo(() => {
+    if (!importText.trim()) return null
+    const { entries, skipped } = parseHighlights(importText)
+    const warnings: string[] = []
+    for (const h of entries) {
+      const dupe = editor.entries.find(
+        (e) => e.type === h.type && e.pattern.toLowerCase() === h.pattern.toLowerCase()
+      )
+      if (dupe) warnings.push(`${formatHighlightLine(h)} - identical to an existing entry`)
+    }
+    return { valid: entries, skipped, warnings }
+  }, [importText, editor.entries])
+
   const startAdd = () => {
     setDraft(EMPTY_DRAFT)
     setEditingLine(null)
     setAdding(true)
+    setImporting(false)
     setFormError('')
     ensureSounds()
+  }
+
+  const startImport = () => {
+    setImportText('')
+    setImporting(true)
+    setAdding(false)
+    setEditingLine(null)
+    setFormError('')
   }
 
   const startEdit = (h: Highlight) => {
     setDraft(draftFrom(h))
     setEditingLine(h.sourceLine)
     setAdding(false)
+    setImporting(false)
     setFormError('')
     ensureSounds()
   }
@@ -147,7 +212,28 @@ export function HighlightsEditor() {
   const cancelForm = () => {
     setAdding(false)
     setEditingLine(null)
+    setImporting(false)
     setFormError('')
+  }
+
+  const submitImport = async () => {
+    if (!importPreview || importPreview.valid.length === 0) {
+      setFormError('Nothing valid to import - paste one or more #highlight lines.')
+      return
+    }
+    const pastedLines = importText.split(/\r\n|\n/)
+    const rawLines = importPreview.valid.map((h) => pastedLines[h.sourceLine].trim())
+
+    setBusy(true)
+    try {
+      const newText = rawLines.reduce((acc, line) => appendUnderPlayerSection(acc, line), editor.text)
+      await editor.applyAndSave(newText, reloadHighlights)
+      cancelForm()
+    } catch (e) {
+      setFormError(String(e))
+    } finally {
+      setBusy(false)
+    }
   }
 
   const submitForm = async () => {
@@ -253,6 +339,14 @@ export function HighlightsEditor() {
         </div>
         <button
           type="button"
+          onClick={startImport}
+          title="Paste several #highlight lines at once - from a guildmate's shared config, for instance"
+          className="flex shrink-0 items-center gap-1 rounded border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-ink hover:border-accent hover:text-accent"
+        >
+          <ClipboardPaste className="h-3.5 w-3.5" /> Import multiple
+        </button>
+        <button
+          type="button"
           onClick={startAdd}
           className="flex shrink-0 items-center gap-1 rounded border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-ink hover:border-accent hover:text-accent"
         >
@@ -267,12 +361,77 @@ export function HighlightsEditor() {
         </div>
       )}
 
+      {importing && (
+        <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold text-ink">Import multiple highlights - paste #highlight lines below</span>
+            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder={'#highlight {line} {#FF0000} {into the area} {danger} {Growl.wav}'}
+            rows={6}
+            className="w-full rounded border border-border bg-surface px-2 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint"
+          />
+          {importPreview && (
+            <div className="mt-2 text-xs">
+              <div className="text-good">
+                {importPreview.valid.length} {importPreview.valid.length === 1 ? 'highlight' : 'highlights'} ready to import
+              </div>
+              {importPreview.warnings.length > 0 && (
+                <div className="mt-1 text-warn">
+                  {importPreview.warnings.length} {importPreview.warnings.length === 1 ? 'duplicates' : 'duplicate'} an
+                  existing entry - still importable, just flagged:
+                  <ul className="mt-0.5 list-disc pl-4">
+                    {importPreview.warnings.slice(0, 3).map((s, i) => (
+                      <li key={i} className="truncate" title={s}>
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {importPreview.skipped.length > 0 && (
+                <div className="mt-1 text-ink-faint">
+                  {importPreview.skipped.length} skipped:
+                  <ul className="mt-0.5 list-disc pl-4">
+                    {importPreview.skipped.slice(0, 5).map((s, i) => (
+                      <li key={i} className="truncate" title={s}>
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {formError && <div className="mt-2 rounded bg-danger/10 px-2 py-1 text-xs text-danger">{formError}</div>}
+          <div className="mt-3 flex justify-end gap-2">
+            <button type="button" onClick={cancelForm} className="rounded px-3 py-1.5 text-xs text-ink-muted hover:text-ink">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void submitImport()}
+              disabled={busy || !importPreview?.valid.length}
+              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+            >
+              {busy ? 'Importing…' : `Import ${importPreview?.valid.length ?? 0}`}
+            </button>
+          </div>
+        </div>
+      )}
+
       {(adding || editingLine !== null) && (
         <HighlightForm
           draft={draft}
           setDraft={setDraft}
           sounds={sounds}
           error={formError}
+          conflicts={conflicts}
           busy={busy}
           isNew={adding}
           onCancel={cancelForm}
@@ -396,6 +555,7 @@ function HighlightForm({
   setDraft,
   sounds,
   error,
+  conflicts,
   busy,
   isNew,
   onCancel,
@@ -406,6 +566,7 @@ function HighlightForm({
   setDraft: (d: DraftHighlight) => void
   sounds: string[]
   error: string
+  conflicts: string[]
   busy: boolean
   isNew: boolean
   onCancel: () => void
@@ -509,6 +670,13 @@ function HighlightForm({
         </label>
       </div>
 
+      {conflicts.length > 0 && (
+        <div className="mt-2 rounded bg-warn/10 px-2 py-1 text-xs text-warn">
+          {conflicts.map((c, i) => (
+            <div key={i}>{c}</div>
+          ))}
+        </div>
+      )}
       {error && <div className="mt-2 rounded bg-danger/10 px-2 py-1 text-xs text-danger">{error}</div>}
 
       <div className="mt-3 flex justify-end gap-2">

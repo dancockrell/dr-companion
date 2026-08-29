@@ -1,14 +1,18 @@
 /**
- * Hotbuttons for saved places: click one and go there, the same as clicking
- * the room itself on the chart. This is the part of the feature that never
- * needs the map on screen at all - Home is one click whether the map is
- * showing The Crossing or a gate three zones away, because map_walk works
- * off the room id a pin carries, not whatever zone happens to be drawn.
+ * Saved places: one button, not one button per place.
+ *
+ * This used to draw a separate pill for every pin - fine at three or four,
+ * and exactly the "many editors, you need 1 for all of them" complaint the
+ * moment a player actually uses the feature: 50 preset types and no cap on
+ * how many pins a room can carry means this row was always going to grow
+ * without bound. A single button opening a list scales the same at 3 pins
+ * and at 300; a row of pills does not.
  *
  * Shared between the docked panel and the popped-out window for the same
  * reason MapCanvas is: two places that must never grow two different sets of
  * buttons for the same saved places.
  */
+import { useEffect, useRef, useState } from 'react'
 import { MapPin as MapPinIcon, Pencil, Plus } from 'lucide-react'
 import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
@@ -28,51 +32,108 @@ export function MapPinBar({
   /** True while a walk is already in flight - a second click would just queue behind go2's own refusal, so the buttons say so instead of pretending to be idle. */
   disabled?: boolean
 }) {
+  const [open, setOpen] = useState(false)
+  const boxRef = useRef<HTMLDivElement | null>(null)
+
+  // Closes on a click anywhere else, and on Escape - a dropdown that only
+  // closes by picking something or hunting for the toggle button again is
+  // one people stop opening.
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   if (pins.length === 0 && !onAddHere) return null
 
+  // A fragment, not its own wrapping div: the caller (MapPanel.tsx,
+  // MapWindow.tsx) puts this in a shared flex-wrap row alongside
+  // QuickTravel, since both are the same shape - a row of small controls -
+  // and stacking each in its own wrapper meant two mostly-empty rows
+  // instead of one that only wraps when it has to.
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {pins.map((pin) => {
-        const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
-        return (
-        <div
-          key={pin.id}
-          className="group flex items-center overflow-hidden rounded-full border border-border"
-          style={{ borderLeftColor: PIN_COLOR_HEX[pin.color], borderLeftWidth: 3 }}
-        >
+    <>
+      {pins.length > 0 && (
+        <div className="relative" ref={boxRef}>
           <button
             type="button"
-            disabled={disabled}
-            title={`Walk to ${pin.label} (room ${pin.roomId})`}
-            onClick={() => onGo(pin)}
-            className="flex items-center gap-1 px-2 py-0.5 text-xs text-ink-muted hover:text-ink disabled:opacity-40"
+            onClick={() => setOpen((o) => !o)}
+            title={`${pins.length} saved ${pins.length === 1 ? 'pin' : 'pins'} - click to browse`}
+            aria-label={`${pins.length} saved pins`}
+            aria-expanded={open}
+            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${
+              open ? 'border-accent text-accent' : 'border-border text-ink-muted hover:text-ink'
+            }`}
           >
-            {Icon && <Icon className="h-3 w-3" style={{ color: PIN_COLOR_HEX[pin.color] }} />}
-            {pin.label}
+            <MapPinIcon className="h-3 w-3" />
+            <span className="text-xs tabular-nums">{pins.length}</span>
           </button>
-          <button
-            type="button"
-            title="Edit this pin" aria-label="Edit this pin"
-            onClick={() => onEdit(pin)}
-            className="px-1 py-0.5 text-ink-faint opacity-0 hover:text-ink group-hover:opacity-100"
-          >
-            <Pencil className="h-3 w-3" />
-          </button>
+          {open && (
+            <div
+              role="menu"
+              className="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded border border-border bg-surface-raised shadow-lg"
+            >
+              {pins.map((pin) => {
+                const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : MapPinIcon
+                return (
+                  <div
+                    key={pin.id}
+                    className="group flex items-center gap-1.5 border-b border-border/50 px-2 py-1 last:border-b-0 hover:bg-surface-overlay"
+                  >
+                    <Icon className="h-3 w-3 shrink-0" style={{ color: PIN_COLOR_HEX[pin.color] }} />
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      title={`Walk to ${pin.label} (room ${pin.roomId})`}
+                      onClick={() => {
+                        onGo(pin)
+                        setOpen(false)
+                      }}
+                      className="min-w-0 flex-1 truncate text-left text-xs text-ink-muted hover:text-ink disabled:opacity-40"
+                    >
+                      {pin.label}
+                    </button>
+                    <button
+                      type="button"
+                      title="Edit this pin"
+                      aria-label={`Edit ${pin.label}`}
+                      onClick={() => {
+                        onEdit(pin)
+                        setOpen(false)
+                      }}
+                      className="shrink-0 rounded p-0.5 text-ink-faint opacity-0 hover:text-ink group-hover:opacity-100"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
-        )
-      })}
+      )}
       {onAddHere && (
         <button
           type="button"
           title="Pin the room you are standing in"
+          aria-label="Pin the room you are standing in"
           onClick={onAddHere}
-          className="flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-xs text-ink-faint hover:border-accent/60 hover:text-accent"
+          className="flex items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-ink-faint hover:border-accent/60 hover:text-accent"
         >
           <Plus className="h-3 w-3" />
           <MapPinIcon className="h-3 w-3" />
-          Pin here
         </button>
       )}
-    </div>
+    </>
   )
 }

@@ -21,7 +21,18 @@ import {
   type CharacterProfile,
 } from '../lib/profiles'
 import { emptyTrail, visit } from '../lib/trail'
-import { loadPins, setCorpseMarker, clearCorpseMarker } from '../lib/mapPins'
+import {
+  loadPins,
+  addPin,
+  updatePin,
+  pinFor,
+  setCorpseMarker,
+  clearCorpseMarker,
+  PIN_ICONS,
+  PIN_COLORS,
+  type PinIcon,
+  type PinColor,
+} from '../lib/mapPins'
 
 const prefs = loadPrefs()
 
@@ -317,6 +328,44 @@ function handleBridgeMessage(
       set({ mapZone: msg.payload })
       if (!msg.payload.ok) get().addLog(`Map: ${msg.payload.reason ?? 'no zone'}`)
       break
+
+    /**
+     * "Placed by the player or by scripts" - the player's half is
+     * PinEditor/QuickTravel's drag-and-drop; this is the script half. A
+     * running Lich task can drop a pin the same way it can send a chat line
+     * or run an intent, without a person ever opening the map. Same storage,
+     * same addPin/updatePin mapPins.ts already exposes to the UI - a script
+     * is just another caller, not a second pin system.
+     *
+     * icon and color arrive as free strings from outside the app's own type
+     * system (a script, possibly hand-edited), so both are checked against
+     * the real PIN_ICONS/PIN_COLORS lists rather than cast - an unrecognised
+     * icon silently becomes "no icon" and an unrecognised colour falls back
+     * to blue, rather than either one reaching PIN_ICON_COMPONENT as a key
+     * it does not have.
+     */
+    case 'map_pin': {
+      const character = get().character
+      const { roomId, zone, label } = msg.payload
+      if (!character?.name || !Number.isFinite(roomId) || !label) break
+      const icon: PinIcon | undefined = (PIN_ICONS as readonly string[]).includes(
+        msg.payload.icon ?? ''
+      )
+        ? (msg.payload.icon as PinIcon)
+        : undefined
+      const color: PinColor = (PIN_COLORS as readonly string[]).includes(msg.payload.color ?? '')
+        ? (msg.payload.color as PinColor)
+        : 'blue'
+      const pins = loadPins(character.name, character.instance)
+      const already = pinFor(pins, roomId)
+      if (already) {
+        updatePin(character.name, character.instance, already.id, { label, color, icon })
+      } else {
+        addPin(character.name, character.instance, { roomId, zone: zone ?? '', label, color, icon })
+      }
+      get().addLog(`Pinned "${label}" (room ${roomId}) - placed by a script.`)
+      break
+    }
   }
 }
 

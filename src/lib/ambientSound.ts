@@ -187,12 +187,23 @@ export type CrossfadeStyle = keyof typeof CROSSFADE_STYLES
 
 let FADE_MS: number = CROSSFADE_STYLES.standard.ms
 let crossfadeStyle: CrossfadeStyle = 'standard'
+// Two pickers read this now - the Sound panel's row and SafetyFooter's own
+// compact cycle button (29 Aug 2026) - so a change made in one has to reach
+// the other the same way musicVolume/nowPlaying already do, or the second
+// picker silently disagrees with the style actually in effect until its own
+// component happens to re-render for an unrelated reason.
+const crossfadeStyleListeners = new Set<(style: CrossfadeStyle) => void>()
 export function setCrossfadeStyle(style: CrossfadeStyle) {
   crossfadeStyle = style
   FADE_MS = CROSSFADE_STYLES[style].ms
+  for (const l of crossfadeStyleListeners) l(style)
 }
 export function currentCrossfadeStyle(): CrossfadeStyle {
   return crossfadeStyle
+}
+export function onCrossfadeStyleChange(fn: (style: CrossfadeStyle) => void): () => void {
+  crossfadeStyleListeners.add(fn)
+  return () => crossfadeStyleListeners.delete(fn)
 }
 
 const TICK_MS = 50
