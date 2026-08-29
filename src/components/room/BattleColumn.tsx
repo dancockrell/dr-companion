@@ -154,6 +154,24 @@ export function BattleColumn() {
       ? ('sitting' as const)
       : ('standing' as const)
 
+  // The injury-adjacent flags YouCard draws as icons — see its own doc
+  // comment on `STATUS_ICON` for why this excludes prone/kneeling/sitting
+  // (the doll's pose already says those) and the full "good"/roundtime/
+  // spell detail (BattleStatus's own StatusBoard, above the picture,
+  // already says all of that once).
+  const STATUS_ICON_FLAGS = [
+    'dead',
+    'dying',
+    'bleeding',
+    'low_health',
+    'poisoned',
+    'diseased',
+    'stunned',
+    'webbed',
+    'immobilized',
+  ]
+  const statusFlags = situation ? STATUS_ICON_FLAGS.filter((f) => situation.has(f)) : []
+
   const you = character
     ? {
         character: character.name,
@@ -162,6 +180,7 @@ export function BattleColumn() {
         injuriesKnown: character.injuries !== undefined,
         vitals: vitalsFor(character, stream.vitals.value),
         pose,
+        statusFlags,
       }
     : undefined
 

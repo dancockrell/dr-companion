@@ -4,7 +4,7 @@ import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
 import { Paperdoll, type Pose } from './Paperdoll'
-import { StatusBoard } from './StatusBoard'
+import { Activity, Anchor, Ban, Bug, Droplet, FlaskConical, HeartCrack, HeartPulse, Skull, Zap, type LucideIcon } from 'lucide-react'
 import { playerArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { npcRoleGuessFor, npcDefaultFor } from '../../lib/npcDefaults'
 import { useMacroRunner } from '../../lib/useMacroRunner'
@@ -12,7 +12,7 @@ import { RoomBackdrop } from '../room/RoomBackdrop'
 import { DECK_STYLE, type Deck } from '../../lib/cards'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
-import type { BodyPart, Injury } from '../../lib/body'
+import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body'
 import type { Vital } from '../../lib/vitals'
 
 /**
@@ -97,16 +97,16 @@ const STRIP_COLS = 2
  * how big pucks get.
  */
 const RANGE_RADIUS_FLOOR_PCT: Record<'melee' | 'pole' | 'missile', number> = {
-  melee: 16,
-  pole: 22,
-  missile: 28,
+  melee: 20,
+  pole: 27,
+  missile: 34,
 }
 
 /** How much further out pole and missile sit than melee, once melee's own
  * radius is computed — a fixed gap rather than its own floor, so a melee
  * ring forced wider to fit its pucks still reads as "the same three rings,
  * further apart" instead of three radii drifting independently. */
-const RANGE_DELTA_PCT: Record<'pole' | 'missile', number> = { pole: 5, missile: 10 }
+const RANGE_DELTA_PCT: Record<'pole' | 'missile', number> = { pole: 6, missile: 12 }
 
 /**
  * The actual radius to draw each range ring at, as a percentage of the
@@ -790,6 +790,42 @@ function vitalColor(share: number): string {
 }
 
 /**
+ * The status flags worth a glance mid-fight, as an icon rather than a text
+ * chip — the full word-for-word list (with roundtime, spells, and the
+ * "good" band like hidden/invisible/joined) already renders above the
+ * picture in `BattleStatus`'s own `StatusBoard`; repeating all of that a
+ * second time, in the middle of the board, was chrome saying the same
+ * thing twice. `prone`/`kneeling`/`sitting` are left out on purpose too —
+ * the doll's own pose already draws those. What's left is exactly the
+ * injury-adjacent set: something actively hurting you, or costing you your
+ * turn.
+ */
+const STATUS_ICON: Partial<Record<string, { Icon: LucideIcon; label: string; tone: string }>> = {
+  dead: { Icon: Skull, label: 'Dead', tone: 'text-danger' },
+  dying: { Icon: HeartCrack, label: 'Dying', tone: 'text-danger' },
+  bleeding: { Icon: Droplet, label: 'Bleeding', tone: 'text-danger' },
+  low_health: { Icon: HeartPulse, label: 'Low health', tone: 'text-danger' },
+  poisoned: { Icon: FlaskConical, label: 'Poisoned', tone: 'text-danger' },
+  diseased: { Icon: Bug, label: 'Diseased', tone: 'text-danger' },
+  stunned: { Icon: Zap, label: 'Stunned', tone: 'text-warn' },
+  webbed: { Icon: Anchor, label: 'Webbed', tone: 'text-warn' },
+  immobilized: { Icon: Ban, label: 'Immobilised', tone: 'text-warn' },
+}
+
+/** Nerves, as the same three-step tone the doll's own parts use — plain,
+ * warn, danger — rather than the doll's own near-invisible sliver: `nsys`
+ * is a 2-unit-wide strip out of a 60-wide viewBox, which reads fine at the
+ * dashboard's full-size doll (S2) and is sub-pixel at this card's much
+ * smaller one. An icon carries the same fact at a size that's actually
+ * legible here, instead of asking the doll to do a job it can't at this
+ * scale. */
+function nsysTone(wound: number): string {
+  if (wound >= 2) return 'text-danger'
+  if (wound === 1) return 'text-warn'
+  return 'text-ink-faint'
+}
+
+/**
  * You — face, doll, pools and status, together, at the compass's own
  * center. The numbers stand in for a bar on purpose: a bar needs width
  * this card does not have to spare once the doll itself is sized to
@@ -798,6 +834,12 @@ function vitalColor(share: number): string {
  * pose — standing, sitting cross-legged, or lying down — follows whatever
  * the character's situation currently says, so a downed or seated
  * character reads as one at a glance instead of standing through it.
+ *
+ * No border, and only just enough background to keep the numbers and
+ * icons legible over whatever the room picture happens to be doing behind
+ * them — a hard box edge was chrome the middle of a compass doesn't need,
+ * and every pixel it cost was a pixel not spent on the portrait or the
+ * doll.
  *
  * Exactly one of these ever renders (`CombatRadar` places it once, at the
  * compass center) — it never also appears as a puck in the roster strip.
@@ -813,46 +855,54 @@ function YouCard({
     injuriesKnown: boolean
     vitals: Vital[]
     pose: Pose
+    statusFlags: string[]
   }
   compact: boolean
 }) {
+  const nsysWound = you.injuries.nsys?.wound ?? 0
+  const statusIcons = you.statusFlags
+    .map((f) => STATUS_ICON[f])
+    .filter((s): s is NonNullable<typeof s> => s != null)
+
   return (
     <div
-      className="pointer-events-auto flex max-w-[15rem] flex-col gap-1.5 rounded-lg border border-accent/60 bg-surface/90 p-2"
-      style={{ boxShadow: PUCK_SHADOW }}
+      className="pointer-events-auto flex max-w-[16rem] flex-col gap-0.5 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
+      style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
     >
-      <div className="flex items-center gap-2">
-        <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 44 : 64} />
+      <div className="flex items-center gap-1.5">
+        <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 64 : 92} />
         <Paperdoll
           injuries={you.injuries}
-          height={compact ? 78 : 112}
+          height={compact ? 96 : 138}
           known={you.injuriesKnown}
           pose={you.pose}
         />
       </div>
-      {you.vitals.length > 0 && (
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-          {you.vitals.map((v) => {
-            const share = v.max > 0 ? v.value / v.max : 1
-            return (
-              <span
-                key={v.key}
-                className="text-xs text-ink-muted"
-                title={`${v.label}: ${v.value}/${v.max}`}
-              >
-                {v.label.slice(0, 2).toUpperCase()}{' '}
-                <span
-                  className="text-sm font-bold tabular-nums"
-                  style={{ color: vitalColor(share) }}
-                >
-                  {v.value}
-                </span>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        {you.vitals.map((v) => {
+          const share = v.max > 0 ? v.value / v.max : 1
+          return (
+            <span key={v.key} className="text-xs text-ink-muted" title={`${v.label}: ${v.value}/${v.max}`}>
+              {v.label.slice(0, 2).toUpperCase()}{' '}
+              <span className="text-sm font-bold tabular-nums" style={{ color: vitalColor(share) }}>
+                {v.value}
               </span>
-            )
-          })}
-        </div>
-      )}
-      <StatusBoard />
+            </span>
+          )
+        })}
+
+        {/* Nerves and the injury-adjacent status flags, as small icons in
+            the same row the vitals sit in — see the doc comments above for
+            why each lives here instead of a full StatusBoard. */}
+        <span className="ml-auto flex items-center gap-1" title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
+          <Activity className={`h-3.5 w-3.5 ${nsysTone(nsysWound)}`} aria-hidden />
+        </span>
+        {statusIcons.map(({ Icon, label, tone }) => (
+          <span key={label} title={label} className="flex items-center">
+            <Icon className={`h-3.5 w-3.5 ${tone}`} aria-hidden />
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
@@ -908,6 +958,10 @@ export function CombatRadar({
      * this from the character's own situation flags (see BattleColumn) and
      * hands it straight through to `Paperdoll`. */
     pose: Pose
+    /** The injury-adjacent situation flags worth an icon on `YouCard` —
+     * see that component's own doc comment for why this is a curated
+     * subset rather than the full list `StatusBoard` shows. */
+    statusFlags: string[]
   }
   /**
    * True when `RoomScene` is passing this in as its own `overlay` — the room
