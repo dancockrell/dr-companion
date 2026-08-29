@@ -141,13 +141,19 @@ export function CombatRadar({
             }}
           />
         ))}
-        <span className="absolute left-1/2 top-[2%] -translate-x-1/2 text-[9px] text-ink-faint/70">
+        {/* Off to the side of top-center rather than directly above it, and
+            given real vertical clearance from the facing marker below - see
+            issue #64. Both used to hug the exact same point (top-0/top-[2%],
+            about 6px apart in a 300px frame) and collided regardless of how
+            many creatures were on the radar; this is two ring/compass labels
+            fighting for one spot, not a crowding problem. */}
+        <span className="absolute left-[62%] top-[3%] text-xs text-ink-faint/70">
           {RANGE_WORD.missile}
         </span>
 
         {/* Facing marker — "in front of you" is up, matching the compass
             every dot on this radar is drawn against. */}
-        <span className="absolute left-1/2 top-0 -translate-x-1/2 text-[9px] text-ink-faint/50" aria-hidden>
+        <span className="absolute left-1/2 top-0 -translate-x-1/2 text-xs text-ink-faint/50" aria-hidden>
           ▲ front
         </span>
 
@@ -159,7 +165,7 @@ export function CombatRadar({
           style={{ left: '50%', top: '50%' }}
         >
           <span className="h-2 w-2 rounded-full border-2 border-accent bg-surface" />
-          <span className="text-[9px] font-semibold text-accent">you</span>
+          <span className="text-xs font-semibold text-accent">you</span>
         </div>
 
         {hasFight ? (
@@ -169,36 +175,65 @@ export function CombatRadar({
               p.combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS
             const portrait = hasArt(p.card.name, p.card.noun)
             const onYou = p.combatant.target?.toLowerCase() === 'you'
+            // A name tag centered under its marker extends equally in both
+            // directions - fine near the middle of the radar, but a
+            // due-left/right missile-range creature sits close enough to the
+            // frame edge (radius 48%) that half a longer name ("Zdolyn's
+            // risen") runs straight off it. See issue #64: measured, not
+            // eyeballed - real name tags escaping the radar's own frame on
+            // an entirely ordinary assess result, not a contrived case.
+            //
+            // Fix is to anchor the tag's near edge to the marker and let it
+            // grow toward the center instead, which is always the side with
+            // room - rather than estimating each name's rendered width to
+            // clamp a centered position, which would need remeasuring every
+            // time a font or size changes. The marker itself (this div,
+            // sized to nothing but its own icon) is unaffected: it stays
+            // exactly on the computed x/y point either way.
+            const labelSide = p.x < 40 ? 'left-0' : p.x > 60 ? 'right-0' : 'left-1/2 -translate-x-1/2'
             return (
               <div
                 key={p.key}
-                className={`absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5 ${
-                  stale ? 'opacity-60' : ''
-                }`}
+                className="absolute"
                 style={{ left: `${p.x}%`, top: `${p.y}%` }}
                 title={`${p.card.name} — ${p.combatant.relation}, at ${RANGE_WORD[p.combatant.range!]} range${
                   p.combatant.target ? `, targeting ${p.combatant.target}` : ''
                 }${stale ? ` (last assessed ${p.combatant.enrichedAgeSeconds}s ago)` : ''}`}
               >
-                {portrait ? (
-                  <CreatureArt
-                    name={p.card.name}
-                    noun={p.card.noun}
-                    lore={p.card.lore}
-                    height={28}
-                    className={`!w-7 rounded-full border ${onYou ? 'border-danger' : 'border-surface'}`}
-                  />
-                ) : (
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full border border-surface ${
-                      onYou ? 'animate-pulse bg-danger' : 'bg-warn'
-                    }`}
-                  />
-                )}
+                <div className={`absolute -translate-x-1/2 -translate-y-1/2 ${stale ? 'opacity-60' : ''}`}>
+                  {portrait ? (
+                    <CreatureArt
+                      name={p.card.name}
+                      noun={p.card.noun}
+                      lore={p.card.lore}
+                      height={28}
+                      className={`!w-7 rounded-full border ${onYou ? 'border-danger' : 'border-surface'}`}
+                    />
+                  ) : (
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full border border-surface ${
+                        onYou ? 'animate-pulse bg-danger' : 'bg-warn'
+                      }`}
+                    />
+                  )}
+                </div>
+                {/* Width-capped, because these are absolutely positioned and
+                  * `whitespace-nowrap` on its own lets one long name run as
+                  * wide as it likes across a 300px radar. Measured: "an Adan
+                  * blood warrior" is 133px at 12px type, 44% of the radar, and
+                  * three of those overlapping is not a reading of a fight.
+                  *
+                  * These were 9px until DESIGN.md's floor was applied - it
+                  * sets 12px and says the tension with density "resolves in
+                  * favour of legibility", which is right, and is exactly why
+                  * the width needs a ceiling now: larger type with no cap
+                  * turns a legibility fix into a collision. The full name is
+                  * already on the parent's title, so a clipped tail costs
+                  * nothing that was not already a hover away. */}
                 <span
-                  className={`whitespace-nowrap rounded bg-surface/90 px-1 text-[9px] leading-tight shadow ${
-                    onYou ? 'font-semibold text-danger' : 'text-ink'
-                  }`}
+                  className={`absolute top-3 max-w-[8rem] truncate rounded bg-surface/90 px-1 text-xs leading-tight shadow ${labelSide} ${
+                    stale ? 'opacity-60' : ''
+                  } ${onYou ? 'font-semibold text-danger' : 'text-ink'}`}
                 >
                   {p.card.name}
                   {p.card.count > 1 ? ` x${p.card.count}` : ''}
