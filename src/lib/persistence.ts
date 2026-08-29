@@ -72,7 +72,19 @@ export interface PersistedPrefs {
    * listener opts into via SoundControls, not something they have to
    * discover how to turn off.
    */
+  /**
+   * The System channel - the idle warning, disconnects, learning cues. Kept
+   * under its original name (`alertsVolume` meant "everything" before the
+   * 29 Aug 2026 channel split; see alertSound.ts's header) so an existing
+   * profile's saved level lands on the channel it actually used to mean,
+   * rather than resetting to the new default.
+   */
   alertsVolume?: number
+  /** Danger channel - a creature entering, a bad wound, bleeding, something
+   * lodged or attached. See alertSound.ts's CHANNEL_FOR_CLASS. */
+  dangerVolume?: number
+  /** Speech channel - someone waiting on you personally (whispers/tells). */
+  speechVolume?: number
   musicVolume?: number
   /**
    * A built-in station id (see ambientSound.ts's RADIO_STATIONS) remembered
@@ -112,6 +124,8 @@ const defaults: PersistedPrefs = {
   // bug that made the drift actually reach the screen). Muted by default -
   // see this field's own doc comment above for why.
   alertsVolume: 0,
+  dangerVolume: 0,
+  speechVolume: 0,
   musicVolume: 0,
 }
 

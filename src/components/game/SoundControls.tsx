@@ -1,10 +1,15 @@
 /**
- * Two channels - Alerts and Music - plus a quick mute and the radio station
- * picker. There used to be a third channel, Ambience (terrain texture);
- * that layer was pulled out of the app entirely (28 Aug 2026, Dan: "the
- * idea for that ambiance is bad anyways... lets not"), then music itself
- * came back the same day ("i do want music. not ambiant...just the
- * music...lots of songs we had"), followed by "that will need a volume
+ * Four channels - System, Danger, Speech and Music - plus a quick mute and
+ * the radio station picker. Alerts split from one channel into three (29 Aug
+ * 2026): a listener bothered by one kind of ping used to have to mute all of
+ * them together, which is what emptied highlights.cfg's Danger section of
+ * sound in the first place (see alertSound.ts's header) - the fix was never
+ * "fewer sounds," it was "sounds a listener can balance instead of an
+ * all-or-nothing switch." There used to be a fifth channel too, Ambience
+ * (terrain texture); that layer was pulled out of the app entirely (28 Aug
+ * 2026, Dan: "the idea for that ambiance is bad anyways... lets not"), then
+ * music itself came back the same day ("i do want music. not ambiant...just
+ * the music...lots of songs we had"), followed by "that will need a volume
  * control and mute too" - this is that control.
  *
  * A slider at 0% *is* mute - there is no separate flag to fall out of sync
@@ -15,7 +20,15 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio } from 'lucide-react'
-import { playAlert, setAlertsVolume, alertsVolume } from '../../lib/alertSound'
+import {
+  playAlert,
+  setAlertsVolume,
+  alertsVolume,
+  setDangerVolume,
+  dangerVolume,
+  setSpeechVolume,
+  speechVolume,
+} from '../../lib/alertSound'
 import {
   setMusicVolume,
   musicVolume,
@@ -119,6 +132,8 @@ export function SoundControls() {
   // slider that showed a different number than what was actually playing.
   // Reading the same snapshot GamePane's effect reads removes the race.
   const [alerts, setAlerts] = useState(() => loadPrefs().alertsVolume ?? alertsVolume())
+  const [danger, setDanger] = useState(() => loadPrefs().dangerVolume ?? dangerVolume())
+  const [speech, setSpeech] = useState(() => loadPrefs().speechVolume ?? speechVolume())
   const [music, setMusic] = useState(() => loadPrefs().musicVolume ?? musicVolume())
   const [radioId, setRadioId] = useState(currentRadioStation())
   const [customUrl, setCustomUrl] = useState(currentCustomStream() ?? '')
@@ -137,18 +152,32 @@ export function SoundControls() {
   /**
    * Levels saved the instant quick-mute is pressed, so pressing it again
    * restores exactly where things were rather than some remembered default.
-   * `null` means not currently muted-via-this-button; muting both sliders
+   * `null` means not currently muted-via-this-button; muting every slider
    * to 0 by hand is a different, equally valid path this button does not
    * try to detect.
    */
-  const [preMute, setPreMute] = useState<{ alerts: number; music: number } | null>(null)
+  const [preMute, setPreMute] = useState<{
+    alerts: number
+    danger: number
+    speech: number
+    music: number
+  } | null>(null)
 
-  const applyAll = (v: { alerts: number; music: number }) => {
+  const applyAll = (v: { alerts: number; danger: number; speech: number; music: number }) => {
     setAlerts(v.alerts)
+    setDanger(v.danger)
+    setSpeech(v.speech)
     setMusic(v.music)
     setAlertsVolume(v.alerts)
+    setDangerVolume(v.danger)
+    setSpeechVolume(v.speech)
     setMusicVolume(v.music)
-    savePrefs({ alertsVolume: v.alerts, musicVolume: v.music })
+    savePrefs({
+      alertsVolume: v.alerts,
+      dangerVolume: v.danger,
+      speechVolume: v.speech,
+      musicVolume: v.music,
+    })
   }
 
   const toggleQuickMute = () => {
@@ -156,8 +185,8 @@ export function SoundControls() {
       applyAll(preMute)
       setPreMute(null)
     } else {
-      setPreMute({ alerts, music })
-      applyAll({ alerts: 0, music: 0 })
+      setPreMute({ alerts, danger, speech, music })
+      applyAll({ alerts: 0, danger: 0, speech: 0, music: 0 })
     }
   }
 
@@ -181,7 +210,7 @@ export function SoundControls() {
     }
   }, [open])
 
-  const overallPct = Math.round(((alerts + music) / 2) * 100)
+  const overallPct = Math.round(((alerts + danger + speech + music) / 4) * 100)
 
   return (
     <div ref={wrapperRef} className="relative flex items-center gap-0.5">
@@ -202,7 +231,7 @@ export function SoundControls() {
           overallPct === 0 ? 'text-warn' : 'text-ink-faint hover:text-ink'
         )}
         onClick={() => setOpen((v) => !v)}
-        title="Sound: alerts and music"
+        title="Sound: system, danger, speech and music"
         aria-expanded={open}
       >
         Sound
@@ -214,7 +243,7 @@ export function SoundControls() {
 
           <div className="flex flex-col gap-2">
             <Slider
-              label="Alerts"
+              label="System"
               value={alerts}
               onChange={(v) => {
                 setAlerts(v)
@@ -224,9 +253,35 @@ export function SoundControls() {
               onCommit={(v) => {
                 savePrefs({ alertsVolume: v })
                 // A quick way to hear where the slider landed, the same
-                // sound an idle warning would use - trying a volume by
-                // waiting for the next real alert is not feedback.
-                playAlert('Help.wav')
+                // sound the idle warning uses - trying a volume by waiting
+                // for the next real alert is not feedback.
+                playAlert('Thunder.wav', 'alert')
+              }}
+            />
+            <Slider
+              label="Danger"
+              value={danger}
+              onChange={(v) => {
+                setDanger(v)
+                setDangerVolume(v)
+                if (preMute) setPreMute(null)
+              }}
+              onCommit={(v) => {
+                savePrefs({ dangerVolume: v })
+                playAlert('Growl.wav', 'danger')
+              }}
+            />
+            <Slider
+              label="Speech"
+              value={speech}
+              onChange={(v) => {
+                setSpeech(v)
+                setSpeechVolume(v)
+                if (preMute) setPreMute(null)
+              }}
+              onCommit={(v) => {
+                savePrefs({ speechVolume: v })
+                playAlert('Whisper.wav', 'speech')
               }}
             />
             <Slider
