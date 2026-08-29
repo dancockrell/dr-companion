@@ -1,31 +1,22 @@
 import { useAppStore } from '../../store/useAppStore'
-import { Paperdoll } from '../shared/Paperdoll'
-import { VitalCluster, vitalsFor } from '../shared/VitalCluster'
 import { StatusBoard } from '../shared/StatusBoard'
 import { HandsRow } from '../shared/HandsRow'
 
 /**
- * You, above the fight rather than a column away from it.
+ * You, above the fight rather than a column away from it — the two things
+ * that are not the face, the doll or the pools.
  *
- * Damage, what's currently wrong with you, and what's in your hands were
- * already on screen — DashboardLayout's own "You" box, top right. Real
- * information, in the wrong place for what it is used for: a fight asks
- * "can I keep taking this" and "what am I holding" continuously, and the
- * dashboard column is not the thing anyone is looking at while reading the
- * radar. Duplicating this handful of read-only views here costs nothing —
- * they all read straight from the store, nothing computed twice — and
- * means the answer to "how am I doing" never requires looking away from
- * the picture that is telling you what's about to hit you.
- *
- * Portrait is left out on purpose. It answers "what does my character look
- * like", which does not change mid-fight and already has a home in the
- * dashboard; spending width on a face here is width the paperdoll and the
- * vitals bar — the two things that *do* change every few seconds in combat
- * — do not get.
+ * Those three moved into the middle of the battle board itself (see
+ * `CombatRadar`'s own `you` prop) — the fixed point the compass is already
+ * drawn relative to is exactly where a player's eye already is mid-fight,
+ * more so than a header strip above the picture. What's currently wrong
+ * with you and what's in your hands stayed here: `StatusBoard` is a list
+ * of active effects and `HandsRow` a pair of item names, and neither reads
+ * well shrunk into a small circle at the center of a busy compass the way
+ * a portrait, a paperdoll's silhouette or a vital's thin bar all do.
  */
 export function BattleStatus() {
   const character = useAppStore((s) => s.character)
-  const vitals = vitalsFor(character)
 
   return (
     // No border/card background of its own — a first pass gave this its
@@ -36,17 +27,6 @@ export function BattleStatus() {
     // label if something inside throws, and the picture below is the thing
     // that should look like a card here, not this.
     <div className="px-0.5">
-      {/* Same row shape DashboardLayout's own "You" box uses — doll and
-          vitals side by side, because a wound in a leg and a health bar at
-          40% are one situation, not two. */}
-      <div className="flex flex-wrap items-start gap-3">
-        <Paperdoll
-          injuries={character?.injuries ?? {}}
-          height={64}
-          known={character?.injuries !== undefined}
-        />
-        <VitalCluster vitals={vitals} height={48} />
-      </div>
       <StatusBoard />
       {/* HandsRow supplies its own top border and spacing, built for
           stacking under exactly this — see its doc comment: "in a fight

@@ -11,6 +11,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { useHighlights } from '../../lib/useHighlights'
 import { useOffClasses } from '../../lib/offClasses'
 import { fromRoom } from '../../lib/room'
+import { vitalsFor } from '../../lib/vitals'
 import { bridge } from '../../bridge'
 import { cn } from '../../lib/cn'
 
@@ -120,6 +121,21 @@ export function BattleColumn() {
   // moment there is anyone or anything to put on it.
   const boardActive = cards.length > 0 || (roomItems?.length ?? 0) > 0
 
+  // Face, doll and pools, at the center of the board itself — see
+  // CombatRadar's own `you` doc comment for why they moved there instead
+  // of staying a header strip above the picture. `character` is only ever
+  // absent before the bridge has answered at all, which is also when
+  // `boardActive` is false and CombatRadar isn't mounted to receive this.
+  const you = character
+    ? {
+        character: character.name,
+        race: character.race,
+        injuries: character.injuries ?? {},
+        injuriesKnown: character.injuries !== undefined,
+        vitals: vitalsFor(character),
+      }
+    : undefined
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 overflow-y-auto p-2">
       <PanelBoundary label="Status">
@@ -157,6 +173,7 @@ export function BattleColumn() {
                   cards={cards}
                   combatants={character?.roomCombatants ?? []}
                   items={roomItems}
+                  you={you}
                 />
               ) : undefined
             }

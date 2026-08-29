@@ -13,6 +13,9 @@ import {
 } from 'lucide-react'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
+import { Portrait } from './Portrait'
+import { Paperdoll } from './Paperdoll'
+import { VitalCluster } from './VitalCluster'
 import { playerArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { nounOf } from '../../lib/room'
 import { useRoomItemTake } from '../../lib/useRoomItemTake'
@@ -21,6 +24,8 @@ import { RoomBackdrop } from '../room/RoomBackdrop'
 import { DECK_STYLE, type Deck } from '../../lib/cards'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
+import type { BodyPart, Injury } from '../../lib/body'
+import type { Vital } from '../../lib/vitals'
 
 /**
  * The room, with everyone and everything in it drawn where they actually
@@ -751,6 +756,7 @@ export function CombatRadar({
   cards,
   combatants,
   items,
+  you,
   embedded = false,
 }: {
   /** Which room's backdrop to draw — same identity `RoomScene` keys its own
@@ -778,6 +784,22 @@ export function CombatRadar({
   /** The floor — every item gets its own puck in the items corner now,
    * capped the same way the other three corners are. */
   items?: string[]
+  /**
+   * You — the one fixed point everything else on the compass is drawn
+   * relative to, same as `assess` itself. Optional, and only ever passed
+   * embedded: `BattleColumn` has a character to hand, `BattlePanel`'s
+   * standalone card already shows a paperdoll and vitals of its own above
+   * this component, so handing it a second copy would just show them
+   * twice — same reasoning as `zone`/`room`. Absent, the center falls back
+   * to the plain accent-ringed icon this board has always drawn there.
+   */
+  you?: {
+    character: string
+    race?: string | null
+    injuries: Partial<Record<BodyPart, Injury>>
+    injuriesKnown: boolean
+    vitals: Vital[]
+  }
   /**
    * True when `RoomScene` is passing this in as its own `overlay` — the room
    * picture is already right there, one layer down in the same box, so
@@ -1019,18 +1041,38 @@ export function CombatRadar({
         <span className="sr-only">Front</span>
       </span>
 
-      {/* You, at the center — the one fixed point everything else is
-          relative to, same as assess itself. An icon, not a portrait — this
-          app has never drawn the player character either — ringed in the
-          accent colour nothing else on the board uses, so the center is
-          unambiguous without a word under it. */}
-      <div
-        className="absolute z-10 flex items-center justify-center rounded-full border-2 border-accent bg-surface p-0.5 -translate-x-1/2 -translate-y-1/2"
-        style={{ left: '50%', top: '50%' }}
-        title="You"
-      >
-        <User className="h-3 w-3 text-accent" aria-hidden />
-      </div>
+      {/* You, at the center — the one fixed point everything else on the
+          compass is relative to, same as assess itself. `you`, when the
+          caller has a character to hand (BattleColumn does; BattlePanel's
+          standalone card already shows this above the radar, so it stays
+          the plain icon there — see `you`'s own doc comment), draws the
+          same three things this app has always shown for "you" elsewhere:
+          the face, the doll, the pools. Everywhere else on this board a
+          creature without a submitted picture gets a letter instead of
+          nothing; you is the one card that was always the plain icon
+          regardless, and the middle of the fight is exactly where a player
+          actually wants those three glanced at without looking away. */}
+      {you ? (
+        <div
+          className="absolute z-10 flex flex-col items-center gap-1 rounded-lg border border-accent/60 bg-surface/90 p-1.5 -translate-x-1/2 -translate-y-1/2"
+          style={{ left: '50%', top: '50%', width: compact ? 130 : 160, boxShadow: PUCK_SHADOW }}
+          title="You"
+        >
+          <div className="flex items-center gap-1.5">
+            <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 28 : 36} />
+            <Paperdoll injuries={you.injuries} height={compact ? 28 : 36} known={you.injuriesKnown} />
+          </div>
+          <VitalCluster vitals={you.vitals} />
+        </div>
+      ) : (
+        <div
+          className="absolute z-10 flex items-center justify-center rounded-full border-2 border-accent bg-surface p-0.5 -translate-x-1/2 -translate-y-1/2"
+          style={{ left: '50%', top: '50%' }}
+          title="You"
+        >
+          <User className="h-3 w-3 text-accent" aria-hidden />
+        </div>
+      )}
 
       {/* Advancing hostiles — the compass proper. Everyone else embedded is
           in one of the four corners below instead. Each is its own attack
