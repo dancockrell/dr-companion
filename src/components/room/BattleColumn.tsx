@@ -229,11 +229,18 @@ export function BattleColumn() {
         </PanelBoundary>
       </div>
 
-      <PanelBoundary label="Actions">
-        <BattleActionBar />
-      </PanelBoundary>
-
+      {/* Actions, description and classes share one card now rather than
+          three — same reasoning as the Classes nesting below: a bare
+          unbordered row between two bordered boxes reads as broken chrome,
+          and a fourth full card for eight buttons is more chrome than
+          content. One box, one border, sections inside it divided by a
+          rule where they actually need one. */}
       <div className="min-h-0 flex-1 overflow-y-auto rounded border border-border bg-surface-raised p-2">
+        <PanelBoundary label="Actions">
+          <BattleActionBar />
+        </PanelBoundary>
+
+        <div className="mt-1.5 border-t border-border/60 pt-1.5">
         {text?.text ? (
           <p className="text-xs leading-relaxed text-ink-muted">
             <HighlightedText text={text.text} highlights={highlights} offClasses={offClasses} />
@@ -267,6 +274,7 @@ export function BattleColumn() {
           <PanelBoundary label="Classes">
             <TeachingPanel />
           </PanelBoundary>
+        </div>
         </div>
       </div>
     </div>

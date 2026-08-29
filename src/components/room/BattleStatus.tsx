@@ -28,7 +28,14 @@ export function BattleStatus() {
   const vitals = vitalsFor(character)
 
   return (
-    <div className="rounded border border-border bg-surface-raised p-2">
+    // No border/card background of its own — a first pass gave this its
+    // own boxed panel, and stacked above the scene's own bordered box, the
+    // actions row and the description box, four cards in a row read as a
+    // cramped instrument panel rather than one coherent pane. This is a
+    // header strip, not a fifth card: PanelBoundary already gives it a
+    // label if something inside throws, and the picture below is the thing
+    // that should look like a card here, not this.
+    <div className="px-0.5">
       {/* Same row shape DashboardLayout's own "You" box uses — doll and
           vitals side by side, because a wound in a leg and a health bar at
           40% are one situation, not two. */}
