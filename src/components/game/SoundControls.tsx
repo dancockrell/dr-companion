@@ -442,7 +442,7 @@ export function SoundControls() {
               * tell a listener what they're hearing, let them move past a
               * track they don't want, or actually pause it. Shared with
               * SafetyFooter's own copy - see MusicTransport's header. */}
-            <MusicTransport className="mb-2" />
+            <MusicTransport className="mb-2" showProgress />
 
 
             {/* Favorites, first class: a player's own saved stations up

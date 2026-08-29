@@ -44,15 +44,31 @@
 //! purpose, silently, and only the replay fixture (which emits tags without
 //! any capability check) made the feature look like it worked.
 //!
-//! `--stormfront` carries `[xml, streams, mono, room_window]`, is a real
-//! `-s`/`--stormfront` flag Lich's argument parser accepts, and combined with
-//! `--headless <port>` never launches an actual Wrayth/StormFront process -
-//! `--headless` expands to `--without-frontend --detachable-client=PORT`,
-//! and `--without-frontend` sets `$_CLIENT_ = nil` before any launcher adapter
-//! runs (`lib/main/main.rb`). So the frontend identity governs the protocol
-//! Lich speaks; `--without-frontend` governs whether it tries to open a
-//! window. The two are independent, and this app wants the first without the
-//! second.
+//! `--stormfront` is a real `-s`/`--stormfront` flag Lich's argument parser
+//! accepts, and combined with `--headless <port>` never launches an actual
+//! Wrayth/StormFront process - `--headless` expands to
+//! `--without-frontend --detachable-client=PORT`, and `--without-frontend`
+//! sets `$_CLIENT_ = nil` before any launcher adapter runs
+//! (`lib/main/main.rb`). So the frontend identity governs the protocol Lich
+//! speaks; `--without-frontend` governs whether it tries to open a window.
+//! The two are independent, and this app wants the first without the second.
+//!
+//! **Correction, issue #31 (28 Aug 2026): `--stormfront` does not carry
+//! `[xml, streams, mono, room_window]` on this launch path.** That capability
+//! set is real for an interactive stormfront session, but it is never reached
+//! here. `--without-frontend` routes `Frontend.client` through
+//! `LoginHelpers.resolve_headless_frontend` (`login_helpers.rb`), which only
+//! special-cases `--saga` and `--genie`; every other flag, `--stormfront`
+//! included, falls through to a hardcoded `'profanity'`. So this app's actual
+//! resolved identity is `profanity`, whose capabilities are `[xml, streams]` -
+//! `streams` survives, which is why the channel tabs work, but `mono` and
+//! `room_window` do not. `--stormfront` is kept anyway: it is what a real
+//! stormfront session would pass, it is harmless (unread by the headless
+//! path), and it costs nothing to be ready for a future Lich version whose
+//! resolver honours it. Avoiding `--genie` is still correct and still the
+//! part that matters - `genie`'s capabilities are `[xml, mono]`, no `streams`
+//! at all, and unlike the `mono`/`room_window` gap that is a total loss for
+//! StreamTabs, not a partial one.
 //!
 //! `--headless <port>` is also what actually opens the socket
 //! `src-tauri/src/game_link.rs` connects to. Its absence here was a second,
@@ -418,11 +434,13 @@ fn launch_args(launcher: &str, character: Option<&str>) -> Result<Vec<String>, S
             args.push("--login".into());
             args.push(name.into());
             args.push("--dragonrealms".into());
-            // `--stormfront`, not `--genie` - see the module note. This is
-            // the frontend Lich believes it is talking to for capability
-            // purposes (streams, so the channel tabs have something to read),
-            // and `--headless` below is what stops it from trying to launch
-            // an actual one.
+            // `--stormfront`, not `--genie` - see the module note. This flag
+            // is actually inert on this launch path (the headless resolver
+            // ignores everything but --saga/--genie and resolves to
+            // 'profanity' regardless), but --genie would be actively worse:
+            // it loses the streams capability the channel tabs depend on,
+            // where profanity keeps it. `--headless` below is what stops
+            // Lich from trying to launch an actual frontend process.
             args.push("--stormfront".into());
             // Opens the socket `game_link.rs` connects to, and stops Lich
             // from expecting to spawn a frontend process it would then find
@@ -502,13 +520,20 @@ pub fn launch_lich(character: Option<String>) -> Result<String, String> {
 mod tests {
     use super::*;
 
-    /// The `streams` capability, not the frontend that lacks it. `--genie`
-    /// shipped here first and was wrong in a way nothing else in this file
-    /// would have caught - Lich still starts, `launch_lich` still returns Ok,
-    /// and the only symptom is a feature elsewhere in the app receiving
-    /// nothing, forever, from a real game.
+    /// This checks the argument list, not the capability it was meant to buy.
+    /// `--genie` shipped here first and was wrong in a way nothing else in
+    /// this file would have caught - Lich still starts, `launch_lich` still
+    /// returns Ok, and the only symptom is a feature elsewhere in the app
+    /// receiving nothing, forever, from a real game. `--genie` would still be
+    /// the worse choice today: its capabilities are `[xml, mono]`, no
+    /// `streams` at all, versus the `[xml, streams]` this app's headless
+    /// launch actually resolves to regardless of `--stormfront` - see the
+    /// module-level correction under issue #31. So this test can only prove
+    /// the flag is present, not that it does what its name once implied;
+    /// the real capability fact lives in Lich's own `login_helpers.rb`, not
+    /// in this argument list.
     #[test]
-    fn declares_stormfront_for_streams_not_genie() {
+    fn passes_stormfront_flag_not_genie() {
         let args = launch_args("lich.rbw", Some("Phemius")).unwrap();
         assert!(args.iter().any(|a| a == "--stormfront"), "{args:?}");
         assert!(!args.iter().any(|a| a == "--genie"), "{args:?}");
