@@ -56,15 +56,20 @@ public/roomtext/
 # license record and the only copy of "where this came from" that matters.
 public/audio/
 
-# Room art, which does not belong in git.
-#
-# 17,750 rooms at a mean 178 KB is 3.0 GB against a 72 MB repository. Creatures
-# (773) and portraits (22) are committed because they are 53 MB together and
-# every card and character sheet needs them; rooms are forty times that and are
-# scenery. They ship as a release asset instead, and the app degrades to the
-# generated stand-in for any room whose picture is not installed - which is the
-# normal state for days while the daemon works through the queue.
-public/rooms/
+# Room art WAS excluded here on the assumption of one unique image per room -
+# 17,750 rooms at a mean 178 KB, 3.0 GB against the repository. That assumption
+# stopped being true on 28 Aug 2026: tools/publish-room-art.mjs hard-links most
+# rooms to a shared archetype/place image rather than rendering one per room
+# (Dan's own call - there is no render budget for that, and a road is a road).
+# Measured against the actual working tree (issue #8): 9,719 room-file paths,
+# but only 2,846 unique inodes behind them - 58.8 MB of real content, not 3 GB.
+# Git's own object store deduplicates by content hash the same way a hard link
+# deduplicates by inode - confirmed empirically (50 copies of a 1 MB file cost
+# ~1 MB of .git, not 50 MB) - so committing every room path costs the unique
+# bytes behind it, not 17,750 times that. Tracked directly now, same as
+# creatures/portraits. The generated stand-in still covers whatever a given
+# checkout has not rendered yet, which stays true regardless of where the art
+# lives.
 
 # Daemon runtime state: a pid lock and a status file rewritten every render.
 data/art/daemon-status.json

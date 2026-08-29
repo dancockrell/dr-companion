@@ -1,2 +1,9 @@
 # localStorage key name, not a credential. Verified by filename and shape.
 src/lib/persistence.ts:generic-api-key:8
+
+# Room-art filenames (e.g. "1-gold-key-club.webp"), not credentials. A long
+# hyphenated string trips the entropy heuristic the same way persistence.ts's
+# key did above - verified by filename and shape, same as that entry.
+public/rooms/manifest.json:generic-api-key:217
+public/rooms/manifest.json:generic-api-key:771
+public/rooms/manifest.json:generic-api-key:816
