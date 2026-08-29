@@ -31,7 +31,7 @@
  * is the next thing to build.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Send, Plug, PlugZap, Info, Search } from 'lucide-react'
+import { Plug, PlugZap, Info, Eraser, Link2, Unlink } from 'lucide-react'
 import {
   attachGame,
   clearGame,
@@ -39,7 +39,6 @@ import {
   gameDropped,
   gameState,
   refreshGameState,
-  sendGame,
   subscribeGame,
   lichNote,
   type GameLine,
@@ -50,7 +49,6 @@ import { paint } from '../../lib/highlights'
 import { useHighlights } from '../../lib/useHighlights'
 import { useOffClasses } from '../../lib/offClasses'
 import { useAliases } from '../../lib/useAliases'
-import { expandAlias } from '../../lib/aliases'
 import { GameLineRow } from './GameLineRow'
 import { playAlert, setAlertsVolume, setDangerVolume, setSpeechVolume } from '../../lib/alertSound'
 import {
@@ -118,7 +116,19 @@ function loadPort(): string {
   }
 }
 
-export function GamePane() {
+/**
+ * `query`/`setQuery` are lifted to GameChatColumn rather than owned here -
+ * GameCommandBar's search box and this pane's own filtered scroller both
+ * need the same live value, and they are siblings, not parent/child. See
+ * GameCommandBar.tsx's header for the rest of that story.
+ */
+export function GamePane({
+  query,
+  setQuery,
+}: {
+  query: string
+  setQuery: (v: string) => void
+}) {
   // Subscribes and returns an array whose identity changes when the buffer
   // does, so `[lines]` in a dep array below is simply correct. This used to be
   // a raw `gameLines()` read sitting beside a separate version subscription,
@@ -138,26 +148,16 @@ export function GamePane() {
       // Private mode; the value still works for this session.
     }
   }
-  const [command, setCommand] = useState('')
-
-  /**
-   * Command history, the way every MUD client has done it since 1990.
-   *
-   * `index` is a position from the end, so a new command entering the list
-   * does not shift where the reader is. -1 means "not browsing".
-   */
-  const [history, setHistory] = useState<string[]>([])
-  const [historyAt, setHistoryAt] = useState(-1)
-
   const scroller = useRef<HTMLDivElement | null>(null)
   const atBottom = useRef(true)
 
   const { highlights, note: hlNote } = useHighlights()
   const offClasses = useOffClasses()
+  // Only the denominator note is read here - expandAlias() and the aliases
+  // array itself moved to GameCommandBar with `send()`. useAliases is the
+  // same module-level cache either place calls it (see its own header), so
+  // calling it again here costs nothing and needs no prop threaded down.
   const { aliases, note: aliasNote } = useAliases()
-
-  /** What the last typed line expanded to, or empty. Cleared by the next send. */
-  const [expansion, setExpansion] = useState('')
 
   useEffect(() => {
     void refreshGameState()
@@ -323,29 +323,8 @@ export function GamePane() {
    * Searching the whole buffer, not `visible`: a search restricted to what
    * happens to be rendered would be a search that lies about what it looked at.
    */
-  const [query, setQuery] = useState('')
   const trimmedQuery = query.trim()
   const searching = trimmedQuery.length > 0
-
-  /**
-   * The search box itself is a toggle, not a permanent fixture.
-   *
-   * It used to sit in the header row all the time, at a fixed width, next to
-   * a header already crowded with connection status. Most sessions never
-   * type in it - so it was permanent cost for occasional value. The toggle
-   * lives by Send/Enter because that is where the reader's hand already is;
-   * closing it clears the query too, so a hidden box can never be silently
-   * filtering the pane the reader can no longer see.
-   */
-  const [searchOpen, setSearchOpen] = useState(false)
-  const searchInputRef = useRef<HTMLInputElement | null>(null)
-  useEffect(() => {
-    if (searchOpen) searchInputRef.current?.focus()
-  }, [searchOpen])
-  const closeSearch = () => {
-    setSearchOpen(false)
-    setQuery('')
-  }
 
   const matches: GameLine[] = searching
     ? lines.filter((l) => l.text.toLowerCase().includes(trimmedQuery.toLowerCase()))
@@ -366,72 +345,6 @@ export function GamePane() {
       ? lines.slice(-shown)
       : lines
 
-  const send = () => {
-    const text = command.trim()
-    if (!text) return
-
-    /**
-     * Aliases expand here, at the one place a typed line becomes a game
-     * command.
-     *
-     * Shown, never silent. `appc sword` reaching the game as `appraise sword
-     * careful` is the whole point of the feature, and a player who cannot see
-     * what was actually sent has no way to find a wrong alias - the game
-     * simply does something they did not ask for. So the expansion stays on
-     * screen until the next line is typed.
-     *
-     * `capped` means a cycle or the depth limit. The partly-expanded text
-     * still goes out, because refusing to send is a worse surprise than
-     * sending something the player can see, but the chain is named so they
-     * can find which alias is looping.
-     */
-    const { text: outgoing, expanded, chain, capped } = expandAlias(text, aliases)
-    setExpansion(
-      capped
-        ? `${text} → ${outgoing} (chain stopped: ${chain.join(' → ')})`
-        : expanded
-          ? `${text} → ${outgoing}`
-          : ''
-    )
-
-    void sendGame(outgoing).catch(() => {
-      /* The link reports its own failure; a toast here would be a second one. */
-    })
-    // History keeps what was typed, not what was sent. Up-arrow is for
-    // retyping your own line, and handing back the expansion would make the
-    // alias unrecoverable after one press.
-    setHistory((h) => (h[h.length - 1] === text ? h : [...h, text].slice(-500)))
-    setHistoryAt(-1)
-    setCommand('')
-  }
-
-  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      send()
-      return
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      if (!history.length) return
-      const next = historyAt < 0 ? history.length - 1 : Math.max(0, historyAt - 1)
-      setHistoryAt(next)
-      setCommand(history[next])
-      return
-    }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      if (historyAt < 0) return
-      const next = historyAt + 1
-      if (next >= history.length) {
-        setHistoryAt(-1)
-        setCommand('')
-      } else {
-        setHistoryAt(next)
-        setCommand(history[next])
-      }
-    }
-  }
-
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* min-w-0, and the notes truncate, so the row can actually shrink.
@@ -442,8 +355,10 @@ export function GamePane() {
         * clicked - while the pane beside it read "not attached". The control
         * that fixes the problem was the one the problem hid. */}
       <div className="flex min-w-0 shrink-0 items-center gap-2 border-b border-border px-2 py-1 text-xs">
-        <span className="shrink-0 font-medium uppercase tracking-wider text-ink-faint">Game</span>
-
+        {/* No "Game" label - this row sits directly above the game text and
+            nothing else in this pane could be mistaken for something else.
+            A section label earns its place only where the content beneath
+            it is ambiguous without one. */}
         {/* Connected or not, as a fact - carried by the icon's own colour
           * and shape, not repeated in words beside it. The text this used to
           * show was `link.connected ? 'Attached' : link.note || 'not
@@ -518,42 +433,24 @@ export function GamePane() {
               control living only in this scrollable pane's own header
               disappeared the moment the pane scrolled, and the footer is
               the one place that's always on screen. */}
-          {/* Searches the whole buffer, not the rendered window - see the
-            * `matches` note. Escape closes the box entirely (and clears),
-            * because a filter you cannot get out of quickly is one people
-            * stop using. Opened from the toggle by Send, below. */}
-          {searchOpen && (
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.preventDefault()
-                  closeSearch()
-                }
-              }}
-              placeholder="Find in scrollback"
-              title="Filter the whole scrollback, including lines older than the rendered window. Plain text, not a pattern. Escape closes."
-              className="w-32 rounded border border-border bg-surface px-1.5 py-0.5 text-ink-muted placeholder:text-ink-faint focus:border-accent/40 focus:text-ink"
-            />
-          )}
           <button
             type="button"
-            className="rounded px-1.5 py-0.5 text-ink-faint hover:text-ink"
+            className="rounded p-1 text-ink-faint hover:text-ink"
             onClick={clearGame}
             title="Clear the scrollback. The connection is untouched."
+            aria-label="Clear the scrollback"
           >
-            Clear
+            <Eraser className="h-3.5 w-3.5" />
           </button>
           {link.connected ? (
             <button
               type="button"
-              className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink"
+              className="rounded border border-border p-1 text-ink-muted hover:text-ink"
               onClick={() => void detachGame()}
+              title="Detach"
+              aria-label="Detach"
             >
-              Detach
+              <Unlink className="h-3.5 w-3.5" />
             </button>
           ) : (
             <>
@@ -580,12 +477,13 @@ export function GamePane() {
               />
               <button
                 type="button"
-                className="rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-accent disabled:opacity-40"
+                className="rounded border border-accent/40 bg-accent/10 p-1 text-accent disabled:opacity-40"
                 onClick={() => void attachGame(Number(port))}
                 title={`Attach to a Lich running with --detachable-client=${port}`}
+                aria-label="Attach"
                 disabled={!isTauri() || !validPort(port)}
               >
-                Attach
+                <Link2 className="h-3.5 w-3.5" />
               </button>
             </>
           )}
@@ -661,58 +559,6 @@ export function GamePane() {
             and press Attach, and this becomes the client rather than a panel beside one.
           </p>
         )}
-      </div>
-
-      {/* What the last line actually became, when an alias changed it.
-          Directly above the input, because that is where the player is
-          looking, and it is the only way to tell a wrong alias from the game
-          misbehaving. */}
-      {expansion && (
-        <div
-          className="shrink-0 truncate border-t border-border px-2 py-0.5 font-mono text-xs text-ink-faint"
-          title={expansion}
-        >
-          {expansion}
-        </div>
-      )}
-
-      <div className="flex shrink-0 items-center gap-1 border-t border-border p-1.5">
-        <input
-          value={command}
-          onChange={(e) => setCommand(e.target.value)}
-          onKeyDown={onKey}
-          // The placeholder here is a status line, not a label - it reads
-          // "Not attached" when there is no game. With no aria-label that
-          // status becomes the field's accessible NAME, so a screen reader
-          // announces the app's main command box as "Not attached", and the
-          // name changes under the user when the socket comes up.
-          aria-label="Game command"
-          placeholder={link.connected ? 'Command, then Enter' : 'Not attached'}
-          spellCheck={false}
-          autoComplete="off"
-          className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent/60 focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
-          className={cn(
-            'shrink-0 rounded border p-1.5',
-            searchOpen
-              ? 'border-accent/40 bg-accent/10 text-accent'
-              : 'border-border text-ink-faint hover:text-ink'
-          )}
-          title={searchOpen ? 'Close scrollback search' : 'Find in scrollback'}
-        >
-          <Search className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={send}
-          className="shrink-0 rounded border border-border p-1.5 text-ink-faint hover:text-ink"
-          title="Send"
-        >
-          <Send className="h-3.5 w-3.5" />
-        </button>
       </div>
     </div>
   )
