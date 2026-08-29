@@ -17,7 +17,6 @@
  * a separate decision - see the comment on `goThere` below.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { roomKind } from '../../lib/mapData'
 import {
   Map as MapIcon,
   RefreshCw,
@@ -29,11 +28,10 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
-import { describeTrail } from '../../lib/trail'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
 import { isTauri, invokeTauri } from '../../lib/tauri'
-import { MapCanvas, MapLegend } from './MapCanvas'
+import { MapCanvas } from './MapCanvas'
 import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
@@ -517,6 +515,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           In plane mode the height comes from the column instead. */}
       <div
         ref={dock.zoom > 1 ? containerRef : undefined}
+        title="Map colours: dark you, red hazard, blue bank/healer/guild/shop"
         className={`relative rounded ${
           dock.zoom > 1 ? `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}` : 'overflow-hidden'
         } ${plane ? 'flex-1 min-h-0' : ''}`}
@@ -651,33 +650,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           </span>
         </div>
       )}
-
-      <div className="flex items-center justify-between gap-2">
-        {/* The kinds the canvas actually draws, from the same `roomKind` and
-          * the same `onRoute` set it uses - so the legend and the map cannot
-          * disagree about what colour a room is.
-          *
-          * This passed raw `tags` before, which is what made the legend show
-          * three fixed entries forever and explain none of the dots on the
-          * map. See MapLegend's own comment for the measurement. */}
-        <MapLegend
-          kinds={[
-            ...new Set((zone?.rooms ?? []).map((r) => roomKind(r, zone?.here, onRoute))),
-          ]}
-        />
-        {/* What the trail says, in words.
-         *
-         * The stroke on the chart answers "where" and this answers "what is
-         * happening", which is the question you actually have when you look
-         * back at a window a script has been driving for an hour. It sits
-         * beside the room count because that is the line the eye already goes
-         * to for the state of the map rather than the state of the game. */}
-        <span className="text-xs text-ink-faint shrink-0 truncate" title={describeTrail(trail)}>
-          {trail.recent.length > 0
-            ? describeTrail(trail)
-            : `${zone.rooms?.length ?? 0} rooms${zone.truncated ? ` of ${zone.total}, capped` : ''}`}
-        </span>
-      </div>
 
       {path?.ok && (
         <p className="text-xs text-good leading-snug">

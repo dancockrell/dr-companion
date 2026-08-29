@@ -31,7 +31,7 @@
  * is the next thing to build.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Send, Plug, PlugZap } from 'lucide-react'
+import { Send, Plug, PlugZap, Info, Search } from 'lucide-react'
 import {
   attachGame,
   clearGame,
@@ -327,6 +327,26 @@ export function GamePane() {
   const trimmedQuery = query.trim()
   const searching = trimmedQuery.length > 0
 
+  /**
+   * The search box itself is a toggle, not a permanent fixture.
+   *
+   * It used to sit in the header row all the time, at a fixed width, next to
+   * a header already crowded with connection status. Most sessions never
+   * type in it - so it was permanent cost for occasional value. The toggle
+   * lives by Send/Enter because that is where the reader's hand already is;
+   * closing it clears the query too, so a hidden box can never be silently
+   * filtering the pane the reader can no longer see.
+   */
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus()
+  }, [searchOpen])
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setQuery('')
+  }
+
   const matches: GameLine[] = searching
     ? lines.filter((l) => l.text.toLowerCase().includes(trimmedQuery.toLowerCase()))
     : []
@@ -461,18 +481,22 @@ export function GamePane() {
           </span>
         )}
 
-        {/* Said out loud, because "my highlights are not working" is otherwise
-            indistinguishable from "nothing has matched yet". */}
-        {hlNote && (
-          <span className="truncate text-ink-faint" title={hlNote}>
-            {hlNote}
-          </span>
-        )}
-
-        {/* The alias count carries its denominator - see useAliases. */}
-        {aliasNote && (
-          <span className="truncate text-ink-faint" title={aliasNote}>
-            {aliases.length} aliases
+        {/* Highlight and alias status, folded into one icon rather than two
+          * running text spans - "my highlights are not working" still needs
+          * to be answerable (otherwise it is indistinguishable from "nothing
+          * has matched yet"), and the alias count still needs its
+          * denominator (see useAliases), but neither is something a player
+          * reads on every glance at this row. Both were losing a fight for
+          * width against the scrollback search box they sat directly next
+          * to - the fix is the same one applied to the row's other status
+          * text, not a narrower column for words that were already visible
+          * in full one hover away. */}
+        {(hlNote || aliasNote) && (
+          <span
+            className="flex shrink-0 items-center text-ink-faint"
+            title={[hlNote, aliasNote ? `${aliases.length} aliases` : null].filter(Boolean).join(' · ')}
+          >
+            <Info className="h-3 w-3" />
           </span>
         )}
 
@@ -495,22 +519,26 @@ export function GamePane() {
               disappeared the moment the pane scrolled, and the footer is
               the one place that's always on screen. */}
           {/* Searches the whole buffer, not the rendered window - see the
-            * `matches` note. Escape clears, because a filter you cannot get
-            * out of quickly is one people stop using. */}
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.preventDefault()
-                setQuery('')
-              }
-            }}
-            placeholder="Find in scrollback"
-            title="Filter the whole scrollback, including lines older than the rendered window. Plain text, not a pattern. Escape clears."
-            className="w-32 rounded border border-border bg-surface px-1.5 py-0.5 text-ink-muted placeholder:text-ink-faint focus:border-accent/40 focus:text-ink"
-          />
+            * `matches` note. Escape closes the box entirely (and clears),
+            * because a filter you cannot get out of quickly is one people
+            * stop using. Opened from the toggle by Send, below. */}
+          {searchOpen && (
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  closeSearch()
+                }
+              }}
+              placeholder="Find in scrollback"
+              title="Filter the whole scrollback, including lines older than the rendered window. Plain text, not a pattern. Escape closes."
+              className="w-32 rounded border border-border bg-surface px-1.5 py-0.5 text-ink-muted placeholder:text-ink-faint focus:border-accent/40 focus:text-ink"
+            />
+          )}
           <button
             type="button"
             className="rounded px-1.5 py-0.5 text-ink-faint hover:text-ink"
@@ -664,6 +692,19 @@ export function GamePane() {
           autoComplete="off"
           className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent/60 focus:outline-none"
         />
+        <button
+          type="button"
+          onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+          className={cn(
+            'shrink-0 rounded border p-1.5',
+            searchOpen
+              ? 'border-accent/40 bg-accent/10 text-accent'
+              : 'border-border text-ink-faint hover:text-ink'
+          )}
+          title={searchOpen ? 'Close scrollback search' : 'Find in scrollback'}
+        >
+          <Search className="h-3.5 w-3.5" />
+        </button>
         <button
           type="button"
           onClick={send}
