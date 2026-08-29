@@ -195,6 +195,7 @@ class Layer {
 
     if (!src) {
       this.el = null
+      emitProgress(null)
       return
     }
 
@@ -203,6 +204,16 @@ class Layer {
     next.volume = 0
     next.dataset.src = src
     if (opts?.onEnded) next.addEventListener('ended', opts.onEnded)
+    // A fresh track starts at 0/unknown, not whatever the previous one's
+    // position happened to be - the progress bar has to reset the instant a
+    // new track is chosen, not wait for this element's first `timeupdate`.
+    emitProgress({ position: 0, duration: NaN })
+    next.addEventListener('timeupdate', () => {
+      if (this.el === next) emitProgress({ position: next.currentTime, duration: next.duration })
+    })
+    next.addEventListener('durationchange', () => {
+      if (this.el === next) emitProgress({ position: next.currentTime, duration: next.duration })
+    })
     // Autoplay policy or a missing file both land here; a background track
     // failing to start is not worth surfacing as an error to the player.
     void next.play().catch(() => {})
@@ -213,6 +224,17 @@ class Layer {
   stop() {
     if (this.el) this.fadeOutAndStop(this.el)
     this.el = null
+    emitProgress(null)
+  }
+
+  /**
+   * Jump to a position in the current track. No-op with nothing loaded or a
+   * duration that isn't known yet (NaN/Infinity - a live stream, or the very
+   * first tick before metadata arrives) - there is nothing to seek within.
+   */
+  seek(seconds: number) {
+    if (!this.el || !Number.isFinite(this.el.duration)) return
+    this.el.currentTime = Math.max(0, Math.min(this.el.duration, seconds))
   }
 
   private fadeIn(el: HTMLAudioElement) {
@@ -265,6 +287,38 @@ export function nowPlaying(): NowPlaying | null {
 export function onNowPlayingChange(fn: (np: NowPlaying | null) => void): () => void {
   nowPlayingListeners.add(fn)
   return () => nowPlayingListeners.delete(fn)
+}
+
+/**
+ * Where the current track is, for a real progress bar rather than a bare
+ * title. `duration` is `NaN` until the browser has parsed enough of the file
+ * to know it (right after a track change, or for a live stream that never
+ * reports one at all) - a consumer treats a non-finite duration as "nothing
+ * to show a bar for," not zero.
+ */
+export interface Progress {
+  position: number
+  duration: number
+}
+let progressState: Progress | null = null
+const progressListeners = new Set<(p: Progress | null) => void>()
+function emitProgress(p: Progress | null) {
+  progressState = p
+  for (const l of progressListeners) l(p)
+}
+export function playbackProgress(): Progress | null {
+  return progressState
+}
+/** Subscribe to playback position changes - fires on the browser's own
+ * `timeupdate` cadence (roughly 4x/second), not a bespoke timer. */
+export function onProgressChange(fn: (p: Progress | null) => void): () => void {
+  progressListeners.add(fn)
+  return () => progressListeners.delete(fn)
+}
+/** Jump to a position in the current track - see `Layer.seek`'s own header
+ * for why this is a no-op on a live stream or before metadata arrives. */
+export function seekMusic(seconds: number) {
+  music.seek(seconds)
 }
 
 /**
@@ -502,6 +556,38 @@ export function onMusicVolumeChange(fn: (v: number) => void): () => void {
 }
 
 /**
+ * Ramp `musicGain` to `target` over `ms` instead of jumping - a track-to-
+ * track switch already crossfades (`Layer.fadeIn`/`fadeOutAndStop`, both
+ * `FADE_MS`), and play/pause landing instantly while skip fades smoothly
+ * read as a real inconsistency once both exist in one panel (29 Aug 2026,
+ * Dan: "there should be a fade in and out... a couple of seconds"). Reuses
+ * `setMusicVolume` for every step rather than touching `music`/`musicGain`
+ * directly, so every subscriber (the slider, the media session's
+ * `playbackState`) sees the same smooth ramp a listener hears, not a jump
+ * they'd have to explain.
+ *
+ * A second call cancels whatever ramp was already running and starts fresh
+ * from the current (possibly mid-fade) level - rapid play/pause taps should
+ * chase the latest tap, not queue up stale ones.
+ */
+let fadeTimer: ReturnType<typeof setInterval> | null = null
+function fadeMusicVolume(target: number, ms = FADE_MS) {
+  if (fadeTimer) clearInterval(fadeTimer)
+  const start = musicGain
+  const clamped = Math.max(0, Math.min(1.5, target))
+  const steps = Math.max(1, Math.round(ms / TICK_MS))
+  let step = 0
+  fadeTimer = setInterval(() => {
+    step++
+    setMusicVolume(start + (clamped - start) * (step / steps))
+    if (step >= steps) {
+      if (fadeTimer) clearInterval(fadeTimer)
+      fadeTimer = null
+    }
+  }, TICK_MS)
+}
+
+/**
  * Pause/resume for the media-session play/pause buttons (initMediaSession
  * below) - remembers the level muted from and restores exactly that, same
  * "0% is the only mute state, but something has to remember where to go
@@ -513,10 +599,10 @@ let preMuteMusicGain: number | null = null
 export function pauseMusic() {
   if (musicGain <= 0) return
   preMuteMusicGain = musicGain
-  setMusicVolume(0)
+  fadeMusicVolume(0)
 }
 export function resumeMusic() {
-  setMusicVolume(preMuteMusicGain ?? 0.45)
+  fadeMusicVolume(preMuteMusicGain ?? 0.45)
   preMuteMusicGain = null
 }
 
