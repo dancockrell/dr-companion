@@ -37,8 +37,6 @@ export interface Dock {
 
 /** Below this a region cannot show a panel usefully, so it folds instead. */
 export const MIN_REGION = 220
-/** A deck needs room for its tabs before it needs room for content. */
-export const MIN_TAB_STRIP = 28
 
 /** Pixel size of each region along the axis, given the space available. */
 export function measure(dock: Dock, extent: number): number[] {
@@ -196,23 +194,4 @@ export function splitEach(panels: PanelId[], axis: Axis = 'row'): Dock {
     axis,
     regions: panels.map((p) => ({ id: String(p), size: even, panels: [p], active: p })),
   }
-}
-
-/** Pull one panel out of its deck into a region of its own, beside it. */
-export function splitOut(dock: Dock, id: PanelId): Dock {
-  const i = dock.regions.findIndex((r) => r.panels.includes(id) && r.panels.length > 1)
-  if (i < 0) return dock
-
-  const region = dock.regions[i]
-  const keep = region.panels.filter((p) => p !== id)
-  const half = region.size / 2
-
-  const regions = [...dock.regions]
-  regions.splice(
-    i,
-    1,
-    { ...region, panels: keep, active: keep.includes(region.active) ? region.active : keep[0], size: half },
-    { id: `${region.id}:${id}`, panels: [id], active: id, size: half }
-  )
-  return { ...dock, regions }
 }

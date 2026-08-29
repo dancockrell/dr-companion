@@ -285,7 +285,3 @@ export function pickSuggestedHunt(ctx: HuntRankContext): RankedHunt | null {
   if (ctx.mode === 'manual') return null
   return rankHuntingGrounds(ctx).find((r) => !r.rejected) ?? null
 }
-
-export function formatRankBand(g: HuntingGround): string {
-  return `${g.minRanks}–${g.maxRanks} ranks`
-}
