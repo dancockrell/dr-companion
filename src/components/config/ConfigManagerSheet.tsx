@@ -10,9 +10,10 @@ import { X } from 'lucide-react'
 import { HighlightsEditor } from './HighlightsEditor'
 import { AliasesEditor } from './AliasesEditor'
 import { MacrosEditor } from './MacrosEditor'
+import { VariablesEditor } from './VariablesEditor'
 import { cn } from '../../lib/cn'
 
-type Tab = 'highlights' | 'aliases' | 'macros'
+type Tab = 'highlights' | 'aliases' | 'macros' | 'variables'
 
 export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('highlights')
@@ -37,6 +38,9 @@ export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
             <TabButton active={tab === 'macros'} onClick={() => setTab('macros')}>
               Macros
             </TabButton>
+            <TabButton active={tab === 'variables'} onClick={() => setTab('variables')}>
+              Variables
+            </TabButton>
           </div>
           <button type="button" className="rounded-md p-1 text-ink-faint hover:text-ink" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -47,6 +51,7 @@ export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
           {tab === 'highlights' && <HighlightsEditor />}
           {tab === 'aliases' && <AliasesEditor />}
           {tab === 'macros' && <MacrosEditor />}
+          {tab === 'variables' && <VariablesEditor />}
         </div>
       </div>
     </div>
