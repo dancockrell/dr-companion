@@ -448,6 +448,8 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
                       ? 'border-accent text-accent bg-accent/10'
                       : 'border-border text-ink-faint'
                   }`}
+                  aria-label={`Level ${lv}`}
+                  aria-pressed={z === lv}
                   onClick={() => setLevel(lv)}
                 >
                   {lv}

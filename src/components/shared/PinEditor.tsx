@@ -122,6 +122,7 @@ export function PinEditor({
               type="button"
               title={c}
               aria-label={`Colour: ${c}`}
+              aria-pressed={color === c}
               onClick={() => setColor(c)}
               className={`h-6 w-6 shrink-0 rounded-full border-2 ${
                 color === c ? 'border-ink' : 'border-transparent'
@@ -138,6 +139,7 @@ export function PinEditor({
           <button
             type="button"
             title="No icon" aria-label="No icon"
+            aria-pressed={icon === undefined}
             onClick={() => setIcon(undefined)}
             className={`flex h-7 w-7 items-center justify-center rounded border ${
               icon === undefined ? 'border-accent text-accent' : 'border-border text-ink-faint'
@@ -153,6 +155,7 @@ export function PinEditor({
                 type="button"
                 title={key}
                 aria-label={`Icon: ${key}`}
+                aria-pressed={icon === key}
                 onClick={() => setIcon(key)}
                 className={`flex h-7 w-7 items-center justify-center rounded border ${
                   icon === key ? 'border-accent text-accent' : 'border-border text-ink-faint'
