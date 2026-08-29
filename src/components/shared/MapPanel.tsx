@@ -27,6 +27,8 @@ import {
   PanelRightClose,
   ZoomIn,
   ZoomOut,
+  Download,
+  Upload,
 } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
@@ -41,6 +43,7 @@ import { QuickTravel } from './QuickTravel'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
+import { exportPinsToFile, importPinsFromFile } from '../../lib/pinsFile'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../../lib/scriptFiles'
@@ -278,6 +281,31 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     setPinVersion((v) => v + 1)
   }
 
+  async function doExportPins() {
+    try {
+      const { path } = await exportPinsToFile()
+      addLog(`Pins saved to ${path}`)
+    } catch (e) {
+      addLog(String(e), 'error')
+    }
+  }
+
+  async function doImportPins() {
+    try {
+      const { imported, skipped, note } = await importPinsFromFile()
+      if (note) {
+        addLog(note, 'warn')
+        return
+      }
+      addLog(
+        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
+      )
+      setPinVersion((v) => v + 1)
+    } catch (e) {
+      addLog(String(e), 'error')
+    }
+  }
+
   // Writes a real python/tasks/user/walk_to_<pin>.py - see pinTaskGenerator.ts
   // for why generation, not overwrite, is the right default the moment a
   // player might have edited a previously-generated file by hand.
@@ -392,6 +420,8 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       title={zone.name ?? `Zone ${zone.zone}`}
       onRefresh={refresh}
       onPopOut={isTauri() ? popOut : undefined}
+      onExportPins={isTauri() && character ? doExportPins : undefined}
+      onImportPins={isTauri() && character ? doImportPins : undefined}
       right={
         <div className="flex items-center gap-2">
           {/* Levels and zoom, in the header itself rather than a row of
@@ -711,6 +741,8 @@ function Shell({
   title,
   onRefresh,
   onPopOut,
+  onExportPins,
+  onImportPins,
   right,
   plane = false,
 }: {
@@ -718,6 +750,10 @@ function Shell({
   title?: string
   onRefresh?: () => void
   onPopOut?: () => void
+  /** Write every character's pins to the shared Genie config file. See pinsFile.ts. */
+  onExportPins?: () => void
+  /** Read that same file back in, merging it into this browser's own pins. */
+  onImportPins?: () => void
   right?: React.ReactNode
   plane?: boolean
 }) {
@@ -805,6 +841,32 @@ function Shell({
               onClick={onRefresh}
             >
               <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {/* Pins as a file, not just this browser's own storage - saved into
+            * the same Config folder highlights.cfg/aliases.cfg already live
+            * in, so it travels with the rest of a shared config. See
+            * pinsFile.ts's header for the whole story. */}
+          {onExportPins && (
+            <button
+              type="button"
+              className="p-1 rounded text-ink-faint hover:text-ink"
+              title="Save every character's pins to dr-companion-pins.yaml, in your Genie Config folder"
+              aria-label="Export pins to file"
+              onClick={onExportPins}
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onImportPins && (
+            <button
+              type="button"
+              className="p-1 rounded text-ink-faint hover:text-ink"
+              title="Load pins from dr-companion-pins.yaml in your Genie Config folder - a guildmate's shared file, or your own from another machine"
+              aria-label="Import pins from file"
+              onClick={onImportPins}
+            >
+              <Upload className="w-3.5 h-3.5" />
             </button>
           )}
         </div>

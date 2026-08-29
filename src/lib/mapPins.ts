@@ -131,21 +131,85 @@ export interface MapPin {
  * different icons) rather than one canonical choice per idea - Dan's own
  * ask was for "many and variations of expected common ones," not a single
  * icon per category.
+ *
+ * Grown from 13 to cover specific DragonRealms categories a player actually
+ * marks, not just the four QuickTravel already answers (bank/healer/
+ * guild/shop) - those four have a faster path (drag straight onto a room,
+ * no dialog), so this list leans toward everything that doesn't: crafting
+ * and gathering trades, points of interest, hazards, and social/logistics
+ * spots. Colour is grouped by *kind of fact*, the same grouping the map's
+ * own room-colour legend already uses, so a pin's colour is a hint about
+ * what kind of thing it is even before reading its icon: gold for
+ * commerce/training, green for gathering/nature, purple for
+ * social/guild/magic, red for combat/hazard, blue for logistics/shops,
+ * slate for neutral waypoints.
  */
 export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = [
+  // Home base and banking
   { label: 'Home', icon: 'home', color: 'blue' },
   { label: 'Bank', icon: 'landmark', color: 'gold' },
   { label: 'Vault', icon: 'coins', color: 'gold' },
+  { label: 'Locker', icon: 'package', color: 'blue' },
+
+  // Services and training
   { label: 'Healer', icon: 'heart-pulse', color: 'green' },
   { label: 'Guild', icon: 'shield', color: 'purple' },
+  { label: 'Trainer', icon: 'swords', color: 'gold' },
+  { label: 'Empath', icon: 'sparkles', color: 'green' },
+  { label: 'Enchanter', icon: 'wand', color: 'purple' },
+  { label: 'Locksmith', icon: 'key-round', color: 'gold' },
+  { label: 'Stable', icon: 'paw-print', color: 'gold' },
+  { label: "Thieves' Den", icon: 'lock', color: 'purple' },
+
+  // Shops
   { label: 'Shop', icon: 'shopping-bag', color: 'blue' },
   { label: 'General Store', icon: 'backpack', color: 'blue' },
+  { label: 'Armor Shop', icon: 'shield', color: 'blue' },
+  { label: 'Weapon Shop', icon: 'sword', color: 'blue' },
+  { label: 'Alchemist', icon: 'flask-conical', color: 'blue' },
+  { label: 'Scribe', icon: 'scroll-text', color: 'blue' },
+  { label: 'Bookstore', icon: 'book-open', color: 'blue' },
+  { label: 'Jeweler', icon: 'gem', color: 'blue' },
+  { label: 'Bathhouse', icon: 'droplet', color: 'blue' },
+
+  // Crafting and gathering
+  { label: 'Smithy', icon: 'anvil', color: 'green' },
+  { label: 'Forge', icon: 'hammer', color: 'green' },
+  { label: 'Woodcutting', icon: 'tree-pine', color: 'green' },
+  { label: 'Mining Node', icon: 'mountain', color: 'green' },
+  { label: 'Herb Patch', icon: 'sprout', color: 'green' },
+  { label: 'Fishing Spot', icon: 'fish', color: 'green' },
+  { label: 'Resource Node', icon: 'gem', color: 'green' },
+  { label: 'Skinning Spot', icon: 'axe', color: 'green' },
+
+  // Points of interest
+  { label: 'Landmark', icon: 'star', color: 'slate' },
+  { label: 'Gate', icon: 'compass', color: 'slate' },
+  { label: 'Dock', icon: 'anchor', color: 'slate' },
+  { label: 'Crossing', icon: 'waves', color: 'slate' },
+  { label: 'Overlook', icon: 'sun', color: 'slate' },
+  { label: 'Camp', icon: 'moon', color: 'slate' },
+
+  // Combat and hazard
   { label: 'Hunting Spot', icon: 'swords', color: 'red' },
   { label: 'Danger', icon: 'skull', color: 'red' },
+  { label: 'Ambush Spot', icon: 'flame', color: 'red' },
+  { label: 'Frozen Hazard', icon: 'snowflake', color: 'red' },
+  { label: 'Graveyard', icon: 'ghost', color: 'red' },
+  { label: 'Vermin Nest', icon: 'bug', color: 'red' },
+  { label: 'Practice Target', icon: 'target', color: 'red' },
+
+  // Social and logistics
   { label: 'Hangout', icon: 'users', color: 'gold' },
   { label: 'Meetup Point', icon: 'tent', color: 'purple' },
-  { label: 'Resource Node', icon: 'sprout', color: 'green' },
+  { label: 'Performance Spot', icon: 'crown', color: 'purple' },
+  { label: 'Timed Event', icon: 'hourglass', color: 'purple' },
+  { label: 'Trade Post', icon: 'scale', color: 'gold' },
+  { label: 'Reward Turn-in', icon: 'gift', color: 'gold' },
+  { label: 'Nest Watch', icon: 'bird', color: 'green' },
   { label: 'Return Point', icon: 'flag', color: 'slate' },
+  { label: 'Footpath', icon: 'footprints', color: 'slate' },
+  { label: 'Fortress', icon: 'castle', color: 'slate' },
 ]
 
 /**
@@ -159,7 +223,7 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
 export const PIN_DRAG_TYPE = 'application/x-drc-pin'
 
 const STORAGE_KEY = 'drc.pins.v1'
-type PinStore = Record<string, MapPin[]>
+export type PinStore = Record<string, MapPin[]>
 
 function loadStore(): PinStore {
   const parsed = readJSON<unknown>(STORAGE_KEY, {})
@@ -168,6 +232,20 @@ function loadStore(): PinStore {
 
 function saveStore(store: PinStore): void {
   writeJSON(STORAGE_KEY, store)
+}
+
+/** The whole store, every character at once - what pinsFile.ts exports to
+ *  and imports from the shared Genie config file. Never partial: a player
+ *  sharing their config folder is sharing every character on it, the same
+ *  way highlights.cfg and aliases.cfg are not scoped to one character. */
+export function loadAllPins(): PinStore {
+  return loadStore()
+}
+
+/** Replace the whole store - used only by pinsFile.ts's import, which
+ *  already merges with what is on disk before calling this. */
+export function replaceAllPins(store: PinStore): void {
+  saveStore(store)
 }
 
 export function loadPins(name: string, instance: GameInstance): MapPin[] {

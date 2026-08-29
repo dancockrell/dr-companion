@@ -12,7 +12,7 @@
  * if the main one is busy, and it means neither can corrupt the other's state.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag } from 'lucide-react'
+import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag, Download, Upload } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import { roomKind } from '../lib/mapData'
@@ -24,6 +24,7 @@ import { RoomNudge } from './shared/RoomNudge'
 import { PlaceSearch } from './shared/PlaceSearch'
 import { useZoneBrowsing } from '../lib/useZoneBrowsing'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
+import { exportPinsToFile, importPinsFromFile } from '../lib/pinsFile'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../lib/scriptFiles'
@@ -175,6 +176,31 @@ export function MapWindow() {
     setPinVersion((v) => v + 1)
   }
 
+  /** Save/load pins as a shared file - see pinsFile.ts and MapPanel.tsx's matching pair. */
+  async function doExportPins() {
+    try {
+      const { path } = await exportPinsToFile()
+      addLog(`Pins saved to ${path}`)
+    } catch (e) {
+      addLog(String(e), 'error')
+    }
+  }
+  async function doImportPins() {
+    try {
+      const { imported, skipped, note } = await importPinsFromFile()
+      if (note) {
+        addLog(note, 'warn')
+        return
+      }
+      addLog(
+        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
+      )
+      setPinVersion((v) => v + 1)
+    } catch (e) {
+      addLog(String(e), 'error')
+    }
+  }
+
   async function createTaskForPin(pin: MapPin) {
     const existingNames = (await listScripts()).filter((s) => s.lang === 'python').map((s) => s.name)
     const name = uniqueTaskName(existingNames, pin)
@@ -300,6 +326,29 @@ export function MapWindow() {
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
+          {/* Pins as a file - see pinsFile.ts's header. */}
+          {isTauri() && character && (
+            <>
+              <button
+                type="button"
+                className="p-1 rounded border border-border text-ink-faint hover:text-ink"
+                title="Save every character's pins to dr-companion-pins.yaml, in your Genie Config folder"
+                aria-label="Export pins to file"
+                onClick={() => void doExportPins()}
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                className="p-1 rounded border border-border text-ink-faint hover:text-ink"
+                title="Load pins from dr-companion-pins.yaml in your Genie Config folder - a guildmate's shared file, or your own from another machine"
+                aria-label="Import pins from file"
+                onClick={() => void doImportPins()}
+              >
+                <Upload className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
         </div>
       </header>
 

@@ -15,7 +15,7 @@ import { useState } from 'react'
 import { Landmark, HeartPulse, Shield, ShoppingBag, MapPin as MapPinIcon, Compass, type LucideIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
-import { PIN_DRAG_TYPE, type PinIcon, type PinColor } from '../../lib/mapPins'
+import { PIN_DRAG_TYPE, PIN_COLOR_HEX, type PinIcon, type PinColor } from '../../lib/mapPins'
 
 const PRESETS: { tag: string; label: string; icon: LucideIcon; pinIcon: PinIcon; color: PinColor }[] = [
   { tag: 'bank', label: 'Bank', icon: Landmark, pinIcon: 'landmark', color: 'gold' },
@@ -81,12 +81,17 @@ export function QuickTravel({
           title={`Nearest ${label} (drag onto a room on the map to pin it there directly)`}
           aria-label={`Nearest ${label}`}
           className={`flex items-center rounded-full border px-1.5 py-0.5 ${
-            activeTag === tag
-              ? 'border-accent text-accent'
-              : 'border-border text-ink-muted hover:text-ink'
+            activeTag === tag ? 'border-accent' : 'border-border hover:border-accent/60'
           }`}
         >
-          <Icon className="h-3 w-3" />
+          {/* Tinted with the same colour this button pins with, at rest -
+            * not only once active. Four icon-only buttons with no colour cue
+            * read as "four copies of one button" at a glance (Dan: "these
+            * seem to be two copies of basically the same thing"), because
+            * the icon shape alone is too small to tell apart quickly. The
+            * colour is also a preview of what the pin will look like on the
+            * map once dropped, so it is not a cue invented just for this row. */}
+          <Icon className="h-3 w-3" style={{ color: PIN_COLOR_HEX[color] }} />
         </button>
       ))}
       {answered &&

@@ -560,7 +560,16 @@ export function MapCanvas({
                 const cx = px(r) + box * 0.62
                 const cy = py(r) - box * 0.62
                 const weight = pin.system ? 1.4 : 1
-                const radius = Math.max(1.6, 1.8 * scale) * weight
+                // Sized off the room's own box, not a fixed constant - a
+                // pin is a fact worth noticing, and a badge smaller than
+                // the room it sits on (the old `1.8 * scale`, well under
+                // half of `box`) cannot carry an icon shape at all. Measured
+                // live: on Crossing's 903x1056 viewBox scaled into a 530px
+                // docked column, the old radius rendered at roughly one
+                // physical pixel - present in the DOM, invisible on screen.
+                // 1.15x the room box makes the badge the most prominent
+                // single mark on the room rather than the least.
+                const radius = Math.max(box * 1.15, 2.4 * scale) * weight
                 const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
                 return (
                   <g className="pointer-events-none">
