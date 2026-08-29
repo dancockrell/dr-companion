@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import {
   Box,
   ChevronUp,
@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
-import { hasArt } from '../../lib/creatureArt'
 import { playerArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { nounOf } from '../../lib/room'
 import { useRoomItemTake } from '../../lib/useRoomItemTake'
@@ -138,6 +137,28 @@ function pointOn(angleDeg: number, radiusPct: number) {
   return { x: 50 + radiusPct * Math.cos(rad), y: 50 + radiusPct * Math.sin(rad) }
 }
 
+/**
+ * Pinned keys move to the front, in the order they were pinned — the most
+ * recently promoted lands first, same as bringing a card to the top of a
+ * hand. Everything else keeps the order it already had. A room with six
+ * hundred mobs in a scrolling pane is unusable if the one you actually care
+ * about can only be found by scrolling to wherever the game happened to
+ * list it; this is the whole reason a corner is clickable at all.
+ */
+function reorderByPin<T>(entries: T[], keyOf: (t: T) => string, pins: string[]): T[] {
+  if (pins.length === 0) return entries
+  const byKey = new Map(entries.map((e) => [keyOf(e), e] as const))
+  const front: T[] = []
+  for (const k of pins) {
+    const e = byKey.get(k)
+    if (e) {
+      front.push(e)
+      byKey.delete(k)
+    }
+  }
+  return [...front, ...entries.filter((e) => byKey.has(keyOf(e)))]
+}
+
 interface Positioned {
   key: string
   card: RoomCard
@@ -185,14 +206,84 @@ const CORNERS: Record<Deck, CornerBox> = {
 
 const ITEM_BOX: CornerBox = { bottom: CORNER_MARGIN_PCT, right: CORNER_MARGIN_PCT, label: 'Items', presence: '' }
 
+/**
+ * Grab-and-drag panning for a scrollable element, in place of hunting for a
+ * thin scrollbar thumb on a board full of small touch-hostile controls.
+ * The scrollbar itself is hidden (see the `no-scrollbar` class on
+ * `CornerPane`) rather than removed — a trackpad or a mouse wheel still
+ * scrolls it normally; this only adds "grab the content and pull".
+ *
+ * The one thing a drag must never do is also fire whatever it happened to
+ * release on top of — a pan that ends over an attack button must not
+ * attack. Past a small movement threshold the gesture is committed to being
+ * a drag, and the click that the browser fires on release is swallowed with
+ * a one-shot capture-phase listener, which runs before the target's own
+ * click handler ever sees the event.
+ */
+function useDragScroll() {
+  const ref = useRef<HTMLDivElement>(null)
+  const drag = useRef({ down: false, moved: false, x: 0, y: 0, left: 0, top: 0 })
+  const DRAG_THRESHOLD_PX = 4
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = ref.current
+    if (!el) return
+    drag.current = { down: true, moved: false, x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop }
+    el.setPointerCapture(e.pointerId)
+  }
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = ref.current
+    const d = drag.current
+    if (!el || !d.down) return
+    const dx = e.clientX - d.x
+    const dy = e.clientY - d.y
+    if (!d.moved && Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) d.moved = true
+    if (d.moved) {
+      el.scrollLeft = d.left - dx
+      el.scrollTop = d.top - dy
+    }
+  }
+
+  const endDrag = () => {
+    const el = ref.current
+    const d = drag.current
+    if (el && d.moved) {
+      const swallow = (ev: MouseEvent) => {
+        ev.stopPropagation()
+        ev.preventDefault()
+      }
+      el.addEventListener('click', swallow, { capture: true, once: true })
+    }
+    drag.current.down = false
+    drag.current.moved = false
+  }
+
+  return {
+    ref,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: endDrag,
+    onPointerCancel: endDrag,
+  }
+}
+
 /** One scrollable corner pane — the container every corner and the floor
  * render their pucks into. A plain wrapping flexbox inside a fixed,
  * absolutely-positioned rectangle: position is set once by the box, content
- * flows and scrolls independently of it. */
+ * flows and scrolls independently of it. Grab-and-drag (see useDragScroll)
+ * over a visible scrollbar — the pane sits over a picture, where a
+ * permanently-visible scrollbar track reads as chrome on top of the room. */
 function CornerPane({ box, children }: { box: CornerBox; children: ReactNode }) {
+  const drag = useDragScroll()
   return (
     <div
-      className="absolute overflow-x-hidden overflow-y-auto"
+      ref={drag.ref}
+      onPointerDown={drag.onPointerDown}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      onPointerCancel={drag.onPointerCancel}
+      className="no-scrollbar absolute cursor-grab overflow-x-hidden overflow-y-auto touch-none active:cursor-grabbing"
       aria-label={box.label}
       style={{
         top: box.top != null ? `${box.top}%` : undefined,
@@ -351,11 +442,26 @@ function detailFor(card: RoomCard, combatant: RoomCombatant | undefined, presenc
   return bits.join(' — ')
 }
 
+/**
+ * A puck reads as a small physical token sitting on the board rather than a
+ * flat icon printed on it — a soft shadow beneath, a highlight along the
+ * top edge, a shade along the bottom, the way light actually falls on a
+ * round chip. box-shadow rather than a drop-shadow filter: it costs nothing
+ * extra to composite, and the two inset shadows are what make the token
+ * itself read as domed rather than just floating.
+ */
+const PUCK_SHADOW =
+  '0 3px 6px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 3px rgba(255,255,255,0.25), inset 0 -3px 4px rgba(0,0,0,0.35)'
+
 /** One puck: a real portrait when the bestiary has one, a submitted player
- * picture when the bestiary doesn't but the person does, otherwise a
- * coloured dot — never a guess dressed as either. Shared by the compass
- * and the four corners so a goblin looks like the same goblin everywhere
- * it can appear on this board. */
+ * picture when the bestiary doesn't but the person does, otherwise
+ * `CreatureArt`'s own fallback chain — a body-shape silhouette from the
+ * bestiary's own size/shape fields, or failing that an initial letter.
+ * Never a flat coloured dot for a creature: this board draws the same three
+ * tiers a card in the dashboard's own decks already draws, so a goblin
+ * looks like the same goblin everywhere it can appear in this app, art pack
+ * installed or not. Shared by the compass and the four corners for exactly
+ * that reason. */
 function Puck({
   card,
   px,
@@ -373,34 +479,52 @@ function Puck({
   // which a creature could borrow a player's art or a player's name could
   // accidentally resolve to bestiary art.
   const own = card.deck === 'people' ? playerArtFor(card.name) : undefined
-  const bestiary = !own && hasArt(card.name, card.noun)
 
   if (own) {
     return (
-      <div style={{ width: px }}>
+      <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: '9999px' }}>
         <PlayerPortrait name={own.name} url={own.url} height={px} className={`border ${ringClass}`} />
       </div>
     )
   }
-  if (bestiary) {
+
+  // People without a submitted picture are the one case with no bestiary
+  // answer to fall back to — a person is not a creature, so CreatureArt's
+  // silhouette-by-body-type has nothing to draw. A plain coloured dot,
+  // which is what this whole board used to draw for everyone.
+  if (card.deck === 'people') {
+    const style = DECK_STYLE[card.deck]
     return (
-      <div style={{ width: px }}>
-        <CreatureArt
-          name={card.name}
-          noun={card.noun}
-          lore={card.lore}
-          height={px}
-          className={`rounded-full border ${ringClass}`}
-        />
-      </div>
+      <span
+        className={`block rounded-full border border-surface ${pulse ? 'animate-pulse' : ''}`}
+        style={{
+          width: px,
+          height: px,
+          background: `var(--color-${style.band.replace('bg-', '')})`,
+          boxShadow: PUCK_SHADOW,
+        }}
+      />
     )
   }
-  const style = DECK_STYLE[card.deck]
+
+  // Hostile and allied: CreatureArt already knows how to draw all three
+  // tiers (real photo, then a body-shape silhouette from lore, then a bare
+  // initial) — asking it directly, rather than gating on whether an exact
+  // art file exists first, is what actually surfaces that fallback chain
+  // here instead of skipping straight past it to a dot.
   return (
-    <span
-      className={`block rounded-full border border-surface ${pulse ? 'animate-pulse' : ''}`}
-      style={{ width: px, height: px, background: `var(--color-${style.band.replace('bg-', '')})` }}
-    />
+    <div
+      className={pulse ? 'animate-pulse' : ''}
+      style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: '9999px' }}
+    >
+      <CreatureArt
+        name={card.name}
+        noun={card.noun}
+        lore={card.lore}
+        height={px}
+        className={`rounded-full border ${ringClass}`}
+      />
+    </div>
   )
 }
 
@@ -516,13 +640,34 @@ export function CombatRadar({
   // Standalone keeps its old hostile-only behaviour — see the `embedded`
   // prop's own doc comment for why allied/people never reach here
   // otherwise.
-  const cornerEntries: Record<Deck, CornerEntry[]> = embedded
+  const rawCornerEntries: Record<Deck, CornerEntry[]> = embedded
     ? {
         hostile: cornerHostiles,
         allied: cards.filter((c) => c.deck === 'allied').map((card) => ({ key: card.id, card })),
         people: cards.filter((c) => c.deck === 'people').map((card) => ({ key: card.id, card })),
       }
     : { hostile: [], allied: [], people: [] }
+
+  // Click anything in a corner (or the floor) and it jumps to the top of
+  // its own pane — a scrolling pile of hundreds is only useful if the one
+  // you're looking for can be pulled to where you can see it. Pins are
+  // per-room UI state, not game state: they reset the moment the character
+  // walks into a different room, same as the rest of this component.
+  const [pinned, setPinned] = useState<{ hostile: string[]; people: string[]; allied: string[]; items: string[] }>({
+    hostile: [],
+    people: [],
+    allied: [],
+    items: [],
+  })
+  const promote = (bucket: keyof typeof pinned, key: string) =>
+    setPinned((prev) => ({ ...prev, [bucket]: [key, ...prev[bucket].filter((k) => k !== key)] }))
+
+  const cornerEntries: Record<Deck, CornerEntry[]> = {
+    hostile: reorderByPin(rawCornerEntries.hostile, (e) => e.key, pinned.hostile),
+    allied: reorderByPin(rawCornerEntries.allied, (e) => e.key, pinned.allied),
+    people: reorderByPin(rawCornerEntries.people, (e) => e.key, pinned.people),
+  }
+  const orderedItems = items ? reorderByPin(items, (name) => name, pinned.items) : items
 
   const hasFight = positioned.length > 0
   // Doubled — a corner is a real scrollable pane now (see CornerPane), not
@@ -662,10 +807,12 @@ export function CombatRadar({
           in this square board always leaves empty. Every entry gets a
           puck — no cap, no folding the rest into the last one's tooltip;
           a room with a hundred mobs in it scrolls, the same way any other
-          long list in this app does. A mob puck is also an attack button —
-          closing the gap and swinging is one click, same as the compass;
-          PCs, NPCs and items are not (nothing here should send a command
-          against a person by accident). */}
+          long list in this app does. Every puck is also a button: a live
+          mob attacks on click, everything else (dead mobs, PCs, NPCs) has
+          no game command to send, so its click just promotes it to the top
+          of its own pane instead — the same gesture either way, "I want
+          this one", it just does different work depending on what there is
+          to do. */}
       {embedded &&
         (Object.keys(CORNERS) as Deck[]).map((deck) => {
           const corner = CORNERS[deck]
@@ -676,35 +823,33 @@ export function CombatRadar({
                 const detail = detailFor(entry.card, entry.combatant, corner.presence)
                 const dead = entry.card.status === 'dead'
                 // A corpse is not a target — attacking it is not a command
-                // DR has any use for. Still a puck, just not a button:
-                // dimmed, tooltip only, the same treatment items and the
-                // other two corners already get.
-                const clickable = deck === 'hostile' && !dead
+                // DR has any use for. Still a button, just a pin rather
+                // than an attack — same as PCs and NPCs, which never had
+                // an attack to send in the first place.
+                const attackable = deck === 'hostile' && !dead
                 const body = <Puck card={entry.card} px={cornerPx} ringClass="border-surface" />
-                if (clickable) {
-                  return (
-                    <button
-                      key={entry.key}
-                      type="button"
-                      disabled={!canAttack}
-                      onClick={attack}
-                      className="flex shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed"
-                      style={{ width: cornerPx, height: cornerPx }}
-                      title={`${entry.card.name} — ${detail}\n${attackTitle('Attack')}`}
-                    >
-                      {body}
-                    </button>
-                  )
-                }
+                const onClick = attackable
+                  ? () => {
+                      attack()
+                      promote(deck, entry.key)
+                    }
+                  : () => promote(deck, entry.key)
                 return (
-                  <div
+                  <button
                     key={entry.key}
-                    className="shrink-0"
-                    style={{ opacity: dead ? 0.55 : undefined }}
-                    title={`${entry.card.name} — ${detail}`}
+                    type="button"
+                    disabled={attackable && !canAttack}
+                    onClick={onClick}
+                    className="flex shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed"
+                    style={{ width: cornerPx, height: cornerPx, opacity: dead ? 0.55 : undefined }}
+                    title={
+                      attackable
+                        ? `${entry.card.name} — ${detail}\n${attackTitle('Attack')}`
+                        : `${entry.card.name} — ${detail}\nClick to bring to the top`
+                    }
                   >
                     {body}
-                  </div>
+                  </button>
                 )
               })}
             </CornerPane>
@@ -719,21 +864,25 @@ export function CombatRadar({
           puck is an icon guessed from the item's own name (see
           `iconForItem`) rather than a bare dot — a generic "pile" shape for
           anything unrecognised, a specific one for the handful of things a
-          player is actually digging through a corpse for. */}
-      {embedded && items && items.length > 0 && (
+          player is actually digging through a corpse for. Click both takes
+          it and promotes it to the top, same as every other corner. */}
+      {embedded && orderedItems && orderedItems.length > 0 && (
         <CornerPane box={ITEM_BOX}>
-          {items.map((name, i) => {
-            const tooltip = takeReason ?? `${name} — get ${nounOf(name)}`
+          {orderedItems.map((name, i) => {
+            const tooltip = takeReason ?? `${name} — get ${nounOf(name)}, or click to bring to the top`
             const Icon = iconForItem(name)
             return (
               <button
                 key={`${name}-${i}`}
                 type="button"
                 disabled={!canTake}
-                onClick={() => take(name)}
+                onClick={() => {
+                  take(name)
+                  promote('items', name)
+                }}
                 title={tooltip}
-                className="flex shrink-0 items-center justify-center rounded-full border border-surface bg-surface-overlay shadow hover:brightness-125 disabled:cursor-not-allowed"
-                style={{ width: cornerPx, height: cornerPx }}
+                className="flex shrink-0 items-center justify-center rounded-full border border-surface bg-surface-overlay hover:brightness-125 disabled:cursor-not-allowed"
+                style={{ width: cornerPx, height: cornerPx, boxShadow: PUCK_SHADOW }}
               >
                 <Icon className="text-accent" style={{ width: dotPx, height: dotPx }} aria-hidden />
                 <span className="sr-only">{name}</span>
