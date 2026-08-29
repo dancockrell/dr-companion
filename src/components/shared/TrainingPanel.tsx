@@ -176,14 +176,31 @@ export function TrainingPanel({ dense: _dense = false }: { dense?: boolean }) {
   if (!character) return null
 
   if (skills.length === 0) {
+    /*
+     * Two reasons for an empty list, and they need different words.
+     *
+     * `skillsReady` is false only while DRInfomon's post-login startup is
+     * still filling skills in - about a second. The bridge has sent that flag
+     * since it was written (companion_bridge.lic:636) and the type has carried
+     * it with a comment saying exactly what it is for. Nothing read it, so
+     * this panel blamed the bridge either way, and during that window the
+     * message below was not merely vague but wrong: the bridge is current, it
+     * does report ranks and mindstate, and the data is a second out.
+     *
+     * Undefined means a bridge or mock predating the field, which the type's
+     * own comment says to treat as the old always-ready behaviour rather than
+     * as a third state. So only an explicit `false` is the waiting case.
+     */
+    const waiting = character.skillsReady === false
     return (
       <section className="px-4 pb-2 shrink-0">
         <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5">
           Training
         </h2>
         <p className="text-xs text-ink-faint leading-snug rounded-xl border border-border bg-surface-raised px-3 py-2">
-          No skill data. The Lich bridge reports ranks and mindstate; the mock
-          bridge and older payloads do not carry it.
+          {waiting
+            ? 'Waiting for skills. DRInfomon fills these in just after login, which takes about a second.'
+            : 'No skill data. The Lich bridge reports ranks and mindstate; the mock bridge and older payloads do not carry it.'}
         </p>
       </section>
     )
