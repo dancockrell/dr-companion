@@ -660,6 +660,12 @@ export function GamePane() {
           value={command}
           onChange={(e) => setCommand(e.target.value)}
           onKeyDown={onKey}
+          // The placeholder here is a status line, not a label - it reads
+          // "Not attached" when there is no game. With no aria-label that
+          // status becomes the field's accessible NAME, so a screen reader
+          // announces the app's main command box as "Not attached", and the
+          // name changes under the user when the socket comes up.
+          aria-label="Game command"
           placeholder={link.connected ? 'Command, then Enter' : 'Not attached'}
           spellCheck={false}
           autoComplete="off"

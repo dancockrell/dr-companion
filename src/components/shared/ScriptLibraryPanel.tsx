@@ -111,6 +111,7 @@ export function ScriptLibraryPanel({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          aria-label="Search scripts"
           placeholder="Search scripts…"
           className="w-full pl-7 pr-2 py-1.5 text-xs rounded-lg border border-border bg-surface-raised text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent/50"
         />
