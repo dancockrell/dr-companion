@@ -250,5 +250,72 @@ console.log('\n-- telling a tagged stream from plain text --')
   )
 }
 
+// -- the channel row carries two vocabularies, and they overlap -----------
+//
+// Not a parser case. It is here because this is the wired test that owns game
+// streams, and because the thing at risk is a property of the row those
+// streams are rendered into.
+//
+// StreamTabs shows the game's channel labels and the companion's own log tabs
+// side by side. `talk` renders as "Speech" and the companion has a "Speech"
+// tab, so with both sets present the row was two identical words one thin
+// pipe apart, meaning different things. It is fixed by captioning each group
+// rather than renaming either tab: neither name is wrong, and scoped groups
+// make a future overlap harmless instead of forbidden.
+//
+// The obvious future edit is to delete two spans that look like decoration,
+// which is exactly why this asserts they are still there and prints the
+// overlap that is riding on them.
+{
+  console.log('\n-- channel row: two label sets in one row --')
+  const { readFileSync } = await import('node:fs')
+  const { CHANNELS } = await import('../src/lib/chatChannels.ts')
+  const { STREAM_LABELS } = await import('../src/lib/streamLabels.ts')
+
+  // Both lists come from the real modules. Neither is copied here, so this
+  // cannot pass because a duplicate drifted out of step with its original.
+  const appLabels = CHANNELS.map((c) => c.label)
+  const overlap = Object.entries(STREAM_LABELS)
+    .filter(([, label]) => appLabels.includes(label))
+    .map(([id, label]) => `${id}->${label}`)
+
+  ok(
+    'both label sets load from their real modules',
+    appLabels.length > 0 && Object.keys(STREAM_LABELS).length > 0,
+    `${appLabels.length} app, ${Object.keys(STREAM_LABELS).length} game`
+  )
+
+  const url = new URL('../src/components/game/StreamTabs.tsx', import.meta.url)
+  const src = readFileSync(url, 'utf8')
+
+  ok('the game group is captioned', src.includes('>game:<'))
+  ok('the companion group is captioned', src.includes('>this app:<'))
+
+  const guards = (src.match(/streams\.length > 0 &&/g) || []).length
+  ok('both captions are conditional on a game set being present', guards === 2, `${guards} guards`)
+
+  // Say what is riding on it, rather than leaving a bare assertion.
+  ok(
+    'the overlap that makes those captions load-bearing is still real',
+    overlap.length > 0,
+    overlap.join(', ') || 'NONE - captions would be belt-and-braces, not a fix'
+  )
+
+  // Sabotage, so a green result above is not just this block failing to run.
+  // Strip the captions from a COPY and require the check to go red. A
+  // mutation that changes nothing is an error, not a pass: a sabotage that
+  // misses its target certifies nothing.
+  const sabotaged = src.replaceAll('>game:<', '>x<').replaceAll('>this app:<', '>y<')
+  if (sabotaged === src) {
+    failed++
+    console.log('FAIL sabotage changed nothing - the caption check proves nothing')
+  } else {
+    ok(
+      'CONTROL: the caption check goes red when the captions are removed',
+      !sabotaged.includes('>game:<') && !sabotaged.includes('>this app:<')
+    )
+  }
+}
+
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)
