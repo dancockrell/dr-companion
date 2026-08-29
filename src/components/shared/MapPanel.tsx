@@ -209,8 +209,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     bridge.requestIntent('map_walk', { to: roomId })
   }
 
-  function pinRoom(id: number) {
-    const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
+  /**
+   * @param knownTitle Pass this when the caller already has the room's real
+   *   name from somewhere other than the drawn zone - QuickTravel's nearest
+   *   results are found via a separate map_nearest query and are often not
+   *   in the currently drawn zone's room list at all, so the `zone?.rooms`
+   *   lookup below would silently fall back to "Room 1234" for a bank the
+   *   game happily named. Letting the caller hand over what it already
+   *   knows beats re-deriving it badly.
+   */
+  function pinRoom(id: number, knownTitle?: string) {
+    const title = knownTitle ?? zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
 
@@ -460,7 +469,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
           onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
         />
-        <QuickTravel onWalk={goThere} />
+        <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
       </div>
 
       {showNudge && hereId != null && (

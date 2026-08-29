@@ -12,7 +12,7 @@
  * pick from what's actually nearby.
  */
 import { useState } from 'react'
-import { Landmark, HeartPulse, Shield, ShoppingBag, type LucideIcon } from 'lucide-react'
+import { Landmark, HeartPulse, Shield, ShoppingBag, MapPin as MapPinIcon, type LucideIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
 
@@ -23,7 +23,22 @@ const PRESETS: { tag: string; label: string; icon: LucideIcon }[] = [
   { tag: 'shop', label: 'Shop', icon: ShoppingBag },
 ]
 
-export function QuickTravel({ onWalk }: { onWalk: (roomId: number) => void }) {
+export function QuickTravel({
+  onWalk,
+  onPin,
+}: {
+  onWalk: (roomId: number) => void
+  /**
+   * Pin a nearest-search result directly, without walking there first.
+   *
+   * The nearest-bank/healer/guild/shop answer is exactly the pin a lot of
+   * players would want and never get around to setting - finding it once
+   * already did the work a pin exists to skip doing again. Optional: a
+   * caller with nowhere to put a pin (no character yet) just doesn't offer
+   * the button, same as MapPinBar's own onAddHere.
+   */
+  onPin?: (hit: { id: number; title: string }) => void
+}) {
   const mapNearest = useAppStore((s) => s.mapNearest)
   const [activeTag, setActiveTag] = useState<string | null>(null)
 
@@ -62,18 +77,36 @@ export function QuickTravel({ onWalk }: { onWalk: (roomId: number) => void }) {
         (mapNearest.ok && mapNearest.rooms?.length ? (
           <div className="flex flex-wrap items-center gap-1">
             {mapNearest.rooms.map((r) => (
-              <button
+              <div
                 key={r.id}
-                type="button"
-                title={r.title ?? undefined}
-                onClick={() => {
-                  if (r.id != null) onWalk(r.id)
-                  setActiveTag(null)
-                }}
-                className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent"
+                className="flex items-center overflow-hidden rounded-full border border-accent/40 bg-accent/10 text-xs text-accent"
               >
-                {r.title ?? `Room ${r.id}`} · {r.steps ?? '?'} rooms
-              </button>
+                <button
+                  type="button"
+                  title={r.title ?? undefined}
+                  onClick={() => {
+                    if (r.id != null) onWalk(r.id)
+                    setActiveTag(null)
+                  }}
+                  className="px-2 py-0.5"
+                >
+                  {r.title ?? `Room ${r.id}`} · {r.steps ?? '?'} rooms
+                </button>
+                {/* The point of asking "nearest bank" is usually to stop
+                    having to ask again - this is that, one click sooner
+                    than walk-there-then-right-click. */}
+                {onPin && r.id != null && (
+                  <button
+                    type="button"
+                    title={`Pin ${r.title ?? 'this room'}`}
+                    aria-label={`Pin ${r.title ?? 'this room'}`}
+                    onClick={() => onPin({ id: r.id as number, title: r.title ?? `Room ${r.id}` })}
+                    className="border-l border-accent/30 px-1.5 py-0.5 text-accent hover:bg-accent/20"
+                  >
+                    <MapPinIcon className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         ) : (

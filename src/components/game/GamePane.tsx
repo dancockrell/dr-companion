@@ -424,40 +424,25 @@ export function GamePane() {
       <div className="flex min-w-0 shrink-0 items-center gap-2 border-b border-border px-2 py-1 text-xs">
         <span className="shrink-0 font-medium uppercase tracking-wider text-ink-faint">Game</span>
 
-        {/* Connected or not, as a fact.
-          *
-          * An empty pane means "nothing has happened" and "we are not attached"
-          * and those need different actions from the player. The line count is
-          * here for the same reason: it is the denominator, and a pane that is
-          * empty because the parse dropped everything looks exactly like one
-          * that is empty because the room is quiet. */}
+        {/* Connected or not, as a fact - carried by the icon's own colour
+          * and shape, not repeated in words beside it. The text this used to
+          * show was `link.connected ? 'Attached' : link.note || 'not
+          * attached'`, and `note` is hardcoded to `''` while disconnected
+          * (see gameLink.ts), so that branch was always the literal string
+          * "not attached" - never a real, situation-specific message. Every
+          * bit of information this row carried was already in the icon;
+          * the words were reserving 4.5rem for a fact restated, not a fact
+          * added. The full detail - "Attached", or the host:port this app
+          * would attach to - is still one hover away in the title. */}
         <span
-          className={cn(
-            'flex min-w-0 items-center gap-1',
-            link.connected ? 'text-good' : 'text-ink-faint'
-          )}
-          title={link.note || `${link.host}:${link.port}`}
+          className={cn('flex shrink-0 items-center', link.connected ? 'text-good' : 'text-ink-faint')}
+          title={link.connected ? 'Attached' : link.note || `Not attached (${link.host}:${link.port})`}
         >
           {link.connected ? (
-            <PlugZap className="h-3 w-3 shrink-0" />
+            <PlugZap className="h-3 w-3" />
           ) : (
-            <Plug className="h-3 w-3 shrink-0" />
+            <Plug className="h-3 w-3" />
           )}
-          {/* truncate, like hlNote and aliasNote already do - link.note is the
-            * one unbounded string in this row that was not allowed to give up
-            * width, so a long disconnect reason pushed the controls off.
-            *
-            * With a floor, though. Plain `truncate` inside a `min-w-0` parent
-            * shrinks to nothing when the row is tight, and it did: measured at
-            * 0px wide, so the pane reported neither "Attached" nor "not
-            * attached" and looked like it had no opinion. Whether you are
-            * connected is the second most important thing in this row after
-            * the button that connects you, and second place still outranks
-            * the search box. 4.5rem keeps a readable stub; the full string
-            * stays in the title. */}
-          <span className="min-w-[4.5rem] truncate">
-            {link.connected ? 'Attached' : link.note || 'not attached'}
-          </span>
         </span>
 
         {/* "Connection lost" was the same sentence whether our socket dropped

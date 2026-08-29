@@ -29,6 +29,7 @@
  * not sent one, which is a different thing from the client having lost it.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Info } from 'lucide-react'
 import { type GameLine } from '../../lib/gameLink'
 import { useGameLines, useGameStreams } from '../../lib/useGameLines'
 import { GameLineRow } from './GameLineRow'
@@ -184,17 +185,18 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
           )
         })}
 
-        {/* Said plainly rather than left as an empty row.
-          *
-          * No channels can mean three different things and they need different
-          * actions: not attached, attached to a frontend without the streams
-          * capability, or attached and the game has simply not used one yet. */}
+        {/* An icon and a tooltip rather than a sentence in the row - said
+          * plainly once, in the title, not typeset permanently beside the
+          * tabs. No channels can mean three different things and they need
+          * different actions: not attached, attached to a frontend without
+          * the streams capability, or attached and the game has simply not
+          * used one yet - all still in the tooltip, just not on the row. */}
         {streams.length === 0 && (
           <span
-            className="text-ink-faint"
-            title="Channels appear as the game uses them. If none ever appear, the bridge may be identifying as a frontend without the streams capability - see docs/ENGINE.md."
+            title="No game channels yet. Channels appear as the game uses them. If none ever appear, the bridge may be identifying as a frontend without the streams capability - see docs/ENGINE.md."
+            aria-label="No game channels yet"
           >
-            no channels yet
+            <Info className="h-3 w-3 shrink-0 text-ink-faint" />
           </span>
         )}
 

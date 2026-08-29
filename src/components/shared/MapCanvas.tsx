@@ -599,20 +599,24 @@ export function MapLegend({ kinds }: { kinds?: RoomKind[] }) {
     ] as Array<[RoomKind, string]>
   ).filter(([k]) => k === 'here' || present.has(k))
 
+  // Swatches only, no words beside them - the row this used to be (colour
+  // plus its name, repeated per kind) cost real width for something a
+  // tooltip says exactly as well. Each swatch still carries its own title,
+  // so the information survives; it just is not typeset in the layout by
+  // default. "Less talk, more tooltips."
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-faint">
+    <div className="flex flex-wrap items-center gap-1.5" title="Map colours: dark you, red hazard, blue bank/healer/guild/shop">
       {items.map(([kind, label]) => (
-        <span key={kind} className="flex items-center gap-1">
+        <span
+          key={kind}
+          title={label}
+          className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-sm"
+          style={{ background: 'var(--map-ground)' }}
+        >
           <span
-            className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-sm"
-            style={{ background: 'var(--map-ground)' }}
-          >
-            <span
-              className="inline-block h-2 w-2 rounded-[1px]"
-              style={{ background: FILL[kind as RoomKind] }}
-            />
-          </span>
-          {label}
+            className="inline-block h-2 w-2 rounded-[1px]"
+            style={{ background: FILL[kind as RoomKind] }}
+          />
         </span>
       ))}
     </div>

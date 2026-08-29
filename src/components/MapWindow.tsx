@@ -124,8 +124,10 @@ export function MapWindow() {
     bridge.requestIntent('map_walk', { to: roomId })
   }
 
-  function pinRoom(id: number) {
-    const title = zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
+  // knownTitle: see MapPanel.tsx's matching note - a nearest-search result
+  // is often not in the currently drawn zone's room list at all.
+  function pinRoom(id: number, knownTitle?: string) {
+    const title = knownTitle ?? zone?.rooms?.find((r) => r.id === id)?.title ?? `Room ${id}`
     setEditingRoom({ id, title, existing: pinFor(pins, id) })
   }
 
@@ -325,7 +327,7 @@ export function MapWindow() {
                 onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
                 onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
               />
-              <QuickTravel onWalk={goThere} />
+              <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
             </div>
             {showNudge && hereId != null && (
               <RoomNudge
