@@ -198,23 +198,6 @@ export function MapCanvas({
     return out
   }, [rooms])
 
-  // One label per named place, at the first room of its cluster - depends
-  // only on which rooms exist, not on where the character is or the trail.
-  const labelEntries = useMemo(() => {
-    const seen = new Set<string>()
-    const out: { id: number | null; x: number; y: number; name: string }[] = []
-    for (const r of rooms) {
-      const place = (r.tags ?? [])[0]
-      if (!place) continue
-      const title = r.title ?? ''
-      const name = title.includes(',') ? title.slice(0, title.indexOf(',')) : title
-      if (!name || seen.has(name)) continue
-      seen.add(name)
-      out.push({ id: r.id, x: r.x as number, y: r.y as number, name })
-    }
-    return out
-  }, [rooms])
-
   const [hoverId, setHoverId] = useState<number | null>(null)
   const hoverNeighbors = hoverId != null ? neighbors.get(hoverId) : undefined
 
@@ -351,30 +334,6 @@ export function MapCanvas({
           )
         })
       )}
-
-      {/* One label per named place, at the first room of its cluster.
-          Labelling every room of an eight-room guild would print its name
-          eight times; labelling none is what made this a diagram. */}
-      {labelEntries.map((l) => (
-        <text
-          key={`label-${l.id}`}
-          x={l.x * scale - view.minX + pad + box}
-          y={l.y * scale - view.minY + pad - box * 0.4}
-          fill="var(--map-ink)"
-          style={{
-            fontSize: Math.max(7, 6.5 * scale),
-            pointerEvents: 'none',
-            // The annotations on a hand-drawn chart, not interface text:
-            // small, letter-spaced, and quiet enough that the geography
-            // stays the thing you read first.
-            letterSpacing: '0.04em',
-            fontVariant: 'small-caps',
-            opacity: 0.75,
-          }}
-        >
-          {l.name}
-        </text>
-      ))}
 
       {rooms.map((r) => {
         const kind = kindById.get(r.id) ?? 'plain'
