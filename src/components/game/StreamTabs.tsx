@@ -36,6 +36,7 @@ import type { Highlight } from '../../lib/highlights'
 import { useAppStore } from '../../store/useAppStore'
 import { CHANNELS, linesFor, type Channel } from '../../lib/chatChannels'
 import { STREAM_LABELS } from '../../lib/streamLabels'
+import { useOffClasses } from '../../lib/offClasses'
 import { cn } from '../../lib/cn'
 
 /**
@@ -63,6 +64,7 @@ const logChannel = (t: string) => t.slice(LOG_PREFIX.length) as Channel
 const LABELS = STREAM_LABELS
 
 export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
+  const offClasses = useOffClasses()
   // Both of these subscribe, and both hand back a fresh identity when the
   // buffer changes - see useGameLines.ts. Reading the raw buffer instead is
   // the arrangement that left this component showing "no channels yet" while
@@ -231,7 +233,7 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
           ))
         ) : (
           shown.map((l) => (
-            <GameLineRow key={l.seq} line={l} highlights={highlights} />
+            <GameLineRow key={l.seq} line={l} highlights={highlights} offClasses={offClasses} />
           ))
         )}
 

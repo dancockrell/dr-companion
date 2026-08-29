@@ -9,7 +9,7 @@
  * edit or delete touches only its own line. See that file's header for why.
  */
 import { useMemo, useState } from 'react'
-import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search } from 'lucide-react'
+import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, Volume2, VolumeX } from 'lucide-react'
 import { parseHighlights, paint, segments, type Highlight, type HighlightType } from '../../lib/highlights'
 import { reloadHighlights } from '../../lib/useHighlights'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
@@ -23,6 +23,8 @@ import {
 } from '../../lib/genieConfigEdit'
 import { listSounds } from '../../lib/genieConfigWrite'
 import { invokeTauri, isTauri } from '../../lib/tauri'
+import { useOffClasses, toggleClass } from '../../lib/offClasses'
+import { cn } from '../../lib/cn'
 
 const TYPES: HighlightType[] = ['line', 'string', 'beginswith', 'regexp']
 
@@ -81,6 +83,7 @@ async function previewSound(name: string) {
 
 export function HighlightsEditor() {
   const editor = useGenieConfigEditor<Highlight>('highlights.cfg', parseHighlights)
+  const offClasses = useOffClasses()
   const [search, setSearch] = useState('')
   const [testLine, setTestLine] = useState('')
   const [editingLine, setEditingLine] = useState<number | null>(null)
@@ -120,8 +123,8 @@ export function HighlightsEditor() {
 
   const testResult = useMemo(() => {
     if (!testLine) return null
-    return paint(testLine, editor.entries)
-  }, [testLine, editor.entries])
+    return paint(testLine, editor.entries, offClasses)
+  }, [testLine, editor.entries, offClasses])
 
   const testSegments = testResult ? segments(testLine, testResult) : []
 
@@ -279,16 +282,41 @@ export function HighlightsEditor() {
       )}
 
       <div className="flex flex-col gap-3">
-        {grouped.map(([cls, entries]) => (
+        {grouped.map(([cls, entries]) => {
+          const isRealClass = cls !== '(no class)'
+          const muted = isRealClass && offClasses.has(cls)
+          return (
           <div key={cls}>
-            <div className="mb-1 px-0.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-              {cls} <span className="font-normal normal-case text-ink-faint">({entries.length})</span>
+            <div className="mb-1 flex items-center gap-1.5 px-0.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+              <span className={muted ? 'opacity-50 line-through' : undefined}>{cls}</span>
+              <span className="font-normal normal-case text-ink-faint">({entries.length})</span>
+              {isRealClass && (
+                <button
+                  type="button"
+                  onClick={() => toggleClass(cls)}
+                  title={
+                    muted
+                      ? `Unmute "${cls}" - color and sound will fire again for this class`
+                      : `Mute "${cls}" - no color, no sound, without deleting anything (Genie's own #class off, given a switch)`
+                  }
+                  className={cn(
+                    'ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 normal-case tracking-normal',
+                    muted ? 'text-danger hover:text-ink' : 'text-ink-faint hover:text-accent'
+                  )}
+                >
+                  {muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                  {muted ? 'Muted' : 'Mute class'}
+                </button>
+              )}
             </div>
             <div className="flex flex-col gap-1">
               {entries.map((h) => (
                 <div
                   key={h.sourceLine}
-                  className="flex items-center gap-2 rounded border border-border bg-surface px-2 py-1.5"
+                  className={cn(
+                    'flex items-center gap-2 rounded border border-border bg-surface px-2 py-1.5',
+                    muted && 'opacity-50'
+                  )}
                 >
                   <span
                     className="h-3 w-3 shrink-0 rounded-full border border-border"
@@ -336,7 +364,8 @@ export function HighlightsEditor() {
               ))}
             </div>
           </div>
-        ))}
+          )
+        })}
         {!editor.loading && filtered.length === 0 && editor.entries.length > 0 && (
           <div className="py-6 text-center text-sm text-ink-faint">No highlight matches “{search}”.</div>
         )}

@@ -48,6 +48,16 @@ from pathlib import Path
 from typing import Callable, Optional
 
 
+#: Largest run of bytes we will buffer while waiting for a newline.
+#:
+#: The protocol is one JSON object per line, and the largest thing the app
+#: sends is a chunk of game text, so a megabyte is far above any real message
+#: and far below anything that hurts. Without a cap the read loop grows the
+#: buffer for as long as the peer keeps sending without a newline, which is a
+#: hang plus unbounded memory rather than an error a script can handle.
+MAX_MESSAGE_BYTES = 1_048_576
+
+
 class ConnectionError(Exception):
     """Could not reach the app, or it refused the token."""
 
@@ -337,16 +347,34 @@ class Companion:
         if self._sock is None:
             raise NotConnected("call connect() first")
 
-        while b"\n" not in self._buf:
-            chunk = self._sock.recv(4096)
-            if not chunk:
-                return None
-            self._buf += chunk
+        # A loop rather than recursion on the blank-line branch, and a cap on
+        # the buffer. Both were measured against a fake socket:
+        #
+        #   1500 blank lines then a message  -> RecursionError
+        #   4 KB chunks with no newline      -> buffer grew to 819,200 bytes
+        #
+        # RecursionError is the worse of the two, because it is neither
+        # ConnectionError nor NotConnected - the two this module documents -
+        # so a script's own error handling does not catch it and the failure
+        # arrives as a bare traceback. Neither needs the app to be malicious;
+        # a hung or half-written framing bug on the other end produces both.
+        while True:
+            while b"\n" not in self._buf:
+                if len(self._buf) > MAX_MESSAGE_BYTES:
+                    raise ConnectionError(
+                        f"no newline in the first {len(self._buf)} bytes from the app "
+                        f"(cap {MAX_MESSAGE_BYTES}); the connection is not framed as expected"
+                    )
+                chunk = self._sock.recv(4096)
+                if not chunk:
+                    return None
+                self._buf += chunk
 
-        line, self._buf = self._buf.split(b"\n", 1)
-        text = line.decode("utf-8", errors="replace").strip()
-        if not text:
-            return self._read_message()
+            line, self._buf = self._buf.split(b"\n", 1)
+            text = line.decode("utf-8", errors="replace").strip()
+            if text:
+                break
+
         try:
             return json.loads(text)
         except json.JSONDecodeError:

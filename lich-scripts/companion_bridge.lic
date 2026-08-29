@@ -978,8 +978,26 @@ module Companion
         nil
       end
 
+      # Anchored per alternative, because only `in` had a boundary and the
+      # rest matched any command merely *starting* with those letters.
+      #
+      # Measured against ordinary DragonRealms commands: 11 of 23 non-movement
+      # commands were classified as movement - `search`, `searching`,
+      # `sell all`, `send scroll`, `swap`, `sweep`, `nest`, `news`, `nettle`,
+      # `outfit`, `upgrade`. Every one of those is something a player types
+      # while deliberately standing still.
+      #
+      # That matters because this predicate is the only gate on the
+      # stuck-in-a-room rule, and tripping it calls Intents.stop_all: it kills
+      # every running script and latches Stop. So three minutes of selling a
+      # pack at one shop counter - `sell all`, `sell backpack`, each matching
+      # `se` - ended with the player's automation stopped and a message
+      # blaming "movement commands" that were never movement.
+      #
+      # Over-firing is the direction that gets a safety feature switched off,
+      # which costs more than the case it was built for.
       def movement?(command)
-        command.to_s =~ /\A(go |climb |swim |north|south|east|west|up|down|ne|nw|se|sw|out|in\b)/i
+        command.to_s =~ /\A(?:go|climb|swim|north|south|east|west|up|down|ne|nw|se|sw|out|in)\b/i
       end
 
       def trip(reason)
