@@ -1,16 +1,18 @@
 //! Reading, writing and listing the player's own scripts.
 //!
-//! Two languages, because the app sits on top of two things. Python is this
-//! app's scripting language and runs as a separate process against the script
-//! API (`python.rs`). Ruby is Lich's, and a Ruby script is a Lich script: it
-//! goes in Lich's own `scripts` folder and is started through the bridge, the
-//! same way any other Lich script is.
+//! Three languages, because the app sits on top of three things. Python and
+//! TypeScript are this app's own scripting languages and run as separate
+//! processes against the script API (`python.rs`, `node.rs`), each with its
+//! own task folder and its own catalog (`runner.py`, `runner.ts`). Ruby is
+//! Lich's, and a Ruby script is a Lich script: it goes in Lich's own
+//! `scripts` folder and is started through the bridge, the same way any
+//! other Lich script is.
 //!
 //! That split is not a design preference, it is where each language can
 //! actually run. A Ruby file in this app's task folder would never execute; a
-//! Python file in Lich's would never be found. So the destination is decided
-//! by the language rather than offered as a choice, and the UI says which is
-//! which.
+//! Python or TypeScript file in Lich's would never be found. So the
+//! destination is decided by the language rather than offered as a choice,
+//! and the UI says which is which.
 //!
 //! # What this module will not do
 //!
@@ -42,6 +44,7 @@ const MAX_BYTES: usize = 512 * 1024;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Lang {
     Python,
+    Typescript,
     Ruby,
 }
 
@@ -49,6 +52,7 @@ impl Lang {
     fn parse(s: &str) -> Option<Self> {
         match s {
             "python" => Some(Self::Python),
+            "typescript" => Some(Self::Typescript),
             "ruby" => Some(Self::Ruby),
             _ => None,
         }
@@ -57,6 +61,7 @@ impl Lang {
     fn extension(self) -> &'static str {
         match self {
             Self::Python => "py",
+            Self::Typescript => "ts",
             // Lich's own extension. A `.rb` in that folder is not offered as a
             // script by Lich, so writing one would produce a file that looks
             // installed and cannot be run.
@@ -70,7 +75,7 @@ impl Lang {
 #[serde(rename_all = "camelCase")]
 pub struct ScriptFile {
     pub name: String,
-    /// "python" or "ruby".
+    /// "python", "typescript" or "ruby".
     pub lang: String,
     pub path: String,
     pub bytes: u64,
@@ -84,6 +89,7 @@ pub struct ScriptFile {
 #[serde(rename_all = "camelCase")]
 pub struct ScriptDirs {
     pub python_dir: Option<String>,
+    pub typescript_dir: Option<String>,
     pub ruby_dir: Option<String>,
     /// Why one of them is missing, when one is. Never silence: a Ruby tab that
     /// simply shows nothing is indistinguishable from a Ruby tab that cannot
@@ -111,6 +117,13 @@ fn python_dir(app: &AppHandle) -> Option<PathBuf> {
     Some(dir)
 }
 
+fn typescript_dir(app: &AppHandle) -> Option<PathBuf> {
+    let base = crate::node::tasks_dir(app)?;
+    let dir = base.join("tasks").join("user");
+    std::fs::create_dir_all(&dir).ok()?;
+    Some(dir)
+}
+
 fn ruby_dir(app: &AppHandle) -> Option<PathBuf> {
     let _ = app;
     crate::setup::lich_scripts_dir()
@@ -119,6 +132,7 @@ fn ruby_dir(app: &AppHandle) -> Option<PathBuf> {
 fn dir_for(app: &AppHandle, lang: Lang) -> Option<PathBuf> {
     match lang {
         Lang::Python => python_dir(app),
+        Lang::Typescript => typescript_dir(app),
         Lang::Ruby => ruby_dir(app),
     }
 }
@@ -129,6 +143,26 @@ fn dir_for(app: &AppHandle, lang: Lang) -> Option<PathBuf> {
 /// the UI says nothing rather than inventing something. Guessing a purpose
 /// from the code would be a claim the file does not make.
 fn summarise(body: &str, lang: Lang) -> String {
+    // TypeScript's header is a `/** ... */` block, not a line-per-line
+    // comment, so it needs its own pass rather than the strip-per-line loop
+    // below - `runner.ts`'s own `docSummary` reads the same shape, and the
+    // two must agree on what counts as "the summary" or the editor's preview
+    // and the task catalog's title would tell a player two different things.
+    if lang == Lang::Typescript {
+        let head = body.trim_start();
+        if !head.starts_with("/**") && !head.starts_with("/*") {
+            return String::new();
+        }
+        let inner = &head[2..];
+        let block = inner.split("*/").next().unwrap_or(inner);
+        return block
+            .lines()
+            .map(|l| l.trim().trim_start_matches('*').trim())
+            .find(|l| !l.is_empty())
+            .map(|l| l.chars().take(120).collect())
+            .unwrap_or_default();
+    }
+
     for raw in body.lines().take(12) {
         let line = raw.trim();
         if line.is_empty() {
@@ -140,6 +174,7 @@ fn summarise(body: &str, lang: Lang) -> String {
                 .trim_start_matches("'''")
                 .trim_start_matches('#'),
             Lang::Ruby => line.trim_start_matches('#'),
+            Lang::Typescript => unreachable!("handled above"),
         };
         let text = text
             .trim()
@@ -162,11 +197,18 @@ fn summarise(body: &str, lang: Lang) -> String {
 #[tauri::command]
 pub fn script_dirs(app: AppHandle) -> ScriptDirs {
     let py = python_dir(&app);
+    let ts = typescript_dir(&app);
     let rb = ruby_dir(&app);
-    let note = match (&py, &rb) {
-        (None, None) => "Neither the task folder nor Lich's scripts folder could be found.".into(),
-        (None, _) => "The app's Python task folder could not be found in this build.".into(),
-        (_, None) => {
+    // Ruby is the one language whose folder depends on something outside this
+    // build (Lich setup), so it is the one worth naming specifically when
+    // it's the only thing missing; Python and TypeScript share one build
+    // artifact and fail together or not at all.
+    let note = match (&py, &ts, &rb) {
+        (None, None, None) => "None of the task folders could be found in this build.".into(),
+        (None, _, _) | (_, None, _) => {
+            "The app's task folders could not be found in this build.".into()
+        }
+        (_, _, None) => {
             "Lich's scripts folder was not found, so Ruby scripts cannot be saved or run yet. \
              Finish Lich setup first."
                 .into()
@@ -175,6 +217,7 @@ pub fn script_dirs(app: AppHandle) -> ScriptDirs {
     };
     ScriptDirs {
         python_dir: py.map(|p| p.to_string_lossy().into_owned()),
+        typescript_dir: ts.map(|p| p.to_string_lossy().into_owned()),
         ruby_dir: rb.map(|p| p.to_string_lossy().into_owned()),
         note,
     }
@@ -189,7 +232,11 @@ pub fn script_dirs(app: AppHandle) -> ScriptDirs {
 #[tauri::command]
 pub fn list_scripts(app: AppHandle) -> Vec<ScriptFile> {
     let mut out = Vec::new();
-    for (lang, label) in [(Lang::Python, "python"), (Lang::Ruby, "ruby")] {
+    for (lang, label) in [
+        (Lang::Python, "python"),
+        (Lang::Typescript, "typescript"),
+        (Lang::Ruby, "ruby"),
+    ] {
         let Some(dir) = dir_for(&app, lang) else {
             continue;
         };
@@ -236,6 +283,7 @@ fn resolve(app: &AppHandle, lang: &str, name: &str) -> Result<(PathBuf, Lang), S
     }
     let dir = dir_for(app, lang).ok_or_else(|| match lang {
         Lang::Python => "The Python task folder could not be found.".to_string(),
+        Lang::Typescript => "The TypeScript task folder could not be found.".to_string(),
         Lang::Ruby => "Lich's scripts folder was not found. Finish Lich setup first.".to_string(),
     })?;
     let path = dir.join(format!("{name}.{}", lang.extension()));
@@ -314,10 +362,49 @@ pub fn delete_script(app: AppHandle, lang: String, name: String) -> Result<(), S
     std::fs::remove_file(&path).map_err(|e| format!("Could not delete {name}: {e}"))
 }
 
+/// `my_task` -> `MyTask`, for the template's class name. Best effort: a name
+/// that produces something odd still compiles, since a class name is not a
+/// promise the way a saved file path is.
+fn to_pascal_case(name: &str) -> String {
+    name.split(['_', '-'])
+        .filter(|s| !s.is_empty())
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                None => String::new(),
+            }
+        })
+        .collect()
+}
+
 /// A starting point for a new script, so a blank editor is never the answer.
 #[tauri::command]
 pub fn script_template(lang: String, name: String) -> String {
     match Lang::parse(&lang) {
+        Some(Lang::Typescript) => format!(
+            "/**\n\
+             \x20* {name} - say here what it does; this line becomes its description.\n\
+             \x20*/\n\
+             import {{ Task, type CleanLine }} from '../../drtask.ts'\n\
+             \n\
+             // Exported so runner.ts finds it - one of the three shapes it looks\n\
+             // for (main, TASK, task). Called when this script runs.\n\
+             export function main() {{\n\
+             \x20 return new {camel}()\n\
+             }}\n\
+             \n\
+             class {camel} extends Task {{\n\
+             \x20 override onClean(line: CleanLine): void {{\n\
+             \x20   // React to what the game actually said - no condition grammar,\n\
+             \x20   // this is ordinary TypeScript.\n\
+             \x20   if (line.text.toLowerCase().includes('you see')) {{\n\
+             \x20     console.log('saw something')\n\
+             \x20   }}\n\
+             \x20 }}\n\
+             }}\n",
+            camel = to_pascal_case(&name)
+        ),
         Some(Lang::Ruby) => format!(
             "# {name}\n\
              #\n\
@@ -405,5 +492,45 @@ mod tests {
         // first line of logic presented as a description.
         assert_eq!(summarise("import sys\nprint(1)\n", Lang::Python), "");
         assert_eq!(summarise("fput 'look'\n", Lang::Ruby), "");
+    }
+
+    #[test]
+    fn a_typescript_summary_comes_from_the_block_comment() {
+        assert_eq!(
+            summarise(
+                "/**\n * Tends wounds and rests.\n */\nimport { Task } from '../../drtask.ts'\n",
+                Lang::Typescript
+            ),
+            "Tends wounds and rests."
+        );
+        // Single-line block comment form.
+        assert_eq!(
+            summarise("/** Walks to the bank. */\nimport x\n", Lang::Typescript),
+            "Walks to the bank."
+        );
+        assert_eq!(
+            summarise("import x from 'y'\nconsole.log(1)\n", Lang::Typescript),
+            ""
+        );
+    }
+
+    #[test]
+    fn pascal_case_matches_what_a_typescript_class_name_needs() {
+        assert_eq!(to_pascal_case("my_task"), "MyTask");
+        assert_eq!(to_pascal_case("town-run"), "TownRun");
+        assert_eq!(to_pascal_case("hunt"), "Hunt");
+        assert_eq!(to_pascal_case("a1"), "A1");
+    }
+
+    #[test]
+    fn every_language_gets_a_template_that_is_not_blank() {
+        for lang in ["python", "typescript", "ruby"] {
+            let body = script_template(lang.to_string(), "my_script".to_string());
+            assert!(!body.trim().is_empty(), "{lang} template was blank");
+            assert!(
+                body.contains("my_script"),
+                "{lang} template did not mention the script's own name"
+            );
+        }
     }
 }

@@ -179,13 +179,35 @@ shape differs where it has to: `dr_companion.ts` is an `EventEmitter` over an
 async socket rather than Python's `on_line`/blocking `run()` loop. See
 `typescript/README.md`.
 
-**Not built yet:** a TypeScript `flow.py`/task-catalog equivalent. `Task` is
-the whole of what ships today; a `Flow` port is the obvious next step and
-should follow `flow.py`'s shape (`when`/`until`/`settle`) rather than
-inventing a second one. Not deciding this now for the same reason the
-Ruby-to-Python port path wasn't decided above: picking it before more than
-one TypeScript task exists to learn from would be answering a question that
-has not been asked yet by real use.
+**Built (29 Aug 2026): the catalog, and the app never running it any
+differently from Python.** `typescript/runner.ts` is `runner.py`'s direct
+counterpart - same `--list`/`run <id>` CLI, same JSON shape, same
+`user.<filename>` id scheme for anything saved in `tasks/user/`. Wired
+through `src-tauri/src/node.rs`, a near-duplicate of `python.rs` for the
+reason stated in that file's own header: detects a usable Node (22.6+ or
+24+, since `.ts` support is flag-gated below 24), spawns the runner,
+streams stdout/stderr as `node:line`, reports state as `node:state`. The
+frontend (`src/lib/nodeTasks.ts`, `TaskFlowPanel.tsx`) merges the Python and
+TypeScript catalogs into one Tasks list rather than a second tab - a task
+tile does not care which language wrote it, and a player choosing between
+"hunt" and "watch" was never choosing a language. The one invariant that
+crosses the boundary: at most one task runs at a time regardless of which
+language it's in, enforced by the frontend stopping the other backend
+before starting either (each backend already stops its own previous task on
+its own account). `ScriptEditor.tsx` gained TypeScript as a third language
+alongside Python and Ruby, with its own template and its own save location
+(`typescript/tasks/user/`).
+
+**Not built yet:** a TypeScript `flow.py`/`Flow`/`Step` equivalent. `Task` is
+still the whole of what a TypeScript script is written against; a `Flow`
+port is the obvious next step and should follow `flow.py`'s shape
+(`when`/`until`/`settle`) rather than inventing a second one. Not deciding
+this now for the same reason the Ruby-to-Python port path wasn't decided
+above: picking it before more than a couple of real TypeScript tasks exist
+to learn from would be answering a question that has not been asked yet by
+real use. In the meantime a TypeScript task is written directly against
+`Task` (see `typescript/tasks/watch.ts` or the editor's own template) - more
+code than a `Flow`-based Python task for the same job, not unusably so.
 
 ## Display: 1080p, 1440p, 2160p
 

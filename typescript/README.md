@@ -51,19 +51,57 @@ safety cap are shared reasoning with `drtask.py`, not re-derived, so the two
 runtimes cannot quietly disagree about what a `progressBar` or `roundTime`
 tag means.
 
-There is no TypeScript counterpart to `flow.py`/the task catalog
-(`runner.py`) yet - `Task` is the whole of what ships here today. A `Flow`
+There is no TypeScript counterpart to `flow.py`/`Flow`/`Step` yet - `Task` is
+the whole of what a TypeScript script is written against today. A `Flow`
 port is a reasonable next step and would follow `flow.py`'s shape (`when`,
-`until`, `settle`) rather than reinventing one.
+`until`, `settle`) rather than reinventing one. In the meantime a task reacts
+to game text and vitals directly, the way `tasks/watch.ts` does - more code
+than a `Flow`-based Python task for the same job, not unusably so.
+
+## Running from the app
+
+**`runner.ts`** is the catalog, and the direct counterpart to `runner.py`:
+
+```bash
+node runner.ts --list          # what can be run, as JSON — Node 24+
+node runner.ts run task.watch  # run one
+node --experimental-strip-types runner.ts --list   # Node 22.6-23.5
+```
+
+Save a `.ts` file in `tasks/user/` and it's discovered on the next `--list`
+or `run` — no line to add, no restart, same as `runner.py`. The id is
+`user.<filename>`; the first line of the file's opening `/** ... */` comment
+becomes the summary. A file can either do its work at the top level (like
+`tasks/watch.ts` — `await watch.run()` as the last line) or export a `main`
+function, a `TASK` value, or a `task` value, checked in that order.
+
+This is exactly what the app itself runs: `src-tauri/src/node.rs` shells out
+to `runner.ts` the same way `python.rs` shells out to `runner.py`, detects a
+usable Node (22.6+, or 24+ where the type-stripping flag is no longer
+needed), and streams the task's stdout/stderr back to the same Tasks panel
+Python tasks show up in — one list, not a second tab, because a task tile
+doesn't care which language wrote it. The app enforces one thing across the
+boundary: at most one task runs at a time, in either language.
+
+Writing a new TypeScript task from inside the app (rather than by hand in
+this folder) works the same way Python's does — the Tasks panel's "New TS"
+button, or the Scripts tab's editor with TypeScript selected, saves straight
+into `tasks/user/` with a working template to start from.
 
 ## Testing
 
-Both files have a test suite that runs without a live app:
+All three files have a test suite that runs without a live app:
 
 ```bash
 node --experimental-strip-types typescript/test_dr_companion.ts   # a bare TCP server stands in for the app
 node --experimental-strip-types typescript/test_drtask.ts         # fixed strings and a fake Companion
+node --experimental-strip-types typescript/test_runner.ts         # runner.ts's own CLI, out of process
 ```
+
+All three are wired into `npm run test:all` (`test:ts-companion`,
+`test:ts-drtask`, `test:ts-runner`), so they run in CI exactly like every
+other suite - not a TypeScript-only side channel somebody has to remember to
+run by hand.
 
 `test_dr_companion.ts` uses a real `net.createServer` speaking the actual
 wire protocol rather than mocking `Companion` itself - the same reasoning

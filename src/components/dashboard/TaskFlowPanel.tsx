@@ -61,6 +61,15 @@ import {
   type TaskInfo,
 } from '../../lib/pythonTasks'
 import {
+  nodeStatus,
+  onNodeTaskLine,
+  onNodeTaskState,
+  startNodeTask,
+  stopNodeTask,
+  nodeTaskState,
+  type NodeStatus,
+} from '../../lib/nodeTasks'
+import {
   listScripts,
   scriptDirs,
   type ScriptDirs,
@@ -103,6 +112,8 @@ function iconFor(id: string): LucideIcon {
 }
 
 type Tab = 'tasks' | 'scripts'
+type TaskLang = 'python' | 'typescript'
+type MergedTask = TaskInfo & { lang: TaskLang }
 
 export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const addLog = useAppStore((s) => s.addLog)
@@ -111,25 +122,46 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
 
   const [tab, setTab] = useState<Tab>('tasks')
   const [status, setStatus] = useState<PythonStatus | null>(null)
+  const [nodeSt, setNodeSt] = useState<NodeStatus | null>(null)
   const [scripts, setScripts] = useState<ScriptFile[]>([])
   const [dirs, setDirs] = useState<ScriptDirs | null>(null)
   const [editing, setEditing] = useState<EditorTarget | null>(null)
-  const [running, setRunning] = useState('')
+  // Which task is running, and in which language — a bare id is not enough
+  // once two backends can each be running (or have just finished running)
+  // something: `user.hunt` could name a Python task or a TypeScript one, and
+  // Stop has to know which process to kill.
+  const [running, setRunning] = useState<{ id: string; lang: TaskLang } | null>(null)
   const [note, setNote] = useState('')
   const [lines, setLines] = useState<string[]>([])
   const [filter, setFilter] = useState('')
 
   const refresh = useCallback(async () => {
-    const [st, files, where] = await Promise.all([pythonStatus(), listScripts(), scriptDirs()])
+    const [st, nst, files, where] = await Promise.all([
+      pythonStatus(),
+      nodeStatus(),
+      listScripts(),
+      scriptDirs(),
+    ])
     setStatus(st)
+    setNodeSt(nst)
     setScripts(files)
     setDirs(where)
     // Asked, never assumed. A task that exited on its own leaves no event for
     // a panel that mounted afterwards, and a remembered "running" that has
-    // gone stale is indistinguishable from a live one.
-    const state = await taskState()
-    setRunning(state.running ? state.task : '')
-    setActiveFlow(state.running ? state.task : null)
+    // gone stale is indistinguishable from a live one. Checked in both
+    // backends — the invariant is "at most one task, of either language",
+    // not "at most one per language", so either could be the live one.
+    const [pyState, nodeState] = await Promise.all([taskState(), nodeTaskState()])
+    if (pyState.running) {
+      setRunning({ id: pyState.task, lang: 'python' })
+      setActiveFlow(pyState.task)
+    } else if (nodeState.running) {
+      setRunning({ id: nodeState.task, lang: 'typescript' })
+      setActiveFlow(nodeState.task)
+    } else {
+      setRunning(null)
+      setActiveFlow(null)
+    }
   }, [setActiveFlow])
 
   useEffect(() => {
@@ -139,11 +171,22 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   useEffect(
     () =>
       onTaskState((st) => {
-        setRunning(st.running ? st.task : '')
+        setRunning(st.running ? { id: st.task, lang: 'python' } : null)
         setNote(st.note)
         // Published to the store as well as held here: the safety bar reports
         // what the app is doing, and with this state living only in this
         // component the bar read Idle through an hour-long hunting loop.
+        setActiveFlow(st.running ? st.task : null)
+        if (st.note) addLog(st.note, 'info')
+      }),
+    [addLog, setActiveFlow]
+  )
+
+  useEffect(
+    () =>
+      onNodeTaskState((st) => {
+        setRunning(st.running ? { id: st.task, lang: 'typescript' } : null)
+        setNote(st.note)
         setActiveFlow(st.running ? st.task : null)
         if (st.note) addLog(st.note, 'info')
       }),
@@ -159,14 +202,51 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
     [addLog]
   )
 
+  useEffect(
+    () =>
+      onNodeTaskLine((line) => {
+        setLines((prev) => [...prev, line.text].slice(-KEEP_LINES))
+        if (line.error) addLog(`${line.task}: ${line.text}`, 'warn')
+      }),
+    [addLog]
+  )
+
+  const tasks: MergedTask[] = useMemo(
+    () => [
+      ...(status?.tasks ?? []).map((t) => ({ ...t, lang: 'python' as const })),
+      ...(nodeSt?.tasks ?? []).map((t) => ({ ...t, lang: 'typescript' as const })),
+    ],
+    [status, nodeSt]
+  )
+
   const start = useCallback(
-    async (id: string) => {
+    async (id: string, lang?: TaskLang) => {
+      // `lang` is passed explicitly right after a save (see ScriptEditor's
+      // onRun below), because the catalog this would otherwise search may not
+      // have picked up the new file yet — refresh() is fired-and-forgotten
+      // from onSaved, not awaited before onRun runs. Everywhere else (a
+      // tile, the filtered script list, the Command Palette) it is looked up
+      // from the merged catalog, which both backends' ids are already in.
+      const resolved = lang ?? tasks.find((t) => t.id === id)?.lang ?? 'python'
       setLines([])
       setNote('')
       try {
-        const st = await startTask(id)
-        setRunning(st.running ? st.task : '')
-        setActiveFlow(st.running ? st.task : null)
+        // At most one task total, not one per backend: starting either kind
+        // stops whatever the *other* backend has running. Each backend
+        // already stops its own previous task on its own account
+        // (python.rs/node.rs), so this only has work to do when the player
+        // is switching from a task in one language to one in the other.
+        if (resolved === 'python') {
+          await stopNodeTask()
+          const st = await startTask(id)
+          setRunning(st.running ? { id: st.task, lang: 'python' } : null)
+          setActiveFlow(st.running ? st.task : null)
+        } else {
+          await stopTask()
+          const st = await startNodeTask(id)
+          setRunning(st.running ? { id: st.task, lang: 'typescript' } : null)
+          setActiveFlow(st.running ? st.task : null)
+        }
       } catch (e) {
         // Named, never swallowed. No interpreter, a task that will not import,
         // a missing folder — each says something specific and actionable, and
@@ -176,13 +256,16 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         addLog(`Could not start ${id}: ${message}`, 'error')
       }
     },
-    [addLog, setActiveFlow]
+    [addLog, setActiveFlow, tasks]
   )
 
   const stop = useCallback(async () => {
-    const st = await stopTask()
-    setRunning('')
-    setNote(st.note || 'Stopped.')
+    // Stopping both is cheap (each is a no-op when nothing of that language is
+    // running) and correct regardless of which one is actually live, without
+    // this component having to trust its own `running.lang` over the OS.
+    const [pySt, nodeSt2] = await Promise.all([stopTask(), stopNodeTask()])
+    setRunning(null)
+    setNote(pySt.note || nodeSt2.note || 'Stopped.')
     setActiveFlow(null)
   }, [setActiveFlow])
 
@@ -191,30 +274,36 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   // script-API dispatch point, so they hold every automated command including
   // scripts this app did not start. That is a widening, not an omission — the
   // old Pause only ever paused the seven flows this app shipped.
-  useEffect(() => onStopAll(() => void stopTask()), [])
+  useEffect(
+    () =>
+      onStopAll(() => {
+        void stopTask()
+        void stopNodeTask()
+      }),
+    []
+  )
 
   // The Command Palette starts a task by id with no reference to this panel.
-  useEffect(() => onStartFlow((id) => void start(id)), [start])
+  useEffect(() => onStartFlow((f) => void start(f.id, f.lang)), [start])
 
   // A task outlives this component — it is a separate process. Unmounting
   // clears only what this component published and deliberately does not stop
   // it: popping the panel out unmounts it, and that must not kill a hunt.
   useEffect(() => () => setActiveFlow(null), [setActiveFlow])
 
-  const tasks: TaskInfo[] = useMemo(() => status?.tasks ?? [], [status])
-
   // Filtered and grouped, with the denominator kept: Lich's folder holds the
-  // whole dr-scripts suite, so a player's own two files would otherwise be lost
-  // among two hundred installed ones. "Yours" is the app's Python folder, which
-  // only ever contains what the player wrote here; "Lich's folder" is mixed and
-  // is labelled as mixed rather than implied to be theirs.
+  // whole dr-scripts suite, so a player's own few files would otherwise be
+  // lost among two hundred installed ones. "Yours" is this app's own task
+  // folders (Python and TypeScript), which only ever contain what the player
+  // wrote here; "Lich's folder" is mixed and is labelled as mixed rather than
+  // implied to be theirs.
   const shown = useMemo(() => {
     const q = filter.trim().toLowerCase()
     const match = (s: ScriptFile) =>
       !q || s.name.toLowerCase().includes(q) || s.summary.toLowerCase().includes(q)
     const hit = scripts.filter(match)
     return {
-      yours: hit.filter((s) => s.lang === 'python'),
+      yours: hit.filter((s) => s.lang !== 'ruby'),
       lich: hit.filter((s) => s.lang === 'ruby'),
       shownCount: hit.length,
       total: scripts.length,
@@ -233,10 +322,10 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         dirs={dirs}
         onClose={() => setEditing(null)}
         onSaved={() => void refresh()}
-        onRun={(id) => {
+        onRun={(id, lang) => {
           setEditing(null)
           setTab('tasks')
-          void start(id)
+          void start(id, lang)
         }}
       />
     )
@@ -274,7 +363,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
           )}
           title={note || undefined}
         >
-          {running ? `Running ${running}` : note || ''}
+          {running ? `Running ${running.id}` : note || ''}
         </span>
 
         {running ? (
@@ -299,11 +388,12 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
       </div>
 
       {/* Why a list is empty, when it is. Never a bare "nothing here": the
-       * causes need different fixes and the note carries Python's own words
-       * when a task failed to import. */}
-      {tab === 'tasks' && status && tasks.length === 0 && (
+       * causes need different fixes and each note carries that backend's own
+       * words when a task failed to import - both, when both are relevant,
+       * rather than picking one and hiding the other's problem. */}
+      {tab === 'tasks' && status && nodeSt && tasks.length === 0 && (
         <p className="whitespace-pre-wrap rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
-          {status.note || 'No tasks were listed.'}
+          {[status.note, nodeSt.note].filter(Boolean).join('\n\n') || 'No tasks were listed.'}
         </p>
       )}
       {tab === 'scripts' && dirs?.note && (
@@ -317,16 +407,20 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
           <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-1">
             {tasks.map((t) => {
               const Icon = iconFor(t.id)
-              const active = running === t.id
+              const active = running?.id === t.id && running.lang === t.lang
               const readOnly = t.kind === 'read-only'
+              const runLine =
+                t.lang === 'python'
+                  ? `python python/runner.py run ${t.id}`
+                  : `node typescript/runner.ts run ${t.id}`
               return (
                 <button
-                  key={t.id}
+                  key={`${t.lang}:${t.id}`}
                   type="button"
-                  onClick={() => void start(t.id)}
+                  onClick={() => void start(t.id, t.lang)}
                   title={
                     `${t.title}\n${t.summary}\n\n${t.id} — ${t.kind}\n\n` +
-                    `Runs the same outside the app:\npython python/runner.py run ${t.id}`
+                    `Runs the same outside the app:\n${runLine}`
                   }
                   className={cn(
                     'flex flex-col items-center gap-0.5 rounded border px-1 py-1.5 transition-colors',
@@ -346,9 +440,12 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                   <span className="w-full truncate text-center text-xs leading-tight text-ink">
                     {t.title}
                   </span>
-                  {/* The one distinction never left to a tooltip. */}
-                  {readOnly && !dense && (
-                    <span className="text-xs leading-none text-ink-faint">watches</span>
+                  {/* Which engine runs it, and whether it watches or acts —
+                   * neither ever left to a tooltip alone. */}
+                  {!dense && (
+                    <span className="text-xs leading-none text-ink-faint">
+                      {readOnly ? 'watches' : t.lang === 'typescript' ? 'ts' : ''}
+                    </span>
                   )}
                   {active && <Play className="h-3 w-3 text-accent" />}
                 </button>
@@ -364,6 +461,16 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
               <FilePlus2 className="h-4 w-4" />
               <span className="w-full truncate text-center text-xs leading-tight">New</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => openNew('typescript')}
+              title="Write a new TypeScript task. Saved into typescript/tasks/user/, where it is picked up automatically. Needs Node.js 22.6+ or 24+."
+              className="flex flex-col items-center gap-0.5 rounded border border-dashed border-border px-1 py-1.5 text-ink-faint hover:border-ink-faint hover:text-ink"
+            >
+              <FilePlus2 className="h-4 w-4" />
+              <span className="w-full truncate text-center text-xs leading-tight">New TS</span>
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-1">
@@ -375,6 +482,15 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
               >
                 <FilePlus2 className="h-3 w-3" />
                 New Python
+              </button>
+              <button
+                type="button"
+                onClick={() => openNew('typescript')}
+                title="A TypeScript task, saved into typescript/tasks/user/. Needs Node.js 22.6+ or 24+."
+                className="flex items-center gap-1 rounded border border-dashed border-border px-2 py-0.5 text-xs text-ink-faint hover:border-ink-faint hover:text-ink"
+              >
+                <FilePlus2 className="h-3 w-3" />
+                New TypeScript
               </button>
               <button
                 type="button"
@@ -422,7 +538,8 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
 
             {scripts.length === 0 && !dirs?.note && (
               <p className="px-1 text-xs text-ink-faint">
-                No scripts yet. Python becomes a task in this app; Ruby is a Lich script.
+                No scripts yet. Python and TypeScript become tasks in this app; Ruby is a
+                Lich script.
               </p>
             )}
 
@@ -433,7 +550,11 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
             )}
 
             {[
-              { label: 'Yours', hint: 'Python, in this app. Each becomes a task.', items: shown.yours },
+              {
+                label: 'Yours',
+                hint: 'Python or TypeScript, in this app. Each becomes a task.',
+                items: shown.yours,
+              },
               {
                 label: "Lich's folder",
                 hint: 'Ruby. Includes dr-scripts and anything else installed, not only what you wrote.',
@@ -463,10 +584,13 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                   <FileCode2
                     className={cn(
                       'h-3.5 w-3.5 shrink-0',
-                      s.lang === 'python' ? 'text-accent' : 'text-ink-faint'
+                      s.lang === 'ruby' ? 'text-ink-faint' : 'text-accent'
                     )}
                   />
                   <span className="truncate text-xs text-ink">{s.name}</span>
+                  {!dense && s.lang === 'typescript' && (
+                    <span className="shrink-0 text-xs text-ink-faint">ts</span>
+                  )}
                   {!dense && s.summary && (
                     <span className="truncate text-xs text-ink-faint">{s.summary}</span>
                   )}
@@ -474,18 +598,14 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                 <button
                   type="button"
                   onClick={() => {
-                    if (s.lang === 'python') {
-                      void start(`user.${s.name}`)
-                    } else {
+                    if (s.lang === 'ruby') {
                       startScript(s.name)
                       addLog(`Asked Lich to start ${s.name}`, 'info')
+                    } else {
+                      void start(`user.${s.name}`, s.lang)
                     }
                   }}
-                  title={
-                    s.lang === 'python'
-                      ? `Run as user.${s.name}`
-                      : `Ask Lich to run ${s.name}`
-                  }
+                  title={s.lang === 'ruby' ? `Ask Lich to run ${s.name}` : `Run as user.${s.name}`}
                   className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:border-accent/60 hover:text-accent"
                 >
                   <Play className="h-3 w-3" />

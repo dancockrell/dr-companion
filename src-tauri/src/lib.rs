@@ -4,6 +4,7 @@ pub mod game_link;
 pub mod lich;
 pub mod lich_health;
 pub mod media_keys;
+pub mod node;
 pub mod pause;
 pub mod python;
 pub mod script_api;
@@ -152,6 +153,10 @@ pub fn run() {
             python::run_python_task,
             python::stop_python_task,
             python::python_task_state,
+            node::node_status,
+            node::run_node_task,
+            node::stop_node_task,
+            node::node_task_state,
             scripts::script_dirs,
             scripts::list_scripts,
             scripts::read_script,
@@ -162,6 +167,7 @@ pub fn run() {
         .manage(game_link::GameLink::default())
         .manage(pause::Pause::default())
         .manage(python::PythonTasks::default())
+        .manage(node::NodeTasks::default())
         .setup(|app| {
             // The Python scripting socket. Started here rather than lazily on
             // first use, so a script waiting for the app to open does not
