@@ -106,5 +106,33 @@ R.reset
 fails += 1 unless check('cleared', R.tripped, false)
 
 puts ''
+puts '-- movement? does not claim ordinary standing-still commands --'
+
+# This predicate is the only gate on the stuck-in-a-room rule, and a trip
+# calls Intents.stop_all: every running script killed, Stop latched. So a
+# false positive here is not a cosmetic mislabel, it is the player's
+# automation stopped for standing in a shop.
+#
+# Only `in` originally carried a \b, so every other alternative matched any
+# command merely starting with those letters. Measured at 11 of 23 ordinary
+# commands misclassified.
+NOT_MOVEMENT = [
+  'search', 'searching', 'sell all', 'send scroll', 'swap', 'sweep',
+  'nest', 'news', 'nettle', 'outfit', 'upgrade', 'skin deer', 'use kit',
+  'wear cloak', 'nod', 'inspect sword', 'inventory', 'stow all', 'sit',
+  'stand', 'look', 'appraise armor', 'forage for herb'
+]
+wrong = NOT_MOVEMENT.select { |c| R.movement?(c) }
+fails += 1 unless check('no standing-still command reads as movement', wrong, [])
+
+# The floor. Without this the suite would pass against a movement? that
+# always returns false - which would disable the stuck rule entirely and
+# look exactly like a clean run.
+REAL_MOVEMENT = %w[north south east west up down ne nw se sw out in] +
+                ['go door', 'climb wall', 'swim river']
+missed = REAL_MOVEMENT.reject { |c| R.movement?(c) }
+fails += 1 unless check('every real direction still reads as movement', missed, [])
+
+puts ''
 puts(fails.zero? ? 'all passed' : "#{fails} FAILED")
 exit(fails.zero? ? 0 : 1)
