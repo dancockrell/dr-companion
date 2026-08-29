@@ -16,6 +16,7 @@ import { inkFor } from '../../lib/mapInk'
 import { recency, segments, type Trail } from '../../lib/trail'
 import { roomKind, type RoomKind } from '../../lib/mapData'
 import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
+import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 
 /**
  * Colour by what the place is.
@@ -518,18 +519,54 @@ export function MapCanvas({
                 are near Home, doesn't require reading a row of buttons that
                 may not even be in view in a small docked panel. Drawn above
                 everything else on the room: a pin is a fact about the place
-                that outranks what kind of room it happens to be. */}
-            {r.id != null && pins?.has(r.id) && (
-              <circle
-                cx={px(r) + box * 0.62}
-                cy={py(r) - box * 0.62}
-                r={Math.max(1.6, 1.8 * scale)}
-                fill={PIN_COLOR_HEX[pins.get(r.id)!.color]}
-                stroke="var(--map-ground)"
-                strokeWidth={Math.max(0.5, 0.5 * scale)}
-                className="pointer-events-none"
-              />
-            )}
+                that outranks what kind of room it happens to be.
+
+                Every pin used to draw as the same plain dot regardless of
+                which of the 16 icons PinEditor offers was picked - the icon
+                only ever reached MapPinBar's chip list, never the map itself,
+                which is the one place a player is actually looking while
+                deciding where to walk. Drawn here as the real icon (falling
+                back to the plain dot PinIcon leaves undefined for a pin saved
+                before icons existed, per mapPins.ts's own documented
+                contract), in the map's own background colour so it reads
+                against any pin colour without needing a second palette.
+                The corpse marker (MapPin.system) gets a visibly larger badge
+                and a heavier ring - it is the one pin the app drops for you
+                rather than you choosing it, and it is telling you where your
+                body is, which outranks every other fact a pin can carry. */}
+            {r.id != null &&
+              pins?.has(r.id) &&
+              (() => {
+                const pin = pins.get(r.id)!
+                const cx = px(r) + box * 0.62
+                const cy = py(r) - box * 0.62
+                const weight = pin.system ? 1.4 : 1
+                const radius = Math.max(1.6, 1.8 * scale) * weight
+                const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
+                return (
+                  <g className="pointer-events-none">
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={radius}
+                      fill={PIN_COLOR_HEX[pin.color]}
+                      stroke="var(--map-ground)"
+                      strokeWidth={Math.max(0.5, 0.5 * scale) * (pin.system ? 1.6 : 1)}
+                    />
+                    {Icon && (
+                      <svg
+                        x={cx - radius * 0.8}
+                        y={cy - radius * 0.8}
+                        width={radius * 1.6}
+                        height={radius * 1.6}
+                        viewBox="0 0 24 24"
+                      >
+                        <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
+                      </svg>
+                    )}
+                  </g>
+                )
+              })()}
           </g>
         )
       })}

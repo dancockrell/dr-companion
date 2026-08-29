@@ -46,6 +46,14 @@ export interface Highlight {
   sound?: string
   /** Compiled once. A regexp recompiled per line per entry is the whole cost. */
   re?: RegExp
+  /**
+   * 0-indexed line number this entry was parsed from, in the file text
+   * `parseHighlights` was given. Lets an editor replace or remove exactly
+   * this line without touching anything else in the file - comments,
+   * section headers, other entries - the way regenerating the whole file
+   * from the parsed array would. See `genieConfigEdit.ts`.
+   */
+  sourceLine: number
 }
 
 /** A stretch of a line that got its own colour. */
@@ -82,8 +90,9 @@ export function parseHighlights(text: string): { entries: Highlight[]; skipped: 
   const entries: Highlight[] = []
   const skipped: string[] = []
 
-  for (const raw of text.split('\n')) {
-    const line = raw.trim()
+  const lines = text.split('\n')
+  for (let lineNo = 0; lineNo < lines.length; lineNo++) {
+    const line = lines[lineNo].trim()
     if (!line.startsWith('#highlight')) continue
 
     const groups = [...line.matchAll(/\{([^}]*)\}/g)].map((m) => m[1])
@@ -112,6 +121,7 @@ export function parseHighlights(text: string): { entries: Highlight[]; skipped: 
       pattern,
       cls: cls || undefined,
       sound: sound || undefined,
+      sourceLine: lineNo,
     }
 
     if (type === 'regexp') {

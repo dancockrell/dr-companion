@@ -44,6 +44,7 @@ import {
   dangerVolume,
   setSpeechVolume,
   speechVolume,
+  missingSounds,
 } from '../../lib/alertSound'
 import {
   setMusicVolume,
@@ -390,6 +391,30 @@ export function SoundControls() {
     }
   }, [open])
 
+  /*
+   * Sounds the loader asked for and could not find.
+   *
+   * `alertSound.ts` has recorded these all along - the note from `read_sound`
+   * on a miss, the exception text on a throw - specifically so a config naming
+   * a file nobody installed does not hit the disk on every matching line. The
+   * map was returned by `missingSounds()` and read by nothing, which made the
+   * failure mode: an alert that should fire is silent, the app knows exactly
+   * which file is absent and why, and never says so.
+   *
+   * Polled rather than subscribed because the map is a plain Map with no
+   * change notification, and adding one to the audio path for a diagnostic
+   * panel is the wrong trade. Two seconds, only while the panel is open, so
+   * a miss that happens while somebody is looking still appears.
+   */
+  const [missingList, setMissingList] = useState<Array<[string, string]>>([])
+  useEffect(() => {
+    if (!open) return
+    const read = () => setMissingList([...missingSounds().entries()])
+    read()
+    const t = setInterval(read, 2000)
+    return () => clearInterval(t)
+  }, [open])
+
   const overallPct = Math.round(((alerts + danger + speech + music) / 4) * 100)
 
   return (
@@ -470,6 +495,32 @@ export function SoundControls() {
               )}
             />
           </div>
+
+          {/* Only when there are some. A permanent "0 missing" row would be
+            * one more thing to skim past, and this needs to be read on the
+            * one day it appears. */}
+          {missingList.length > 0 && (
+            <div className="mt-2 rounded border border-warn/40 bg-warn/5 px-2 py-1.5">
+              <div className="mb-1 text-xs font-medium text-warn">
+                {missingList.length === 1
+                  ? '1 sound could not be played'
+                  : `${missingList.length} sounds could not be played`}
+              </div>
+              <ul className="flex flex-col gap-0.5">
+                {missingList.map(([name, note]) => (
+                  <li key={name} className="text-xs text-ink-muted">
+                    <span className="font-mono text-ink">{name}</span>
+                    {note ? <span className="text-ink-faint"> — {note}</span> : null}
+                  </li>
+                ))}
+              </ul>
+              {/* The name is the actionable part: it is what the config asked
+                * for, so it is what has to exist on disk. */}
+              <div className="mt-1 text-xs text-ink-faint">
+                Named by a highlight or alert but not found in the sounds folder.
+              </div>
+            </div>
+          )}
 
           <SectionLabel className="mt-3">Music</SectionLabel>
           <ChannelRow

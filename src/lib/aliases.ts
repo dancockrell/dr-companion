@@ -27,6 +27,9 @@ import { invokeTauri, isTauri } from './tauri.ts'
 export interface Alias {
   name: string
   expansion: string
+  /** 0-indexed source line, same reasoning as `Highlight.sourceLine` - lets an
+   * editor patch exactly this line rather than regenerating the file. */
+  sourceLine: number
 }
 
 /**
@@ -40,8 +43,9 @@ export function parseAliases(text: string): { entries: Alias[]; skipped: string[
   const entries: Alias[] = []
   const skipped: string[] = []
 
-  for (const raw of text.split('\n')) {
-    const line = raw.trim()
+  const lines = text.split('\n')
+  for (let lineNo = 0; lineNo < lines.length; lineNo++) {
+    const line = lines[lineNo].trim()
     if (!line.startsWith('#alias')) continue
 
     const groups = [...line.matchAll(/\{([^}]*)\}/g)].map((m) => m[1])
@@ -60,7 +64,7 @@ export function parseAliases(text: string): { entries: Alias[]; skipped: string[
       continue
     }
 
-    entries.push({ name, expansion })
+    entries.push({ name, expansion, sourceLine: lineNo })
   }
 
   return { entries, skipped }

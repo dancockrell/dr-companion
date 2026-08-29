@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Pin, PinOff, Circle, Settings, Map as MapIcon } from 'lucide-react'
+import { Pin, PinOff, Circle, Settings, Map as MapIcon, Highlighter } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
 import { useMapDock, setMapDock } from '../../lib/mapDock'
 import { SettingsSheet } from './SettingsSheet'
+import { ConfigManagerSheet } from '../config/ConfigManagerSheet'
 import { cn } from '../../lib/cn'
 
 /**
@@ -22,6 +23,7 @@ import { cn } from '../../lib/cn'
  */
 export function AppControls() {
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [configOpen, setConfigOpen] = useState(false)
   const alwaysOnTop = useAppStore((s) => s.alwaysOnTop)
   const setAlwaysOnTopState = useAppStore((s) => s.setAlwaysOnTop)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
@@ -133,6 +135,18 @@ export function AppControls() {
           {alwaysOnTop ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
         </button>
 
+        {setupComplete && (
+          <button
+            type="button"
+            title="Highlights & aliases - add, edit, delete, search"
+            aria-label="Highlights & aliases"
+            className="pointer-events-auto rounded p-1 text-ink-faint hover:text-ink"
+            onClick={() => setConfigOpen(true)}
+          >
+            <Highlighter className="h-3.5 w-3.5" />
+          </button>
+        )}
+
         <button
           type="button"
           title="Settings" aria-label="Settings"
@@ -144,6 +158,7 @@ export function AppControls() {
       </div>
 
       {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
+      {configOpen && <ConfigManagerSheet onClose={() => setConfigOpen(false)} />}
     </>
   )
 }
