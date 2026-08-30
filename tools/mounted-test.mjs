@@ -103,6 +103,46 @@ const ALLOWED = new Map([
       'both are the same dead path, found when this file stopped granting reachability ' +
       'through allowlisted files',
   ],
+  // The middle dashboard column, cut by 3e95ae7d ("Kill the middle: map,
+  // chat+functions, battle, experience — no dashboard column"). That commit's
+  // own message: "the middle dashboard column ... added nothing worth the
+  // screen it cost" and "DashboardLayout.tsx and Dashboard.tsx are left in
+  // place, unreferenced, rather than deleted outright" — which is exactly
+  // the state this test exists to force a decision about, so the decision
+  // is recorded here rather than left as a silent CI failure.
+  [
+    'src/components/dashboard/Dashboard.tsx',
+    'the middle dashboard column itself, cut by 3e95ae7d — App.tsx no longer renders it',
+  ],
+  [
+    'src/components/dashboard/DashboardLayout.tsx',
+    'the panel grid Dashboard.tsx rendered — same cut, left in place rather than deleted (3e95ae7d)',
+  ],
+  [
+    'src/components/dashboard/FreeCanvas.tsx',
+    "DashboardLayout's own drag/resize/collapse panel registry — dead with it; " +
+      '3e95ae7d: "Freeform mode and the panel pop-out-window machinery go with Dashboard"',
+  ],
+  [
+    'src/components/game/GamePane.tsx',
+    '3e95ae7d: "the Game pane\'s scrolling text log read as a dead box" — its connection ' +
+      'controls moved to GameConnectionBar, its background effects to GameSignals; only the ' +
+      'visible log itself was cut',
+  ],
+  [
+    'src/components/shared/Box.tsx',
+    "DashboardLayout's own card frame ('everything on this dashboard that holds cards uses " +
+      "it' — see its own doc comment) — dead with the dashboard, no other caller",
+  ],
+  [
+    'src/components/shared/GearNotice.tsx',
+    'part of the middle column\'s content (3e95ae7d: "...status board, hands, gear...") — dead with it',
+  ],
+  [
+    'src/components/shared/QuickQueuePanel.tsx',
+    '3e95ae7d: "Risk, Quick Queue, Training, Inventory and Script Library have no home ' +
+      'anywhere in the app now" — this is the Quick Queue panel named there',
+  ],
 ])
 
 let failed = 0
