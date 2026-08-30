@@ -113,6 +113,35 @@ export interface PersistedPrefs {
    * transitions don't suddenly feel different.
    */
   crossfadeStyle?: 'cut' | 'standard' | 'long'
+  /**
+   * A player's own hand-picked playlists (30 Aug 2026) - Dan: "we have great
+   * music. let people see and choose individual tracks and make playlists
+   * with them too." Distinct from `favoriteStations`: a favorite stars a
+   * whole station or stream someone else curated, a playlist is built one
+   * track at a time from the full 178-track pool across all four stations.
+   * See playlists.ts for the actual reads/writes - same
+   * subscribe-and-resync shape as favorites.ts.
+   */
+  playlists?: Playlist[]
+  /**
+   * The playlist id playing right now, if any - restored on startup the
+   * same way `radioStation`/`customStreamUrl` are (GamePane's mount
+   * effect), and mutually exclusive with both: playing a station, a stream,
+   * or a playlist all override zone music in the same slot, and only one of
+   * the three occupies it at a time - see ambientSound.ts's setPlaylist.
+   */
+  activePlaylistId?: string | null
+}
+
+export interface Playlist {
+  id: string
+  name: string
+  /** Track ids, in the order they were added - `ambientSound.ts`'s
+   * `ALL_TRACKS` for what a track id resolves to. Shuffled at play time
+   * (same convention as a radio station's own track list), not stored
+   * shuffled - reordering the stored list would mean "add" silently
+   * reordered every previous track too. */
+  trackIds: string[]
 }
 
 export interface FavoriteStation {
@@ -151,6 +180,8 @@ const defaults: PersistedPrefs = {
   speechVolume: 0,
   musicVolume: 0,
   favoriteStations: [],
+  playlists: [],
+  activePlaylistId: null,
 }
 
 export function loadPrefs(): PersistedPrefs {

@@ -1,5 +1,6 @@
 pub mod bridge_token;
 pub mod config_import;
+pub mod elanthipedia;
 pub mod game_link;
 pub mod lich;
 pub mod lich_health;
@@ -121,6 +122,7 @@ pub fn run() {
             config_import::read_genie_config,
             config_import::write_genie_config,
             config_import::restore_genie_config,
+            elanthipedia::fetch_elanthipedia,
             sounds::read_sound,
             sounds::list_sounds,
             media_keys::send_media_key,

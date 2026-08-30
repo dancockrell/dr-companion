@@ -94,13 +94,54 @@ export async function loadArtManifest(url = `${BASE}manifest.json`): Promise<num
   }
 }
 
-/** Record what a load attempt proved, so no key is ever tried twice. */
+/**
+ * The wiki disambiguates same-named creatures as "Rock troll (1)", "Rock
+ * troll (2)"; bestiary-index.mjs collapses those to one lore entry keyed on
+ * the bare name (loreFor has no way to tell which variant the game meant),
+ * but the art pack still renders one file per wiki page, so it ships as
+ * rock-troll-1.webp / rock-troll-2.webp with no bare rock-troll.webp at all.
+ * A lookup that only ever tries the bare slug finds nothing for every one of
+ * these — confirmed against the manifest: over a hundred installed files
+ * across ~45 creature names, all unreachable — so real art already on disk
+ * was rendering as a silhouette. Trying "-1" through "-6" after the bare
+ * slug fails is what actually reaches them. Always the same variant for a
+ * given name (not randomised per encounter): artFor has no per-instance
+ * seed to vary on without a wider API change, and a stable wrong-ish pick
+ * beats a coin-flip that makes two renders of the same fight look different
+ * for no reason.
+ */
+const MAX_VARIANT_SUFFIX = 6
+
+/** The actual manifest-known filename a key currently resolves to — bare
+ * slug first, then its numbered variants — or undefined if none are known
+ * good. Kept separate from `key` (which stays the semantic name callers and
+ * tests reason about) so a decode failure can blacklist the one file that
+ * actually failed rather than a name nothing was ever filed under. */
+function resolvedFile(key: string): string | undefined {
+  const bare = artFile(key)
+  if (known.get(bare) === true) return bare
+  for (let n = 1; n <= MAX_VARIANT_SUFFIX; n++) {
+    const variant = `${bare}-${n}`
+    if (known.get(variant) === true) return variant
+  }
+  return undefined
+}
+
+/**
+ * Record what a load attempt proved, so no key is ever tried twice.
+ *
+ * Resolves to whichever file this key currently points at (bare or a
+ * numbered variant) before recording, so a broken rock-troll-1.webp marks
+ * *that* file missing and the next lookup moves on to rock-troll-2.webp
+ * rather than retrying the same file forever or wrongly blacklisting a bare
+ * slug nothing was ever filed under.
+ */
 export function noteArtLoaded(key: string): void {
-  known.set(artFile(key), true)
+  known.set(resolvedFile(key) ?? artFile(key), true)
 }
 
 export function noteArtMissing(key: string): void {
-  known.set(artFile(key), false)
+  known.set(resolvedFile(key) ?? artFile(key), false)
 }
 
 /** Test seam. Nothing in the app calls this. */
@@ -123,12 +164,13 @@ export interface CreatureArtSource {
  */
 export function artFor(name: string, noun: string): CreatureArtSource | undefined {
   for (const key of artKeys(name, noun)) {
-    if (known.get(artFile(key)) === true) return { key, url: artUrl(key) }
+    const file = resolvedFile(key)
+    if (file) return { key, url: `${BASE}${file}.webp` }
   }
   return undefined
 }
 
 /** True only when a file is known to exist, never when one merely might. */
 export function hasArt(name: string, noun: string): boolean {
-  return artKeys(name, noun).some((key) => known.get(artFile(key)) === true)
+  return artKeys(name, noun).some((key) => resolvedFile(key) !== undefined)
 }

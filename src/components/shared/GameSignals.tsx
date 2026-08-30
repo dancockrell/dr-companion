@@ -38,9 +38,11 @@ import {
   setMusicVolume,
   setRadioStation,
   setCustomStream,
+  setPlaylist,
   initMediaSession,
   setCrossfadeStyle,
 } from '../../lib/ambientSound'
+import { getPlaylist } from '../../lib/playlists'
 import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
 
@@ -53,9 +55,15 @@ export function GameSignals() {
   const { highlights, note: hlNote } = useHighlights()
   const offClasses = useOffClasses()
 
-  /** Restored once, on mount - see GamePane.tsx's original comment: these
-   * modules have no opinion about storage, so something has to hand them
-   * the remembered levels on startup. */
+  /** Restored once, on mount - see GamePane.tsx's original comment (before
+   * it was deleted): these modules have no opinion about storage, so
+   * something has to hand them the remembered levels on startup. A
+   * remembered station, custom stream, or playlist beats zone music on
+   * startup, the same override relationship setZone() enforces afterward -
+   * custom stream wins if somehow more than one is set. A playlist deleted
+   * since it was last playing (or emptied by track pruning - see
+   * playlists.ts) is silently skipped rather than handed an empty list to
+   * "play." */
   useEffect(() => {
     initMediaSession()
     const prefs = loadPrefs()
@@ -68,6 +76,9 @@ export function GameSignals() {
       setCustomStream(prefs.customStreamUrl)
     } else if (prefs.radioStation) {
       setRadioStation(prefs.radioStation)
+    } else if (prefs.activePlaylistId) {
+      const pl = getPlaylist(prefs.activePlaylistId)
+      if (pl && pl.trackIds.length) setPlaylist(pl.id, pl.trackIds)
     }
   }, [])
 
