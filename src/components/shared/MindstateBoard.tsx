@@ -1,5 +1,5 @@
 import { cn } from '../../lib/cn'
-import { MINDSTATE_LABELS, MINDSTATE_MAX, SKILL_SETS, isMindLocked, type SkillState } from '../../data/skills'
+import { MINDSTATE_LABELS, MINDSTATE_MAX, SKILL_SETS, type SkillState } from '../../data/skills'
 
 /**
  * Every skill at once, read for where there is room.
@@ -84,9 +84,6 @@ export function MindstateBoard({
     return <p className="text-sm text-ink-faint">No skills reported yet.</p>
   }
 
-  const room = skills.filter((s) => s.mindstate < LOCKED * 0.4).length
-  const locked = skills.filter(isMindLocked).length
-
   // Sorted by skillset so related skills sit together, but with no header
   // rows. Five headings cost five lines and pushed Survival and Lore out of
   // the box, which defeated the only thing the board is for: seeing every
@@ -96,11 +93,6 @@ export function MindstateBoard({
 
   return (
     <div className="flex min-h-0 flex-col gap-1.5">
-      <div className="flex shrink-0 items-baseline gap-3 text-xs">
-        {locked > 0 && <span className="text-danger">{locked} at mind lock</span>}
-        <span className="text-good">{room} with room</span>
-      </div>
-
       {/* One column, always — not a grid that reflows into two or three
           depending on how much width the pane happens to have. This board
           reads top-to-bottom by skillset order (see `ordered` above); a
