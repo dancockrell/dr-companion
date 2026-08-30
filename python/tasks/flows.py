@@ -30,14 +30,31 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from flow import Flow, Step  # noqa: E402
 
+# Every factory below takes an optional `companion` and forwards it to
+# `Flow(companion=...)` instead of building `Flow(title=..., ...)` bare.
+# `Flow.__init__` already explains why a bare `Flow(...)` only ever worked by
+# accident (it constructs a real `Companion()` when none is given, which
+# reads connection files from the app's data directory and raises if they
+# are not there) - these factories just never had anywhere to pass one
+# through to. `Routine._steps_for` (tasks/routine.py) is the caller that
+# needed this: it builds a throwaway flow purely to read its `.steps` list,
+# and on a clean checkout or in CI - no app ever having run there - that
+# throwaway construction crashed before `_steps_for` could return anything.
+# Found live: passed locally on Windows (LOCALAPPDATA happened to be set,
+# even with no real connection behind it) and failed on the Linux CI runner,
+# which is exactly the "worked by accident" `Flow.__init__` already warns
+# about.
 
-def hunt() -> Flow:
+
+def hunt(companion: Optional[object] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Hunt cycle",
         summary="Attack, loot, skin, tend. Repeats until stopped.",
         loops=True,
@@ -61,8 +78,9 @@ def hunt() -> Flow:
     )
 
 
-def ambush() -> Flow:
+def ambush(companion: Optional[object] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Ambush cycle",
         summary="Hidden opener, loot, back to guarded. Repeats until stopped.",
         loops=True,
@@ -76,8 +94,9 @@ def ambush() -> Flow:
     )
 
 
-def recover() -> Flow:
+def recover(companion: Optional[object] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Recover",
         summary="Check the damage, tend it, rest.",
         steps=[
@@ -92,8 +111,9 @@ def recover() -> Flow:
     )
 
 
-def to_healer() -> Flow:
+def to_healer(companion: Optional[object] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Go to a healer",
         summary="Stow, walk to the healer, show the damage.",
         steps=[
@@ -106,8 +126,9 @@ def to_healer() -> Flow:
     )
 
 
-def town_run() -> Flow:
+def town_run(companion: Optional[object] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Town run",
         summary="Bank the coins, then somewhere safe.",
         steps=[
@@ -119,8 +140,9 @@ def town_run() -> Flow:
     )
 
 
-def prepare() -> Flow:
+def prepare(companion: Optional[object] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Prepare to fight",
         summary="Refresh, harness, offensive stance.",
         steps=[
@@ -135,8 +157,9 @@ def prepare() -> Flow:
     )
 
 
-def disengage() -> Flow:
+def disengage(companion: Optional[object] = None) -> Flow:
     return Flow(
+        companion=companion,
         title="Break off",
         summary="Defensive, retreat, flee.",
         steps=[

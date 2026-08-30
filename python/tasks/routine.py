@@ -77,11 +77,16 @@ class Routine(Flow):
         self._mode: Mode = "hunt"
 
     def _steps_for(self, mode: Mode) -> Sequence[Step]:
+        # `self.c` (real or, in a test, fake) is forwarded rather than left
+        # to default - each of these otherwise builds its own throwaway
+        # `Flow`, which without a companion to forward constructs a brand
+        # new real `Companion()` just to read a `.steps` list. See
+        # tasks/flows.py's own note on why the parameter exists at all.
         if mode == "hunt":
-            return _flows.hunt().steps
+            return _flows.hunt(companion=self.c).steps
         if mode == "recover":
-            return _flows.recover().steps
-        return _flows.to_healer().steps
+            return _flows.recover(companion=self.c).steps
+        return _flows.to_healer(companion=self.c).steps
 
     def _pick_mode(self) -> Mode:
         """What mode the character's current health calls for.
