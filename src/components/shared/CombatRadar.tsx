@@ -863,7 +863,12 @@ function YouCard({
   const statusIcons = you.statusFlags
     .map((f) => STATUS_ICON[f])
     .filter((s): s is NonNullable<typeof s> => s != null)
-  const dollHeight = compact ? 104 : 154
+  // Same height as the portrait next to it, exactly - not a separately
+  // tuned number that happened to be close. The doll's own viewBox is
+  // trimmed tight to its body now (Paperdoll.tsx), so there is no leftover
+  // dead space at this height to justify picking a different one.
+  const portraitSize = compact ? 72 : 106
+  const dollHeight = portraitSize
 
   return (
     // Three columns sharing one row's height, not a row of two stacked
@@ -872,13 +877,18 @@ function YouCard({
     // vitals and status icons beside the doll instead of below it uses
     // that width and buys back the vertical space the second row cost.
     <div
-      className="pointer-events-auto flex max-w-[18rem] items-stretch gap-1.5 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
+      className="pointer-events-auto flex max-w-[18rem] items-start gap-1 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
       style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
     >
-      <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 72 : 106} />
+      <Portrait character={you.character} race={you.race ?? undefined} size={portraitSize} />
       <Paperdoll injuries={you.injuries} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
 
-      <div className="flex flex-col justify-center gap-1" style={{ height: dollHeight }}>
+      {/* justify-start, not -center: centering a handful of short rows in a
+          column as tall as the doll left visible empty space above and
+          below them both, worst at the bottom under the icon row. Hugging
+          the top costs nothing — the doll and portrait fill their own
+          columns regardless of what this one does. */}
+      <div className="flex flex-col justify-start gap-0.5" style={{ height: dollHeight }}>
         {you.vitals.map((v) => {
           const share = v.max > 0 ? v.value / v.max : 1
           return (

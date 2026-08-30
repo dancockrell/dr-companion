@@ -138,7 +138,19 @@ export function Paperdoll({
 
   return (
     <svg
-      viewBox="0 0 60 100"
+      // Trimmed to the body's own real extent on both axes, rather than the
+      // round "0 0 60 100" this doll drew on before: vertically, head at
+      // y=2 to feet at y=81 (was 100 - a fifth of the frame was dead space
+      // below the feet on every render); horizontally, x=3 to x=57 - wide
+      // enough for the sitting pose's spread legs (its widest single case,
+      // x=5..55) plus a couple of units of margin, standing's narrower
+      // arm-to-arm span sits comfortably inside the same box. No explicit
+      // `width` is set below, so the SVG's rendered width follows this
+      // viewBox's aspect ratio automatically - narrower here means a
+      // narrower doll at the same `height`, not a doll cropped at the
+      // edges. `height` still sets the actual pixel height the caller
+      // asked for.
+      viewBox="3 0 54 84"
       style={{ height }}
       className={cn('shrink-0', !known && 'opacity-40')}
       role="img"
@@ -153,7 +165,7 @@ export function Paperdoll({
           keep in sync with the other two. Sitting gets its own real layout
           above instead, since folded legs are a genuinely different shape,
           not a rotation of a standing one. */}
-      <g transform={pose === 'lying' ? 'rotate(90 30 50)' : undefined}>
+      <g transform={pose === 'lying' ? 'rotate(90 30 42)' : undefined}>
       {/* Stage lighting, not a part: a head halo and a torso glow so the
           sixteen independent shapes below read as one body at a glance. */}
       <g aria-hidden opacity={0.5}>
