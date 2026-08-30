@@ -17,7 +17,7 @@ import { PanelWindow } from './components/PanelWindow'
 import { PanelBoundary } from './components/shared/PanelBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
-import { fitColumns, pickReset } from './lib/columns'
+import { fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
@@ -43,6 +43,11 @@ function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app
   return { kind: 'app' }
 }
 
+/** Room - map + chat/functions, stacked - now a real stored preference
+ * rather than whatever fitColumns had left over, so it is a genuine third
+ * column alongside Battle and Experience. See columns.ts's own doc comment
+ * on why an unclaimed leftover still goes here by default. */
+const ROOM_KEY = 'drc.room-width.v1'
 const BATTLE_KEY = 'drc.battle-width.v1'
 /** Was `drc.dash-width.v1` - the same stored preference, same fitColumns
  * slot, now spent on the Experience strip instead of the middle dashboard
@@ -119,9 +124,26 @@ export default function App() {
 
   /**
    * The columns are fixed widths in pixels, not shares of the window - see
-   * columns.ts for why. Left (map + chat + functions) absorbs a resize;
-   * Battle and Experience keep the pixels they were given.
+   * columns.ts for why. Three real preferences now (Room, Battle,
+   * Experience) - any width nobody asked for still goes to Room by default
+   * (see fitColumns), so a wide window opens filled rather than with a
+   * blank margin, but Room is no longer *only* ever a leftover.
    */
+  const [roomW, setRoomWState] = useState<number>(() => {
+    const saved = Number(localStorage.getItem(ROOM_KEY))
+    return Number.isFinite(saved) && saved >= MIN_PX ? saved : DEFAULT_ROOM_W
+  })
+
+  const setRoomW = (px: number) => {
+    const next = Math.max(MIN_PX, Math.round(px))
+    setRoomWState(next)
+    try {
+      localStorage.setItem(ROOM_KEY, String(next))
+    } catch {
+      // Private mode. Losing a divider position is not worth an error.
+    }
+  }
+
   const [battleW, setBattleWState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(BATTLE_KEY))
     return Number.isFinite(saved) && saved >= MIN_PX ? saved : 600
@@ -209,11 +231,14 @@ export default function App() {
    * played which part. Battle plays the part `mapWant`/`map` used to play
    * (a fixed, player-set width, non-poppable); Experience now plays the
    * part `dashWant`/`dash` used to play (a fixed width with an "empty"
-   * allowance for when there is nothing to show). Only the call site needs
-   * to know that; the module itself never has to change or care.
+   * allowance for when there is nothing to show); Room (`roomWant`/`room`)
+   * is the map + chat/functions stack, a real preference now rather than
+   * whatever was left. Only the call site needs to know that; the module
+   * itself never has to change or care.
    */
   const fit = fitColumns({
     hostW,
+    roomWant: roomW,
     mapWant: battleW,
     dashWant: experienceW,
     mapDocked: true,
@@ -225,7 +250,15 @@ export default function App() {
   const leftWFit = fit.room
 
   const resetWidths = () => {
-    const plan = pickReset({ hostW, mapDocked: true, mapWant: battleW, dashWant: experienceW, splitW: SPLIT_W })
+    const plan = pickReset({
+      hostW,
+      mapDocked: true,
+      roomWant: roomW,
+      mapWant: battleW,
+      dashWant: experienceW,
+      splitW: SPLIT_W,
+    })
+    if (plan.room !== null) setRoomW(plan.room)
     if (plan.map !== null) setBattleW(plan.map)
     if (plan.dash !== null) setExperienceW(plan.dash)
   }
@@ -234,18 +267,15 @@ export default function App() {
   const atLeastVisible = (px: number) => Math.max(MIN_PX, px)
 
   /**
-   * Two dividers, three columns now instead of the old room/dash/map three.
-   *
-   * The first sits between the flexible left column and Battle - moving it
-   * sets Battle's width, measured the same "distance from the far fixed
-   * column" way the old room/dash divider measured dash's width, since
-   * Battle is now the *middle* fixed column rather than the last one. The
-   * second sits between Battle and Experience, which is now the *last*
-   * column, so it uses the simpler "distance to the right edge" form the
-   * old dash/map divider used when map was last.
+   * Two dividers, three real columns - Room, Battle, Experience, each with
+   * its own stored width now (see `roomW` above). Each divider sets the
+   * width of the column on its *near* side directly, the same "distance
+   * from an edge" shape either way: the first measures Room from the left
+   * edge, the second measures Experience from the right edge, and Battle -
+   * the one column with a divider on both sides - is left to whatever
+   * `fitColumns` gives it from its own stored width and the other two's.
    */
-  const moveLeftBattleEdge = (share: number) =>
-    setBattleW(atLeastVisible(hostW * (1 - share) - experienceWFit - SPLIT_W))
+  const moveLeftBattleEdge = (share: number) => setRoomW(atLeastVisible(hostW * share))
   const moveBattleExperienceEdge = (share: number) =>
     setExperienceW(atLeastVisible(hostW * (1 - share)))
 

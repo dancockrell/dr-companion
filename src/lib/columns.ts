@@ -35,16 +35,25 @@
  *
  * # The rule
  *
- * The room column is guaranteed `ROOM_MIN`. It holds the game text, the
- * command input and the channel tabs - the parts that make this a client
- * rather than a dashboard - so it is the one that cannot be squeezed out.
+ * The room column (map + chat/functions, stacked) is guaranteed `ROOM_MIN`
+ * the same as the other two are guaranteed their own floors - it holds the
+ * game text, the command input and the channel tabs, the parts that make
+ * this a client rather than a dashboard, so its floor is real rather than
+ * negotiable. Past that floor it is a genuine third preference now
+ * (`roomWant`), not a leftover: "one column for map, one for battle, one for
+ * skills" - three peer requests, not two requests and a remainder.
  *
- * Whatever is left over is offered to the map and the dashboard at the widths
- * they asked for. If those do not fit, both are scaled down by the same factor
- * rather than one absorbing the whole shortfall, because a player who set both
- * did not implicitly rank them. Neither goes below `COL_MIN`, which is small
- * enough to be a sliver and large enough to still be grabbable, so a column
- * squeezed by a narrow window can be dragged back when the window grows.
+ * Whatever the three ask for together is honoured exactly when it fits, and
+ * any width nobody asked for goes to room rather than sitting unclaimed -
+ * room is what benefits most from extra space, and this is what keeps a wide
+ * window from growing dead space the moment all three have explicit widths.
+ * If the three do not fit, all three are scaled toward their own floor by
+ * the same factor, rather than one absorbing the whole shortfall - the same
+ * fairness rule this module has used since it was two columns, extended to
+ * three. Neither `map` nor `dash` goes below `COL_MIN`/its own floor, which
+ * is small enough to be a sliver and large enough to still be grabbable, so
+ * a column squeezed by a narrow window can be dragged back when the window
+ * grows.
  *
  * Requests are never rewritten. What the player asked for stays stored, and
  * this is applied at the point of use, so dragging the window narrow and wide
@@ -99,9 +108,14 @@ export const DASH_EMPTY_WANT = 300
 /** The widths the app ships with. The map's matches `DEFAULT` in mapDock.ts. */
 export const DEFAULT_MAP_W = 300
 export const DEFAULT_DASH_W = 420
+/** Room's own default - enough over `ROOM_MIN` to not look like a floor the
+ * moment the app opens, matched to what the map + chat/functions stack
+ * actually asked for in practice before room had a stored width of its own. */
+export const DEFAULT_ROOM_W = 460
 
 export interface ResetPlan {
   /** New width to set, or null to leave that column's stored preference alone. */
+  room: number | null
   map: number | null
   dash: number | null
 }
@@ -117,47 +131,68 @@ export interface ResetPlan {
  * Resetting both took a deliberately-set dashboard width back to default
  * for a drag made on the *other* divider.
  *
- * So: try putting the bigger overshoot back to default on its own first. If
- * that alone fits, the other column's preference was never the problem and
- * is kept. Only when neither alone is enough do both reset - and on a
- * window too narrow even for both defaults, that still won't fit, which is
- * correct: there is no width to be found, and the banner staying up says so
- * rather than a button that appears to have done nothing.
+ * So: try putting the biggest overshoot back to default on its own first. If
+ * that alone fits, the other columns' preferences were never the problem and
+ * are kept. Only when that is not enough does the next-biggest overshoot join
+ * it, and so on - and on a window too narrow even for all three defaults,
+ * that still won't fit, which is correct: there is no width to be found, and
+ * the banner staying up says so rather than a button that appears to have
+ * done nothing.
  *
- * A column already at its own default cannot be "the one that overshot",
- * which is why this compares against DEFAULT_MAP_W/DEFAULT_DASH_W rather
- * than just picking the larger of the two raw widths.
+ * A column already at (or under) its own default cannot be "the one that
+ * overshot", which is why this ranks by how far over default each one is
+ * rather than by raw width - now extended from two columns to three (room
+ * joined map and dash as a real preference rather than a leftover).
  */
 export function pickReset({
   hostW,
   mapDocked,
+  roomWant,
   mapWant,
   dashWant,
   splitW,
 }: {
   hostW: number
   mapDocked: boolean
+  roomWant: number
   /** dock.width - only meaningful while mapDocked. */
   mapWant: number
   dashWant: number
   splitW: number
 }): ResetPlan {
-  // The map is not on screen to be blamed for anything.
+  // The map is not on screen to be blamed for anything, and with no map
+  // column sharing the window, room's own floor was never in question -
+  // only dash's overshoot against room's ask could be.
   if (!mapDocked) {
-    return { map: null, dash: DEFAULT_DASH_W }
+    const forColumns = hostW - splitW - ROOM_MIN
+    return roomWant + dashWant <= forColumns
+      ? { room: null, map: null, dash: null }
+      : { room: null, map: null, dash: DEFAULT_DASH_W }
   }
 
-  const forColumns = hostW - splitW * 2 - ROOM_MIN
-  const mapOver = mapWant - DEFAULT_MAP_W
-  const dashOver = dashWant - DEFAULT_DASH_W
+  const forColumns = hostW - splitW * 2
+  const cols = [
+    { key: 'room' as const, want: roomWant, def: DEFAULT_ROOM_W },
+    { key: 'map' as const, want: mapWant, def: DEFAULT_MAP_W },
+    { key: 'dash' as const, want: dashWant, def: DEFAULT_DASH_W },
+  ]
+  const byOvershoot = [...cols].sort((a, b) => b.want - b.def - (a.want - a.def))
 
-  if (mapOver >= dashOver && DEFAULT_MAP_W + dashWant <= forColumns) {
-    return { map: DEFAULT_MAP_W, dash: null }
+  // Nobody reset, then the single biggest overshoot, then the two biggest,
+  // then all three - stopping the moment a combination actually fits.
+  for (let resetCount = 0; resetCount <= cols.length; resetCount++) {
+    const reset = new Set(byOvershoot.slice(0, resetCount).map((c) => c.key))
+    const total = cols.reduce((sum, c) => sum + (reset.has(c.key) ? c.def : c.want), 0)
+    if (total <= forColumns || resetCount === cols.length) {
+      return {
+        room: reset.has('room') ? DEFAULT_ROOM_W : null,
+        map: reset.has('map') ? DEFAULT_MAP_W : null,
+        dash: reset.has('dash') ? DEFAULT_DASH_W : null,
+      }
+    }
   }
-  if (dashOver > mapOver && mapWant + DEFAULT_DASH_W <= forColumns) {
-    return { map: null, dash: DEFAULT_DASH_W }
-  }
-  return { map: DEFAULT_MAP_W, dash: DEFAULT_DASH_W }
+  // Unreachable - the loop above always returns by resetCount === cols.length.
+  return { room: DEFAULT_ROOM_W, map: DEFAULT_MAP_W, dash: DEFAULT_DASH_W }
 }
 
 export interface ColumnFit {
@@ -165,14 +200,15 @@ export interface ColumnFit {
   map: number
   /** The dashboard column's width. */
   dash: number
-  /** What is left for the room column. Never below ROOM_MIN unless the window is. */
+  /** The room column's width. Never below ROOM_MIN unless the window is. */
   room: number
-  /** True when the window could not honour both requests. */
+  /** True when the window could not honour all three requests. */
   squeezed: boolean
 }
 
 export function fitColumns({
   hostW,
+  roomWant,
   mapWant,
   dashWant,
   mapDocked,
@@ -181,6 +217,9 @@ export function fitColumns({
   dashEmpty = false,
 }: {
   hostW: number
+  /** Room's own stored preference - map + chat/functions, stacked. A real
+   * request now, same as map and dash, not whatever is left over. */
+  roomWant: number
   mapWant: number
   dashWant: number
   mapDocked: boolean
@@ -202,6 +241,7 @@ export function fitColumns({
   // A populated one may not go under DASH_MIN: below that it stops reflowing
   // and starts concealing controls behind a hover-only scrollbar.
   const dashFloor = dashEmpty ? COL_MIN : DASH_MIN
+  const roomAsked = Math.max(ROOM_MIN, roomWant)
   const mapAsked = mapDocked ? Math.max(COL_MIN, mapWantEffective) : 0
   const dashAsked = Math.max(dashFloor, dashWantEffective)
 
@@ -209,46 +249,61 @@ export function fitColumns({
   // returning the requests unchanged is right: the very next frame corrects it,
   // and inventing a host width would make the first paint a lie.
   if (!hostW) {
-    return { map: mapAsked, dash: dashAsked, room: 0, squeezed: false }
+    return { map: mapAsked, dash: dashAsked, room: roomAsked, squeezed: false }
   }
 
-  const forColumns = hostW - splits - ROOM_MIN
-  const asked = mapAsked + dashAsked
+  const forColumns = hostW - splits
+  const asked = roomAsked + mapAsked + dashAsked
 
   if (asked <= forColumns) {
+    // Nobody asked for the leftover, so it goes to room - the column that
+    // benefits most from extra width, and the one this app opens with a map
+    // and a game pane in, not a blank margin.
     return {
       map: mapAsked,
       dash: dashAsked,
-      room: hostW - splits - mapAsked - dashAsked,
+      room: forColumns - mapAsked - dashAsked,
       squeezed: false,
     }
   }
 
-  // Not enough. Scale both toward their minimum by the same factor.
+  // Not enough. Scale all three toward their own floor by the same factor.
   //
   // Same factor, different floors. Equal scaling is the right fairness rule
-  // between two preferences nobody ranked, and it was being applied as though
-  // both columns could absorb it equally. They cannot: the map degrades into
-  // less map, the dashboard degrades into hidden buttons. So each column now
-  // scales from its own floor, and the dashboard's floor is the width its
-  // content actually needs rather than the width a divider needs to be
+  // between preferences nobody ranked, and it was being applied as though
+  // every column could absorb it equally. They cannot: the map degrades into
+  // less map, the dashboard degrades into hidden buttons, and room degrades
+  // into a game pane with no room to read it in - which is why room's floor
+  // is the one this module has always refused to let anyone cross. Each
+  // column scales from its own floor, and the dashboard's floor is the width
+  // its content actually needs rather than the width a divider needs to be
   // grabbable.
-  const floor = (mapDocked ? COL_MIN : 0) + dashFloor
+  const floor = ROOM_MIN + (mapDocked ? COL_MIN : 0) + dashFloor
   const slack = asked - floor
-  const room = Math.max(0, forColumns - floor)
-  const keep = slack > 0 ? Math.max(0, Math.min(1, room / slack)) : 0
+  const available = Math.max(0, forColumns - floor)
+  const keep = slack > 0 ? Math.max(0, Math.min(1, available / slack)) : 0
 
   const map = mapDocked ? COL_MIN + (mapAsked - COL_MIN) * keep : 0
   const dash = dashFloor + (dashAsked - dashFloor) * keep
+  const mapRounded = Math.max(0, Math.round(map))
+  const dashRounded = Math.max(0, Math.round(dash))
 
   return {
-    map: Math.round(map),
-    dash: Math.round(dash),
-    // On a window too narrow even for the minimums, this goes to zero rather
+    // On a window too narrow even for the minimums, these go to zero rather
     // than negative. The columns are already at their floor by then; a
     // negative would set a CSS width that the browser reads as auto and the
     // overflow would come straight back.
-    room: Math.max(0, hostW - splits - Math.round(map) - Math.round(dash)),
+    map: mapRounded,
+    dash: dashRounded,
+    // Room absorbs whatever rounding map and dash left over, the same way
+    // it does in the fits-without-squeezing branch above, rather than being
+    // rounded independently - three independently-rounded floats can each
+    // drift up to half a pixel over, and summed that is enough to push the
+    // total a full pixel past the window. Found live: a 3440px window came
+    // back one pixel over. room already carries the "whatever nobody else
+    // claimed" job; matching it here keeps the sum exact instead of merely
+    // close.
+    room: Math.max(0, forColumns - mapRounded - dashRounded),
     squeezed: true,
   }
 }

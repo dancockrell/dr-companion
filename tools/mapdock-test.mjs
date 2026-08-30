@@ -50,15 +50,18 @@ const ok = (label, cond, detail = '') => {
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${label.padEnd(52)}${detail}`)
 }
 
-const { fitColumns, ROOM_MIN, COL_MIN, MAP_EMPTY_WANT, DASH_EMPTY_WANT } = m
+const { fitColumns, ROOM_MIN, COL_MIN, MAP_EMPTY_WANT, DASH_EMPTY_WANT, DEFAULT_ROOM_W } = m
 const SPLIT = 8
 
-/** What the app actually asks for, so a case is a window size and two wants. */
-const fit = (hostW, mapWant, dashWant, mapDocked = true) =>
-  fitColumns({ hostW, mapWant, dashWant, mapDocked, splitW: SPLIT })
+/** What the app actually asks for, so a case is a window size and two wants.
+ * Room's own want defaults to DEFAULT_ROOM_W - none of the scenarios below
+ * are about room's *own* preference (that is columns-test.mjs's job), so a
+ * realistic constant is enough to make it a real input instead of NaN. */
+const fit = (hostW, mapWant, dashWant, mapDocked = true, roomWant = DEFAULT_ROOM_W) =>
+  fitColumns({ hostW, roomWant, mapWant, dashWant, mapDocked, splitW: SPLIT })
 
 const fitEmpty = (hostW, mapWant, dashWant, opts = {}) =>
-  fitColumns({ hostW, mapWant, dashWant, mapDocked: true, splitW: SPLIT, ...opts })
+  fitColumns({ hostW, roomWant: DEFAULT_ROOM_W, mapWant, dashWant, mapDocked: true, splitW: SPLIT, ...opts })
 
 /** The invariant the whole module exists for. */
 const fitsInside = (hostW, f, docked = true) => {
