@@ -19,6 +19,7 @@ import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
 import { loadPrefs } from '../../lib/persistence'
+import { useDismiss } from '../../lib/useDismiss'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -50,16 +51,24 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // it and does not report it back; the select would otherwise sit on its
   // default while the app showed somebody else.
   const [demoPreset, setDemoPreset] = useState(() => loadPrefs().demoPreset ?? 'basic_prime')
+  useDismiss(onClose)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-3">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl max-h-[85vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-3"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h2 className="text-sm font-semibold text-ink">Settings</h2>
           <button
             type="button"
             className="p-1 rounded-md text-ink-faint hover:text-ink"
             onClick={onClose}
+            title="Close" aria-label="Close"
           >
             <X className="w-4 h-4" />
           </button>
@@ -148,6 +157,29 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             )}
           </section>
 
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
+              Window
+            </h3>
+            <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+              <span className="text-ink-muted">Always on top</span>
+              <input
+                type="checkbox"
+                checked={alwaysOnTop}
+                onChange={async (e) => {
+                  const v = e.target.checked
+                  setAlwaysOnTopState(v)
+                  await setAlwaysOnTop(v)
+                }}
+              />
+            </label>
+            {!isTauri() && (
+              <p className="text-xs text-ink-faint">
+                Pin works fully inside the Tauri desktop app.
+              </p>
+            )}
+          </section>
+
           {/* Applied to the root font size, so every rem-based size in the app
               scales together and the layout keeps its proportions. */}
           <section className="space-y-2">
@@ -172,30 +204,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               ))}
             </div>
           </section>
-
-          <section className="space-y-2">
-            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
-              Window
-            </h3>
-            <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-              <span className="text-ink-muted">Always on top</span>
-              <input
-                type="checkbox"
-                checked={alwaysOnTop}
-                onChange={async (e) => {
-                  const v = e.target.checked
-                  setAlwaysOnTopState(v)
-                  await setAlwaysOnTop(v)
-                }}
-              />
-            </label>
-            {!isTauri() && (
-              <p className="text-xs text-ink-faint">
-                Pin works fully inside the Tauri desktop app.
-              </p>
-            )}
-          </section>
-
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
@@ -417,10 +425,16 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
               Debug
             </h3>
+            <p className="text-xs text-ink-faint">
+              The activity log a bug report attaches. Clearing it only affects what a
+              future report can show — nothing about the running app changes.
+            </p>
             <button
               type="button"
               className="w-full rounded-lg border border-border px-3 py-2 text-ink-muted hover:text-ink"
-              onClick={() => clearLog()}
+              onClick={() => {
+                if (confirm('Clear the activity log? This cannot be undone.')) clearLog()
+              }}
             >
               Clear activity log
             </button>

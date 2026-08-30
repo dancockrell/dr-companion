@@ -154,7 +154,8 @@ export function PinEditor({
         <div className="mt-3 flex items-center justify-between gap-2">
           <p className="text-xs text-ink-faint">
             Icon
-            <span className="ml-1">
+            <span className="ml-1 text-ink-faint">
+
               ({filteredIcons.length} of {PIN_ICONS.length})
             </span>
           </p>

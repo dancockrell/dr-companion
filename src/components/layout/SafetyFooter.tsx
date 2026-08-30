@@ -40,6 +40,7 @@ import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop'
 import { SoundControls } from '../game/SoundControls'
 import { MusicTransport } from '../game/MusicTransport'
+import { isLowHealth } from '../../lib/vitals'
 import { requestOpenSoundPanel } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
 
@@ -86,8 +87,7 @@ export function SafetyFooter() {
    * never could. This bar is part of the window, which is the promise the app
    * was built on and the reason Stop is here at all.
    */
-  const lowHealth =
-    character != null && character.vitals.health / character.vitals.healthMax < 0.35
+  const lowHealth = isLowHealth(character)
   const inCombat = character?.situation.includes('in_combat') ?? false
   const primaryLabel = lowHealth ? 'Healer' : inCombat ? 'Assist' : 'Start Training'
   const primaryIntent = lowHealth ? 'go_healer' : 'start_training'

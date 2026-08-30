@@ -189,6 +189,7 @@ export function GameCommandBar({
               : 'border-border text-ink-faint hover:text-ink'
           )}
           title={searchOpen ? 'Close scrollback search' : 'Find in scrollback'}
+          aria-label={searchOpen ? 'Close scrollback search' : 'Find in scrollback'}
         >
           <Search className="h-3.5 w-3.5" />
         </button>
@@ -198,6 +199,7 @@ export function GameCommandBar({
           disabled={searchOpen}
           className="shrink-0 rounded border border-border p-1.5 text-ink-faint hover:text-ink disabled:opacity-30"
           title={searchOpen ? 'Close search to send a command' : 'Send'}
+          aria-label={searchOpen ? 'Close search to send a command' : 'Send'}
         >
           <Send className="h-3.5 w-3.5" />
         </button>

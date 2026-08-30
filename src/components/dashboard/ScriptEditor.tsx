@@ -17,14 +17,16 @@
  * press. Those are done. Colour can come later and costs nothing to add on
  * top; getting them wrong would make the editor useless with colour.
  *
- * # Two languages, two engines
+ * # Three languages, two engines
  *
- * Python is this app's own scripting language — a saved script becomes a task
- * and runs as its own process under the rate cap and the pause gate. Ruby is
- * Lich's, and a saved script goes into Lich's folder to be started through the
- * bridge. The editor names which engine will run the thing before it is run,
- * because they are genuinely different and a player choosing between them
- * should be choosing knowingly.
+ * Python and TypeScript are this app's own scripting languages — a saved
+ * script becomes a task and runs as its own process under the rate cap and
+ * the pause gate, via `python.rs`/`runner.py` or `node.rs`/`runner.ts`
+ * depending which one you picked. Ruby is Lich's, and a saved script goes
+ * into Lich's folder to be started through the bridge. The editor names
+ * which engine will run the thing before it is run, because the two engines
+ * are genuinely different and a player choosing between them should be
+ * choosing knowingly.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FolderOpen, Play, Save, Trash2, X } from 'lucide-react'
@@ -52,6 +54,10 @@ const ENGINE: Record<ScriptLang, string> = {
   python:
     'Runs as its own process against this app. Rate-capped and pausable. ' +
     'Saved here it becomes a task you can start from the Tasks list.',
+  typescript:
+    'Runs as its own process against this app, via Node.js (22.6+ or 24+). ' +
+    'Rate-capped and pausable, same as Python. Saved here it becomes a task ' +
+    'you can start from the Tasks list.',
   ruby:
     "Runs inside Lich, with Lich's own API. Saved into Lich's scripts folder " +
     'and started the same way as any other Lich script.',
@@ -68,7 +74,7 @@ export function ScriptEditor({
   dirs: ScriptDirs | null
   onClose: () => void
   onSaved: () => void
-  onRun: (taskId: string) => void
+  onRun: (taskId: string, lang: 'python' | 'typescript') => void
 }) {
   const addLog = useAppStore((s) => s.addLog)
   const startScript = useAppStore((s) => s.startScript)
@@ -140,14 +146,18 @@ export function ScriptEditor({
 
   const saveAndRun = useCallback(async () => {
     if (!(await save())) return
-    if (lang === 'python') {
-      onRun(taskIdFor(name.trim()))
-    } else {
+    if (lang === 'ruby') {
       // Ruby goes to Lich, which starts it by name. Nothing in this app runs
       // it directly, and a second execution path here would bypass Lich's own
       // script handling entirely.
       startScript(name.trim())
       addLog(`Asked Lich to start ${name.trim()}`, 'info')
+    } else {
+      // `lang` is passed explicitly rather than left for `start()` to look up
+      // by id: the catalog a lookup would search may not have picked up this
+      // file yet, since `onSaved` (which refreshes it) fires-and-forgets
+      // rather than being awaited before this runs.
+      onRun(taskIdFor(name.trim()), lang)
     }
   }, [save, lang, name, onRun, startScript, addLog])
 
@@ -183,13 +193,14 @@ export function ScriptEditor({
     })
   }, [])
 
-  const folder = lang === 'python' ? dirs?.pythonDir : dirs?.rubyDir
+  const folder =
+    lang === 'python' ? dirs?.pythonDir : lang === 'typescript' ? dirs?.typescriptDir : dirs?.rubyDir
   const unavailable = lang === 'ruby' && !dirs?.rubyDir
 
   return (
     <div className="flex min-h-0 flex-col gap-1.5">
       <div className="flex items-center gap-1">
-        {(['python', 'ruby'] as ScriptLang[]).map((l) => (
+        {(['python', 'typescript', 'ruby'] as ScriptLang[]).map((l) => (
           <button
             key={l}
             type="button"
@@ -296,10 +307,11 @@ export function ScriptEditor({
           </button>
         )}
 
-        {/* Only ever offered for the app's own Python folder. Lich's folder
-         * holds dr-scripts and whatever else the player installed; this app did
-         * not put them there and will not remove them. */}
-        {target.name && lang === 'python' && (
+        {/* Only ever offered for the app's own folders (Python, TypeScript).
+         * Lich's folder holds dr-scripts and whatever else the player
+         * installed; this app did not put them there and will not remove
+         * them. */}
+        {target.name && lang !== 'ruby' && (
           <button
             type="button"
             onClick={() => void remove()}

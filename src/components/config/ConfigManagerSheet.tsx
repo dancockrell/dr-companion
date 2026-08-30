@@ -15,11 +15,13 @@ import { SubstitutesEditor } from './SubstitutesEditor'
 import { GagsEditor } from './GagsEditor'
 import { PresetsEditor } from './PresetsEditor'
 import { cn } from '../../lib/cn'
+import { useDismiss } from '../../lib/useDismiss'
 
 type Tab = 'highlights' | 'aliases' | 'macros' | 'variables' | 'substitutes' | 'gags' | 'presets'
 
 export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('highlights')
+  useDismiss(onClose)
 
   return (
     <div
@@ -54,7 +56,12 @@ export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
               Colours
             </TabButton>
           </div>
-          <button type="button" className="rounded-md p-1 text-ink-faint hover:text-ink" onClick={onClose}>
+          <button
+            type="button"
+            className="rounded-md p-1 text-ink-faint hover:text-ink"
+            onClick={onClose}
+            title="Close" aria-label="Close"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>

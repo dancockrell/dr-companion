@@ -1,24 +1,26 @@
 /**
  * The player's own scripts: list, read, save, delete.
  *
- * Two languages, and the difference is not cosmetic. A Python script is one of
- * this app's tasks — it runs as its own process against the script API, under
- * the rate cap and the pause gate. A Ruby script is a *Lich* script: it lives
- * in Lich's `scripts` folder, runs inside Lich, and is started through the
- * bridge exactly as any other Lich script is.
+ * Three languages, and the difference is not cosmetic. A Python or TypeScript
+ * script is one of this app's tasks — it runs as its own process against the
+ * script API, under the rate cap and the pause gate. A Ruby script is a
+ * *Lich* script: it lives in Lich's `scripts` folder, runs inside Lich, and
+ * is started through the bridge exactly as any other Lich script is.
  *
  * So "which language" is really "which engine runs this", and the destination
  * follows from it rather than being a choice anybody should have to make. The
- * UI says which is which instead of hiding it, because the two have genuinely
- * different capabilities and a player will want both for different jobs.
+ * UI says which is which instead of hiding it, because each has genuinely
+ * different capabilities and a player will want more than one for different
+ * jobs.
  *
- * Saving a Python script installs it: `python/runner.py` discovers
- * `tasks/user/*.py` every time it is asked, so a file saved here appears in
- * the task list on the next refresh with no restart and no registration step.
+ * Saving a Python or TypeScript script installs it: `python/runner.py` and
+ * `typescript/runner.ts` each discover their own `tasks/user/*` every time
+ * they are asked, so a file saved here appears in the task list on the next
+ * refresh with no restart and no registration step.
  */
 import { invokeTauri, isTauri } from './tauri'
 
-export type ScriptLang = 'python' | 'ruby'
+export type ScriptLang = 'python' | 'typescript' | 'ruby'
 
 export type ScriptFile = {
   name: string
@@ -35,6 +37,7 @@ export type ScriptFile = {
 
 export type ScriptDirs = {
   pythonDir: string | null
+  typescriptDir: string | null
   rubyDir: string | null
   /**
    * Why a language is unavailable, when one is. Ruby needs Lich, and "Lich was
@@ -49,6 +52,7 @@ export async function scriptDirs(): Promise<ScriptDirs> {
   if (!raw || typeof raw !== 'object') {
     return {
       pythonDir: null,
+      typescriptDir: null,
       rubyDir: null,
       note: isTauri()
         ? 'The script backend did not answer.'

@@ -166,6 +166,63 @@ untested against the same fixtures would risk a second, silently-disagreeing
 parser, which is worse than a documented absence. Stream/bold extraction for
 scripts is future work, not something faked in the meantime.
 
+## Scripting: TypeScript, alongside Python
+
+Decided 28 Aug 2026, on Dan's direct call rather than found and justified
+afterward - flagged here because it revises "three runtimes ship" above,
+which named Ruby, Python and the app as the deliberate, closed set.
+
+**Why this is a smaller decision than Python was, not the same one again.**
+The Python section above earned its "cost was put in front of Dan" framing
+because Python was a genuinely new dependency, introduced solely so this
+project would have a scripting language. TypeScript is not that: Node is
+already an unconditional prerequisite for developing and building this app
+(the frontend is Node/npm, and `DEPENDENCIES.md` already lists "Node 24 or
+newer"), and `src-tauri/src/script_api.rs` was never Python-specific -
+`python/dr_companion.py`'s own docs say so: "If you are not using
+dr_companion.py - a script in another language, say - this is everything it
+does for you." So this is a second client of an already-generic protocol, not
+a fourth runtime the installer has to carry the way Ruby and Python are.
+
+**Built:** `typescript/dr_companion.ts` and `typescript/drtask.ts`, direct
+counterparts to the Python client and task layer - same wire protocol, same
+parsing rules for `progressBar`/`roundTime`/`pushStream` (shared reasoning,
+not re-derived, so the two runtimes cannot quietly disagree about what a tag
+means), same rate cap. Node's lack of a blocking socket read means the API
+shape differs where it has to: `dr_companion.ts` is an `EventEmitter` over an
+async socket rather than Python's `on_line`/blocking `run()` loop. See
+`typescript/README.md`.
+
+**Built (29 Aug 2026): the catalog, and the app never running it any
+differently from Python.** `typescript/runner.ts` is `runner.py`'s direct
+counterpart - same `--list`/`run <id>` CLI, same JSON shape, same
+`user.<filename>` id scheme for anything saved in `tasks/user/`. Wired
+through `src-tauri/src/node.rs`, a near-duplicate of `python.rs` for the
+reason stated in that file's own header: detects a usable Node (22.6+ or
+24+, since `.ts` support is flag-gated below 24), spawns the runner,
+streams stdout/stderr as `node:line`, reports state as `node:state`. The
+frontend (`src/lib/nodeTasks.ts`, `TaskFlowPanel.tsx`) merges the Python and
+TypeScript catalogs into one Tasks list rather than a second tab - a task
+tile does not care which language wrote it, and a player choosing between
+"hunt" and "watch" was never choosing a language. The one invariant that
+crosses the boundary: at most one task runs at a time regardless of which
+language it's in, enforced by the frontend stopping the other backend
+before starting either (each backend already stops its own previous task on
+its own account). `ScriptEditor.tsx` gained TypeScript as a third language
+alongside Python and Ruby, with its own template and its own save location
+(`typescript/tasks/user/`).
+
+**Not built yet:** a TypeScript `flow.py`/`Flow`/`Step` equivalent. `Task` is
+still the whole of what a TypeScript script is written against; a `Flow`
+port is the obvious next step and should follow `flow.py`'s shape
+(`when`/`until`/`settle`) rather than inventing a second one. Not deciding
+this now for the same reason the Ruby-to-Python port path wasn't decided
+above: picking it before more than a couple of real TypeScript tasks exist
+to learn from would be answering a question that has not been asked yet by
+real use. In the meantime a TypeScript task is written directly against
+`Task` (see `typescript/tasks/watch.ts` or the editor's own template) - more
+code than a `Flow`-based Python task for the same job, not unusably so.
+
 ## Display: 1080p, 1440p, 2160p
 
 Three targets, and the failure mode differs at each end.

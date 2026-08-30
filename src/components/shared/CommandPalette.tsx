@@ -21,6 +21,7 @@ import { Search, CornerDownLeft } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
 import { pythonStatus, type TaskInfo } from '../../lib/pythonTasks'
+import { nodeStatus } from '../../lib/nodeTasks'
 import {
   requestStopAll,
   requestPauseAll,
@@ -89,10 +90,21 @@ function isStarted(runningByName: Map<string, string>, name: string): boolean {
   return status === 'running' || status === 'paused'
 }
 
+/**
+ * A task tagged with which backend it runs on. Needed here for the same
+ * reason `TaskFlowPanel.tsx` tags its own merged list: Python and TypeScript
+ * each have their own `user.<filename>` id scheme, so the same id
+ * (`task.watch` ships in both catalogs) can name two different processes,
+ * and both the palette's React key and `requestStartFlow` need to know
+ * which one a given entry actually means.
+ */
+type TaskLang = 'python' | 'typescript'
+type MergedTask = TaskInfo & { lang: TaskLang }
+
 function buildCommands(deps: {
   scriptCatalog: string[] | null
-  /** Python tasks, read from the same catalog the Tasks panel shows. */
-  tasks: TaskInfo[]
+  /** Python and TypeScript tasks, read from the same catalogs the Tasks panel shows. */
+  tasks: MergedTask[]
   // Not `string`. A palette entry naming an intent that does not exist
   // used to compile and fail against a live bridge; the union makes the
   // typo a build error at the entry itself.
@@ -141,13 +153,19 @@ function buildCommands(deps: {
 
   for (const task of deps.tasks) {
     commands.push({
-      id: `task:${task.id}`,
+      id: `task:${task.lang}:${task.id}`,
       label: task.title,
       // The kind rides along, because "watches" and "drives your character"
       // are the difference worth seeing before pressing Enter on a fuzzy match.
-      hint: `${task.summary} (${task.kind})`,
+      // The language only when it's the less usual one — every task used to
+      // be Python, and marking every entry "python" would be noise where
+      // marking the occasional "typescript" one is signal.
+      hint:
+        task.lang === 'typescript'
+          ? `${task.summary} (${task.kind}, TypeScript)`
+          : `${task.summary} (${task.kind})`,
       group: 'Tasks',
-      run: () => requestStartFlow(task.id),
+      run: () => requestStartFlow(task.id, task.lang),
     })
   }
 
@@ -243,14 +261,24 @@ export function CommandPalette() {
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  const [tasks, setTasks] = useState<TaskInfo[]>([])
+  const [tasks, setTasks] = useState<MergedTask[]>([])
 
   // Re-read every time the palette opens rather than once at mount. A task
   // saved in the editor a minute ago must be findable now, and a list
   // captured at startup would never contain it.
   useEffect(() => {
     if (!open) return
-    void pythonStatus().then((st) => setTasks(st.tasks))
+    void Promise.all([pythonStatus(), nodeStatus()]).then(([py, node]) =>
+      setTasks([
+        ...py.tasks.map((t) => ({ ...t, lang: 'python' as const })),
+        // Node/TypeScript tasks carry no `category` of their own - see
+        // TaskFlowPanel.tsx's TS_CATEGORY for the same gap and the same
+        // fixed-bucket fix. Unused by this palette's own rendering (the
+        // Tasks loop below never reads `task.category`), but `MergedTask`
+        // requires the field since it's `TaskInfo & { lang }`.
+        ...node.tasks.map((t) => ({ ...t, lang: 'typescript' as const, category: 'TypeScript tasks' })),
+      ])
+    )
   }, [open])
 
   const scriptCatalog = useAppStore((s) => s.scriptCatalog)

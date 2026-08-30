@@ -43,6 +43,7 @@ export function CreatureCard({
         type="button"
         onClick={onToggle}
         title={`${card.name}${card.count > 1 ? ` x${card.count}` : ''}`}
+        aria-label={`${card.name}${card.count > 1 ? ` x${card.count}` : ''}`}
         className={cn(shell, 'h-[104px] w-[22px] shrink-0')}
       >
         {band}

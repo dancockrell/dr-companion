@@ -149,9 +149,71 @@ def watch(line):
 ```
 
 This is exactly the kind of pattern-matching Genie users already write by
-hand, and it is not the end state - it is what "the gap is not hidden" looks
-like in practice. When the parser moves to a place both the frontend and this
-API can read from, this note goes away and scripts stop needing it.
+hand, and matching the tag yourself is still the whole story if you build
+directly on `dr_companion.Companion`. It is not the only way in any more,
+though: `drtask.py` (below) is a second, independently-grounded layer that
+closes this gap for the common case - it does not share code with
+`gameStream.ts`, so read its own module docstring for what it is confident
+about (`progressBar`/`roundTime` parsing, checked against Lich's own
+`xmlparser.rb`) versus what remains a text match.
+
+## Beyond the transport: `drtask.py`, `flow.py`, task discovery, and `lich.py`
+
+`dr_companion.py` is deliberately minimal - a socket, `send()`, `on_line()`.
+Everything below is a client of it; none of it changes the wire protocol
+above.
+
+**`python/drtask.py`** is the layer most scripts should actually build on.
+`Task` gives you clean, tag-stripped lines with their channel labelled
+(`on_clean`), current vitals with unknown-vs-zero kept distinct
+(`on_vitals` - a vital the game has never reported is `NaN`, not `0`, so a
+condition on it does nothing rather than firing on a number nobody sent),
+roundtime-aware sending, and a hard cap on commands per minute enforced in
+the one method (`do()`) anything reaches the game through - a runaway loop is
+stopped and told why rather than allowed to look like scripted abuse on a
+live account. Read its own module docstring before writing a task; the
+reasoning for each parsing decision (why `progressBar.text` and never
+`.value`, why `roundTime` is an absolute epoch second and not a duration) is
+there, grounded against Lich's own `xmlparser.rb`.
+
+**`python/flow.py`** builds `Flow`/`Step` on top of `Task`: a sequence of
+steps, each with commands to send, an optional `when=lambda f: ...` condition
+(an ordinary Python expression - no condition grammar to parse), and a way to
+know a step finished (`until=r"regex"`, waiting for the game to actually say
+so, or a flat `settle` when there is nothing to wait for). See its own module
+docstring and `python/tasks/example_custom.py` for the full shape.
+
+**`python/runner.py`** is the catalog: `python python/runner.py --list` and
+`run <id>`. The built-in flows and the read-only `task.watch` example live in
+`python/tasks/`; anything you save under `python/tasks/user/*.py` is
+discovered automatically as `user.<filename>` - no registration, no restart.
+See `python/tasks/user/README.md`.
+
+**`python/tasks/user/`** in this repo ships ten ready-to-run examples, each
+answering a Genie-era automation category with an original implementation
+(no script text ported from anyone - see the repo's Scope note):
+`autostand.py`, `channel_logger.py`, `watchlist.py`, `afk_reply.py`,
+`vitals_monitor.py`, `forage.py`, `rummage.py`, `regen_wait.py`,
+`sell_run.py`, and `skill_trainer.py` (a read-only Mind Lock watcher built on
+`docs/DOMAIN.md` §1's mindstate mechanic). Each is runnable directly
+(`python python/tasks/user/autostand.py`) or through the catalog
+(`python python/runner.py run user.autostand`). See
+`python/tasks/user/README.md`'s own table for what each one does.
+
+**`python/lich.py`** wraps Lich's own `;`-prefixed command language -
+`;force`, `;kill`, `;pause`, `;unpause`, `;list`, `;vars` - so a script
+starts, stops and force-restarts Lich scripts (including the dr-scripts
+ecosystem) without hand-formatting strings and re-deriving that "already
+running" needs `;force` (Lich's own message, from `script.rb`). It does not
+parse Lich's replies - those arrive as ordinary lines through whichever of
+`on_line`/`on_clean` you're using, undecoded, for the reason `lich.py`'s
+module docstring gives: guessing at Lich's plain-text table format without a
+test fixture to check it against is the same mistake this file already warns
+against for the game's own markup. `lich.py` works with either
+`dr_companion.Companion` or a `drtask.Task`'s `.c` - `Lich(task.c)`.
+`python/scripts/lichctl.py` is a small terminal front end to it: start, stop,
+pause, force, list, all as one-shot CLI commands rather than a running
+script. See `python/scripts/README.md`.
 
 ## Testing your own script
 
@@ -170,6 +232,15 @@ actually exercised the socket.
 
 ```bash
 python python/test_dr_companion.py
+```
+
+`python/test_lich.py` is `lich.py`'s own suite, and unlike
+`test_dr_companion.py` it does not need the app running - `lich.py` only
+formats strings and hands them to `Companion.send()`, so a fake `Companion`
+that just records what it was sent is a complete test double for it:
+
+```bash
+python python/test_lich.py
 ```
 
 ## What this API deliberately does not do
