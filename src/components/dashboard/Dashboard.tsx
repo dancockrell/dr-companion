@@ -26,12 +26,39 @@ import { DashboardLayout } from './DashboardLayout'
 import { cn } from '../../lib/cn'
 import { PANEL_CONTENT, PANEL_TITLES } from './panels'
 import { FreeCanvas } from './FreeCanvas'
+import { useHiddenMiddlePanels, type MiddlePanelId } from '../../lib/panelVisibility'
+
+/**
+ * The ids that exist in both `PanelId` (freeform/pop-out/dock) and
+ * `MiddlePanelId` (Settings' "Dashboard panels" list) - see
+ * `panelVisibility.ts`'s own header for why there even are two id spaces for
+ * what looks like one panel set. Without this bridge, freeform quietly
+ * ignored Settings: unchecking Training there, then pressing "Arrange
+ * freely," brought Training right back with no way to tell why from where
+ * the player made the change - the "one setting has two effects, no visible
+ * link" trap. Not every `MiddlePanelId` has a `PanelId` twin (Objects, Quick
+ * Queue and You never did), so this only covers the overlap; freeform never
+ * draws those separately in the first place, so there is nothing to bridge
+ * for them.
+ */
+const SHARED_PANEL_IDS: Partial<Record<PanelId, MiddlePanelId>> = {
+  training: 'training',
+  inventory: 'inventory',
+  risk: 'risk',
+  scripts: 'scripts',
+}
+
+function isHiddenViaSettings(id: PanelId, hidden: Set<MiddlePanelId>): boolean {
+  const twin = SHARED_PANEL_IDS[id]
+  return twin !== undefined && hidden.has(twin)
+}
 
 export function Dashboard() {
   const character = useAppStore((s) => s.character)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
   const uiMode = useAppStore((s) => s.uiMode)
   const { layout, cycleDeck, place, unplace, enterFreeArrange } = useLayout(uiMode)
+  const hiddenMiddlePanels = useHiddenMiddlePanels()
 
   // Which panel is in the hand, and where it would land. Held here rather than
   // in each Panel so the insertion line can be drawn on a different panel from
@@ -231,7 +258,8 @@ export function Dashboard() {
     (id) =>
       id !== 'vitals' &&
       (layout.freeform || (id !== 'map' && id !== 'game')) &&
-      !out.includes(id)
+      !out.includes(id) &&
+      !isHiddenViaSettings(id, hiddenMiddlePanels)
   )
 
   return (

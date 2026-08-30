@@ -98,6 +98,18 @@ The setup wizard looks for Ruby, Lich, Genie, plugins and maps, and offers to
 install what is missing. It asks first. It will not modify a Ruby you already
 have. [docs/SETUP-POLICY.md](docs/SETUP-POLICY.md).
 
+## Writing your own scripts
+
+Three languages, each running as its own process against the same socket:
+Python ([python/tasks/user/README.md](python/tasks/user/README.md)),
+TypeScript ([typescript/README.md](typescript/README.md)), and Ruby, which
+is Lich's own scripting language and runs inside Lich. Write one in the
+app's Scripts tab or by hand in either `tasks/user/` folder — either way, no
+registration step, no restart: the app's task list re-reads the folder every
+time. [docs/PYTHON_API.md](docs/PYTHON_API.md) is the wire protocol both
+Python and TypeScript speak, and the design log for how this decision was
+made is [docs/ENGINE.md](docs/ENGINE.md).
+
 ## Dependencies that package.json will not mention
 
 Someone tidying this machine uninstalled Ruby, reasonably, because nothing in

@@ -19,6 +19,7 @@ import { StatsPanel } from '../shared/StatsPanel'
 import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
 import { PanelBoundary } from '../shared/PanelBoundary'
+import { useHiddenMiddlePanels } from '../../lib/panelVisibility'
 
 /**
  * The dashboard.
@@ -94,6 +95,17 @@ import { PanelBoundary } from '../shared/PanelBoundary'
  *   to blank white, Stop button included. A box that crashes now says so in
  *   words and offers Retry; it does not vanish, because a vanished box and an
  *   empty one must never look the same.
+ *
+ *   **Every box here is also individually optional**, on top of whichever set
+ *   Basic/Power already picked — `useHiddenMiddlePanels()`
+ *   (`lib/panelVisibility.ts`), toggled from Settings. That module's own
+ *   header explains why this isn't `layout.ts`'s `Layout`/`PanelId`: several
+ *   of these boxes (Objects, Quick Queue, You) have no `PanelId` at all,
+ *   having never participated in freeform or pop-out. A box hidden this way
+ *   is removed outright, not collapsed — Basic's curated baseline is a floor
+ *   this only ever subtracts from, never a ceiling it adds to: hiding
+ *   something in Basic and switching to Power does not resurrect it, and a
+ *   box gated to Power stays invisible in Basic regardless of this setting.
  */
 export function DashboardLayout({
   dense,
@@ -116,6 +128,7 @@ export function DashboardLayout({
       </button>
     ) : undefined
   const character = useAppStore((s) => s.character)
+  const hiddenPanels = useHiddenMiddlePanels()
 
   // Every vital the character reports, not a chosen three. Concentration only
   // exists for some guilds, so it appears when it exists rather than being
@@ -161,11 +174,13 @@ export function DashboardLayout({
        * on a character with seventy skills was not much. The map has a column
        * of its own now, so the board that Dan gives nearly full screen height
        * to in Genie can finally have it here. */}
-      <Box title="Experience" action={popper('mindstate')} className="col-start-1 row-start-1 min-h-0">
-        <PanelBoundary label="Experience">
-          <MindstateBoard skills={character?.skills ?? []} dense={dense} />
-        </PanelBoundary>
-      </Box>
+      {!hiddenPanels.has('experience') && (
+        <Box title="Experience" action={popper('mindstate')} className="col-start-1 row-start-1 min-h-0">
+          <PanelBoundary label="Experience">
+            <MindstateBoard skills={character?.skills ?? []} dense={dense} />
+          </PanelBoundary>
+        </Box>
+      )}
 
       {/* You, and then the room, down the right. */}
       <div className={`col-start-2 row-start-1 flex min-h-0 flex-col ${gap} overflow-y-auto`}>
@@ -193,44 +208,46 @@ export function DashboardLayout({
          * The row wraps because the right rail is as narrow as 15rem when the
          * window is docked beside the game, and three fixed-width children in a
          * row that cannot wrap overflow instead of stacking. */}
-        <Box>
-          <PanelBoundary label="You">
-            <div className="flex flex-wrap items-start gap-3">
-              <Portrait
-                character={character?.name ?? 'You'}
-                race={character?.race ?? undefined}
-                size={116}
-              />
-              <Paperdoll
-                injuries={character?.injuries ?? {}}
-                height={116}
-                known={character?.injuries !== undefined}
-              />
-              <VitalCluster vitals={vitals} height={72} />
-            </div>
+        {!hiddenPanels.has('you') && (
+          <Box>
+            <PanelBoundary label="You">
+              <div className="flex flex-wrap items-start gap-3">
+                <Portrait
+                  character={character?.name ?? 'You'}
+                  race={character?.race ?? undefined}
+                  size={116}
+                />
+                <Paperdoll
+                  injuries={character?.injuries ?? {}}
+                  height={116}
+                  known={character?.injuries !== undefined}
+                />
+                <VitalCluster vitals={vitals} height={72} />
+              </div>
 
-            {/* What is currently happening to you, under what you are made of.
-             *
-             * This is the half of the pane that was missing. The bars say how
-             * much health is left; the statuses say whether you are bleeding,
-             * stunned, webbed, poisoned or hidden, and how long the spells
-             * holding you together have left. That is what you act on, and none
-             * of it was on screen anywhere. */}
-            <StatusBoard />
+              {/* What is currently happening to you, under what you are made of.
+               *
+               * This is the half of the pane that was missing. The bars say how
+               * much health is left; the statuses say whether you are bleeding,
+               * stunned, webbed, poisoned or hidden, and how long the spells
+               * holding you together have left. That is what you act on, and none
+               * of it was on screen anywhere. */}
+              <StatusBoard />
 
-            {/* Who you are and what you are holding. Both were written into
-              * CharacterStrip, which nothing mounts, so neither had ever been on
-              * screen. See HandsRow. */}
-            <HandsRow character={character ?? null} />
+              {/* Who you are and what you are holding. Both were written into
+                * CharacterStrip, which nothing mounts, so neither had ever been on
+                * screen. See HandsRow. */}
+              <HandsRow character={character ?? null} />
 
-            <GearNotice />
-          </PanelBoundary>
-        </Box>
+              <GearNotice />
+            </PanelBoundary>
+          </Box>
+        )}
 
         {/* Risk, right under the vitals it qualifies. Power only: burden and
          * favor tracking is exactly the kind of continuous-tracking extra
          * Genie never gave a player, not something Basic should open onto. */}
-        {dense && (
+        {dense && !hiddenPanels.has('risk') && (
           <Box className="min-h-0">
             <PanelBoundary label="Risk">
               <RiskBar />
@@ -258,11 +275,13 @@ export function DashboardLayout({
          * a player presses most often was not on the page at all - the
          * Activities panel existed and was registered as a pop-out that the
          * dashboard never rendered. */}
-        <Box title="Tasks &amp; scripts" className="min-h-0">
-          <PanelBoundary label="Tasks &amp; scripts">
-            <TaskFlowPanel dense={dense} />
-          </PanelBoundary>
-        </Box>
+        {!hiddenPanels.has('tasks') && (
+          <Box title="Tasks & scripts" className="min-h-0">
+            <PanelBoundary label="Tasks & scripts">
+              <TaskFlowPanel dense={dense} />
+            </PanelBoundary>
+          </Box>
+        )}
 
         {/* Quick Queue, Power only, right beside Tasks since it is the
             same idea at a different commitment level: Task Flows are named,
@@ -270,7 +289,7 @@ export function DashboardLayout({
             front of you and thrown away once it runs. A newcomer reaching
             for something Genie never had should meet the polished, saved
             version first, not an empty ad-hoc queue with nothing in it. */}
-        {dense && (
+        {dense && !hiddenPanels.has('quickqueue') && (
           <Box className="min-h-0">
             <PanelBoundary label="Quick Queue">
               <QuickQueuePanel dense={dense} />
@@ -280,7 +299,7 @@ export function DashboardLayout({
 
         {/* Training, Power only, same reason as Risk: real continuous-tracking
             depth Genie never had, not a beginner's first screen. */}
-        {dense && (
+        {dense && !hiddenPanels.has('training') && (
           <Box className="min-h-0">
             <PanelBoundary label="Training">
               <TrainingPanel dense={dense} />
@@ -295,7 +314,7 @@ export function DashboardLayout({
             different question, "how full are my containers", a measurement
             Genie never had at all — genuine extra tracking, not baseline
             parity a newcomer is missing. */}
-        {dense && (
+        {dense && !hiddenPanels.has('inventory') && (
           <Box className="min-h-0">
             <PanelBoundary label="Inventory">
               <InventoryPanel dense={dense} />
@@ -314,7 +333,7 @@ export function DashboardLayout({
             tooling, including our bridge) never renders, and promoted (a
             script with a real dedicated control elsewhere) doesn't get a
             second, redundant raw button here. */}
-        {dense && (
+        {dense && !hiddenPanels.has('scripts') && (
           <Box className="min-h-0">
             <PanelBoundary label="Script Library">
               <ScriptLibraryPanel

@@ -511,6 +511,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
               type="button"
               className="p-1 rounded text-ink-faint hover:text-ink"
               title={tall ? 'Shrink the map' : 'Give the map more room'}
+              aria-label={tall ? 'Shrink the map' : 'Give the map more room'}
               onClick={() => setTall((v) => !v)}
             >
               {tall ? (

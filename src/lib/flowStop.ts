@@ -45,11 +45,13 @@ function createSignal<T = void>() {
 const stopAll = createSignal()
 const pauseAll = createSignal()
 const resumeAll = createSignal()
-// Carries a flow id, so the Command Palette (or any future caller outside
-// TaskFlowPanel) can start a specific flow without a handle to the driver —
-// same reasoning as the three above, extended to the one verb they didn't
-// cover.
-const startFlow = createSignal<string>()
+// Carries a flow id (and, since two backends can each own that id — a
+// Python `task.watch` and a TypeScript `task.watch` are different
+// processes — an optional language to disambiguate), so the Command Palette
+// (or any future caller outside TaskFlowPanel) can start a specific flow
+// without a handle to the driver — same reasoning as the three above,
+// extended to the one verb they didn't cover.
+const startFlow = createSignal<{ id: string; lang?: 'python' | 'typescript' }>()
 
 export const onStopAll = stopAll.on
 export const requestStopAll = () => stopAll.request()
@@ -85,4 +87,5 @@ export const requestResumeAll = () => {
 }
 
 export const onStartFlow = startFlow.on
-export const requestStartFlow = (flowId: string) => startFlow.request(flowId)
+export const requestStartFlow = (flowId: string, lang?: 'python' | 'typescript') =>
+  startFlow.request({ id: flowId, lang })

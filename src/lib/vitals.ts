@@ -51,6 +51,28 @@ export function hasManaPool(guild: string | undefined, mana: number): boolean {
 }
 
 /**
+ * Below this share of max health, the app treats the character as needing a
+ * healer rather than more fighting or training.
+ *
+ * One constant rather than the same `health / healthMax < 0.35` written out
+ * independently in `SafetyFooter.tsx` (which button the safety bar offers)
+ * and `SituationBanner.tsx` (whether the urgent banner shows) - two copies
+ * that happened to agree by having been typed the same way twice, which is
+ * exactly the kind of duplication that silently stops agreeing the next time
+ * either one gets tuned. Not the same number as `VitalCluster`'s colour
+ * bands: those apply one ramp to all five pools as a glance-only cue: this
+ * one is specifically about health and specifically about triggering the
+ * Healer flow, a different question that happens to share a threshold today.
+ */
+export const LOW_HEALTH_SHARE = 0.35
+
+export function isLowHealth(character: CharacterStatus | null | undefined): boolean {
+  if (!character) return false
+  const { health, healthMax } = character.vitals
+  return healthMax > 0 && health / healthMax < LOW_HEALTH_SHARE
+}
+
+/**
  * Stream over bridge, when the stream has an answer.
  *
  * Both sources know health, mana, spirit and stamina - the bridge polls for

@@ -2636,6 +2636,15 @@ module Companion
   # ----------------------------------------------------------------- server --
 
   class Server
+    # Exposed for server_test.rb only. The suite drives handle_message
+    # directly and asserts exact response counts per intent - push_loop's
+    # own 1s-interval broadcasts are real, wanted production behavior, but
+    # racing them against every one of those exact-count reads is not
+    # something this test's assertions were designed to tolerate. Killing
+    # this one thread after start is a test-only concession; nothing about
+    # push_loop itself changes.
+    attr_reader :push_thread
+
     def initialize(port = DEFAULT_PORT)
       @port    = port
       @clients = []

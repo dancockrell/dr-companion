@@ -113,8 +113,22 @@ def strip_tags(text: str) -> str:
     `<d cmd='east'>east</d>` becomes `east` - the tag is presentation, the word
     is what the player read. Dropping the content instead would silently lose
     exits, item names and half of every room description.
+
+    Loops the regex to a fixed point rather than one `sub()` pass - the
+    TypeScript mirror of this function (`typescript/drtask.ts`) hit a CodeQL
+    finding on the single-pass version: removing one match can splice two
+    surviving fragments into a new `<...>` span the regex never re-scans for.
+    Looping until a pass changes nothing closes that regardless of the
+    specific input shape, rather than patching the one construction found.
+    Terminates in at most `len(text)` iterations - each pass only removes
+    characters or leaves the string unchanged, never adds any.
     """
-    return unescape(_TAG.sub("", text))
+    current = text
+    while True:
+        nxt = _TAG.sub("", current)
+        if nxt == current:
+            return unescape(current)
+        current = nxt
 
 
 @dataclass

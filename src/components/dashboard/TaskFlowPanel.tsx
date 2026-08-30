@@ -4,16 +4,29 @@
  * This used to be two tabs - "tasks" (Python, run from a catalog) and
  * "scripts" (a text list split into "Yours" and "Lich's folder", edited in a
  * view that replaced the whole panel). Splitting them was never true to what
- * they are: every Python script a player saves *already* appears in the task
- * catalog (`runner.py`'s `user_tasks()` scans `tasks/user/*.py` and merges it
+ * they are: every Python (or TypeScript) script a player saves *already*
+ * appears in its own task catalog (`runner.py`'s `user_tasks()` scans
+ * `tasks/user/*.py`, `runner.ts`'s scans `tasks/user/*.ts`, and both merge
  * into the same list `flow.hunt` and `task.routine` come from), so the old
  * Scripts tab's "Yours" section and the Tasks tab's `user.*` tiles were the
  * same script, shown twice, with two different "run" buttons that did the
  * same thing. Dan's own words on it: "I want to see them and I really do
  * not. Your ways of interacting with them in the GUI suck. One simple
- * window, not many." The only thing Python's catalog can never cover is
+ * window, not many." The only thing neither catalog can ever cover is
  * Ruby - a Lich script, a different engine entirely - so that is the one
  * real addition to the grid below, not a second tab.
+ *
+ * # Two catalogs, one grid
+ *
+ * Python and TypeScript are two separate backends (`pythonTasks.ts`/
+ * `python.rs`, `nodeTasks.ts`/`node.rs` - see that file's own header for why
+ * they are not one parameterised module) but the same *kind* of thing to a
+ * player: a task, picked from a catalog, run as a background process. They
+ * are merged into one `tasks` list and rendered as one set of tiles rather
+ * than kept apart, the same way this file already refuses to give Ruby its
+ * own tab. Starting either stops whatever the *other* backend has running -
+ * enforced here, in `start()`, because "one task at a time" is a rule about
+ * this character, not about a single language's process table.
  *
  * # Icons, not text, and the text is one hover away
  *
@@ -32,11 +45,11 @@
  *
  * # Editing, in place
  *
- * A pencil appears on hover for anything backed by a real file - a Python
- * task saved under `tasks/user/`, or any Ruby script - and opens the same
- * editor as before. Built-in flows and examples get no pencil: they are
- * shipped source, not a player's file, and offering to "edit" one would open
- * onto nothing a save button could write to.
+ * A pencil appears on hover for anything backed by a real file - a Python or
+ * TypeScript task saved under `tasks/user/`, or any Ruby script - and opens
+ * the same editor as before. Built-in flows and examples get no pencil: they
+ * are shipped source, not a player's file, and offering to "edit" one would
+ * open onto nothing a save button could write to.
  *
  * # Nothing here schedules anything
  *
@@ -67,6 +80,15 @@ import {
   type PythonStatus,
   type TaskInfo,
 } from '../../lib/pythonTasks'
+import {
+  nodeStatus,
+  onNodeTaskLine,
+  onNodeTaskState,
+  startNodeTask,
+  stopNodeTask,
+  nodeTaskState,
+  type NodeStatus,
+} from '../../lib/nodeTasks'
 import { groupTasksByCategory } from '../../lib/taskGrouping'
 import {
   listScripts,
@@ -92,8 +114,17 @@ import type { QuickSwitchPin } from '../../lib/quickSwitch'
 const KEEP_LINES = 200
 
 /** Ruby scripts are grouped under this, after every task category - see the
- * module comment: the only thing the Python catalog cannot already cover. */
+ * module comment: the only thing neither catalog can already cover. */
 const RUBY_CATEGORY = 'Lich scripts'
+
+/**
+ * TypeScript tasks have no `category` of their own - `runner.ts` does not
+ * sort into "Combat"/"Recovery"/etc the way `runner.py`'s `CATEGORY_ORDER`
+ * does, since the built-in flows are Python-only and a player's own `.ts`
+ * tasks have no house convention to categorise by yet. One bucket, named for
+ * what it is, rather than guessing a category that would just be wrong.
+ */
+const TS_CATEGORY = 'TypeScript tasks'
 
 /**
  * Where a player's own tile arrangement lives.
@@ -138,8 +169,9 @@ function orderTasks(tasks: TaskInfo[], order: string[]): TaskInfo[] {
 /**
  * The built-in tasks' own curated icon, by id - unrelated to
  * `inferScriptIcon`'s guessing, since these are known exactly rather than
- * pattern-matched from a name. Everything else (a saved Python task, a Lich
- * script, an example) falls through to a guess in `baseIconKeyFor` below.
+ * pattern-matched from a name. Everything else (a saved Python or TypeScript
+ * task, a Lich script, an example) falls through to a guess in
+ * `baseIconKeyFor` below.
  */
 const BASE_ICON_KEY: Record<string, ScriptIconKey> = {
   'task.routine': 'repeat',
@@ -156,9 +188,9 @@ const BASE_ICON_KEY: Record<string, ScriptIconKey> = {
 /**
  * The icon a task or script gets before any player override - a known
  * built-in's own curated choice, or a guess from its own name and summary
- * (`inferScriptIcon`, shared with every Lich script - a saved Python task
- * deserves the same variety a Ruby one gets, not a single generic icon
- * repeated for every file a player has ever written).
+ * (`inferScriptIcon`, shared with every Lich script - a saved task deserves
+ * the same variety a Ruby one gets, not a single generic icon repeated for
+ * every file a player has ever written).
  */
 function baseIconKeyFor(id: string, name: string, summary: string): ScriptIconKey {
   if (BASE_ICON_KEY[id]) return BASE_ICON_KEY[id]
@@ -166,8 +198,9 @@ function baseIconKeyFor(id: string, name: string, summary: string): ScriptIconKe
   return inferScriptIcon(name, summary)
 }
 
-/** One tile: a task from the Python catalog, or a Ruby script - the two
- * things this grid can run, unified so the grid never has to know which. */
+/** One tile: a task from the Python or TypeScript catalog, or a Ruby script -
+ * the three things this grid can run, unified so the grid never has to know
+ * which. */
 type Entry = {
   id: string
   title: string
@@ -194,9 +227,16 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
 
   const [status, setStatus] = useState<PythonStatus | null>(null)
+  const [nodeSt, setNodeSt] = useState<NodeStatus | null>(null)
   const [scripts, setScripts] = useState<ScriptFile[]>([])
   const [dirs, setDirs] = useState<ScriptDirs | null>(null)
   const [editing, setEditing] = useState<EditorTarget | null>(null)
+  // A bare entry id is enough here (unlike the two-backend `start`/`stop`
+  // logic below) because every Entry already carries a unique one - Python's
+  // own ids (`user.foo`, `flow.hunt`), TypeScript's own prefixed `ts.` to
+  // keep `user.foo` in one language from reading as active while the other
+  // language's `user.foo` runs, and Ruby's `ruby.` - same prefix Ruby always
+  // had.
   const [running, setRunning] = useState('')
   const [note, setNote] = useState('')
   const [lines, setLines] = useState<string[]>([])
@@ -227,16 +267,32 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
-    const [st, files, where] = await Promise.all([pythonStatus(), listScripts(), scriptDirs()])
+    const [st, nst, files, where] = await Promise.all([
+      pythonStatus(),
+      nodeStatus(),
+      listScripts(),
+      scriptDirs(),
+    ])
     setStatus(st)
+    setNodeSt(nst)
     setScripts(files)
     setDirs(where)
     // Asked, never assumed. A task that exited on its own leaves no event for
     // a panel that mounted afterwards, and a remembered "running" that has
-    // gone stale is indistinguishable from a live one.
-    const state = await taskState()
-    setRunning(state.running ? state.task : '')
-    setActiveFlow(state.running ? state.task : null)
+    // gone stale is indistinguishable from a live one. Checked in both
+    // backends - the invariant is "at most one task, of either language,"
+    // not "at most one per language," so either could be the live one.
+    const [pyState, nodeState] = await Promise.all([taskState(), nodeTaskState()])
+    if (pyState.running) {
+      setRunning(pyState.task)
+      setActiveFlow(pyState.task)
+    } else if (nodeState.running) {
+      setRunning(`ts.${nodeState.task}`)
+      setActiveFlow(nodeState.task)
+    } else {
+      setRunning('')
+      setActiveFlow(null)
+    }
   }, [setActiveFlow])
 
   useEffect(() => {
@@ -259,6 +315,17 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
 
   useEffect(
     () =>
+      onNodeTaskState((st) => {
+        setRunning(st.running ? `ts.${st.task}` : '')
+        setNote(st.note)
+        setActiveFlow(st.running ? st.task : null)
+        if (st.note) addLog(st.note, 'info')
+      }),
+    [addLog, setActiveFlow]
+  )
+
+  useEffect(
+    () =>
       onTaskLine((line) => {
         setLines((prev) => [...prev, line.text].slice(-KEEP_LINES))
         if (line.error) addLog(`${line.task}: ${line.text}`, 'warn')
@@ -266,11 +333,26 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
     [addLog]
   )
 
-  const start = useCallback(
+  useEffect(
+    () =>
+      onNodeTaskLine((line) => {
+        setLines((prev) => [...prev, line.text].slice(-KEEP_LINES))
+        if (line.error) addLog(`${line.task}: ${line.text}`, 'warn')
+      }),
+    [addLog]
+  )
+
+  const startPython = useCallback(
     async (id: string) => {
       setLines([])
       setNote('')
       try {
+        // At most one task total, not one per backend: starting either kind
+        // stops whatever the *other* backend has running. Each backend
+        // already stops its own previous task on its own account
+        // (python.rs/node.rs), so this only has work to do when the player
+        // is switching from a task in one language to one in the other.
+        await stopNodeTask()
         const st = await startTask(id)
         setRunning(st.running ? st.task : '')
         setActiveFlow(st.running ? st.task : null)
@@ -286,10 +368,32 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
     [addLog, setActiveFlow]
   )
 
+  const startNode = useCallback(
+    async (id: string) => {
+      setLines([])
+      setNote('')
+      try {
+        await stopTask()
+        const st = await startNodeTask(id)
+        setRunning(st.running ? `ts.${st.task}` : '')
+        setActiveFlow(st.running ? st.task : null)
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e)
+        setNote(message)
+        addLog(`Could not start ${id}: ${message}`, 'error')
+      }
+    },
+    [addLog, setActiveFlow]
+  )
+
   const stop = useCallback(async () => {
-    const st = await stopTask()
+    // Stopping both is cheap (each is a no-op when nothing of that language
+    // is running) and correct regardless of which one is actually live,
+    // without this component having to trust its own `running` string over
+    // the OS.
+    const [pySt, nodeSt2] = await Promise.all([stopTask(), stopNodeTask()])
     setRunning('')
-    setNote(st.note || 'Stopped.')
+    setNote(pySt.note || nodeSt2.note || 'Stopped.')
     setActiveFlow(null)
   }, [setActiveFlow])
 
@@ -298,10 +402,22 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   // script-API dispatch point, so they hold every automated command including
   // scripts this app did not start. That is a widening, not an omission — the
   // old Pause only ever paused the seven flows this app shipped.
-  useEffect(() => onStopAll(() => void stopTask()), [])
+  useEffect(
+    () =>
+      onStopAll(() => {
+        void stopTask()
+        void stopNodeTask()
+      }),
+    []
+  )
 
   // The Command Palette starts a task by id with no reference to this panel.
-  useEffect(() => onStartFlow((id) => void start(id)), [start])
+  // `f.lang` names which catalog it came from - the palette's own list is
+  // built from the same merged `tasks` this panel derives below.
+  useEffect(
+    () => onStartFlow((f) => void (f.lang === 'typescript' ? startNode(f.id) : startPython(f.id))),
+    [startNode, startPython]
+  )
 
   // A task outlives this component — it is a separate process. Unmounting
   // clears only what this component published and deliberately does not stop
@@ -309,6 +425,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   useEffect(() => () => setActiveFlow(null), [setActiveFlow])
 
   const tasks: TaskInfo[] = useMemo(() => status?.tasks ?? [], [status])
+  const nodeTasks = useMemo(() => nodeSt?.tasks ?? [], [nodeSt])
   const rubyScripts = useMemo(() => scripts.filter((s) => s.lang === 'ruby'), [scripts])
   const orderedTasks = useMemo(() => orderTasks(tasks, tileOrder), [tasks, tileOrder])
 
@@ -336,12 +453,13 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   )
 
   /**
-   * One combined list: every Python task, then every Ruby script, filtered
-   * by name/summary. Tasks come first and already arrive sorted by
-   * `runner.py`'s `CATEGORY_ORDER`; appending Ruby after them - rather than
-   * interleaving - is what puts "Lich scripts" last once grouped, which is
-   * the right place for "the whole dr-scripts suite plus whatever else is
-   * installed," not only what a player wrote here.
+   * One combined list: every Python task, then every TypeScript task, then
+   * every Ruby script, filtered by name/summary. Python tasks come first and
+   * already arrive sorted by `runner.py`'s `CATEGORY_ORDER`; appending
+   * TypeScript and then Ruby after them - rather than interleaving - is what
+   * keeps "Lich scripts" last once grouped, which is the right place for
+   * "the whole dr-scripts suite plus whatever else is installed," not only
+   * what a player wrote here.
    */
   const entries: Entry[] = useMemo(() => {
     const q = filter.trim().toLowerCase()
@@ -363,9 +481,30 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
           `Runs the same outside the app:\npython python/runner.py run ${t.id}`,
         category: t.category,
         readOnly: t.kind === 'read-only',
-        run: () => void start(t.id),
+        run: () => void startPython(t.id),
         editTarget: t.id.startsWith('user.')
           ? { name: t.id.slice('user.'.length), lang: 'python' as ScriptLang }
+          : undefined,
+      }))
+
+    const fromNode: Entry[] = nodeTasks
+      .filter((t) => matches(t.title, t.summary))
+      .map((t) => ({
+        id: `ts.${t.id}`,
+        title: t.title,
+        baseIcon: baseIconKeyFor(
+          t.id,
+          t.id.startsWith('user.') ? t.id.slice('user.'.length) : t.title,
+          t.summary
+        ),
+        tooltip:
+          `${t.title}\n${t.summary}\n\n${t.id} — ${t.kind}\n\n` +
+          `Runs the same outside the app:\nnode typescript/runner.ts run ${t.id}`,
+        category: TS_CATEGORY,
+        readOnly: t.kind === 'read-only',
+        run: () => void startNode(t.id),
+        editTarget: t.id.startsWith('user.')
+          ? { name: t.id.slice('user.'.length), lang: 'typescript' as ScriptLang }
           : undefined,
       }))
 
@@ -387,11 +526,11 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         editTarget: { name: s.name, lang: 'ruby' as ScriptLang },
       }))
 
-    return [...fromTasks, ...fromRuby]
-  }, [orderedTasks, rubyScripts, filter, start, startScript, addLog])
+    return [...fromTasks, ...fromNode, ...fromRuby]
+  }, [orderedTasks, nodeTasks, rubyScripts, filter, startPython, startNode, startScript, addLog])
 
   const groups = useMemo(() => groupTasksByCategory(entries), [entries])
-  const totalCount = tasks.length + rubyScripts.length
+  const totalCount = tasks.length + nodeTasks.length + rubyScripts.length
 
   const openNew = useCallback((lang: ScriptLang) => {
     setEditing({ name: '', lang })
@@ -404,9 +543,9 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         dirs={dirs}
         onClose={() => setEditing(null)}
         onSaved={() => void refresh()}
-        onRun={(id) => {
+        onRun={(id, lang) => {
           setEditing(null)
-          void start(id)
+          void (lang === 'typescript' ? startNode(id) : startPython(id))
         }}
       />
     )
@@ -428,7 +567,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
           )}
           title={note || undefined}
         >
-          {running ? `Running ${running}` : note || ''}
+          {running ? `Running ${running.replace(/^ts\.|^ruby\./, '')}` : note || ''}
         </span>
 
         {dirs?.pythonDir && (
@@ -455,8 +594,8 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
           <button
             type="button"
             onClick={() => void refresh()}
-            title="Re-read the task catalog and the scripts folders"
-            aria-label="Re-read the task catalog and the scripts folders"
+            title="Re-read the task catalogs and the scripts folders"
+            aria-label="Re-read the task catalogs and the scripts folders"
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
           >
             <RefreshCw className="h-3 w-3" />
@@ -484,11 +623,13 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
       </div>
 
       {/* Why the grid is empty, when it is. Never a bare "nothing here": the
-       * causes need different fixes and the note carries Python's own words
-       * when a task failed to import, or Lich's when its folder is missing. */}
-      {status && tasks.length === 0 && (
+       * causes need different fixes and the note carries each backend's own
+       * words when a task failed to import, or Lich's when its folder is
+       * missing - both, when both are relevant, rather than picking one and
+       * hiding the other's problem. */}
+      {status && nodeSt && tasks.length === 0 && nodeTasks.length === 0 && (
         <p className="whitespace-pre-wrap rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
-          {status.note || 'No tasks were listed.'}
+          {[status.note, nodeSt.note].filter(Boolean).join('\n\n') || 'No tasks were listed.'}
         </p>
       )}
       {dirs?.note && (
@@ -651,6 +792,14 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
               type="button"
               onClick={() => openNew('python')}
               title="Write a new Python task. Saved into python/tasks/user/, where it is picked up automatically."
+              className="flex flex-1 items-center justify-center rounded border border-dashed border-border py-2 text-ink-faint hover:border-ink-faint hover:text-ink"
+            >
+              <FilePlus2 className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => openNew('typescript')}
+              title="Write a new TypeScript task. Saved into typescript/tasks/user/, where it is picked up automatically. Needs Node.js 22.6+ or 24+."
               className="flex flex-1 items-center justify-center rounded border border-dashed border-border py-2 text-ink-faint hover:border-ink-faint hover:text-ink"
             >
               <FilePlus2 className="h-4 w-4" />

@@ -557,6 +557,20 @@ unless server.start
   abort "server would not start: #{reason}"
 end
 
+# push_loop is a real production background thread (started by #start
+# alongside accept_loop) that broadcasts status/scripts on its own 1s
+# tick whenever underlying state changed since its last snapshot. This
+# suite mutates that underlying state ($fake_scripts_installed,
+# $fake_running_scripts, ...) between nearly every test and then reads
+# back an *exact* message count per intent via collect() - a stray tick
+# landing between a request and its expected replies hands one test an
+# extra broadcast and the next one a missing one, intermittently and only
+# under some thread-scheduling timings. That is a property of the test
+# harness's exact-count assertions, not a bug in push_loop, so the fix
+# lives here: kill just the push thread and leave accept_loop/serve fully
+# live for the rest of the suite.
+server.push_thread&.kill
+
 begin
   puts '-- the handshake a browser actually performs --'
   c = Client.new(PORT)
