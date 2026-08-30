@@ -1,0 +1,6032 @@
+{
+ "npc-blacksmith-dwarf-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-blacksmith-dwarf-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-blacksmith-dwarf-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-blacksmith-dwarf-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-blacksmith-dwarf-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-blacksmith-dwarf-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-blacksmith-dwarf-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-blacksmith-dwarf-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-blacksmith-dwarf-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-blacksmith-dwarf-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-blacksmith-dwarf-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-blacksmith-dwarf-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-blacksmith-dwarf-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-blacksmith-dwarf-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-blacksmith-dwarf-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-blacksmith-dwarf-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-blacksmith-dwarf-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-blacksmith-dwarf-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "dwarf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elf-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-blacksmith-elf-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-blacksmith-elf-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-blacksmith-elf-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-blacksmith-elf-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-blacksmith-elf-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-blacksmith-elf-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-blacksmith-elf-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-blacksmith-elf-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-blacksmith-elf-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elf-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elf-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elf-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elf-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elf-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elf-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elf-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elf-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "elf",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-blacksmith-elothean-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-blacksmith-elothean-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-blacksmith-elothean-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-blacksmith-elothean-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-blacksmith-elothean-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-blacksmith-elothean-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-blacksmith-elothean-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-blacksmith-elothean-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-blacksmith-elothean-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-blacksmith-elothean-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-blacksmith-elothean-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-blacksmith-elothean-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-blacksmith-elothean-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-blacksmith-elothean-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-blacksmith-elothean-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-blacksmith-elothean-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-blacksmith-elothean-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-blacksmith-elothean-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "elothean",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-blacksmith-gnome-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-blacksmith-gnome-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-blacksmith-gnome-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-blacksmith-gnome-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-blacksmith-gnome-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-blacksmith-gnome-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-blacksmith-gnome-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-blacksmith-gnome-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-blacksmith-gnome-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-blacksmith-gnome-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-blacksmith-gnome-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-blacksmith-gnome-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-blacksmith-gnome-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-blacksmith-gnome-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-blacksmith-gnome-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-blacksmith-gnome-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-blacksmith-gnome-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-blacksmith-gnome-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "gnome",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-blacksmith-gor-tog-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-blacksmith-gor-tog-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-blacksmith-gor-tog-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-blacksmith-gor-tog-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-blacksmith-gor-tog-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-blacksmith-gor-tog-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-blacksmith-gor-tog-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-blacksmith-gor-tog-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-blacksmith-gor-tog-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-blacksmith-gor-tog-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-blacksmith-gor-tog-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-blacksmith-gor-tog-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-blacksmith-gor-tog-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-blacksmith-gor-tog-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-blacksmith-gor-tog-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-blacksmith-gor-tog-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-blacksmith-gor-tog-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-blacksmith-gor-tog-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "gor-tog",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-blacksmith-halfling-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-blacksmith-halfling-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-blacksmith-halfling-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-blacksmith-halfling-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-blacksmith-halfling-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-blacksmith-halfling-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-blacksmith-halfling-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-blacksmith-halfling-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-blacksmith-halfling-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-blacksmith-halfling-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-blacksmith-halfling-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-blacksmith-halfling-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-blacksmith-halfling-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-blacksmith-halfling-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-blacksmith-halfling-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-blacksmith-halfling-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-blacksmith-halfling-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-blacksmith-halfling-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "halfling",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-blacksmith-human-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-blacksmith-human-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-blacksmith-human-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-blacksmith-human-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-blacksmith-human-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-blacksmith-human-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-blacksmith-human-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-blacksmith-human-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-blacksmith-human-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-blacksmith-human-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-blacksmith-human-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-blacksmith-human-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-blacksmith-human-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-blacksmith-human-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-blacksmith-human-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-blacksmith-human-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-blacksmith-human-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-blacksmith-human-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "human",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-blacksmith-kaldar-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-blacksmith-kaldar-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-blacksmith-kaldar-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-blacksmith-kaldar-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-blacksmith-kaldar-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-blacksmith-kaldar-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-blacksmith-kaldar-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-blacksmith-kaldar-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-blacksmith-kaldar-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-blacksmith-kaldar-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-blacksmith-kaldar-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-blacksmith-kaldar-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-blacksmith-kaldar-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-blacksmith-kaldar-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-blacksmith-kaldar-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-blacksmith-kaldar-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-blacksmith-kaldar-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-blacksmith-kaldar-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "kaldar",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-blacksmith-prydaen-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-blacksmith-prydaen-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-blacksmith-prydaen-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-blacksmith-prydaen-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-blacksmith-prydaen-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-blacksmith-prydaen-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-blacksmith-prydaen-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-blacksmith-prydaen-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-blacksmith-prydaen-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-blacksmith-prydaen-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-blacksmith-prydaen-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-blacksmith-prydaen-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-blacksmith-prydaen-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-blacksmith-prydaen-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-blacksmith-prydaen-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-blacksmith-prydaen-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-blacksmith-prydaen-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-blacksmith-prydaen-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "prydaen",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-blacksmith-rakash-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-blacksmith-rakash-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-blacksmith-rakash-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-blacksmith-rakash-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-blacksmith-rakash-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-blacksmith-rakash-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-blacksmith-rakash-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-blacksmith-rakash-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-blacksmith-rakash-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-blacksmith-rakash-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-blacksmith-rakash-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-blacksmith-rakash-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-blacksmith-rakash-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-blacksmith-rakash-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-blacksmith-rakash-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-blacksmith-rakash-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-blacksmith-rakash-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-blacksmith-rakash-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "rakash",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-blacksmith-s-kra-mur-female-0.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-blacksmith-s-kra-mur-female-1.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-blacksmith-s-kra-mur-female-2.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-blacksmith-s-kra-mur-female-3.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-blacksmith-s-kra-mur-female-4.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-blacksmith-s-kra-mur-female-5.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-blacksmith-s-kra-mur-female-6.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-blacksmith-s-kra-mur-female-7.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-blacksmith-s-kra-mur-female-8.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-blacksmith-s-kra-mur-male-0.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-blacksmith-s-kra-mur-male-1.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-blacksmith-s-kra-mur-male-2.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-blacksmith-s-kra-mur-male-3.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-blacksmith-s-kra-mur-male-4.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-blacksmith-s-kra-mur-male-5.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-blacksmith-s-kra-mur-male-6.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-blacksmith-s-kra-mur-male-7.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-blacksmith-s-kra-mur-male-8.webp": {
+  "tags": [
+   "blacksmith",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "blacksmith",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-guard-dwarf-female-0.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-guard-dwarf-female-1.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-guard-dwarf-female-2.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-guard-dwarf-female-3.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-guard-dwarf-female-4.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-guard-dwarf-female-5.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-guard-dwarf-female-6.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-guard-dwarf-female-7.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-guard-dwarf-female-8.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-guard-dwarf-male-0.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-guard-dwarf-male-1.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-guard-dwarf-male-2.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-guard-dwarf-male-3.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-guard-dwarf-male-4.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-guard-dwarf-male-5.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-guard-dwarf-male-6.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-guard-dwarf-male-7.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-guard-dwarf-male-8.webp": {
+  "tags": [
+   "guard",
+   "dwarf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-guard-elf-female-0.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-guard-elf-female-1.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-guard-elf-female-2.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-guard-elf-female-3.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-guard-elf-female-4.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-guard-elf-female-5.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-guard-elf-female-6.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-guard-elf-female-7.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-guard-elf-female-8.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-guard-elf-male-0.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-guard-elf-male-1.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-guard-elf-male-2.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-guard-elf-male-3.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-guard-elf-male-4.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-guard-elf-male-5.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-guard-elf-male-6.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-guard-elf-male-7.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-guard-elf-male-8.webp": {
+  "tags": [
+   "guard",
+   "elf",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-guard-elothean-female-0.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-guard-elothean-female-1.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-guard-elothean-female-2.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-guard-elothean-female-3.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-guard-elothean-female-4.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-guard-elothean-female-5.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-guard-elothean-female-6.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-guard-elothean-female-7.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-guard-elothean-female-8.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-guard-elothean-male-0.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-guard-elothean-male-1.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-guard-elothean-male-2.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-guard-elothean-male-3.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-guard-elothean-male-4.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-guard-elothean-male-5.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-guard-elothean-male-6.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-guard-elothean-male-7.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-guard-elothean-male-8.webp": {
+  "tags": [
+   "guard",
+   "elothean",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-guard-gnome-female-0.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-guard-gnome-female-1.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-guard-gnome-female-2.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-guard-gnome-female-3.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-guard-gnome-female-4.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-guard-gnome-female-5.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-guard-gnome-female-6.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-guard-gnome-female-7.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-guard-gnome-female-8.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-guard-gnome-male-0.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-guard-gnome-male-1.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-guard-gnome-male-2.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-guard-gnome-male-3.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-guard-gnome-male-4.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-guard-gnome-male-5.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-guard-gnome-male-6.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-guard-gnome-male-7.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-guard-gnome-male-8.webp": {
+  "tags": [
+   "guard",
+   "gnome",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-guard-gor-tog-female-0.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-guard-gor-tog-female-1.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-guard-gor-tog-female-2.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-guard-gor-tog-female-3.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-guard-gor-tog-female-4.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-guard-gor-tog-female-5.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-guard-gor-tog-female-6.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-guard-gor-tog-female-7.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-guard-gor-tog-female-8.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-guard-gor-tog-male-0.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-guard-gor-tog-male-1.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-guard-gor-tog-male-2.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-guard-gor-tog-male-3.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-guard-gor-tog-male-4.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-guard-gor-tog-male-5.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-guard-gor-tog-male-6.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-guard-gor-tog-male-7.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-guard-gor-tog-male-8.webp": {
+  "tags": [
+   "guard",
+   "gor-tog",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-guard-halfling-female-0.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-guard-halfling-female-1.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-guard-halfling-female-2.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-guard-halfling-female-3.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-guard-halfling-female-4.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-guard-halfling-female-5.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-guard-halfling-female-6.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-guard-halfling-female-7.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-guard-halfling-female-8.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-guard-halfling-male-0.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-guard-halfling-male-1.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-guard-halfling-male-2.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-guard-halfling-male-3.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-guard-halfling-male-4.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-guard-halfling-male-5.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-guard-halfling-male-6.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-guard-halfling-male-7.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-guard-halfling-male-8.webp": {
+  "tags": [
+   "guard",
+   "halfling",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-guard-human-female-0.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-guard-human-female-1.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-guard-human-female-2.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-guard-human-female-3.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-guard-human-female-4.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-guard-human-female-5.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-guard-human-female-6.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-guard-human-female-7.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-guard-human-female-8.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-guard-human-male-0.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-guard-human-male-1.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-guard-human-male-2.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-guard-human-male-3.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-guard-human-male-4.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-guard-human-male-5.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-guard-human-male-6.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-guard-human-male-7.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-guard-human-male-8.webp": {
+  "tags": [
+   "guard",
+   "human",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-guard-kaldar-female-0.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-guard-kaldar-female-1.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-guard-kaldar-female-2.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-guard-kaldar-female-3.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-guard-kaldar-female-4.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-guard-kaldar-female-5.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-guard-kaldar-female-6.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-guard-kaldar-female-7.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-guard-kaldar-female-8.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-guard-kaldar-male-0.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-guard-kaldar-male-1.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-guard-kaldar-male-2.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-guard-kaldar-male-3.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-guard-kaldar-male-4.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-guard-kaldar-male-5.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-guard-kaldar-male-6.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-guard-kaldar-male-7.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-guard-kaldar-male-8.webp": {
+  "tags": [
+   "guard",
+   "kaldar",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-guard-prydaen-female-0.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-guard-prydaen-female-1.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-guard-prydaen-female-2.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-guard-prydaen-female-3.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-guard-prydaen-female-4.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-guard-prydaen-female-5.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-guard-prydaen-female-6.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-guard-prydaen-female-7.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-guard-prydaen-female-8.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-guard-prydaen-male-0.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-guard-prydaen-male-1.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-guard-prydaen-male-2.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-guard-prydaen-male-3.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-guard-prydaen-male-4.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-guard-prydaen-male-5.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-guard-prydaen-male-6.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-guard-prydaen-male-7.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-guard-prydaen-male-8.webp": {
+  "tags": [
+   "guard",
+   "prydaen",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-guard-rakash-female-0.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-guard-rakash-female-1.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-guard-rakash-female-2.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-guard-rakash-female-3.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-guard-rakash-female-4.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-guard-rakash-female-5.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-guard-rakash-female-6.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-guard-rakash-female-7.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-guard-rakash-female-8.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "female"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-guard-rakash-male-0.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-guard-rakash-male-1.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-guard-rakash-male-2.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-guard-rakash-male-3.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-guard-rakash-male-4.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-guard-rakash-male-5.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-guard-rakash-male-6.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-guard-rakash-male-7.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-guard-rakash-male-8.webp": {
+  "tags": [
+   "guard",
+   "rakash",
+   "male"
+  ],
+  "role": "guard",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-guard-s-kra-mur-female-0.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-guard-s-kra-mur-female-1.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-guard-s-kra-mur-female-2.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-guard-s-kra-mur-female-3.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-guard-s-kra-mur-female-4.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-guard-s-kra-mur-female-5.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-guard-s-kra-mur-female-6.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-guard-s-kra-mur-female-7.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-guard-s-kra-mur-female-8.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-guard-s-kra-mur-male-0.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-guard-s-kra-mur-male-1.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-guard-s-kra-mur-male-2.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-guard-s-kra-mur-male-3.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-guard-s-kra-mur-male-4.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-guard-s-kra-mur-male-5.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-guard-s-kra-mur-male-6.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-guard-s-kra-mur-male-7.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-guard-s-kra-mur-male-8.webp": {
+  "tags": [
+   "guard",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "guard",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-merchant-dwarf-female-0.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-merchant-dwarf-female-1.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-merchant-dwarf-female-2.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-merchant-dwarf-female-3.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-merchant-dwarf-female-4.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-merchant-dwarf-female-5.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-merchant-dwarf-female-6.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-merchant-dwarf-female-7.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-merchant-dwarf-female-8.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "female"
+ },
+ "npc-merchant-dwarf-male-0.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-merchant-dwarf-male-1.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-merchant-dwarf-male-2.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-merchant-dwarf-male-3.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-merchant-dwarf-male-4.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-merchant-dwarf-male-5.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-merchant-dwarf-male-6.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-merchant-dwarf-male-7.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-merchant-dwarf-male-8.webp": {
+  "tags": [
+   "merchant",
+   "dwarf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Dwarf",
+  "gender": "male"
+ },
+ "npc-merchant-elf-female-0.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-merchant-elf-female-1.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-merchant-elf-female-2.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-merchant-elf-female-3.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-merchant-elf-female-4.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-merchant-elf-female-5.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-merchant-elf-female-6.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-merchant-elf-female-7.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-merchant-elf-female-8.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "female"
+ },
+ "npc-merchant-elf-male-0.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-merchant-elf-male-1.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-merchant-elf-male-2.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-merchant-elf-male-3.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-merchant-elf-male-4.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-merchant-elf-male-5.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-merchant-elf-male-6.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-merchant-elf-male-7.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-merchant-elf-male-8.webp": {
+  "tags": [
+   "merchant",
+   "elf",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elf",
+  "gender": "male"
+ },
+ "npc-merchant-elothean-female-0.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-merchant-elothean-female-1.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-merchant-elothean-female-2.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-merchant-elothean-female-3.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-merchant-elothean-female-4.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-merchant-elothean-female-5.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-merchant-elothean-female-6.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-merchant-elothean-female-7.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-merchant-elothean-female-8.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "female"
+ },
+ "npc-merchant-elothean-male-0.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-merchant-elothean-male-1.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-merchant-elothean-male-2.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-merchant-elothean-male-3.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-merchant-elothean-male-4.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-merchant-elothean-male-5.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-merchant-elothean-male-6.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-merchant-elothean-male-7.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-merchant-elothean-male-8.webp": {
+  "tags": [
+   "merchant",
+   "elothean",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Elothean",
+  "gender": "male"
+ },
+ "npc-merchant-gnome-female-0.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-merchant-gnome-female-1.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-merchant-gnome-female-2.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-merchant-gnome-female-3.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-merchant-gnome-female-4.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-merchant-gnome-female-5.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-merchant-gnome-female-6.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-merchant-gnome-female-7.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-merchant-gnome-female-8.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "female"
+ },
+ "npc-merchant-gnome-male-0.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-merchant-gnome-male-1.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-merchant-gnome-male-2.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-merchant-gnome-male-3.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-merchant-gnome-male-4.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-merchant-gnome-male-5.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-merchant-gnome-male-6.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-merchant-gnome-male-7.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-merchant-gnome-male-8.webp": {
+  "tags": [
+   "merchant",
+   "gnome",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gnome",
+  "gender": "male"
+ },
+ "npc-merchant-gor-tog-female-0.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-merchant-gor-tog-female-1.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-merchant-gor-tog-female-2.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-merchant-gor-tog-female-3.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-merchant-gor-tog-female-4.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-merchant-gor-tog-female-5.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-merchant-gor-tog-female-6.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-merchant-gor-tog-female-7.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-merchant-gor-tog-female-8.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "female"
+ },
+ "npc-merchant-gor-tog-male-0.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-merchant-gor-tog-male-1.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-merchant-gor-tog-male-2.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-merchant-gor-tog-male-3.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-merchant-gor-tog-male-4.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-merchant-gor-tog-male-5.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-merchant-gor-tog-male-6.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-merchant-gor-tog-male-7.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-merchant-gor-tog-male-8.webp": {
+  "tags": [
+   "merchant",
+   "gor-tog",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Gor'Tog",
+  "gender": "male"
+ },
+ "npc-merchant-halfling-female-0.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-merchant-halfling-female-1.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-merchant-halfling-female-2.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-merchant-halfling-female-3.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-merchant-halfling-female-4.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-merchant-halfling-female-5.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-merchant-halfling-female-6.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-merchant-halfling-female-7.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-merchant-halfling-female-8.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "female"
+ },
+ "npc-merchant-halfling-male-0.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-merchant-halfling-male-1.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-merchant-halfling-male-2.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-merchant-halfling-male-3.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-merchant-halfling-male-4.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-merchant-halfling-male-5.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-merchant-halfling-male-6.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-merchant-halfling-male-7.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-merchant-halfling-male-8.webp": {
+  "tags": [
+   "merchant",
+   "halfling",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Halfling",
+  "gender": "male"
+ },
+ "npc-merchant-human-female-0.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-merchant-human-female-1.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-merchant-human-female-2.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-merchant-human-female-3.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-merchant-human-female-4.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-merchant-human-female-5.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-merchant-human-female-6.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-merchant-human-female-7.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-merchant-human-female-8.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "female"
+ },
+ "npc-merchant-human-male-0.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-merchant-human-male-1.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-merchant-human-male-2.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-merchant-human-male-3.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-merchant-human-male-4.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-merchant-human-male-5.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-merchant-human-male-6.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-merchant-human-male-7.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-merchant-human-male-8.webp": {
+  "tags": [
+   "merchant",
+   "human",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-merchant-kaldar-female-0.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-merchant-kaldar-female-1.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-merchant-kaldar-female-2.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-merchant-kaldar-female-3.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-merchant-kaldar-female-4.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-merchant-kaldar-female-5.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-merchant-kaldar-female-6.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-merchant-kaldar-female-7.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-merchant-kaldar-female-8.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "female"
+ },
+ "npc-merchant-kaldar-male-0.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-merchant-kaldar-male-1.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-merchant-kaldar-male-2.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-merchant-kaldar-male-3.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-merchant-kaldar-male-4.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-merchant-kaldar-male-5.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-merchant-kaldar-male-6.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-merchant-kaldar-male-7.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-merchant-kaldar-male-8.webp": {
+  "tags": [
+   "merchant",
+   "kaldar",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Kaldar",
+  "gender": "male"
+ },
+ "npc-merchant-prydaen-female-0.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-merchant-prydaen-female-1.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-merchant-prydaen-female-2.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-merchant-prydaen-female-3.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-merchant-prydaen-female-4.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-merchant-prydaen-female-5.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-merchant-prydaen-female-6.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-merchant-prydaen-female-7.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-merchant-prydaen-female-8.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "female"
+ },
+ "npc-merchant-prydaen-male-0.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-merchant-prydaen-male-1.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-merchant-prydaen-male-2.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-merchant-prydaen-male-3.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-merchant-prydaen-male-4.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-merchant-prydaen-male-5.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-merchant-prydaen-male-6.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-merchant-prydaen-male-7.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-merchant-prydaen-male-8.webp": {
+  "tags": [
+   "merchant",
+   "prydaen",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Prydaen",
+  "gender": "male"
+ },
+ "npc-merchant-rakash-female-0.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-merchant-rakash-female-1.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-merchant-rakash-female-2.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-merchant-rakash-female-3.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-merchant-rakash-female-4.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-merchant-rakash-female-5.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-merchant-rakash-female-6.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-merchant-rakash-female-7.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-merchant-rakash-female-8.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "female"
+ },
+ "npc-merchant-rakash-male-0.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-merchant-rakash-male-1.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-merchant-rakash-male-2.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-merchant-rakash-male-3.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-merchant-rakash-male-4.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-merchant-rakash-male-5.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-merchant-rakash-male-6.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-merchant-rakash-male-7.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-merchant-rakash-male-8.webp": {
+  "tags": [
+   "merchant",
+   "rakash",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "Rakash",
+  "gender": "male"
+ },
+ "npc-merchant-s-kra-mur-female-0.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-merchant-s-kra-mur-female-1.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-merchant-s-kra-mur-female-2.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-merchant-s-kra-mur-female-3.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-merchant-s-kra-mur-female-4.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-merchant-s-kra-mur-female-5.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-merchant-s-kra-mur-female-6.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-merchant-s-kra-mur-female-7.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-merchant-s-kra-mur-female-8.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "female"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "female"
+ },
+ "npc-merchant-s-kra-mur-male-0.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-merchant-s-kra-mur-male-1.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-merchant-s-kra-mur-male-2.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-merchant-s-kra-mur-male-3.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-merchant-s-kra-mur-male-4.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-merchant-s-kra-mur-male-5.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-merchant-s-kra-mur-male-6.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-merchant-s-kra-mur-male-7.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-merchant-s-kra-mur-male-8.webp": {
+  "tags": [
+   "merchant",
+   "s-kra-mur",
+   "male"
+  ],
+  "role": "merchant",
+  "race": "S'Kra Mur",
+  "gender": "male"
+ },
+ "npc-priest-human-male-0.webp": {
+  "tags": [
+   "priest",
+   "human",
+   "male"
+  ],
+  "role": "priest",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-priest-human-male-1.webp": {
+  "tags": [
+   "priest",
+   "human",
+   "male"
+  ],
+  "role": "priest",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-priest-human-male-2.webp": {
+  "tags": [
+   "priest",
+   "human",
+   "male"
+  ],
+  "role": "priest",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-priest-human-male-3.webp": {
+  "tags": [
+   "priest",
+   "human",
+   "male"
+  ],
+  "role": "priest",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-priest-human-male-4.webp": {
+  "tags": [
+   "priest",
+   "human",
+   "male"
+  ],
+  "role": "priest",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-priest-human-male-5.webp": {
+  "tags": [
+   "priest",
+   "human",
+   "male"
+  ],
+  "role": "priest",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-priest-human-male-6.webp": {
+  "tags": [
+   "priest",
+   "human",
+   "male"
+  ],
+  "role": "priest",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-priest-human-male-7.webp": {
+  "tags": [
+   "priest",
+   "human",
+   "male"
+  ],
+  "role": "priest",
+  "race": "Human",
+  "gender": "male"
+ },
+ "npc-priest-human-male-8.webp": {
+  "tags": [
+   "priest",
+   "human",
+   "male"
+  ],
+  "role": "priest",
+  "race": "Human",
+  "gender": "male"
+ }
+}
