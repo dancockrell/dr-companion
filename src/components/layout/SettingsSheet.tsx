@@ -1,11 +1,11 @@
 /**
- * Lightweight settings sheet — mode, bridge, pin, about.
+ * Lightweight settings sheet — bridge, pin, about.
  * Opened from the gear in AppControls.
  */
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
-import { isTauri } from '../../lib/tauri'
+import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
 import { TRAIN_FOCUS_OPTIONS } from '../../data/training'
 import { HEAL_CITIES } from '../../data/healers'
 import { ProfilesPanel } from './ProfilesPanel'
@@ -19,18 +19,14 @@ import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
 import { loadPrefs } from '../../lib/persistence'
-import {
-  MIDDLE_PANEL_IDS,
-  MIDDLE_PANEL_LABELS,
-  setPanelHidden,
-  useHiddenMiddlePanels,
-} from '../../lib/panelVisibility'
 import { useDismiss } from '../../lib/useDismiss'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
   // button always matches what is actually rendering.
   const [scale, setScale] = useState(() => initTypeScale())
+  const alwaysOnTop = useAppStore((s) => s.alwaysOnTop)
+  const setAlwaysOnTopState = useAppStore((s) => s.setAlwaysOnTop)
   const bridgeMode = useAppStore((s) => s.bridgeMode)
   const setBridgeMode = useAppStore((s) => s.setBridgeMode)
   const connectBridge = useAppStore((s) => s.connectBridge)
@@ -55,7 +51,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // it and does not report it back; the select would otherwise sit on its
   // default while the app showed somebody else.
   const [demoPreset, setDemoPreset] = useState(() => loadPrefs().demoPreset ?? 'basic_prime')
-  const hiddenPanels = useHiddenMiddlePanels()
   useDismiss(onClose)
 
   return (
@@ -80,49 +75,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-4 space-y-5 text-sm">
-          {/* Interface mode (Basic/Power) itself isn't repeated here - it's
-              the always-visible toggle top-right in the window frame
-              (AppControls.tsx), and a second copy of the same two buttons in
-              a sheet you have to open to reach was a control with two homes
-              and no reason for the second one. This section is about a
-              different, finer-grained decision: which boxes show at all,
-              layered on top of whichever set Basic/Power already picked -
-              see panelVisibility.ts's own header for why that's not the same
-              lever as the mode toggle. Unticking one here removes it
-              regardless of mode; a box the current mode doesn't show at all
-              (Risk, say, in Basic) still lists here so switching to Power
-              later doesn't silently un-hide something turned off on
-              purpose. */}
-          <section className="space-y-2">
-            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
-              Dashboard panels
-            </h3>
-            <p className="text-xs text-ink-faint leading-snug">
-              Basic/Power (top right of the window) picks the starting set;
-              Power adds rankings and denser controls. Turn any of these off
-              individually on top of that - this only ever removes further,
-              never brings back something the mode itself hides.
-            </p>
-            <div className="grid grid-cols-2 gap-1.5">
-              {MIDDLE_PANEL_IDS.map((id) => {
-                const on = !hiddenPanels.has(id)
-                return (
-                  <label
-                    key={id}
-                    className="flex items-center gap-2 rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={(e) => setPanelHidden(id, !e.target.checked)}
-                    />
-                    {MIDDLE_PANEL_LABELS[id]}
-                  </label>
-                )
-              })}
-            </div>
-          </section>
-
           <ProfilesPanel />
 
           <section className="space-y-2">
@@ -202,6 +154,29 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                   shows what this app does badly.
                 </span>
               </label>
+            )}
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
+              Window
+            </h3>
+            <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+              <span className="text-ink-muted">Always on top</span>
+              <input
+                type="checkbox"
+                checked={alwaysOnTop}
+                onChange={async (e) => {
+                  const v = e.target.checked
+                  setAlwaysOnTopState(v)
+                  await setAlwaysOnTop(v)
+                }}
+              />
+            </label>
+            {!isTauri() && (
+              <p className="text-xs text-ink-faint">
+                Pin works fully inside the Tauri desktop app.
+              </p>
             )}
           </section>
 

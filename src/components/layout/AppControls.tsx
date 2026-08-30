@@ -30,8 +30,6 @@ export function AppControls() {
   const bridgeMode = useAppStore((s) => s.bridgeMode)
   const character = useAppStore((s) => s.character)
   const setupComplete = useAppStore((s) => s.setupComplete)
-  const uiMode = useAppStore((s) => s.uiMode)
-  const setUiMode = useAppStore((s) => s.setUiMode)
   const mapDock = useMapDock()
 
   const live = setupComplete && bridgeConnected && character?.connected === true
@@ -76,24 +74,6 @@ export function AppControls() {
               )}
             />
             {live ? (bridgeMode === 'mock' ? 'Mock' : 'Live') : bridgeMode === 'live' ? '…' : 'Idle'}
-          </span>
-        )}
-
-        {setupComplete && (
-          <span className="pointer-events-auto flex overflow-hidden rounded border border-border">
-            {(['basic', 'power'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={cn(
-                  'px-1.5 py-0.5 text-xs capitalize',
-                  uiMode === m ? 'bg-accent/15 text-accent' : 'text-ink-faint hover:text-ink'
-                )}
-                onClick={() => setUiMode(m)}
-              >
-                {m}
-              </button>
-            ))}
           </span>
         )}
 
