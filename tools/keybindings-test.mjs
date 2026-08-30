@@ -66,6 +66,25 @@ console.log('\n-- Escape is the one exception: it works even while typing --')
   ok('Escape while typing still stops', resolveKeybinding({ key: 'Escape', code: 'Escape' }, true), { kind: 'stop' })
 }
 
+console.log('\n-- Digit1..Digit9 switch Quick Switch slots, zero-indexed --')
+{
+  // code, not key: Shift+1 on a US layout still reports code "Digit1", and
+  // the slot it should reach does not care whether Shift was held.
+  const cases = [
+    ['Digit1', 0], ['Digit2', 1], ['Digit3', 2], ['Digit4', 3], ['Digit5', 4],
+    ['Digit6', 5], ['Digit7', 6], ['Digit8', 7], ['Digit9', 8],
+  ]
+  for (const [code, slot] of cases) {
+    ok(`${code} -> slot ${slot}`, resolveKeybinding({ key: code, code }, false), { kind: 'quickswitch', slot })
+  }
+  ok('Digit0 is unbound — there is no slot 0 or 10', resolveKeybinding({ key: 'Digit0', code: 'Digit0' }, false), null)
+  ok('a digit key does nothing while typing — "3" in a sentence is not a slot switch',
+    resolveKeybinding({ key: '3', code: 'Digit3' }, true), null)
+  // NumPad already owns movement; a top-row digit must not also walk, or
+  // pressing "5" to reach slot 4 would collide with NumPad5's "out".
+  ok('Digit5 does not collide with NumPad5 (out)', resolveKeybinding({ key: '5', code: 'Digit5' }, false), { kind: 'quickswitch', slot: 4 })
+}
+
 // installKeybindings itself is not tested here, deliberately rather than by
 // omission: it calls the real global `window.addEventListener`, which does
 // not exist in plain Node, and a mock would only be testing that the mock

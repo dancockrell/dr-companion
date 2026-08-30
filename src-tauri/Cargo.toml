@@ -27,14 +27,14 @@ reqwest = { version = "0.12", default-features = false, features = [
   "charset",
   "http2",
 ] }
-sha2 = "0.10"
+sha2 = "0.11"
 # git blob hashing, to verify files that ship in a repo rather than a release
-sha1 = "0.10"
+sha1 = "0.11"
 # One thing: OS randomness for the script API's connection token
 # (script_api.rs). Tiny, audited, no_std-friendly - not pulling in a full
 # `rand` for one call to getrandom().
-getrandom = "0.2"
-zip = { version = "2", default-features = false, features = ["deflate"] }
+getrandom = "0.4"
+zip = { version = "8", default-features = false, features = ["deflate"] }
 # "rt" for spawn_blocking, which keeps the multi-second lich_status off the
 # UI thread - see lich.rs. "macros" for tokio::join!. Tauri supplies the
 # runtime itself; these are the pieces this crate names directly.

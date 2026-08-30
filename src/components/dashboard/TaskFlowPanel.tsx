@@ -46,7 +46,17 @@
  * here, because there is no timer to get out of step with.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FilePlus2, FolderOpen, Gem, Pencil, Play, RefreshCw, Search, Square } from 'lucide-react'
+import {
+  FilePlus2,
+  FolderOpen,
+  Gem,
+  Pencil,
+  Play,
+  RefreshCw,
+  Search,
+  Square,
+  Star,
+} from 'lucide-react'
 import {
   onTaskLine,
   onTaskState,
@@ -75,6 +85,8 @@ import { onStopAll, onStartFlow } from '../../lib/flowStop'
 import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
+import { readJSON, writeJSON } from '../../lib/storage'
+import type { QuickSwitchPin } from '../../lib/quickSwitch'
 
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200
@@ -82,6 +94,46 @@ const KEEP_LINES = 200
 /** Ruby scripts are grouped under this, after every task category - see the
  * module comment: the only thing the Python catalog cannot already cover. */
 const RUBY_CATEGORY = 'Lich scripts'
+
+/**
+ * Where a player's own tile arrangement lives.
+ *
+ * A plain array of task ids, not a map or anything keyed - the catalog is
+ * re-read on every `refresh()` (a task can appear or disappear between
+ * sessions, same as the panel already handles), so the only thing worth
+ * remembering is *where* an id goes when it's present, not any data about
+ * the task itself. Unknown ids in a stored order (a task that got renamed or
+ * removed) are silently dropped by `orderTasks` below rather than left as
+ * dead weight or an error - a stale entry here costs nothing to lose.
+ */
+const TILE_ORDER_KEY = 'dr-companion:task-tile-order'
+
+/**
+ * The catalog's own order, with a player's saved arrangement applied on top.
+ *
+ * Ids from `order` come first, in that sequence, filtered to only the ones
+ * `tasks` actually has right now; anything `order` doesn't mention - new
+ * since it was saved, or never moved - keeps the catalog's own relative
+ * order and is appended after. So a fresh install (empty order) is
+ * indistinguishable from the catalog's natural order, and adding one new
+ * task never reshuffles everything the player already arranged.
+ */
+function orderTasks(tasks: TaskInfo[], order: string[]): TaskInfo[] {
+  const byId = new Map(tasks.map((t) => [t.id, t]))
+  const placed = new Set<string>()
+  const ordered: TaskInfo[] = []
+  for (const id of order) {
+    const t = byId.get(id)
+    if (t && !placed.has(id)) {
+      ordered.push(t)
+      placed.add(id)
+    }
+  }
+  for (const t of tasks) {
+    if (!placed.has(t.id)) ordered.push(t)
+  }
+  return ordered
+}
 
 /**
  * The built-in tasks' own curated icon, by id - unrelated to
@@ -138,6 +190,8 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   const addLog = useAppStore((s) => s.addLog)
   const setActiveFlow = useAppStore((s) => s.setActiveFlow)
   const startScript = useAppStore((s) => s.startScript)
+  const quickSwitchPins = useAppStore((s) => s.quickSwitchPins)
+  const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
 
   const [status, setStatus] = useState<PythonStatus | null>(null)
   const [scripts, setScripts] = useState<ScriptFile[]>([])
@@ -164,6 +218,13 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
     onPointerUp: gridOnPointerUp,
     onPointerCancel: gridOnPointerCancel,
   } = useDragScroll()
+
+  // A player's own arrangement of the task tiles, remembered per browser -
+  // see TILE_ORDER_KEY below for why this is a plain id list rather than
+  // anything richer.
+  const [tileOrder, setTileOrder] = useState<string[]>(() => readJSON(TILE_ORDER_KEY, []))
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     const [st, files, where] = await Promise.all([pythonStatus(), listScripts(), scriptDirs()])
@@ -249,6 +310,30 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
 
   const tasks: TaskInfo[] = useMemo(() => status?.tasks ?? [], [status])
   const rubyScripts = useMemo(() => scripts.filter((s) => s.lang === 'ruby'), [scripts])
+  const orderedTasks = useMemo(() => orderTasks(tasks, tileOrder), [tasks, tileOrder])
+
+  // Drop `id` where `overId` currently sits, everything between the two
+  // sliding over by one - the ordinary "pick it up, put it down here" a
+  // dragged tile is expected to do, rather than swapping the two positions
+  // and leaving a hole where the tile you dropped onto used to be.
+  const moveTile = useCallback(
+    (id: string, overId: string) => {
+      if (id === overId) return
+      const next = orderTasks(tasks, tileOrder).map((t) => t.id)
+      const from = next.indexOf(id)
+      if (from === -1) return
+      next.splice(from, 1)
+      // Re-found after removal: taking id out shifts every later index down
+      // by one, so overId's position before the splice is not where it
+      // lands after it.
+      const to = next.indexOf(overId)
+      if (to === -1) return
+      next.splice(to, 0, id)
+      setTileOrder(next)
+      writeJSON(TILE_ORDER_KEY, next)
+    },
+    [tasks, tileOrder]
+  )
 
   /**
    * One combined list: every Python task, then every Ruby script, filtered
@@ -263,7 +348,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
     const matches = (title: string, summary: string) =>
       !q || title.toLowerCase().includes(q) || summary.toLowerCase().includes(q)
 
-    const fromTasks: Entry[] = tasks
+    const fromTasks: Entry[] = orderedTasks
       .filter((t) => matches(t.title, t.summary))
       .map((t) => ({
         id: t.id,
@@ -303,7 +388,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
       }))
 
     return [...fromTasks, ...fromRuby]
-  }, [tasks, rubyScripts, filter, start, startScript, addLog])
+  }, [orderedTasks, rubyScripts, filter, start, startScript, addLog])
 
   const groups = useMemo(() => groupTasksByCategory(entries), [entries])
   const totalCount = tasks.length + rubyScripts.length
@@ -442,8 +527,59 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                   const iconKey = overrideKey ?? entry.baseIcon
                   const Icon = SCRIPT_ICON_COMPONENT[iconKey]
                   const active = running === entry.id
+                  const isDragging = draggingId === entry.id
+                  const isDropTarget =
+                    dropTargetId === entry.id && draggingId !== null && draggingId !== entry.id
+                  // Ruby scripts are identified to the bridge by name, not by
+                  // the synthetic `ruby.${name}` id this panel groups them
+                  // under - see quickSwitch.ts's own header on why a pin is a
+                  // tagged union rather than a bare id.
+                  const quickSwitchPin: QuickSwitchPin = entry.id.startsWith('ruby.')
+                    ? { kind: 'script', name: entry.id.slice('ruby.'.length) }
+                    : { kind: 'task', id: entry.id }
+                  const pinned = quickSwitchPins.some((p) =>
+                    p.kind === 'script'
+                      ? quickSwitchPin.kind === 'script' && p.name === quickSwitchPin.name
+                      : quickSwitchPin.kind === 'task' && p.id === quickSwitchPin.id
+                  )
                   return (
-                    <div key={entry.id} className="group relative">
+                    <div
+                      key={entry.id}
+                      className={cn(
+                        'group relative',
+                        isDragging && 'opacity-40',
+                        isDropTarget && 'scale-105 rounded ring-2 ring-accent ring-offset-1 ring-offset-surface'
+                      )}
+                      // Native HTML5 drag and drop, same mechanism Panel.tsx
+                      // uses for reordering the dashboard's own panels - one
+                      // gesture, pick it up and put it where you want it, no
+                      // arrows. The wrapper div is the drag surface (not the
+                      // button) so the reorder gesture and the pointer-based
+                      // grid-scroll gesture above don't fight over the same
+                      // element's events.
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = 'move'
+                        e.dataTransfer.setData('text/plain', entry.id)
+                        setDraggingId(entry.id)
+                      }}
+                      onDragEnd={() => {
+                        setDraggingId(null)
+                        setDropTargetId(null)
+                      }}
+                      onDragOver={(e) => {
+                        if (!draggingId || draggingId === entry.id) return
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        setDropTargetId(entry.id)
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        if (draggingId) moveTile(draggingId, entry.id)
+                        setDraggingId(null)
+                        setDropTargetId(null)
+                      }}
+                    >
                       <button
                         type="button"
                         onClick={entry.run}
@@ -451,7 +587,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                           e.preventDefault()
                           setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
                         }}
-                        title={`${entry.tooltip}\n\n(right-click to choose an icon)`}
+                        title={`${entry.tooltip}\n\n(right-click to choose an icon, drag to rearrange)`}
                         className={cn(
                           'flex w-full items-center justify-center rounded border py-2 transition-colors',
                           active
@@ -471,6 +607,25 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                       {active && (
                         <Play className="pointer-events-none absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-surface text-accent" />
                       )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleQuickSwitchPin(quickSwitchPin)
+                        }}
+                        title={
+                          pinned
+                            ? 'Unpin from the Quick Switch bar'
+                            : 'Pin to the Quick Switch bar — one click or a number key from anywhere in the app'
+                        }
+                        className={cn(
+                          'absolute -left-1 -top-1 rounded-full bg-surface p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
+                          pinned && 'opacity-100',
+                          pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
+                        )}
+                      >
+                        <Star className="h-2.5 w-2.5" fill={pinned ? 'currentColor' : 'none'} />
+                      </button>
                       {entry.editTarget && !dense && (
                         <button
                           type="button"

@@ -23,7 +23,6 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 
-
 /// Base64, by hand.
 ///
 /// The crate is in the lock file transitively but is not a direct dependency,

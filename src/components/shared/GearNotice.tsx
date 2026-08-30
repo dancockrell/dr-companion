@@ -49,13 +49,13 @@ export function GearNotice() {
   if (!conflicts.length || !hands || !worn) return null
 
   return (
-    <div className="mt-2 space-y-1.5">
+    <div className="mt-1.5 space-y-1">
       {conflicts.map((c) => {
         const { held, worn: wornItem } = conflictSubjects(c, hands, worn)
         return (
           <div
             key={c.id}
-            className="flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/10 px-2.5 py-2"
+            className="flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/10 px-2 py-1.5"
             // The game's own words, so anyone doubting the warning can check it
             // against what they saw rather than against our paraphrase of it.
             title={`${c.evidence}\n\nSeen ${c.seen}.`}

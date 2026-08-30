@@ -40,7 +40,7 @@ export function Box({
       )}
     >
       {(title || count !== undefined || action) && (
-      <header className="flex shrink-0 items-baseline gap-2 px-2 pt-1.5">
+      <header className="flex shrink-0 items-baseline gap-2 px-1.5 pt-1">
         {/* A heading with no text is worse to a screen reader than no
          * heading at all - "heading level 2, blank" is a landmark that
          * promises content and delivers nothing. `title` being omitted is
@@ -64,7 +64,7 @@ export function Box({
       </header>
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto p-2 pt-1.5">{children}</div>
+      <div className="min-h-0 flex-1 overflow-auto p-1.5 pt-1">{children}</div>
     </section>
   )
 }

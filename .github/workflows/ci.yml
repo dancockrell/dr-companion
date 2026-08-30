@@ -45,7 +45,7 @@ jobs:
     # 39 suites including a build; the old 15 was sized for ten of them.
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # test:all includes the Ruby bridge suites. Without Ruby they report
       # NOT RUN, which the runner exits non-zero for on purpose - a check that
@@ -55,7 +55,7 @@ jobs:
           ruby-version: '3.4'
           bundler-cache: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -82,9 +82,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -143,14 +143,14 @@ jobs:
       matrix:
         ruby: [3.2, 3.3, 3.4]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm

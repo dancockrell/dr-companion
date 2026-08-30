@@ -14,6 +14,7 @@ import { TogglesPanel } from '../shared/TogglesPanel'
 import { VarsPanel } from '../shared/VarsPanel'
 import { LinksPanel } from '../shared/LinksPanel'
 import { ScriptApiPanel } from '../shared/ScriptApiPanel'
+import { HuntingGroundsPanel } from '../shared/HuntingGroundsPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
@@ -269,6 +270,16 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             </label>
           </section>
 
+          {/* start_training has read huntMode/selectedHuntId/huntFavorites off
+              the store since the intent was written, and the mock bridge and
+              rankHuntingGrounds both honor them fully. Nothing ever set them -
+              see HuntingGroundsPanel.tsx for the full account. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
+              Hunting grounds
+            </h3>
+            <HuntingGroundsPanel />
+          </section>
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">

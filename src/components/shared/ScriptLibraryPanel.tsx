@@ -25,9 +25,10 @@
  * "Uncategorized" fallback below for a name `categoryOf` doesn't recognise.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ListTree } from 'lucide-react'
+import { Search, ListTree, Star } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { Button } from './Button'
+import { cn } from '../../lib/cn'
 
 export type ScriptCategoryLookup = (name: string) => string | undefined
 export type ScriptFilter = (name: string) => boolean
@@ -35,10 +36,12 @@ export type ScriptFilter = (name: string) => boolean
 const UNCATEGORIZED = 'Uncategorized'
 
 export function ScriptLibraryPanel({
-  dense = false,
   categoryOf,
   filter,
 }: {
+  /** Accepted for both call sites' benefit, but no longer read - see the
+   * `<section>`'s own comment below for why the padding it used to gate
+   * stopped needing a dense/non-dense distinction at all. */
   dense?: boolean
   categoryOf?: ScriptCategoryLookup
   filter?: ScriptFilter
@@ -48,6 +51,8 @@ export function ScriptLibraryPanel({
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
   const listScripts = useAppStore((s) => s.listScripts)
   const startScript = useAppStore((s) => s.startScript)
+  const quickSwitchPins = useAppStore((s) => s.quickSwitchPins)
+  const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
   const [query, setQuery] = useState('')
 
   // Ask once a bridge is actually there to answer. Re-asks on reconnect,
@@ -96,7 +101,11 @@ export function ScriptLibraryPanel({
   }
 
   return (
-    <section className={dense ? 'px-3 pb-2' : 'px-4 pb-3'}>
+    // No horizontal padding here: every mount of this panel (DashboardLayout's
+    // Box, FreeCanvas/Panel's pop-out wrapper) already pads its content — this
+    // section used to double it, one of them redundant on every single mount.
+    <section className="pb-1.5">
+
       <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
         <ListTree className="w-3.5 h-3.5" />
         Script Library
@@ -145,6 +154,7 @@ export function ScriptLibraryPanel({
                 {names.map((name) => {
                   const status = runningByName.get(name.toLowerCase())
                   const running = status === 'running' || status === 'paused'
+                  const pinned = quickSwitchPins.some((p) => p.kind === 'script' && p.name === name)
                   return (
                     <div
                       key={name}
@@ -164,15 +174,36 @@ export function ScriptLibraryPanel({
                           </span>
                         )}
                       </div>
-                      <Button
-                        size="sm"
-                        variant={running ? 'ghost' : 'secondary'}
-                        disabled={running}
-                        onClick={() => startScript(name)}
-                        className="shrink-0 text-xs px-2 py-1"
-                      >
-                        {running ? 'Running' : 'Start'}
-                      </Button>
+                      <div className="flex shrink-0 items-center gap-1">
+                        {/* Same star, same meaning, as TaskFlowPanel's — pin
+                            to the Quick Switch bar so this specific script
+                            is a keypress away without a scroll through the
+                            library to find it again. */}
+                        <button
+                          type="button"
+                          onClick={() => toggleQuickSwitchPin({ kind: 'script', name })}
+                          title={
+                            pinned
+                              ? 'Unpin from the Quick Switch bar'
+                              : 'Pin to the Quick Switch bar — one click or a number key from anywhere in the app'
+                          }
+                          className={cn(
+                            'rounded p-1',
+                            pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
+                          )}
+                        >
+                          <Star className="h-3 w-3" fill={pinned ? 'currentColor' : 'none'} />
+                        </button>
+                        <Button
+                          size="sm"
+                          variant={running ? 'ghost' : 'secondary'}
+                          disabled={running}
+                          onClick={() => startScript(name)}
+                          className="shrink-0 text-xs px-2 py-1"
+                        >
+                          {running ? 'Running' : 'Start'}
+                        </Button>
+                      </div>
                     </div>
                   )
                 })}

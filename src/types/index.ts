@@ -16,6 +16,7 @@ import type {
   VarsEntry,
 } from '../bridge/types'
 import type { Trail } from '../lib/trail'
+import type { QuickSwitchPin } from '../lib/quickSwitch'
 
 export type { SkillState }
 export type { CharacterProfile }
@@ -198,6 +199,34 @@ export interface TeachingClass {
   skill: string
 }
 
+/**
+ * The eight base stats, TDPs, luck and native mana type — from
+ * `Lich::DragonRealms::DRStats`, itself filled from the game's own
+ * `<component id='exp tdp'>` and stat-window tags. Nothing here is
+ * computed or guessed; every field is a number or string the character
+ * sheet already shows.
+ *
+ * Absent entirely (not present-with-nulls) until the first successful
+ * read, same contract as `injuries`/`bleeding` — an older bridge simply
+ * never sends this key, and a client reading `stats` has to treat missing
+ * the same as "not known yet," never as zero.
+ */
+export interface CharacterStats {
+  strength: number
+  stamina: number
+  reflex: number
+  agility: number
+  intelligence: number
+  wisdom: number
+  discipline: number
+  charisma: number
+  /** Training Development Points on hand, unspent. */
+  tdps: number
+  luck: number
+  /** null for guilds with no native mana type (Barbarian, Thief). */
+  nativeMana: string | null
+}
+
 export interface CharacterStatus {
   name: string
   instance: GameInstance
@@ -213,6 +242,13 @@ export interface CharacterStatus {
    */
   favors?: number
   encumbrance?: string
+  /**
+   * Base stats, TDPs, luck and native mana — see `CharacterStats`. Absent
+   * until the first successful read or on a bridge that predates this
+   * field; `null` in the payload (not a missing key) means the read was
+   * attempted and failed, same distinction the bridge draws for `race`.
+   */
+  stats?: CharacterStats | null
   /**
    * Per-skill ranks and mindstate. This is what drives training decisions:
    * a skill at mind lock earns nothing, so the answer to "what should I
@@ -503,6 +539,16 @@ export interface AppState {
    */
   activeFlow: string | null
   setActiveFlow: (v: string | null) => void
+  /**
+   * Tasks and scripts pinned to the Quick Switch bar, in slot order (index 0
+   * is key "1"). See lib/quickSwitch.ts for the tagged-union shape, the
+   * persistence and the cap. A pinned task is matched against `activeFlow`
+   * above by id (it already holds the running task's id, not just a
+   * sentence) to know which slot is live and whether pressing it again
+   * should stop it rather than restart it — see QuickSwitchBar.
+   */
+  quickSwitchPins: QuickSwitchPin[]
+  toggleQuickSwitchPin: (pin: QuickSwitchPin) => void
   /**
    * dr-scripts settings files, from the `read_settings` intent.
    *
