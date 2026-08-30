@@ -82,9 +82,11 @@ const TYPES = new Set<HighlightType>(['line', 'string', 'beginswith', 'regexp'])
  * A compiled regexp says nothing about what it costs to run. `(\w+\s?)+$` is
  * a pattern somebody writes meaning "a run of words to the end of the line",
  * it compiles without complaint, and against one ordinary room description it
- * did not finish in thirty seconds. `paint()` runs per rendered line and
- * GamePane keeps 400 in the DOM, so that is not a slow client, it is a client
- * that never paints again.
+ * did not finish in thirty seconds. `paint()` runs per rendered line -
+ * StreamTabs renders every line on a channel uncapped, and GameSignals' own
+ * alert-sound effect runs it over every newly-arrived line too (GamePane used
+ * to cap its own render at 400; nothing downstream of it does today) - so
+ * that is not a slow client, it is a client that never paints again.
  *
  * Catching it is possible because the cost is exponential in the input, so a
  * deliberately short probe separates the two populations by orders of

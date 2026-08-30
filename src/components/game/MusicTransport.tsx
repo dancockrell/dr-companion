@@ -170,7 +170,7 @@ export function MusicTransport({
 }) {
   const [now, setNow] = useState<NowPlaying | null>(() => nowPlaying())
   const [vol, setVol] = useState(() => musicVolume())
-  // Re-read at subscribe time, not only at first render - GamePane's own
+  // Re-read at subscribe time, not only at first render - GameSignals' own
   // mount effect (a sibling, not a parent) sets the initial station in *its*
   // effect, which can run after this component's render already captured
   // `now`/`vol` as null/0 but before this effect subscribes. A change that

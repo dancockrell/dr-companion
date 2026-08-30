@@ -14,8 +14,11 @@
  *
  * The live bridge reports a room on every step. Crossfading on every room
  * would restart the track eighteen times in ninety seconds in a room like
- * Firulf Vista (see GamePane.tsx's own header for that measurement) - the
- * exact thing background music must never do. A zone is stable for as long as
+ * Firulf Vista - a measurement recorded in GamePane.tsx's own header before
+ * that component was deleted (Dan's "kill the middle" layout change); see
+ * git history on that file rather than a live one for the detail, since
+ * nothing currently in the tree carries it - the exact thing background
+ * music must never do. A zone is stable for as long as
  * a hunting ground is, which is the granularity a "does this region feel
  * distinct" design actually wants. `setZone` is a no-op unless the zone id it
  * is given differs from the one already playing.
@@ -703,7 +706,7 @@ export function currentRadioStation(): string | null {
  * id or null to go back to zone music, plus the playlist's own track ids -
  * this module has no persisted playlist state of its own (see
  * `PlaylistPlayer`'s header), so the caller (playlists.ts's own reader, or
- * GamePane's restore-on-mount effect) hands them over rather than this
+ * GameSignals' restore-on-mount effect) hands them over rather than this
  * function looking them up itself. Mutually exclusive with a station and a
  * custom stream, same as those are with each other - only one thing ever
  * occupies the `music` slot.

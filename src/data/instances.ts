@@ -3,23 +3,25 @@
  *
  * Values from the Genie 4 wiki, "Connecting and Profiles". This lived inside
  * ConnectGuide, which is the right place to *teach* it and the wrong place to
- * *keep* it: the attach control in GamePane needs the same table to say which
- * game a port belongs to, and a second copy of four port numbers is a second
- * thing to forget to update.
+ * *keep* it: the attach control (GameConnectionBar.tsx - GamePane's, before
+ * that component was deleted in Dan's "kill the middle" layout change) needs
+ * the same table to say which game a port belongs to, and a second copy of
+ * four port numbers is a second thing to forget to update.
  *
- * Why GamePane needs it at all. The attach port is remembered between runs,
- * and a value stored during fixture testing is indistinguishable from a real
- * one — GamePane's own note says a `v1` key "got stuck on 11124 on this
- * machine for exactly that reason". The fix there was to stop guessing which
- * stored values are safe, which is right, and it leaves the player looking at
- * a bare five-digit number with nothing to check it against. Measured on the
+ * Why the attach control needs it at all. The attach port is remembered
+ * between runs, and a value stored during fixture testing is indistinguishable
+ * from a real one — GamePane's own note (recorded here since that file no
+ * longer exists) said a `v1` key "got stuck on 11124 on this machine for
+ * exactly that reason". The fix there was to stop guessing which stored
+ * values are safe, which is right, and it leaves the player looking at a
+ * bare five-digit number with nothing to check it against. Measured on the
  * real app: the pane read `--detachable-client=11124` while the character was
  * on Prime, whose port is 11024. 11124 is Platinum.
  *
  * Naming the instance is knowledge this app legitimately has — it is in the
  * setup guide already — and it turns a number nobody can verify into one
  * anybody can. It says nothing about fixtures, which is the line GamePane's
- * note draws and this respects.
+ * note drew and this respects.
  */
 import type { GameInstance } from '../types'
 

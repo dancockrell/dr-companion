@@ -13,8 +13,12 @@
  * should go to the text bar, changing that to the search bar." One box,
  * two modes: `searchOpen` decides whether it reads as a command field or a
  * filter field, never both. `query`/`setQuery` are lifted to GameChatColumn
- * because GamePane's own scroller needs to read the same value to filter
- * what it shows - see that file's header for why.
+ * because StreamTabs needs to read the same value to filter what it shows
+ * across every channel - see that file's own header. This used to be
+ * GamePane's scroller before that component was deleted (Dan's "kill the
+ * middle" layout change); the search toggle itself was left wired to
+ * nothing for one PR, which is worth naming rather than pretending it
+ * never happened - see StreamTabs.tsx's `query` prop doc.
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Send, Search } from 'lucide-react'

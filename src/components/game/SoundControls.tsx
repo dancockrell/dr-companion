@@ -276,12 +276,14 @@ export function SoundControls() {
   // than a prop.
   useEffect(() => onOpenSoundPanelRequest(() => setOpen(true)), [])
   // Read from `loadPrefs()`, not `alertsVolume()`/`musicVolume()` - those
-  // return whatever the module's own default is *right now*, and GamePane
-  // applies the persisted level to the same module in its own effect, in a
-  // separate render pass. Reading the module directly here raced that
-  // effect once already (see git history on this file) and produced a
-  // slider that showed a different number than what was actually playing.
-  // Reading the same snapshot GamePane's effect reads removes the race.
+  // return whatever the module's own default is *right now*, and
+  // GameSignals (GamePane's mount effect, before it was extracted out of
+  // that component - see its own header) applies the persisted level to
+  // the same module in its own effect, in a separate render pass. Reading
+  // the module directly here raced that effect once already (see git
+  // history on this file) and produced a slider that showed a different
+  // number than what was actually playing. Reading the same snapshot
+  // GameSignals' effect reads removes the race.
   const [alerts, setAlerts] = useState(() => loadPrefs().alertsVolume ?? alertsVolume())
   const [danger, setDanger] = useState(() => loadPrefs().dangerVolume ?? dangerVolume())
   const [speech, setSpeech] = useState(() => loadPrefs().speechVolume ?? speechVolume())
@@ -293,7 +295,8 @@ export function SoundControls() {
   // a full pub/sub like favorites.ts/playlists.ts) - only this one
   // component reads which playlist is playing right now. Still needs the
   // re-read-at-subscribe-time fix `now`/`crossfade` document elsewhere in
-  // this file, though: GamePane's own mount effect restores a remembered
+  // this file, though: GameSignals' own mount effect (GamePane's, before
+  // it moved - see GameSignals.tsx's header) restores a remembered
   // `activePlaylistId` in *its* effect, which can run after this
   // component's render already captured `currentPlaylistId()` as null but
   // before this one subscribes - measured live, this raced on every

@@ -57,7 +57,7 @@ export function GameChatColumn() {
           style={{ flexGrow: share, flexBasis: 0 }}
         >
           <PanelBoundary label="Channels">
-            <StreamTabs highlights={highlights} />
+            <StreamTabs highlights={highlights} query={query} />
           </PanelBoundary>
         </div>
 

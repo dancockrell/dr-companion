@@ -373,8 +373,10 @@ function asLinkState(v: unknown): LinkState | null {
  * reader thread has gone it reports `lich: "unknown"` and `note: "Not
  * attached."` - correct about the handle, and blind to the probe that ran
  * afterwards. Any call to it while detached would therefore overwrite "Lich
- * has exited" with silence, and `refreshGameState()` runs on every GamePane
- * mount, so a pop-out or a layout change is enough to trigger it.
+ * has exited" with silence, and `refreshGameState()` runs on every
+ * GameConnectionBar mount (GamePane's, before that component was deleted -
+ * see GameConnectionBar.tsx's own header), so a pop-out or a layout change
+ * is enough to trigger it.
  *
  * The rule is narrow on purpose: **never downgrade a definite verdict to
  * unknown while still detached.** An upgrade is exactly what the deliberate

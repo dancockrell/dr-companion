@@ -87,8 +87,9 @@ export interface PersistedPrefs {
   /**
    * A built-in station id (see ambientSound.ts's RADIO_STATIONS) remembered
    * across restarts, so picking a station once doesn't mean re-picking it
-   * every session. Mutually exclusive with `customStreamUrl` - GamePane's
-   * mount effect applies whichever one is set, preferring the custom stream
+   * every session. Mutually exclusive with `customStreamUrl` - GameSignals'
+   * mount effect (GamePane's, before that component was deleted) applies
+   * whichever one is set, preferring the custom stream
    * if somehow both are (shouldn't happen; setRadioStation/setCustomStream
    * each clear the other when applied).
    */
@@ -125,7 +126,7 @@ export interface PersistedPrefs {
   playlists?: Playlist[]
   /**
    * The playlist id playing right now, if any - restored on startup the
-   * same way `radioStation`/`customStreamUrl` are (GamePane's mount
+   * same way `radioStation`/`customStreamUrl` are (GameSignals' mount
    * effect), and mutually exclusive with both: playing a station, a stream,
    * or a playlist all override zone music in the same slot, and only one of
    * the three occupies it at a time - see ambientSound.ts's setPlaylist.

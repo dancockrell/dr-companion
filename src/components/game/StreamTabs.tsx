@@ -64,7 +64,24 @@ const logChannel = (t: string) => t.slice(LOG_PREFIX.length) as Channel
  */
 const LABELS = STREAM_LABELS
 
-export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
+export function StreamTabs({
+  highlights,
+  query = '',
+}: {
+  highlights: Highlight[]
+  /**
+   * Scrollback search, typed into GameCommandBar's shared input - see that
+   * file's own header. A plain case-insensitive substring across every
+   * channel's raw text, same semantics GamePane.tsx's search used before
+   * that component was deleted (Dan's "kill the middle" layout change):
+   * filtering answers "what did Wipsy say" across the *whole* buffer, not
+   * whatever the current tab happens to be showing, which is the entire
+   * point of a search existing at all. No regex - a typo in a regex
+   * silently matches nothing, and "no results" and "your pattern is
+   * broken" would render identically.
+   */
+  query?: string
+}) {
   const offClasses = useOffClasses()
   // Both of these subscribe, and both hand back a fresh identity when the
   // buffer changes - see useGameLines.ts. Reading the raw buffer instead is
@@ -74,6 +91,16 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
   const streams = useGameStreams()
   const logLines = useAppStore((s) => s.logLines)
   const [tab, setTab] = useState<string>(LOG_PREFIX + 'all')
+
+  const trimmedQuery = query.trim()
+  const searching = trimmedQuery.length > 0
+  const searchResults: GameLine[] = useMemo(
+    () =>
+      searching
+        ? allLines.filter((l) => l.text.toLowerCase().includes(trimmedQuery.toLowerCase()))
+        : [],
+    [searching, trimmedQuery, allLines]
+  )
 
   /**
    * Per-tab high-water marks, so an unread count means something.
@@ -228,6 +255,13 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
         })}
       </div>
 
+      {searching && (
+        <p className="shrink-0 border-b border-border px-2 py-1 text-xs text-ink-faint">
+          {searchResults.length} match{searchResults.length === 1 ? '' : 'es'} for "{trimmedQuery}"
+          across every channel
+        </p>
+      )}
+
       <div
         ref={scroller}
         onScroll={() => {
@@ -237,7 +271,15 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
         }}
         className="min-h-0 flex-1 overflow-y-auto px-2 py-1"
       >
-        {isLogTab(tab) ? (
+        {searching ? (
+          searchResults.length === 0 ? (
+            <p className="p-2 text-xs text-ink-faint">No matches.</p>
+          ) : (
+            searchResults.map((l) => (
+              <GameLineRow key={l.seq} line={l} highlights={highlights} offClasses={offClasses} />
+            ))
+          )
+        ) : isLogTab(tab) ? (
           linesFor(logLines, logChannel(tab)).map((l) => (
             <div key={l.seq} className="text-xs leading-snug text-ink-muted">
               <span className="text-ink-faint">{l.at} </span>
@@ -250,7 +292,7 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
           ))
         )}
 
-        {!isLogTab(tab) && shown.length === 0 && (
+        {!searching && !isLogTab(tab) && shown.length === 0 && (
           <p className="p-2 text-xs text-ink-faint">
             Nothing on this channel yet.
           </p>

@@ -51,7 +51,8 @@ let lastAny = 0
  * silent, not at a tuned "reasonable" level nobody asked for.
  *
  * Split into three channels (29 Aug 2026) - see this file's own header.
- * Persisted by the caller (GamePane), not here: this module has no opinion
+ * Persisted by the caller (GameSignals, née GamePane's own effect - see
+ * GameSignals.tsx's header), not here: this module has no opinion
  * about storage, only about what plays right now. `persistence.ts`'s
  * `alertsVolume`/`dangerVolume`/`speechVolume` are kept in sync by hand with
  * these three defaults, all 0, for the same "a first run should start

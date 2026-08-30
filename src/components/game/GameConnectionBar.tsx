@@ -13,7 +13,7 @@
  * which is a functional loss neither of those was supposed to take, since
  * both were asked to stay. So the control moves; only the log itself goes.
  */
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Plug, PlugZap, Info, Eraser, Link2, Unlink } from 'lucide-react'
 import {
   attachGame,
@@ -22,12 +22,14 @@ import {
   gameDropped,
   gameState,
   lichNote,
+  refreshGameState,
   subscribeGame,
 } from '../../lib/gameLink'
 import { useSyncExternalStore } from 'react'
 import { isTauri } from '../../lib/tauri'
 import { useHighlights } from '../../lib/useHighlights'
 import { useAliases } from '../../lib/useAliases'
+import { instanceForPort } from '../../data/instances'
 import { cn } from '../../lib/cn'
 
 const DEFAULT_PORT = '11024'
@@ -53,6 +55,17 @@ export function GameConnectionBar() {
   const { note: hlNote } = useHighlights()
   const { aliases, note: aliasNote } = useAliases()
 
+  // Ported from GamePane.tsx's own mount effect when that component was
+  // deleted (Dan's "kill the middle" layout change) - this call was missed
+  // in that PR, and this file being the connection's new home is why it
+  // belongs back here rather than in GameSignals.tsx. `game_status`
+  // re-probes the real backend state, which `adoptLink`'s own header
+  // explains matters for a stale "Lich has exited" verdict surviving a
+  // remount - a pop-out or, now, any layout change is enough to trigger it.
+  useEffect(() => {
+    void refreshGameState()
+  }, [])
+
   const [port, setPortState] = useState<string>(loadPort)
   const setPort = (v: string) => {
     setPortState(v)
@@ -62,6 +75,7 @@ export function GameConnectionBar() {
       // Private mode; the value still works for this session.
     }
   }
+  const portInstance = useMemo(() => instanceForPort(port), [port])
 
   return (
     <div className="flex min-w-0 shrink-0 items-center gap-2 border-b border-border px-2 py-1 text-xs">
@@ -124,9 +138,27 @@ export function GameConnectionBar() {
               value={port}
               onChange={(e) => setPort(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))}
               className="w-14 rounded border border-border bg-surface px-1 py-0.5 text-center tabular-nums text-ink-muted"
-              title="The port Lich opened with --detachable-client. 11024 is what this app uses when it launches Lich itself."
+              title={
+                portInstance
+                  ? `DragonRealms ${portInstance.label}. This app uses ${DEFAULT_PORT} when it launches Lich itself.`
+                  : 'The port Lich opened with --detachable-client. 11024 is what this app uses when it launches Lich itself.'
+              }
               disabled={!isTauri()}
             />
+            {/* Ported from GamePane.tsx's own empty-state message when that
+                component was deleted (Dan's "kill the middle" layout change)
+                - missed in that PR, and worth restoring: a remembered port
+                with no instance attached to it in words is how "Lich is not
+                running" gets reported against a Lich that is, just on the
+                wrong game. Measured on the real app once, per that file's
+                original comment: it read --detachable-client=11124 while the
+                character was on Prime, and 11124 is Platinum. Unrecognised
+                ports stay unlabelled rather than guessed at. */}
+            {portInstance && (
+              <span className="text-ink-faint" title={`DragonRealms ${portInstance.label}`}>
+                {portInstance.label}
+              </span>
+            )}
             <button
               type="button"
               className="rounded border border-accent/40 bg-accent/10 p-1 text-accent disabled:opacity-40"
