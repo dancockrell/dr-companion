@@ -15,6 +15,7 @@ import { ActionsPanel } from '../shared/ActionsPanel'
 import { TrainingPanel } from '../shared/TrainingPanel'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { RiskBar } from '../shared/RiskBar'
+import { StatsPanel } from '../shared/StatsPanel'
 import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
 import { PanelBoundary } from '../shared/PanelBoundary'
@@ -156,8 +157,8 @@ export function DashboardLayout({
   // show — a Power dashboard with Basic's breathing room would still look
   // like Basic with more boxes crammed into it. Never below the 12px type
   // floor DESIGN.md §1.5 sets; this only tightens the air around the type.
-  const gap = dense ? 'gap-1.5' : 'gap-2'
-  const pad = dense ? 'p-1.5' : 'p-2'
+  const gap = dense ? 'gap-1' : 'gap-1.5'
+  const pad = dense ? 'p-1' : 'p-1.5'
 
   return (
     // The map row has a floor. With plain 1fr it resolved to whatever was
@@ -250,6 +251,20 @@ export function DashboardLayout({
           <Box className="min-h-0">
             <PanelBoundary label="Risk">
               <RiskBar />
+            </PanelBoundary>
+          </Box>
+        )}
+
+        {/* Stats, right beside Risk: TDPs are the number that gates every
+         * training decision, and the eight base stats explain why a
+         * character struggles with encumbrance or fails a given check.
+         * Power only, same reasoning as Risk and Training - continuous
+         * character-sheet tracking Genie never put on one screen, not a
+         * beginner's first box. */}
+        {dense && (
+          <Box title="Stats" className="min-h-0">
+            <PanelBoundary label="Stats">
+              <StatsPanel dense={dense} />
             </PanelBoundary>
           </Box>
         )}

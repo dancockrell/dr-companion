@@ -35,10 +35,12 @@ export type ScriptFilter = (name: string) => boolean
 const UNCATEGORIZED = 'Uncategorized'
 
 export function ScriptLibraryPanel({
-  dense = false,
   categoryOf,
   filter,
 }: {
+  /** Accepted for both call sites' benefit, but no longer read - see the
+   * `<section>`'s own comment below for why the padding it used to gate
+   * stopped needing a dense/non-dense distinction at all. */
   dense?: boolean
   categoryOf?: ScriptCategoryLookup
   filter?: ScriptFilter
@@ -96,7 +98,11 @@ export function ScriptLibraryPanel({
   }
 
   return (
-    <section className={dense ? 'px-3 pb-2' : 'px-4 pb-3'}>
+    // No horizontal padding here: every mount of this panel (DashboardLayout's
+    // Box, FreeCanvas/Panel's pop-out wrapper) already pads its content — this
+    // section used to double it, one of them redundant on every single mount.
+    <section className="pb-1.5">
+
       <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
         <ListTree className="w-3.5 h-3.5" />
         Script Library

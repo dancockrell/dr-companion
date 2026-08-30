@@ -167,6 +167,20 @@ const presets: Record<DemoPresetId, DemoPreset> = {
       accountTier: 'basic',
       guild: 'barbarian',
       skillRanks: 55,
+      stats: {
+        strength: 70,
+        stamina: 65,
+        reflex: 55,
+        agility: 50,
+        intelligence: 30,
+        wisdom: 28,
+        discipline: 45,
+        charisma: 25,
+        tdps: 14,
+        luck: 1,
+        // Barbarians have no native mana type — see DRStats.GUILD_MANA_TYPES.
+        nativeMana: null,
+      },
       location: {
         title: 'Crossing – Town Square Central',
         zone: 'Crossing',
@@ -431,6 +445,25 @@ const presets: Record<DemoPresetId, DemoPreset> = {
       // The lowest rank count any preset has carried by a wide margin, which
       // is also the point: the app had never rendered a beginner.
       skillRanks: 5,
+      // TDPs (27) are the one number in this block actually read off the
+      // same live character the module comment above cites. The eight base
+      // stats are plausible for a Circle 1 Kaldar Bard rather than
+      // observed — replace them if a real character's STAT window gets
+      // read. Luck and nativeMana ('elemental', per DRStats.GUILD_MANA_TYPES
+      // for Bard) are not guesses; both are fixed game facts.
+      stats: {
+        strength: 45,
+        stamina: 50,
+        reflex: 40,
+        agility: 42,
+        intelligence: 38,
+        wisdom: 35,
+        discipline: 30,
+        charisma: 55,
+        tdps: 27,
+        luck: 3,
+        nativeMana: 'elemental',
+      },
       location: {
         title: 'Crossing – Firulf Vista',
         zone: 'Crossing',

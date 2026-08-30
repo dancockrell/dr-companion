@@ -293,6 +293,24 @@ end
 # getting lucky on an empty name matching nothing.
 module DRStats
   def self.name = 'Testchar'
+
+  # Base stats, TDPs, luck and native mana - issue #10's sibling gap for the
+  # character sheet rather than injuries: DRInfomon already tracks all of
+  # this from the game's own 'exp tdp' component and stat window, and none
+  # of it reached the bridge before. Distinct, checkable values (not 0s or
+  # round numbers) so a test asserting the wrong field, or fields swapped
+  # with each other, would actually fail rather than pass by coincidence.
+  def self.strength = 60
+  def self.stamina = 55
+  def self.reflex = 50
+  def self.agility = 45
+  def self.intelligence = 40
+  def self.wisdom = 35
+  def self.discipline = 30
+  def self.charisma = 25
+  def self.tdps = 12
+  def self.luck = 2
+  def self.native_mana = 'holy'
 end
 
 # Real files on disk, not a stubbed Yaml.profile_dirs override - read_settings
@@ -579,6 +597,19 @@ begin
   status = c.read_until('status')
   check('status follows, unprompted', !status.nil?)
   check('status has a payload', status && status['payload'].is_a?(Hash))
+
+  puts ''
+  puts '-- base stats, TDPs, luck and native mana ride the same status tick --'
+  stats = status && status['payload']['stats']
+  check(
+    'the whole block reads back exactly, not just individual fields',
+    stats == {
+      'strength' => 60, 'stamina' => 55, 'reflex' => 50, 'agility' => 45,
+      'intelligence' => 40, 'wisdom' => 35, 'discipline' => 30, 'charisma' => 25,
+      'tdps' => 12, 'luck' => 2, 'nativeMana' => 'holy'
+    },
+    stats.inspect
+  )
 
   puts ''
   puts '-- a request gets an answer --'

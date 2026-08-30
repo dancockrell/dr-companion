@@ -624,6 +624,31 @@ module Companion
         'circle'      => safe(0) { DRStats.circle.to_i },
         'favors'      => safe(0) { DRStats.favors.to_i },
         'encumbrance' => safe(nil) { DRStats.encumbrance.to_s },
+        # The eight base stats plus TDPs, luck and native mana type — all
+        # already tracked by DRInfomon from the game's own 'exp tdp' and
+        # stat-window components, and none of it previously left this
+        # module. TDPs in particular is the number a player actually needs
+        # before deciding what to train: the Training panel already shows
+        # mindstate per skill, but not what there is left to spend.
+        # Omitted as a group, not per-field, if the read fails - a
+        # half-populated stat block (seven numbers and one degraded gap)
+        # reads as more broken than an absent one the client already knows
+        # how to say "not asked yet" about.
+        'stats' => safe(nil, as: 'stats') {
+          {
+            'strength'     => DRStats.strength.to_i,
+            'stamina'      => DRStats.stamina.to_i,
+            'reflex'       => DRStats.reflex.to_i,
+            'agility'      => DRStats.agility.to_i,
+            'intelligence' => DRStats.intelligence.to_i,
+            'wisdom'       => DRStats.wisdom.to_i,
+            'discipline'   => DRStats.discipline.to_i,
+            'charisma'     => DRStats.charisma.to_i,
+            'tdps'         => DRStats.tdps.to_i,
+            'luck'         => DRStats.luck.to_i,
+            'nativeMana'   => DRStats.native_mana,
+          }
+        },
         'location'    => location,
         'vitals'      => vitals,
         'situation'   => situation,

@@ -42,7 +42,7 @@ function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
   const macroAvailable = isIntentImplemented(bridgeIntents, 'run_macro')
 
   return (
-    <div className="mt-2 space-y-1.5 rounded-lg border border-border/60 bg-surface px-2.5 py-2">
+    <div className="mt-1.5 space-y-1 rounded-lg border border-border/60 bg-surface px-2 py-1.5">
       <div className="flex gap-1.5">
         <select
           value={song}
@@ -134,7 +134,7 @@ function ActivityTrainingCard({
   if (!training) return null
 
   return (
-    <div className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 mb-2">
+    <div className="rounded-xl border border-accent/30 bg-accent/10 px-2 py-1.5 mb-1.5">
       <div className="flex items-start gap-2">
         <Music className="w-4 h-4 text-accent shrink-0 mt-0.5" />
         <div className="min-w-0">
@@ -193,11 +193,11 @@ export function TrainingPanel({ dense: _dense = false }: { dense?: boolean }) {
      */
     const waiting = character.skillsReady === false
     return (
-      <section className="px-4 pb-2 shrink-0">
+      <section className="pb-1.5 shrink-0">
         <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5">
           Training
         </h2>
-        <p className="text-xs text-ink-faint leading-snug rounded-xl border border-border bg-surface-raised px-3 py-2">
+        <p className="text-xs text-ink-faint leading-snug rounded-xl border border-border bg-surface-raised px-2 py-1.5">
           {waiting
             ? 'Waiting for skills. DRInfomon fills these in just after login, which takes about a second.'
             : 'No skill data. The Lich bridge reports ranks and mindstate; the mock bridge and older payloads do not carry it.'}
@@ -209,7 +209,7 @@ export function TrainingPanel({ dense: _dense = false }: { dense?: boolean }) {
   const locked = ranked.filter((r) => r.urgency === 'wasted').length
 
   return (
-    <section className="px-4 pb-2 shrink-0">
+    <section className="pb-1.5 shrink-0">
       <div className="flex items-center justify-between mb-1.5">
         <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
           Training
@@ -224,7 +224,7 @@ export function TrainingPanel({ dense: _dense = false }: { dense?: boolean }) {
       {target && targetActivity ? (
         <ActivityTrainingCard skillName={target.skill.name} instrumentGuess={instrumentGuess} />
       ) : target ? (
-        <div className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 mb-2 flex items-start gap-2">
+        <div className="rounded-xl border border-accent/30 bg-accent/10 px-2 py-1.5 mb-1.5 flex items-start gap-2">
           <Brain className="w-4 h-4 text-accent shrink-0 mt-0.5" />
           <div className="min-w-0">
             <div className="text-sm text-ink font-medium leading-tight">
@@ -236,7 +236,7 @@ export function TrainingPanel({ dense: _dense = false }: { dense?: boolean }) {
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 mb-2 text-xs text-danger leading-snug">
+        <div className="rounded-xl border border-danger/30 bg-danger/10 px-2 py-1.5 mb-1.5 text-xs text-danger leading-snug">
           Every tracked skill is at or near mind lock. Training now earns
           nothing. Rest, run town chores, or wait for the pools to drain.
         </div>
