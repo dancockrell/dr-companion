@@ -103,6 +103,51 @@ const ALLOWED = new Map([
       'both are the same dead path, found when this file stopped granting reachability ' +
       'through allowlisted files',
   ],
+  // The middle "dashboard" column and the Game pane's raw scrolling text log
+  // were both retired by the same redesign (App.tsx's own EXPERIENCE_KEY
+  // comment: "the middle dashboard that no longer exists"; GameChatColumn.tsx's
+  // own header: "only the scrolling log itself is gone") - found here because
+  // neither removal actually deleted the files it orphaned, so this test
+  // caught the whole chain at merge time rather than leaving it silently dead.
+  [
+    'src/components/dashboard/Dashboard.tsx',
+    'the middle dashboard column App.tsx no longer renders - see App.tsx\'s own EXPERIENCE_KEY comment',
+  ],
+  [
+    'src/components/dashboard/DashboardLayout.tsx',
+    "Dashboard.tsx's only caller, orphaned with it",
+  ],
+  [
+    'src/components/dashboard/FreeCanvas.tsx',
+    'the drag/resize/collapse layout DashboardLayout.tsx used, orphaned with it',
+  ],
+  [
+    'src/components/shared/Box.tsx',
+    "DashboardLayout.tsx's panel box wrapper, orphaned with it",
+  ],
+  [
+    'src/components/game/GamePane.tsx',
+    "the raw scrolling game-text log - see GameChatColumn.tsx's own header on why it was cut",
+  ],
+  // Neither of these two has a documented removal rationale anywhere (unlike
+  // GamePane/the Dashboard chain above) - QuickQueuePanel is a feature Dan
+  // asked for close to verbatim ("build new simple flows on the fly...") and
+  // GearNotice calls itself "the clearest thing this app is for". Allowlisted
+  // rather than silently left dead so this reads as an open question - did
+  // the dashboard's removal accidentally drop these, or were they meant to
+  // move somewhere in the new layout - not a decision already made.
+  [
+    'src/components/shared/QuickQueuePanel.tsx',
+    'orphaned by the dashboard removal with no documented intent either way - ' +
+      'a real, requested feature ("build new simple flows on the fly..."), not ' +
+      'confirmed obsolete; needs a decision on where it belongs in the new layout',
+  ],
+  [
+    'src/components/shared/GearNotice.tsx',
+    'orphaned by the dashboard removal with no documented intent either way - ' +
+      'calls itself "the clearest thing this app is for" in its own header; ' +
+      'needs a decision on where it belongs in the new layout',
+  ],
 ])
 
 let failed = 0

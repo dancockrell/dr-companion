@@ -414,7 +414,10 @@ mod tests {
             "got {err:?}"
         );
         // And the refusal must be real - the external edit is still there.
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), "changed by something else");
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "changed by something else"
+        );
 
         cleanup(&path);
     }
@@ -440,7 +443,10 @@ mod tests {
             Some("loaded content".into()),
         )
         .expect("nothing else touched the file, so this must succeed");
-        assert_eq!(std::fs::read_to_string(&result.path).unwrap(), "the player's new edit");
+        assert_eq!(
+            std::fs::read_to_string(&result.path).unwrap(),
+            "the player's new edit"
+        );
 
         cleanup(&path);
     }
