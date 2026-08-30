@@ -35,6 +35,14 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::{AppHandle, Emitter};
 
+/// Lowercase hex of a digest - `sha2`/`sha1` 0.11 dropped `LowerHex` from
+/// their output type (`hybrid-array`'s `Array<u8, N>` in place of the old
+/// `generic-array`), so `format!("{:x}", digest)` no longer compiles.
+/// Byte-by-byte is what the trait itself used to do internally anyway.
+fn hex(digest: impl AsRef<[u8]>) -> String {
+    digest.as_ref().iter().map(|b| format!("{b:02x}")).collect()
+}
+
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 #[cfg(windows)]
@@ -911,7 +919,7 @@ fn verify_vendor_bundle(exe_path: &Path, manifest_path: &Path) -> Option<VendorM
     if bytes.len() as u64 != manifest.bytes {
         return None;
     }
-    let got = format!("{:x}", Sha256::digest(&bytes));
+    let got = hex(Sha256::digest(&bytes));
     if !got.eq_ignore_ascii_case(&manifest.sha256) {
         return None;
     }
@@ -1789,7 +1797,7 @@ pub async fn download_verified(
     file.flush().map_err(|e| e.to_string())?;
     drop(file);
 
-    let got = format!("{:x}", hasher.finalize());
+    let got = hex(hasher.finalize());
     let verified = expected_sha256.is_empty() || got.eq_ignore_ascii_case(expected_sha256);
 
     if !verified {
@@ -2084,7 +2092,7 @@ fn declared_bridge_version(text: &str) -> Option<String> {
 /// Content hash with line endings normalised away. See the section note.
 fn bridge_fingerprint(bytes: &[u8]) -> String {
     let normalised: Vec<u8> = bytes.iter().copied().filter(|b| *b != b'\r').collect();
-    format!("{:x}", Sha256::digest(&normalised))
+    hex(Sha256::digest(&normalised))
 }
 
 /// Compare two scripts, given their bytes. Split from the command so it can
@@ -2268,7 +2276,7 @@ fn git_blob_sha(bytes: &[u8]) -> String {
     let mut h = Sha1::new();
     h.update(format!("blob {}\0", bytes.len()).as_bytes());
     h.update(bytes);
-    format!("{:x}", h.finalize())
+    hex(h.finalize())
 }
 
 /// Fetch a set of repo files into `target`, verifying each against its blob SHA.
@@ -2375,7 +2383,7 @@ mod vendor_tests {
     }
 
     fn manifest_json(bytes: &[u8], version: &str) -> String {
-        let sha = format!("{:x}", Sha256::digest(bytes));
+        let sha = hex(Sha256::digest(bytes));
         format!(
             r#"{{"version":"{version}","sha256":"{sha}","bytes":{}}}"#,
             bytes.len()
