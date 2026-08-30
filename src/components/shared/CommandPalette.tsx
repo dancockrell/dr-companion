@@ -103,8 +103,6 @@ function buildCommands(deps: {
   startScript: (name: string) => void
   /** Lich's own view: lowercased script name -> status. */
   runningByName: Map<string, string>
-  uiMode: string
-  setUiMode: (m: 'basic' | 'power') => void
   openSetup: () => void
   addLog: (line: string) => void
 }): Command[] {
@@ -215,13 +213,6 @@ function buildCommands(deps: {
 
   commands.push(
     {
-      id: 'app:toggle-mode',
-      label: deps.uiMode === 'power' ? 'Switch to Basic mode' : 'Switch to Power mode',
-      hint: 'Explains itself vs. assumes you know it',
-      group: 'App',
-      run: () => deps.setUiMode(deps.uiMode === 'power' ? 'basic' : 'power'),
-    },
-    {
       id: 'app:open-setup',
       label: 'Open Setup',
       hint: 'Dependencies, bridge connection, map data',
@@ -266,8 +257,6 @@ export function CommandPalette() {
   const scriptStates = useAppStore((s) => s.scriptStates)
   const requestIntent = useAppStore((s) => s.requestIntent)
   const startScript = useAppStore((s) => s.startScript)
-  const uiMode = useAppStore((s) => s.uiMode)
-  const setUiMode = useAppStore((s) => s.setUiMode)
   const openSetup = useAppStore((s) => s.openSetup)
   const addLog = useAppStore((s) => s.addLog)
 
@@ -310,13 +299,11 @@ export function CommandPalette() {
         tasks,
         requestIntent,
         startScript,
-        uiMode,
-        setUiMode,
         openSetup,
         addLog,
         runningByName,
       }),
-    [scriptCatalog, requestIntent, startScript, uiMode, setUiMode, openSetup, addLog, runningByName]
+    [scriptCatalog, requestIntent, startScript, openSetup, addLog, runningByName]
   )
 
   const results = useMemo(() => {

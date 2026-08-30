@@ -1,5 +1,5 @@
 /**
- * Lightweight settings sheet — mode, bridge, pin, about.
+ * Lightweight settings sheet — bridge, pin, about.
  * Opened from the gear in AppControls.
  */
 import { useState } from 'react'
@@ -24,8 +24,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
   // button always matches what is actually rendering.
   const [scale, setScale] = useState(() => initTypeScale())
-  const uiMode = useAppStore((s) => s.uiMode)
-  const setUiMode = useAppStore((s) => s.setUiMode)
   const alwaysOnTop = useAppStore((s) => s.alwaysOnTop)
   const setAlwaysOnTopState = useAppStore((s) => s.setAlwaysOnTop)
   const bridgeMode = useAppStore((s) => s.bridgeMode)
@@ -68,32 +66,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-4 space-y-5 text-sm">
-          <section className="space-y-2">
-            <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
-              Interface mode
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {(['basic', 'power'] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  className={`rounded-lg border px-2 py-2 capitalize ${
-                    uiMode === m
-                      ? 'border-accent text-accent bg-accent/10'
-                      : 'border-border text-ink-muted'
-                  }`}
-                  onClick={() => setUiMode(m)}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-ink-faint leading-snug">
-              Power adds rankings and denser controls. Either way the panels
-              move and resize.
-            </p>
-          </section>
-
           <ProfilesPanel />
 
           <section className="space-y-2">

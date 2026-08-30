@@ -138,12 +138,13 @@ export default function App() {
   }
 
   /** Experience, all the way to the right - see ExperienceStrip.tsx. A
-   * single scrolling board wants less width than the old two-column
-   * dashboard grid did; 260 is enough for a legible skill name and its
-   * number without wrapping every row. */
+   * single fixed column (MindstateBoard no longer reflows into two or three)
+   * only needs enough width for a legible skill name and its number - 190,
+   * down from 260 now that there is no wider multi-column layout to leave
+   * room for. */
   const [experienceW, setExperienceWState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(EXPERIENCE_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 260
+    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 190
   })
 
   const setExperienceW = (px: number) => {
