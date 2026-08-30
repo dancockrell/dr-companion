@@ -4,7 +4,7 @@ import './index.css'
 import { initTypeScale } from './lib/typeScale'
 import { loadArtManifest } from './lib/creatureArt'
 import { loadPlayerArtManifest } from './lib/playerArt'
-import { loadNpcDefaultManifest } from './lib/npcDefaults'
+import { loadNpcDefaultManifest, loadBulkNpcManifest } from './lib/npcDefaults'
 import { loadPortraitManifest } from './lib/portraits'
 import App from './App.tsx'
 
@@ -18,6 +18,9 @@ void loadArtManifest()
 // it must never be folded into the creature one.
 void loadPlayerArtManifest()
 void loadNpcDefaultManifest()
+// The bulk GPU-rendered fallback pool — see npcDefaults.ts's own doc
+// comment for why it is always asked second, never first.
+void loadBulkNpcManifest()
 void loadPortraitManifest()
 
 createRoot(document.getElementById('root')!).render(

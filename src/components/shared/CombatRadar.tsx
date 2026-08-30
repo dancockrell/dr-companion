@@ -682,7 +682,7 @@ function Puck({
   // positive here, same tradeoff npc-defaults' whole design already takes.
   if (card.deck === 'people') {
     const guess = npcRoleGuessFor(card.name)
-    const npcArt = guess ? npcDefaultFor(guess.role, guess.gender, card.name) : undefined
+    const npcArt = guess ? npcDefaultFor(guess.role, guess.gender, card.name, guess.race) : undefined
     if (npcArt) {
       return (
         <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}>

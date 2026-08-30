@@ -39,6 +39,28 @@ const GENDER_RULES = [
   [/\bwife\b|\bdaughter\b|matriarch|priestess|midwife|\bshe\b|\bher\b/i, 'female'],
   [/\bson\b|\bhusband\b|patriarch|\bhe\b|\bhis\b|\bhim\b/i, 'male'],
 ]
+
+// public/npcs' race-aware pool (tools/art-npcs.mjs) only covers these
+// eleven; a race_flavor string like "human barbarian" or "Gor'Tog" has to
+// collapse onto one of them, defaulting to human — DR's own population
+// skew and the least-committal guess when nothing says otherwise.
+const RACE_RULES = [
+  [/gor.?tog/i, 'gor-tog'],
+  [/s.?kra.?mur/i, 's-kra-mur'],
+  [/dwarv|dwarf/i, 'dwarf'],
+  [/\belf\b|elven|elvish/i, 'elf'],
+  [/halfling/i, 'halfling'],
+  [/gnome/i, 'gnome'],
+  [/prydaen/i, 'prydaen'],
+  [/rakash/i, 'rakash'],
+  [/kaldar/i, 'kaldar'],
+  [/elothean/i, 'elothean'],
+  [/\bhuman\b/i, 'human'],
+]
+function guessRace(text) {
+  for (const [re, race] of RACE_RULES) if (re.test(text)) return race
+  return 'human'
+}
 function fnv1a(s) {
   let h = 0x811c9dc5
   for (let i = 0; i < s.length; i++) {
@@ -58,12 +80,13 @@ const table = {}
 let explicit = 0
 let guessed = 0
 
-function add(rawName, contextText, confidence) {
+function add(rawName, contextText, confidence, raceContext) {
   const name = rawName.replace(/\s*\([^)]*\)\s*/g, '').trim()
   if (!name || table[name]) return
   const role = guessRole(contextText)
   const gender = guessGender(name, contextText)
-  table[name] = { role, gender, confidence }
+  const race = guessRace(raceContext ?? contextText)
+  table[name] = { role, gender, race, confidence }
   if (confidence === 'guessed-from-context') explicit++
   else guessed++
 }
@@ -81,10 +104,11 @@ for (const name of [...wishlist.people.guards.confirmed_zoluren, ...wishlist.peo
   add(name, 'town guard sentry', 'guessed-from-context')
 }
 
-// --- Town/clan NPCs: real parenthetical role text to key off. ---
+// --- Town/clan NPCs: real parenthetical role text to key off, plus the
+// town's own race_flavor for a race guess actual context, not a default. ---
 for (const town of Object.values(wishlist.people.other_towns)) {
   for (const entry of town.people ?? []) {
-    add(entry, entry, 'guessed-from-context')
+    add(entry, entry, 'guessed-from-context', town.race_flavor ?? entry)
   }
 }
 
