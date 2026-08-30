@@ -45,7 +45,16 @@
   "43.webp",
   "44.webp",
   "45.webp",
-  "46.webp"
+  "46.webp",
+  "47.webp",
+  "48.webp",
+  "49.webp",
+  "50.webp",
+  "51.webp",
+  "52.webp",
+  "53.webp",
+  "54.webp",
+  "55.webp"
  ],
  "mage-female": [
   "1.webp",
@@ -67,7 +76,8 @@
   "17.webp",
   "18.webp",
   "19.webp",
-  "20.webp"
+  "20.webp",
+  "21.webp"
  ],
  "elder-female": [
   "1.webp",
@@ -80,7 +90,9 @@
   "8.webp",
   "9.webp",
   "10.webp",
-  "11.webp"
+  "11.webp",
+  "12.webp",
+  "13.webp"
  ],
  "knight-male": [
   "1.webp",
@@ -99,7 +111,9 @@
   "14.webp",
   "15.webp",
   "16.webp",
-  "17.webp"
+  "17.webp",
+  "18.webp",
+  "19.webp"
  ],
  "alchemist-male": [
   "1.webp",
@@ -124,7 +138,8 @@
   "7.webp",
   "8.webp",
   "9.webp",
-  "10.webp"
+  "10.webp",
+  "11.webp"
  ],
  "merchant-female": [
   "1.webp",
@@ -153,7 +168,14 @@
   "24.webp",
   "25.webp",
   "26.webp",
-  "27.webp"
+  "27.webp",
+  "28.webp",
+  "29.webp",
+  "30.webp",
+  "31.webp",
+  "32.webp",
+  "33.webp",
+  "34.webp"
  ],
  "warrior-male": [
   "1.webp",
@@ -193,7 +215,9 @@
   "35.webp",
   "36.webp",
   "37.webp",
-  "38.webp"
+  "38.webp",
+  "39.webp",
+  "40.webp"
  ],
  "ranger-male": [
   "1.webp",
@@ -232,7 +256,9 @@
   "34.webp",
   "35.webp",
   "36.webp",
-  "37.webp"
+  "37.webp",
+  "38.webp",
+  "39.webp"
  ],
  "necromancer-male": [
   "1.webp",
@@ -301,7 +327,16 @@
   "45.webp",
   "46.webp",
   "47.webp",
-  "48.webp"
+  "48.webp",
+  "49.webp",
+  "50.webp",
+  "51.webp",
+  "52.webp",
+  "53.webp",
+  "54.webp",
+  "55.webp",
+  "56.webp",
+  "57.webp"
  ],
  "ranger-female": [
   "1.webp",
@@ -348,7 +383,9 @@
   "10.webp",
   "11.webp",
   "12.webp",
-  "13.webp"
+  "13.webp",
+  "14.webp",
+  "15.webp"
  ],
  "alchemist-female": [
   "1.webp",
@@ -371,13 +408,15 @@
   "6.webp",
   "7.webp",
   "8.webp",
-  "9.webp"
+  "9.webp",
+  "10.webp"
  ],
  "bard-male": [
   "1.webp",
   "2.webp",
   "3.webp",
-  "4.webp"
+  "4.webp",
+  "5.webp"
  ],
  "knight-female": [
   "1.webp",
@@ -414,6 +453,7 @@
  ],
  "thief-female": [
   "1.webp",
-  "2.webp"
+  "2.webp",
+  "3.webp"
  ]
 }
