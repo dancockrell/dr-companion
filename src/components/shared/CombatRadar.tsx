@@ -805,20 +805,25 @@ const STATUS_ICON: Partial<Record<string, { Icon: LucideIcon; label: string; ton
   dying: { Icon: HeartCrack, label: 'Dying', tone: 'text-danger' },
   bleeding: { Icon: Droplet, label: 'Bleeding', tone: 'text-danger' },
   low_health: { Icon: HeartPulse, label: 'Low health', tone: 'text-danger' },
-  poisoned: { Icon: FlaskConical, label: 'Poisoned', tone: 'text-danger' },
   diseased: { Icon: Bug, label: 'Diseased', tone: 'text-danger' },
-  stunned: { Icon: Zap, label: 'Stunned', tone: 'text-warn' },
   webbed: { Icon: Anchor, label: 'Webbed', tone: 'text-warn' },
   immobilized: { Icon: Ban, label: 'Immobilised', tone: 'text-warn' },
 }
 
-/** Nerves, as the same three-step tone the doll's own parts use — plain,
- * warn, danger — rather than the doll's own near-invisible sliver: `nsys`
- * is a 2-unit-wide strip out of a 60-wide viewBox, which reads fine at the
- * dashboard's full-size doll (S2) and is sub-pixel at this card's much
- * smaller one. An icon carries the same fact at a size that's actually
- * legible here, instead of asking the doll to do a job it can't at this
- * scale. */
+/** Nerves, poisoned and stunned all get a permanent slot in the row instead
+ * of only appearing once true, the same "present always, plain when
+ * unhurt, coloured when it isn't" rule the doll's own parts use — these
+ * three are the ones worth knowing are *fine* as much as knowing they
+ * aren't, since all three can end a fight on their own (can't act, can't
+ * fight back the disease/poison eating your health) and a player
+ * shouldn't have to infer "fine" from an icon's absence. Everything else
+ * in STATUS_ICON above stays conditional: rarer, more dramatic events
+ * that don't need a permanently-dim placeholder. */
+function alwaysTone(active: boolean, warnOnly = false): string {
+  if (!active) return 'text-ink-faint'
+  return warnOnly ? 'text-warn' : 'text-danger'
+}
+
 function nsysTone(wound: number): string {
   if (wound >= 2) return 'text-danger'
   if (wound === 1) return 'text-warn'
@@ -860,6 +865,11 @@ function YouCard({
   compact: boolean
 }) {
   const nsysWound = you.injuries.nsys?.wound ?? 0
+  const poisoned = you.statusFlags.includes('poisoned')
+  const stunned = you.statusFlags.includes('stunned')
+  // poisoned and stunned get their own permanent, always-visible slots
+  // below (see alwaysTone's doc comment) rather than living in this
+  // conditional list, so STATUS_ICON above no longer carries them.
   const statusIcons = you.statusFlags
     .map((f) => STATUS_ICON[f])
     .filter((s): s is NonNullable<typeof s> => s != null)
@@ -910,6 +920,12 @@ function YouCard({
         <div className="flex flex-wrap items-center gap-1.5 border-t border-border/30 pt-1">
           <span title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
             <Activity className={`h-4 w-4 ${nsysTone(nsysWound)}`} aria-hidden />
+          </span>
+          <span title={poisoned ? 'Poisoned' : 'Not poisoned'}>
+            <FlaskConical className={`h-4 w-4 ${alwaysTone(poisoned)}`} aria-hidden />
+          </span>
+          <span title={stunned ? 'Stunned' : 'Not stunned'}>
+            <Zap className={`h-4 w-4 ${alwaysTone(stunned, true)}`} aria-hidden />
           </span>
           {statusIcons.map(({ Icon, label, tone }) => (
             <span key={label} title={label}>

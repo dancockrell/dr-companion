@@ -62,7 +62,12 @@ const LAYOUT_STANDING: Record<Exclude<BodyPart, 'head' | 'leftEye' | 'rightEye'>
   chest: [21, 19, 15, 15],
   back: [17, 19, 3, 27],
   abdomen: [22, 34, 13, 11],
-  nsys: [29, 20, 2, 24],
+  // Thinner than the other parts on purpose - a spine reads as a hairline
+  // down the torso, not a bar competing with the chest for attention. The
+  // "Nerves" icon in YouCard's status row (CombatRadar.tsx) is what
+  // actually carries this at a glance; the doll's own mark just needs to
+  // be visible on close inspection, not loud.
+  nsys: [29.3, 20, 1.4, 24],
   leftArm: [11, 20, 5, 17],
   rightArm: [38, 20, 6, 17],
   leftHand: [11, 38, 5, 6],
