@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { RoomScene } from './RoomScene'
 import { CombatRadar } from '../shared/CombatRadar'
-import { TeachingPanel } from './TeachingPanel'
 import { BattleStatus } from './BattleStatus'
 import { BattleActionBar } from './BattleActionBar'
 import { ClassicRoomText } from './ClassicRoomText'
 import { FloorItems } from './FloorItems'
+import { InventoryPanel } from '../shared/InventoryPanel'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
@@ -266,17 +266,18 @@ export function BattleColumn() {
               offClasses={offClasses}
             />
           )}
-          {/* Classes on offer are room-context info same as the description
-              above it — a fact about where you are standing, not its own
-              feature. Grouped into this box rather than given its own
-              border: a bare unbordered line here read as broken chrome
-              (floating between two bordered boxes with nothing marking it
-              as one thing), and its own titled panel read as a full window
-              for what is really one button. A divider inside a box that
-              already exists is neither. */}
+          {/* Inventory, right below the room text rather than Classes (a
+              different room's "what's on offer here" question this pane
+              has no business answering — that's the dashboard's own job).
+              Grouped into this box rather than given its own border: a bare
+              unbordered line here read as broken chrome (floating between
+              two bordered boxes with nothing marking it as one thing), and
+              its own titled panel read as a full window for what is really
+              one list. A divider inside a box that already exists is
+              neither. */}
           <div className="mt-1.5 border-t border-border/60 pt-1.5">
-            <PanelBoundary label="Classes">
-              <TeachingPanel />
+            <PanelBoundary label="Inventory">
+              <InventoryPanel />
             </PanelBoundary>
           </div>
         </div>

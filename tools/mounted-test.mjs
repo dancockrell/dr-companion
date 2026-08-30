@@ -143,6 +143,11 @@ const ALLOWED = new Map([
     '3e95ae7d: "Risk, Quick Queue, Training, Inventory and Script Library have no home ' +
       'anywhere in the app now" — this is the Quick Queue panel named there',
   ],
+  [
+    'src/components/room/TeachingPanel.tsx',
+    "BattleColumn's own \"Classes on offer\" slot, replaced by InventoryPanel - " +
+      "\"we don't need a classes and check for classes here\" - its last caller",
+  ],
 ])
 
 let failed = 0
