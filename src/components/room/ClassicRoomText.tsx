@@ -1,4 +1,5 @@
 import { HighlightedText } from './HighlightedText'
+import { ExitButtons } from './ExitButtons'
 import { useDragScroll } from '../../lib/useDragScroll'
 import type { Highlight } from '../../lib/highlights'
 
@@ -35,6 +36,8 @@ export function ClassicRoomText({
   items,
   players,
   exits,
+  room,
+  uid,
   highlights,
   offClasses,
 }: {
@@ -50,6 +53,13 @@ export function ClassicRoomText({
    * printed "2, 335, 7" instead of a direction the one time this line
    * pulled from it by mistake. */
   exits?: string[]
+  /** Lich's own room number — what `#goto` takes. On the same line as the
+   * exits themselves now, not a separate paragraph below: both are "where
+   * can I go / where am I", one question, one line. */
+  room?: number | null
+  /** The game's own uid, when known — a different number from Lich's room
+   * id, and worth carrying both for the same reason the map tooltip does. */
+  uid?: number | null
   highlights: Highlight[]
   offClasses?: ReadonlySet<string>
 }) {
@@ -85,9 +95,26 @@ export function ClassicRoomText({
         <p className="mt-1 text-xs leading-relaxed text-info">Also here: {listFormatter.format(players)}.</p>
       )}
 
-      {exits && exits.length > 0 && (
-        <p className="mt-1 text-xs leading-relaxed text-ink-faint">
-          Obvious paths: {listFormatter.format(exits)}.
+      {((exits && exits.length > 0) || room != null) && (
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-relaxed text-ink-faint">
+          {exits && exits.length > 0 && (
+            <>
+              <span>Obvious paths:</span>
+              <ExitButtons exits={exits} />
+            </>
+          )}
+          {/* Lich's own room id, on the same line as the exits rather than
+              a separate paragraph below - both answer "where can I go /
+              where am I", one question. Both ids, for the same reason the
+              map tooltip carries both: Lich's room number is what #goto
+              takes and the game's uid is what a player sees, and they are
+              different numbers. */}
+          {room != null && (
+            <span>
+              Lich room {room}
+              {uid != null ? `, game uid ${uid}` : ''}
+            </span>
+          )}
         </p>
       )}
     </div>

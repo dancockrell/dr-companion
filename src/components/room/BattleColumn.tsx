@@ -6,7 +6,6 @@ import { BattleStatus } from './BattleStatus'
 import { BattleActionBar } from './BattleActionBar'
 import { ClassicRoomText } from './ClassicRoomText'
 import { FloorItems } from './FloorItems'
-import { ExitButtons } from './ExitButtons'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
@@ -261,24 +260,11 @@ export function BattleColumn() {
               items={roomItems}
               players={character?.roomPlayers}
               exits={exits}
+              room={room}
+              uid={here?.uid}
               highlights={highlights}
               offClasses={offClasses}
             />
-          )}
-          {/* Both ids, for the same reason the map tooltip carries both: Lich's
-              room number is what #goto takes and the game's uid is what a player
-              sees, they are different numbers, and quoting the wrong one in a
-              help channel loses an afternoon. Exits sit right here rather than
-              only in ClassicRoomText's prose line above — real buttons, not
-              just words to read. */}
-          {room !== null && (
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
-              <span>
-                Lich room {room}
-                {here?.uid ? `, game uid ${here.uid}` : ''}
-              </span>
-              <ExitButtons exits={exits} />
-            </p>
           )}
           {/* Classes on offer are room-context info same as the description
               above it — a fact about where you are standing, not its own
