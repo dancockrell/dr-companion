@@ -10,7 +10,7 @@
  * Room positions come from Lich's `genie_pos`, which carries the layout the
  * community's cartographers built, keyed to Lich's own room ids.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MapZone, MapZoneRoom } from '../../bridge/types'
 import { inkFor } from '../../lib/mapInk'
 import { recency, segments, type Trail } from '../../lib/trail'
@@ -18,6 +18,8 @@ import { roomKind, type RoomKind } from '../../lib/mapData'
 import { PIN_COLOR_HEX, PIN_DRAG_TYPE, type MapPin, type PinIcon, type PinColor } from '../../lib/mapPins'
 import type { PlayerMarker } from '../../lib/playerMarker'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
+import { RoomHoverCard } from './RoomHoverCard'
+import { useAppStore } from '../../store/useAppStore'
 
 /**
  * How many rooms the map draws at once.
@@ -201,6 +203,14 @@ export function MapCanvas({
   const [hoverId, setHoverId] = useState<number | null>(null)
   const hoverNeighbors = hoverId != null ? neighbors.get(hoverId) : undefined
 
+  // Position for RoomHoverCard, in this component's own positioning
+  // container - captured on enter rather than tracked on every move, since
+  // a room does not move under the cursor and the card only needs to
+  // appear near where the hover started.
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+  const character = useAppStore((s) => s.character)
+
   // Reports the "here" room's pixel position whenever it is known, so a
   // viewport (useMapViewport) can center on it without re-deriving px/py
   // itself - the same coordinate math kept in exactly one place.
@@ -239,6 +249,7 @@ export function MapCanvas({
     : { width: view.w, height: view.h }
 
   return (
+    <div ref={wrapRef} className="relative h-full w-full">
     <svg viewBox={`0 0 ${view.w} ${view.h}`} className="block" {...sizing}>
       <defs>
         {/* Lit from the middle, falling off at the edges. A flat fill running
@@ -357,8 +368,17 @@ export function MapCanvas({
               e.preventDefault()
               onPinRoom(r.id)
             }}
-            onMouseEnter={() => r.id != null && setHoverId(r.id)}
-            onMouseLeave={() => r.id != null && setHoverId((h) => (h === r.id ? null : h))}
+            onMouseEnter={(e) => {
+              if (r.id == null) return
+              setHoverId(r.id)
+              const box = wrapRef.current?.getBoundingClientRect()
+              if (box) setHoverPos({ x: e.clientX - box.left, y: e.clientY - box.top })
+            }}
+            onMouseLeave={() => {
+              if (r.id == null) return
+              setHoverId((h) => (h === r.id ? null : h))
+              setHoverPos(null)
+            }}
             // Drag-and-drop a pin type onto this room. Reuses the same hover
             // lift a mouseenter gives - the room under the drag should read
             // as the drop target the same way it reads as the click target,
@@ -609,6 +629,17 @@ export function MapCanvas({
             )
           })}
     </svg>
+    {hoverId != null && hoverPos && index.get(hoverId) && (
+      <RoomHoverCard
+        key={hoverId}
+        room={index.get(hoverId)!}
+        pin={pins?.get(hoverId)}
+        x={hoverPos.x}
+        y={hoverPos.y}
+        character={character?.name ? { name: character.name, instance: character.instance } : null}
+      />
+    )}
+    </div>
   )
 }
 

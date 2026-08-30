@@ -217,7 +217,13 @@ export function CreatureArt({
     )
   }
 
-  const shape = lore?.bodyType ? SHAPE[lore.bodyType.toLowerCase()] : undefined
+  // Every hostile/allied entry gets a silhouette, never a bare letter — a
+  // name the bestiary has never heard of still deserves more than an
+  // initial. Known body type wins; genuinely unknown falls to 'amorphous'
+  // rather than 'upright', because claiming a humanoid outline for
+  // something that might be a spider is a wrong answer, and a blob is an
+  // honestly-generic one.
+  const shape = (lore?.bodyType ? SHAPE[lore.bodyType.toLowerCase()] : undefined) ?? 'amorphous'
   const scale = SCALE[lore?.bodySize?.toLowerCase() ?? ''] ?? 0.88
   // Lowercased because the wiki's casing is arbitrary and "large Quadruped"
   // in a tooltip reads as a bug rather than as data.
@@ -227,37 +233,19 @@ export function CreatureArt({
     <div
       className={cn(frame, 'flex items-center justify-center')}
       style={{ height }}
-      title={shape ? `no picture yet: ${label}` : 'no picture yet'}
+      title={label ? `no picture yet: ${label}` : 'no picture yet'}
     >
-      {shape ? (
-        <svg
-          viewBox="0 0 60 60"
-          className="h-full opacity-40"
-          style={{ aspectRatio: '1 / 1' }}
-          role="img"
-          aria-label={`${label}, silhouette only`}
-        >
-          <g transform={`translate(30 30) scale(${scale}) translate(-30 -30)`}>
-            <Silhouette shape={shape} />
-          </g>
-        </svg>
-      ) : (
-        <span
-          // leading-[1.2] rather than leading-none. `leading-none` sets the
-          // line box to exactly the font size, which is less than the glyph
-          // needs: at 24px the letter wanted 28px, and the difference came off
-          // the top and bottom of the character. Small, and invisible unless
-          // something goes looking - tools/look.mjs reported "28px of text in
-          // 24px" at this element.
-          className="text-2xl font-semibold leading-[1.2] text-ink-faint opacity-60"
-          aria-hidden="true"
-        >
-          {/* The noun, not the name: every second creature in the game is
-              called "a something", and a panel of cards all marked A is worse
-              than no letter at all. */}
-          {noun.charAt(0).toUpperCase()}
-        </span>
-      )}
+      <svg
+        viewBox="0 0 60 60"
+        className="h-full opacity-40"
+        style={{ aspectRatio: '1 / 1' }}
+        role="img"
+        aria-label={label ? `${label}, silhouette only` : 'unidentified creature, silhouette only'}
+      >
+        <g transform={`translate(30 30) scale(${scale}) translate(-30 -30)`}>
+          <Silhouette shape={shape} />
+        </g>
+      </svg>
     </div>
   )
 }

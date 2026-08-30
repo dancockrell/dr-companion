@@ -56,9 +56,11 @@ import {
   setMusicVolume,
   setRadioStation,
   setCustomStream,
+  setPlaylist,
   initMediaSession,
   setCrossfadeStyle,
 } from '../../lib/ambientSound'
+import { getPlaylist } from '../../lib/playlists'
 import { loadPrefs } from '../../lib/persistence'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
@@ -253,13 +255,19 @@ export function GamePane({
     setSpeechVolume(prefs.speechVolume ?? 0)
     setMusicVolume(prefs.musicVolume ?? 0)
     setCrossfadeStyle(prefs.crossfadeStyle ?? 'standard')
-    // A remembered station or custom stream beats zone music on startup, the
-    // same override relationship setZone() enforces afterward. Custom stream
-    // wins if somehow both are set - see persistence.ts's own comment.
+    // A remembered station, custom stream, or playlist beats zone music on
+    // startup, the same override relationship setZone() enforces afterward.
+    // Custom stream wins if somehow more than one is set - see
+    // persistence.ts's own comment. A playlist deleted since it was last
+    // playing (or emptied by track pruning - see playlists.ts) is silently
+    // skipped rather than handed an empty list to "play."
     if (prefs.customStreamUrl) {
       setCustomStream(prefs.customStreamUrl)
     } else if (prefs.radioStation) {
       setRadioStation(prefs.radioStation)
+    } else if (prefs.activePlaylistId) {
+      const pl = getPlaylist(prefs.activePlaylistId)
+      if (pl && pl.trackIds.length) setPlaylist(pl.id, pl.trackIds)
     }
   }, [])
   const mapZone = useAppStore((s) => s.mapZone)

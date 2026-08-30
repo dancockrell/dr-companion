@@ -194,6 +194,15 @@ fn save_atomically(path: &Path, text: &[u8]) -> std::io::Result<bool> {
     Ok(sibling(path, ".bak").is_file())
 }
 
+/// Whether `expected` still matches what a fresh read of `path` finds - the
+/// property `write_genie_config` refuses to write past. A missing file and
+/// an empty `expected` agree with each other (both read as `""`), which is
+/// correct: a file this editor never found and a file that still does not
+/// exist have nothing to conflict about.
+fn matches_on_disk(path: &Path, expected: &str) -> bool {
+    std::fs::read_to_string(path).unwrap_or_default() == expected
+}
+
 /// Restore `path` from its `.bak`, atomically. Same reasoning as
 /// `save_atomically` for being pure and separately testable.
 fn restore_atomically(path: &Path) -> std::io::Result<()> {
@@ -225,8 +234,30 @@ pub struct WriteResult {
 /// charset, same device-name refusal - because the same string is about to be
 /// joined onto a directory and this time the result gets written to, not just
 /// read, which is the more dangerous direction to get wrong.
+///
+/// `expected_previous`, when given, is the text this editor's patch was built
+/// from - the last thing it either read or wrote. If the file on disk no
+/// longer matches that, something else touched it since: Genie's own editor,
+/// a player's text editor, another window of this app. Writing anyway would
+/// silently discard whatever that other edit was, with nothing to show for
+/// it afterward - the read-modify-write race every one of this project's
+/// shared-checkout git incidents turned out to be, here in miniature, and
+/// with a real player's config on the losing end instead of a commit. So this
+/// refuses instead, the same way `restore_genie_config` refuses rather than
+/// silently no-op-ing when there is nothing to restore: a caller that only
+/// checks for an error being absent needs the failure to actually surface as
+/// one.
+///
+/// Every caller in this app passes it - see `genieConfigWrite.ts` - so this
+/// is only `Option` for the sake of not being a breaking change to the
+/// command's shape; there is no legitimate reason for a real caller to omit
+/// it.
 #[tauri::command]
-pub fn write_genie_config(leaf: String, text: String) -> Result<WriteResult, String> {
+pub fn write_genie_config(
+    leaf: String,
+    text: String,
+    expected_previous: Option<String>,
+) -> Result<WriteResult, String> {
     if !crate::sounds::valid_plain_filename(&leaf, 64) {
         return Err(format!("{leaf:?} is not a config file name"));
     }
@@ -237,6 +268,17 @@ pub fn write_genie_config(leaf: String, text: String) -> Result<WriteResult, Str
     }
 
     let path = writable_target(&leaf)?;
+
+    if let Some(expected) = &expected_previous {
+        if !matches_on_disk(&path, expected) {
+            return Err(format!(
+                "{leaf} changed since this editor last read it - possibly edited in Genie \
+                 itself, by hand, or in another window of this app. Reload to see the current \
+                 version before saving here, or your change would silently overwrite it."
+            ));
+        }
+    }
+
     let backed_up = save_atomically(&path, text.as_bytes())
         .map_err(|e| format!("Could not save {leaf}: {e}"))?;
 
@@ -293,6 +335,114 @@ mod tests {
         let _ = std::fs::remove_file(sibling(path, ".bak"));
         let _ = std::fs::remove_file(sibling(path, ".tmp-save"));
         let _ = std::fs::remove_file(sibling(path, ".tmp-restore"));
+    }
+
+    #[test]
+    fn matches_on_disk_catches_a_change_made_outside_this_editor() {
+        let path = temp_path("conflict-detection");
+        cleanup(&path);
+        std::fs::write(&path, b"loaded by the editor").unwrap();
+
+        assert!(
+            matches_on_disk(&path, "loaded by the editor"),
+            "nothing has touched the file yet, so it must still match"
+        );
+
+        // The exact scenario this exists for: something other than this
+        // editor - Genie's own dialog, a text editor, another window of this
+        // app - writes to the file in between the editor's load and its save.
+        std::fs::write(&path, b"edited by something else while the sheet was open").unwrap();
+
+        assert!(
+            !matches_on_disk(&path, "loaded by the editor"),
+            "an external edit must be detected, not silently overwritten"
+        );
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn matches_on_disk_treats_a_missing_file_as_the_empty_string() {
+        let path = temp_path("conflict-detection-missing");
+        cleanup(&path);
+        assert!(!path.exists());
+
+        // A brand-new entry: the editor never found a file (read_genie_config
+        // reports found:false, text:""), so its own "expected previous" is "".
+        assert!(
+            matches_on_disk(&path, ""),
+            "no file and an empty expectation must agree - both mean nothing existed yet"
+        );
+
+        // But if something created the file in the meantime, that is exactly
+        // as much a conflict as an edit to an existing one.
+        std::fs::write(&path, b"created by something else").unwrap();
+        assert!(!matches_on_disk(&path, ""));
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn write_genie_config_refuses_a_save_that_would_overwrite_an_external_edit() {
+        let leaf = "conflict-test.cfg";
+        // Only meaningful on a machine with a real, writable Config
+        // directory - see the guard below. Same root list write_genie_config
+        // itself resolves the leaf against.
+        let Some(dir) = crate::setup::genie_roots()
+            .into_iter()
+            .map(|r| r.join("Config"))
+            .find(|d| d.is_dir())
+        else {
+            return;
+        };
+        let path = dir.join(leaf);
+        cleanup(&path);
+
+        std::fs::write(&path, b"loaded content").unwrap();
+
+        // Something else touches the file after this editor "loaded" it.
+        std::fs::write(&path, b"changed by something else").unwrap();
+
+        let err = write_genie_config(
+            leaf.into(),
+            "the player's new edit".into(),
+            Some("loaded content".into()),
+        )
+        .expect_err("a stale expected_previous must be refused, not silently written");
+        assert!(
+            err.contains("changed since this editor last read it"),
+            "got {err:?}"
+        );
+        // And the refusal must be real - the external edit is still there.
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "changed by something else");
+
+        cleanup(&path);
+    }
+
+    #[test]
+    fn write_genie_config_saves_normally_when_expected_previous_still_matches() {
+        let leaf = "conflict-test-ok.cfg";
+        let Some(dir) = crate::setup::genie_roots()
+            .into_iter()
+            .map(|r| r.join("Config"))
+            .find(|d| d.is_dir())
+        else {
+            return;
+        };
+        let path = dir.join(leaf);
+        cleanup(&path);
+
+        std::fs::write(&path, b"loaded content").unwrap();
+
+        let result = write_genie_config(
+            leaf.into(),
+            "the player's new edit".into(),
+            Some("loaded content".into()),
+        )
+        .expect("nothing else touched the file, so this must succeed");
+        assert_eq!(std::fs::read_to_string(&result.path).unwrap(), "the player's new edit");
+
+        cleanup(&path);
     }
 
     #[test]
@@ -395,7 +545,7 @@ mod tests {
     #[test]
     fn write_genie_config_refuses_bad_names_the_same_way_read_does() {
         for bad in ["../evil.cfg", "sub/x.cfg", "CON.cfg", ""] {
-            let err = write_genie_config(bad.into(), "text".into())
+            let err = write_genie_config(bad.into(), "text".into(), None)
                 .expect_err(&format!("{bad:?} must be refused"));
             assert!(
                 err.contains("not a config file name"),
@@ -407,7 +557,7 @@ mod tests {
     #[test]
     fn write_genie_config_refuses_a_config_larger_than_the_cap() {
         let huge = "x".repeat(MAX_WRITE_BYTES + 1);
-        let err = write_genie_config("highlights.cfg".into(), huge)
+        let err = write_genie_config("highlights.cfg".into(), huge, None)
             .expect_err("an oversized config must be refused");
         assert!(err.contains("larger than"), "got {err:?}");
     }

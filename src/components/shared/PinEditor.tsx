@@ -155,6 +155,7 @@ export function PinEditor({
           <p className="text-xs text-ink-faint">
             Icon
             <span className="ml-1 text-ink-faint">
+
               ({filteredIcons.length} of {PIN_ICONS.length})
             </span>
           </p>

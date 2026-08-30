@@ -1,0 +1,2546 @@
+{
+ "Benzia": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Borneas": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Carmifex": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Daryrd": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Fereldrin": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Grimbly": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Hagim": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Juln": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kapric": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Lanshado": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Milline": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Paarupensteen": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Serric": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Talia": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Thalorin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Yalda": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Town Guard": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Baronial guardsman": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Baron's Guardsman": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Armored sentry": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Market guard": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Tribunal guard": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Grog": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Adim": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Alvar": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Atuelliss": {
+  "role": "warrior",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Ceanatis": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Cluff": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Dragaus": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Dunmir": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Fenhalut": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Galti": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Gazlok": {
+  "role": "warrior",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Grutan": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Harrel": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Herrick": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Khal Gwaerd": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Kirew": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Kretsky": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Langa guardsman": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Pohofa": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Quillak": {
+  "role": "warrior",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Sevrigon": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Sybina": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Tirtogren": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Vathbiirk": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Yoneimo": {
+  "role": "warrior",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Zukir": {
+  "role": "warrior",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Ortug Borthgar": {
+  "role": "elder",
+  "gender": "male",
+  "race": "gor-tog",
+  "confidence": "guessed-from-context"
+ },
+ "Resomba": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "gor-tog",
+  "confidence": "guessed-from-context"
+ },
+ "Grob": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "gor-tog",
+  "confidence": "guessed-from-context"
+ },
+ "Havor Foehammer": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "gor-tog",
+  "confidence": "guessed-from-context"
+ },
+ "Neesa": {
+  "role": "alchemist",
+  "gender": "female",
+  "race": "gor-tog",
+  "confidence": "guessed-from-context"
+ },
+ "Father Karjon": {
+  "role": "priest",
+  "gender": "male",
+  "race": "gor-tog",
+  "confidence": "guessed-from-context"
+ },
+ "Albreda": {
+  "role": "priest",
+  "gender": "male",
+  "race": "gor-tog",
+  "confidence": "guessed-from-context"
+ },
+ "Wolfjaw Ironbeard": {
+  "role": "elder",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Suza Ironbeard": {
+  "role": "elder",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Mopeliar": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Brigetta": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Arnack": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Trog / Boss Trog Donrag": {
+  "role": "elder",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Dokt": {
+  "role": "alchemist",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Bukor": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Tobb": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Rufus Tanglefoot": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "halfling",
+  "confidence": "guessed-from-context"
+ },
+ "Wooly Tanglefoot": {
+  "role": "elder",
+  "gender": "male",
+  "race": "halfling",
+  "confidence": "guessed-from-context"
+ },
+ "Bungles Bunglefoot": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "halfling",
+  "confidence": "guessed-from-context"
+ },
+ "Daerlynn": {
+  "role": "bard",
+  "gender": "male",
+  "race": "halfling",
+  "confidence": "guessed-from-context"
+ },
+ "Nilme Iondu'il": {
+  "role": "bard",
+  "gender": "male",
+  "race": "halfling",
+  "confidence": "guessed-from-context"
+ },
+ "Savrin Kaerna": {
+  "role": "elder",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Abira": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Adaerna": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Aelik": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Agrobov": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ahlema": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Akhbar": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Akhila": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Alayle": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Alemoshar": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Alimia": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Almalne": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Amechra": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Amfitro": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Anniana": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Anthelorm": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Aranathem": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Armorand": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Athyiro": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Avlea": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Avnel": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Bantheld": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Barberry": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Barkeep": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Barley": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Barnaby": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Barstook": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Bartina": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Bayanzi": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Beaumont": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Beeanna": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Bergen": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Betina": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Bhothfin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Biabo": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Blanve": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Blorg": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Bobba": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Bonime": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Bonze": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Brent": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Brightwings": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Brindle": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Budd": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Bynari": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Calabria": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Calliana": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Calorak": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Cargil": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Carmellia": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Cecelia": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Cefrit": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Chabalu": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Chispin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Chiwasha": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Chofupi": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Crin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Crolin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Dabvo": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Dadzi": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Daelus": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Dagul": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Darix": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Dartrise": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Deeper": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Delkai": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Demiciil": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Denison": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Derlyk": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Derrien": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ditsworth": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Diwitt": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Doritee": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Dorsot": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Drinak": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Drorg": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Dulcinara": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Dumi": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Eauin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ela": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Elanai": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Elepaio": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Elleapoor": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Elver": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Elward": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Enescu": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Enfermine": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Eorie": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Erianthe": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Escogar": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Esmaril": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ethasru": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Fara": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Farmer Thorkim": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Fekoeti": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Fenster": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ferdeen": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Feta": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Fiona": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Flintheart": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Froissart": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Fyne": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Garnett": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Genevive": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gimsta": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gizgo": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Glassus": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Goldbricker": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gorgrin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gortik": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gorund": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Granzer": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gretchen": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gretzyl": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Greyka": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Groeshum": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gruk": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gudthar": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Gurta": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Hakon": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Haldram": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Hamarmik": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Harwell": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Hashal": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Hekipe": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Hilda": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Hintle": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Huyelm": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Hvairn": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ichthyo": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Idizieq": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ilerenz": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Imadrail": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ioun": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ishh": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Istlyan": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ivo": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ivysol": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Jahtinit": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Jalabasth": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Jarrod": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Jasmine": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Jearno": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Joirin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kalayara": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kalazashi": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kampu": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kamze": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Keishalae": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Keth": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kiiara": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kilam": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kilora": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kisosa": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Klurge": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Knain": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kouzan": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Krelpit": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Krenik": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kriley": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Krrikt'k": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Krrish": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ktrini": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ktzini": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kulivas": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kurtz": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Kwint": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ladar": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Lakyan": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Lanicel": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Laytle": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Liccy": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Lilidona": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Lloriena": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Lodo": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Lodomn": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Lustre": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Lysskava'an": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Madikh": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Maechlyn": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Maisie": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Malik": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Malkhhan": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Malva": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Martrem": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Masul": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Mato": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Mebblec": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Meek": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Metalory Mongeria": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Mhasulri": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Mhhrval": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Miakoda": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Mishke": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Mitford": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Morikai": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Moritden": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Mortreyu": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Mothavi": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Muckele": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Naissura": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Nakuge": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Namazzi": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Natty": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Neidle": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Nigurf": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Niklotai": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Noel": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Nongwen": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Nyamii": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Oblichek": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ocan": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Orfna": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Orliss": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Orris": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Osgeth": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Osmandikar": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Othien": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Othorp": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Oweede": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Paedraig": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Phoebe": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Pishuna": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Plixbraggle": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Portman": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Posimur": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Pum": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Quellia": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Raeloka": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Raif": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Rancois": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Randal": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Rasiya": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Rastmarrest": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ratha Fishbuyer": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Redwing": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Relf": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Roakin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Robyn": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Rocha": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Rokumru": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Rothov": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Rushleel": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Saeru": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sammeli": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sandison": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sasha": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sawila": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sazu": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Scarlett": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Scrimmshaw": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Scupper": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sefu": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Seiryn": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Seli": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sephina": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Serdal": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sereah": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Shaefferty": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Shasuro": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Shh'yris": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Shisthlin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Shoiya": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sierack": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Silena": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sinjian": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sizlldan": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Skalliweg": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sklaar'ishht": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Smavold": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Smokethi": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Snusk": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Spidersworn": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Sputkin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Srenhaar": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ss'Thran": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ssivo": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ssthin'lao": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Stedh": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Stiltskitter": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Struan": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Svra'an": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tad": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Taernen": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Talosea": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Talthus": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tanalae": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Taney": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tarsha": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tawks": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tehya": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Teshi": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Thramis": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Thringol": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Thrumgrin": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Thryntyrlz": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tilaya": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tildi": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tobriash": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tremagis": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tromlyn": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Tuzra": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Twelvetoes": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ulipher": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Unspiek": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Urglub": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ushei": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ushikhh": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Vandorf": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Vatari": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Veraclese": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Vermadian": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Verrys": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Vhastey": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Vidro": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Vishlan": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Vurvitar": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Wickett": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Willowbee": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Willurde": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Windawn": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Woodbyne": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Woolly": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Worran": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Wyla": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Yhhsakri": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Yithye": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ylono": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Ynnve": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Yorgi": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zackes": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zanthron": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zelka": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zenastara": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zerek": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zezinka": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zharlest": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zhendil": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zieq": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zodrov": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Zombiefried": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-flat"
+ },
+ "Assistant kennel-master": {
+  "role": "ranger",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Elderly Elven appraiser": {
+  "role": "mage",
+  "gender": "male",
+  "race": "elf",
+  "confidence": "guessed-from-context"
+ },
+ "Festive tailor": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Halfling vendor": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "halfling",
+  "confidence": "guessed-from-context"
+ },
+ "Journeyman Cabinet Maker": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Lively crimson-robed priestess": {
+  "role": "priest",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Magpie": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Raven": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Rog": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "S'Kra Mur shopkeeper": {
+  "role": "merchant",
+  "gender": "male",
+  "race": "s-kra-mur",
+  "confidence": "guessed-from-context"
+ },
+ "Scraggly Elothean monk": {
+  "role": "priest",
+  "gender": "male",
+  "race": "elothean",
+  "confidence": "guessed-from-context"
+ },
+ "Street urchin": {
+  "role": "thief",
+  "gender": "male",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Tall Human Peddler": {
+  "role": "merchant",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ },
+ "Willowy green-robed priestess": {
+  "role": "priest",
+  "gender": "female",
+  "race": "human",
+  "confidence": "guessed-from-context"
+ }
+}

@@ -7,6 +7,12 @@ src/lib/persistence.ts:generic-api-key:8
 public/rooms/manifest.json:generic-api-key:217
 public/rooms/manifest.json:generic-api-key:771
 public/rooms/manifest.json:generic-api-key:816
+public/rooms/manifest.json:generic-api-key:1372
+public/rooms/manifest.json:generic-api-key:1453
+public/rooms/manifest.json:generic-api-key:2169
+public/rooms/manifest.json:generic-api-key:3682
+public/rooms/manifest.json:generic-api-key:5179
 
 # Another localStorage key constant, same shape as persistence.ts's above.
 src/App.tsx:generic-api-key:45
+src/App.tsx:generic-api-key:53

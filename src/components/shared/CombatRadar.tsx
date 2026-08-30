@@ -682,7 +682,7 @@ function Puck({
   // positive here, same tradeoff npc-defaults' whole design already takes.
   if (card.deck === 'people') {
     const guess = npcRoleGuessFor(card.name)
-    const npcArt = guess ? npcDefaultFor(guess.role, guess.gender, card.name) : undefined
+    const npcArt = guess ? npcDefaultFor(guess.role, guess.gender, card.name, guess.race) : undefined
     if (npcArt) {
       return (
         <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}>
@@ -863,45 +863,50 @@ function YouCard({
   const statusIcons = you.statusFlags
     .map((f) => STATUS_ICON[f])
     .filter((s): s is NonNullable<typeof s> => s != null)
+  const dollHeight = compact ? 104 : 154
 
   return (
+    // Three columns sharing one row's height, not a row of two stacked
+    // over a second, shorter row underneath — the compass has width to
+    // spare and not much of it went to anything before. Putting the
+    // vitals and status icons beside the doll instead of below it uses
+    // that width and buys back the vertical space the second row cost.
     <div
-      className="pointer-events-auto flex max-w-[16rem] flex-col gap-0.5 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
+      className="pointer-events-auto flex max-w-[18rem] items-stretch gap-1.5 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
       style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
     >
-      <div className="flex items-center gap-1.5">
-        <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 64 : 92} />
-        <Paperdoll
-          injuries={you.injuries}
-          height={compact ? 96 : 138}
-          known={you.injuriesKnown}
-          pose={you.pose}
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      <Portrait character={you.character} race={you.race ?? undefined} size={compact ? 72 : 106} />
+      <Paperdoll injuries={you.injuries} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
+
+      <div className="flex flex-col justify-center gap-1" style={{ height: dollHeight }}>
         {you.vitals.map((v) => {
           const share = v.max > 0 ? v.value / v.max : 1
           return (
-            <span key={v.key} className="text-xs text-ink-muted" title={`${v.label}: ${v.value}/${v.max}`}>
+            <span key={v.key} className="whitespace-nowrap text-xs text-ink-muted" title={`${v.label}: ${v.value}/${v.max}`}>
               {v.label.slice(0, 2).toUpperCase()}{' '}
-              <span className="text-sm font-bold tabular-nums" style={{ color: vitalColor(share) }}>
+              <span className="text-base font-bold tabular-nums" style={{ color: vitalColor(share) }}>
                 {v.value}
               </span>
             </span>
           )
         })}
 
-        {/* Nerves and the injury-adjacent status flags, as small icons in
-            the same row the vitals sit in — see the doc comments above for
-            why each lives here instead of a full StatusBoard. */}
-        <span className="ml-auto flex items-center gap-1" title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
-          <Activity className={`h-3.5 w-3.5 ${nsysTone(nsysWound)}`} aria-hidden />
-        </span>
-        {statusIcons.map(({ Icon, label, tone }) => (
-          <span key={label} title={label} className="flex items-center">
-            <Icon className={`h-3.5 w-3.5 ${tone}`} aria-hidden />
+        {/* Nerves and the injury-adjacent status flags, as small icons
+            under the vitals — see the doc comments above for why each
+            lives here instead of a full StatusBoard. Wraps rather than
+            overflowing: this column is narrow on purpose, and a fight
+            carrying five status flags at once is rare enough that
+            wrapping to a second line costs nothing most of the time. */}
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-border/30 pt-1">
+          <span title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
+            <Activity className={`h-4 w-4 ${nsysTone(nsysWound)}`} aria-hidden />
           </span>
-        ))}
+          {statusIcons.map(({ Icon, label, tone }) => (
+            <span key={label} title={label}>
+              <Icon className={`h-4 w-4 ${tone}`} aria-hidden />
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   )

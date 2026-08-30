@@ -35,7 +35,7 @@
  * for all four channels at once.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio, Search, Siren, Skull, MessageCircle, Music2, Star, X } from 'lucide-react'
+import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio, Search, Siren, Skull, MessageCircle, Music2, Star, X, ListMusic, Plus, Check, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
 import {
   playAlert,
   setAlertsVolume,
@@ -62,11 +62,24 @@ import {
   onCrossfadeStyleChange,
   ALL_TRACKS,
   playTrack,
+  setPlaylist,
+  currentPlaylistId,
   nowPlaying,
   onNowPlayingChange,
   type CrossfadeStyle,
   type NowPlaying,
+  type SearchableTrack,
 } from '../../lib/ambientSound'
+import {
+  playlists,
+  onPlaylistsChange,
+  createPlaylist,
+  deletePlaylist,
+  isTrackInPlaylist,
+  toggleTrackInPlaylist,
+  removeTrackFromPlaylist,
+  type Playlist,
+} from '../../lib/playlists'
 import { externalMediaAvailable, sendMediaKey, type MediaAction } from '../../lib/externalMedia'
 import { loadPrefs, savePrefs, type FavoriteStation } from '../../lib/persistence'
 import { favoriteStations, onFavoritesChange, toggleFavorite, removeFavorite } from '../../lib/favorites'
@@ -156,6 +169,62 @@ function SectionLabel({ children, className }: { children: React.ReactNode; clas
 }
 
 /**
+ * One track - shared by the search-results list and the All Tracks browse
+ * list (30 Aug 2026), so "search for a song" and "see and choose individual
+ * tracks" (Dan's own words) are one row shape, not two that could drift.
+ *
+ * `inTarget`/`onToggleTarget` are the add-to-playlist half - undefined
+ * entirely (rather than passed as `false`/a no-op) when there's no target
+ * playlist to add to yet, which is what makes the "+"/check column not
+ * render at all rather than rendering disabled. A row that looks
+ * interactive but does nothing is worse than one less column.
+ */
+function TrackRow({
+  t,
+  active,
+  onPlay,
+  inTarget,
+  onToggleTarget,
+}: {
+  t: SearchableTrack
+  active: boolean
+  onPlay: () => void
+  inTarget?: boolean
+  onToggleTarget?: () => void
+}) {
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-1 rounded px-1.5 py-1 text-xs',
+        active ? 'bg-accent/15 text-ink' : 'text-ink-muted hover:bg-border/40 hover:text-ink'
+      )}
+    >
+      {onToggleTarget && (
+        <button
+          type="button"
+          className={cn(
+            'shrink-0 rounded p-0.5',
+            inTarget ? 'text-accent' : 'text-ink-faint opacity-0 hover:text-accent group-hover:opacity-100'
+          )}
+          onClick={onToggleTarget}
+          title={inTarget ? `Remove "${t.title}" from this playlist` : `Add "${t.title}" to this playlist`}
+        >
+          {inTarget ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+        </button>
+      )}
+      <button type="button" className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left" onClick={onPlay}>
+        {active ? <Play className="h-3 w-3 shrink-0 text-accent" /> : <span className="w-3 shrink-0" />}
+        <span className="min-w-0 flex-1 truncate">
+          {t.title}
+          {t.composer && <span className="text-ink-faint"> — {t.composer}</span>}
+        </span>
+        <span className="shrink-0 text-ink-faint">{t.stationName}</span>
+      </button>
+    </div>
+  )
+}
+
+/**
  * Play/pause/skip/volume for whatever else is playing outside the app -
  * Spotify, a browser tab, a desktop radio app - sent as global media keys.
  * See externalMedia.ts and src-tauri/src/media_keys.rs for the mechanism and
@@ -221,6 +290,54 @@ export function SoundControls() {
   const [radioId, setRadioId] = useState(currentRadioStation())
   const [customUrl, setCustomUrl] = useState(currentCustomStream() ?? '')
   const [customName, setCustomName] = useState('')
+  // Same shape as radioId/customUrl just above (local, set on click - not
+  // a full pub/sub like favorites.ts/playlists.ts) - only this one
+  // component reads which playlist is playing right now. Still needs the
+  // re-read-at-subscribe-time fix `now`/`crossfade` document elsewhere in
+  // this file, though: GamePane's own mount effect restores a remembered
+  // `activePlaylistId` in *its* effect, which can run after this
+  // component's render already captured `currentPlaylistId()` as null but
+  // before this one subscribes - measured live, this raced on every
+  // reload, so "delete the playlist that's actually playing" believed
+  // nothing was playing, skipped stopping it, and left the track running
+  // with a now-orphaned `activePlaylistId` still in storage.
+  const [playingPlaylistId, setPlayingPlaylistId] = useState(() => currentPlaylistId())
+  useEffect(() => {
+    setPlayingPlaylistId((prev) => {
+      const current = currentPlaylistId()
+      return prev === current ? prev : current
+    })
+  }, [])
+  // `userPlaylists` IS subscribed (playlists.ts, same pattern as
+  // favorites.ts) - deleting or renaming a playlist, or adding a track to
+  // one, all have to be visible the instant they happen, and there is only
+  // one writer today but the module exists specifically so that stops being
+  // an assumption this component gets to make.
+  const [userPlaylists, setUserPlaylists] = useState<Playlist[]>(() => playlists())
+  useEffect(() => {
+    setUserPlaylists((prev) => {
+      const current = playlists()
+      return prev === current ? prev : current
+    })
+    return onPlaylistsChange(setUserPlaylists)
+  }, [])
+  const [newPlaylistName, setNewPlaylistName] = useState('')
+  const [expandedPlaylistId, setExpandedPlaylistId] = useState<string | null>(null)
+  // Which playlist a track row's own "+" button adds to - a single active
+  // target rather than a per-track multi-select menu, so building a
+  // playlist is "pick the target once, then click through the tracks you
+  // want" instead of a dropdown per row. Defaults to the most recently
+  // created playlist once one exists.
+  const [addTargetId, setAddTargetId] = useState<string | null>(null)
+  const [showAllTracks, setShowAllTracks] = useState(false)
+  // Keep the target pointed at a playlist that still exists - falls back to
+  // the most recently created one (newest last, same order favorites.ts's
+  // own list keeps) whenever the current target is unset or was just
+  // deleted, rather than silently pointing "+" at nothing.
+  useEffect(() => {
+    if (userPlaylists.some((p) => p.id === addTargetId)) return
+    setAddTargetId(userPlaylists.length ? userPlaylists[userPlaylists.length - 1].id : null)
+  }, [userPlaylists, addTargetId])
   // favorites.ts is the single source of truth now (29 Aug 2026) - the
   // footer's own favorite-current star reads and writes the same module, so
   // this panel has to subscribe rather than own the list, same
@@ -372,6 +489,7 @@ export function SoundControls() {
   const toggleBuiltinFavorite = (id: string, name: string) => toggleFavorite('builtin', id, name)
 
   const playFavorite = (f: FavoriteStation) => {
+    setPlayingPlaylistId(null)
     if (f.kind === 'builtin') {
       setRadioId(f.id)
       setRadioStation(f.id)
@@ -384,6 +502,37 @@ export function SoundControls() {
       setCustomStream(f.id)
       savePrefs({ customStreamUrl: f.id, radioStation: null })
     }
+  }
+
+  /**
+   * A player's own hand-picked playlists - reads/writes go through
+   * playlists.ts, engine playback through ambientSound.ts's setPlaylist.
+   * Dan, 30 Aug 2026: "we have great music. let people see and choose
+   * individual tracks and make playlists with them too."
+   */
+  const playPlaylist = (p: Playlist) => {
+    if (!p.trackIds.length) return
+    setRadioId(null)
+    setCustomUrl('')
+    setPlayingPlaylistId(p.id)
+    setPlaylist(p.id, p.trackIds)
+    savePrefs({ activePlaylistId: p.id, radioStation: null, customStreamUrl: null })
+  }
+
+  const stopPlaylist = () => {
+    setPlayingPlaylistId(null)
+    setPlaylist(null)
+    savePrefs({ activePlaylistId: null })
+  }
+
+  /** "Play this song" - shared by the search-results row and the All Tracks
+   * browse row, since both are the same action (playTrack's own header). */
+  const playSearchTrack = (t: SearchableTrack) => {
+    setPlayingPlaylistId(null)
+    playTrack(t.id)
+    setRadioId(t.stationId)
+    setCustomUrl('')
+    savePrefs({ radioStation: t.stationId, customStreamUrl: null })
   }
 
   // Close on an outside click or Escape - a panel that only closes by
@@ -635,32 +784,16 @@ export function SoundControls() {
                 {searchResults.length === 0 ? (
                   <div className="px-1.5 py-1 text-xs text-ink-faint">No tracks match "{search.trim()}"</div>
                 ) : (
-                  searchResults.map((t) => {
-                    const active = radioId === t.stationId && now?.title === t.title
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className={cn(
-                          'flex items-center gap-1.5 rounded px-1.5 py-1 text-left text-xs',
-                          active ? 'bg-accent/15 text-ink' : 'text-ink-muted hover:bg-border/40 hover:text-ink'
-                        )}
-                        onClick={() => {
-                          playTrack(t.id)
-                          setRadioId(t.stationId)
-                          setCustomUrl('')
-                          savePrefs({ radioStation: t.stationId, customStreamUrl: null })
-                        }}
-                      >
-                        {active ? <Play className="h-3 w-3 shrink-0 text-accent" /> : <span className="w-3 shrink-0" />}
-                        <span className="min-w-0 flex-1 truncate">
-                          {t.title}
-                          {t.composer && <span className="text-ink-faint"> — {t.composer}</span>}
-                        </span>
-                        <span className="shrink-0 text-ink-faint">{t.stationName}</span>
-                      </button>
-                    )
-                  })
+                  searchResults.map((t) => (
+                    <TrackRow
+                      key={t.id}
+                      t={t}
+                      active={!playingPlaylistId && radioId === t.stationId && now?.title === t.title}
+                      onPlay={() => playSearchTrack(t)}
+                      inTarget={addTargetId ? isTrackInPlaylist(addTargetId, t.id) : undefined}
+                      onToggleTarget={addTargetId ? () => toggleTrackInPlaylist(addTargetId, t.id) : undefined}
+                    />
+                  ))
                 )}
                 {searchResults.length === SEARCH_LIMIT && (
                   <div className="px-1.5 py-1 text-xs text-ink-faint">
@@ -715,6 +848,151 @@ export function SoundControls() {
               </div>
             )}
 
+            {/* A player's own playlists, first class next to Favorites - a
+              * favorite stars a whole station or stream someone else made;
+              * this is built one track at a time from the pool below. Dan,
+              * 30 Aug 2026: "let people see and choose individual tracks and
+              * make playlists with them too." Play button on the row name;
+              * the chevron expands it to see/remove its own tracks without
+              * leaving this panel; delete removes the whole thing (and stops
+              * it first if it's the one playing - a deleted playlist cannot
+              * keep occupying the music slot it no longer names). */}
+            <div className="mb-2">
+              <div className="mb-1 flex items-center gap-1 text-xs font-medium text-ink-muted">
+                <ListMusic className="h-3 w-3 text-accent" />
+                Playlists
+              </div>
+              {userPlaylists.length > 0 && (
+                <div className="mb-1 flex flex-col gap-0.5">
+                  {userPlaylists.map((p) => {
+                    const active = playingPlaylistId === p.id
+                    const expanded = expandedPlaylistId === p.id
+                    return (
+                      <div key={p.id}>
+                        <div
+                          className={cn(
+                            'group flex items-center gap-1 rounded px-1.5 py-1 text-xs',
+                            active ? 'bg-accent/15 text-ink' : 'text-ink-muted hover:bg-border/40 hover:text-ink'
+                          )}
+                        >
+                          <button
+                            type="button"
+                            className="shrink-0 rounded p-0.5 text-ink-faint hover:text-ink"
+                            onClick={() => setExpandedPlaylistId(expanded ? null : p.id)}
+                            title={expanded ? 'Collapse' : 'Show tracks'}
+                            aria-label={expanded ? `Collapse ${p.name}` : `Show tracks in ${p.name}`}
+                          >
+                            {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          </button>
+                          <button
+                            type="button"
+                            className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left"
+                            title={p.trackIds.length ? undefined : 'Empty - add tracks from the list below'}
+                            onClick={() => (p.trackIds.length ? playPlaylist(p) : setExpandedPlaylistId(p.id))}
+                          >
+                            {active ? <Play className="h-3 w-3 shrink-0 text-accent" /> : null}
+                            <span className="truncate">{p.name}</span>
+                            <span className="shrink-0 text-ink-faint">({p.trackIds.length})</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={cn(
+                              'shrink-0 rounded p-0.5',
+                              addTargetId === p.id
+                                ? 'text-accent'
+                                : 'text-ink-faint opacity-0 hover:text-accent group-hover:opacity-100'
+                            )}
+                            onClick={() => setAddTargetId(p.id)}
+                            title={addTargetId === p.id ? 'Adding tracks to this playlist' : `Add tracks to "${p.name}"`}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded p-0.5 text-ink-faint opacity-0 hover:text-warn group-hover:opacity-100"
+                            onClick={() => {
+                              // Ask the engine directly rather than trusting
+                              // `active` (this component's own, possibly
+                              // stale, copy) - deleting the playlist that's
+                              // genuinely playing must stop it, and getting
+                              // that wrong here means an orphaned track kept
+                              // running with no playlist left to name it.
+                              if (currentPlaylistId() === p.id) stopPlaylist()
+                              deletePlaylist(p.id)
+                            }}
+                            title={`Delete "${p.name}"`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                        {expanded && (
+                          <div className="ml-4 flex flex-col gap-0.5 border-l border-border pl-2">
+                            {p.trackIds.length === 0 ? (
+                              <div className="px-1.5 py-1 text-xs text-ink-faint">
+                                No tracks yet - add some from the list below.
+                              </div>
+                            ) : (
+                              p.trackIds.map((id) => {
+                                const t = ALL_TRACKS.find((x) => x.id === id)
+                                if (!t) return null
+                                return (
+                                  <div
+                                    key={id}
+                                    className="flex items-center gap-1.5 rounded px-1.5 py-1 text-xs text-ink-muted"
+                                  >
+                                    <span className="min-w-0 flex-1 truncate">
+                                      {t.title}
+                                      {t.composer && <span className="text-ink-faint"> — {t.composer}</span>}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      className="shrink-0 text-ink-faint hover:text-warn"
+                                      onClick={() => removeTrackFromPlaylist(p.id, id)}
+                                      title={`Remove "${t.title}" from ${p.name}`}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )
+                              })
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              <form
+                className="flex gap-1"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const name = newPlaylistName.trim()
+                  if (!name) return
+                  const p = createPlaylist(name)
+                  setAddTargetId(p.id)
+                  setExpandedPlaylistId(p.id)
+                  setNewPlaylistName('')
+                }}
+              >
+                <input
+                  type="text"
+                  placeholder="New playlist name…"
+                  className="w-full truncate rounded border border-border bg-surface px-1 py-1 text-xs text-ink"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  disabled={!newPlaylistName.trim()}
+                  className="shrink-0 rounded border border-border px-2 py-1 text-ink-faint hover:text-ink disabled:opacity-30"
+                  title="Create playlist" aria-label="Create playlist"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              </form>
+            </div>
+
             {/* Every built-in station, shown off rather than tucked into a
               * dropdown - real curated playlists (four stations, 178
               * tracks between them - two others were killed 29 Aug 2026,
@@ -728,16 +1006,23 @@ export function SoundControls() {
                 type="button"
                 className={cn(
                   'flex items-center gap-1.5 rounded px-1.5 py-1 text-left text-xs',
-                  radioId === null && !customUrl ? 'bg-accent/15 text-ink' : 'text-ink-muted hover:bg-border/40 hover:text-ink'
+                  radioId === null && !customUrl && !playingPlaylistId
+                    ? 'bg-accent/15 text-ink'
+                    : 'text-ink-muted hover:bg-border/40 hover:text-ink'
                 )}
                 onClick={() => {
                   setRadioId(null)
+                  setPlayingPlaylistId(null)
                   setRadioStation(null)
                   setCustomUrl('')
-                  savePrefs({ radioStation: null, customStreamUrl: null })
+                  savePrefs({ radioStation: null, customStreamUrl: null, activePlaylistId: null })
                 }}
               >
-                {radioId === null && !customUrl ? <Play className="h-3 w-3 shrink-0 text-accent" /> : <span className="w-3 shrink-0" />}
+                {radioId === null && !customUrl && !playingPlaylistId ? (
+                  <Play className="h-3 w-3 shrink-0 text-accent" />
+                ) : (
+                  <span className="w-3 shrink-0" />
+                )}
                 Zone music (follows where you are)
               </button>
               {RADIO_STATIONS.map((s) => {
@@ -765,9 +1050,10 @@ export function SoundControls() {
                       title={s.description}
                       onClick={() => {
                         setRadioId(s.id)
+                        setPlayingPlaylistId(null)
                         setRadioStation(s.id)
                         setCustomUrl('')
-                        savePrefs({ radioStation: s.id, customStreamUrl: null })
+                        savePrefs({ radioStation: s.id, customStreamUrl: null, activePlaylistId: null })
                       }}
                     >
                       {active ? <Play className="h-3 w-3 shrink-0 text-accent" /> : null}
@@ -800,8 +1086,9 @@ export function SoundControls() {
                 const url = customUrl.trim()
                 if (!url) return
                 setRadioId(null)
+                setPlayingPlaylistId(null)
                 setCustomStream(url)
-                savePrefs({ customStreamUrl: url, radioStation: null })
+                savePrefs({ customStreamUrl: url, radioStation: null, activePlaylistId: null })
               }}
             >
               <span className="text-ink-muted">Add a station by stream URL</span>
@@ -857,6 +1144,50 @@ export function SoundControls() {
                 </button>
               )}
             </form>
+
+            {/* Every track, not just the ones a search happens to match -
+              * the other half of "let people see and choose individual
+              * tracks." Collapsed by default (178 rows is a lot to drop into
+              * a popover uninvited); the "+" column only appears once a
+              * playlist exists to add to, and always targets whichever one
+              * has its pencil lit in the Playlists section above, so this
+              * list doesn't need a second selector duplicating that choice.
+              * Hidden while a search is active - the results above already
+              * are this same list, filtered, with the same add-to-playlist
+              * column. */}
+            {!search.trim() && (
+              <div className="mt-2 border-t border-border pt-2">
+                <button
+                  type="button"
+                  className="mb-1 flex w-full items-center gap-1 text-xs font-medium text-ink-muted hover:text-ink"
+                  onClick={() => setShowAllTracks((v) => !v)}
+                >
+                  {showAllTracks ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  All tracks ({ALL_TRACKS.length})
+                </button>
+                {showAllTracks && (
+                  <>
+                    <div className="mb-1 px-1.5 text-xs text-ink-faint">
+                      {addTargetId
+                        ? `Adding "+" to: ${userPlaylists.find((p) => p.id === addTargetId)?.name ?? ''}`
+                        : 'Create a playlist above to start adding tracks.'}
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      {ALL_TRACKS.map((t) => (
+                        <TrackRow
+                          key={t.id}
+                          t={t}
+                          active={!playingPlaylistId && radioId === t.stationId && now?.title === t.title}
+                          onPlay={() => playSearchTrack(t)}
+                          inTarget={addTargetId ? isTrackInPlaylist(addTargetId, t.id) : undefined}
+                          onToggleTarget={addTargetId ? () => toggleTrackInPlaylist(addTargetId, t.id) : undefined}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <ExternalMediaControls />

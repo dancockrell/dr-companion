@@ -1,0 +1,168 @@
+{
+  "_note": "A target list, not prompts yet. Names, levels, and rough categories pulled from Elanthipedia (29 Aug 2026): the Zoluren hunting ladder in full, and the master Estimated Ranks hunting ladder for creature levels 0-90 (levels 90+ came back inconsistent on fetch and were discarded rather than trusted). Guards and Crafting Society Masters are the full category listings already reviewed in this session. This is the scoping pass — the next step is picking which of these actually get a full ~300-word Grok prompt written, the way the 229-request list already does.",
+
+  "creatures": {
+    "_note": "Deduplicated by base name (numbered variants like 'Footpad (creature1)' collapsed to one entry). Level is Creature Level, not training rank.",
+    "zoluren_ladder": [
+      "Rat", "Sleazy lout", "Musk hog", "Pale grey death squirrel", "Skunk",
+      "Lesser skeleton", "Forager goblin", "Large musk hog", "Scavenger goblin", "Fell hog",
+      "Giant wasp", "Blood nyad", "Striped badger", "Wild boar", "Deer",
+      "Large brown spider", "Silverfish", "Croff pothanit", "Blood dryad", "Field goblin",
+      "Ring-necked gidii", "Ghoul", "Goblin zombie", "Corpse grub", "Crazed madman",
+      "Goblin shaman", "Origami creature", "Revenant zombie", "Trollkin", "Brown burrower",
+      "Inkhorne", "Cougar", "S'lai scout", "Grass eel", "Jackal", "Small grendel",
+      "Revenant conscript", "Water sprite", "Glutinous lipopod", "Faenrae reaver", "Wood troll",
+      "Miniscule animated items", "Wind hound", "Beisswurm", "Hardened silverfish", "Brown bear",
+      "Bobcat", "Cave bear", "Bone wolf", "Malodorous bucca", "Copperhead viper", "Fire sprite",
+      "Ichorous ossein amalgam", "Rock troll", "Blood wolf", "Brown tree snake",
+      "Small birdcatcher spider", "Elder hardened silverfish", "Endrus serpent", "Snowbeast",
+      "Silver-backed bear", "Fire maiden", "Immature firecat", "Young ogre", "Putrid tree snake",
+      "Greater water sprite", "Young firecat", "Granite gargoyle", "Grave worm", "Scout ogre",
+      "Blue-belly crocodile", "Moss mey", "Footpad", "Thug", "Crypt fiend", "Undead gerbil",
+      "Ruffian", "Cutthroat", "Dire bear", "Giant thicket viper", "Etes drone",
+      "Elder storm geese", "Dark spirit", "River sprite", "Giant black leucro", "Dryad priestess",
+      "Elder razortusk boar", "Zombie boar", "Twisted dryad", "Scavenger troll",
+      "Seordhevor kartais", "Forest bandit", "Pale grey death spirit", "Rock guardian",
+      "Mottled westanuryn", "Giant bear", "Red-Gold scaled atik'et", "Forest geni", "Cave troll",
+      "Muscular firecat", "Supple firecat", "Onyx gargoyle", "Treehopper toad", "Ember bull",
+      "Animated items", "Misshapen germish'din", "Wir dinego", "Armored warklin",
+      "Warklin mauler", "Gigantic lachmate", "Snaer hafwa", "Emerald claw troll",
+      "Misenseor resuscitant", "Storm bull", "Shadewing harpy", "Xala'shar thrall",
+      "Xala'shar magus", "Xala'shar conjurer", "Xala'shar archimage", "Lava drake",
+      "Xala'shar vanquisher", "Xala'shar archer", "Xala'shar slayer", "Xala'shar vindicator",
+      "Arthelun cabalist", "Xala'shar shredder", "Xala'shar overseer", "Fuligin umbral moth",
+      "Void black umbral moth", "Scavenger giant"
+    ],
+    "master_ladder_extra": [
+      "Zombie goblin", "Heggarangi frog", "Tortured soul", "Wildland goblin", "Antelope",
+      "Scarlet crayfish", "Spotted shark", "Young red brocket deer", "Sylph",
+      "Cadaverous blue-belly crocodile", "Lesser sluagh", "Pugnacious pinchfist",
+      "Spotted kashika serpent", "Miserly moneygrubber", "Piruati serpent",
+      "Shifty-eyed skinflint", "Troublesome tightwad", "Ferocious foothill fighter",
+      "Adult razortusk boar", "Eidolon steed", "Graverobber", "Meandering mountain marauder",
+      "Snow goblin", "Maiden's tress", "Wormwood vine", "Nightweaver unyn",
+      "Shaggy black barghest", "Golden scaled atik'et", "Grey and tan mottled westanuryn",
+      "Vela'tohr bloodvine", "Vykathi builder", "Vykathi excavator", "Swamp troll",
+      "Bawdy swain", "Merrows", "Retch fiend", "Kra'hei hatchling", "Young blue-dappled prereni",
+      "Zombie red leucro", "Ghoul crow", "Seething summit sunderer", "Mutant togball",
+      "Red brocket deer", "Alley thug", "Spiny dyrachis", "Pirate", "Lithe blight ogre",
+      "Cadaverous yeehar", "Shadoweaver", "Decaying blightwater nyad", "Lachmate",
+      "Rotting deadwood dryad", "Grey clay soldier", "Nipoh oshu", "Stumpy blight ogre",
+      "Nightreaver unyn", "Heggarangi boar", "Small tree sloth", "Dusky scythewing moth",
+      "Sickly blightwater nyad", "Vicious warcat", "Vykathi harvester", "Lesser shadow hound",
+      "Yvhh la'tami", "Crag", "Blacktip shark", "Grey clay mage", "Matron's tress",
+      "Small peccary", "Frostweyr bear", "Bull shark", "Frostcrone", "Orc bandit",
+      "Frostweaver", "Angiswaerd hatchling", "Blue-dappled prereni", "Giant blight ogre",
+      "Golden pard", "Grey clay archer", "Ochre la'heke", "Orc scout", "Ur hhrki'izh",
+      "Grizzled red leucro", "Tiger shark", "Gnarled fendryad", "Rhoat moda",
+      "Twisted fendryad", "Selkie", "Sinuous ice adder", "Windbag", "Shadefield eviscerator",
+      "Vykathi reaper", "Vykathi soldier", "Elder red brocket deer", "Lanky grey lach",
+      "Skeletal sailor", "Hulking black barghest", "Blue-green pivuh", "Sovamedo cub",
+      "Long-fanged warcat", "Velakan slaver", "Beltunumshi", "Caracal", "Faenrae stalker",
+      "Peccary", "Dark sprite", "Clouded arzumos", "Feral bone mastiff", "Red-bristled gremlin",
+      "Fledgling forest gryphon", "Adan'f shadow mage", "Sleek hele'la", "Baby forest gryphon",
+      "Emaciated umbramagus", "Adan'f blood warrior", "Spectral pirate", "Nimbus",
+      "Elder blue-dappled prereni", "Retan dolomar", "Zombie nomad", "Frost angiswaerd",
+      "Elba Darvager", "Greater shadow hound", "Piranha", "River boa", "Icy blue ghast",
+      "Yellow-bristled gremlin", "Bristle-backed peccary", "Nightstalker unyn", "Orc reiver",
+      "Sabre-toothed warcat", "Ruby-crested adult forest gryphon", "Lesser dusky-scaled basilisk",
+      "Sailfin lizard", "Dragon Priest sentinel", "Dobek moruryn", "Gam chaga", "Spider crab",
+      "Cloud rat", "Tree snake", "Young forest gryphon", "Armored shalswar", "Giant blade spider",
+      "Kra'hei", "Marbled angiswaerd", "Sinuous elsralael", "Lun'Shele hunter",
+      "Maelshyvean shadow beast", "Gargantuan bone golem", "Black marble gargoyle",
+      "Maelshyvean cinder beast", "Robed Dragon Priest", "Dragon Priest purifier",
+      "Cavern bear", "Greater ghoul raven", "Adept Adan'f blood warrior",
+      "Adept Adan'f shadow mage", "Isundjen conjurer", "Telga moradu", "Lun'Shele trekhalo",
+      "Mountain giant", "Faenrae assassin", "Dragon Priest crone", "Gold-taloned elder forest gryphon",
+      "Orc raider", "Damaska boar"
+    ]
+  },
+
+  "generic_types_to_cover": {
+    "_note": "Body-shape/theme archetypes the creature list above clusters into — a smaller set of GENERIC reusable prompts (one per type, like the existing mob-* entries) covers most of the named list above without needing 400 individual prompts. This is what 'all monster generic types' should resolve to.",
+    "already_have": ["rat", "kobold", "goblin (several roles)", "wild boar", "giant spider", "brigand/bandit", "skeleton", "ghost/restless spirit", "zombie", "ghoul", "orc", "ogre", "troll (cave/swamp/ice)", "giant insects", "snake/viper", "crocodile", "harpy", "giant eagle/gryphon", "imp/minor demon", "elemental (fire/water/earth/air)", "will-o-wisp", "mimic", "ooze", "giant crab", "merfolk", "satyr", "minotaur", "gargoyle", "wraith", "bat swarm", "wolf (dire/winter)", "sand worm", "jackal/hyena", "vulture", "bear (cave/mountain-lion adjacent)", "forest sprite", "dryad", "animated armor"],
+    "new_from_this_pull": [
+      "sprite (water/fire/river, distinct from will-o-wisp)",
+      "nyad/blightwater nyad",
+      "leucro (reptilian pack hunter)",
+      "atik'et (scaled beast)",
+      "westanuryn (mottled beast)",
+      "angiswaerd",
+      "prereni",
+      "firecat",
+      "silverfish (giant insectoid)",
+      "gremlin",
+      "barghest (spectral hound)",
+      "shadow hound",
+      "fendryad (twisted dryad variant)",
+      "clay soldier/mage/archer (constructed humanoid)",
+      "vykathi (builder/excavator/harvester/reaper/soldier)",
+      "warcat",
+      "germish'din",
+      "lachmate",
+      "gargoyle (onyx/black marble/quartz/granite variants)",
+      "forest gryphon (juvenile through elder)",
+      "dragon priest / dragon priestess (robed humanoid cultist)",
+      "sluagh",
+      "umbral moth",
+      "adan'f (shadow mage / blood warrior humanoid)",
+      "xala'shar (whole enemy faction, several roles: thrall/magus/conjurer/archimage/vanquisher/archer/slayer/vindicator/shredder/overseer)",
+      "storm bull",
+      "warklin",
+      "lava drake"
+    ]
+  },
+
+  "people": {
+    "crafting_society_masters": {
+      "_note": "16 total, all Crossing-based, real names, one guild-craft society each. Same treatment as the 8 named guild leaders already done.",
+      "names": ["Benzia", "Borneas", "Carmifex", "Daryrd", "Fereldrin", "Grimbly", "Hagim", "Juln", "Kapric", "Lanshado", "Milline", "Paarupensteen", "Serric", "Talia", "Thalorin", "Yalda"]
+    },
+    "guards": {
+      "_note": "38 total game-wide. Kept in full rather than trimmed to only-confirmed — more candidates is the point once wiring starts. Only the ones with an unambiguous other-province name are set aside; everything else stays a real candidate even without an individual page check.",
+      "confirmed_zoluren": ["Town Guard", "Baronial guardsman", "Baron's Guardsman", "Armored sentry", "Market guard", "Tribunal guard", "Grog (Knife Clan sentry, confirmed by name on the Knife Clan page)"],
+      "candidates": ["Adim", "Alvar", "Atuelliss", "Ceanatis", "Cluff", "Dragaus", "Dunmir", "Fenhalut", "Galti", "Gazlok", "Grutan", "Harrel", "Herrick", "Khal Gwaerd", "Kirew", "Kretsky", "Langa guardsman", "Pohofa", "Quillak", "Sevrigon", "Sybina", "Tirtogren", "Vathbiirk", "Yoneimo", "Zukir"],
+      "set_aside_other_province": ["Elven Warden (1)", "Elven Warden (2)", "Muspar'i constable", "Riverhaven Warden", "Therengian guide", "Siksraja Defender"]
+    },
+    "other_towns": {
+      "_note": "Named NPCs found on each town's own Elanthipedia page (29 Aug 2026). Stone Clan and Ilaya Taipa genuinely have no named residents on the wiki yet ('None Yet!' on Ilaya Taipa's own page) — that's the wiki's gap, not mine, so both are listed with their real shop/building names as scene subjects instead of people.",
+      "tiger_clan": {
+        "race_flavor": "Gor'Tog",
+        "people": ["Ortug Borthgar (clan leader, founder)", "Resomba (Ortug's wife)", "Grob (Ortug's son)", "Havor Foehammer (blacksmith, runs Havor's Forge)", "Neesa (midwife and herbalist, runs Midwife Neesa's Cottage)", "Father Karjon (exorcist, works in the church)", "Albreda (grants favors in the Tiger Clan church)"]
+      },
+      "wolf_clan": {
+        "race_flavor": "human barbarian",
+        "people": ["Wolfjaw Ironbeard (chieftain, has a village statue)", "Suza Ironbeard (prominent resident)", "Mopeliar (the Barbarian Pit Master)", "Brigetta (runs Brigetta's Tanned Goods — leather repair and pelt buying)", "Arnack (runs Arnack's Tavern)"]
+      },
+      "knife_clan": {
+        "race_flavor": "human, skilled metalworkers",
+        "people": ["Trog / Boss Trog Donrag (clan leader)", "Grog (the sentry — also a Guards-category NPC)", "Dokt (the non-Empath healer)", "Bukor (runs Bukor's Leatherworks)", "Tobb (runs Tobb's Smithy)"]
+      },
+      "stone_clan": {
+        "race_flavor": "Dwarf",
+        "people_note": "No named current residents on the wiki page — only historical founders (Galen Hammerhand, Gwaldhar). Real shop/building names to use as scene subjects instead: Muckele's Hoy, Forkbeard's Brodger."
+      },
+      "arthe_dale": {
+        "race_flavor": "Halfling",
+        "people": ["Rufus Tanglefoot (runs Odds 'n Ends)", "Wooly Tanglefoot (Tanglefoot family, founder's descendant)", "Bungles Bunglefoot (owns the ship Tipsy Seahorse)", "Daerlynn (bard, created the Arthe Dale Concert and Performing Series)", "Nilme Iondu'il (hosts the Concert and Performing Series)"],
+        "shops_no_named_owner": ["Barley Bulrush's Bardic Ballads", "Phoebe's Fashions"]
+      },
+      "kaerna_village": {
+        "race_flavor": "human, trade-road waystop",
+        "people": ["Savrin Kaerna (prominent resident, no further role given)"],
+        "note": "Prince Vorclaf is the named ruler but not physically placed in the village itself."
+      },
+      "ilaya_taipa": {
+        "race_flavor": "human, riverfront trading town",
+        "people_note": "Wiki's own Prominent People section says 'None Yet!' — no named residents. Lemicus is mentioned only in connection with a chapel altar, unclear if an actual resident. Town itself has many unnamed shops worth using as scene subjects once specific ones are pulled."
+      }
+    }
+  },
+
+  "places": {
+    "zoluren_settlements": ["The Crossing (done)", "Tiger Clan", "Wolf Clan", "Knife Clan", "Arthe Dale", "Kaerna Village", "Stone Clan", "Dirge", "Gorbesh Fortress (abandoned)", "Leth Deriel", "Ilaya Taipa"],
+    "crossing_landmarks": ["Asemath Academy", "Aesthene's Close", "Crossing High Temple", "Jadewater Mansion", "Drelstead Prison", "The Middens", "DiSilveron Manor", "Ulf'Hara Keep", "Silvermist Estate"],
+    "crossing_unique": ["Barana's Shipyard", "Crossing Community Center (Veranda)", "The Amusement Pier", "Raven's Court", "Observatory / Celestial Garden Shop (Moon Mage only)"],
+    "crossing_inns_taverns": ["Half Pint Inn", "Sand Spit Tavern", "Taelbert's Inn", "Tenderfoot Inn", "Viper's Nest Inn"]
+  }
+}
