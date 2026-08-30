@@ -76,7 +76,7 @@ type ClientList = Arc<Mutex<Vec<(u64, TcpStream)>>>;
 /// and compare against our own copy in the same run.
 fn generate_token() -> String {
     let mut bytes = [0u8; 32];
-    getrandom::getrandom(&mut bytes).expect("the OS should be able to supply randomness");
+    getrandom::fill(&mut bytes).expect("the OS should be able to supply randomness");
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
