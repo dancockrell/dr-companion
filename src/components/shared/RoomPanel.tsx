@@ -2,7 +2,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { RoomCards } from './RoomCards'
 import { fromRoom } from '../../lib/room'
 import type { Deck } from '../../lib/cards'
-import type { DeckPref } from '../../lib/layout'
+import type { DeckPref } from '../../lib/cards'
 
 /**
  * Everything in the room that can act, as three decks of cards.

@@ -8,16 +8,21 @@
  *
  * Deliberately no header of its own beyond a title bar. The window *is* the
  * panel — chrome here would be space charged twice.
+ *
+ * Used to dispatch through a registry (`panels.tsx`'s `PANEL_CONTENT`) shared
+ * with the middle dashboard column, keyed by a `PanelId` that covered nine
+ * different panels and a Basic/Power density flag each of them read. The
+ * dashboard column is gone (see App.tsx's "kill the middle" comment) and
+ * Basic/Power went with it, and this was the pop-out map's only remaining
+ * live path through that registry — every other entry had no caller left.
+ * Hardcoded to the one panel this window is ever actually opened for.
  */
 import { useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
-import { PANEL_CONTENT, panelTitle } from './dashboard/panels'
-import { useLayout } from '../lib/useLayout'
-import type { PanelId } from '../lib/layout'
+import { MapPanel } from './shared/MapPanel'
 
-export function PanelWindow({ id }: { id: PanelId }) {
+export function PanelWindow({ id }: { id: string }) {
   const connectBridge = useAppStore((s) => s.connectBridge)
-  const uiMode = useAppStore((s) => s.uiMode)
 
   // This window connects for itself. It did not inherit the main window's
   // socket, because it does not share its JavaScript at all.
@@ -25,10 +30,7 @@ export function PanelWindow({ id }: { id: PanelId }) {
     connectBridge()
   }, [connectBridge])
 
-  const { layout, cycleDeck } = useLayout(uiMode)
-  const render = PANEL_CONTENT[id]
-
-  if (!render) {
+  if (id !== 'map') {
     return (
       <div className="h-full w-full bg-surface text-ink p-4 text-sm">
         No panel called {id}.
@@ -39,13 +41,8 @@ export function PanelWindow({ id }: { id: PanelId }) {
   return (
     <div className="h-full w-full bg-surface text-ink flex flex-col min-h-0">
       <div className="flex-1 min-h-0 overflow-auto p-3">
-        {render(uiMode === 'power', true, {
-          deckPrefs: layout.decks,
-          onCycleDeck: cycleDeck,
-        })}
+        <MapPanel plane />
       </div>
     </div>
   )
 }
-
-export { panelTitle }

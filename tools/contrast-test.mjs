@@ -192,13 +192,19 @@ console.log('-- the game pane header can shrink, so Attach stays reachable --')
 // measurement proves; that was done across 1400/1300/1250/1200/1150/1120/
 // 1100/1050/1000/900 and is clean. What this catches is the one-word edit
 // that quietly reopens it.
-const gamePane = readFileSync('src/components/game/GamePane.tsx', 'utf8')
-const headerRow = gamePane
+//
+// The control group this guards - port box, Clear, Attach/Detach - moved out
+// of GamePane.tsx into GameConnectionBar.tsx when the middle dashboard column
+// was cut and GamePane's own scrolling log went with it (Dan's "kill the
+// middle" layout change). GamePane.tsx no longer exists; the header row and
+// the bug it guards against are otherwise unchanged, just in a smaller file.
+const gameConnectionBar = readFileSync('src/components/game/GameConnectionBar.tsx', 'utf8')
+const headerRow = gameConnectionBar
   .split('\n')
   .find((l) => l.includes('border-b border-border') && l.includes('items-center') && l.includes('className'))
 
 check(
-  'GamePane.tsx still has a header row to check',
+  'GameConnectionBar.tsx still has a header row to check',
   Boolean(headerRow),
   headerRow ? '' : 'no line matched - this check has stopped looking at anything'
 )

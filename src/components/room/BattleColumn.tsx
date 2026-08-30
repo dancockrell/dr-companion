@@ -7,6 +7,8 @@ import { BattleActionBar } from './BattleActionBar'
 import { ClassicRoomText } from './ClassicRoomText'
 import { FloorItems } from './FloorItems'
 import { ExitButtons } from './ExitButtons'
+import { InventoryPanel } from '../shared/InventoryPanel'
+import { GearNotice } from '../shared/GearNotice'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
@@ -189,6 +191,25 @@ export function BattleColumn() {
       <PanelBoundary label="Status">
         <BattleStatus />
       </PanelBoundary>
+
+      {/* Inventory's home since the middle dashboard column was cut (Dan's
+          call, 30 Aug 2026) - it had lived there as a panel of its own,
+          with nowhere obvious left to put it once that whole column was
+          deleted. Grouped with Battle rather than under the map or beside
+          Channels: what you are carrying and what you are wearing are both
+          questions about your character, the same ones Status just
+          answered above it. GearNotice moves with it - it reads the exact
+          same `inventory`/`character.hands` state (see its own doc
+          comment) and had been dead code since it was built, mounted only
+          in the DashboardLayout column nobody could see: reviving it here
+          costs nothing extra and it renders nothing when there is nothing
+          to warn about. */}
+      <div className="rounded border border-border bg-surface-raised p-2">
+        <PanelBoundary label="Inventory">
+          <InventoryPanel />
+          <GearNotice />
+        </PanelBoundary>
+      </div>
 
       {/* The pulse lives on this wrapper, not inside RoomScene — RoomScene
           is shared with the legacy composed column and a caller that only

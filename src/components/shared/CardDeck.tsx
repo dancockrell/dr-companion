@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { cn } from '../../lib/cn'
 import { CreatureCard } from './CreatureCard'
-import type { DeckPref } from '../../lib/layout'
 import {
   DECK_LABEL,
   DECK_STYLE,
@@ -10,6 +9,7 @@ import {
   sortCards,
   tierFor,
   type Deck,
+  type DeckPref,
   type RoomCard,
   type Tier,
 } from '../../lib/cards'

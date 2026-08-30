@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AppState, SetupComponent, UiMode, GameInstance, AuthMode } from '../types'
+import type { AppState, SetupComponent, GameInstance, AuthMode } from '../types'
 import { bridge } from '../bridge'
 import type { IntentName, BridgeServerMessage } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
@@ -380,7 +380,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   setupComplete: prefs.setupComplete ?? false,
   setupReopened: false,
   setupComponents: defaultSetup,
-  uiMode: prefs.uiMode,
   alwaysOnTop: prefs.alwaysOnTop,
   character: null,
   characterAt: 0,
@@ -447,10 +446,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     })),
 
-  setUiMode: (mode: UiMode) => {
-    savePrefs({ uiMode: mode })
-    set({ uiMode: mode })
-  },
   setAlwaysOnTop: (v) => {
     savePrefs({ alwaysOnTop: v })
     set({ alwaysOnTop: v })

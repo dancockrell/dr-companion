@@ -1,6 +1,6 @@
 import { CardDeck } from './CardDeck'
 import { DECKS, type RoomCard } from '../../lib/cards'
-import type { DeckPref } from '../../lib/layout'
+import type { DeckPref } from '../../lib/cards'
 import type { Deck } from '../../lib/cards'
 
 /**

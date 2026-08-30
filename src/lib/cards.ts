@@ -91,6 +91,16 @@ export interface RoomCard {
 /** Widest first: the first tier that fits is the one used. */
 export type Tier = 'full' | 'compact' | 'row' | 'fan' | 'count'
 
+/**
+ * A deck density the player pinned, or auto.
+ *
+ * Moved here from the now-deleted layout.ts (the per-mode panel-arrangement
+ * system, removed with Basic/Power mode and the middle dashboard column) -
+ * CardDeck.tsx still needs the type for its `pref` prop even though nothing
+ * live currently pins a non-auto value.
+ */
+export type DeckPref = 'auto' | Tier
+
 /** Card width in px at each tier. Row spans the container; count has no card. */
 export const TIER_WIDTH: Record<Tier, number> = {
   full: 132,

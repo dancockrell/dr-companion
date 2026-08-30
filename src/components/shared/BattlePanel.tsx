@@ -5,7 +5,7 @@ import { Paperdoll } from './Paperdoll'
 import { VitalCluster, vitalsFor } from './VitalCluster'
 import { fromRoom } from '../../lib/room'
 import type { Deck } from '../../lib/cards'
-import type { DeckPref } from '../../lib/layout'
+import type { DeckPref } from '../../lib/cards'
 
 /**
  * You on the left, what is trying to kill you on the right.

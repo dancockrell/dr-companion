@@ -3,13 +3,11 @@
  * Does not store credentials or game session secrets.
  */
 
-import type { UiMode } from '../types'
 import { readJSON, writeJSON } from './storage'
 
 const KEY = 'dr-companion-prefs-v1'
 
 export interface PersistedPrefs {
-  uiMode: UiMode
   alwaysOnTop: boolean
   bridgeMode: 'mock' | 'live'
   /** Skills the player wants to emphasize in training */
@@ -126,7 +124,6 @@ export interface FavoriteStation {
 }
 
 const defaults: PersistedPrefs = {
-  uiMode: 'basic',
   alwaysOnTop: false,
   bridgeMode: 'mock',
   trainFocus: [],
@@ -158,16 +155,7 @@ const defaults: PersistedPrefs = {
 
 export function loadPrefs(): PersistedPrefs {
   const parsed = readJSON<Partial<PersistedPrefs>>(KEY, {})
-  return { ...defaults, ...parsed, uiMode: migrateMode(parsed.uiMode) }
-}
-
-/**
- * There used to be three modes. Anyone who ran an earlier build has 'simple'
- * or 'standard' stored, and reading one of those back would leave the app
- * matching neither branch and rendering an empty window.
- */
-function migrateMode(stored: unknown): UiMode {
-  return stored === 'power' ? 'power' : 'basic'
+  return { ...defaults, ...parsed }
 }
 
 export function savePrefs(partial: Partial<PersistedPrefs>): PersistedPrefs {

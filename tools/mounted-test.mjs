@@ -86,22 +86,71 @@ const ROOTS = new Map([
 // needs its own entry here rather than inheriting reachability from it.
 const ALLOWED = new Map([
   [
-    'src/components/dashboard/DockView.tsx',
-    'superseded by DashboardLayout, which is a fixed layout rather than a panel registry',
-  ],
-  [
     'src/components/shared/Panel.tsx',
-    'superseded by FreeCanvas, which is what actually provides drag, resize and collapse',
+    'superseded by FreeCanvas (removed along with the rest of the middle ' +
+      'dashboard column and freeform mode - see App.tsx\'s "kill the middle" ' +
+      'comment), which had provided drag, resize and collapse',
   ],
   [
     'src/components/shared/RoomPanel.tsx',
-    'superseded by DashboardLayout rendering CardDeck directly',
+    'superseded by DashboardLayout rendering CardDeck directly - DashboardLayout ' +
+      'itself is now also gone (removed with the middle dashboard column), which ' +
+      'does not revive this: dead-behind-dead stays dead',
   ],
   [
     'src/components/shared/RoomCards.tsx',
     "RoomPanel.tsx's only caller, and RoomPanel is itself superseded (see above) - " +
       'both are the same dead path, found when this file stopped granting reachability ' +
       'through allowlisted files',
+  ],
+  [
+    'src/components/shared/ActionsPanel.tsx',
+    "orphaned when panels.tsx (the panel registry) was deleted along with the " +
+      "middle dashboard column and Basic/Power mode - its only callers were that " +
+      "registry and the also-deleted DashboardLayout. The live Battle UI uses " +
+      "BattleActionBar instead, which does not import this.",
+  ],
+  [
+    'src/components/shared/BattlePanel.tsx',
+    'same cause as ActionsPanel.tsx above - orphaned by the panels.tsx/' +
+      'DashboardLayout deletion. The live Battle UI is BattleColumn.tsx, a ' +
+      'separate component that does not import this.',
+  ],
+  [
+    'src/components/room/RoomColumn.tsx',
+    'same cause as ActionsPanel.tsx above. The live room UI is split across ' +
+      'BattleColumn.tsx and GameChatColumn.tsx, neither of which imports this.',
+  ],
+  [
+    'src/components/shared/ScriptLauncher.tsx',
+    'same cause as ActionsPanel.tsx above. The live equivalent is ' +
+      'TaskFlowPanel.tsx (Tasks & Scripts), a separate component.',
+  ],
+  [
+    'src/components/shared/CardDeck.tsx',
+    "was only reachable through BattlePanel.tsx and RoomCards.tsx, both " +
+      "themselves dead-and-allowlisted above - a dead file's imports grant no " +
+      "reachability (see this file's own header), so this was already dead, " +
+      "just masked until panels.tsx stopped being a live path to BattlePanel. " +
+      "Its live replacement is CombatRadar.tsx's own card rendering.",
+  ],
+  [
+    'src/components/shared/CreatureCard.tsx',
+    'same cause as CardDeck.tsx above - reachable only through it, which is ' +
+      'itself dead.',
+  ],
+  [
+    'src/components/shared/Badge.tsx',
+    "CreatureCard.tsx's only caller, and CreatureCard is itself dead (see " +
+      'above) - the same masked chain, one link further in.',
+  ],
+  [
+    'src/components/shared/MacroBar.tsx',
+    'reachable only through ActionsPanel.tsx, which is dead (see above).',
+  ],
+  [
+    'src/components/shared/VitalCluster.tsx',
+    'reachable only through BattlePanel.tsx, which is dead (see above).',
   ],
 ])
 

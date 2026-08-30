@@ -17,7 +17,6 @@ import { PanelBoundary } from './components/shared/PanelBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
 import { fitColumns, pickReset } from './lib/columns'
-import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
 import { sendGame } from './lib/gameLink'
@@ -31,13 +30,13 @@ import { requestStopAll } from './lib/flowStop'
  * the bundled app is served from a file, where a path would 404 while working
  * fine under the dev server.
  */
-function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app' } {
+function view(): { kind: 'map' } | { kind: 'panel'; id: string } | { kind: 'app' } {
   if (typeof window === 'undefined') return { kind: 'app' }
   const q = new URLSearchParams(window.location.search)
   if (q.get('view') === 'map') return { kind: 'map' }
   if (q.get('view') === 'panel') {
     const id = q.get('id')
-    if (id) return { kind: 'panel', id: id as PanelId }
+    if (id) return { kind: 'panel', id }
   }
   return { kind: 'app' }
 }
