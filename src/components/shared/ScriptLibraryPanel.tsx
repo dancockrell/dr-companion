@@ -189,7 +189,7 @@ export function ScriptLibraryPanel({
                           }
                           className={cn(
                             'rounded p-1',
-                            pinned ? 'text-accent' : 'text-ink-faint/50 hover:text-ink-faint'
+                            pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
                           )}
                         >
                           <Star className="h-3 w-3" fill={pinned ? 'currentColor' : 'none'} />

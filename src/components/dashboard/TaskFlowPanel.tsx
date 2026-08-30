@@ -47,27 +47,15 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  BookOpen,
-  Coins,
-  Eye,
-  EyeOff,
-  FileCode2,
   FilePlus2,
   FolderOpen,
   Gem,
-  HeartPulse,
-  LogOut,
-  type LucideIcon,
   Pencil,
   Play,
   RefreshCw,
   Search,
-  Shield,
   Square,
   Star,
-  Stethoscope,
-  Swords,
-  Terminal,
 } from 'lucide-react'
 import {
   onTaskLine,
@@ -633,7 +621,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                         className={cn(
                           'absolute -left-1 -top-1 rounded-full bg-surface p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
                           pinned && 'opacity-100',
-                          pinned ? 'text-accent' : 'text-ink-faint/70 hover:text-ink-faint'
+                          pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
                         )}
                       >
                         <Star className="h-2.5 w-2.5" fill={pinned ? 'currentColor' : 'none'} />
