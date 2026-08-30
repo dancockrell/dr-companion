@@ -824,10 +824,27 @@ function alwaysTone(active: boolean, warnOnly = false): string {
   return warnOnly ? 'text-warn' : 'text-danger'
 }
 
-function nsysTone(wound: number): string {
-  if (wound >= 2) return 'text-danger'
-  if (wound === 1) return 'text-warn'
-  return 'text-ink-faint'
+/** Nerve damage, told through colour across all four severities rather
+ * than the old three-step jump (faint/warn/danger, which read "minor" and
+ * "unhurt" as the same colour) — a fourth stop between them for "minor" so
+ * the doll's own severity words (unhurt/minor/serious/severe) each get a
+ * visibly distinct colour, the same calibration style as CombatRadar's own
+ * vital-number gradient. Inline colour, not a text-* class: "minor"'s
+ * yellow has no existing utility token, and matching the other three
+ * exactly (rather than approximating with what Tailwind ships) is the
+ * whole point of grading four steps instead of three. */
+function nsysColor(wound: number): string {
+  if (wound >= 3) return 'var(--color-danger)'
+  if (wound === 2) return 'var(--color-warn)'
+  if (wound === 1) return 'hsl(50, 85%, 55%)'
+  return 'var(--color-ink-faint)'
+}
+
+/** Progressively more alarming shape, not just colour — a calm pulse while
+ * the damage is nothing or minor, a jagged spike once it's serious enough
+ * that a status icon should look like something is actually wrong. */
+function nsysIcon(wound: number): LucideIcon {
+  return wound >= 2 ? Zap : Activity
 }
 
 /**
@@ -919,7 +936,10 @@ function YouCard({
             wrapping to a second line costs nothing most of the time. */}
         <div className="flex flex-wrap items-center gap-1.5 border-t border-border/30 pt-1">
           <span title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
-            <Activity className={`h-4 w-4 ${nsysTone(nsysWound)}`} aria-hidden />
+            {(() => {
+              const NsysIcon = nsysIcon(nsysWound)
+              return <NsysIcon className="h-4 w-4" style={{ color: nsysColor(nsysWound) }} aria-hidden />
+            })()}
           </span>
           <span title={poisoned ? 'Poisoned' : 'Not poisoned'}>
             <FlaskConical className={`h-4 w-4 ${alwaysTone(poisoned)}`} aria-hidden />

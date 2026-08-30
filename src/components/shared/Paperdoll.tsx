@@ -13,37 +13,39 @@ export type { BodyPart, Injury, Severity } from '../../lib/body'
 /**
  * The paperdoll, at a size that does not cost a column.
  *
- * All sixteen parts (S2) get a real place on the doll now, including the
- * two that used to be missing one. `back` used to share `chest`'s exact
- * box — drawn on top of it, at the same coordinates, so a back wound was
- * never visually distinguishable from a chest one no matter how the data
- * looked. It now runs as its own strip down the side of the torso. `nsys`
- * (the nervous system) used to have no position on the doll at all — a
- * floating icon beside it, shown only when something was actually wrong,
- * because an indicator with nowhere to live and nothing to say felt like a
- * rendering glitch on an uninjured character. It now runs as the spine,
- * down the center of the torso, and reads exactly like every other part:
- * present always, plain when unhurt, coloured when it isn't. Eyes were
- * always there — two small circles set into the head — just easy to miss
- * at a glance; they're bigger and better separated from the skull outline
- * now.
+ * Fifteen parts get a real place on the doll — every injurable part except
+ * `nsys` (the nervous system), which has no box here at all. It used to:
+ * first a floating icon shown only when hurt, then a spine down the torso
+ * center. Neither read as intended — a spine thin enough not to compete
+ * with the chest for attention was too thin to read as anything, and wide
+ * enough to read was a bar, not a spine. Nerve damage now lives entirely
+ * in the status icon beside the doll (CombatRadar.tsx's `nsysTone`), which
+ * can carry graduated severity through colour and icon shape at a size
+ * that's actually legible; the doll draws the fifteen parts a body-shaped
+ * box genuinely suits. `back` used to share `chest`'s exact box — drawn on
+ * top of it, at the same coordinates, so a back wound was never visually
+ * distinguishable from a chest one no matter how the data looked. It now
+ * runs as its own strip down the side of the torso. Eyes are two small
+ * circles set into the head.
  *
- * Three things carry severity so none of them carries it alone:
+ * Three things carry wound severity so none of them carries it alone:
+ * colour (warn then danger), opacity and outline weight (so it survives a
+ * colour deficiency), and the title attribute's own severity word — text
+ * on the doll itself would break the 12px floor (DESIGN.md S1.5) at this
+ * size, so nothing is labelled directly; hovering or focusing a part is
+ * how its name and severity are actually read.
  *
- *   - **colour**, warn then danger
- *   - **opacity and outline weight**, so it survives a colour deficiency
- *   - **the number**, shown on the part once it is serious
- *
- * Scars are drawn as a hatch rather than a fill. A scar is history and a wound
- * is now, and the doll should never make you look twice to tell them apart.
- *
- * Nothing is labelled on the doll. At this size text would break the 12px
- * floor in S1.5, so the part name lives in the title attribute.
+ * Two more facts get their own mark, distinct from the fill colour that
+ * already carries wound severity: a **scar** (history, not now) stamps
+ * three short parallel strokes in a part's top-right corner, like
+ * stitches; active **bleeding** (`wound >= 2`) stamps a small drop in the
+ * bottom-right, opposite the scar so a part carrying both shows both. See
+ * `ScarStamp`/`BloodStamp` below.
  *
  * A soft silhouette sits behind the parts — a head halo and a torso glow —
- * so sixteen independent shapes read as one body at a glance instead of a
+ * so the independent shapes read as one body at a glance instead of a
  * loose cluster of boxes. It carries no data of its own and never changes
- * colour; it is stage lighting, not a seventeenth part.
+ * colour; it is stage lighting, not another part.
  */
 /** What the doll is doing right now — driven by the character's own
  * situation flags (prone/sitting/kneeling), not a choice this component
@@ -56,18 +58,23 @@ export type { BodyPart, Injury, Severity } from '../../lib/body'
 export type Pose = 'standing' | 'sitting' | 'lying'
 
 /** Rounded boxes (and two circles for the head) on a 60x100 grid. Crude on
- * purpose: it reads as a body at 90px tall, not an anatomy chart. */
-const LAYOUT_STANDING: Record<Exclude<BodyPart, 'head' | 'leftEye' | 'rightEye'>, [number, number, number, number]> = {
+ * purpose: it reads as a body at 90px tall, not an anatomy chart.
+ *
+ * `nsys` (nervous system) has no box here — it did, once, as a spine down
+ * the torso, and no width short of competing with the chest for attention
+ * ever read as a spine rather than a bar or a hairline. Nerve damage now
+ * lives entirely in the status icon next to the doll (CombatRadar.tsx),
+ * which can actually carry severity through colour and shape at a size
+ * that's legible; the doll draws the fifteen parts a body-shaped box
+ * genuinely suits. */
+const LAYOUT_STANDING: Record<
+  Exclude<BodyPart, 'head' | 'leftEye' | 'rightEye' | 'nsys'>,
+  [number, number, number, number]
+> = {
   neck: [27, 15, 6, 4],
   chest: [21, 19, 15, 15],
   back: [17, 19, 3, 27],
   abdomen: [22, 34, 13, 11],
-  // Thinner than the other parts on purpose - a spine reads as a hairline
-  // down the torso, not a bar competing with the chest for attention. The
-  // "Nerves" icon in YouCard's status row (CombatRadar.tsx) is what
-  // actually carries this at a glance; the doll's own mark just needs to
-  // be visible on close inspection, not loud.
-  nsys: [29.3, 20, 1.4, 24],
   leftArm: [11, 20, 5, 17],
   rightArm: [38, 20, 6, 17],
   leftHand: [11, 38, 5, 6],
@@ -101,11 +108,10 @@ const EYES: Record<'leftEye' | 'rightEye', [number, number]> = {
 }
 const EYE_R = 1.5
 
-/** Corner rounding, per part — the spine and the eyes want to read as a
- * line and a dot, not a rounded rectangle, so they get their own radius
- * rather than the one every limb and the torso share. */
-function radiusFor(part: keyof typeof LAYOUT_STANDING, w: number, h: number): number {
-  if (part === 'nsys') return Math.min(w, h) / 2
+/** Corner rounding, per part — the back wants to read as a strip, not a
+ * rounded rectangle, so it gets its own radius rather than the one every
+ * limb and the torso share. */
+function radiusFor(part: keyof typeof LAYOUT_STANDING): number {
   if (part === 'back') return 1.2
   return 1.8
 }
@@ -115,6 +121,39 @@ function tone(wound: Severity) {
   if (wound === 2) return { fill: 'var(--color-danger)', opacity: 0.6 }
   if (wound === 1) return { fill: 'var(--color-warn)', opacity: 0.55 }
   return { fill: 'var(--color-surface-overlay)', opacity: 1 }
+}
+
+/** A scar, stamped rather than drawn as one line across the box — three
+ * short parallel strokes, like stitches, read as "healed tissue" at a
+ * glance in a way one diagonal dash (indistinguishable from a stray line
+ * at this size) never quite did. Anchored to a box's own top-right corner
+ * and sized the same regardless of how big the box is, so a scar on a
+ * hand reads the same mark as one on the chest. */
+function ScarStamp({ x, y }: { x: number; y: number }) {
+  return (
+    <g stroke="var(--color-ink-faint)" strokeWidth={0.45} strokeLinecap="round" opacity={0.9}>
+      <line x1={x} y1={y + 1.6} x2={x + 1.6} y2={y} />
+      <line x1={x + 0.9} y1={y + 2.5} x2={x + 2.5} y2={y + 0.9} />
+      <line x1={x + 1.8} y1={y + 3.4} x2={x + 3.4} y2={y + 1.8} />
+    </g>
+  )
+}
+
+/** A wound bleeding now, stamped as a small drop rather than folded into
+ * the fill colour — the fill already says how hurt the part is; this says
+ * the separate fact that it's actively bleeding, not just injured. Shown
+ * from `wound >= 2` ("serious" and up) — the two levels DR's own severity
+ * words describe as the kind of injury that bleeds, not just bruises.
+ * Anchored to a box's own bottom-right corner, opposite the scar stamp, so
+ * a part carrying both at once shows both without overlapping. */
+function BloodStamp({ x, y }: { x: number; y: number }) {
+  return (
+    <path
+      d={`M${x} ${y - 2.2} C${x + 1.3} ${y - 0.7} ${x + 1.3} ${y + 0.6} ${x} ${y + 1.2} C${x - 1.3} ${y + 0.6} ${x - 1.3} ${y - 0.7} ${x} ${y - 2.2} Z`}
+      fill="var(--color-danger)"
+      opacity={0.95}
+    />
+  )
 }
 
 export function Paperdoll({
@@ -192,17 +231,8 @@ export function Paperdoll({
           stroke="var(--color-border)"
           strokeWidth={injuryOf('head').wound >= 2 ? 1 : 0.4}
         />
-        {injuryOf('head').scar > 0 && (
-          <line
-            x1={HEAD.cx - HEAD.r + 1.5}
-            y1={HEAD.cy + HEAD.r - 1.5}
-            x2={HEAD.cx + HEAD.r - 1.5}
-            y2={HEAD.cy - HEAD.r + 1.5}
-            stroke="var(--color-ink-faint)"
-            strokeWidth={0.6}
-            strokeDasharray="1.5 1.5"
-          />
-        )}
+        {injuryOf('head').scar > 0 && <ScarStamp x={HEAD.cx + HEAD.r - 4.5} y={HEAD.cy - HEAD.r + 0.5} />}
+        {injuryOf('head').wound >= 2 && <BloodStamp x={HEAD.cx} y={HEAD.cy + HEAD.r - 0.5} />}
       </g>
 
       {/* Eyes — always present, bigger and better separated from the skull
@@ -233,7 +263,7 @@ export function Paperdoll({
         const t = tone(inj.wound)
         const pretty = PRETTY[part] ?? part
         const [x, y, w, h] = layout[part]
-        const rx = radiusFor(part, w, h)
+        const rx = radiusFor(part)
         return (
           <g key={part}>
             <title>{`${pretty}: ${SEVERITY_LABEL[inj.wound]}${inj.scar > 0 ? `, ${SEVERITY_LABEL[inj.scar]} scar` : ''}`}</title>
@@ -248,18 +278,13 @@ export function Paperdoll({
               stroke="var(--color-border)"
               strokeWidth={inj.wound >= 2 ? 1 : 0.4}
             />
-            {/* Scars hatch rather than fill: history, not now. */}
-            {inj.scar > 0 && (
-              <line
-                x1={x + 1}
-                y1={y + h - 1}
-                x2={x + w - 1}
-                y2={y + 1}
-                stroke="var(--color-ink-faint)"
-                strokeWidth={0.6}
-                strokeDasharray="1.5 1.5"
-              />
-            )}
+            {/* Scars stamp rather than fill: history, not now. Blood stamps
+                the separate, current fact of active bleeding — the fill
+                colour alone said "how hurt", not "is it bleeding right
+                now", and a part can be both scarred and freshly bleeding
+                at once, which is exactly why each gets its own corner. */}
+            {inj.scar > 0 && <ScarStamp x={x + w - 4.2} y={y + 0.6} />}
+            {inj.wound >= 2 && <BloodStamp x={x + w - 1.6} y={y + h - 1.4} />}
           </g>
         )
       })}
