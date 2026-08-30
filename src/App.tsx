@@ -139,12 +139,14 @@ export default function App() {
 
   /** Experience, all the way to the right - see ExperienceStrip.tsx. A
    * single fixed column (MindstateBoard no longer reflows into two or three)
-   * only needs enough width for a legible skill name and its number - 190,
-   * down from 260 now that there is no wider multi-column layout to leave
-   * room for. */
+   * needs exactly enough width for its longest row and nothing more - 120,
+   * measured against the actual rendered text ("Twohanded Edged" plus a
+   * two-digit mindstate number, the longest real combination) rather than
+   * guessed, with the scrollbar hidden (ExperienceStrip's own `no-scrollbar`)
+   * so it never eats into that measurement. */
   const [experienceW, setExperienceWState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(EXPERIENCE_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 190
+    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 120
   })
 
   const setExperienceW = (px: number) => {

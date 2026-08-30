@@ -59,29 +59,26 @@ export const ROOM_MIN = 380
 export const COL_MIN = 80
 
 /**
- * The width below which the dashboard stops reflowing and starts hiding.
+ * The width below which the "dash" slot stops reflowing and starts hiding.
  *
  * COL_MIN is one number for two columns whose content behaves nothing alike.
  * The map is a canvas: squeeze it and it shows less map, which is a smaller
- * version of the same thing. The dashboard is a two-column grid —
- * `[grid-template-columns:1fr_minmax(15rem,22rem)]` in DashboardLayout — and
- * its right column cannot go under 15rem. Below the total it does not reflow
- * to one column, because the panels are placed by explicit `col-start-2`. It
- * overflows its own box and the surplus goes behind a horizontal scrollbar
- * that Windows draws only on hover.
+ * version of the same thing. This slot is a single fixed column of text rows
+ * (`ExperienceStrip`/`MindstateBoard`) that scrolls vertically rather than
+ * reflowing at all, so its floor is simply the width its longest row needs
+ * to render without truncating - the longest real skill name plus a
+ * two-digit mindstate number, measured against the actual rendered font
+ * (`ctx.measureText`, not guessed) at 120px.
  *
- * Measured on the real app at an 1180px window: the column was fitted to
- * 209px around content that laid out to 382px, so 173px of dashboard —
- * four macro buttons among it — sat off-view with nothing saying so. The
- * layout was scaling both columns by the same factor, which is fair and is
- * the wrong rule when only one of them has a floor it must not cross.
- *
- * 240 (15rem, the pinned right column) + 130 (the left column at its own
- * content minimum) + 12 (gap and padding). If the grid template above
- * changes, this changes with it — see the fitColumns test that asserts the
- * dashboard renders without horizontal overflow at exactly this width.
+ * Was 382, sized for the old two-column dashboard grid this slot used to
+ * hold (`[grid-template-columns:1fr_minmax(15rem,22rem)]` in
+ * DashboardLayout.tsx, cut by 3e95ae7d - see mounted-test.mjs's ALLOWED
+ * entry for it). That grid's right column truly could not go under 15rem
+ * without hiding controls behind a hover-only scrollbar; today's slot has
+ * no such column to protect, so the number moved to describe what actually
+ * lives here now.
  */
-export const DASH_MIN = 382
+export const DASH_MIN = 120
 
 /**
  * What an empty map column asks for, instead of the player's stored width.

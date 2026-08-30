@@ -28,7 +28,10 @@ export function ExperienceStrip({ skills }: { skills: SkillState[] }) {
   return (
     <div
       ref={ref}
-      className={cn('h-full min-h-0 overflow-auto', dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
+      className={cn(
+        'no-scrollbar h-full min-h-0 overflow-auto',
+        dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+      )}
       style={{ touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

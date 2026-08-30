@@ -75,16 +75,22 @@ console.log('\n-- the regression: a squeeze must not hide the dashboard --')
 
 console.log('\n-- a dash request under the floor is raised to it, not honoured --')
 {
+  // Below DASH_MIN and above COL_MIN, so this genuinely exercises "under
+  // the floor" rather than happening to land exactly on it.
   const f = fitColumns({
-    hostW: 2000, mapWant: 400, dashWant: 120, mapDocked: true, splitW: SPLIT,
+    hostW: 2000, mapWant: 400, dashWant: 90, mapDocked: true, splitW: SPLIT,
   })
   ok('raised to DASH_MIN', f.dash === DASH_MIN, `${f.dash} === ${DASH_MIN}`)
 }
 
 console.log('\n-- the deliberate exception: an empty dashboard hides nothing --')
 {
+  // hostW tight enough that even the smaller DASH_MIN floor gets squeezed
+  // past - the point of this case is that an empty dash's floor is COL_MIN,
+  // not DASH_MIN, and a scenario where the squeeze never reaches DASH_MIN in
+  // the first place cannot demonstrate that.
   const f = fitColumns({
-    hostW: 1180, mapWant: 825, dashWant: 300, mapDocked: true, splitW: SPLIT,
+    hostW: 600, mapWant: 825, dashWant: 300, mapDocked: true, splitW: SPLIT,
     dashEmpty: true,
   })
   ok('may go under DASH_MIN when empty', f.dash < DASH_MIN, `${f.dash} < ${DASH_MIN}`)
