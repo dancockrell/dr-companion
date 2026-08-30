@@ -57,7 +57,9 @@
   "55.webp",
   "56.webp",
   "57.webp",
-  "58.webp"
+  "58.webp",
+  "59.webp",
+  "60.webp"
  ],
  "mage-female": [
   "1.webp",
@@ -97,7 +99,9 @@
   "10.webp",
   "11.webp",
   "12.webp",
-  "13.webp"
+  "13.webp",
+  "14.webp",
+  "15.webp"
  ],
  "knight-male": [
   "1.webp",
@@ -119,7 +123,8 @@
   "17.webp",
   "18.webp",
   "19.webp",
-  "20.webp"
+  "20.webp",
+  "21.webp"
  ],
  "alchemist-male": [
   "1.webp",
@@ -194,7 +199,12 @@
   "43.webp",
   "44.webp",
   "45.webp",
-  "46.webp"
+  "46.webp",
+  "47.webp",
+  "48.webp",
+  "49.webp",
+  "50.webp",
+  "51.webp"
  ],
  "warrior-male": [
   "1.webp",
@@ -237,7 +247,8 @@
   "38.webp",
   "39.webp",
   "40.webp",
-  "41.webp"
+  "41.webp",
+  "42.webp"
  ],
  "ranger-male": [
   "1.webp",
@@ -282,7 +293,9 @@
   "40.webp",
   "41.webp",
   "42.webp",
-  "43.webp"
+  "43.webp",
+  "44.webp",
+  "45.webp"
  ],
  "necromancer-male": [
   "1.webp",
@@ -376,7 +389,18 @@
   "70.webp",
   "71.webp",
   "72.webp",
-  "73.webp"
+  "73.webp",
+  "74.webp",
+  "75.webp",
+  "76.webp",
+  "77.webp",
+  "78.webp",
+  "79.webp",
+  "80.webp",
+  "81.webp",
+  "82.webp",
+  "83.webp",
+  "84.webp"
  ],
  "ranger-female": [
   "1.webp",
@@ -391,7 +415,8 @@
   "10.webp",
   "11.webp",
   "12.webp",
-  "13.webp"
+  "13.webp",
+  "14.webp"
  ],
  "thief-male": [
   "1.webp",
@@ -402,7 +427,9 @@
   "6.webp",
   "7.webp",
   "8.webp",
-  "9.webp"
+  "9.webp",
+  "10.webp",
+  "11.webp"
  ],
  "bard-female": [
   "1.webp",
@@ -429,7 +456,8 @@
   "14.webp",
   "15.webp",
   "16.webp",
-  "17.webp"
+  "17.webp",
+  "18.webp"
  ],
  "alchemist-female": [
   "1.webp",
@@ -497,7 +525,8 @@
   "24.webp",
   "25.webp",
   "26.webp",
-  "27.webp"
+  "27.webp",
+  "28.webp"
  ],
  "thief-female": [
   "1.webp",
