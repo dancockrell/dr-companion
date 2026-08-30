@@ -67,9 +67,15 @@ function band(mindstate: number) {
   return BANDS.find((b) => mindstate <= b.upTo) ?? BANDS[BANDS.length - 1]
 }
 
+// `dense` is accepted and unused, same as TrainingPanel/ActionsPanel — its
+// only live caller (ExperienceStrip.tsx) never passes it, and the panel
+// densities it used to pick between (auto-fill grid vs a tighter one) are
+// both gone now that the board is a single fixed column always. The dead
+// dashboard tree (DashboardLayout.tsx, panels.tsx) still passes it, so the
+// prop stays rather than becoming a type error in an already-orphaned file.
 export function MindstateBoard({
   skills,
-  dense = false,
+  dense: _dense = false,
 }: {
   skills: SkillState[]
   dense?: boolean
@@ -95,14 +101,12 @@ export function MindstateBoard({
         <span className="text-good">{room} with room</span>
       </div>
 
-      <div
-        className={cn(
-          'grid gap-x-1.5 gap-y-1',
-          dense
-            ? '[grid-template-columns:repeat(auto-fill,minmax(--spacing(26),1fr))]'
-            : '[grid-template-columns:repeat(auto-fill,minmax(--spacing(30),1fr))]'
-        )}
-      >
+      {/* One column, always — not a grid that reflows into two or three
+          depending on how much width the pane happens to have. This board
+          reads top-to-bottom by skillset order (see `ordered` above); a
+          multi-column wrap broke that order visually; a fixed single
+          column keeps the reading order matching the layout order. */}
+      <div className="flex flex-col gap-y-1">
         {ordered.map((s) => {
           const atLock = s.mindstate >= LOCKED
           return (
