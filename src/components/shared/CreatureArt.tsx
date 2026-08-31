@@ -167,6 +167,7 @@ export function CreatureArt({
   height,
   className,
   focus = 'center',
+  seed,
 }: {
   name: string
   noun: string
@@ -185,14 +186,16 @@ export function CreatureArt({
    * find a face, which this app has no way to do.
    */
   focus?: 'center' | 'top'
+  /** Stable encounter/card identity used only to choose among approved variants. */
+  seed?: string
 }) {
   // Keyed by art key rather than a bare boolean, so a manifest entry that
   // will not decode falls through to the next candidate on the following
   // render instead of pinning this card to a broken image.
   const [failed, setFailed] = useState<string | null>(null)
 
-  const art = artFor(name, noun)
-  const source = art && art.key !== failed ? art : undefined
+  const art = artFor(name, noun, seed)
+  const source = art && art.file !== failed ? art : undefined
 
   const frame = cn('relative w-full overflow-hidden rounded bg-surface-overlay', className)
 
@@ -207,10 +210,10 @@ export function CreatureArt({
           loading="lazy"
           decoding="async"
           className={cn('h-full w-full object-cover', focus === 'top' && 'object-top')}
-          onLoad={() => noteArtLoaded(source.key)}
+          onLoad={() => noteArtLoaded(source.file)}
           onError={() => {
-            noteArtMissing(source.key)
-            setFailed(source.key)
+            noteArtMissing(source.file)
+            setFailed(source.file)
           }}
         />
       </div>

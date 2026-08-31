@@ -1,0 +1,35 @@
+{
+  "approvedVariants": {
+    "adult-desert-armadillo": ["adult-desert-armadillo-1", "adult-desert-armadillo-2"],
+    "asaren-celpeze": ["asaren-celpeze-2", "asaren-celpeze-4"],
+    "blood-wolf": ["blood-wolf-1", "blood-wolf-2"],
+    "blue-dappled-prereni": ["blue-dappled-prereni-1", "blue-dappled-prereni-2"],
+    "dark-spirit": ["dark-spirit-1", "dark-spirit-2", "dark-spirit-3"],
+    "forest-geni": ["forest-geni-1", "forest-geni-2"],
+    "storm-bull": ["storm-bull-1", "storm-bull-2"],
+    "swamp-troll": ["swamp-troll-1", "swamp-troll-2", "swamp-troll-3", "swamp-troll-4"]
+  },
+  "rejected": [
+    "akul-tiz-ghost",
+    "alley-thug",
+    "cutthroat-1",
+    "cutthroat-2",
+    "cutthroat-3",
+    "cutthroat-4",
+    "footpad-creature1",
+    "footpad-creature2",
+    "footpad-creature3",
+    "footpad-creature4",
+    "footpad-creature5",
+    "miserly-moneygrubber",
+    "ruffian-creature1",
+    "ruffian-creature2",
+    "ruffian-creature3",
+    "ruffian-creature4",
+    "thug-creature1",
+    "thug-creature2",
+    "thug-creature3",
+    "thug-creature4",
+    "thug-creature5"
+  ]
+}

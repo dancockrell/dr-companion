@@ -15,6 +15,7 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const dir = mkdtempSync(join(tmpdir(), 'art-'))
+const curationUrl = pathToFileURL(join(process.cwd(), 'data/art/creature-curation.json')).href
 
 /**
  * Transpile one module into the temp dir.
@@ -28,7 +29,9 @@ const compile = (src, name) => {
     .transpileModule(readFileSync(src, 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
     })
-    .outputText.replace(/from '(\.\/[^']+)'/g, (_, r) => `from '${r}.js'`)
+    .outputText
+    .replace(/from '(\.\/[^']+)'/g, (_, r) => `from '${r}.js'`)
+    .replace('../../data/art/creature-curation.json', curationUrl)
   writeFileSync(out, js)
   return out
 }
@@ -96,6 +99,19 @@ check('a listed creature resolves', m.artFor('the kobold', 'kobold').url, '/crea
 check('a filename is accepted for a key', m.artFor('a rock troll', 'troll').key, 'rock troll')
 check('an unlisted one stays absent', m.artFor('a snarling goblin', 'goblin'), undefined)
 check('hasArt agrees', m.hasArt('the kobold', 'kobold'), true)
+
+console.log('\n-- only explicitly approved variants rotate, and the choice is stable --')
+m.registerArtManifest(['storm-bull-1.webp', 'storm-bull-2.webp', 'storm-bull-3.webp'])
+const stormA = m.artFor('a storm bull', 'bull', 'encounter-a')
+const stormAAgain = m.artFor('a storm bull', 'bull', 'encounter-a')
+const approvedStorm = new Set(['/creatures/storm-bull-1.webp', '/creatures/storm-bull-2.webp'])
+check('the same encounter keeps the same image', stormAAgain?.url, stormA?.url)
+check('the chosen image is from the approved set', approvedStorm.has(stormA?.url), true)
+check('an unapproved numbered render is never selected', stormA?.url === '/creatures/storm-bull-3.webp', false)
+
+console.log('\n-- quarantined art stays unavailable even if an old manifest lists it --')
+m.registerArtManifest(['alley-thug.webp'])
+check('a rejected render does not resolve', m.artFor('an alley thug', 'thug'), undefined)
 
 console.log('\n-- a corpse borrows the living creature\'s picture --')
 check('dead kobold finds the kobold', m.artFor('a kobold which appears dead', 'dead').key, 'kobold')

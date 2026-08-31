@@ -734,6 +734,7 @@ function Puck({
         name={card.name}
         noun={card.noun}
         lore={card.lore}
+        seed={card.id}
         height={height}
         className={`${frameClass} border ${ringClass}`}
         // Always, not just in the tall rectangle — a center crop on even a
@@ -1121,6 +1122,13 @@ export function CombatRadar({
   const [pinned, setPinned] = useState<string[]>([])
   const promote = (key: string) => setPinned((prev) => [key, ...prev.filter((k) => k !== key)])
   const orderedStrip = reorderByPin(stripEntries, (e) => e.key, pinned)
+  const rangeCounts = positioned.reduce(
+    (counts, entry) => {
+      counts[entry.combatant.range!]++
+      return counts
+    },
+    { melee: 0, pole: 0, missile: 0 }
+  )
 
   const attack = () => runMacro(['attack'])
   const attackTitle = (label: string) =>
@@ -1180,6 +1188,37 @@ export function CombatRadar({
     >
       {embedded ? (
         <>
+          {/* A restrained tactical wash keeps the radar readable over both
+              pale snow and dark caves without hiding the room art that makes
+              the board feel situated. The brighter center is the player's
+              immediate space; the vignette gives edge pucks contrast. */}
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(circle at 42% 50%, rgba(15,23,31,0.08) 0%, rgba(10,14,20,0.28) 58%, rgba(5,8,12,0.62) 100%)',
+            }}
+          />
+
+          <div className="pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-2 rounded-full border border-border/50 bg-surface/75 px-2 py-1 text-xs text-ink backdrop-blur-sm">
+            <Activity className="h-4 w-4 text-danger" aria-hidden />
+            <span className="font-semibold">Combat radar</span>
+            <span className="text-ink-muted">
+              {positioned.length} engaged · {stripEntries.length} nearby
+            </span>
+          </div>
+          <div className="pointer-events-none absolute left-2 top-11 z-10 flex flex-wrap items-center gap-1 text-xs">
+            {(['melee', 'pole', 'missile'] as const).map((range) => (
+              <span
+                key={range}
+                className={`rounded-full border bg-surface/75 px-1.5 py-0.5 font-medium uppercase tracking-wide text-ink-muted backdrop-blur-sm ${range === 'melee' ? 'border-danger/55' : range === 'pole' ? 'border-warn/45' : 'border-info/40'}`}
+              >
+                {RANGE_WORD[range]} · {rangeCounts[range]}
+              </span>
+            ))}
+          </div>
+
           {/* The compass — the whole board, edge to edge. The roster floats
               over its right side as an overlay (below) rather than sharing
               the board's width with it, so the play area itself reaches
@@ -1193,12 +1232,13 @@ export function CombatRadar({
             <div
               key={r}
               aria-hidden
-              className="absolute rounded-full border border-danger/25"
+              className={`absolute rounded-full border ${r === 'melee' ? 'border-danger/55' : r === 'pole' ? 'border-warn/40' : 'border-info/35'}`}
               style={{
                 left: `${centerXPct - RANGE_RADIUS_PCT[r]}%`,
                 top: `${centerYPct - RANGE_RADIUS_PCT[r]}%`,
                 width: `${RANGE_RADIUS_PCT[r] * 2}%`,
                 height: `${RANGE_RADIUS_PCT[r] * 2}%`,
+                borderStyle: r === 'melee' ? 'solid' : 'dashed',
               }}
             />
           ))}
