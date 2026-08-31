@@ -1,13 +1,68 @@
 {
   "approvedVariants": {
     "adult-desert-armadillo": ["adult-desert-armadillo-1", "adult-desert-armadillo-2"],
-    "asaren-celpeze": ["asaren-celpeze-2", "asaren-celpeze-4"],
-    "blood-wolf": ["blood-wolf-1", "blood-wolf-2"],
-    "blue-dappled-prereni": ["blue-dappled-prereni-1", "blue-dappled-prereni-2"],
-    "dark-spirit": ["dark-spirit-1", "dark-spirit-2", "dark-spirit-3"],
-    "forest-geni": ["forest-geni-1", "forest-geni-2"],
-    "storm-bull": ["storm-bull-1", "storm-bull-2"],
-    "swamp-troll": ["swamp-troll-1", "swamp-troll-2", "swamp-troll-3", "swamp-troll-4"]
+    "asaren-celpeze": ["asaren-celpeze-2"],
+    "blue-dappled-prereni": ["blue-dappled-prereni-1"],
+    "storm-bull": ["storm-bull-2"],
+    "swamp-troll": ["swamp-troll-1", "swamp-troll-3"]
+  },
+  "audit": {
+    "adult-desert-armadillo": {
+      "subject": "A sand-and-tan desert quadruped with articulated hide plates, a twitching snout, digging claws, and a barbed tail in the M'Riss Dunes of Despair.",
+      "source": "https://elanthipedia.play.net/Adult_desert_armadillo_(1)",
+      "primary": "adult-desert-armadillo-2",
+      "variants": ["adult-desert-armadillo-1"],
+      "decision": "Both are faithful plated desert animals; variant 2 is the cleaner primary and variant 1 supplies a credible more heavily barbed silhouette."
+    },
+    "asaren-celpeze": {
+      "subject": "A mottled sea lizard the size of a large hunting cat, basking on ocean rocks or beaches, with a raised threat crest, switching tail, jewel-like eyes, pointed teeth, and a poisonous tail stinger.",
+      "source": "https://elanthipedia.play.net/Asaren_celpeze_(1)",
+      "primary": "asaren-celpeze-2",
+      "variants": [],
+      "decision": "Variant 2 alone clearly reads as a large quadrupedal coastal lizard in crest-raised threat display. The human and anthropomorphic renders are semantic mismatches; variant 4 loses too many defining threat cues."
+    },
+    "blood-wolf": {
+      "subject": "A medium quadrupedal wolf with a beautiful red coat flecked with gray, a powerful build, a toothy warning smile, and a low growl; found around Wolf Clan and Aesry.",
+      "source": "https://elanthipedia.play.net/Blood_wolf_(1)",
+      "primary": "blood-wolf",
+      "variants": [],
+      "decision": "The bare image is the only strong red-brown natural wolf. Variant 1 is clothed and anthropomorphic; variant 2 is a generic gray husky-like portrait."
+    },
+    "blue-dappled-prereni": {
+      "subject": "A small territorial deer about ten and a half hands high, with delicately pointed ears and a gray coat patterned with blue spots, on the Road to Shard.",
+      "source": "https://elanthipedia.play.net/Blue-dappled_prereni_(1)",
+      "primary": "blue-dappled-prereni-1",
+      "variants": [],
+      "decision": "Variant 1 preserves the deer anatomy and blue-dappled coat. Variant 2 reads as a rabbit-deer hybrid and omits the defining blue spots."
+    },
+    "dark-spirit": {
+      "subject": "A floating mass of swirling shadow in a ragged robe, with jagged claws, glowing sanguine eyes, and deadly deliberate movement in dark caverns and Ker'Leor.",
+      "source": "https://elanthipedia.play.net/Dark_spirit_(1)",
+      "primary": null,
+      "variants": [],
+      "decision": "No current image is faithful enough: variants 1 and 2 are pale generic ghosts without red eyes or claws, while variant 3 is a water elemental. Keep the silhouette until replacement art is generated."
+    },
+    "forest-geni": {
+      "subject": "A stocky halfling-sized forest being with pale green eyes, pointed ears hung with copper bells, faint green skin, and rough clothing made from leaves and bark.",
+      "source": "https://elanthipedia.play.net/Forest_geni_(1)",
+      "primary": null,
+      "variants": [],
+      "decision": "Variant 1 is an elegant ballerina-like faun and variant 2 is a clothed halfling; neither carries the defining bells, leaf-and-bark clothing, green skin, or stocky creature design."
+    },
+    "storm-bull": {
+      "subject": "An immense quadrupedal bull about eight feet at the shoulder, with a glistening silvery hide, long pearly horns, and a mist-tipped tail near Ilaya Taipa and Shard.",
+      "source": "https://elanthipedia.play.net/Storm_bull_(1)",
+      "primary": "storm-bull-2",
+      "variants": [],
+      "decision": "Variant 2 is the only strong close representation of the silvery supernatural quadruped. The bare image is a weapon-bearing minotaur, variant 3 is a mounted rider, and variant 1 makes the subject too small and indistinct for radar cards."
+    },
+    "swamp-troll": {
+      "subject": "A tall, ungainly humanoid conglomeration of branches, leaves, mud, and foulness inhabiting swamps and fens.",
+      "source": "https://elanthipedia.play.net/Swamp_troll_(1)",
+      "primary": "swamp-troll-1",
+      "variants": ["swamp-troll-3"],
+      "decision": "Variants 1 and 3 are strong humanoid swamp creatures coated in mud and plant matter. Variant 2 is a snake and variant 4 is a largely bare cave troll with the wrong habitat cues."
+    }
   },
   "rejected": [
     "akul-tiz-ghost",
@@ -16,16 +71,33 @@
     "cutthroat-2",
     "cutthroat-3",
     "cutthroat-4",
+    "asaren-celpeze-1",
+    "asaren-celpeze-3",
+    "asaren-celpeze-4",
+    "asaren-celpeze-5",
+    "blood-wolf-1",
+    "blood-wolf-2",
+    "blue-dappled-prereni-2",
+    "dark-spirit-1",
+    "dark-spirit-2",
+    "dark-spirit-3",
     "footpad-creature1",
     "footpad-creature2",
     "footpad-creature3",
     "footpad-creature4",
     "footpad-creature5",
     "miserly-moneygrubber",
+    "forest-geni-1",
+    "forest-geni-2",
     "ruffian-creature1",
     "ruffian-creature2",
     "ruffian-creature3",
     "ruffian-creature4",
+    "storm-bull-1",
+    "storm-bull-3",
+    "storm-bull",
+    "swamp-troll-2",
+    "swamp-troll-4",
     "thug-creature1",
     "thug-creature2",
     "thug-creature3",
