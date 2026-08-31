@@ -94,7 +94,7 @@ check('no art for a goblin', m.artFor('a snarling goblin', 'goblin'), undefined)
 check('and hasArt says so', m.hasArt('a snarling goblin', 'goblin'), false)
 
 console.log('\n-- the manifest is the only thing that grants a URL --')
-m.registerArtManifest(['kobold', 'rock-troll.webp'])
+m.registerArtManifest(['kobold', 'rock-troll-1.webp'])
 check('a listed creature resolves', m.artFor('the kobold', 'kobold').url, '/creatures/kobold.webp')
 check('a filename is accepted for a key', m.artFor('a rock troll', 'troll').key, 'rock troll')
 check('an unlisted one stays absent', m.artFor('a snarling goblin', 'goblin'), undefined)
@@ -108,6 +108,44 @@ const approvedStorm = new Set(['/creatures/storm-bull-1.webp', '/creatures/storm
 check('the same encounter keeps the same image', stormAAgain?.url, stormA?.url)
 check('the chosen image is from the approved set', approvedStorm.has(stormA?.url), true)
 check('an unapproved numbered render is never selected', stormA?.url === '/creatures/storm-bull-3.webp', false)
+
+console.log('\n-- curated replacements outrank every rejected generation --')
+m.registerArtManifest([
+  'dark-spirit-1.webp',
+  'dark-spirit-2.webp',
+  'dark-spirit-3.webp',
+  'dark-spirit-curated.webp',
+  'forest-geni-1.webp',
+  'forest-geni-2.webp',
+  'forest-geni-curated.webp',
+  'cutthroat-1.webp',
+  'cutthroat-2.webp',
+  'cutthroat-curated.webp',
+  'beltunumshi-1.webp',
+  'beltunumshi-2.webp',
+  'beltunumshi-curated.webp',
+  'animated-items-curated.webp',
+  'ember-bull-curated.webp',
+  'nipoh-oshu-curated.webp',
+  'rock-guardian-curated.webp',
+  'windbag-curated.webp',
+  's-kra-kor-shaman-curated.webp',
+  's-kra-kor-villager-curated.webp',
+  's-kra-kor-warrior-curated.webp',
+  'sylph-curated.webp',
+  'ur-hhrki-izh-curated.webp',
+])
+check('dark spirit uses its curated replacement', m.artFor('a dark spirit', 'spirit')?.file, 'dark-spirit-curated')
+check('forest geni uses its curated replacement', m.artFor('a forest geni', 'geni')?.file, 'forest-geni-curated')
+check('cutthroat uses its curated replacement', m.artFor('a cutthroat', 'cutthroat')?.file, 'cutthroat-curated')
+check('beltunumshi uses its curated replacement', m.artFor('a beltunumshi', 'beltunumshi')?.file, 'beltunumshi-curated')
+check('ember bull uses its curated replacement', m.artFor('an ember bull', 'bull')?.file, 'ember-bull-curated')
+check('nipoh oshu uses its curated replacement', m.artFor('a nipoh oshu', 'oshu')?.file, 'nipoh-oshu-curated')
+check('rock guardian uses its curated replacement', m.artFor('a rock guardian', 'guardian')?.file, 'rock-guardian-curated')
+check('windbag uses its curated replacement', m.artFor('a windbag', 'windbag')?.file, 'windbag-curated')
+check("S'Kra Kor shaman uses its curated replacement", m.artFor("a S'Kra Kor shaman", 'shaman')?.file, 's-kra-kor-shaman-curated')
+check('sylph uses its curated replacement', m.artFor('a sylph', 'sylph')?.file, 'sylph-curated')
+check("Ur Hhrki'izh uses its curated replacement", m.artFor("an Ur Hhrki'izh", 'hhrki')?.file, 'ur-hhrki-izh-curated')
 
 console.log('\n-- quarantined art stays unavailable even if an old manifest lists it --')
 m.registerArtManifest(['alley-thug.webp'])
@@ -129,6 +167,30 @@ m.noteArtMissing('troll')
 check('all keys spent, no art', m.artFor('a rock troll', 'troll'), undefined)
 m.noteArtLoaded('troll')
 check('a load puts one back', m.artFor('a rock troll', 'troll').key, 'troll')
+
+console.log('\n-- the persistent curation registry is internally complete --')
+const curation = JSON.parse(readFileSync('data/art/creature-curation.json', 'utf8'))
+const pack = new Set(JSON.parse(readFileSync('public/creatures/manifest.json', 'utf8')).map((file) => file.replace(/\.webp$/i, '')))
+const approvedFiles = Object.values(curation.approvedVariants).flat()
+check('every approved file exists in the pack manifest', approvedFiles.every((file) => pack.has(file)), true)
+check('no approved file is also rejected', approvedFiles.some((file) => curation.rejected.includes(file)), false)
+check(
+  'every reviewed subject records candidates and a decision',
+  Object.values(curation.variantReview).every((review) =>
+    Array.isArray(review.currentCandidates) &&
+    Array.isArray(review.rejects) &&
+    typeof review.decision === 'string' &&
+    review.decision.length > 0
+  ),
+  true,
+)
+check(
+  'subjects with no approved art are explicitly marked for regeneration',
+  Object.entries(curation.approvedVariants).every(([subject, files]) =>
+    files.length > 0 || curation.variantReview[subject]?.regenerationNeeded === true
+  ),
+  true,
+)
 
 console.log(fails ? `\n${fails} failed` : '\nall passed')
 process.exit(fails ? 1 : 0)
