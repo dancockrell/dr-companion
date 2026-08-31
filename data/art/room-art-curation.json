@@ -1,0 +1,14 @@
+{
+  "places": {},
+  "archetypes": {},
+  "notes": {
+    "purpose": "Manual curation for room-art publishing. Pick a primary image, optional approved variants, and explicit rejects for any rendered place or archetype subject.",
+    "usage": [
+      "keys under places must match room-place-map.json place keys such as \"1::Magen Road\"",
+      "keys under archetypes must match archetype-prompts.json keys exactly",
+      "primary and variants name files exactly as they appear in data/art/out/rooms or data/art/out/archetypes",
+      "reject may list filenames to ignore even if they are newer than the good render",
+      "when variants are listed, publish-room-art.mjs rotates among primary+variants deterministically by room key so neighbouring rooms can get variety without changing randomly between runs"
+    ]
+  }
+}
