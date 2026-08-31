@@ -22,7 +22,7 @@
  * keep the first thing that was ever available. A hard link is nearly free
  * to redo, so there is no cost to always re-deciding.
  */
-import { existsSync, linkSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync } from 'node:fs'
+import { existsSync, linkSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const OUT_ARCHETYPES = 'data/art/out/archetypes'
@@ -33,6 +33,9 @@ const placeMap = JSON.parse(readFileSync('data/art/room-place-map.json', 'utf8')
 const priorityRooms = JSON.parse(readFileSync('data/art/room-prompts-priority.json', 'utf8'))
 const archetypePrompts = JSON.parse(readFileSync('data/art/archetype-prompts.json', 'utf8'))
 const allRooms = JSON.parse(readFileSync('data/art/room-prompts.json', 'utf8'))
+const curation = existsSync('data/art/room-art-curation.json')
+  ? JSON.parse(readFileSync('data/art/room-art-curation.json', 'utf8'))
+  : { places: {}, archetypes: {} }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
@@ -45,8 +48,51 @@ function renderedFiles(dir, subjectSlug) {
     .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
 }
 
-function bestFile(dir, subjectSlug) {
-  return renderedFiles(dir, subjectSlug)[0] ?? null
+function curatedFiles(kind, subjectKey, dir, subjectSlug) {
+  const files = renderedFiles(dir, subjectSlug)
+  if (!files.length) return []
+
+  const spec = (kind === 'place' ? curation.places?.[subjectKey] : curation.archetypes?.[subjectKey]) ?? {}
+  const reject = new Set(spec.reject ?? [])
+  const allowed = files.filter((f) => !reject.has(f.split(/[/\\]/).pop()))
+
+  if (!allowed.length) return []
+
+  const byName = new Map(allowed.map((f) => [f.split(/[/\\]/).pop(), f]))
+  const preferred = []
+
+  if (spec.primary && byName.has(spec.primary)) preferred.push(byName.get(spec.primary))
+  for (const name of spec.variants ?? []) {
+    if (byName.has(name) && !preferred.includes(byName.get(name))) preferred.push(byName.get(name))
+  }
+
+  // If a subject is curated at all, only the explicit keepers participate in
+  // publishing. That lets us junk mediocre alternates without physically
+  // deleting them from the raw render directory, and it keeps a newer bad seed
+  // from silently replacing the known good one.
+  if (spec.primary || (spec.variants?.length ?? 0) > 0 || (spec.reject?.length ?? 0) > 0) {
+    return preferred.length ? preferred : allowed
+  }
+
+  return allowed
+}
+
+function choosePublishedFile(kind, subjectKey, dir, subjectSlug, roomKey) {
+  const files = curatedFiles(kind, subjectKey, dir, subjectSlug)
+  if (!files.length) return null
+  const spec = (kind === 'place' ? curation.places?.[subjectKey] : curation.archetypes?.[subjectKey]) ?? {}
+  const hasExplicitVariants = (spec.variants?.length ?? 0) > 0
+  if (!hasExplicitVariants) return files[0]
+
+  // Stable per room: the same room gets the same approved variant every run,
+  // but neighbouring rooms in the same place can still vary when there are
+  // several strong images worth reusing.
+  let h = 2166136261
+  for (let i = 0; i < roomKey.length; i++) {
+    h ^= roomKey.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return files[(h >>> 0) % files.length]
 }
 
 /**
@@ -90,12 +136,12 @@ function tagPresent(tag, text) {
   return new RegExp(`\\b${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text)
 }
 
-function zoneFallback(zoneName, roomText) {
+function zoneFallback(roomKey, zoneName, roomText) {
   const candidates = zoneArchetypes[zoneName] ?? []
   let best = null
   let bestScore = -1
   for (const { key, tags } of candidates) {
-    const f = bestFile(OUT_ARCHETYPES, slug(key))
+    const f = choosePublishedFile('archetype', key, OUT_ARCHETYPES, slug(key), roomKey)
     if (!f) continue
     const score = tags.filter((t) => t && tagPresent(t, roomText)).length
     if (score > bestScore) {
@@ -108,6 +154,23 @@ function zoneFallback(zoneName, roomText) {
 
 mkdirSync(DEST, { recursive: true })
 
+const audit = {
+  generatedAt: new Date().toISOString(),
+  totals: { linked: 0, upgraded: 0, unchanged: 0, noSourceYet: 0 },
+  sources: {},
+}
+
+function recordUsage(roomKey, sourcePath, sourceType, subjectKey) {
+  const name = sourcePath.split(/[/\\]/).pop()
+  audit.sources[name] = audit.sources[name] ?? {
+    file: name,
+    sourceType,
+    subjectKey,
+    roomKeys: [],
+  }
+  audit.sources[name].roomKeys.push(roomKey)
+}
+
 let linked = 0
 let upgraded = 0
 let unchanged = 0
@@ -119,11 +182,17 @@ for (const [roomKey, roomEntry] of Object.entries(allRooms)) {
 
   const placeKey = placeMap.placeOf[roomKey]
   let src = null
+  let sourceType = null
+  let sourceSubjectKey = null
 
   if (placeKey && priorityRooms[placeKey]) {
     // A distinct place with its own unique render — always wins over a
     // reused archetype once it exists, however good the archetype match is.
-    src = bestFile(OUT_ROOMS, slug(placeKey))
+    src = choosePublishedFile('place', placeKey, OUT_ROOMS, slug(placeKey), roomKey)
+    if (src) {
+      sourceType = 'place'
+      sourceSubjectKey = placeKey
+    }
   }
   if (!src) {
     // Generic terrain group, or a distinct place that hasn't rendered yet —
@@ -132,11 +201,28 @@ for (const [roomKey, roomEntry] of Object.entries(allRooms)) {
     // exactly what this falls back to a plain zone shot for rather than
     // inventing a specific match that doesn't exist — see room-prompts-
     // priority.json, which is where a place earns its own render instead.
-    src = zoneFallback(roomEntry.zoneName, roomText)
+    src = zoneFallback(roomKey, roomEntry.zoneName, roomText)
+    if (src) {
+      sourceType = 'archetype'
+      const candidates = zoneArchetypes[roomEntry.zoneName] ?? []
+      let bestKey = null
+      let bestScore = -1
+      for (const { key, tags } of candidates) {
+        const f = choosePublishedFile('archetype', key, OUT_ARCHETYPES, slug(key), roomKey)
+        if (!f || f !== src) continue
+        const score = tags.filter((t) => t && tagPresent(t, roomText)).length
+        if (score > bestScore) {
+          bestScore = score
+          bestKey = key
+        }
+      }
+      sourceSubjectKey = bestKey
+    }
   }
 
   if (!src) {
     noSourceYet++
+    audit.totals.noSourceYet = noSourceYet
     continue
   }
 
@@ -147,6 +233,7 @@ for (const [roomKey, roomEntry] of Object.entries(allRooms)) {
     // without re-reading either image.
     if (statSync(dest).ino === statSync(src).ino) {
       unchanged++
+      recordUsage(roomKey, src, sourceType, sourceSubjectKey)
       continue
     }
     unlinkSync(dest)
@@ -156,11 +243,19 @@ for (const [roomKey, roomEntry] of Object.entries(allRooms)) {
     linkSync(src, dest)
     if (already) upgraded++
     else linked++
+    recordUsage(roomKey, src, sourceType, sourceSubjectKey)
+    audit.totals.linked = linked
+    audit.totals.upgraded = upgraded
   } catch {
     noSourceYet++
+    audit.totals.noSourceYet = noSourceYet
   }
 }
+
+audit.totals.unchanged = unchanged
+writeFileSync('data/art/room-art-usage.json', JSON.stringify(audit, null, 2))
 
 console.log(
   `${linked} newly linked, ${upgraded} upgraded to a better match, ${unchanged} already the best match, ${noSourceYet} have no source yet`
 )
+console.log('wrote data/art/room-art-usage.json')
