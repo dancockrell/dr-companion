@@ -1,111 +1,161 @@
 /**
  * Hand-curated corrections for room art with clear description/image mismatches.
- *
- * These are intentionally sparse. The normal room-art publisher remains the
- * default; an override exists only when a human visual review found a strong
- * semantic failure and a materially better image already ships in public/.
+ * Multiple approved images rotate deterministically by room key, so long
+ * stretches gain variety without changing randomly between launches.
  */
-const GROUPS: ReadonlyArray<{ art: string; rooms: readonly string[] }> = [
-  // 95::Pokekehekepi korgi: Dark, mountain-like sand mass; replaces an obvious sci-fi/planet mismatch.
+type RoomRange = readonly [number, number]
+type Rule = { zone: string; ranges: readonly RoomRange[]; arts: readonly string[] }
+
+const RULES: readonly Rule[] = [
+  // 95::Pokekehekepi korgi: Dark sand better matches the shadowed korgi than the sci-fi/planet render.
   {
-    art: '/rooms/108-high-dunes.webp',
-    rooms: [
-      '95-175', '95-176', '95-177', '95-178', '95-179', '95-180', '95-181', '95-182', '95-183', '95-184',
-      '95-185', '95-186', '95-187', '95-188', '95-189', '95-190', '95-191', '95-192', '95-193', '95-194',
-      '95-195', '95-196', '95-197', '95-198', '95-199', '95-200', '95-201', '95-202', '95-203', '95-204',
-      '95-205', '95-206', '95-207', '95-208', '95-209', '95-210', '95-211', '95-212', '95-213', '95-214',
-      '95-215', '95-216', '95-217', '95-218', '95-219', '95-220', '95-221', '95-222', '95-223', '95-224',
-      '95-225', '95-226', '95-227', '95-228', '95-229', '95-230', '95-231', '95-232', '95-233', '95-234',
-      '95-235', '95-236', '95-237', '95-238', '95-239', '95-240', '95-241', '95-242', '95-243', '95-246',
-      '95-247', '95-248', '95-249',
-    ],
+    zone: '95',
+    ranges: [[175, 243], [246, 249]],
+    arts: ['/rooms/108-high-dunes.webp'],
   },
   // 95::Pokekehekepi olpo'staho: Silver sand disappearing into darkness; replaces a snowy town scene.
   {
-    art: '/rooms/108-high-dunes.webp',
-    rooms: [
-      '95-78', '95-79', '95-80', '95-81', '95-82', '95-83', '95-87', '95-88', '95-89', '95-90',
-      '95-91', '95-92', '95-94', '95-95', '95-118', '95-119', '95-120', '95-129', '95-130', '95-131',
-      '95-133', '95-134', '95-135', '95-136', '95-137', '95-138', '95-139', '95-140', '95-141', '95-142',
-      '95-143', '95-144', '95-145', '95-146', '95-147', '95-148', '95-149', '95-150', '95-151', '95-152',
-      '95-153', '95-154', '95-155', '95-156', '95-157', '95-158', '95-159', '95-160', '95-161', '95-162',
-      '95-163', '95-164', '95-173',
-    ],
+    zone: '95',
+    ranges: [[78, 83], [87, 92], [94, 95], [118, 120], [129, 131], [133, 164], [173, 173]],
+    arts: ['/rooms/108-high-dunes.webp'],
   },
   // 95::Pokekehekepi ghedo: Silver sand disappearing into darkness; replaces a snowy town scene.
   {
-    art: '/rooms/108-high-dunes.webp',
-    rooms: [
-      '95-84', '95-85', '95-86', '95-96', '95-97', '95-98', '95-99', '95-100', '95-101', '95-102',
-      '95-103', '95-104', '95-105', '95-106', '95-107', '95-108', '95-109', '95-110', '95-111', '95-112',
-      '95-113', '95-114', '95-115', '95-116', '95-117', '95-121', '95-122', '95-123', '95-124', '95-125',
-      '95-126', '95-127', '95-128', '95-132', '95-165', '95-166', '95-167', '95-168', '95-169', '95-170',
-      '95-171', '95-172', '95-174',
-    ],
+    zone: '95',
+    ranges: [[84, 86], [96, 117], [121, 128], [132, 132], [165, 172], [174, 174]],
+    arts: ['/rooms/108-high-dunes.webp'],
   },
-  // 7::In The Water: Submerged, dark, tangled environment matches the nearly lightless marsh-water description.
+  // 7::In The Water: Submerged, tangled darkness matches the marsh-water description.
   {
-    art: '/rooms/150-deep-water.webp',
-    rooms: [
-      '7-8', '7-9', '7-10', '7-11', '7-12', '7-13', '7-14', '7-15', '7-16', '7-17',
-      '7-18', '7-19', '7-20', '7-21', '7-22', '7-23', '7-24', '7-25', '7-26', '7-27',
-      '7-28', '7-29', '7-30', '7-31', '7-32', '7-33', '7-34', '7-35', '7-36', '7-37',
-      '7-38', '7-39', '7-40', '7-41', '7-42', '7-43', '7-44', '7-45', '7-46', '7-47',
-      '7-48', '7-49', '7-50', '7-51', '7-52', '7-53', '7-54', '7-55', '7-56', '7-57',
-      '7-58', '7-59', '7-60', '7-61', '7-62', '7-63',
-    ],
+    zone: '7',
+    ranges: [[8, 63]],
+    arts: ['/rooms/150-deep-water.webp'],
   },
-  // 112::In the Water: Murky deep channel; replaces a dry town/harbor street image.
+  // 112::In the Water: Murky deep channel; replaces a dry harbor/town image.
   {
-    art: '/rooms/150-deep-water.webp',
-    rooms: [
-      '112-73', '112-74', '112-77', '112-113', '112-114', '112-115', '112-116', '112-117', '112-118', '112-119',
-      '112-120', '112-121', '112-122', '112-123', '112-124', '112-125', '112-126', '112-127', '112-128', '112-129',
-      '112-130', '112-131', '112-132', '112-133', '112-134', '112-135', '112-136', '112-137', '112-138', '112-139',
-      '112-140', '112-141', '112-142', '112-143', '112-144', '112-145', '112-146', '112-147', '112-148', '112-149',
-      '112-150', '112-151', '112-152', '112-153', '112-154', '112-155',
-    ],
+    zone: '112',
+    ranges: [[73, 74], [77, 77], [113, 155]],
+    arts: ['/rooms/150-deep-water.webp'],
   },
-  // 90::Ehhrsk Highway: Green-lit, damp tunnel with water matches the lichen/sewage tunnel description.
+  // 90::Ehhrsk Highway: Green-lit wet tunnels match the lichen/sewage highway description.
   {
-    art: '/room-scenes/archetype-sewer-0.webp',
-    rooms: [
-      '90-734', '90-735', '90-736', '90-737', '90-738', '90-739', '90-740', '90-741', '90-742', '90-743',
-      '90-744', '90-745', '90-746', '90-747', '90-748', '90-749', '90-750', '90-751', '90-752', '90-753',
-      '90-754', '90-755', '90-756', '90-757', '90-758', '90-759', '90-760', '90-761', '90-762', '90-763',
-      '90-764', '90-765', '90-766', '90-767', '90-768', '90-769', '90-770', '90-771', '90-772', '90-773',
-      '90-774', '90-775', '90-776', '90-777', '90-778', '90-779', '90-780', '90-781', '90-782',
-    ],
+    zone: '90',
+    ranges: [[734, 782]],
+    arts: ['/room-scenes/archetype-sewer-0.webp', '/room-scenes/archetype-sewer-5.webp'],
   },
-  // 42::The Breech Tunnels: Low rough natural passage better matches a crawling, sharp-rock tunnel than the current decorated interior.
+  // 42::The Breech Tunnels: Low rough passages fit the crawling sharp-rock tunnel.
   {
-    art: '/room-scenes/archetype-mine-tunnel-6.webp',
-    rooms: [
-      '42-116', '42-137', '42-138', '42-139', '42-140', '42-141', '42-142', '42-143', '42-144', '42-145',
-      '42-146', '42-147', '42-148', '42-149', '42-150', '42-151', '42-152', '42-153', '42-154', '42-155',
-      '42-156', '42-157', '42-158', '42-159', '42-160', '42-161', '42-162', '42-163', '42-164', '42-165',
-      '42-166', '42-167', '42-168', '42-338', '42-339', '42-340', '42-341', '42-342', '42-343', '42-344',
-      '42-345', '42-346',
-    ],
+    zone: '42',
+    ranges: [[116, 116], [137, 168], [338, 346]],
+    arts: ['/room-scenes/archetype-mine-tunnel-6.webp', '/room-scenes/archetype-mine-tunnel-1.webp'],
   },
-  // 106::Seord Fal: Violent watercourse is a better match for the hazardous rushing river than the current dry stone scene.
+  // 106::Seord Fal: Violent watercourse fits the hazardous rushing river.
   {
-    art: '/rooms/13-waterfall.webp',
-    rooms: [
-      '106-117', '106-118', '106-119', '106-120', '106-121', '106-122', '106-123', '106-124', '106-125', '106-126',
-      '106-127', '106-128', '106-129', '106-130', '106-131', '106-132', '106-133', '106-134', '106-135', '106-136',
-      '106-137', '106-138', '106-139', '106-140', '106-141', '106-142', '106-143', '106-144', '106-145', '106-146',
-      '106-147', '106-148', '106-149', '106-150', '106-151', '106-152', '106-153', '106-154', '106-155', '106-156',
-      '106-157', '106-158', '106-159',
-    ],
+    zone: '106',
+    ranges: [[117, 159]],
+    arts: ['/rooms/13-waterfall.webp'],
+  },
+  // 108::Sand Valley: Open dunes replace a sea-cave fallback; approved variants reduce repetition.
+  {
+    zone: '108',
+    ranges: [[1, 17], [25, 30]],
+    arts: ['/rooms/108-high-dunes.webp', '/room-scenes/archetype-desert-6.webp'],
+  },
+  // 108::Dune Crest: Dune terrain instead of the sea-cave fallback.
+  {
+    zone: '108',
+    ranges: [[18, 23]],
+    arts: ['/rooms/108-high-dunes.webp', '/room-scenes/archetype-desert-1.webp'],
+  },
+  // 108::The Bog Wallows: Wet swamp scenes replace the sea-cave fallback.
+  {
+    zone: '108',
+    ranges: [[205, 216]],
+    arts: ['/room-scenes/archetype-swamp-0.webp', '/room-scenes/archetype-swamp-4.webp', '/room-scenes/archetype-swamp-7.webp'],
+  },
+  // 108::Wishing Well Grove: Wooded paths replace the sea-cave fallback.
+  {
+    zone: '108',
+    ranges: [[152, 152], [154, 155], [157, 157], [161, 165]],
+    arts: ['/room-scenes/archetype-forest-path-0.webp', '/room-scenes/archetype-forest-path-4.webp', '/room-scenes/archetype-forest-path-7.webp'],
+  },
+  // 108::Tunnel: Actual tunnel art replaces the sea-cave fallback.
+  {
+    zone: '108',
+    ranges: [[362, 366]],
+    arts: ['/room-scenes/archetype-mine-tunnel-1.webp', '/room-scenes/archetype-mine-tunnel-6.webp'],
+  },
+  // 127::Derelict Togball Field: Existing field art fits the derelict playing field much better than a forest village.
+  {
+    zone: '127',
+    ranges: [[560, 580]],
+    arts: ['/rooms/127-midfield.webp', '/rooms/127-midfield-north.webp', '/rooms/127-midfield-south.webp'],
+  },
+  // 127::Dark Trees Path: Dark wooded trail instead of a village scene.
+  {
+    zone: '127',
+    ranges: [[114, 121], [163, 163]],
+    arts: ['/room-scenes/archetype-forest-path-4.webp', '/room-scenes/archetype-forest-path-8.webp'],
+  },
+  // 127::Split-Log Path: Forest path art instead of a village scene.
+  {
+    zone: '127',
+    ranges: [[19, 28]],
+    arts: ['/room-scenes/archetype-forest-path-1.webp', '/room-scenes/archetype-forest-path-8.webp'],
+  },
+  // 127::Forest: Forest art instead of a village scene.
+  {
+    zone: '127',
+    ranges: [[124, 129]],
+    arts: ['/room-scenes/archetype-forest-path-3.webp', '/room-scenes/archetype-forest-path-4.webp'],
+  },
+  // 127::Overgrown Path: Overgrown wooded path instead of a village scene.
+  {
+    zone: '127',
+    ranges: [[555, 559], [581, 581]],
+    arts: ['/room-scenes/archetype-forest-path-4.webp', '/room-scenes/archetype-forest-path-8.webp'],
+  },
+  // 127::Mountain Pass: Mountain pass art instead of a village scene.
+  {
+    zone: '127',
+    ranges: [[649, 650], [653, 654]],
+    arts: ['/room-scenes/archetype-mountain-pass-7.webp', '/room-scenes/archetype-mountain-pass-8.webp'],
+  },
+  // 1::Tree-lined Path: Wooded path replaces an unrelated urban canal scene.
+  {
+    zone: '1',
+    ranges: [[505, 514]],
+    arts: ['/room-scenes/archetype-forest-path-2.webp', '/room-scenes/archetype-forest-path-7.webp'],
+  },
+  // 1::Garden Path: Garden paths replace an unrelated urban canal scene.
+  {
+    zone: '1',
+    ranges: [[249, 257], [259, 259], [261, 262]],
+    arts: ['/room-scenes/archetype-garden-1.webp', '/room-scenes/archetype-garden-6.webp'],
+  },
+  // 1::Tunnel: Tunnel art replaces an unrelated urban canal scene.
+  {
+    zone: '1',
+    ranges: [[889, 891]],
+    arts: ['/room-scenes/archetype-mine-tunnel-1.webp', '/room-scenes/archetype-mine-tunnel-6.webp'],
   },
 ]
 
-const ROOM_ART_OVERRIDES = new Map<string, string>()
-for (const group of GROUPS) {
-  for (const roomKey of group.rooms) ROOM_ART_OVERRIDES.set(roomKey, group.art)
+function hashRoomKey(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
 }
 
 export function roomArtOverride(zone: string, room: number): string | null {
-  return ROOM_ART_OVERRIDES.get(`${zone}-${room}`) ?? null
+  for (const rule of RULES) {
+    if (rule.zone !== zone) continue
+    if (!rule.ranges.some(([first, last]) => room >= first && room <= last)) continue
+    const key = `${zone}-${room}`
+    return rule.arts[hashRoomKey(key) % rule.arts.length]
+  }
+  return null
 }
