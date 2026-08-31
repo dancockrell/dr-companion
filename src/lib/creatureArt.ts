@@ -1,3 +1,5 @@
+import curation from '../../data/art/creature-curation.json' with { type: 'json' }
+
 /**
  * Where a creature's picture lives, and whether there is one yet.
  *
@@ -55,6 +57,11 @@ export function artUrl(key: string): string {
 /** Keyed by filename, so a manifest may list either keys or the files. */
 const known = new Map<string, boolean>()
 
+const rejected = new Set(curation.rejected)
+const approvedVariants = new Map(
+  Object.entries(curation.approvedVariants).map(([key, files]) => [key, new Set<string>(files)])
+)
+
 /**
  * Declare the pack's contents, once, when it is installed.
  *
@@ -69,7 +76,10 @@ const known = new Map<string, boolean>()
  * through the same slug, so the pack can list whichever it has to hand.
  */
 export function registerArtManifest(keys: Iterable<string>): void {
-  for (const key of keys) known.set(artFile(key.replace(/\.webp$/i, '')), true)
+  for (const key of keys) {
+    const file = artFile(key.replace(/\.webp$/i, ''))
+    if (!rejected.has(file)) known.set(file, true)
+  }
 }
 
 /**
@@ -100,31 +110,33 @@ export async function loadArtManifest(url = `${BASE}manifest.json`): Promise<num
  * the bare name (loreFor has no way to tell which variant the game meant),
  * but the art pack still renders one file per wiki page, so it ships as
  * rock-troll-1.webp / rock-troll-2.webp with no bare rock-troll.webp at all.
- * A lookup that only ever tries the bare slug finds nothing for every one of
- * these — confirmed against the manifest: over a hundred installed files
- * across ~45 creature names, all unreachable — so real art already on disk
- * was rendering as a silhouette. Trying "-1" through "-6" after the bare
- * slug fails is what actually reaches them. Always the same variant for a
- * given name (not randomised per encounter): artFor has no per-instance
- * seed to vary on without a wider API change, and a stable wrong-ish pick
- * beats a coin-flip that makes two renders of the same fight look different
- * for no reason.
+ * A lookup that only ever tries the bare slug finds none of these. Numbered
+ * files are therefore eligible only when the curation registry explicitly
+ * approves them. A stable card/encounter seed chooses among that approved
+ * set, giving variety without ever promoting an arbitrary filler render just
+ * because it happens to be present or newer.
  */
-const MAX_VARIANT_SUFFIX = 6
-
-/** The actual manifest-known filename a key currently resolves to — bare
- * slug first, then its numbered variants — or undefined if none are known
- * good. Kept separate from `key` (which stays the semantic name callers and
- * tests reason about) so a decode failure can blacklist the one file that
- * actually failed rather than a name nothing was ever filed under. */
-function resolvedFile(key: string): string | undefined {
+/** The curated, manifest-known filenames a key may resolve to. Bare images
+ * remain the default; numbered files require explicit approval. */
+function availableFiles(key: string): string[] {
   const bare = artFile(key)
-  if (known.get(bare) === true) return bare
-  for (let n = 1; n <= MAX_VARIANT_SUFFIX; n++) {
-    const variant = `${bare}-${n}`
-    if (known.get(variant) === true) return variant
+  const approved = approvedVariants.get(bare)
+  if (approved) return [...approved].filter((file) => known.get(file) === true)
+  return known.get(bare) === true && !rejected.has(bare) ? [bare] : []
+}
+
+function stableIndex(seed: string, length: number): number {
+  let hash = 2166136261
+  for (const char of seed) {
+    hash ^= char.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
   }
-  return undefined
+  return (hash >>> 0) % length
+}
+
+function resolvedFile(key: string, seed = key): string | undefined {
+  const files = availableFiles(key)
+  return files.length ? files[stableIndex(seed, files.length)] : undefined
 }
 
 /**
@@ -151,6 +163,7 @@ export function resetArtCache(): void {
 
 export interface CreatureArtSource {
   key: string
+  file: string
   url: string
 }
 
@@ -162,15 +175,15 @@ export interface CreatureArtSource {
  * fail. A manifest can still name a file that will not decode, which is what
  * noteArtMissing is for.
  */
-export function artFor(name: string, noun: string): CreatureArtSource | undefined {
+export function artFor(name: string, noun: string, seed = name): CreatureArtSource | undefined {
   for (const key of artKeys(name, noun)) {
-    const file = resolvedFile(key)
-    if (file) return { key, url: `${BASE}${file}.webp` }
+    const file = resolvedFile(key, seed)
+    if (file) return { key, file, url: `${BASE}${file}.webp` }
   }
   return undefined
 }
 
 /** True only when a file is known to exist, never when one merely might. */
 export function hasArt(name: string, noun: string): boolean {
-  return artKeys(name, noun).some((key) => resolvedFile(key) !== undefined)
+  return artKeys(name, noun).some((key) => availableFiles(key).length > 0)
 }

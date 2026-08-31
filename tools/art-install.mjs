@@ -21,7 +21,7 @@
  *     page about the creature the game calls "an adult desert armadillo", and
  *     a key carrying the (1) matches nothing the game will ever send.
  */
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync, existsSync, unlinkSync } from 'node:fs'
 import { subjectOf } from './art-safety.mjs'
 import { join } from 'node:path'
 
@@ -30,6 +30,9 @@ const KINDS = [
   { out: 'data/art/out/portraits', dest: 'public/portraits' },
   { out: 'data/art/out/rooms', dest: 'public/rooms' },
 ]
+
+const curation = JSON.parse(readFileSync('data/art/creature-curation.json', 'utf8'))
+const rejected = new Set(curation.rejected)
 
 const slug = (s) =>
   s
@@ -67,6 +70,7 @@ function install({ out, dest }) {
   const manifest = []
   let png = 0
   for (const [subject, { file }] of newest) {
+    if (dest === 'public/creatures' && rejected.has(subject)) continue
     if (file.endsWith('.png')) {
       png++
       continue
@@ -74,6 +78,13 @@ function install({ out, dest }) {
     const target = `${subject}.webp`
     copyFileSync(join(out, file), join(dest, target))
     manifest.push(target)
+  }
+
+  if (dest === 'public/creatures') {
+    for (const subject of rejected) {
+      const target = join(dest, `${subject}.webp`)
+      if (existsSync(target)) unlinkSync(target)
+    }
   }
 
   manifest.sort()

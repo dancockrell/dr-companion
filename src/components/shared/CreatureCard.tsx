@@ -92,6 +92,7 @@ export function CreatureCard({
         name={card.name}
         noun={card.noun}
         lore={card.lore}
+        seed={card.id}
         height={full ? 72 : 44}
         className="mb-1"
       />
