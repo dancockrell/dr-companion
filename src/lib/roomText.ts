@@ -1,3 +1,5 @@
+import { roomArtOverride } from '../data/roomArtOverrides'
+
 /**
  * The description of the room you are standing in.
  *
@@ -62,8 +64,11 @@ export function cachedRoomText(zone: string, room: number): RoomText | null {
 /**
  * Where the rendered scene lives, if it has been rendered.
  *
- * The daemon slugs "1-11" to "1-11", so the key and the filename are the same
- * string. Kept as a function anyway because that is a coincidence of the
- * naming rather than a guarantee.
+ * Most rooms resolve directly to /rooms/{zone}-{room}.webp. A small curated
+ * override layer sits in front of that for art that has been visually checked
+ * and found to be a clear mismatch for its room description. The override
+ * deliberately reuses stronger art that already ships in public/ rather than
+ * generating a second near-duplicate asset just to repair an assignment.
  */
-export const roomArtUrl = (zone: string, room: number) => `/rooms/${zone}-${room}.webp`
+export const roomArtUrl = (zone: string, room: number) =>
+  roomArtOverride(zone, room) ?? `/rooms/${zone}-${room}.webp`
