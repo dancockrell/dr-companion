@@ -1,149 +1,142 @@
 # DR Companion
 
-Desktop panel for DragonRealms on Lich 5. Common actions are buttons. Stop is
-always on screen.
+DR Companion is a full desktop MUD client for DragonRealms built around Lich 5 rather than a thin overlay on top of another client.
 
-Pre-alpha. It reads live character state and can kill running scripts. It does
-not drive the game yet.
+It combines a Tauri 2 desktop shell, React UI, a Ruby/Lich bridge, map and travel tooling, scripting, configurable game-text presentation, sound, room and creature art, combat information, character state, and automation controls in one client.
 
-Two modes: **basic** and **power**. Power shows the scoring, so you can see why
-it picked a healer. Panels resize, drag-reorder, and pop into their own windows.
+The project started as a companion panel. That description is now obsolete; the repository has grown into the client itself.
+
+## What is here
+
+The exact feature set changes quickly, but the major systems are now represented directly in the repository and its test suite:
+
+- live game-state and stream handling through Lich;
+- full text-client presentation, including highlights, aliases, macros, variables, substitutes and gags;
+- map data, paths, pins, trail state, quick travel and room/place handling;
+- room and creature art pipelines and indexes;
+- sound, ambient audio and alerts;
+- combat/status presentation and safety controls;
+- per-character profiles and persistent UI/layout state;
+- user scripting in Ruby, Python and TypeScript;
+- a setup/install path for the external DragonRealms/Lich dependencies;
+- Windows desktop packaging through Tauri.
+
+`package.json` is also a useful map of the implemented surfaces: most important client subsystems have a named regression test rather than relying on the UI merely looking plausible.
 
 ## Architecture
 
-```
-Game server
+```text
+DragonRealms
     |
-  Lich 5   ws://127.0.0.1:7415/companion   <- lich-scripts/companion_bridge.lic
+  Lich 5
+    |   localhost WebSocket / companion bridge
     |
-DR Companion   Tauri 2 window, React UI
+DR Companion
+    |-- React / TypeScript UI
+    |-- Tauri 2 / Rust desktop layer
+    |-- maps, art, sound and client state
+    |-- Python and TypeScript task runners
+    `-- Ruby/Lich scripts
 ```
 
-Companion never reads the game stream and never sends game commands. It sends
-intents (`go_healer`, `town_run`, `stop_all`) over a localhost WebSocket. The
-Lich script decides how to carry them out. Protocol:
-[docs/BRIDGE_CONTRACT.md](docs/BRIDGE_CONTRACT.md).
+The bridge contract is documented in [`docs/BRIDGE_CONTRACT.md`](docs/BRIDGE_CONTRACT.md). Safety-sensitive actions are deliberately treated differently from ordinary automation; a stale capability signal must not make Stop unavailable.
 
-Your scripts stay yours. Companion calls them.
+## Development
 
-## Status
-
-| Piece | State |
-|---|---|
-| React UI, two modes | Works |
-| Mock bridge (simulated character) | Works |
-| `lich-scripts/companion_bridge.lic` | Works. Checked against an independent WebSocket client. |
-| Runaway detection | Works. Stops when it repeats without progress. |
-| Live state from Lich | Works: vitals, guild, circle, favors, burden, room, per-skill ranks and mindstate |
-| Training recommendation from mindstate | Works |
-| `stop_all`, `pause`, `resume` | Work, and are never gated on game state |
-| Every other intent | Refused, with a reason |
-| Travel: passports and instance scoping | Works |
-| Healer / hunting / town-run scoring | Works, on placeholder game data |
-| Athletics obstacle thresholds | Data is in, not wired into routing yet |
-| Setup wizard | Works. Detects and installs dependencies. |
-| Per-character profiles | Works |
-| Tier gating (`intentBlockReason`) | Implemented. Safety intents are never gated. |
-| Preferred heal city | Works, with a scored fallback that says why |
-| Windows `.exe` and installer | Builds. NSIS installer, standalone exe. |
-| Command layer (roundtime, stun, refusals) | Works against a fake game |
-| `check_health`, `stow_all` | Written, untested on a live game |
-| Console with command trace | Works |
-| Driving the game (travel, hunt, town run) | Not built |
-
-Nothing here has talked to a live game yet.
-[docs/TESTING.md](docs/TESTING.md) is the order to try things in.
-
-## Running it
-
-Node.js LTS, for the demo:
+Node 24 or newer is the supported JavaScript runtime.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:1420` and click **Open the demo dashboard**. No Genie,
-Lich or Ruby needed.
+The browser development build is useful for UI work and mock-state testing. The native application additionally needs Rust and the Windows C++ build tools.
 
-Live WebSocket path without the game:
-
-```bash
-npm install ws --no-save
-npm run mock-lich
-```
-
-Then switch the bridge to **Live Lich** in Settings.
-
-The native window needs Rust and the Visual Studio C++ build tools.
-
-On a fresh clone, run this once before building or testing the Rust side:
+On a fresh clone, before Rust-side development or tests:
 
 ```bash
 npm run vendor:stub
 ```
 
-`tauri.conf.json` bundles a vendored `Ruby4Lich5.exe`, and Tauri checks that
-list on every build including a debug one - so without this, `cargo build` and
-`cargo test` both stop at `resource path vendor\Ruby4Lich5.exe doesn't exist`
-and 59 Rust unit tests cannot run behind a 65 MB download none of them use.
-`vendor:stub` writes placeholders that satisfy the check. A release build
-refuses them: `npm run tauri:build` fetches the real, hash-verified installer
-and then re-checks it, so a placeholder cannot reach an installer.
+Tauri validates bundled resources even in development. `vendor:stub` creates placeholders for large release-only vendor files so ordinary Rust work does not require downloading them. Release packaging refuses those placeholders and fetches the real, hash-verified resources instead.
 
-`npm run tauri:build` produces an NSIS installer and a standalone exe.
-See [docs/PACKAGING.md](docs/PACKAGING.md).
+Build the Windows application with:
 
-The setup wizard looks for Ruby, Lich, Genie, plugins and maps, and offers to
-install what is missing. It asks first. It will not modify a Ruby you already
-have. [docs/SETUP-POLICY.md](docs/SETUP-POLICY.md).
-
-## Writing your own scripts
-
-Three languages, each running as its own process against the same socket:
-Python ([python/tasks/user/README.md](python/tasks/user/README.md)),
-TypeScript ([typescript/README.md](typescript/README.md)), and Ruby, which
-is Lich's own scripting language and runs inside Lich. Write one in the
-app's Scripts tab or by hand in either `tasks/user/` folder — either way, no
-registration step, no restart: the app's task list re-reads the folder every
-time. [docs/PYTHON_API.md](docs/PYTHON_API.md) is the wire protocol both
-Python and TypeScript speak, and the design log for how this decision was
-made is [docs/ENGINE.md](docs/ENGINE.md).
-
-## Dependencies that package.json will not mention
-
-Someone tidying this machine uninstalled Ruby, reasonably, because nothing in
-the repo said the project needed it.
-
-The live list is [DEPENDENCIES.md](DEPENDENCIES.md), generated from a shared
-database. A table copied into this file goes stale. This one already did — it
-claimed a model was on disk an hour after the file was deleted.
-
-Short version: Ruby, Lich 5, the Genie 4 map XML, Node 24 or newer, ComfyUI,
-and one specific model checkpoint.
-
-That last one is a licensing constraint. `flux1-schnell-fp8.safetensors` is
-Apache 2.0 and puts no conditions on output, so the art pack can be given away.
-`FLUX.1-dev` is the model most guides reach for and is non-commercial: one
-image from it would make the pack legally unusable. The pin lives in
-`tools/art-daemon.mjs` and `tools/art-run.mjs`.
-
-Tests need Ruby on PATH:
-
+```bash
+npm run tauri:build
 ```
-export PATH="/c/Ruby4Lich5/4.0.6/bin:$PATH"
+
+Packaging details live in [`docs/PACKAGING.md`](docs/PACKAGING.md).
+
+## Tests
+
+The project has a broad regression suite covering both client behavior and the bridge/task layers.
+
+```bash
 npm test
 ```
 
-Trust the exit code, not the output. Without Ruby the run stops early with 313
-passing assertions, zero failures, and 90 assertions never run.
+There are also focused scripts such as:
+
+```bash
+npm run test:map
+npm run test:bridge
+npm run test:stream
+npm run test:layout
+npm run test:ambient
+npm run test:drtask
+npm run test:ts-runner
+```
+
+Some tests exercise Ruby/Lich behavior and therefore require the Ruby4Lich5 runtime on `PATH`. Use the exit code as the authority; an interrupted dependency-specific test run can otherwise look deceptively healthy from the assertion count alone.
+
+## User scripting
+
+DR Companion supports three scripting surfaces:
+
+- **Ruby** — Lich's native scripting environment;
+- **Python** — user tasks and higher-level task APIs;
+- **TypeScript** — user tasks against the same client/task concepts.
+
+Start with:
+
+- [`python/tasks/user/README.md`](python/tasks/user/README.md)
+- [`typescript/README.md`](typescript/README.md)
+- [`docs/PYTHON_API.md`](docs/PYTHON_API.md)
+- [`docs/ENGINE.md`](docs/ENGINE.md)
+
+User task folders are re-read by the client; adding a script does not require registering it in a central list or restarting the application.
+
+## Setup and external dependencies
+
+This repository has important dependencies that are not expressible in `package.json` or `Cargo.toml`, particularly the DragonRealms/Lich runtime and game data.
+
+The maintained list is [`DEPENDENCIES.md`](DEPENDENCIES.md). Do not duplicate that table here; machine-level dependencies change and a copied list becomes false quickly.
+
+The setup wizard detects relevant installed components and asks before changing the machine. Policy and safeguards are documented in [`docs/SETUP-POLICY.md`](docs/SETUP-POLICY.md).
+
+## Maps, art and generated data
+
+Several large data/art systems are generated rather than hand-maintained. Their source scripts and regression tests live under `tools/` and are intentionally separate from runtime presentation code.
+
+The art tooling pins commercially usable model choices rather than assuming a popular model can legally be redistributed or used for shipped assets. When changing that stack, check the model licence rather than inheriting an old assumption.
+
+## Documentation map
+
+The repository contains both user-facing and implementation-facing documentation. Useful starting points include:
+
+- [`docs/BRIDGE_CONTRACT.md`](docs/BRIDGE_CONTRACT.md) — bridge protocol and capability contract
+- [`docs/TESTING.md`](docs/TESTING.md) — testing order and live verification
+- [`docs/PACKAGING.md`](docs/PACKAGING.md) — desktop packaging
+- [`docs/SETUP-POLICY.md`](docs/SETUP-POLICY.md) — installer/setup behavior
+- [`docs/GAME_KNOWLEDGE.md`](docs/GAME_KNOWLEDGE.md) — provenance and scope of game knowledge
+- [`docs/ENGINE.md`](docs/ENGINE.md) — scripting/task-engine design
+- [`DEPENDENCIES.md`](DEPENDENCIES.md) — external dependencies not captured by manifests
 
 ## Scope
 
-Game mechanics come from Elanthipedia and from play. This repo contains no
-copied script text and does not bundle, launch or reimplement anyone else's
-product. [docs/GAME_KNOWLEDGE.md](docs/GAME_KNOWLEDGE.md).
+Game mechanics and factual game data come from public community references and play/testing. The client does not depend on copied third-party script source to implement its own systems. See [`docs/GAME_KNOWLEDGE.md`](docs/GAME_KNOWLEDGE.md).
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [`LICENSE`](LICENSE).
