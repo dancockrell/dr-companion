@@ -79,8 +79,9 @@ const STALE_AFTER_SECONDS = 60
 /** Below this measured width, pucks shrink too, so a marker never claims
  * more of a tiny board than the gap between two of them can afford.
  * Nothing on this board ever prints an always-visible name, so this is the
- * only responsive threshold left: marker size, not label visibility. */
-const COMPACT_MIN_PX = 160
+ * only responsive bands left: marker and gutter size, not label visibility. */
+const STANDARD_MIN_PX = 680
+const WIDE_MIN_PX = 900
 
 /**
  * Melee wide, pole and missile progressively tighter. A floor, not the
@@ -270,8 +271,8 @@ function RosterColumn({ label, side, width, children }: { label: string; side: '
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar absolute bottom-0 top-0 z-20 cursor-grab overflow-x-hidden overflow-y-auto bg-transparent touch-none active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
-      style={{ width }}
+      className={`no-scrollbar absolute top-0 z-20 cursor-grab overflow-x-hidden overflow-y-auto bg-transparent touch-none active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
+      style={{ width, bottom: 'var(--radar-loot-height, 0px)' }}
       aria-label={`${label} radar cards`}
       title={label}
     >
@@ -1091,7 +1092,9 @@ export function CombatRadar({
   const index = indexCombatants(combatants)
   const { run: runMacro, canSend: canAttack, reason: attackReason } = useMacroRunner()
   const { ref: boardRef, width: boardWidth, height: boardHeight } = useMeasuredSize()
-  const compact = boardWidth > 0 && boardWidth < COMPACT_MIN_PX
+  const wide = boardWidth >= WIDE_MIN_PX
+  const standard = boardWidth >= STANDARD_MIN_PX
+  const compact = boardWidth > 0 && !standard
 
   // Every movable thing is sized from the same two-dimensional viewer scale.
   // A fixed 50px portrait looked acceptable in one screenshot and enormous
@@ -1102,13 +1105,15 @@ export function CombatRadar({
     ? Math.max(0.65, Math.min(1.25, Math.min(boardWidth / 900, boardHeight / 650)))
     : 1
 
-  const portraitPx = Math.round((compact ? 60 : 84) * viewerScale)
+  const portraitPx = Math.max(40, Math.round((compact ? 60 : 84) * viewerScale))
   // The strip's own cards — smaller than a positioned compass puck, since
   // "2 cards wide" only fits at a size the strip's own measured width
   // actually allows.
-  const stripPx = Math.round((compact ? 40 : 50) * viewerScale)
-  const compassPortraitPx = Math.round((compact ? 40 : 52) * viewerScale)
-  const railWidth = Math.max(44, Math.round(stripPx + 12))
+  const stripBasePx = wide ? 56 : standard ? 48 : 40
+  const railBasePx = wide ? 72 : standard ? 60 : 50
+  const stripPx = Math.max(40, Math.round(stripBasePx * viewerScale))
+  const compassPortraitPx = Math.max(40, Math.round((compact ? 44 : 52) * viewerScale))
+  const railWidth = Math.max(stripPx + 8, Math.round(railBasePx * viewerScale))
   const armorWidth = Math.max(224, Math.min(336, Math.round(boardWidth * 0.34)))
 
   // The compass draws edge to edge underneath two balanced side lanes.

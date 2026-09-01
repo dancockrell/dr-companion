@@ -156,8 +156,8 @@ export function ArmorManager() {
 
   return (
     <aside
-      className="absolute top-9 z-30 max-w-[calc(100%-8rem)] overflow-hidden rounded-xl border border-info/35 bg-surface/88 text-ink shadow-xl shadow-black/40 backdrop-blur-md"
-      style={{ right: 'calc(var(--radar-rail, 68px) + 4px)', width: 'var(--armor-width, 288px)' }}
+      className="absolute top-2 z-30 max-w-[calc(100%-8rem)] overflow-hidden rounded-xl border border-info/35 bg-surface/88 text-ink shadow-xl shadow-black/40 backdrop-blur-md"
+      style={{ right: 'calc(var(--radar-rail, 68px) + 8px)', width: 'var(--armor-width, 288px)' }}
       aria-label="Armor manager"
     >
       <button

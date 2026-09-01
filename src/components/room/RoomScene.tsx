@@ -35,9 +35,9 @@ export function RoomScene({
   maxHeightVh = 42,
   chips,
   overlay,
-  header,
   footer,
   shape = 'square',
+  framed = true,
 }: {
   zone: string
   room: number
@@ -72,10 +72,10 @@ export function RoomScene({
    * disagree the moment either one changed independently of the other.
    */
   overlay?: import('react').ReactNode
-  /** Compact live character/status content sharing the room-title strip. */
-  header?: import('react').ReactNode
   /** Interactive scene content anchored over the bottom of the art. */
   footer?: import('react').ReactNode
+  /** False when a parent owns the shared battle frame and header. */
+  framed?: boolean
 }) {
   const sceneRef = useRef<HTMLDivElement>(null)
   const [sceneSize, setSceneSize] = useState({ width: 0, height: 0 })
@@ -104,11 +104,12 @@ export function RoomScene({
   const sceneScale = sceneSize.width > 0 && sceneSize.height > 0
     ? Math.max(0.65, Math.min(1.25, Math.min(sceneSize.width / 900, sceneSize.height / 650)))
     : 1
-  const sceneStyle: CSSProperties & { '--radar-scale': number } = {
+  const sceneStyle: CSSProperties & { '--radar-scale': number; '--radar-loot-height': string } = {
     ...(height
       ? { height }
-      : { width: shape === 'landscape' ? `min(100%, ${maxHeightVh * 4 / 3}vh)` : `min(100%, ${maxHeightVh}vh)` }),
+      : { width: shape === 'landscape' ? `min(100%, ${maxHeightVh * 8 / 5}vh)` : `min(100%, ${maxHeightVh}vh)` }),
     '--radar-scale': sceneScale,
+    '--radar-loot-height': footer ? '2.25rem' : '0px',
   }
 
   return (
@@ -130,10 +131,10 @@ export function RoomScene({
       // exactly as before.
       className={
         height
-          ? 'relative w-full overflow-hidden rounded border border-border'
+          ? `relative w-full overflow-hidden ${framed ? 'rounded border border-border' : ''}`
           : shape === 'landscape'
-            ? 'relative mx-auto aspect-[4/3] overflow-hidden rounded border border-border'
-            : 'relative mx-auto aspect-square overflow-hidden rounded border border-border'
+            ? `relative mx-auto aspect-[8/5] overflow-hidden ${framed ? 'rounded border border-border' : ''}`
+            : `relative mx-auto aspect-square overflow-hidden ${framed ? 'rounded border border-border' : ''}`
       }
       style={sceneStyle}
     >
@@ -147,15 +148,8 @@ export function RoomScene({
 
       {overlay && <div className="absolute inset-0 z-10" aria-label="Tactical radar over room art">{overlay}</div>}
 
-      {(title || header) && (
-        <div className="absolute inset-x-0 top-0 z-30 flex min-w-0 items-center gap-2 bg-surface/76 px-2 py-1 text-xs text-ink backdrop-blur-sm">
-          {title && <span className="min-w-0 shrink truncate font-medium">{title}</span>}
-          {header && <div className="ml-auto min-w-0 flex-1">{header}</div>}
-        </div>
-      )}
-
       {footer && (
-        <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 max-h-[42%] overflow-hidden bg-gradient-to-t from-black/72 via-black/35 to-transparent px-2 pb-2 pt-8">
+        <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 h-9 overflow-hidden border-t border-border/70 bg-surface/82 px-1.5 py-1 backdrop-blur-md">
           {footer}
         </div>
       )}

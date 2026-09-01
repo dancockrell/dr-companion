@@ -57,11 +57,28 @@ function iconForItem(name: string) {
   return Package
 }
 
-export function FloorItems({ items, overlay = false }: { items?: string[]; overlay?: boolean }) {
+export type FloorItemsMode = 'glance' | 'browser'
+
+export function FloorItems({
+  items,
+  mode = 'browser',
+  selectedItem,
+  onSelectedItemChange,
+}: {
+  items?: string[]
+  mode?: FloorItemsMode
+  selectedItem?: string | null
+  onSelectedItemChange?: (name: string | null) => void
+}) {
   const { take, canSend, reason } = useRoomItemTake()
   const drag = useDragScroll()
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState<string | null>(null)
+  const [internalSelected, setInternalSelected] = useState<string | null>(null)
+  const selected = selectedItem === undefined ? internalSelected : selectedItem
+  const setSelected = (name: string | null) => {
+    if (onSelectedItemChange) onSelectedItemChange(name)
+    else setInternalSelected(name)
+  }
 
   if (!items || items.length === 0) return null
 
@@ -81,70 +98,70 @@ export function FloorItems({ items, overlay = false }: { items?: string[]; overl
 
   return (
     <div
-      className={cn('flex flex-col', overlay && 'justify-end')}
+      className={cn('flex min-h-0 flex-col', mode === 'browser' && 'h-full')}
       style={{
         gap: 'calc(0.25rem * var(--radar-scale, 1))',
         fontSize: 'max(0.75rem, calc(0.75rem * var(--radar-scale, 1)))',
       }}
       aria-label={`Items on the ground: ${groups.length} kinds, ${items.length} total`}
     >
-      <div
-        ref={drag.ref}
-        onPointerDown={drag.onPointerDown}
-        onPointerMove={drag.onPointerMove}
-        onPointerUp={drag.onPointerUp}
-        onPointerCancel={drag.onPointerCancel}
-        className={cn(
-          'no-scrollbar flex touch-none gap-1',
-          overlay ? 'flex-wrap content-end overflow-auto' : 'overflow-x-auto',
-          drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+      <div className={cn('flex min-h-0 items-center gap-1', mode === 'browser' && 'flex-1 items-stretch')}>
+        {mode === 'glance' && (
+          <span className="shrink-0 rounded border border-accent/35 bg-surface-overlay/80 px-1.5 py-1 text-xs font-medium tabular-nums text-accent" title={`${items.length} items in ${groups.length} distinct piles`}>
+            {items.length} · {groups.length} kinds
+          </span>
         )}
-        style={overlay ? { maxHeight: 'calc(7rem * var(--radar-scale, 1))' } : undefined}
-      >
-        {visible.map(({ name, count }) => {
-          const Icon = iconForItem(name)
-          const label = count > 1 ? `${name} (${count})` : name
-          const tooltip = `${label} — click for Look, Get, Appraise, Analyze, and Elanthipedia`
-          return (
-            <button
-              key={name}
-              type="button"
-              onClick={() => setSelected((current) => current === name ? null : name)}
-              aria-pressed={selected === name}
-              title={tooltip}
-              className={cn(
-                'flex shrink-0 items-center rounded border border-border shadow-sm backdrop-blur-sm',
-                overlay ? 'bg-surface/72' : 'bg-surface-raised',
-                'text-ink-muted hover:border-ink-faint hover:text-ink',
-                selected === name && 'border-accent bg-accent/10 text-ink'
-              )}
-              style={{
-                gap: 'calc(0.25rem * var(--radar-scale, 1))',
-                paddingInline: 'calc(0.375rem * var(--radar-scale, 1))',
-                paddingBlock: 'calc(0.25rem * var(--radar-scale, 1))',
-                fontSize: 'inherit',
-              }}
-            >
-              <Icon
-                className="shrink-0 text-accent"
+        <div
+          ref={drag.ref}
+          onPointerDown={drag.onPointerDown}
+          onPointerMove={drag.onPointerMove}
+          onPointerUp={drag.onPointerUp}
+          onPointerCancel={drag.onPointerCancel}
+          className={cn(
+            'no-scrollbar flex min-h-0 min-w-0 flex-1 touch-none gap-1',
+            mode === 'glance' ? 'overflow-x-auto' : 'flex-wrap content-start overflow-y-auto pr-1',
+            drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+          )}
+        >
+          {visible.map(({ name, count }) => {
+            const Icon = iconForItem(name)
+            const label = count > 1 ? `${name} (${count})` : name
+            const tooltip = `${label} — click for Look, Get, Appraise, Analyze, and Elanthipedia`
+            return (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setSelected(selected === name ? null : name)}
+                aria-pressed={selected === name}
+                title={tooltip}
+                className={cn(
+                  'flex shrink-0 items-center rounded border border-border shadow-sm backdrop-blur-sm',
+                  mode === 'glance' ? 'bg-surface/72' : 'bg-surface-raised',
+                  'text-ink-muted hover:border-ink-faint hover:text-ink',
+                  selected === name && 'border-accent bg-accent/10 text-ink'
+                )}
                 style={{
-                  width: 'clamp(0.75rem, calc(0.875rem * var(--radar-scale, 1)), 1.1rem)',
-                  height: 'clamp(0.75rem, calc(0.875rem * var(--radar-scale, 1)), 1.1rem)',
+                  gap: 'calc(0.25rem * var(--radar-scale, 1))',
+                  paddingInline: 'calc(0.375rem * var(--radar-scale, 1))',
+                  paddingBlock: 'calc(0.25rem * var(--radar-scale, 1))',
+                  fontSize: 'inherit',
                 }}
-                aria-hidden
-              />
-              <span className="whitespace-nowrap">{label}</span>
-            </button>
-          )
-        })}
+              >
+                <Icon
+                  className="shrink-0 text-accent"
+                  style={{
+                    width: 'clamp(0.75rem, calc(0.875rem * var(--radar-scale, 1)), 1.1rem)',
+                    height: 'clamp(0.75rem, calc(0.875rem * var(--radar-scale, 1)), 1.1rem)',
+                  }}
+                  aria-hidden
+                />
+                <span className="whitespace-nowrap">{label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
-      {groups.length > 12 && (
-        <label className="flex h-7 items-center gap-1 rounded border border-border bg-surface px-1.5 text-xs">
-          <Search className="h-3.5 w-3.5 shrink-0 text-ink-faint" aria-hidden />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Find among ${groups.length} kinds / ${items.length} items…`} className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-ink-faint" />
-        </label>
-      )}
-      {selected && (() => {
+      {mode === 'browser' && selected && (() => {
         const target = targetOf(selected)
         const wikiUrl = `https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(target)}`
         return (
@@ -159,7 +176,13 @@ export function FloorItems({ items, overlay = false }: { items?: string[]; overl
           </div>
         )
       })()}
-      {reason && <p className="text-xs text-warn leading-snug">{reason}</p>}
+      {mode === 'browser' && reason && <p className="text-xs text-warn leading-snug">{reason}</p>}
+      {mode === 'browser' && groups.length > 12 && (
+        <label className="flex h-7 shrink-0 items-center gap-1 rounded border border-border bg-surface px-1.5 text-xs">
+          <Search className="h-3.5 w-3.5 shrink-0 text-ink-faint" aria-hidden />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Find among ${groups.length} kinds / ${items.length} items…`} className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-ink-faint" />
+        </label>
+      )}
     </div>
   )
 }

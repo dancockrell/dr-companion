@@ -40,6 +40,8 @@ export function ClassicRoomText({
   uid,
   highlights,
   offClasses,
+  selectedItem,
+  onSelectedItemChange,
 }: {
   title?: string | null
   text?: string | null
@@ -61,6 +63,8 @@ export function ClassicRoomText({
   uid?: number | null
   highlights: Highlight[]
   offClasses?: ReadonlySet<string>
+  selectedItem?: string | null
+  onSelectedItemChange?: (name: string | null) => void
 }) {
   const drag = useDragScroll()
   const crowdedPlayers = (players?.length ?? 0) > FULL_SUMMARY_LIMIT
@@ -74,7 +78,7 @@ export function ClassicRoomText({
         onPointerMove={drag.onPointerMove}
         onPointerUp={drag.onPointerUp}
         onPointerCancel={drag.onPointerCancel}
-        className="no-scrollbar min-h-0 flex-1 cursor-grab touch-none overflow-y-auto active:cursor-grabbing"
+        className="no-scrollbar max-h-[42%] shrink-0 cursor-grab touch-none overflow-y-auto active:cursor-grabbing"
       >
         {(title || room != null) && (
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
@@ -110,12 +114,12 @@ export function ClassicRoomText({
           <span className="font-semibold uppercase tracking-wide text-ink-muted">Exits</span>
           {exits && exits.length > 0 ? <ExitButtons exits={exits} /> : <span>none reported</span>}
         </div>
-        {items && items.length > 0 && (
-          <div className="mt-1 border-t border-border/40 pt-1.5" aria-label="Clickable room items">
-            <FloorItems items={items} />
-          </div>
-        )}
       </div>
+      {items && items.length > 0 && (
+        <div className="mt-1 min-h-0 flex-1 border-t border-border/40 pt-1.5" aria-label="Clickable room items">
+          <FloorItems items={items} mode="browser" selectedItem={selectedItem} onSelectedItemChange={onSelectedItemChange} />
+        </div>
+      )}
     </div>
   )
 }

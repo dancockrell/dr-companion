@@ -34,7 +34,7 @@ export function BattleActionBar() {
     <div className="relative">
       <div
         ref={macroDrag.ref}
-        className={cn('no-scrollbar flex touch-none items-start gap-0.5 overflow-x-auto', macroDrag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
+        className={cn('no-scrollbar flex touch-none items-start gap-1 overflow-x-auto', macroDrag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
         aria-label="Battle commands"
         onPointerDown={macroDrag.onPointerDown}
         onPointerMove={macroDrag.onPointerMove}
@@ -46,7 +46,7 @@ export function BattleActionBar() {
           return (
             <div
               key={group}
-              className={cn('flex shrink-0 gap-0.5 border-l-2', GROUP_TONE[group], groupIndex === 0 && 'border-l-0')}
+              className={cn('grid shrink-0 grid-flow-col grid-rows-2 gap-0.5 border-l-2 pl-1', GROUP_TONE[group], groupIndex === 0 && 'border-l-0 pl-0')}
               aria-label={`${group} commands`}
             >
               {macros.flatMap((macro) => {

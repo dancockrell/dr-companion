@@ -126,6 +126,9 @@ export function BattleColumn() {
   const character = useAppStore((s) => s.character)
   const cards = fromRoom(character)
   const roomItems = character?.roomItems
+  const [floorSelectionState, setFloorSelectionState] = useState<{ room: number | null; item: string | null }>({ room, item: null })
+  const floorSelection = floorSelectionState.room === room ? floorSelectionState.item : null
+  const setFloorSelection = (item: string | null) => setFloorSelectionState({ room, item })
 
   // The board draws itself for nothing rather than an empty compass over
   // every peaceful room — exactly the kind of chrome this app's
@@ -205,11 +208,18 @@ export function BattleColumn() {
           // spare pixel in a tall window; the latter left a large black void
           // beneath the actual scene. Useful spare height belongs to the
           // description and inventory below.
-          'shrink-0 overflow-hidden rounded ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500',
+          'mx-auto shrink-0 overflow-hidden rounded border border-border bg-surface-raised ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500',
           justArrived && 'ring-2'
         )}
+        style={{ width: 'min(100%, 83.2vh)' }}
       >
         <PanelBoundary label="Scene">
+          <div className="flex h-9 min-w-0 items-center gap-2 border-b border-border/70 bg-surface/92 px-2" aria-label="Battle room and status">
+            <span className="min-w-0 shrink truncate text-xs font-semibold text-ink" title={title ?? 'Current room'}>{title ?? 'Current room'}</span>
+            <div className="ml-auto min-w-0 flex-1 overflow-hidden">
+              <PanelBoundary label="Status"><BattleStatus /></PanelBoundary>
+            </div>
+          </div>
           <RoomScene
             zone={zone}
             room={room ?? 0}
@@ -223,6 +233,7 @@ export function BattleColumn() {
             // that moved out.
             maxHeightVh={52}
             shape="landscape"
+            framed={false}
             overlay={
               boardActive ? (
                 <CombatRadar
@@ -233,19 +244,18 @@ export function BattleColumn() {
                 />
               ) : undefined
             }
-            header={<PanelBoundary label="Status"><BattleStatus /></PanelBoundary>}
-            footer={roomItems && roomItems.length > 0 ? <PanelBoundary label="Items on the ground"><FloorItems items={roomItems} overlay /></PanelBoundary> : undefined}
+            footer={roomItems && roomItems.length > 0 ? <PanelBoundary label="Items on the ground"><FloorItems items={roomItems} mode="glance" selectedItem={floorSelection} onSelectedItemChange={setFloorSelection} /></PanelBoundary> : undefined}
           />
         </PanelBoundary>
       </div>
 
-      <div className="shrink-0 rounded border border-border bg-surface-raised p-2">
+      <div className="shrink-0 rounded border border-border bg-surface-raised px-1.5 py-1">
         <PanelBoundary label="Combat controls">
           <BattleActionBar />
         </PanelBoundary>
       </div>
 
-      <div className="grid min-h-[13rem] flex-1 grid-cols-[minmax(0,1.35fr)_minmax(12rem,0.85fr)] gap-2 overflow-hidden">
+      <div className="grid min-h-[13rem] flex-1 grid-cols-[minmax(0,0.9fr)_minmax(12rem,1.1fr)] gap-2 overflow-hidden">
         <section className="min-w-0 overflow-hidden rounded border border-border bg-surface-raised p-2" aria-label="Room description">
           {room === null ? (
             <p className="text-xs text-ink-faint">Not in a room yet.</p>
@@ -260,6 +270,8 @@ export function BattleColumn() {
               uid={here?.uid}
               highlights={highlights}
               offClasses={offClasses}
+              selectedItem={floorSelection}
+              onSelectedItemChange={setFloorSelection}
             />
           )}
         </section>
