@@ -1,0 +1,2527 @@
+{
+  "ruleCount": 166,
+  "roomCount": 1769,
+  "coverage": {
+    "deep-forest": 219,
+    "mine-tunnel": 484,
+    "forest-path": 74,
+    "riverside": 153,
+    "regional-city": 321,
+    "grassland": 148,
+    "mountain-pass": 94,
+    "desert": 75,
+    "swamp": 100,
+    "garden": 101
+  },
+  "protectedLandmarks": [
+    "106::Seord Fal",
+    "112::In the Water",
+    "127::Catacombs",
+    "13::Narrow Trace",
+    "1::Sewer",
+    "40a::Duvli Rinu",
+    "47::Workroom",
+    "4::Grasslands",
+    "4::Rocky Outcrop",
+    "4a::Behind the Goal Line",
+    "65::Beneath the Ice",
+    "66::Maelshyve's Ascent",
+    "7::In The Water",
+    "92::Underwater",
+    "95::Pokekehekepi korgi",
+    "98::Shadaer Jama",
+    "98::Underwater"
+  ],
+  "assignments": [
+    {
+      "placeKey": "1::Clanthew Boulevard",
+      "category": "regional-city",
+      "zone": "1",
+      "ranges": [
+        [
+          8,
+          8
+        ],
+        [
+          11,
+          11
+        ],
+        [
+          18,
+          18
+        ],
+        [
+          29,
+          31
+        ]
+      ]
+    },
+    {
+      "placeKey": "1::Gildleaf Circle",
+      "category": "regional-city",
+      "zone": "1",
+      "ranges": [
+        [
+          129,
+          132
+        ]
+      ]
+    },
+    {
+      "placeKey": "1::Riverpine Circle",
+      "category": "regional-city",
+      "zone": "1",
+      "ranges": [
+        [
+          177,
+          183
+        ]
+      ]
+    },
+    {
+      "placeKey": "1::Midton Circle",
+      "category": "regional-city",
+      "zone": "1",
+      "ranges": [
+        [
+          264,
+          273
+        ]
+      ]
+    },
+    {
+      "placeKey": "1::Gardens",
+      "category": "garden",
+      "zone": "1",
+      "ranges": [
+        [
+          516,
+          522
+        ]
+      ]
+    },
+    {
+      "placeKey": "1::Smithy Lane",
+      "category": "regional-city",
+      "zone": "1",
+      "ranges": [
+        [
+          607,
+          610
+        ],
+        [
+          612,
+          614
+        ]
+      ]
+    },
+    {
+      "placeKey": "1::Holy Warrior's Promenade",
+      "category": "regional-city",
+      "zone": "1",
+      "ranges": [
+        [
+          806,
+          810
+        ]
+      ]
+    },
+    {
+      "placeKey": "1::Riverlace Lane",
+      "category": "regional-city",
+      "zone": "1",
+      "ranges": [
+        [
+          1052,
+          1057
+        ]
+      ]
+    },
+    {
+      "placeKey": "1a::Under the Segoltha",
+      "category": "mine-tunnel",
+      "zone": "1a",
+      "ranges": [
+        [
+          12,
+          17
+        ]
+      ]
+    },
+    {
+      "placeKey": "1a::Passage",
+      "category": "mine-tunnel",
+      "zone": "1a",
+      "ranges": [
+        [
+          18,
+          21
+        ]
+      ]
+    },
+    {
+      "placeKey": "2::Deep Tangle",
+      "category": "forest-path",
+      "zone": "2",
+      "ranges": [
+        [
+          31,
+          50
+        ]
+      ]
+    },
+    {
+      "placeKey": "2a::Gardens",
+      "category": "garden",
+      "zone": "2a",
+      "ranges": [
+        [
+          146,
+          153
+        ]
+      ]
+    },
+    {
+      "placeKey": "2d::Tower Tunnels",
+      "category": "mine-tunnel",
+      "zone": "2d",
+      "ranges": [
+        [
+          10,
+          11
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          15,
+          16
+        ],
+        [
+          25,
+          27
+        ],
+        [
+          30,
+          30
+        ],
+        [
+          40,
+          44
+        ],
+        [
+          46,
+          46
+        ],
+        [
+          48,
+          49
+        ]
+      ]
+    },
+    {
+      "placeKey": "2d::Truffenyi's Way",
+      "category": "mine-tunnel",
+      "zone": "2d",
+      "ranges": [
+        [
+          17,
+          23
+        ]
+      ]
+    },
+    {
+      "placeKey": "2d::Kuniyo's Egress",
+      "category": "mine-tunnel",
+      "zone": "2d",
+      "ranges": [
+        [
+          31,
+          38
+        ]
+      ]
+    },
+    {
+      "placeKey": "2d::Chadatru's Vigil",
+      "category": "mine-tunnel",
+      "zone": "2d",
+      "ranges": [
+        [
+          50,
+          56
+        ]
+      ]
+    },
+    {
+      "placeKey": "4::Farmlands",
+      "category": "grassland",
+      "zone": "4",
+      "ranges": [
+        [
+          46,
+          47
+        ],
+        [
+          74,
+          78
+        ]
+      ]
+    },
+    {
+      "placeKey": "4::Grain Fields",
+      "category": "grassland",
+      "zone": "4",
+      "ranges": [
+        [
+          48,
+          51
+        ],
+        [
+          55,
+          55
+        ],
+        [
+          65,
+          68
+        ],
+        [
+          70,
+          72
+        ]
+      ]
+    },
+    {
+      "placeKey": "4::Doline",
+      "category": "riverside",
+      "zone": "4",
+      "ranges": [
+        [
+          234,
+          237
+        ]
+      ]
+    },
+    {
+      "placeKey": "6::Brambles",
+      "category": "deep-forest",
+      "zone": "6",
+      "ranges": [
+        [
+          26,
+          35
+        ],
+        [
+          38,
+          38
+        ],
+        [
+          40,
+          40
+        ],
+        [
+          44,
+          44
+        ],
+        [
+          48,
+          49
+        ],
+        [
+          58,
+          58
+        ],
+        [
+          65,
+          65
+        ],
+        [
+          67,
+          79
+        ],
+        [
+          85,
+          92
+        ],
+        [
+          269,
+          270
+        ],
+        [
+          272,
+          272
+        ],
+        [
+          274,
+          285
+        ],
+        [
+          290,
+          292
+        ],
+        [
+          294,
+          294
+        ],
+        [
+          296,
+          301
+        ]
+      ]
+    },
+    {
+      "placeKey": "6::Courtyard",
+      "category": "garden",
+      "zone": "6",
+      "ranges": [
+        [
+          205,
+          208
+        ]
+      ]
+    },
+    {
+      "placeKey": "7::Low Rise",
+      "category": "garden",
+      "zone": "7",
+      "ranges": [
+        [
+          152,
+          156
+        ]
+      ]
+    },
+    {
+      "placeKey": "7::Fields",
+      "category": "grassland",
+      "zone": "7",
+      "ranges": [
+        [
+          299,
+          305
+        ],
+        [
+          309,
+          309
+        ],
+        [
+          311,
+          311
+        ]
+      ]
+    },
+    {
+      "placeKey": "7::Open Grasslands",
+      "category": "grassland",
+      "zone": "7",
+      "ranges": [
+        [
+          329,
+          332
+        ],
+        [
+          341,
+          342
+        ],
+        [
+          355,
+          356
+        ],
+        [
+          371,
+          372
+        ],
+        [
+          400,
+          400
+        ]
+      ]
+    },
+    {
+      "placeKey": "7::Tunnels",
+      "category": "mine-tunnel",
+      "zone": "7",
+      "ranges": [
+        [
+          414,
+          431
+        ],
+        [
+          433,
+          433
+        ]
+      ]
+    },
+    {
+      "placeKey": "7::Rocky Pass",
+      "category": "mountain-pass",
+      "zone": "7",
+      "ranges": [
+        [
+          463,
+          465
+        ],
+        [
+          810,
+          813
+        ]
+      ]
+    },
+    {
+      "placeKey": "7c::Chancellor's Gardens",
+      "category": "garden",
+      "zone": "7c",
+      "ranges": [
+        [
+          6,
+          10
+        ]
+      ]
+    },
+    {
+      "placeKey": "10::Stony Labyrinth",
+      "category": "mine-tunnel",
+      "zone": "10",
+      "ranges": [
+        [
+          48,
+          59
+        ]
+      ]
+    },
+    {
+      "placeKey": "11::Deep",
+      "category": "deep-forest",
+      "zone": "11",
+      "ranges": [
+        [
+          149,
+          157
+        ]
+      ]
+    },
+    {
+      "placeKey": "12a::Labyrinth",
+      "category": "mine-tunnel",
+      "zone": "12a",
+      "ranges": [
+        [
+          22,
+          39
+        ],
+        [
+          52,
+          57
+        ]
+      ]
+    },
+    {
+      "placeKey": "12a::Sepulcher",
+      "category": "mine-tunnel",
+      "zone": "12a",
+      "ranges": [
+        [
+          40,
+          44
+        ]
+      ]
+    },
+    {
+      "placeKey": "12a::Sanctum Sanctorum",
+      "category": "mine-tunnel",
+      "zone": "12a",
+      "ranges": [
+        [
+          46,
+          51
+        ]
+      ]
+    },
+    {
+      "placeKey": "13::Ossuary Caverns",
+      "category": "mine-tunnel",
+      "zone": "13",
+      "ranges": [
+        [
+          91,
+          114
+        ]
+      ]
+    },
+    {
+      "placeKey": "13::Courtyard",
+      "category": "garden",
+      "zone": "13",
+      "ranges": [
+        [
+          189,
+          195
+        ]
+      ]
+    },
+    {
+      "placeKey": "14b::Uneven Slope",
+      "category": "mountain-pass",
+      "zone": "14b",
+      "ranges": [
+        [
+          170,
+          174
+        ]
+      ]
+    },
+    {
+      "placeKey": "14c::Faldesu River",
+      "category": "riverside",
+      "zone": "14c",
+      "ranges": [
+        [
+          1,
+          1
+        ],
+        [
+          3,
+          19
+        ]
+      ]
+    },
+    {
+      "placeKey": "30::Garden",
+      "category": "garden",
+      "zone": "30",
+      "ranges": [
+        [
+          125,
+          130
+        ],
+        [
+          212,
+          212
+        ],
+        [
+          319,
+          319
+        ]
+      ]
+    },
+    {
+      "placeKey": "30::Blossom Circle",
+      "category": "regional-city",
+      "zone": "30",
+      "ranges": [
+        [
+          284,
+          287
+        ],
+        [
+          289,
+          295
+        ]
+      ]
+    },
+    {
+      "placeKey": "30a::Catacombs",
+      "category": "mine-tunnel",
+      "zone": "30a",
+      "ranges": [
+        [
+          9,
+          19
+        ]
+      ]
+    },
+    {
+      "placeKey": "31::Wandering The Muck",
+      "category": "swamp",
+      "zone": "31",
+      "ranges": [
+        [
+          43,
+          45
+        ],
+        [
+          140,
+          141
+        ],
+        [
+          143,
+          147
+        ],
+        [
+          149,
+          149
+        ],
+        [
+          151,
+          151
+        ],
+        [
+          153,
+          164
+        ]
+      ]
+    },
+    {
+      "placeKey": "31::A Shallow Pool",
+      "category": "swamp",
+      "zone": "31",
+      "ranges": [
+        [
+          54,
+          58
+        ]
+      ]
+    },
+    {
+      "placeKey": "31::Beside The Fence",
+      "category": "swamp",
+      "zone": "31",
+      "ranges": [
+        [
+          61,
+          61
+        ],
+        [
+          136,
+          138
+        ]
+      ]
+    },
+    {
+      "placeKey": "31::Stagnant Pool",
+      "category": "swamp",
+      "zone": "31",
+      "ranges": [
+        [
+          131,
+          134
+        ]
+      ]
+    },
+    {
+      "placeKey": "31b::Murky Caverns",
+      "category": "mine-tunnel",
+      "zone": "31b",
+      "ranges": [
+        [
+          7,
+          48
+        ]
+      ]
+    },
+    {
+      "placeKey": "31b::Charred Caverns",
+      "category": "mine-tunnel",
+      "zone": "31b",
+      "ranges": [
+        [
+          49,
+          66
+        ],
+        [
+          68,
+          70
+        ],
+        [
+          75,
+          76
+        ]
+      ]
+    },
+    {
+      "placeKey": "31b::Underground River",
+      "category": "mine-tunnel",
+      "zone": "31b",
+      "ranges": [
+        [
+          98,
+          105
+        ]
+      ]
+    },
+    {
+      "placeKey": "35::Garden District",
+      "category": "garden",
+      "zone": "35",
+      "ranges": [
+        [
+          19,
+          21
+        ],
+        [
+          31,
+          31
+        ]
+      ]
+    },
+    {
+      "placeKey": "40::Gwenalion Fens",
+      "category": "swamp",
+      "zone": "40",
+      "ranges": [
+        [
+          69,
+          82
+        ],
+        [
+          84,
+          84
+        ],
+        [
+          90,
+          92
+        ],
+        [
+          95,
+          99
+        ]
+      ]
+    },
+    {
+      "placeKey": "40::Dried Reed Hummock",
+      "category": "swamp",
+      "zone": "40",
+      "ranges": [
+        [
+          85,
+          88
+        ],
+        [
+          94,
+          94
+        ],
+        [
+          100,
+          112
+        ]
+      ]
+    },
+    {
+      "placeKey": "40::In the Water",
+      "category": "swamp",
+      "zone": "40",
+      "ranges": [
+        [
+          322,
+          343
+        ]
+      ]
+    },
+    {
+      "placeKey": "40a::Grasslands",
+      "category": "grassland",
+      "zone": "40a",
+      "ranges": [
+        [
+          39,
+          45
+        ]
+      ]
+    },
+    {
+      "placeKey": "40a::Clover Fields",
+      "category": "grassland",
+      "zone": "40a",
+      "ranges": [
+        [
+          104,
+          105
+        ],
+        [
+          146,
+          155
+        ]
+      ]
+    },
+    {
+      "placeKey": "41::Ascent",
+      "category": "mountain-pass",
+      "zone": "41",
+      "ranges": [
+        [
+          54,
+          59
+        ]
+      ]
+    },
+    {
+      "placeKey": "42::The Breech Tunnels",
+      "category": "mine-tunnel",
+      "zone": "42",
+      "ranges": [
+        [
+          116,
+          116
+        ],
+        [
+          137,
+          168
+        ],
+        [
+          338,
+          346
+        ]
+      ]
+    },
+    {
+      "placeKey": "42::Sister Nongwen's Garden",
+      "category": "garden",
+      "zone": "42",
+      "ranges": [
+        [
+          299,
+          302
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Stoneworkers",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          7,
+          10
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Performers",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          12,
+          15
+        ],
+        [
+          64,
+          64
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Instrument Makers",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          16,
+          16
+        ],
+        [
+          23,
+          24
+        ],
+        [
+          26,
+          26
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Nobles",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          17,
+          21
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Alchemists",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          25,
+          25
+        ],
+        [
+          27,
+          30
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Potters",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          39,
+          42
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Cloth Weavers",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          43,
+          46
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Priests",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          47,
+          47
+        ],
+        [
+          67,
+          68
+        ],
+        [
+          71,
+          71
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Metalsmiths",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          48,
+          48
+        ],
+        [
+          51,
+          54
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Street of Proprietors",
+      "category": "regional-city",
+      "zone": "47",
+      "ranges": [
+        [
+          315,
+          321
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Walk of Bones",
+      "category": "desert",
+      "zone": "47",
+      "ranges": [
+        [
+          379,
+          390
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Heke'mhhg River",
+      "category": "riverside",
+      "zone": "47",
+      "ranges": [
+        [
+          429,
+          429
+        ],
+        [
+          433,
+          437
+        ]
+      ]
+    },
+    {
+      "placeKey": "47::Migen'hhs Pat'shhry",
+      "category": "desert",
+      "zone": "47",
+      "ranges": [
+        [
+          441,
+          455
+        ]
+      ]
+    },
+    {
+      "placeKey": "50::North Bank",
+      "category": "riverside",
+      "zone": "50",
+      "ranges": [
+        [
+          4,
+          6
+        ],
+        [
+          33,
+          33
+        ]
+      ]
+    },
+    {
+      "placeKey": "50::Midstream",
+      "category": "riverside",
+      "zone": "50",
+      "ranges": [
+        [
+          7,
+          7
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          16,
+          21
+        ],
+        [
+          32,
+          32
+        ]
+      ]
+    },
+    {
+      "placeKey": "50::Near the Boulder",
+      "category": "riverside",
+      "zone": "50",
+      "ranges": [
+        [
+          12,
+          15
+        ]
+      ]
+    },
+    {
+      "placeKey": "60::The River Bank",
+      "category": "riverside",
+      "zone": "60",
+      "ranges": [
+        [
+          88,
+          93
+        ]
+      ]
+    },
+    {
+      "placeKey": "60::Willow Valley",
+      "category": "forest-path",
+      "zone": "60",
+      "ranges": [
+        [
+          125,
+          128
+        ]
+      ]
+    },
+    {
+      "placeKey": "60::Tangled Bosk",
+      "category": "forest-path",
+      "zone": "60",
+      "ranges": [
+        [
+          132,
+          136
+        ]
+      ]
+    },
+    {
+      "placeKey": "60::Sushu Rahat",
+      "category": "deep-forest",
+      "zone": "60",
+      "ranges": [
+        [
+          147,
+          155
+        ]
+      ]
+    },
+    {
+      "placeKey": "60::Shaded Pathway",
+      "category": "garden",
+      "zone": "60",
+      "ranges": [
+        [
+          160,
+          165
+        ]
+      ]
+    },
+    {
+      "placeKey": "61::Elder Bark Circle",
+      "category": "regional-city",
+      "zone": "61",
+      "ranges": [
+        [
+          3,
+          12
+        ],
+        [
+          24,
+          24
+        ],
+        [
+          47,
+          47
+        ],
+        [
+          49,
+          65
+        ],
+        [
+          67,
+          68
+        ]
+      ]
+    },
+    {
+      "placeKey": "61::Cambium Circle",
+      "category": "regional-city",
+      "zone": "61",
+      "ranges": [
+        [
+          15,
+          15
+        ],
+        [
+          21,
+          21
+        ],
+        [
+          29,
+          31
+        ],
+        [
+          33,
+          40
+        ],
+        [
+          80,
+          82
+        ]
+      ]
+    },
+    {
+      "placeKey": "61::Oakenheart Circle",
+      "category": "regional-city",
+      "zone": "61",
+      "ranges": [
+        [
+          17,
+          17
+        ],
+        [
+          19,
+          19
+        ],
+        [
+          25,
+          27
+        ],
+        [
+          44,
+          44
+        ],
+        [
+          72,
+          72
+        ],
+        [
+          79,
+          79
+        ]
+      ]
+    },
+    {
+      "placeKey": "61::Old Growth",
+      "category": "deep-forest",
+      "zone": "61",
+      "ranges": [
+        [
+          262,
+          265
+        ]
+      ]
+    },
+    {
+      "placeKey": "62::Silent Ascent",
+      "category": "mountain-pass",
+      "zone": "62",
+      "ranges": [
+        [
+          160,
+          163
+        ]
+      ]
+    },
+    {
+      "placeKey": "63::Catacombs",
+      "category": "mine-tunnel",
+      "zone": "63",
+      "ranges": [
+        [
+          42,
+          60
+        ]
+      ]
+    },
+    {
+      "placeKey": "63::Alongside the Iron Fence",
+      "category": "deep-forest",
+      "zone": "63",
+      "ranges": [
+        [
+          64,
+          65
+        ],
+        [
+          67,
+          70
+        ]
+      ]
+    },
+    {
+      "placeKey": "66::Prairie",
+      "category": "grassland",
+      "zone": "66",
+      "ranges": [
+        [
+          1,
+          2
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          19,
+          29
+        ]
+      ]
+    },
+    {
+      "placeKey": "66::Old Homestead",
+      "category": "grassland",
+      "zone": "66",
+      "ranges": [
+        [
+          10,
+          11
+        ],
+        [
+          30,
+          30
+        ],
+        [
+          34,
+          34
+        ],
+        [
+          36,
+          36
+        ]
+      ]
+    },
+    {
+      "placeKey": "66::Wylder Spring",
+      "category": "grassland",
+      "zone": "66",
+      "ranges": [
+        [
+          14,
+          18
+        ],
+        [
+          462,
+          462
+        ]
+      ]
+    },
+    {
+      "placeKey": "66::Nightshade Tangle",
+      "category": "deep-forest",
+      "zone": "66",
+      "ranges": [
+        [
+          388,
+          401
+        ],
+        [
+          448,
+          461
+        ]
+      ]
+    },
+    {
+      "placeKey": "66::Sparkling Sands",
+      "category": "desert",
+      "zone": "66",
+      "ranges": [
+        [
+          555,
+          559
+        ]
+      ]
+    },
+    {
+      "placeKey": "66::Roadway",
+      "category": "grassland",
+      "zone": "66",
+      "ranges": [
+        [
+          619,
+          621
+        ],
+        [
+          635,
+          635
+        ]
+      ]
+    },
+    {
+      "placeKey": "66::Burned Fields",
+      "category": "grassland",
+      "zone": "66",
+      "ranges": [
+        [
+          622,
+          633
+        ]
+      ]
+    },
+    {
+      "placeKey": "66::Sunbeam Circle",
+      "category": "grassland",
+      "zone": "66",
+      "ranges": [
+        [
+          636,
+          636
+        ],
+        [
+          638,
+          642
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Diamond Street",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          2,
+          9
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Yavash Circle",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          11,
+          12
+        ],
+        [
+          14,
+          15
+        ],
+        [
+          55,
+          56
+        ],
+        [
+          58,
+          59
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Ruby Street",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          17,
+          25
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Opal Street",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          49,
+          51
+        ],
+        [
+          53,
+          54
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Crystal Lane",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          60,
+          65
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Sapphire Avenue",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          72,
+          73
+        ],
+        [
+          75,
+          77
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Moonstone Street",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          78,
+          82
+        ],
+        [
+          84,
+          85
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Sunstone Street",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          86,
+          87
+        ],
+        [
+          89,
+          93
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Pearl Street",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          94,
+          99
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Street of the Four Moons",
+      "category": "regional-city",
+      "zone": "67",
+      "ranges": [
+        [
+          106,
+          110
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::Garden Crescent",
+      "category": "garden",
+      "zone": "67",
+      "ranges": [
+        [
+          117,
+          120
+        ]
+      ]
+    },
+    {
+      "placeKey": "67::The Warrens",
+      "category": "mine-tunnel",
+      "zone": "67",
+      "ranges": [
+        [
+          319,
+          325
+        ],
+        [
+          330,
+          352
+        ]
+      ]
+    },
+    {
+      "placeKey": "67a::Tunnels",
+      "category": "mine-tunnel",
+      "zone": "67a",
+      "ranges": [
+        [
+          1,
+          2
+        ],
+        [
+          13,
+          15
+        ]
+      ]
+    },
+    {
+      "placeKey": "68::Pyre Garden",
+      "category": "garden",
+      "zone": "68",
+      "ranges": [
+        [
+          103,
+          106
+        ]
+      ]
+    },
+    {
+      "placeKey": "68::Barrows",
+      "category": "forest-path",
+      "zone": "68",
+      "ranges": [
+        [
+          138,
+          176
+        ],
+        [
+          209,
+          210
+        ]
+      ]
+    },
+    {
+      "placeKey": "68a::Fissure",
+      "category": "forest-path",
+      "zone": "68a",
+      "ranges": [
+        [
+          31,
+          34
+        ]
+      ]
+    },
+    {
+      "placeKey": "69::Grasslands",
+      "category": "grassland",
+      "zone": "69",
+      "ranges": [
+        [
+          59,
+          60
+        ],
+        [
+          80,
+          93
+        ],
+        [
+          96,
+          99
+        ],
+        [
+          105,
+          107
+        ],
+        [
+          114,
+          115
+        ],
+        [
+          129,
+          132
+        ]
+      ]
+    },
+    {
+      "placeKey": "69::Narrow Plateau",
+      "category": "mountain-pass",
+      "zone": "69",
+      "ranges": [
+        [
+          455,
+          456
+        ],
+        [
+          460,
+          460
+        ],
+        [
+          467,
+          467
+        ]
+      ]
+    },
+    {
+      "placeKey": "69::Waterfall Edge",
+      "category": "mountain-pass",
+      "zone": "69",
+      "ranges": [
+        [
+          465,
+          466
+        ],
+        [
+          468,
+          470
+        ]
+      ]
+    },
+    {
+      "placeKey": "69::Above the Treeline",
+      "category": "mountain-pass",
+      "zone": "69",
+      "ranges": [
+        [
+          474,
+          478
+        ]
+      ]
+    },
+    {
+      "placeKey": "69::Breeding Grounds",
+      "category": "mountain-pass",
+      "zone": "69",
+      "ranges": [
+        [
+          480,
+          486
+        ],
+        [
+          511,
+          512
+        ]
+      ]
+    },
+    {
+      "placeKey": "69::Highlands",
+      "category": "mountain-pass",
+      "zone": "69",
+      "ranges": [
+        [
+          491,
+          495
+        ]
+      ]
+    },
+    {
+      "placeKey": "69::Snowcap",
+      "category": "mountain-pass",
+      "zone": "69",
+      "ranges": [
+        [
+          500,
+          501
+        ],
+        [
+          506,
+          506
+        ],
+        [
+          509,
+          510
+        ]
+      ]
+    },
+    {
+      "placeKey": "69::Ridgeline Valley",
+      "category": "mountain-pass",
+      "zone": "69",
+      "ranges": [
+        [
+          575,
+          579
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Upper Mission Street",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          64,
+          69
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Lower Mission Street",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          70,
+          74
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::East Eslan Street",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          127,
+          127
+        ],
+        [
+          130,
+          134
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::West Eslan Street",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          137,
+          139
+        ],
+        [
+          141,
+          145
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Zeh'ra Boulevard",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          152,
+          163
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Kor'adu Avenue",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          203,
+          204
+        ],
+        [
+          221,
+          225
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Eastern Promenade",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          412,
+          412
+        ],
+        [
+          415,
+          415
+        ],
+        [
+          429,
+          429
+        ],
+        [
+          442,
+          442
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::East Regents Circle",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          446,
+          446
+        ],
+        [
+          448,
+          449
+        ],
+        [
+          456,
+          456
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::West Regents Circle",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          458,
+          459
+        ],
+        [
+          479,
+          480
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Western Promenade",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          481,
+          481
+        ],
+        [
+          512,
+          514
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Promenade East",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          582,
+          588
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Promenade West",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          602,
+          608
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Nadamian Avenue",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          609,
+          614
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Zsikiel Lane",
+      "category": "regional-city",
+      "zone": "90",
+      "ranges": [
+        [
+          616,
+          621
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Eylhaar's Grotto",
+      "category": "mine-tunnel",
+      "zone": "90",
+      "ranges": [
+        [
+          676,
+          681
+        ]
+      ]
+    },
+    {
+      "placeKey": "90::Tunnels",
+      "category": "mine-tunnel",
+      "zone": "90",
+      "ranges": [
+        [
+          692,
+          695
+        ]
+      ]
+    },
+    {
+      "placeKey": "92::Low Hills",
+      "category": "grassland",
+      "zone": "92",
+      "ranges": [
+        [
+          40,
+          48
+        ]
+      ]
+    },
+    {
+      "placeKey": "92::Itan Deep",
+      "category": "mine-tunnel",
+      "zone": "92",
+      "ranges": [
+        [
+          152,
+          163
+        ]
+      ]
+    },
+    {
+      "placeKey": "98::Upper Caverns",
+      "category": "mine-tunnel",
+      "zone": "98",
+      "ranges": [
+        [
+          217,
+          234
+        ],
+        [
+          279,
+          279
+        ]
+      ]
+    },
+    {
+      "placeKey": "98::On the Column",
+      "category": "mine-tunnel",
+      "zone": "98",
+      "ranges": [
+        [
+          236,
+          241
+        ]
+      ]
+    },
+    {
+      "placeKey": "98::Underground River",
+      "category": "riverside",
+      "zone": "98",
+      "ranges": [
+        [
+          264,
+          265
+        ],
+        [
+          268,
+          270
+        ]
+      ]
+    },
+    {
+      "placeKey": "98a::Upper Caverns",
+      "category": "mine-tunnel",
+      "zone": "98a",
+      "ranges": [
+        [
+          41,
+          58
+        ],
+        [
+          95,
+          95
+        ]
+      ]
+    },
+    {
+      "placeKey": "98a::On the Column",
+      "category": "mine-tunnel",
+      "zone": "98a",
+      "ranges": [
+        [
+          60,
+          65
+        ]
+      ]
+    },
+    {
+      "placeKey": "98a::Underground River",
+      "category": "riverside",
+      "zone": "98a",
+      "ranges": [
+        [
+          88,
+          89
+        ],
+        [
+          92,
+          93
+        ],
+        [
+          111,
+          111
+        ]
+      ]
+    },
+    {
+      "placeKey": "98a::Underwater",
+      "category": "riverside",
+      "zone": "98a",
+      "ranges": [
+        [
+          94,
+          94
+        ],
+        [
+          100,
+          108
+        ],
+        [
+          110,
+          110
+        ]
+      ]
+    },
+    {
+      "placeKey": "99::Courtyard",
+      "category": "garden",
+      "zone": "99",
+      "ranges": [
+        [
+          23,
+          24
+        ],
+        [
+          35,
+          35
+        ],
+        [
+          119,
+          119
+        ],
+        [
+          152,
+          152
+        ],
+        [
+          160,
+          160
+        ],
+        [
+          164,
+          164
+        ],
+        [
+          395,
+          395
+        ]
+      ]
+    },
+    {
+      "placeKey": "99::A Courtyard",
+      "category": "garden",
+      "zone": "99",
+      "ranges": [
+        [
+          201,
+          201
+        ],
+        [
+          210,
+          210
+        ],
+        [
+          251,
+          255
+        ],
+        [
+          257,
+          257
+        ],
+        [
+          417,
+          417
+        ]
+      ]
+    },
+    {
+      "placeKey": "99::Necropolis Tunnels",
+      "category": "mine-tunnel",
+      "zone": "99",
+      "ranges": [
+        [
+          374,
+          388
+        ]
+      ]
+    },
+    {
+      "placeKey": "107::Garden",
+      "category": "garden",
+      "zone": "107",
+      "ranges": [
+        [
+          1,
+          8
+        ]
+      ]
+    },
+    {
+      "placeKey": "107::Courtyard",
+      "category": "garden",
+      "zone": "107",
+      "ranges": [
+        [
+          196,
+          198
+        ],
+        [
+          209,
+          209
+        ],
+        [
+          230,
+          230
+        ]
+      ]
+    },
+    {
+      "placeKey": "108::Dunes",
+      "category": "desert",
+      "zone": "108",
+      "ranges": [
+        [
+          34,
+          41
+        ],
+        [
+          43,
+          45
+        ],
+        [
+          339,
+          351
+        ]
+      ]
+    },
+    {
+      "placeKey": "108::The River Bank",
+      "category": "riverside",
+      "zone": "108",
+      "ranges": [
+        [
+          230,
+          233
+        ]
+      ]
+    },
+    {
+      "placeKey": "108::The Altanen River",
+      "category": "riverside",
+      "zone": "108",
+      "ranges": [
+        [
+          234,
+          251
+        ]
+      ]
+    },
+    {
+      "placeKey": "108::The Island",
+      "category": "riverside",
+      "zone": "108",
+      "ranges": [
+        [
+          252,
+          263
+        ]
+      ]
+    },
+    {
+      "placeKey": "108::High Dunes",
+      "category": "desert",
+      "zone": "108",
+      "ranges": [
+        [
+          384,
+          402
+        ]
+      ]
+    },
+    {
+      "placeKey": "108::Eastern Ascent",
+      "category": "mountain-pass",
+      "zone": "108",
+      "ranges": [
+        [
+          437,
+          441
+        ]
+      ]
+    },
+    {
+      "placeKey": "112::Among the Trees",
+      "category": "deep-forest",
+      "zone": "112",
+      "ranges": [
+        [
+          172,
+          183
+        ]
+      ]
+    },
+    {
+      "placeKey": "116::Granite Street",
+      "category": "regional-city",
+      "zone": "116",
+      "ranges": [
+        [
+          57,
+          59
+        ],
+        [
+          62,
+          62
+        ],
+        [
+          67,
+          67
+        ],
+        [
+          69,
+          69
+        ],
+        [
+          74,
+          74
+        ]
+      ]
+    },
+    {
+      "placeKey": "116::Pebble Lane",
+      "category": "regional-city",
+      "zone": "116",
+      "ranges": [
+        [
+          70,
+          73
+        ]
+      ]
+    },
+    {
+      "placeKey": "116::Courtyard",
+      "category": "garden",
+      "zone": "116",
+      "ranges": [
+        [
+          346,
+          350
+        ]
+      ]
+    },
+    {
+      "placeKey": "118e::Stalagmite Maze",
+      "category": "mine-tunnel",
+      "zone": "118e",
+      "ranges": [
+        [
+          1,
+          14
+        ]
+      ]
+    },
+    {
+      "placeKey": "123::Western Branch",
+      "category": "mine-tunnel",
+      "zone": "123",
+      "ranges": [
+        [
+          236,
+          241
+        ]
+      ]
+    },
+    {
+      "placeKey": "127::Riverside",
+      "category": "riverside",
+      "zone": "127",
+      "ranges": [
+        [
+          81,
+          82
+        ],
+        [
+          84,
+          84
+        ],
+        [
+          93,
+          93
+        ],
+        [
+          96,
+          96
+        ],
+        [
+          98,
+          98
+        ],
+        [
+          100,
+          100
+        ]
+      ]
+    },
+    {
+      "placeKey": "127::Liirewsag River",
+      "category": "riverside",
+      "zone": "127",
+      "ranges": [
+        [
+          140,
+          162
+        ],
+        [
+          507,
+          509
+        ],
+        [
+          511,
+          522
+        ]
+      ]
+    },
+    {
+      "placeKey": "127::Understory",
+      "category": "deep-forest",
+      "zone": "127",
+      "ranges": [
+        [
+          164,
+          214
+        ],
+        [
+          637,
+          638
+        ],
+        [
+          641,
+          642
+        ]
+      ]
+    },
+    {
+      "placeKey": "127::Blighted Tangle",
+      "category": "deep-forest",
+      "zone": "127",
+      "ranges": [
+        [
+          266,
+          290
+        ]
+      ]
+    },
+    {
+      "placeKey": "127::Dark Burrows",
+      "category": "mine-tunnel",
+      "zone": "127",
+      "ranges": [
+        [
+          293,
+          326
+        ],
+        [
+          352,
+          352
+        ]
+      ]
+    },
+    {
+      "placeKey": "127::Withered Foothills",
+      "category": "deep-forest",
+      "zone": "127",
+      "ranges": [
+        [
+          343,
+          350
+        ]
+      ]
+    },
+    {
+      "placeKey": "127::Summit",
+      "category": "mountain-pass",
+      "zone": "127",
+      "ranges": [
+        [
+          372,
+          372
+        ],
+        [
+          374,
+          375
+        ],
+        [
+          396,
+          406
+        ],
+        [
+          408,
+          418
+        ]
+      ]
+    },
+    {
+      "placeKey": "127::Frozen Tunnels",
+      "category": "mine-tunnel",
+      "zone": "127",
+      "ranges": [
+        [
+          421,
+          429
+        ],
+        [
+          431,
+          432
+        ],
+        [
+          437,
+          439
+        ],
+        [
+          441,
+          449
+        ]
+      ]
+    },
+    {
+      "placeKey": "150::Verdant Outcrop",
+      "category": "mountain-pass",
+      "zone": "150",
+      "ranges": [
+        [
+          269,
+          272
+        ]
+      ]
+    }
+  ]
+}

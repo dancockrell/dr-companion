@@ -1,17 +1,1031 @@
 {
+  "schemaVersion": 2,
+  "policy": {
+    "approvalOnly": true,
+    "reviewedAt": "2026-09-01",
+    "description": "Reviewed subjects resolve only to explicitly approved files. Rejected candidates remain quarantined even if listed by an old pack manifest."
+  },
   "approvedVariants": {
-    "adult-desert-armadillo": ["adult-desert-armadillo-1", "adult-desert-armadillo-2"],
-    "asaren-celpeze": ["asaren-celpeze-2"],
-    "blue-dappled-prereni": ["blue-dappled-prereni-1"],
-    "storm-bull": ["storm-bull-2"],
-    "swamp-troll": ["swamp-troll-1", "swamp-troll-3"]
+    "adult-desert-armadillo": [
+      "adult-desert-armadillo-2",
+      "adult-desert-armadillo-1"
+    ],
+    "animated-items": [
+      "animated-items-curated"
+    ],
+    "asaren-celpeze": [
+      "asaren-celpeze-2"
+    ],
+    "beltunumshi": [
+      "beltunumshi-curated"
+    ],
+    "blood-wolf": [
+      "blood-wolf"
+    ],
+    "blue-belly-crocodile": [
+      "blue-belly-crocodile-1"
+    ],
+    "blue-dappled-prereni": [
+      "blue-dappled-prereni-1"
+    ],
+    "cutthroat": [
+      "cutthroat-curated"
+    ],
+    "dark-spirit": [
+      "dark-spirit-curated"
+    ],
+    "dark-sprite": [
+      "dark-sprite-3"
+    ],
+    "elder-blue-dappled-prereni": [
+      "elder-blue-dappled-prereni-2"
+    ],
+    "elder-desert-armadillo": [
+      "elder-desert-armadillo-2"
+    ],
+    "ember-bull": [
+      "ember-bull-curated"
+    ],
+    "field-goblin": [
+      "field-goblin-1"
+    ],
+    "fledgling-forest-gryphon": [
+      "fledgling-forest-gryphon-2"
+    ],
+    "forest-geni": [
+      "forest-geni-curated"
+    ],
+    "fuligin-umbral-moth": [
+      "fuligin-umbral-moth-2"
+    ],
+    "giant-black-leucro": [
+      "giant-black-leucro-2"
+    ],
+    "giant-thicket-viper": [
+      "giant-thicket-viper"
+    ],
+    "gigantic-lachmate": [
+      "gigantic-lachmate-2"
+    ],
+    "gnarled-fendryad": [
+      "gnarled-fendryad-2"
+    ],
+    "graverobber": [
+      "graverobber-2"
+    ],
+    "juvenile-desert-armadillo": [
+      "juvenile-desert-armadillo-2"
+    ],
+    "lesser-sluagh": [
+      "lesser-sluagh-3"
+    ],
+    "nipoh-oshu": [
+      "nipoh-oshu-curated"
+    ],
+    "pirate": [
+      "pirate-2"
+    ],
+    "red-gold-scaled-atik-et": [
+      "red-gold-scaled-atik-et-2"
+    ],
+    "robed-dragon-priest-ess": [
+      "robed-dragon-priest-ess-1"
+    ],
+    "rock-guardian": [
+      "rock-guardian-curated"
+    ],
+    "rock-troll": [
+      "rock-troll-1"
+    ],
+    "s-kra-kor-shaman": [
+      "s-kra-kor-shaman-curated"
+    ],
+    "s-kra-kor-villager": [
+      "s-kra-kor-villager-curated"
+    ],
+    "s-kra-kor-warrior": [
+      "s-kra-kor-warrior-curated"
+    ],
+    "small-peccary": [
+      "small-peccary-1"
+    ],
+    "snow-goblin": [
+      "snow-goblin-2"
+    ],
+    "spiny-bloodfish": [
+      "spiny-bloodfish-1"
+    ],
+    "storm-bull": [
+      "storm-bull-2"
+    ],
+    "swamp-troll": [
+      "swamp-troll-1",
+      "swamp-troll-3"
+    ],
+    "sylph": [
+      "sylph-curated"
+    ],
+    "telga-orek": [
+      "telga-orek-2"
+    ],
+    "tortured-soul": [
+      "tortured-soul-1"
+    ],
+    "twisted-fendryad": [
+      "twisted-fendryad-1"
+    ],
+    "ur-hhrki-izh": [
+      "ur-hhrki-izh-curated"
+    ],
+    "void-black-umbral-moth": [
+      "void-black-umbral-moth-2"
+    ],
+    "voidspawn": [
+      "voidspawn-2"
+    ],
+    "windbag": [
+      "windbag-curated"
+    ],
+    "wood-troll": [
+      "wood-troll-1"
+    ],
+    "young-blue-dappled-prereni": [
+      "young-blue-dappled-prereni-1"
+    ]
+  },
+  "variantReview": {
+    "adult-desert-armadillo": {
+      "exactSubject": "adult-desert-armadillo",
+      "canonicalRecord": "data/art/creature-prompts.json#adult-desert-armadillo",
+      "approvedPrimary": "adult-desert-armadillo-2",
+      "approvedVariants": [
+        "adult-desert-armadillo-1"
+      ],
+      "rejects": [],
+      "regenerationNeeded": false,
+      "decision": "Both faithful; variant 2 is the clearer primary.",
+      "currentCandidates": [
+        "adult-desert-armadillo-1",
+        "adult-desert-armadillo-2"
+      ],
+      "currentImage": "adult-desert-armadillo-1"
+    },
+    "animated-items": {
+      "exactSubject": "animated-items",
+      "canonicalRecord": "data/art/creature-prompts.json#animated-items",
+      "approvedPrimary": "animated-items-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "animated-items-1",
+        "animated-items-2",
+        "animated-items-3",
+        "animated-items-4",
+        "animated-items-5"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement depicts the tools themselves as the hostile animated encounter.",
+      "currentCandidates": [
+        "animated-items-1",
+        "animated-items-2",
+        "animated-items-3",
+        "animated-items-4",
+        "animated-items-5",
+        "animated-items-curated"
+      ],
+      "currentImage": "animated-items-1"
+    },
+    "asaren-celpeze": {
+      "exactSubject": "asaren-celpeze",
+      "canonicalRecord": "data/art/creature-prompts.json#asaren-celpeze",
+      "approvedPrimary": "asaren-celpeze-2",
+      "approvedVariants": [],
+      "rejects": [
+        "asaren-celpeze-1",
+        "asaren-celpeze-3",
+        "asaren-celpeze-4",
+        "asaren-celpeze-5"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Only variant 2 is a large quadrupedal coastal lizard.",
+      "currentCandidates": [
+        "asaren-celpeze-1",
+        "asaren-celpeze-2",
+        "asaren-celpeze-3",
+        "asaren-celpeze-4",
+        "asaren-celpeze-5"
+      ],
+      "currentImage": "asaren-celpeze-1"
+    },
+    "beltunumshi": {
+      "exactSubject": "beltunumshi",
+      "canonicalRecord": "data/art/creature-prompts.json#beltunumshi",
+      "approvedPrimary": "beltunumshi-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "beltunumshi-1",
+        "beltunumshi-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Curated replacement has stump, vines, scorch marks, eyes, and maw.",
+      "currentCandidates": [
+        "beltunumshi-1",
+        "beltunumshi-2",
+        "beltunumshi-curated"
+      ],
+      "currentImage": "beltunumshi-1"
+    },
+    "blood-wolf": {
+      "exactSubject": "blood-wolf",
+      "canonicalRecord": "data/art/creature-prompts.json#blood-wolf",
+      "approvedPrimary": "blood-wolf",
+      "approvedVariants": [],
+      "rejects": [
+        "blood-wolf-1",
+        "blood-wolf-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Bare image is the only natural red quadrupedal wolf.",
+      "currentCandidates": [
+        "blood-wolf-1",
+        "blood-wolf-2",
+        "blood-wolf"
+      ],
+      "currentImage": "blood-wolf-1"
+    },
+    "blue-belly-crocodile": {
+      "exactSubject": "blue-belly-crocodile",
+      "canonicalRecord": "data/art/creature-prompts.json#blue-belly-crocodile",
+      "approvedPrimary": "blue-belly-crocodile-1",
+      "approvedVariants": [],
+      "rejects": [
+        "blue-belly-crocodile-2",
+        "blue-belly-crocodile"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 best preserves an immense armored amphibious crocodile.",
+      "currentCandidates": [
+        "blue-belly-crocodile-1",
+        "blue-belly-crocodile-2",
+        "blue-belly-crocodile"
+      ],
+      "currentImage": "blue-belly-crocodile-1"
+    },
+    "blue-dappled-prereni": {
+      "exactSubject": "blue-dappled-prereni",
+      "canonicalRecord": "data/art/creature-prompts.json#blue-dappled-prereni",
+      "approvedPrimary": "blue-dappled-prereni-1",
+      "approvedVariants": [],
+      "rejects": [
+        "blue-dappled-prereni-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 preserves deer anatomy and blue dappling.",
+      "currentCandidates": [
+        "blue-dappled-prereni-1",
+        "blue-dappled-prereni-2"
+      ],
+      "currentImage": "blue-dappled-prereni-1"
+    },
+    "cutthroat": {
+      "exactSubject": "cutthroat",
+      "canonicalRecord": "data/art/creature-prompts.json#cutthroat",
+      "approvedPrimary": "cutthroat-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "cutthroat-1",
+        "cutthroat-2",
+        "cutthroat-3",
+        "cutthroat-4"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Curated replacement is the only human urban criminal; old variants are monsters.",
+      "currentCandidates": [
+        "cutthroat-1",
+        "cutthroat-2",
+        "cutthroat-3",
+        "cutthroat-4",
+        "cutthroat-curated"
+      ],
+      "currentImage": "cutthroat-1"
+    },
+    "dark-spirit": {
+      "exactSubject": "dark-spirit",
+      "canonicalRecord": "data/art/creature-prompts.json#dark-spirit",
+      "approvedPrimary": "dark-spirit-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "dark-spirit-1",
+        "dark-spirit-2",
+        "dark-spirit-3"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Curated replacement has substance-like shadow, rags, claws, and sanguine eyes.",
+      "currentCandidates": [
+        "dark-spirit-1",
+        "dark-spirit-2",
+        "dark-spirit-3",
+        "dark-spirit-curated"
+      ],
+      "currentImage": "dark-spirit-1"
+    },
+    "dark-sprite": {
+      "exactSubject": "dark-sprite",
+      "canonicalRecord": "data/art/creature-prompts.json#dark-sprite",
+      "approvedPrimary": "dark-sprite-3",
+      "approvedVariants": [],
+      "rejects": [
+        "dark-sprite-1",
+        "dark-sprite-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 3 best preserves dark eyes, gnarled hair, black dress, and chilling expression.",
+      "currentCandidates": [
+        "dark-sprite-1",
+        "dark-sprite-2",
+        "dark-sprite-3"
+      ],
+      "currentImage": "dark-sprite-1"
+    },
+    "elder-blue-dappled-prereni": {
+      "exactSubject": "elder-blue-dappled-prereni",
+      "canonicalRecord": "data/art/creature-prompts.json#elder-blue-dappled-prereni",
+      "approvedPrimary": "elder-blue-dappled-prereni-2",
+      "approvedVariants": [],
+      "rejects": [
+        "elder-blue-dappled-prereni-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is the only blue-dappled elder deer.",
+      "currentCandidates": [
+        "elder-blue-dappled-prereni-1",
+        "elder-blue-dappled-prereni-2"
+      ],
+      "currentImage": "elder-blue-dappled-prereni-1"
+    },
+    "elder-desert-armadillo": {
+      "exactSubject": "elder-desert-armadillo",
+      "canonicalRecord": "data/art/creature-prompts.json#elder-desert-armadillo",
+      "approvedPrimary": "elder-desert-armadillo-2",
+      "approvedVariants": [],
+      "rejects": [
+        "elder-desert-armadillo-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is a single coherent plated animal.",
+      "currentCandidates": [
+        "elder-desert-armadillo-1",
+        "elder-desert-armadillo-2"
+      ],
+      "currentImage": "elder-desert-armadillo-1"
+    },
+    "ember-bull": {
+      "exactSubject": "ember-bull",
+      "canonicalRecord": "data/art/creature-prompts.json#ember-bull",
+      "approvedPrimary": "ember-bull-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "ember-bull-2",
+        "ember-bull"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement uniquely combines the correct bull anatomy, scale, fire-lined hide and horns, ash, and cinders.",
+      "currentCandidates": [
+        "ember-bull-2",
+        "ember-bull",
+        "ember-bull-curated"
+      ],
+      "currentImage": "ember-bull-2"
+    },
+    "field-goblin": {
+      "exactSubject": "field-goblin",
+      "canonicalRecord": "data/art/creature-prompts.json#field-goblin",
+      "approvedPrimary": "field-goblin-1",
+      "approvedVariants": [],
+      "rejects": [
+        "field-goblin-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 is the stronger wary small goblin.",
+      "currentCandidates": [
+        "field-goblin-1",
+        "field-goblin-2"
+      ],
+      "currentImage": "field-goblin-1"
+    },
+    "fledgling-forest-gryphon": {
+      "exactSubject": "fledgling-forest-gryphon",
+      "canonicalRecord": "data/art/creature-prompts.json#fledgling-forest-gryphon",
+      "approvedPrimary": "fledgling-forest-gryphon-2",
+      "approvedVariants": [],
+      "rejects": [
+        "fledgling-forest-gryphon-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 most clearly combines feline and avian anatomy.",
+      "currentCandidates": [
+        "fledgling-forest-gryphon-1",
+        "fledgling-forest-gryphon-2"
+      ],
+      "currentImage": "fledgling-forest-gryphon-1"
+    },
+    "forest-geni": {
+      "exactSubject": "forest-geni",
+      "canonicalRecord": "data/art/creature-prompts.json#forest-geni",
+      "approvedPrimary": "forest-geni-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "forest-geni-1",
+        "forest-geni-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Curated replacement has stocky proportions, green skin and eyes, ear bells, and leaf-bark clothing.",
+      "currentCandidates": [
+        "forest-geni-1",
+        "forest-geni-2",
+        "forest-geni-curated"
+      ],
+      "currentImage": "forest-geni-1"
+    },
+    "fuligin-umbral-moth": {
+      "exactSubject": "fuligin-umbral-moth",
+      "canonicalRecord": "data/art/creature-prompts.json#fuligin-umbral-moth",
+      "approvedPrimary": "fuligin-umbral-moth-2",
+      "approvedVariants": [],
+      "rejects": [
+        "fuligin-umbral-moth-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is a moth; variant 1 is anthropomorphic.",
+      "currentCandidates": [
+        "fuligin-umbral-moth-1",
+        "fuligin-umbral-moth-2"
+      ],
+      "currentImage": "fuligin-umbral-moth-1"
+    },
+    "giant-black-leucro": {
+      "exactSubject": "giant-black-leucro",
+      "canonicalRecord": "data/art/creature-prompts.json#giant-black-leucro",
+      "approvedPrimary": "giant-black-leucro-2",
+      "approvedVariants": [],
+      "rejects": [
+        "giant-black-leucro-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is the canonical giant black wolf-like quadruped.",
+      "currentCandidates": [
+        "giant-black-leucro-1",
+        "giant-black-leucro-2"
+      ],
+      "currentImage": "giant-black-leucro-1"
+    },
+    "giant-thicket-viper": {
+      "exactSubject": "giant-thicket-viper",
+      "canonicalRecord": "data/art/creature-prompts.json#giant-thicket-viper",
+      "approvedPrimary": "giant-thicket-viper",
+      "approvedVariants": [],
+      "rejects": [
+        "giant-thicket-viper-1",
+        "giant-thicket-viper-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Bare image is the only actual enormous snake.",
+      "currentCandidates": [
+        "giant-thicket-viper-1",
+        "giant-thicket-viper-2",
+        "giant-thicket-viper"
+      ],
+      "currentImage": "giant-thicket-viper-1"
+    },
+    "gigantic-lachmate": {
+      "exactSubject": "gigantic-lachmate",
+      "canonicalRecord": "data/art/creature-prompts.json#gigantic-lachmate",
+      "approvedPrimary": "gigantic-lachmate-2",
+      "approvedVariants": [],
+      "rejects": [
+        "gigantic-lachmate-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 reads as an ambulatory rubbish heap; variant 1 is a boar.",
+      "currentCandidates": [
+        "gigantic-lachmate-1",
+        "gigantic-lachmate-2"
+      ],
+      "currentImage": "gigantic-lachmate-1"
+    },
+    "gnarled-fendryad": {
+      "exactSubject": "gnarled-fendryad",
+      "canonicalRecord": "data/art/creature-prompts.json#gnarled-fendryad",
+      "approvedPrimary": "gnarled-fendryad-2",
+      "approvedVariants": [],
+      "rejects": [
+        "gnarled-fendryad-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 best preserves the emaciated faerie and skeletal vegetation.",
+      "currentCandidates": [
+        "gnarled-fendryad-1",
+        "gnarled-fendryad-2"
+      ],
+      "currentImage": "gnarled-fendryad-1"
+    },
+    "graverobber": {
+      "exactSubject": "graverobber",
+      "canonicalRecord": "data/art/creature-prompts.json#graverobber",
+      "approvedPrimary": "graverobber-2",
+      "approvedVariants": [],
+      "rejects": [
+        "graverobber-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is the stronger full-body filthy tomb robber.",
+      "currentCandidates": [
+        "graverobber-1",
+        "graverobber-2"
+      ],
+      "currentImage": "graverobber-1"
+    },
+    "juvenile-desert-armadillo": {
+      "exactSubject": "juvenile-desert-armadillo",
+      "canonicalRecord": "data/art/creature-prompts.json#juvenile-desert-armadillo",
+      "approvedPrimary": "juvenile-desert-armadillo-2",
+      "approvedVariants": [],
+      "rejects": [
+        "juvenile-desert-armadillo-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is a single coherent juvenile animal.",
+      "currentCandidates": [
+        "juvenile-desert-armadillo-1",
+        "juvenile-desert-armadillo-2"
+      ],
+      "currentImage": "juvenile-desert-armadillo-1"
+    },
+    "lesser-sluagh": {
+      "exactSubject": "lesser-sluagh",
+      "canonicalRecord": "data/art/creature-prompts.json#lesser-sluagh",
+      "approvedPrimary": "lesser-sluagh-3",
+      "approvedVariants": [],
+      "rejects": [
+        "lesser-sluagh-1",
+        "lesser-sluagh-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 3 is the only musclebound gray brute in ragged hide.",
+      "currentCandidates": [
+        "lesser-sluagh-1",
+        "lesser-sluagh-2",
+        "lesser-sluagh-3"
+      ],
+      "currentImage": "lesser-sluagh-1"
+    },
+    "nipoh-oshu": {
+      "exactSubject": "nipoh-oshu",
+      "canonicalRecord": "data/art/creature-prompts.json#nipoh-oshu",
+      "approvedPrimary": "nipoh-oshu-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "nipoh-oshu-1",
+        "nipoh-oshu-2",
+        "nipoh-oshu-3"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement is the first candidate that is entirely vapor while retaining readable limbs and embedded eyes.",
+      "currentCandidates": [
+        "nipoh-oshu-1",
+        "nipoh-oshu-2",
+        "nipoh-oshu-3",
+        "nipoh-oshu-curated"
+      ],
+      "currentImage": "nipoh-oshu-1"
+    },
+    "pirate": {
+      "exactSubject": "pirate",
+      "canonicalRecord": "data/art/creature-prompts.json#pirate",
+      "approvedPrimary": "pirate-2",
+      "approvedVariants": [],
+      "rejects": [
+        "pirate-1",
+        "pirate-boarder",
+        "pirate-buccaneer",
+        "pirate-crossbowman",
+        "pirate-deckhand",
+        "pirate-lieutenant",
+        "pirate-longbowman",
+        "pirate-mariner",
+        "pirate-mercenary",
+        "pirate-netman",
+        "pirate-rigger",
+        "pirate-sailor",
+        "pirate-zombie"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is fully outfitted and carries the defining Red Sash.",
+      "currentCandidates": [
+        "pirate-1",
+        "pirate-2",
+        "pirate-boarder",
+        "pirate-buccaneer",
+        "pirate-crossbowman",
+        "pirate-deckhand",
+        "pirate-lieutenant",
+        "pirate-longbowman",
+        "pirate-mariner",
+        "pirate-mercenary",
+        "pirate-netman",
+        "pirate-rigger",
+        "pirate-sailor",
+        "pirate-zombie"
+      ],
+      "currentImage": "pirate-1"
+    },
+    "red-gold-scaled-atik-et": {
+      "exactSubject": "red-gold-scaled-atik-et",
+      "canonicalRecord": "data/art/creature-prompts.json#red-gold-scaled-atik-et",
+      "approvedPrimary": "red-gold-scaled-atik-et-2",
+      "approvedVariants": [],
+      "rejects": [
+        "red-gold-scaled-atik-et-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is the scaled S'Kra Mur woman with fiery crest and hand flames.",
+      "currentCandidates": [
+        "red-gold-scaled-atik-et-1",
+        "red-gold-scaled-atik-et-2"
+      ],
+      "currentImage": "red-gold-scaled-atik-et-1"
+    },
+    "robed-dragon-priest-ess": {
+      "exactSubject": "robed-dragon-priest-ess",
+      "canonicalRecord": "data/art/creature-prompts.json#robed-dragon-priest-ess",
+      "approvedPrimary": "robed-dragon-priest-ess-1",
+      "approvedVariants": [],
+      "rejects": [
+        "robed-dragon-priest-ess-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 best preserves the deep cowl and purple hand flame.",
+      "currentCandidates": [
+        "robed-dragon-priest-ess-1",
+        "robed-dragon-priest-ess-2"
+      ],
+      "currentImage": "robed-dragon-priest-ess-1"
+    },
+    "rock-guardian": {
+      "exactSubject": "rock-guardian",
+      "canonicalRecord": "data/art/creature-prompts.json#rock-guardian",
+      "approvedPrimary": "rock-guardian-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "rock-guardian-1",
+        "rock-guardian-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement fixes the former bird-shaped rock formations and provides the canonical monumental humanoid body.",
+      "currentCandidates": [
+        "rock-guardian-1",
+        "rock-guardian-2",
+        "rock-guardian-curated"
+      ],
+      "currentImage": "rock-guardian-1"
+    },
+    "rock-troll": {
+      "exactSubject": "rock-troll",
+      "canonicalRecord": "data/art/creature-prompts.json#rock-troll",
+      "approvedPrimary": "rock-troll-1",
+      "approvedVariants": [],
+      "rejects": [
+        "rock-troll-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 is the stronger slate-gray rock troll.",
+      "currentCandidates": [
+        "rock-troll-1",
+        "rock-troll-2"
+      ],
+      "currentImage": "rock-troll-1"
+    },
+    "s-kra-kor-shaman": {
+      "exactSubject": "s-kra-kor-shaman",
+      "canonicalRecord": "data/art/creature-prompts.json#s-kra-kor-shaman",
+      "approvedPrimary": "s-kra-kor-shaman-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "s-kra-kor-shaman-1",
+        "s-kra-kor-shaman-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement is recognizably S'Kra Mur and preserves the hood, tail, claws, and hostile magic.",
+      "currentCandidates": [
+        "s-kra-kor-shaman-1",
+        "s-kra-kor-shaman-2",
+        "s-kra-kor-shaman-curated"
+      ],
+      "currentImage": "s-kra-kor-shaman-1"
+    },
+    "s-kra-kor-villager": {
+      "exactSubject": "s-kra-kor-villager",
+      "canonicalRecord": "data/art/creature-prompts.json#s-kra-kor-villager",
+      "approvedPrimary": "s-kra-kor-villager-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "s-kra-kor-villager-1",
+        "s-kra-kor-villager-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement corrects both former human renders while keeping the subject visibly unarmored and villager-like.",
+      "currentCandidates": [
+        "s-kra-kor-villager-1",
+        "s-kra-kor-villager-2",
+        "s-kra-kor-villager-curated"
+      ],
+      "currentImage": "s-kra-kor-villager-1"
+    },
+    "s-kra-kor-warrior": {
+      "exactSubject": "s-kra-kor-warrior",
+      "canonicalRecord": "data/art/creature-prompts.json#s-kra-kor-warrior",
+      "approvedPrimary": "s-kra-kor-warrior-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "s-kra-kor-warrior-1",
+        "s-kra-kor-warrior-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement fixes the minotaur body-plan error and clearly preserves black scales, claws, and the spiked reptilian tail.",
+      "currentCandidates": [
+        "s-kra-kor-warrior-1",
+        "s-kra-kor-warrior-2",
+        "s-kra-kor-warrior-curated"
+      ],
+      "currentImage": "s-kra-kor-warrior-1"
+    },
+    "small-peccary": {
+      "exactSubject": "small-peccary",
+      "canonicalRecord": "data/art/creature-prompts.json#small-peccary",
+      "approvedPrimary": "small-peccary-1",
+      "approvedVariants": [],
+      "rejects": [
+        "small-peccary-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 better preserves the small dark peccary build and curved tusks.",
+      "currentCandidates": [
+        "small-peccary-1",
+        "small-peccary-2"
+      ],
+      "currentImage": "small-peccary-1"
+    },
+    "snow-goblin": {
+      "exactSubject": "snow-goblin",
+      "canonicalRecord": "data/art/creature-prompts.json#snow-goblin",
+      "approvedPrimary": "snow-goblin-2",
+      "approvedVariants": [],
+      "rejects": [
+        "snow-goblin-1",
+        "snow-goblin-3"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is the only broad-torso goblin with full white hair.",
+      "currentCandidates": [
+        "snow-goblin-1",
+        "snow-goblin-2",
+        "snow-goblin-3"
+      ],
+      "currentImage": "snow-goblin-1"
+    },
+    "spiny-bloodfish": {
+      "exactSubject": "spiny-bloodfish",
+      "canonicalRecord": "data/art/creature-prompts.json#spiny-bloodfish",
+      "approvedPrimary": "spiny-bloodfish-1",
+      "approvedVariants": [],
+      "rejects": [
+        "spiny-bloodfish-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 has the clearest spiny aquatic predator silhouette.",
+      "currentCandidates": [
+        "spiny-bloodfish-1",
+        "spiny-bloodfish-2"
+      ],
+      "currentImage": "spiny-bloodfish-1"
+    },
+    "storm-bull": {
+      "exactSubject": "storm-bull",
+      "canonicalRecord": "data/art/creature-prompts.json#storm-bull",
+      "approvedPrimary": "storm-bull-2",
+      "approvedVariants": [],
+      "rejects": [
+        "storm-bull-1",
+        "storm-bull-3",
+        "storm-bull"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 alone shows the immense silvery bull with pearly horns and mist.",
+      "currentCandidates": [
+        "storm-bull-1",
+        "storm-bull-2",
+        "storm-bull-3",
+        "storm-bull"
+      ],
+      "currentImage": "storm-bull-1"
+    },
+    "swamp-troll": {
+      "exactSubject": "swamp-troll",
+      "canonicalRecord": "data/art/creature-prompts.json#swamp-troll",
+      "approvedPrimary": "swamp-troll-1",
+      "approvedVariants": [
+        "swamp-troll-3"
+      ],
+      "rejects": [
+        "swamp-troll-2",
+        "swamp-troll-4"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variants 1 and 3 are strong humanoid conglomerations of swamp matter.",
+      "currentCandidates": [
+        "swamp-troll-1",
+        "swamp-troll-2",
+        "swamp-troll-3",
+        "swamp-troll-4"
+      ],
+      "currentImage": "swamp-troll-1"
+    },
+    "sylph": {
+      "exactSubject": "sylph",
+      "canonicalRecord": "data/art/creature-prompts.json#sylph",
+      "approvedPrimary": "sylph-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "sylph-1",
+        "sylph-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Elanthipedia resolved the ambiguity; the curated replacement matches the moonsilk textile construct rather than either human candidate.",
+      "currentCandidates": [
+        "sylph-1",
+        "sylph-2",
+        "sylph-curated"
+      ],
+      "currentImage": "sylph-1"
+    },
+    "telga-orek": {
+      "exactSubject": "telga-orek",
+      "canonicalRecord": "data/art/creature-prompts.json#telga-orek",
+      "approvedPrimary": "telga-orek-2",
+      "approvedVariants": [],
+      "rejects": [
+        "telga-orek-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 preserves the gelatinous slime body.",
+      "currentCandidates": [
+        "telga-orek-1",
+        "telga-orek-2"
+      ],
+      "currentImage": "telga-orek-1"
+    },
+    "tortured-soul": {
+      "exactSubject": "tortured-soul",
+      "canonicalRecord": "data/art/creature-prompts.json#tortured-soul",
+      "approvedPrimary": "tortured-soul-1",
+      "approvedVariants": [],
+      "rejects": [
+        "tortured-soul-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 reads as humanoid essence twisting in pain with real claws.",
+      "currentCandidates": [
+        "tortured-soul-1",
+        "tortured-soul-2"
+      ],
+      "currentImage": "tortured-soul-1"
+    },
+    "twisted-fendryad": {
+      "exactSubject": "twisted-fendryad",
+      "canonicalRecord": "data/art/creature-prompts.json#twisted-fendryad",
+      "approvedPrimary": "twisted-fendryad-1",
+      "approvedVariants": [],
+      "rejects": [
+        "twisted-fendryad-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 best preserves emaciated faerie anatomy and skeletal plant matter.",
+      "currentCandidates": [
+        "twisted-fendryad-1",
+        "twisted-fendryad-2"
+      ],
+      "currentImage": "twisted-fendryad-1"
+    },
+    "ur-hhrki-izh": {
+      "exactSubject": "ur-hhrki-izh",
+      "canonicalRecord": "data/art/creature-prompts.json#ur-hhrki-izh",
+      "approvedPrimary": "ur-hhrki-izh-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "ur-hhrki-izh-1",
+        "ur-hhrki-izh-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement is the first reptilian full-body skeleton with stretched scale remnants, burning sockets, and a long tail.",
+      "currentCandidates": [
+        "ur-hhrki-izh-1",
+        "ur-hhrki-izh-2",
+        "ur-hhrki-izh-curated"
+      ],
+      "currentImage": "ur-hhrki-izh-1"
+    },
+    "void-black-umbral-moth": {
+      "exactSubject": "void-black-umbral-moth",
+      "canonicalRecord": "data/art/creature-prompts.json#void-black-umbral-moth",
+      "approvedPrimary": "void-black-umbral-moth-2",
+      "approvedVariants": [],
+      "rejects": [
+        "void-black-umbral-moth-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 is an actual black moth.",
+      "currentCandidates": [
+        "void-black-umbral-moth-1",
+        "void-black-umbral-moth-2"
+      ],
+      "currentImage": "void-black-umbral-moth-1"
+    },
+    "voidspawn": {
+      "exactSubject": "voidspawn",
+      "canonicalRecord": "data/art/creature-prompts.json#voidspawn",
+      "approvedPrimary": "voidspawn-2",
+      "approvedVariants": [],
+      "rejects": [
+        "voidspawn-1"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 2 gives the clearest frenzy of black wings, claws, flat face, and hateful eyes.",
+      "currentCandidates": [
+        "voidspawn-1",
+        "voidspawn-2"
+      ],
+      "currentImage": "voidspawn-1"
+    },
+    "windbag": {
+      "exactSubject": "windbag",
+      "canonicalRecord": "data/art/creature-prompts.json#windbag",
+      "approvedPrimary": "windbag-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "windbag-1",
+        "windbag-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement restores the floating textile body, glowing eyes, and long torn cloth claws absent from both yarn-ball candidates.",
+      "currentCandidates": [
+        "windbag-1",
+        "windbag-2",
+        "windbag-curated"
+      ],
+      "currentImage": "windbag-1"
+    },
+    "wood-troll": {
+      "exactSubject": "wood-troll",
+      "canonicalRecord": "data/art/creature-prompts.json#wood-troll",
+      "approvedPrimary": "wood-troll-1",
+      "approvedVariants": [],
+      "rejects": [
+        "wood-troll-2",
+        "wood-troll-3"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 is the only towering bark-textured moss-furred troll.",
+      "currentCandidates": [
+        "wood-troll-1",
+        "wood-troll-2",
+        "wood-troll-3"
+      ],
+      "currentImage": "wood-troll-1"
+    },
+    "young-blue-dappled-prereni": {
+      "exactSubject": "young-blue-dappled-prereni",
+      "canonicalRecord": "data/art/creature-prompts.json#young-blue-dappled-prereni",
+      "approvedPrimary": "young-blue-dappled-prereni-1",
+      "approvedVariants": [],
+      "rejects": [
+        "young-blue-dappled-prereni-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Variant 1 preserves a youthful antlerless deer silhouette.",
+      "currentCandidates": [
+        "young-blue-dappled-prereni-1",
+        "young-blue-dappled-prereni-2"
+      ],
+      "currentImage": "young-blue-dappled-prereni-1"
+    }
   },
   "audit": {
     "adult-desert-armadillo": {
       "subject": "A sand-and-tan desert quadruped with articulated hide plates, a twitching snout, digging claws, and a barbed tail in the M'Riss Dunes of Despair.",
       "source": "https://elanthipedia.play.net/Adult_desert_armadillo_(1)",
       "primary": "adult-desert-armadillo-2",
-      "variants": ["adult-desert-armadillo-1"],
+      "variants": [
+        "adult-desert-armadillo-1"
+      ],
       "decision": "Both are faithful plated desert animals; variant 2 is the cleaner primary and variant 1 supplies a credible more heavily barbed silhouette."
     },
     "asaren-celpeze": {
@@ -36,18 +1050,87 @@
       "decision": "Variant 1 preserves the deer anatomy and blue-dappled coat. Variant 2 reads as a rabbit-deer hybrid and omits the defining blue spots."
     },
     "dark-spirit": {
-      "subject": "A floating mass of swirling shadow in a ragged robe, with jagged claws, glowing sanguine eyes, and deadly deliberate movement in dark caverns and Ker'Leor.",
-      "source": "https://elanthipedia.play.net/Dark_spirit_(1)",
-      "primary": null,
-      "variants": [],
-      "decision": "No current image is faithful enough: variants 1 and 2 are pale generic ghosts without red eyes or claws, while variant 3 is a water elemental. Keep the silhouette until replacement art is generated."
+      "exactSubject": "Dark spirit",
+      "canonicalDescription": "A floating mass of swirling shadow given substance, in ragged robes, with jagged claws and glowing sanguine eyes.",
+      "canonicalTraits": [
+        "floating swirling shadow",
+        "ragged robe",
+        "jagged claws",
+        "sanguine eyes"
+      ],
+      "habitatContext": "Dark caverns and Ker'Leor",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/elanthipedia/bestiary.json"
+        },
+        {
+          "kind": "curated-brief",
+          "source": "data/art/creature-prompts.json#dark-spirit"
+        }
+      ],
+      "currentImage": "dark-spirit-1",
+      "currentCandidates": [
+        "dark-spirit-1",
+        "dark-spirit-2",
+        "dark-spirit-3",
+        "dark-spirit-curated"
+      ],
+      "approvedPrimary": "dark-spirit-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "dark-spirit-1",
+        "dark-spirit-2",
+        "dark-spirit-3"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Curated replacement has substance-like shadow, rags, claws, and sanguine eyes.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
     },
     "forest-geni": {
-      "subject": "A stocky halfling-sized forest being with pale green eyes, pointed ears hung with copper bells, faint green skin, and rough clothing made from leaves and bark.",
-      "source": "https://elanthipedia.play.net/Forest_geni_(1)",
-      "primary": null,
-      "variants": [],
-      "decision": "Variant 1 is an elegant ballerina-like faun and variant 2 is a clothed halfling; neither carries the defining bells, leaf-and-bark clothing, green skin, or stocky creature design."
+      "exactSubject": "Forest geni",
+      "canonicalDescription": "A stocky halfling-sized forest being with pale green eyes, faint green skin, pointed ears hung with copper bells, and rough leaf-and-bark clothing.",
+      "canonicalTraits": [
+        "stocky halfling-sized build",
+        "pale green eyes",
+        "faint green skin",
+        "copper ear bells",
+        "leaf-and-bark clothing"
+      ],
+      "habitatContext": "Forests",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/elanthipedia/bestiary.json"
+        },
+        {
+          "kind": "curated-brief",
+          "source": "data/art/creature-prompts.json#forest-geni"
+        }
+      ],
+      "currentImage": "forest-geni-1",
+      "currentCandidates": [
+        "forest-geni-1",
+        "forest-geni-2",
+        "forest-geni-curated"
+      ],
+      "approvedPrimary": "forest-geni-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "forest-geni-1",
+        "forest-geni-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Curated replacement has stocky proportions, green skin and eyes, ear bells, and leaf-bark clothing.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
     },
     "storm-bull": {
       "subject": "An immense quadrupedal bull about eight feet at the shoulder, with a glistening silvery hide, long pearly horns, and a mist-tipped tail near Ilaya Taipa and Shard.",
@@ -60,48 +1143,581 @@
       "subject": "A tall, ungainly humanoid conglomeration of branches, leaves, mud, and foulness inhabiting swamps and fens.",
       "source": "https://elanthipedia.play.net/Swamp_troll_(1)",
       "primary": "swamp-troll-1",
-      "variants": ["swamp-troll-3"],
+      "variants": [
+        "swamp-troll-3"
+      ],
       "decision": "Variants 1 and 3 are strong humanoid swamp creatures coated in mud and plant matter. Variant 2 is a snake and variant 4 is a largely bare cave troll with the wrong habitat cues."
+    },
+    "cutthroat": {
+      "exactSubject": "Cutthroat",
+      "canonicalDescription": "A human failed newcomer to The Crossing who survives as common urban criminal scum and watches passersby's money pouches.",
+      "canonicalTraits": [
+        "human",
+        "worn practical clothing",
+        "urban criminal",
+        "predatory interest in money pouches"
+      ],
+      "habitatContext": "The Crossing streets and alleys",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/elanthipedia/bestiary.json"
+        },
+        {
+          "kind": "curated-brief",
+          "source": "data/art/creature-prompts.json#cutthroat"
+        }
+      ],
+      "currentImage": "cutthroat-1",
+      "currentCandidates": [
+        "cutthroat-1",
+        "cutthroat-2",
+        "cutthroat-3",
+        "cutthroat-4",
+        "cutthroat-curated"
+      ],
+      "approvedPrimary": "cutthroat-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "cutthroat-1",
+        "cutthroat-2",
+        "cutthroat-3",
+        "cutthroat-4"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Curated replacement is the only human urban criminal; old variants are monsters.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "beltunumshi": {
+      "exactSubject": "Beltunumshi",
+      "canonicalDescription": "A central bark-covered stump surrounded by whirling vines, with old scorch marks, malevolent eyes, and a gaping maw.",
+      "canonicalTraits": [
+        "bark-covered stump",
+        "whirling vines",
+        "old scorch marks",
+        "malevolent eyes",
+        "gaping maw"
+      ],
+      "habitatContext": "Scorched woodland",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/elanthipedia/bestiary.json"
+        },
+        {
+          "kind": "curated-brief",
+          "source": "data/art/creature-prompts.json#beltunumshi"
+        }
+      ],
+      "currentImage": "beltunumshi-1",
+      "currentCandidates": [
+        "beltunumshi-1",
+        "beltunumshi-2",
+        "beltunumshi-curated"
+      ],
+      "approvedPrimary": "beltunumshi-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "beltunumshi-1",
+        "beltunumshi-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Curated replacement has stump, vines, scorch marks, eyes, and maw.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "animated-items": {
+      "exactSubject": "Animated Items",
+      "canonicalDescription": "A combat encounter made from independently animated adzes, augers, chisels, files, hammers, and screwdrivers.",
+      "canonicalTraits": [
+        "independently floating hand tools",
+        "no wielder",
+        "adze, auger, chisel, file, hammer, and screwdriver"
+      ],
+      "habitatContext": "Workshops and construct encounters",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        }
+      ],
+      "currentImage": "animated-items-1",
+      "currentCandidates": [
+        "animated-items-1",
+        "animated-items-2",
+        "animated-items-3",
+        "animated-items-4",
+        "animated-items-5",
+        "animated-items-curated"
+      ],
+      "approvedPrimary": "animated-items-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "animated-items-1",
+        "animated-items-2",
+        "animated-items-3",
+        "animated-items-4",
+        "animated-items-5"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement depicts the tools themselves as the hostile animated encounter.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "ember-bull": {
+      "exactSubject": "Ember bull",
+      "canonicalDescription": "An enormous deep-red quadrupedal bull with flame running along its hide and horns, exhaling ash and cinders.",
+      "canonicalTraits": [
+        "enormous quadrupedal bull",
+        "deep-red hide",
+        "flame-lined body and horns",
+        "ash and cinders from nostrils"
+      ],
+      "habitatContext": "Scorched volcanic ground",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        }
+      ],
+      "currentImage": "ember-bull-2",
+      "currentCandidates": [
+        "ember-bull-2",
+        "ember-bull",
+        "ember-bull-curated"
+      ],
+      "approvedPrimary": "ember-bull-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "ember-bull-2",
+        "ember-bull"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement uniquely combines the correct bull anatomy, scale, fire-lined hide and horns, ash, and cinders.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "nipoh-oshu": {
+      "exactSubject": "Nipoh oshu",
+      "canonicalDescription": "An amorphous cloud of swirling steam with crude vapor limbs and two malevolent eyes glaring from within.",
+      "canonicalTraits": [
+        "amorphous steam cloud",
+        "crude vapor limbs",
+        "embedded malevolent eyes",
+        "no solid flesh"
+      ],
+      "habitatContext": "Cold mountain and cloud environments",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        }
+      ],
+      "currentImage": "nipoh-oshu-1",
+      "currentCandidates": [
+        "nipoh-oshu-1",
+        "nipoh-oshu-2",
+        "nipoh-oshu-3",
+        "nipoh-oshu-curated"
+      ],
+      "approvedPrimary": "nipoh-oshu-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "nipoh-oshu-1",
+        "nipoh-oshu-2",
+        "nipoh-oshu-3"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement is the first candidate that is entirely vapor while retaining readable limbs and embedded eyes.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "rock-guardian": {
+      "exactSubject": "Rock guardian",
+      "canonicalDescription": "A roughly twenty-foot humanoid granite construct with massive fists and feet, deliberate graceful movement, and an almost sad face.",
+      "canonicalTraits": [
+        "twenty-foot humanoid construct",
+        "granite body",
+        "massive fists and feet",
+        "solemn sad face"
+      ],
+      "habitatContext": "Rocky mountain plateau",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        }
+      ],
+      "currentImage": "rock-guardian-1",
+      "currentCandidates": [
+        "rock-guardian-1",
+        "rock-guardian-2",
+        "rock-guardian-curated"
+      ],
+      "approvedPrimary": "rock-guardian-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "rock-guardian-1",
+        "rock-guardian-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement fixes the former bird-shaped rock formations and provides the canonical monumental humanoid body.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "windbag": {
+      "exactSubject": "Windbag",
+      "canonicalDescription": "A floating globular mass of shredded moonsilk and textiles with a tightly coiled head, glowing eyes, and torn ribbon-claw appendages.",
+      "canonicalTraits": [
+        "airborne shredded textiles",
+        "coiled cloth head",
+        "globular body",
+        "glowing eyes",
+        "ribbon-claw appendages"
+      ],
+      "habitatContext": "Kiora'ylen Storehouse and textile interiors",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        }
+      ],
+      "currentImage": "windbag-1",
+      "currentCandidates": [
+        "windbag-1",
+        "windbag-2",
+        "windbag-curated"
+      ],
+      "approvedPrimary": "windbag-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "windbag-1",
+        "windbag-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement restores the floating textile body, glowing eyes, and long torn cloth claws absent from both yarn-ball candidates.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "s-kra-kor-shaman": {
+      "exactSubject": "S'Kra Kor shaman",
+      "canonicalDescription": "A twisted black-scaled S'Kra Mur shaman in deep robes, with a visible long tail, glowing eyes, and bony clawed hands tracing destructive magic.",
+      "canonicalTraits": [
+        "black-scaled reptilian humanoid",
+        "deep hooded robes",
+        "long scaled tail",
+        "bony clawed hands",
+        "glowing eyes"
+      ],
+      "habitatContext": "S'Kra Kor ritual chambers",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        }
+      ],
+      "currentImage": "s-kra-kor-shaman-1",
+      "currentCandidates": [
+        "s-kra-kor-shaman-1",
+        "s-kra-kor-shaman-2",
+        "s-kra-kor-shaman-curated"
+      ],
+      "approvedPrimary": "s-kra-kor-shaman-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "s-kra-kor-shaman-1",
+        "s-kra-kor-shaman-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement is recognizably S'Kra Mur and preserves the hood, tail, claws, and hostile magic.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "s-kra-kor-villager": {
+      "exactSubject": "S'Kra Kor villager",
+      "canonicalDescription": "A hideously twisted S'Kra Mur villager with glistening black scales, reptilian anatomy, claws, and a long tail.",
+      "canonicalTraits": [
+        "black-scaled reptilian humanoid",
+        "long tail",
+        "clawed hands",
+        "worn village clothing"
+      ],
+      "habitatContext": "Corrupted S'Kra Kor settlement",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        }
+      ],
+      "currentImage": "s-kra-kor-villager-1",
+      "currentCandidates": [
+        "s-kra-kor-villager-1",
+        "s-kra-kor-villager-2",
+        "s-kra-kor-villager-curated"
+      ],
+      "approvedPrimary": "s-kra-kor-villager-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "s-kra-kor-villager-1",
+        "s-kra-kor-villager-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement corrects both former human renders while keeping the subject visibly unarmored and villager-like.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "s-kra-kor-warrior": {
+      "exactSubject": "S'Kra Kor warrior",
+      "canonicalDescription": "A hideously twisted and heavily muscled S'Kra Mur warrior with glistening black scales, clawed hands, and a wickedly spiked tail.",
+      "canonicalTraits": [
+        "heavily muscled reptilian humanoid",
+        "glistening black scales",
+        "clawed hands",
+        "long spiked tail"
+      ],
+      "habitatContext": "S'Kra Kor battlefield",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        }
+      ],
+      "currentImage": "s-kra-kor-warrior-1",
+      "currentCandidates": [
+        "s-kra-kor-warrior-1",
+        "s-kra-kor-warrior-2",
+        "s-kra-kor-warrior-curated"
+      ],
+      "approvedPrimary": "s-kra-kor-warrior-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "s-kra-kor-warrior-1",
+        "s-kra-kor-warrior-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement fixes the minotaur body-plan error and clearly preserves black scales, claws, and the spiked reptilian tail.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "sylph": {
+      "exactSubject": "Sylph",
+      "canonicalDescription": "A whirling mass of shredded silk and textiles animated by Air into a lithe humanoid form with glowing eyes and razor-sharp tatter claws.",
+      "canonicalTraits": [
+        "Air-animated textile construct",
+        "lithe humanoid cloth form",
+        "glowing eyes",
+        "razor-sharp fabric claws"
+      ],
+      "habitatContext": "Kiora'ylen Storehouse",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        },
+        {
+          "kind": "web",
+          "source": "https://elanthipedia.play.net/Sylph_(1)"
+        }
+      ],
+      "currentImage": "sylph-1",
+      "currentCandidates": [
+        "sylph-1",
+        "sylph-2",
+        "sylph-curated"
+      ],
+      "approvedPrimary": "sylph-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "sylph-1",
+        "sylph-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "Elanthipedia resolved the ambiguity; the curated replacement matches the moonsilk textile construct rather than either human candidate.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
+    },
+    "ur-hhrki-izh": {
+      "exactSubject": "Ur Hhrki'izh",
+      "canonicalDescription": "An ancient S'Kra Mur whose organs are gone, leaving desiccated scaly skin over a reptilian skeleton and sullen fires in empty eye sockets.",
+      "canonicalTraits": [
+        "ancient reptilian skeleton",
+        "desiccated scaly skin",
+        "empty sockets with sullen fire",
+        "long skeletal tail",
+        "languid movement"
+      ],
+      "habitatContext": "Ancient S'Kra Mur ruins",
+      "evidence": [
+        {
+          "kind": "local-elanthipedia",
+          "source": "data/art/creature-prompts.json"
+        }
+      ],
+      "currentImage": "ur-hhrki-izh-1",
+      "currentCandidates": [
+        "ur-hhrki-izh-1",
+        "ur-hhrki-izh-2",
+        "ur-hhrki-izh-curated"
+      ],
+      "approvedPrimary": "ur-hhrki-izh-curated",
+      "approvedVariants": [],
+      "rejects": [
+        "ur-hhrki-izh-1",
+        "ur-hhrki-izh-2"
+      ],
+      "regenerationNeeded": false,
+      "decision": "The curated replacement is the first reptilian full-body skeleton with stretched scale remnants, burning sockets, and a long tail.",
+      "generation": {
+        "mode": "built-in imagegen",
+        "useCase": "stylized-concept",
+        "reviewedAt": "2026-09-01"
+      }
     }
   },
   "rejected": [
     "akul-tiz-ghost",
     "alley-thug",
-    "cutthroat-1",
-    "cutthroat-2",
-    "cutthroat-3",
-    "cutthroat-4",
+    "animated-items-1",
+    "animated-items-2",
+    "animated-items-3",
+    "animated-items-4",
+    "animated-items-5",
     "asaren-celpeze-1",
     "asaren-celpeze-3",
     "asaren-celpeze-4",
     "asaren-celpeze-5",
+    "beltunumshi-1",
+    "beltunumshi-2",
     "blood-wolf-1",
     "blood-wolf-2",
+    "blue-belly-crocodile",
+    "blue-belly-crocodile-2",
     "blue-dappled-prereni-2",
+    "cutthroat-1",
+    "cutthroat-2",
+    "cutthroat-3",
+    "cutthroat-4",
     "dark-spirit-1",
     "dark-spirit-2",
     "dark-spirit-3",
+    "dark-sprite-1",
+    "dark-sprite-2",
+    "elder-blue-dappled-prereni-1",
+    "elder-desert-armadillo-1",
+    "ember-bull",
+    "ember-bull-2",
+    "field-goblin-2",
+    "fledgling-forest-gryphon-1",
     "footpad-creature1",
     "footpad-creature2",
     "footpad-creature3",
     "footpad-creature4",
     "footpad-creature5",
-    "miserly-moneygrubber",
     "forest-geni-1",
     "forest-geni-2",
+    "fuligin-umbral-moth-1",
+    "giant-black-leucro-1",
+    "giant-thicket-viper-1",
+    "giant-thicket-viper-2",
+    "gigantic-lachmate-1",
+    "gnarled-fendryad-1",
+    "graverobber-1",
+    "juvenile-desert-armadillo-1",
+    "lesser-sluagh-1",
+    "lesser-sluagh-2",
+    "miserly-moneygrubber",
+    "nipoh-oshu-1",
+    "nipoh-oshu-2",
+    "nipoh-oshu-3",
+    "pirate-1",
+    "pirate-boarder",
+    "pirate-buccaneer",
+    "pirate-crossbowman",
+    "pirate-deckhand",
+    "pirate-lieutenant",
+    "pirate-longbowman",
+    "pirate-mariner",
+    "pirate-mercenary",
+    "pirate-netman",
+    "pirate-rigger",
+    "pirate-sailor",
+    "pirate-zombie",
+    "red-gold-scaled-atik-et-1",
+    "robed-dragon-priest-ess-2",
+    "rock-guardian-1",
+    "rock-guardian-2",
+    "rock-troll-2",
     "ruffian-creature1",
     "ruffian-creature2",
     "ruffian-creature3",
     "ruffian-creature4",
+    "s-kra-kor-shaman-1",
+    "s-kra-kor-shaman-2",
+    "s-kra-kor-villager-1",
+    "s-kra-kor-villager-2",
+    "s-kra-kor-warrior-1",
+    "s-kra-kor-warrior-2",
+    "small-peccary-2",
+    "snow-goblin-1",
+    "snow-goblin-3",
+    "spiny-bloodfish-2",
+    "storm-bull",
     "storm-bull-1",
     "storm-bull-3",
-    "storm-bull",
     "swamp-troll-2",
     "swamp-troll-4",
+    "sylph-1",
+    "sylph-2",
+    "telga-orek-1",
     "thug-creature1",
     "thug-creature2",
     "thug-creature3",
     "thug-creature4",
-    "thug-creature5"
+    "thug-creature5",
+    "tortured-soul-2",
+    "twisted-fendryad-2",
+    "ur-hhrki-izh-1",
+    "ur-hhrki-izh-2",
+    "void-black-umbral-moth-1",
+    "voidspawn-1",
+    "windbag-1",
+    "windbag-2",
+    "wood-troll-2",
+    "wood-troll-3",
+    "young-blue-dappled-prereni-2"
   ]
 }

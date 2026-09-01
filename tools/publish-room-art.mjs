@@ -24,6 +24,7 @@
  */
 import { existsSync, linkSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { execFileSync } from 'node:child_process'
 
 const OUT_ARCHETYPES = 'data/art/out/archetypes'
 const OUT_ROOMS = 'data/art/out/rooms'
@@ -259,3 +260,9 @@ console.log(
   `${linked} newly linked, ${upgraded} upgraded to a better match, ${unchanged} already the best match, ${noSourceYet} have no source yet`
 )
 console.log('wrote data/art/room-art-usage.json')
+
+// art-install may have placed named render sources and every archetype variant
+// in public/. Once the numeric room links above exist, only current map rooms
+// and explicit runtime overrides need to ship. Keep the release payload from
+// quietly regrowing after each publishing pass.
+execFileSync(process.execPath, ['tools/prune-room-art.mjs', '--write'], { stdio: 'inherit' })

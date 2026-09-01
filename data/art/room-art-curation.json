@@ -1,6 +1,140 @@
 {
   "places": {},
   "archetypes": {},
+  "publishedOverrides": {
+    "95::Pokekehekepi korgi": {
+      "exactSubject": "Pokekehekepi korgi",
+      "canonicalTraits": ["living sand formation", "regal mountain-like peaks and valleys", "dark shifting surface"],
+      "habitat": "Pokekehekepi subterranean sands beyond torch range",
+      "roomCount": 73,
+      "currentImage": "/rooms/95-175.webp",
+      "approvedPrimary": "/room-scenes/curated-pokekehekepi-korgi.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/95-175.webp", "/rooms/108-high-dunes.webp"],
+      "regenerationNeeded": false,
+      "decision": "The prior image reads as a palace and the generic dunes omit the living mountain-scale subject."
+    },
+    "7::In The Water": {
+      "exactSubject": "The Marsh, In The Water",
+      "canonicalTraits": ["near-total underwater darkness", "objects visible only inches away", "dangerous submerged passage"],
+      "habitat": "a deep marsh channel",
+      "roomCount": 56,
+      "currentImage": "/rooms/7-8.webp",
+      "approvedPrimary": "/room-scenes/curated-underwater-marsh-channel.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/7-8.webp", "/rooms/150-deep-water.webp"],
+      "regenerationNeeded": false,
+      "decision": "The prior town scene and generic open water contradict the pitch-dark submerged marsh."
+    },
+    "112::In the Water": {
+      "exactSubject": "Ilaya Taipa, In the Water",
+      "canonicalTraits": ["deep murky channel", "funneling current", "poor underwater visibility"],
+      "habitat": "the deepest part of the Ilaya Taipa channel",
+      "roomCount": 46,
+      "currentImage": "/rooms/112-73.webp",
+      "approvedPrimary": "/room-scenes/curated-underwater-marsh-channel.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/112-73.webp", "/rooms/150-deep-water.webp"],
+      "regenerationNeeded": false,
+      "decision": "The shared town image is impossible underwater; the approved scene preserves murk, depth and current."
+    },
+    "127::Catacombs": {
+      "exactSubject": "Temple of the North Wind, Catacombs",
+      "canonicalTraits": ["serpentine descending stairs", "frost-covered stone", "ancient burial alcoves"],
+      "habitat": "frozen catacombs beneath the Temple of the North Wind",
+      "roomCount": 58,
+      "currentImage": "/rooms/127-435.webp",
+      "approvedPrimary": "/room-scenes/curated-north-wind-catacombs.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/127-435.webp"],
+      "regenerationNeeded": false,
+      "decision": "The prior clean stair hall lacks tombs, frost and the winding descent."
+    },
+    "106::Seord Fal": {
+      "exactSubject": "Hara'jaal, Seord Fal",
+      "canonicalTraits": ["thunderous southbound watercourse", "rocks and rushing water", "hazardous jungle river"],
+      "habitat": "wild Hara'jaal jungle",
+      "roomCount": 43,
+      "currentImage": "/rooms/106-117.webp",
+      "approvedPrimary": "/room-scenes/curated-seord-fal.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/106-117.webp", "/rooms/13-waterfall.webp"],
+      "regenerationNeeded": false,
+      "decision": "The city canal and generic waterfall do not communicate a violent natural jungle river."
+    },
+    "1::Sewer": {
+      "exactSubject": "Crossing sewer",
+      "canonicalTraits": ["bedrock seepage", "crumbling stone walls", "slick treacherous footing"],
+      "habitat": "an eroded subterranean sewer beneath Crossing",
+      "roomCount": 38,
+      "currentImage": "/rooms/1-295.webp",
+      "approvedPrimary": "/room-scenes/curated-crossing-sewer.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/1-295.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former populated gatehouse is exterior architecture and does not depict a sewer."
+    },
+    "66::Maelshyve's Ascent": {
+      "exactSubject": "Abyss, Maelshyve's Ascent",
+      "canonicalTraits": ["visibility-choking blackness", "path of twisted fused bones", "skulls, claws, ribs and hands"],
+      "habitat": "an abyssal ascent near Maelshyve's core",
+      "roomCount": 36,
+      "currentImage": "/rooms/66-411.webp",
+      "approvedPrimary": "/room-scenes/curated-maelshyves-ascent.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/66-411.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former city procession omits both the Abyss and the grotesque bone path."
+    },
+    "4::Grasslands": {
+      "exactSubject": "Hunting Preserve, Grasslands",
+      "canonicalTraits": ["grass taller than a human", "visibility limited to a few feet", "predator claw marks in gritty soil"],
+      "habitat": "feral grass maze within the Hunting Preserve",
+      "roomCount": 33,
+      "currentImage": "/rooms/4-140.webp",
+      "approvedPrimary": "/room-scenes/curated-hunting-preserve-grasslands.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/4-140.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former open lawn contradicts the head-high, claustrophobic predator grass."
+    },
+    "4::Rocky Outcrop": {
+      "exactSubject": "Rocky Outcrop",
+      "canonicalTraits": ["vertical rain-cut grooves", "grey stone resembling colossal scored bark", "shadowy hollow"],
+      "habitat": "an exposed wilderness outcrop",
+      "roomCount": 33,
+      "currentImage": "/rooms/4-301.webp",
+      "approvedPrimary": "/room-scenes/curated-rain-grooved-outcrop.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/4-301.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former image reads as a building facade rather than natural scored rock."
+    },
+    "98::Shadaer Jama": {
+      "exactSubject": "Aesry Surlaenis'a, Shadaer Jama",
+      "canonicalTraits": ["vast white coastal sand", "weathered wooden walkway rising uphill", "tar and ocean air from the harbor"],
+      "habitat": "a tropical island harbor slope",
+      "roomCount": 33,
+      "currentImage": "/rooms/98-25.webp",
+      "approvedPrimary": "/room-scenes/curated-shadaer-jama.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/98-25.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former snowy town contradicts the white-sand island and harbor walkway."
+    },
+    "40a::Duvli Rinu": {
+      "exactSubject": "Duvli Rinu",
+      "canonicalTraits": ["pine-log X braces", "packed earthen walls and ceiling", "track-covered dirt floor"],
+      "habitat": "the dirt-tunnel network beneath Siksraja",
+      "roomCount": 32,
+      "currentImage": "/rooms/40a-156.webp",
+      "approvedPrimary": "/room-scenes/curated-duvli-rinu.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/40a-156.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former exterior cliff omits the defining underground timber-braced passage."
+    }
+  },
   "notes": {
     "purpose": "Manual curation for room-art publishing. Pick a primary image, optional approved variants, and explicit rejects for any rendered place or archetype subject.",
     "usage": [
@@ -8,7 +142,8 @@
       "keys under archetypes must match archetype-prompts.json keys exactly",
       "primary and variants name files exactly as they appear in data/art/out/rooms or data/art/out/archetypes",
       "reject may list filenames to ignore even if they are newer than the good render",
-      "when variants are listed, publish-room-art.mjs rotates among primary+variants deterministically by room key so neighbouring rooms can get variety without changing randomly between runs"
+      "when variants are listed, publish-room-art.mjs rotates among primary+variants deterministically by room key so neighbouring rooms can get variety without changing randomly between runs",
+      "publishedOverrides records subject-level decisions for already-published room assets when raw generation folders are unavailable"
     ]
   }
 }
