@@ -33,6 +33,32 @@ export interface Rect {
 export const MIN_W = 180
 export const MIN_H = 90
 
+export type KeyboardRectAction =
+  | 'move-left' | 'move-right' | 'move-up' | 'move-down'
+  | 'shrink-width' | 'grow-width' | 'shrink-height' | 'grow-height'
+  | 'send-backward' | 'bring-forward'
+
+/** One keyboard manipulation step, using the same bounds as pointer drops. */
+export function adjustKeyboardRect(
+  rect: Rect,
+  action: KeyboardRectAction,
+  bounds: { w: number; h: number },
+  step = 10
+): Rect {
+  const next = { ...rect }
+  if (action === 'move-left') next.x -= step
+  if (action === 'move-right') next.x += step
+  if (action === 'move-up') next.y -= step
+  if (action === 'move-down') next.y += step
+  if (action === 'shrink-width') next.w -= step
+  if (action === 'grow-width') next.w += step
+  if (action === 'shrink-height') next.h -= step
+  if (action === 'grow-height') next.h += step
+  if (action === 'send-backward') next.z = (next.z ?? 0) - 1
+  if (action === 'bring-forward') next.z = (next.z ?? 0) + 1
+  return clampToBounds(next, bounds)
+}
+
 const overlaps = (a: Rect, b: Rect) =>
   a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
 

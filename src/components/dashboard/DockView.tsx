@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/cn'
 import {
   foldCramped,
+  measure,
+  MIN_REGION,
   moveBoundary,
   type Dock,
 } from '../../lib/dock'
@@ -39,7 +41,7 @@ export function DockView({
 }) {
   const host = useRef<HTMLDivElement>(null)
   const [extent, setExtent] = useState(0)
-  const drag = useRef<{ index: number; startX: number } | null>(null)
+  const drag = useRef<{ index: number; start: number } | null>(null)
 
   const horizontal = dock.axis === 'row'
 
@@ -62,8 +64,9 @@ export function DockView({
     (e: PointerEvent) => {
       const d = drag.current
       if (!d || !extent) return
-      onChange(moveBoundary(shown, d.index, e.clientX - d.startX, extent))
-      d.startX = e.clientX
+      const position = horizontal ? e.clientX : e.clientY
+      onChange(moveBoundary(shown, d.index, position - d.start, extent))
+      d.start = position
     },
     [extent, onChange, shown]
   )
@@ -157,11 +160,35 @@ export function DockView({
             horizontal ? 'w-px cursor-col-resize' : 'h-px cursor-row-resize'
           )}
           style={{ order: i * 2 + 1 }}
+          role="separator"
+          tabIndex={0}
+          aria-label={`Resize ${title(region.panels[0])} and ${title(shown.regions[i + 1].panels[0])}`}
+          aria-orientation={horizontal ? 'vertical' : 'horizontal'}
+          aria-valuemin={Math.round((MIN_REGION / Math.max(extent, 1)) * 100)}
+          aria-valuemax={Math.round((1 - MIN_REGION / Math.max(extent, 1)) * 100)}
+          aria-valuenow={Math.round((measure(shown, extent || 1)[i] / Math.max(extent, 1)) * 100)}
+          aria-valuetext={`${Math.round(measure(shown, extent || 1)[i])} pixels to ${title(region.panels[0])}`}
+          title="Drag or use arrow keys to resize; Home and End move to the limits."
           onPointerDown={(e) => {
             e.preventDefault()
-            drag.current = { index: i, startX: e.clientX }
+            drag.current = { index: i, start: horizontal ? e.clientX : e.clientY }
             document.body.style.cursor = horizontal ? 'col-resize' : 'row-resize'
             document.body.style.userSelect = 'none'
+          }}
+          onKeyDown={(e) => {
+            if (!extent) return
+            const [decrease, increase] = horizontal ? ['ArrowLeft', 'ArrowRight'] : ['ArrowUp', 'ArrowDown']
+            if (![decrease, increase, 'Home', 'End'].includes(e.key)) return
+            e.preventDefault()
+            const sizes = measure(shown, extent)
+            const delta = e.key === decrease
+              ? -20
+              : e.key === increase
+                ? 20
+                : e.key === 'Home'
+                  ? MIN_REGION - sizes[i]
+                  : sizes[i + 1] - MIN_REGION
+            onChange(moveBoundary(shown, i, delta, extent))
           }}
         />
       ))}

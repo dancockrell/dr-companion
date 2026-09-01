@@ -77,5 +77,12 @@ console.log('\n-- a boundary drag never forces a fold --')
 const shoved = m.moveBoundary(three, 0, 99999, 1200)
 ok('neighbour keeps the minimum', m.measure(shoved, 1200)[1] >= m.MIN_REGION - 0.01, JSON.stringify(m.measure(shoved, 1200).map(Math.round)))
 
+console.log('\n-- dock boundaries expose the shared keyboard separator contract --')
+const dockView = readFileSync('src/components/dashboard/DockView.tsx', 'utf8')
+ok('boundaries are keyboard-focusable separators', /role="separator"/.test(dockView) && /tabIndex=\{0\}/.test(dockView), '')
+ok('boundaries publish orientation, range, and current value', /aria-orientation/.test(dockView) && /aria-valuemin/.test(dockView) && /aria-valuemax/.test(dockView) && /aria-valuenow/.test(dockView), '')
+ok('arrows and limits use the same clamped moveBoundary path', /'ArrowLeft', 'ArrowRight'/.test(dockView) && /'ArrowUp', 'ArrowDown'/.test(dockView) && /'Home', 'End'/.test(dockView) && /onChange\(moveBoundary/.test(dockView), '')
+ok('vertical pointer boundaries read clientY', /horizontal \? e\.clientX : e\.clientY/.test(dockView), '')
+
 console.log(fails ? `\n${fails} failed` : '\nall passed')
 process.exit(fails ? 1 : 0)

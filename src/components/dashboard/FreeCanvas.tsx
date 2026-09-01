@@ -4,8 +4,10 @@ import { cn } from '../../lib/cn'
 import {
   MIN_H,
   MIN_W,
+  adjustKeyboardRect,
   clampToBounds,
   gridSlot,
+  type KeyboardRectAction,
   type Rect,
 } from '../../lib/freeLayout'
 import type { PanelId } from '../../lib/layout'
@@ -82,6 +84,8 @@ export function FreeCanvas({
     startY: number
     from: Rect
   } | null>(null)
+  const [keyboard, setKeyboard] = useState<{ id: PanelId; from: Rect; rect: Rect } | null>(null)
+  const [announcement, setAnnouncement] = useState('')
 
   useEffect(() => {
     const el = host.current
@@ -224,9 +228,14 @@ export function FreeCanvas({
         </button>
       )}
       {items.map((item) => {
-        const live = drag?.id === item.id ? drag.rect : placed.get(item.id)!
+        const live = drag?.id === item.id
+          ? drag.rect
+          : keyboard?.id === item.id
+            ? keyboard.rect
+            : placed.get(item.id)!
         const shown = clampToBounds(live, bounds.w ? bounds : { w: 1200, h: 800 })
-        const dragging = drag?.id === item.id
+        const dragging = drag?.id === item.id || keyboard?.id === item.id
+        const manipulating = keyboard?.id === item.id
 
         return (
           <div
@@ -258,8 +267,9 @@ export function FreeCanvas({
                 strip that keeps a comfortable pointer target rather than the
                 icon's own bounding box. That reserved row was pure "useless
                 menu" for any panel not actively being reordered. */}
-            <div
-              className="flex h-4 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+            <button
+              type="button"
+              className="flex h-5 shrink-0 cursor-grab touch-none items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent active:cursor-grabbing"
               onPointerDown={(e) => {
                 e.preventDefault()
                 e.currentTarget.setPointerCapture(e.pointerId)
@@ -274,9 +284,56 @@ export function FreeCanvas({
                 })
               }}
               title="Drag to move"
+              aria-label={`Move or resize ${item.id} panel`}
+              aria-describedby={manipulating ? `arrange-help-${item.id}` : undefined}
+              aria-pressed={manipulating}
+              onKeyDown={(e) => {
+                const current = keyboard?.id === item.id ? keyboard : null
+                if (!current && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault()
+                  setKeyboard({ id: item.id, from: shown, rect: shown })
+                  setAnnouncement(`${item.id} panel arrangement started. Arrow keys move. Shift plus arrows resize. Page Up and Page Down change stacking. Enter saves. Escape cancels.`)
+                  return
+                }
+                if (!current) return
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setKeyboard(null)
+                  setAnnouncement(`${item.id} panel changes cancelled.`)
+                  return
+                }
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  onPlace(item.id, current.rect)
+                  setKeyboard(null)
+                  setAnnouncement(`${item.id} panel saved.`)
+                  return
+                }
+                const direction = e.key === 'ArrowLeft' ? 'left' : e.key === 'ArrowRight' ? 'right' : e.key === 'ArrowUp' ? 'up' : e.key === 'ArrowDown' ? 'down' : null
+                const action: KeyboardRectAction | null = e.key === 'PageUp'
+                  ? 'bring-forward'
+                  : e.key === 'PageDown'
+                    ? 'send-backward'
+                    : direction
+                      ? e.shiftKey
+                        ? direction === 'left' ? 'shrink-width' : direction === 'right' ? 'grow-width' : direction === 'up' ? 'shrink-height' : 'grow-height'
+                        : `move-${direction}`
+                      : null
+                if (!action) return
+                e.preventDefault()
+                const rect = adjustKeyboardRect(current.rect, action, bounds.w ? bounds : { w: 1200, h: 800 })
+                setKeyboard({ ...current, rect })
+                setAnnouncement(`${item.id}: x ${Math.round(rect.x)}, y ${Math.round(rect.y)}, width ${Math.round(rect.w)}, height ${Math.round(rect.h)}, layer ${rect.z ?? 0}.`)
+              }}
             >
               <GripVertical className="h-3 w-3 shrink-0 text-ink-faint" />
-            </div>
+            </button>
+
+            {manipulating && (
+              <p id={`arrange-help-${item.id}`} className="shrink-0 px-2 py-1 text-xs text-ink-faint">
+                Arrows move · Shift + arrows resize · Page Up/Down layer · Enter save · Escape cancel
+              </p>
+            )}
 
             <div className="min-h-0 flex-1 overflow-auto p-1.5">{item.node}</div>
 
@@ -315,6 +372,7 @@ export function FreeCanvas({
           </div>
         )
       })}
+      <div className="sr-only" role="status" aria-live="polite">{announcement}</div>
     </div>
   )
 }
