@@ -33,6 +33,21 @@ in-client publisher should open a reviewed GitHub contribution for these files
 only after the player explicitly opts in; selecting local artwork by itself
 must not silently make it public.
 
+If a character publishes race and sex but no custom image, add that opt-in
+metadata to `public/player-art/profiles.json`:
+
+```json
+{
+  "Dan the Bold": { "race": "Gor'Tog", "sex": "male" }
+}
+```
+
+The client resolves another player's image in this order: their exact custom
+file, their published race/sex default, then an initial. It never guesses
+demographics from a character name. A future in-client publisher should open
+a reviewed GitHub contribution for these files only after the player explicitly
+opts in; selecting local artwork by itself must not silently make it public.
+
 ## What to submit
 
 **A character illustration, not a photograph of yourself.** This is a

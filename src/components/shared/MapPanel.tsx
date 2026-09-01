@@ -185,6 +185,15 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     setMapDock({ zoom: 1 })
   }, [browsing, hereId, level, resetPan, zone?.zone])
 
+  // A room update must update the view, not only the red "here" marker in an
+  // off-screen part of a previously panned map. Return the docked map to fit
+  // when live location changes; deliberate browsing keeps its own view.
+  useEffect(() => {
+    if (browsing) return
+    resetPan()
+    if (dock.zoom < 1) setMapDock({ zoom: 1 })
+  }, [browsing, dock.zoom, hereId, level, resetPan, zone?.zone])
+
   const character = useAppStore((s) => s.character)
   const addLog = useAppStore((s) => s.addLog)
 
