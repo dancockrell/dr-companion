@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { analyzeScene } from './scene-semantics.mjs'
 
 const baskets = JSON.parse(readFileSync('data/art/scene-baskets.json', 'utf8'))
@@ -101,21 +101,41 @@ lines.push(
   ''
 )
 writeFileSync('src/data/roomScenePatterns.ts', lines.join('\n'))
+
+const roomCount = Object.values(coverage).reduce((a, b) => a + b, 0)
+const protectedLandmarks = [...protectedPlaces].sort()
+const assignments = rules.map(({ placeKey, category, zone, ranges, confidence, traits, signals }) => ({
+  placeKey,
+  category,
+  zone,
+  ranges,
+  confidence,
+  traits,
+  signals,
+}))
+
+// Keep the repository-facing file small and reviewable. The complete evidence
+// set is generated into data/art/out (already ignored by git) and uploaded by
+// CI so investigators can inspect every automatic and unresolved decision.
 writeFileSync('data/art/scene-basket-coverage.json', JSON.stringify({
   ruleCount: rules.length,
-  roomCount: Object.values(coverage).reduce((a, b) => a + b, 0),
+  roomCount,
+  assignmentCount: assignments.length,
+  unresolvedCount: unresolved.length,
   coverage,
-  protectedLandmarks: [...protectedPlaces].sort(),
-  assignments: rules.map(({ placeKey, category, zone, ranges, confidence, traits, signals }) => ({
-    placeKey,
-    category,
-    zone,
-    ranges,
-    confidence,
-    traits,
-    signals,
-  })),
+  protectedLandmarkCount: protectedLandmarks.length,
+  protectedLandmarks,
+}, null, 2) + '\n')
+
+mkdirSync('data/art/out', { recursive: true })
+writeFileSync('data/art/out/scene-basket-audit.json', JSON.stringify({
+  ruleCount: rules.length,
+  roomCount,
+  coverage,
+  protectedLandmarks,
+  assignments,
   unresolved,
 }, null, 2) + '\n')
-console.log(`wrote ${rules.length} rules covering ${Object.values(coverage).reduce((a, b) => a + b, 0)} rooms`)
+
+console.log(`wrote ${rules.length} rules covering ${roomCount} rooms`)
 console.log(`${unresolved.length} multi-room places remain intentionally unassigned or lack an approved basket`)
