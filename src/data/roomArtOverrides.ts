@@ -46,6 +46,14 @@ const RULES: readonly Rule[] = [
   { zone: '1', ranges: [[249, 257], [259, 259], [261, 262]], arts: ['/room-scenes/archetype-garden-1.webp', '/room-scenes/archetype-garden-6.webp'] },
   { zone: '1', ranges: [[889, 891]], arts: ['/room-scenes/archetype-mine-tunnel-1.webp', '/room-scenes/archetype-mine-tunnel-6.webp'] },
 
+  // High-reuse places whose generated fallback depicted the wrong kind of environment.
+  { zone: '1', ranges: [[295, 300], [408, 425], [621, 634]], arts: ['/room-scenes/curated-crossing-sewer.webp'] },
+  { zone: '66', ranges: [[411, 446]], arts: ['/room-scenes/curated-maelshyves-ascent.webp'] },
+  { zone: '4', ranges: [[140, 172]], arts: ['/room-scenes/curated-hunting-preserve-grasslands.webp'] },
+  { zone: '4', ranges: [[301, 320], [327, 328], [330, 340]], arts: ['/room-scenes/curated-rain-grooved-outcrop.webp'] },
+  { zone: '98', ranges: [[25, 25], [37, 52], [58, 61], [73, 84]], arts: ['/room-scenes/curated-shadaer-jama.webp'] },
+  { zone: '40a', ranges: [[156, 187]], arts: ['/room-scenes/curated-duvli-rinu.webp'] },
+
   // Velakan roads: replace a single enclosed palace courtyard reused across unrelated roads.
   { zone: '47', ranges: [[97, 114], [363, 363], [401, 403]], arts: ['/room-scenes/archetype-desert-6.webp', '/room-scenes/archetype-desert-2.webp'] },
   { zone: '47', ranges: [[144, 144], [370, 378], [404, 404]], arts: ['/room-scenes/archetype-desert-6.webp', '/room-scenes/archetype-desert-1.webp'] },

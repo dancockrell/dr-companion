@@ -17,6 +17,12 @@ const expected = [
   ['127', 435, '/room-scenes/curated-north-wind-catacombs.webp'],
   ['127', 505, '/room-scenes/curated-north-wind-catacombs.webp'],
   ['106', 117, '/room-scenes/curated-seord-fal.webp'],
+  ['1', 295, '/room-scenes/curated-crossing-sewer.webp'],
+  ['66', 446, '/room-scenes/curated-maelshyves-ascent.webp'],
+  ['4', 140, '/room-scenes/curated-hunting-preserve-grasslands.webp'],
+  ['4', 340, '/room-scenes/curated-rain-grooved-outcrop.webp'],
+  ['98', 25, '/room-scenes/curated-shadaer-jama.webp'],
+  ['40a', 187, '/room-scenes/curated-duvli-rinu.webp'],
 ]
 let failures = 0
 for (const [zone, room, want] of expected) {
@@ -30,6 +36,12 @@ for (const [zone, room, forbidden] of [
   ['7', 64, '/room-scenes/curated-underwater-marsh-channel.webp'],
   ['127', 437, '/room-scenes/curated-north-wind-catacombs.webp'],
   ['106', 160, '/room-scenes/curated-seord-fal.webp'],
+  ['1', 301, '/room-scenes/curated-crossing-sewer.webp'],
+  ['66', 447, '/room-scenes/curated-maelshyves-ascent.webp'],
+  ['4', 173, '/room-scenes/curated-hunting-preserve-grasslands.webp'],
+  ['4', 329, '/room-scenes/curated-rain-grooved-outcrop.webp'],
+  ['98', 26, '/room-scenes/curated-shadaer-jama.webp'],
+  ['40a', 188, '/room-scenes/curated-duvli-rinu.webp'],
 ]) {
   const got = roomArtOverride(zone, room)
   const ok = got !== forbidden

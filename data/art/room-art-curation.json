@@ -61,6 +61,78 @@
       "rejects": ["/rooms/106-117.webp", "/rooms/13-waterfall.webp"],
       "regenerationNeeded": false,
       "decision": "The city canal and generic waterfall do not communicate a violent natural jungle river."
+    },
+    "1::Sewer": {
+      "exactSubject": "Crossing sewer",
+      "canonicalTraits": ["bedrock seepage", "crumbling stone walls", "slick treacherous footing"],
+      "habitat": "an eroded subterranean sewer beneath Crossing",
+      "roomCount": 38,
+      "currentImage": "/rooms/1-295.webp",
+      "approvedPrimary": "/room-scenes/curated-crossing-sewer.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/1-295.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former populated gatehouse is exterior architecture and does not depict a sewer."
+    },
+    "66::Maelshyve's Ascent": {
+      "exactSubject": "Abyss, Maelshyve's Ascent",
+      "canonicalTraits": ["visibility-choking blackness", "path of twisted fused bones", "skulls, claws, ribs and hands"],
+      "habitat": "an abyssal ascent near Maelshyve's core",
+      "roomCount": 36,
+      "currentImage": "/rooms/66-411.webp",
+      "approvedPrimary": "/room-scenes/curated-maelshyves-ascent.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/66-411.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former city procession omits both the Abyss and the grotesque bone path."
+    },
+    "4::Grasslands": {
+      "exactSubject": "Hunting Preserve, Grasslands",
+      "canonicalTraits": ["grass taller than a human", "visibility limited to a few feet", "predator claw marks in gritty soil"],
+      "habitat": "feral grass maze within the Hunting Preserve",
+      "roomCount": 33,
+      "currentImage": "/rooms/4-140.webp",
+      "approvedPrimary": "/room-scenes/curated-hunting-preserve-grasslands.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/4-140.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former open lawn contradicts the head-high, claustrophobic predator grass."
+    },
+    "4::Rocky Outcrop": {
+      "exactSubject": "Rocky Outcrop",
+      "canonicalTraits": ["vertical rain-cut grooves", "grey stone resembling colossal scored bark", "shadowy hollow"],
+      "habitat": "an exposed wilderness outcrop",
+      "roomCount": 33,
+      "currentImage": "/rooms/4-301.webp",
+      "approvedPrimary": "/room-scenes/curated-rain-grooved-outcrop.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/4-301.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former image reads as a building facade rather than natural scored rock."
+    },
+    "98::Shadaer Jama": {
+      "exactSubject": "Aesry Surlaenis'a, Shadaer Jama",
+      "canonicalTraits": ["vast white coastal sand", "weathered wooden walkway rising uphill", "tar and ocean air from the harbor"],
+      "habitat": "a tropical island harbor slope",
+      "roomCount": 33,
+      "currentImage": "/rooms/98-25.webp",
+      "approvedPrimary": "/room-scenes/curated-shadaer-jama.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/98-25.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former snowy town contradicts the white-sand island and harbor walkway."
+    },
+    "40a::Duvli Rinu": {
+      "exactSubject": "Duvli Rinu",
+      "canonicalTraits": ["pine-log X braces", "packed earthen walls and ceiling", "track-covered dirt floor"],
+      "habitat": "the dirt-tunnel network beneath Siksraja",
+      "roomCount": 32,
+      "currentImage": "/rooms/40a-156.webp",
+      "approvedPrimary": "/room-scenes/curated-duvli-rinu.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/40a-156.webp"],
+      "regenerationNeeded": false,
+      "decision": "The former exterior cliff omits the defining underground timber-braced passage."
     }
   },
   "notes": {
