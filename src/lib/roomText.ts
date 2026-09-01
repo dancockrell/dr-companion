@@ -1,4 +1,6 @@
 import { grokRoomScene } from '../data/grokRoomScenes.ts'
+import { roomArtOverride } from '../data/roomArtOverrides.ts'
+import { roomScenePattern } from '../data/roomScenePatterns.ts'
 import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom.ts'
 
 /**
@@ -77,11 +79,27 @@ export function cachedRoomText(zone: string, room: number): RoomText | null {
 /**
  * Where the rendered scene lives, if it has been rendered.
  *
- * Most rooms resolve directly to /rooms/{zone}-{room}.webp. A small curated
- * override layer sits in front of that for art that has been visually checked
- * and found to be a clear mismatch for its room description. The override
- * deliberately reuses stronger art that already ships in public/ rather than
- * generating a second near-duplicate asset just to repair an assignment.
+ * Selection follows the production art contract: exact reviewed corrections
+ * first, then generated regional/semantic families, then the conservative
+ * live-text selector. Each layer may decline to answer; the backdrop's neutral
+ * fingerprint is the final honest fallback. The order matters: bypassing the
+ * first two layers reduced 1,874 reviewed assignments and seven regional town
+ * families to the shallow global Grok pool.
  */
+export type RoomArtLayer = 'curated' | 'regional-or-semantic' | 'text-fallback' | 'fingerprint'
+
+export function roomArtSelection(zone: string, room: number, title?: string | null, text?: string | null): {
+  url: string | null
+  layer: RoomArtLayer
+} {
+  const curated = roomArtOverride(zone, room)
+  if (curated) return { url: curated, layer: 'curated' }
+  const patterned = roomScenePattern(zone, room)
+  if (patterned) return { url: patterned, layer: 'regional-or-semantic' }
+  const textFallback = grokRoomScene(zone, room, title, text)
+  if (textFallback) return { url: textFallback, layer: 'text-fallback' }
+  return { url: null, layer: 'fingerprint' }
+}
+
 export const roomArtUrl = (zone: string, room: number, title?: string | null, text?: string | null) =>
-  grokRoomScene(zone, room, title, text)
+  roomArtSelection(zone, room, title, text).url
