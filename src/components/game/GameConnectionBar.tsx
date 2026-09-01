@@ -100,7 +100,9 @@ export function GameConnectionBar() {
         <button
           type="button"
           className="rounded p-1 text-ink-faint hover:text-ink"
-          onClick={clearGame}
+          onClick={() => {
+            if (confirm('Clear all game scrollback? This cannot be undone. The live connection will stay attached.')) clearGame()
+          }}
           title="Clear the scrollback. The connection is untouched."
           aria-label="Clear the scrollback"
         >
