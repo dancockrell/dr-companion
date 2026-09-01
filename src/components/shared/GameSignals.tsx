@@ -42,6 +42,7 @@ import {
   setCrossfadeStyle,
 } from '../../lib/ambientSound'
 import { loadPrefs } from '../../lib/persistence'
+import { setMasterMuted } from '../../lib/audioMaster'
 import { useAppStore } from '../../store/useAppStore'
 
 export function GameSignals() {
@@ -59,6 +60,7 @@ export function GameSignals() {
   useEffect(() => {
     initMediaSession()
     const prefs = loadPrefs()
+    setMasterMuted(prefs.masterMuted ?? false)
     setAlertsVolume(prefs.alertsVolume ?? 0)
     setDangerVolume(prefs.dangerVolume ?? 0)
     setSpeechVolume(prefs.speechVolume ?? 0)
