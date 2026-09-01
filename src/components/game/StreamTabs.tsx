@@ -64,7 +64,7 @@ const logChannel = (t: string) => t.slice(LOG_PREFIX.length) as Channel
  */
 const LABELS = STREAM_LABELS
 
-export function StreamTabs({ highlights, heading }: { highlights: Highlight[]; heading?: ReactNode }) {
+export function StreamTabs({ highlights, heading, query = '' }: { highlights: Highlight[]; heading?: ReactNode; query?: string }) {
   const offClasses = useOffClasses()
   // Both of these subscribe, and both hand back a fresh identity when the
   // buffer changes - see useGameLines.ts. Reading the raw buffer instead is
@@ -98,6 +98,11 @@ export function StreamTabs({ highlights, heading }: { highlights: Highlight[]; h
   const shown: GameLine[] = useMemo(
     () => (isLogTab(tab) ? [] : allLines.filter((l) => l.stream === tab)),
     [tab, allLines]
+  )
+  const needle = query.trim().toLocaleLowerCase()
+  const searchResults = useMemo(
+    () => needle ? allLines.filter((line) => line.text.toLocaleLowerCase().includes(needle)) : [],
+    [allLines, needle]
   )
 
   // Mark the open tab read whenever new lines land in it.
@@ -242,7 +247,11 @@ export function StreamTabs({ highlights, heading }: { highlights: Highlight[]; h
         }}
         className="min-h-0 flex-1 overflow-y-auto px-2 py-1"
       >
-        {isLogTab(tab) ? (
+        {needle ? (
+          searchResults.map((l) => (
+            <GameLineRow key={l.seq} line={l} highlights={highlights} offClasses={offClasses} showStream showTime />
+          ))
+        ) : isLogTab(tab) ? (
           linesFor(logLines, logChannel(tab)).map((l) => (
             <div key={l.seq} className="text-xs leading-snug text-ink-muted">
               <span className="text-ink-faint">{l.at} </span>
@@ -251,11 +260,15 @@ export function StreamTabs({ highlights, heading }: { highlights: Highlight[]; h
           ))
         ) : (
           shown.map((l) => (
-            <GameLineRow key={l.seq} line={l} highlights={highlights} offClasses={offClasses} />
+            <GameLineRow key={l.seq} line={l} highlights={highlights} offClasses={offClasses} showTime />
           ))
         )}
 
-        {!isLogTab(tab) && shown.length === 0 && (
+        {needle && searchResults.length === 0 && (
+          <p className="p-2 text-xs text-ink-faint">Nothing in game scrollback matches “{query.trim()}”.</p>
+        )}
+
+        {!needle && !isLogTab(tab) && shown.length === 0 && (
           <p className="p-2 text-xs text-ink-faint">
             Nothing on this channel yet.
           </p>

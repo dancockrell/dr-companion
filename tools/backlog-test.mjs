@@ -127,7 +127,7 @@ async function freshLink() {
 }
 
 const NL = String.fromCharCode(10)
-const chunk = (seq, text) => ({ seq, text: text + NL })
+const chunk = (seq, text, receivedAtMs = 1_700_000_000_000 + seq) => ({ seq, receivedAtMs, text: text + NL })
 const settle = () => new Promise((r) => setTimeout(r, 30))
 const texts = (L) => L.gameLines().map((l) => l.text)
 
@@ -165,6 +165,23 @@ console.log('backlog backfill')
   await settle()
   eq(texts(L).length, 2, 'chunks emitted before subscribing are recovered')
   ok(texts(L).includes('a rusty gate.'), 'the recovered text is the real text')
+  eq(L.gameLines()[0].receivedAtMs, 1_700_000_000_001, 'the first recovered line keeps its native receive time')
+  eq(L.gameLines()[1].receivedAtMs, 1_700_000_000_002, 'distinct backfill times remain distinct')
+}
+
+// One native chunk can produce several display lines and stream tags can
+// change classification inside it. Every derived line keeps the one honest
+// receive time; seq remains their identity and order.
+{
+  const at = 1_700_123_456_789
+  backlogReply = { lines: [chunk(1, "<pushStream id='thoughts'/>First thought.\nSecond thought.<popStream/>", at)], dropped: 0 }
+  const L = await freshLink()
+  L.subscribeGame(() => {})
+  await settle()
+  const thoughts = L.gameLines().filter((line) => line.stream === 'thoughts')
+  eq(thoughts.length, 2, 'timestamp capture survives parser channel classification')
+  ok(thoughts.every((line) => line.receivedAtMs === at), 'display lines inherit their native chunk receive time')
+  ok(thoughts[0].seq < thoughts[1].seq, 'sequence remains the display ordering authority')
 }
 
 // ------------------------------------------------------------ no double-apply
@@ -248,7 +265,7 @@ console.log('backlog backfill')
 //
 // A run that asserted nothing prints the same "no failures" as a run that
 // asserted everything.
-const FLOOR = 14
+const FLOOR = 19
 if (checks < FLOOR) {
   console.log(
     `${NL}FAIL only ${checks} checks ran, expected at least ${FLOOR} - the suite did not execute`

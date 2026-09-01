@@ -25,6 +25,7 @@ export function GameChatColumn() {
           <PanelBoundary label="Game and channels">
             <StreamTabs
               highlights={highlights}
+              query={query}
               heading={<><MessageSquareText className="h-4 w-4" aria-hidden /><span>Game</span></>}
             />
           </PanelBoundary>

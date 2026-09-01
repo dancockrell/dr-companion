@@ -20,6 +20,8 @@ import type { StreamCharacterState } from '../types/stream'
 
 export interface GameLine {
   seq: number
+  /** Wall-clock time captured by native when this wire chunk arrived. */
+  receivedAtMs: number
   text: string
   /**
    * The channel the game put this in - 'thoughts', 'death', 'talk' - or empty
@@ -181,7 +183,7 @@ function wire() {
 }
 
 /** One chunk as Rust emits it: bytes up to and including a newline. */
-type GameChunk = { seq: number; text: string }
+type GameChunk = { seq: number; receivedAtMs: number; text: string }
 
 /**
  * Whether the backlog has been merged, and what arrived while it had not.
@@ -218,7 +220,12 @@ async function backfill(): Promise<void> {
     const r = reply as { lines?: unknown; dropped?: unknown } | undefined
     if (Array.isArray(r?.lines)) {
       for (const c of r.lines as GameChunk[]) {
-        if (typeof c?.seq === 'number' && typeof c?.text === 'string') applyChunk(c)
+        if (
+          typeof c?.seq === 'number' &&
+          typeof c?.receivedAtMs === 'number' &&
+          Number.isFinite(c.receivedAtMs) &&
+          typeof c?.text === 'string'
+        ) applyChunk(c)
       }
     }
     // Counted, not hidden. A pane that quietly begins mid-session looks
@@ -251,6 +258,7 @@ function applyChunk(chunk: GameChunk) {
     for (const parsed of feed(parser, chunk.text)) {
       buffer.push({
         seq: ++nextSeq,
+        receivedAtMs: chunk.receivedAtMs,
         text: parsed.text,
         stream: parsed.stream,
         bold: parsed.bold,

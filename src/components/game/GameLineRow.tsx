@@ -14,12 +14,14 @@ import { memo } from 'react'
 import { paint, segments, type Highlight } from '../../lib/highlights'
 import type { GameLine } from '../../lib/gameLink'
 import { cn } from '../../lib/cn'
+import { formatGameDateTime, formatGameTime } from '../../lib/gameTime'
 
 export const GameLineRow = memo(function GameLineRow({
   line,
   highlights,
   offClasses,
   showStream = false,
+  showTime = false,
 }: {
   line: GameLine
   highlights: Highlight[]
@@ -35,6 +37,8 @@ export const GameLineRow = memo(function GameLineRow({
    * mixes channels, where "which of these is a thought" is the question.
    */
   showStream?: boolean
+  /** A compact receive-time gutter for history, search, and event channels. */
+  showTime?: boolean
 }) {
   if (line.text === '') return <div className="font-mono text-xs leading-snug"> </div>
 
@@ -54,6 +58,15 @@ export const GameLineRow = memo(function GameLineRow({
         line.bold && 'font-semibold text-ink'
       )}
     >
+      {showTime && (
+        <time
+          dateTime={line.receivedAtMs > 0 ? new Date(line.receivedAtMs).toISOString() : undefined}
+          title={formatGameDateTime(line.receivedAtMs)}
+          className="mr-2 inline-block min-w-[4.5em] select-none text-right text-ink-faint"
+        >
+          {formatGameTime(line.receivedAtMs)}
+        </time>
+      )}
       {showStream && line.stream && (
         <span className="text-ink-faint">[{line.stream}] </span>
       )}

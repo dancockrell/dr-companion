@@ -118,6 +118,7 @@
     "test:verified-claim": "node tools/verified-claim-test.mjs",
     "test:all": "node tools/run-tests.mjs",
     "test:backlog": "node --experimental-test-module-mocks tools/backlog-test.mjs",
+    "test:game-time": "node --experimental-strip-types tools/game-time-test.mjs",
     "test:cdp-timeout": "node tools/cdp-timeout-test.mjs",
     "test:macroguard": "node tools/macro-guard-test.mjs",
     "test:streamstate": "node tools/stream-state-test.mjs",
