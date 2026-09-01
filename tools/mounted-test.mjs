@@ -34,7 +34,7 @@
  * could not see that - found by hand, then reproduced here as the sabotage
  * this file's own test suite carries below, so it cannot come back silently.
  *
- * This version builds the real static-import graph and walks it from
+ * This version builds the real static-and-dynamic-import graph and walks it from
  * `main.tsx`, the app's one true root. Reachable means "on a path from the
  * entry point", not "named somewhere in the tree". ALLOWED files are
  * exempted from having to be reachable, but - this is the part the old
@@ -181,7 +181,7 @@ function resolveImport(fromFile, spec) {
   return candidates.find((c) => sources.has(c)) ?? null
 }
 
-const IMPORT_RE = /from\s+'([^']+)'/g
+const IMPORT_RE = /(?:from\s+|import\s*\()\s*['"]([^'"]+)['"]/g
 
 function importsOf(file) {
   const text = sources.get(file) ?? ''

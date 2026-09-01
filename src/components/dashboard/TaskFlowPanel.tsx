@@ -58,7 +58,7 @@
  * reporting stopped while a timer kept firing underneath — cannot be written
  * here, because there is no timer to get out of step with.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   FilePlus2,
   FolderOpen,
@@ -95,8 +95,8 @@ import { inferScriptIcon, type ScriptIconKey } from '../../lib/scriptIcons'
 import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
 import { iconOverrideFor, setIconOverride, clearIconOverride } from '../../lib/scriptIconOverrides'
 import { useDragScroll } from '../../lib/useDragScroll'
+import type { EditorTarget } from './ScriptEditor'
 import { scrollableRegionProps } from '../../lib/scrollableRegion'
-import { ScriptEditor, type EditorTarget } from './ScriptEditor'
 import { ScriptIconPicker } from './ScriptIconPicker'
 import { onStopAll, onStartFlow } from '../../lib/flowStop'
 import { invokeTauri } from '../../lib/tauri'
@@ -107,6 +107,9 @@ import { isPinned, type QuickSwitchPin } from '../../lib/quickSwitch'
 import { MACROS, type Macro } from '../../data/macros'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { accentForIndex, actionAccent, actionIcon } from '../../lib/battleActionVisuals'
+import { LazySurface } from '../shared/LazySurface'
+
+const ScriptEditor = lazy(() => import('./ScriptEditor').then((module) => ({ default: module.ScriptEditor })))
 
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200
@@ -592,16 +595,18 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
 
   if (editing) {
     return (
-      <ScriptEditor
-        target={editing}
-        dirs={dirs}
-        onClose={() => setEditing(null)}
-        onSaved={() => void refresh()}
-        onRun={(id, lang) => {
-          setEditing(null)
-          void (lang === 'typescript' ? startNode(id) : startPython(id))
-        }}
-      />
+      <LazySurface label="Script editor">
+        <ScriptEditor
+          target={editing}
+          dirs={dirs}
+          onClose={() => setEditing(null)}
+          onSaved={() => void refresh()}
+          onRun={(id, lang) => {
+            setEditing(null)
+            void (lang === 'typescript' ? startNode(id) : startPython(id))
+          }}
+        />
+      </LazySurface>
     )
   }
 

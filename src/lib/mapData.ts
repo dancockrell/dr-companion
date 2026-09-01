@@ -55,7 +55,10 @@ interface BuiltZone {
 }
 
 /** Vite resolves these at build time; only the requested zone is fetched. */
-const ZONES = import.meta.glob<{ default: BuiltZone }>('../data/map/*.json')
+const ZONES = import.meta.glob<{ default: BuiltZone }>([
+  '../data/map/*.json',
+  '!../data/map/index.json',
+])
 
 const cache = new Map<string, MapZone>()
 
