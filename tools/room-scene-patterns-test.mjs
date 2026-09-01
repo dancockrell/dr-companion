@@ -42,8 +42,8 @@ const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 
 check(coverage.roomCount >= 1700, `generic patterns cover ${coverage.roomCount} rooms without swallowing protected landmarks`)
 check(!coverage.assignments.some(({ placeKey }) => placeKey === '4a::Behind the Goal Line'), 'special sports location is not treated as generic grassland')
 check(coverage.protectedLandmarks.includes('1::Sewer'), 'curated landmark places remain protected')
-check(!coverage.assignments.some(({ placeKey }) => placeKey === '4::Doline'), 'ambiguous Doline is not forced into a water basket from lore alone')
-check(!coverage.assignments.some(({ placeKey }) => placeKey === '7::Low Rise'), 'ambiguous Low Rise is not forced into a garden basket from lore alone')
+check(coverage.assignments.some(({ placeKey, category }) => placeKey === '4::Doline' && category === 'riverside'), 'Applebrandy River Doline keeps its title-backed riverside assignment')
+check(coverage.assignments.some(({ placeKey, category }) => placeKey === '7::Low Rise' && category === 'deep-forest'), 'Sicle Grove Low Rise uses natural-grove art rather than a cultivated garden')
 check(coverage.assignments.every((assignment) =>
   Number.isFinite(assignment.confidence) &&
   assignment.confidence >= 0 && assignment.confidence <= 1 &&
@@ -62,10 +62,11 @@ const cases = [
   [{ title: 'Old Forest Trail', lore: 'A narrow path winds between mature trees.' }, 'forest-path'],
   [{ title: 'The Marsh, In The Water', lore: 'Cold wet moss and standing water surround twisted trees.' }, 'swamp'],
   [{ title: 'Temple Catacombs', lore: 'Frost-covered stairs descend into subterranean passages.' }, 'mine-tunnel'],
-  [{ title: 'Magen Road', lore: 'Cobbled buildings line the busy town street.' }, 'regional-city'],
+  [{ title: 'Magen Road', lore: 'Cobbled buildings line the busy town street.' }, null],
   [{ title: 'Behind the Goal Line', lore: 'The playing field opens toward the stadium.' }, null],
+  [{ title: 'Applebrandy River, Doline', lore: 'A sinkhole lies in the riverbed.' }, 'riverside'],
+  [{ title: 'Sicle Grove, Low Rise', lore: 'Ash and dust cover the rise below smoke-shrouded mountains.' }, 'deep-forest'],
   [{ title: 'Doline', lore: 'A river curls through the low ground below the path.' }, null],
-  [{ title: 'Low Rise', lore: 'Flowerbeds and clipped hedges are visible beyond the slope.' }, null],
 ]
 for (const [place, category] of cases) {
   const result = analyzeScene(place)
