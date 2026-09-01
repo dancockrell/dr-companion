@@ -8,6 +8,11 @@ const root = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // The repository enforces raw and gzip startup budgets from the built
+  // artifact in tools/bundle-test.mjs. Keep Vite's generic warning aligned
+  // with that measured limit so CI has one actionable threshold, not two
+  // contradictory ones.
+  build: { chunkSizeWarningLimit: 1700 },
   resolve: {
     alias: {
       '@': path.resolve(root, './src'),
