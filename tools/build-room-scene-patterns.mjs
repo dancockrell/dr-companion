@@ -43,7 +43,15 @@ for (const [placeKey, place] of Object.entries(places)) {
   if (!group || group.rooms.length < 4) continue
   if (protectedPlaces.has(placeKey)) continue
 
-  const analysis = analyzeScene(place)
+  const reviewed = baskets.reviewedPlaceAssignments?.[placeKey]
+  const analysis = reviewed
+    ? {
+        category: reviewed.category,
+        confidence: 1,
+        traits: { environment: 'settlement', subtype: 'reviewed-place', civilization: 'urban', water: 'unknown', elevation: 'unknown', route: false },
+        signals: [`reviewed:${reviewed.category}`, `reason:${reviewed.reason}`],
+      }
+    : analyzeScene(place)
   const category = analysis.category
   if (!category) {
     unresolved.push({ placeKey, zone: group.zone, roomCount: group.rooms.length, ...analysis })
@@ -114,6 +122,18 @@ const assignments = rules.map(({ placeKey, category, zone, ranges, confidence, t
   signals,
 }))
 
+const regionStats = Object.fromEntries(Object.entries(baskets.auditRegions ?? {}).map(([name, zones]) => {
+  const zoneSet = new Set(zones)
+  const regionAssignments = assignments.filter((item) => zoneSet.has(item.zone))
+  const regionUnresolved = unresolved.filter((item) => zoneSet.has(item.zone))
+  return [name, {
+    assignedPlaceCount: regionAssignments.length,
+    assignedRoomCount: regionAssignments.reduce((sum, item) => sum + item.ranges.reduce((rangeSum, [first, last]) => rangeSum + last - first + 1, 0), 0),
+    unresolvedPlaceCount: regionUnresolved.length,
+    unresolvedRoomCount: regionUnresolved.reduce((sum, item) => sum + item.roomCount, 0),
+  }]
+}))
+
 // Keep the repository-facing file small and reviewable. The complete evidence
 // set is generated into data/art/out (already ignored by git) and uploaded by
 // CI so investigators can inspect every automatic and unresolved decision.
@@ -123,6 +143,7 @@ writeFileSync('data/art/scene-basket-coverage.json', JSON.stringify({
   assignmentCount: assignments.length,
   unresolvedCount: unresolved.length,
   coverage,
+  regions: regionStats,
   protectedLandmarkCount: protectedLandmarks.length,
   protectedLandmarks,
 }, null, 2) + '\n')

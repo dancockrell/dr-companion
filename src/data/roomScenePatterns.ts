@@ -6,6 +6,8 @@ const RULES: readonly PatternRule[] = [
   {"zone":"1","ranges":[[129,132]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Gildleaf Circle
   {"zone":"1","ranges":[[177,183]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Riverpine Circle
   {"zone":"1","ranges":[[264,273]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Midton Circle
+  {"zone":"1","ranges":[[278,288]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Goldstone Square
+  {"zone":"1","ranges":[[391,394]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Traders' Market
   {"zone":"1","ranges":[[516,522]],"arts":["/room-scenes/archetype-garden-1.webp","/room-scenes/archetype-garden-4.webp","/room-scenes/archetype-garden-6.webp"]}, // 1::Gardens
   {"zone":"1","ranges":[[607,610],[612,614]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Smithy Lane
   {"zone":"1","ranges":[[806,810]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Holy Warrior's Promenade

@@ -1,11 +1,11 @@
 {
-  "ruleCount": 180,
-  "roomCount": 1904,
-  "assignmentCount": 180,
-  "unresolvedCount": 583,
+  "ruleCount": 182,
+  "roomCount": 1919,
+  "assignmentCount": 182,
+  "unresolvedCount": 581,
   "coverage": {
     "deep-forest": 229,
-    "regional-city": 376,
+    "regional-city": 391,
     "mine-tunnel": 496,
     "forest-path": 80,
     "riverside": 163,
@@ -14,6 +14,14 @@
     "desert": 75,
     "swamp": 100,
     "garden": 90
+  },
+  "regions": {
+    "Crossing": {
+      "assignedPlaceCount": 23,
+      "assignedRoomCount": 219,
+      "unresolvedPlaceCount": 94,
+      "unresolvedRoomCount": 689
+    }
   },
   "protectedLandmarkCount": 17,
   "protectedLandmarks": [

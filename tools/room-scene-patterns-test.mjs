@@ -40,17 +40,23 @@ for (const district of ['town-green-civic','market-commercial','river-quays','ga
 }
 check((crossing?.priorityLandmarks ?? []).length >= 8, 'Crossing has a landmark production priority list')
 check((crossing?.avoid ?? []).some((item) => /generic medieval street/.test(item)), 'Crossing explicitly rejects one-street-fits-all art')
+check(Object.keys(crossing?.plannedArtFamilies ?? {}).length >= 8, 'Crossing has generation-ready differentiated art families')
+check(Object.values(crossing?.plannedArtFamilies ?? {}).every((family) => family.priority && family.variants && family.prompt?.length > 100), 'Crossing planned families have priority, variant count, and authoritative prompts')
+check(baskets.reviewedPlaceAssignments?.['1::Goldstone Square']?.category === 'regional-city', 'Crossing Goldstone Square has a reviewed exact assignment')
+check(baskets.reviewedPlaceAssignments?.["1::Traders' Market"]?.category === 'regional-city', 'Crossing Traders Market has a reviewed exact assignment')
 
 const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 'utf8'))
 const audit = JSON.parse(readFileSync('data/art/out/scene-basket-audit.json', 'utf8'))
 check(coverage.roomCount >= 1700, `generic patterns cover ${coverage.roomCount} rooms without swallowing protected landmarks`)
 check(coverage.assignmentCount === audit.assignments.length, 'coverage assignment count matches full audit')
 check(coverage.unresolvedCount === audit.unresolved.length, 'coverage unresolved count matches full audit')
+check(coverage.regions?.Crossing?.assignedRoomCount > 204, 'Crossing reviewed assignments improve runtime room coverage')
+check(coverage.regions?.Crossing?.unresolvedRoomCount < 704, 'Crossing reviewed assignments reduce unresolved room coverage')
 check(!audit.assignments.some(({ placeKey }) => placeKey === '4a::Behind the Goal Line'), 'special sports location is not treated as generic grassland')
 check(coverage.protectedLandmarks.includes('1::Sewer'), 'curated landmark places remain protected')
 check(audit.assignments.some(({ placeKey, category }) => placeKey === '4::Doline' && category === 'riverside'), 'Applebrandy River Doline keeps its title-backed riverside assignment')
 check(audit.assignments.some(({ placeKey, category }) => placeKey === '7::Low Rise' && category === 'deep-forest'), 'Sicle Grove Low Rise uses natural-grove art rather than a cultivated garden')
-check(audit.assignments.every((assignment) => Number.isFinite(assignment.confidence) && assignment.confidence >= 0 && assignment.confidence <= 1 && assignment.traits && typeof assignment.traits === 'object' && Array.isArray(assignment.signals) && assignment.signals.some((signal) => signal.startsWith('title:'))), 'every automatic assignment is explainable, scored, and backed by title evidence')
+check(audit.assignments.every((assignment) => Number.isFinite(assignment.confidence) && assignment.confidence >= 0 && assignment.confidence <= 1 && assignment.traits && typeof assignment.traits === 'object' && Array.isArray(assignment.signals) && assignment.signals.some((signal) => signal.startsWith('title:') || signal.startsWith('reviewed:'))), 'every assignment is explainable, scored, and backed by title evidence or exact review')
 check(audit.unresolved.every((assignment) => Number.isFinite(assignment.confidence) && assignment.traits && typeof assignment.traits === 'object' && Array.isArray(assignment.signals)), 'unresolved places retain semantic evidence for later curation')
 
 const cases = [
