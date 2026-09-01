@@ -2,11 +2,9 @@ import { useSyncExternalStore } from 'react'
 import { nodeStatus, type NodeStatus } from './nodeTasks'
 import { pythonStatus, type PythonStatus } from './pythonTasks'
 import { listScripts, scriptDirs, type ScriptDirs, type ScriptFile } from './scriptFiles'
+import { failedResource, fulfilledResource, loadingResource, type AsyncResource } from './asyncState'
 
-export type ResourceState<T> =
-  | { state: 'loading'; value: T | null; error: null }
-  | { state: 'ready' | 'empty'; value: T; error: null }
-  | { state: 'error'; value: T | null; error: string }
+export type ResourceState<T> = AsyncResource<T>
 
 export interface TaskCatalogSnapshot {
   python: ResourceState<PythonStatus>
@@ -17,9 +15,8 @@ export interface TaskCatalogSnapshot {
   generation: number
 }
 
-const loading = <T>(): ResourceState<T> => ({ state: 'loading', value: null, error: null })
 let snapshot: TaskCatalogSnapshot = {
-  python: loading(), node: loading(), scripts: loading(), dirs: loading(), refreshing: false, generation: 0,
+  python: loadingResource(), node: loadingResource(), scripts: loadingResource(), dirs: loadingResource(), refreshing: false, generation: 0,
 }
 const listeners = new Set<() => void>()
 let started = false
@@ -29,17 +26,9 @@ function publish(next: TaskCatalogSnapshot) {
   listeners.forEach((listener) => listener())
 }
 
-function fulfilled<T>(value: T, empty: boolean): ResourceState<T> {
-  return { state: empty ? 'empty' : 'ready', value, error: null }
-}
-
 function settled<T>(result: PromiseSettledResult<T>, previous: ResourceState<T>, empty: (value: T) => boolean): ResourceState<T> {
-  if (result.status === 'fulfilled') return fulfilled(result.value, empty(result.value))
-  return {
-    state: 'error',
-    value: previous.value,
-    error: result.reason instanceof Error ? result.reason.message : String(result.reason),
-  }
+  if (result.status === 'fulfilled') return fulfilledResource(result.value, empty)
+  return failedResource(previous, result.reason)
 }
 
 export async function refreshTaskCatalogs(): Promise<void> {

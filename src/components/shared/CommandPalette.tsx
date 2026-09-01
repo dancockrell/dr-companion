@@ -401,7 +401,7 @@ export function CommandPalette() {
           </kbd>
         </div>
 
-        {(catalogs.python.state === 'error' || catalogs.node.state === 'error') && (
+        {(catalogs.python.error || catalogs.node.error) && (
           <div role="alert" className="flex items-center justify-between gap-2 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn">
             <span>Some task catalogs failed; healthy commands remain available.</span>
             <button type="button" className="underline" onClick={() => void refreshTaskCatalogs()}>Retry</button>

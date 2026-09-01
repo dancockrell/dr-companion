@@ -29,10 +29,14 @@ globalThis.__panelListen = (_event, handler) => {
 
 const dir = mkdtempSync(join(tmpdir(), 'panel-window-lifecycle-'))
 const output = join(dir, 'panelWindows.mjs')
+writeFileSync(join(dir, 'asyncState.mjs'), ts.transpileModule(readFileSync('src/lib/asyncState.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText)
 let source = ts.transpileModule(readFileSync('src/lib/panelWindows.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText
 source = source
+  .replace("from './asyncState';", "from './asyncState.mjs';")
   .replace("import { useSyncExternalStore } from 'react';", 'const useSyncExternalStore = () => {};')
   .replace("import { invokeTauri, isTauri, listenTauri } from './tauri';", 'const invokeTauri = globalThis.__panelInvoke; const isTauri = () => true; const listenTauri = globalThis.__panelListen;')
 writeFileSync(output, source)

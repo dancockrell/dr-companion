@@ -452,10 +452,10 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   const nodeTasks = useMemo(() => nodeSt?.tasks ?? [], [nodeSt])
   const rubyScripts = useMemo(() => scripts.filter((s) => s.lang === 'ruby'), [scripts])
   const catalogErrors = [
-    catalogs.python.state === 'error' ? `Python: ${catalogs.python.error}` : null,
-    catalogs.node.state === 'error' ? `TypeScript: ${catalogs.node.error}` : null,
-    catalogs.scripts.state === 'error' ? `Scripts: ${catalogs.scripts.error}` : null,
-    catalogs.dirs.state === 'error' ? `Folders: ${catalogs.dirs.error}` : null,
+    catalogs.python.error ? `Python: ${catalogs.python.error}` : null,
+    catalogs.node.error ? `TypeScript: ${catalogs.node.error}` : null,
+    catalogs.scripts.error ? `Scripts: ${catalogs.scripts.error}` : null,
+    catalogs.dirs.error ? `Folders: ${catalogs.dirs.error}` : null,
   ].filter((item): item is string => item !== null)
   const orderedTasks = useMemo(() => orderTasks(tasks, tileOrder), [tasks, tileOrder])
 
