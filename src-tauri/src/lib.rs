@@ -13,7 +13,7 @@ pub mod scripts;
 pub mod setup;
 pub mod sounds;
 
-use tauri::{Manager, WebviewWindow};
+use tauri::{Emitter, Manager, WebviewWindow, WindowEvent};
 
 /// The bridge address to try before the user has configured anything.
 /// Constant today because the port is fixed; a command rather than a literal
@@ -72,12 +72,17 @@ fn open_panel_window(app: tauri::AppHandle, id: String, title: String) -> Result
     if let Some(existing) = app.get_webview_window(&panel_label(&id)) {
         let _ = existing.unminimize();
         let _ = existing.show();
-        return existing.set_focus().map_err(|e| e.to_string());
+        existing.set_focus().map_err(|e| e.to_string())?;
+        let _ = app.emit(
+            "panel-window:lifecycle",
+            serde_json::json!({ "id": id, "state": "open" }),
+        );
+        return Ok(());
     }
 
     // A query parameter rather than a route path, so it behaves the same under
     // the dev server and from the bundled index.html, where a path would 404.
-    tauri::WebviewWindowBuilder::new(
+    let window = tauri::WebviewWindowBuilder::new(
         &app,
         panel_label(&id),
         tauri::WebviewUrl::App(format!("index.html?view=panel&id={id}").into()),
@@ -89,6 +94,21 @@ fn open_panel_window(app: tauri::AppHandle, id: String, title: String) -> Result
     .build()
     .map_err(|e| e.to_string())?;
 
+    let event_app = app.clone();
+    let event_id = id.clone();
+    window.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            let _ = event_app.emit(
+                "panel-window:lifecycle",
+                serde_json::json!({ "id": event_id, "state": "closed" }),
+            );
+        }
+    });
+    let _ = app.emit(
+        "panel-window:lifecycle",
+        serde_json::json!({ "id": id, "state": "open" }),
+    );
+
     Ok(())
 }
 
@@ -97,6 +117,10 @@ fn open_panel_window(app: tauri::AppHandle, id: String, title: String) -> Result
 #[tauri::command]
 fn close_panel_window(app: tauri::AppHandle, id: String) -> Result<(), String> {
     if let Some(w) = app.get_webview_window(&panel_label(&id)) {
+        let _ = app.emit(
+            "panel-window:lifecycle",
+            serde_json::json!({ "id": id, "state": "closing" }),
+        );
         w.close().map_err(|e| e.to_string())?;
     }
     Ok(())

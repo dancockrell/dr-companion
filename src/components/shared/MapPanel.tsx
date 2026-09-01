@@ -32,7 +32,7 @@ import {
 } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
-import { isTauri, invokeTauri } from '../../lib/tauri'
+import { isTauri } from '../../lib/tauri'
 import { MapCanvas } from './MapCanvas'
 import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { useMapViewport } from '../../lib/useMapViewport'
@@ -51,6 +51,7 @@ import { PlayerMarkerEditor } from './PlayerMarkerEditor'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../../lib/scriptFiles'
+import { closePanelWindow, openPanelWindow, usePanelWindows } from '../../lib/panelWindows'
 
 /**
  * @param plane Fill the height given rather than a fixed box. Set when the map
@@ -101,29 +102,11 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const [level, setLevel] = useState<number | null>(null)
   const [tall, setTall] = useState(false)
   const dock = useMapDock()
-  const poppedOut = !dock.docked
-  const setPoppedOut = (v: boolean) => setMapDock({ docked: !v })
+  const windows = usePanelWindows()
+  const poppedOut = windows.open.includes('map')
 
-  // Asked, not remembered. The map window is a separate webview with its own
-  // state, so this panel cannot know from its own memory whether a window it
-  // opened is still there or the user closed it by hand.
-  //
-  // `map_window_open`/`open_map_window`/`close_map_window` (the three
-  // map-specific commands this used to call) stopped existing on the Rust
-  // side days ago (fb381c5, "Any panel can have a window of its own") -
-  // replaced by generic ones keyed on a panel id, already wired up for
-  // every other panel through Dashboard.tsx's own popOut/popBack. This file
-  // never got the memo, so the map's own pop-out button has been silently
-  // failing since: `popOut` below caught the rejected invoke and quietly
-  // stayed docked, which is indistinguishable from "nothing to see here"
-  // instead of a broken feature. `panel_windows()` answers with which ids
-  // are currently out, not a single boolean the way the old command did.
-  useEffect(() => {
-    if (!isTauri()) return
-    void invokeTauri('panel_windows')
-      .then((ids) => setPoppedOut(Array.isArray(ids) && ids.includes('map')))
-      .catch(() => setPoppedOut(false))
-  }, [])
+  // Native lifecycle events reconcile this shared registry after manual close,
+  // while command failures retain the last known state and expose Retry.
 
   useEffect(() => {
     if (connected) bridge.requestIntent('map_zone')
@@ -141,26 +124,18 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     [path]
   )
 
-  async function popOut() {
-    try {
-      await invokeTauri('open_panel_window', { id: 'map', title: 'Map' })
-      setPoppedOut(true)
-    } catch {
-      // Leave the inline map showing rather than hiding it behind a window
-      // that never opened.
-      setPoppedOut(false)
-    }
-  }
-
-  async function popBack() {
-    try {
-      await invokeTauri('close_panel_window', { id: 'map' })
-    } finally {
-      // In the `finally`, so a close that errored still returns the inline map
-      // rather than leaving the panel pointing at a window that is not there.
-      setPoppedOut(false)
-    }
-  }
+  const popOut = () => openPanelWindow('map', 'Map')
+  const popBack = () => closePanelWindow('map')
+  const windowError = windows.errors.map
+  const windowFailure = windowError ? (
+    <button
+      type="button"
+      className="rounded border border-warn/50 bg-warn/10 px-2 py-1 text-left text-xs text-warn"
+      onClick={() => void (poppedOut ? popBack() : popOut())}
+    >
+      {windowError} Retry.
+    </button>
+  ) : null
 
   const refresh = () => bridge.requestIntent('map_zone')
 
@@ -385,13 +360,15 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           <button
             type="button"
             className="flex items-center gap-1 text-xs rounded border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
-            onClick={popBack}
+            onClick={() => void popBack()}
+            disabled={windows.pending.map === 'closing'}
           >
             <PanelRightClose className="w-3 h-3" />
-            Bring it back
+            {windows.pending.map === 'closing' ? 'Closing…' : 'Bring it back'}
           </button>
         }
       >
+        {windowFailure}
         <p className="text-xs text-ink-faint leading-relaxed">
           Open in its own window, where it is big enough to watch.
         </p>
@@ -403,6 +380,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   if (!zone) {
     return (
       <Shell plane={plane} onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
+        {windowFailure}
         <ZoneLoadNotice
           loading={zoneLoading}
           error={zoneLoadError}
@@ -422,6 +400,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   if (!zone.ok) {
     return (
       <Shell plane={plane} onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
+        {windowFailure}
         <p className="text-xs text-warn leading-relaxed">
           {zone.reason ?? 'Lich has no map for where you are.'}
         </p>
@@ -532,6 +511,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         </div>
       }
     >
+      {windowFailure}
       <ZoneLoadNotice loading={zoneLoading} error={zoneLoadError} onRetry={retryZone} />
 
       <MapToolRail
