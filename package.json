@@ -81,6 +81,7 @@
     "test:mounted": "node tools/mounted-test.mjs",
     "test:game-connection-owner": "node tools/game-connection-owner-test.mjs",
     "test:battlespace": "node tools/battlespace-test.mjs",
+    "test:combat-radar-layout": "node --experimental-strip-types tools/combat-radar-layout-test.ts",
     "test:map-landmarks": "node tools/map-landmarks-test.mjs",
     "test:map-viewport": "node tools/map-viewport-test.mjs",
     "test:highlight": "node tools/highlight-test.mjs",

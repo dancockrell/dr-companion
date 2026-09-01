@@ -15,6 +15,7 @@ import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../..
 import type { Vital } from '../../lib/vitals'
 import { sendGame } from '../../lib/gameLink'
 import { ArmorManager } from './ArmorManager'
+import { fanRadarSlots, pointOnRadar } from '../../lib/combatRadarLayout'
 
 /**
  * The room, with everyone in it — a compass filling the whole board edge to
@@ -150,11 +151,6 @@ function angleFor(relation: string, id: string): number {
  * rather than sharing the board's width) — the *visual* center still
  * needs to sit clear of that overlay, so the caller nudges it left by
  * however much of the right edge the strip actually covers. */
-function pointOn(cx: number, cy: number, angleDeg: number, radiusPct: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180
-  return { x: cx + radiusPct * Math.cos(rad), y: cy + radiusPct * Math.sin(rad) }
-}
-
 /**
  * Pinned keys move to the front, in the order they were pinned — the most
  * recently promoted lands first, same as bringing a card to the top of a
@@ -1160,29 +1156,11 @@ export function CombatRadar({
     }
   }
 
-  // Same-angle jitter: two combatants sharing one of the four cardinal
-  // angles fan out into a small grid around their shared point rather than
-  // stacking exactly on top of each other.
-  const FAN_COLS = 3
+  // Only combatants in the exact same assessed slot need fanning. Actors at
+  // different ranges in the same direction already have distinct positions
+  // and must remain centered on their real rings.
   const fanGapPct = compassWidth > 0 ? Math.max((compassPortraitPx * 1.3 * 100) / compassWidth, 5) : 8
-  const byAngle = new Map<number, Positioned[]>()
-  for (const p of positioned) {
-    const list = byAngle.get(p.angleDeg)
-    if (list) list.push(p)
-    else byAngle.set(p.angleDeg, [p])
-  }
-  const fanned = new Map<string, { x: number; y: number }>()
-  for (const group of byAngle.values()) {
-    group.forEach((p, i) => {
-      const { x, y } = pointOn(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
-      const cols = Math.min(group.length, FAN_COLS)
-      const col = i % cols
-      const row = Math.floor(i / cols)
-      const offsetX = (col - (cols - 1) / 2) * fanGapPct
-      const offsetY = row * fanGapPct
-      fanned.set(p.key, { x: x + offsetX, y: y + offsetY })
-    })
-  }
+  const fanned = fanRadarSlots(positioned, centerXPct, centerYPct, fanGapPct)
 
   // Click anything and it jumps to the top of the strip — a scrolling pile
   // of hundreds is only useful if the one you're looking for can be pulled
@@ -1300,7 +1278,7 @@ export function CombatRadar({
           <ArmorManager />
 
           {positioned.map((p) => {
-            const pos = fanned.get(p.key) ?? pointOn(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
+            const pos = fanned.get(p.key) ?? pointOnRadar(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
             return (
               <div
                 key={p.key}
