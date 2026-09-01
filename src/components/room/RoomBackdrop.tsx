@@ -1,6 +1,12 @@
 import { useId, useMemo } from 'react'
 import { roomArtUrl } from '../../lib/roomText'
 
+/** A 336x192 thumbnail stretched across the battle field is never acceptable
+ * scene art. Keep it out of the renderer completely; a sharp deterministic
+ * room fingerprint is a better placeholder until an approved HD scene exists. */
+export const MIN_ROOM_ART_WIDTH = 960
+export const MIN_ROOM_ART_HEIGHT = 540
+
 /**
  * The picture of the room, or something that stands in for it — pulled out of
  * `RoomScene` so the radar can sit on the same backdrop instead of a flat
@@ -158,12 +164,16 @@ export function RoomBackdrop({
         alt=""
         loading="lazy"
         onLoad={(e) => {
-          e.currentTarget.style.display = 'block'
+          const image = e.currentTarget
+          image.style.display =
+            image.naturalWidth >= MIN_ROOM_ART_WIDTH && image.naturalHeight >= MIN_ROOM_ART_HEIGHT
+              ? 'block'
+              : 'none'
         }}
         onError={(e) => {
           e.currentTarget.style.display = 'none'
         }}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 hidden h-full w-full object-cover"
       />
     </>
   )
