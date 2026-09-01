@@ -23,22 +23,24 @@ export interface QueueItem {
 
 export interface QueueDriverHooks {
   /** Send one raw command down the same path the command line uses. */
-  sendCommand: (command: string) => void
+  sendCommand: (command: string) => Promise<void>
   /** Launch a script by name. Fire-and-forget — the queue does not wait for
    *  it to finish before moving on; see the module comment on why. */
-  startScript: (name: string) => void
+  startScript: (name: string) => void | Promise<void>
   /** Called whenever the running index or status changes, for the UI. */
   onChange: (state: QueueState) => void
   log: (line: string) => void
 }
 
-export type QueueStatus = 'idle' | 'running' | 'done' | 'stopped'
+export type QueueStatus = 'idle' | 'running' | 'failed' | 'done' | 'stopped'
 
 export interface QueueState {
   status: QueueStatus
   /** Index into the item list last acted on, or -1 before anything has run. */
   index: number
   total: number
+  /** Present only while the current item is stopped on a dispatch failure. */
+  error?: string
 }
 
 /** Floor between items, same value and same reason as FlowDriver's: nothing
@@ -54,9 +56,13 @@ export class QueueDriver {
   private status: QueueStatus = 'idle'
   private timer: ReturnType<typeof setTimeout> | null = null
   private hooks: QueueDriverHooks
+  private generation = 0
+  private error: string | undefined
+  private stepDelayMs: number
 
-  constructor(hooks: QueueDriverHooks) {
+  constructor(hooks: QueueDriverHooks, stepDelayMs = STEP_DELAY_MS) {
     this.hooks = hooks
+    this.stepDelayMs = stepDelayMs
   }
 
   start(items: QueueItem[]): void {
@@ -65,8 +71,10 @@ export class QueueDriver {
     this.items = items
     this.index = -1
     this.status = 'running'
+    this.error = undefined
+    const generation = ++this.generation
     this.hooks.log(`Queue: ${items.length} item${items.length === 1 ? '' : 's'} started`)
-    this.advance()
+    void this.advance(generation)
   }
 
   /**
@@ -80,26 +88,57 @@ export class QueueDriver {
    * caller of `advance()` that does not come through the timer.
    */
   stop(): void {
-    if (this.status !== 'running') return
+    if (this.status !== 'running' && this.status !== 'failed') return
+    this.generation++
     this.clearTimer()
     this.status = 'stopped'
+    this.error = undefined
     this.hooks.log('Queue: stopped')
     this.notify()
   }
 
   current(): QueueState {
-    return { status: this.status, index: this.index, total: this.items.length }
+    return { status: this.status, index: this.index, total: this.items.length, ...(this.error ? { error: this.error } : {}) }
   }
 
   currentItem(): QueueItem | null {
-    return this.status === 'running' ? (this.items[this.index] ?? null) : null
+    return this.status === 'running' || this.status === 'failed'
+      ? (this.items[this.index] ?? null)
+      : null
+  }
+
+  /** Retry the item that failed without replaying successful prerequisites. */
+  retry(): void {
+    if (this.status !== 'failed') return
+    this.status = 'running'
+    this.error = undefined
+    this.index -= 1
+    const generation = ++this.generation
+    this.notify()
+    void this.advance(generation)
+  }
+
+  /** Deliberately waive the failed item and continue with what remains. */
+  skip(): void {
+    if (this.status !== 'failed') return
+    this.status = 'running'
+    this.error = undefined
+    const generation = ++this.generation
+    this.hooks.log('Queue: failed item skipped')
+    this.notify()
+    this.timer = setTimeout(() => {
+      this.timer = null
+      void this.advance(generation)
+    }, this.stepDelayMs)
   }
 
   dispose(): void {
+    this.generation++
     this.clearTimer()
     this.items = []
     this.index = -1
     this.status = 'idle'
+    this.error = undefined
   }
 
   private clearTimer(): void {
@@ -113,8 +152,8 @@ export class QueueDriver {
     this.hooks.onChange(this.current())
   }
 
-  private advance(): void {
-    if (this.status !== 'running') return
+  private async advance(generation: number): Promise<void> {
+    if (this.status !== 'running' || generation !== this.generation) return
     this.index += 1
     if (this.index >= this.items.length) {
       this.status = 'done'
@@ -124,13 +163,28 @@ export class QueueDriver {
     }
 
     const item = this.items[this.index]
-    if (item.kind === 'command') this.hooks.sendCommand(item.value)
-    else this.hooks.startScript(item.value)
     this.notify()
+
+    try {
+      if (item.kind === 'command') await this.hooks.sendCommand(item.value)
+      else await this.hooks.startScript(item.value)
+    } catch (error) {
+      if (generation !== this.generation) return
+      this.status = 'failed'
+      this.error = error instanceof Error && error.message ? error.message : String(error)
+      if (!this.error) this.error = 'The action was not accepted.'
+      this.hooks.log(`Queue: ${item.label} failed — ${this.error}`)
+      this.notify()
+      return
+    }
+
+    // Stop, Clear, unmount, or a newer run may have happened while native was
+    // answering. An old resolution never owns permission to schedule item 2.
+    if (this.status !== 'running' || generation !== this.generation) return
 
     this.timer = setTimeout(() => {
       this.timer = null
-      this.advance()
-    }, STEP_DELAY_MS)
+      void this.advance(generation)
+    }, this.stepDelayMs)
   }
 }
