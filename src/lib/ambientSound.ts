@@ -232,11 +232,23 @@ const TICK_MS = 50
  * state the cap and clamp to it, same as alertSound.ts's Web-Audio-less
  * fallback path does.
  */
+interface LayerOptions {
+  loop?: boolean
+  onEnded?: () => void
+  trackGain?: number
+  onLoading?: () => void
+  onPlaying?: () => void
+  onWaiting?: () => void
+  onFailure?: (reason: string) => void
+}
+
 class Layer {
   private el: HTMLAudioElement | null = null
   private mix = 0
   private gain = 1
   private trackGain = 1
+  private options: LayerOptions | null = null
+  private failed = false
 
   private get target(): number {
     return Math.min(1, this.mix * this.gain * this.trackGain)
@@ -257,17 +269,25 @@ class Layer {
   play(
     src: string | null,
     mix = 0.22,
-    opts?: { loop?: boolean; onEnded?: () => void; trackGain?: number }
+    opts?: LayerOptions
   ) {
-    if (src === (this.el?.dataset.src ?? null)) return
+    if (src === (this.el?.dataset.src ?? null)) {
+      // A normal duplicate selection is still a no-op. Selecting the source
+      // that just failed is the one exception: that is an intuitive Retry.
+      if (this.failed) this.retry()
+      return
+    }
     this.mix = mix
     this.trackGain = opts?.trackGain ?? 1
+    this.options = opts ?? null
+    this.failed = false
 
     const dying = this.el
     if (dying) this.fadeOutAndStop(dying)
 
     if (!src) {
       this.el = null
+      this.options = null
       emitProgress(null)
       return
     }
@@ -287,16 +307,47 @@ class Layer {
     next.addEventListener('durationchange', () => {
       if (this.el === next) emitProgress({ position: next.currentTime, duration: next.duration })
     })
-    // Autoplay policy or a missing file both land here; a background track
-    // failing to start is not worth surfacing as an error to the player.
-    void next.play().catch(() => {})
     this.el = next
-    this.fadeIn(next)
+    let fadedIn = false
+    next.addEventListener('playing', () => {
+      if (this.el !== next) return
+      this.failed = false
+      this.options?.onPlaying?.()
+      if (!fadedIn) {
+        fadedIn = true
+        this.fadeIn(next)
+      }
+    })
+    next.addEventListener('waiting', () => {
+      if (this.el === next) this.options?.onWaiting?.()
+    })
+    next.addEventListener('stalled', () => {
+      this.fail(next, 'The audio stream stalled.')
+    })
+    next.addEventListener('error', () => {
+      const code = next.error?.code
+      const reason =
+        code === 2
+          ? 'The audio source could not be reached.'
+          : code === 3
+            ? 'The audio could not be decoded.'
+            : code === 4
+              ? 'This audio format or source is not supported.'
+              : 'The audio source failed.'
+      this.fail(next, reason)
+    })
+    this.attempt(next)
+  }
+
+  retry() {
+    if (this.el) this.attempt(this.el)
   }
 
   stop() {
     if (this.el) this.fadeOutAndStop(this.el)
     this.el = null
+    this.options = null
+    this.failed = false
     emitProgress(null)
   }
 
@@ -317,6 +368,34 @@ class Layer {
       el.volume = Math.min(target, el.volume + step)
       if (el.volume >= target - 0.001) clearInterval(timer)
     }, TICK_MS)
+  }
+
+  private attempt(el: HTMLAudioElement) {
+    if (this.el !== el) return
+    this.failed = false
+    this.options?.onLoading?.()
+    try {
+      void el.play().catch((error) => {
+        this.fail(
+          el,
+          error instanceof Error && error.name === 'NotAllowedError'
+            ? 'Playback was blocked. Press Retry to start it.'
+            : 'The audio source could not start.'
+        )
+      })
+    } catch {
+      this.fail(el, 'The audio source could not start.')
+    }
+  }
+
+  private fail(el: HTMLAudioElement, reason: string) {
+    if (this.el !== el) return
+    this.failed = true
+    el.pause()
+    this.options?.onFailure?.(reason)
+    // Never log the custom URL: it may contain a private query token. The UI
+    // already identifies the selected source without leaking it to reports.
+    console.warn(`Music playback failed: ${reason}`)
   }
 
   private fadeOutAndStop(el: HTMLAudioElement) {
@@ -342,10 +421,14 @@ let currentZone: string | null = null
  * hearing or let them skip it. `title`/`composer` come from `TRACK_META`;
  * a custom stream has neither, so it carries its URL as `title` instead.
  */
+export type PlaybackStatus = 'loading' | 'playing' | 'failed'
+
 export interface NowPlaying {
   title: string
   composer: string
   source: 'radio' | 'zone' | 'custom' | 'playlist'
+  status: PlaybackStatus
+  error?: string
 }
 let nowPlayingState: NowPlaying | null = null
 const nowPlayingListeners = new Set<(np: NowPlaying | null) => void>()
@@ -360,6 +443,24 @@ export function nowPlaying(): NowPlaying | null {
 export function onNowPlayingChange(fn: (np: NowPlaying | null) => void): () => void {
   nowPlayingListeners.add(fn)
   return () => nowPlayingListeners.delete(fn)
+}
+
+type PlayingMeta = Omit<NowPlaying, 'status' | 'error'>
+
+/** Publish what the media element confirms, not merely what was requested. */
+function playMusic(src: string, meta: PlayingMeta, opts?: LayerOptions) {
+  music.play(src, 0.22, {
+    ...opts,
+    onLoading: () => setNowPlaying({ ...meta, status: 'loading' }),
+    onWaiting: () => setNowPlaying({ ...meta, status: 'loading' }),
+    onPlaying: () => setNowPlaying({ ...meta, status: 'playing' }),
+    onFailure: (error) => setNowPlaying({ ...meta, status: 'failed', error }),
+  })
+}
+
+/** Retry the selected failed/stalled source without rebuilding its playlist. */
+export function retryMusic() {
+  music.retry()
 }
 
 /**
@@ -475,12 +576,15 @@ class RadioPlayer {
   private playCurrent() {
     const track = this.queue[this.pos]
     if (!track) return
-    music.play(RADIO_FILES[track.id], 0.22, {
+    playMusic(
+      RADIO_FILES[track.id],
+      { title: track.title, composer: track.composer, source: 'radio' },
+      {
       loop: false,
       onEnded: () => this.advance(),
       trackGain: TRACK_GAIN[track.id],
-    })
-    setNowPlaying({ title: track.title, composer: track.composer, source: 'radio' })
+      }
+    )
   }
 
   private advance() {
@@ -532,13 +636,13 @@ class ZoneMusicPlayer {
     const id = this.queue[this.pos]
     const file = id ? RADIO_FILES[id] : undefined
     if (!file) return
-    music.play(file, 0.22, {
+    const meta = id ? TRACK_META[id] : undefined
+    if (!meta) return
+    playMusic(file, { ...meta, source: 'zone' }, {
       loop: false,
       onEnded: () => this.advance(),
       trackGain: id ? TRACK_GAIN[id] : undefined,
     })
-    const meta = id ? TRACK_META[id] : undefined
-    setNowPlaying(meta ? { ...meta, source: 'zone' } : null)
   }
 
   private advance() {
@@ -609,13 +713,13 @@ class PlaylistPlayer {
     const id = this.queue[this.pos]
     const file = id ? RADIO_FILES[id] : undefined
     if (!file) return
-    music.play(file, 0.22, {
+    const meta = id ? TRACK_META[id] : undefined
+    if (!meta) return
+    playMusic(file, { ...meta, source: 'playlist' }, {
       loop: false,
       onEnded: () => this.advance(),
       trackGain: id ? TRACK_GAIN[id] : undefined,
     })
-    const meta = id ? TRACK_META[id] : undefined
-    setNowPlaying(meta ? { ...meta, source: 'playlist' } : null)
   }
 
   private advance() {
@@ -749,8 +853,7 @@ export function setCustomStream(url: string | null) {
   if (url) {
     radio.clearSilently()
     playlist.clearSilently()
-    music.play(url, 0.22, { loop: true })
-    setNowPlaying({ title: url, composer: '', source: 'custom' })
+    playMusic(url, { title: url, composer: '', source: 'custom' }, { loop: true })
   } else {
     zoneMusic.select(currentZone)
   }
@@ -883,10 +986,14 @@ export function initMediaSession() {
     ms.metadata = np
       ? new MediaMetadata({ title: np.title, artist: np.composer || 'DR Companion', album: 'DR Companion' })
       : null
-    ms.playbackState = np ? 'playing' : 'none'
+    ms.playbackState = np ? (np.status === 'playing' && musicGain > 0 ? 'playing' : 'paused') : 'none'
   })
   onMusicVolumeChange((v) => {
-    ms.playbackState = v > 0 ? 'playing' : 'paused'
+    ms.playbackState = nowPlayingState
+      ? nowPlayingState.status === 'playing' && v > 0
+        ? 'playing'
+        : 'paused'
+      : 'none'
   })
   ms.setActionHandler('play', resumeMusic)
   ms.setActionHandler('pause', pauseMusic)

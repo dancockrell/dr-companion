@@ -6,15 +6,16 @@
  * copies of the same subscribe-to-nowPlaying/musicVolume wiring, which is
  * exactly the kind of thing that drifts if written twice.
  *
- * Play/pause reads the same "0% is the only mute state" convention as the
- * rest of this app's sound engine - `musicVolume() > 0` is "playing," and
- * the button calls `pauseMusic()`/`resumeMusic()` (ambientSound.ts), which
+ * Play/pause combines the shared volume with the media element's confirmed
+ * playback state. A non-zero slider is audible permission, not proof that a
+ * dead stream started. The button calls `pauseMusic()`/`resumeMusic()` (or
+ * `retryMusic()` after failure), which
  * remember the level they muted from rather than guessing one back. This is
  * also what the OS media-session play/pause buttons call
  * (`initMediaSession`), so this component, the footer, and Windows' own Now
  * Playing UI all agree on the same state through the same subscription.
  */
-import { SkipBack, SkipForward, Play, Pause, Volume2, Volume1, VolumeX, AudioLines, Star } from 'lucide-react'
+import { SkipBack, SkipForward, Play, Pause, RefreshCw, Volume2, Volume1, VolumeX, AudioLines, Star } from 'lucide-react'
 import {
   skipTrack,
   musicVolume,
@@ -22,6 +23,7 @@ import {
   onMusicVolumeChange,
   pauseMusic,
   resumeMusic,
+  retryMusic,
   currentCustomStream,
   currentRadioStation,
   RADIO_STATIONS,
@@ -211,7 +213,15 @@ export function MusicTransport({
     return onCrossfadeStyleChange(setCrossfade)
   }, [])
 
-  const playing = vol > 0
+  const playing = vol > 0 && now?.status === 'playing'
+  const failed = now?.status === 'failed'
+  const nowLabel = now
+    ? now.status === 'loading'
+      ? `Loading ${now.title}`
+      : now.status === 'failed'
+        ? `${now.title} — unavailable`
+        : now.title
+    : 'Silent'
   // A live stream has no track to skip to - see skipTrack's own header.
   const canSkip = !currentCustomStream()
 
@@ -244,10 +254,16 @@ export function MusicTransport({
         <button
           type="button"
           className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
-          onClick={() => (playing ? pauseMusic() : resumeMusic())}
-          title={playing ? 'Pause music' : 'Play music'}
+          onClick={() => (failed ? retryMusic() : playing ? pauseMusic() : resumeMusic())}
+          title={failed ? 'Retry music' : playing ? 'Pause music' : 'Play music'}
         >
-          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+          {failed ? (
+            <RefreshCw className="h-3.5 w-3.5 text-warn" />
+          ) : playing ? (
+            <Pause className="h-3.5 w-3.5" />
+          ) : (
+            <Play className="h-3.5 w-3.5" />
+          )}
         </button>
         <button
           type="button"
@@ -278,21 +294,32 @@ export function MusicTransport({
               type="button"
               className="min-w-16 max-w-[12rem] truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
               title={
-                (now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent') +
+                (now ? `${nowLabel}${now.composer ? ` — ${now.composer}` : ''}${now.error ? ` — ${now.error}` : ''}` : 'Silent') +
                 ' — open Sound'
               }
               onClick={onTitleClick}
             >
-              {now ? now.title : 'Silent'}
+              <span className={failed ? 'text-warn' : undefined}>{nowLabel}</span>
             </button>
           ) : (
             <span
               className="min-w-16 max-w-[12rem] truncate text-xs text-ink-muted"
-              title={now ? `${now.title}${now.composer ? ` — ${now.composer}` : ''}` : 'Silent'}
+              title={now ? `${nowLabel}${now.composer ? ` — ${now.composer}` : ''}${now.error ? ` — ${now.error}` : ''}` : 'Silent'}
+              role={failed ? 'alert' : undefined}
             >
-              {now ? now.title : 'Silent'}
+              {nowLabel}
             </span>
           ))}
+        {failed && (
+          <button
+            type="button"
+            onClick={retryMusic}
+            className="shrink-0 rounded border border-warn/40 px-1.5 py-0.5 text-xs text-warn hover:bg-warn/10"
+            title={now?.error ?? 'Retry the selected audio source'}
+          >
+            Retry
+          </button>
+        )}
         {showFavorite && favoriteTarget && (
           <button
             type="button"
@@ -336,8 +363,8 @@ export function MusicTransport({
             <button
               type="button"
               className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
-              onClick={() => (playing ? pauseMusic() : resumeMusic())}
-              title={playing ? 'Mute music' : 'Unmute music'}
+              onClick={() => (failed ? retryMusic() : playing ? pauseMusic() : resumeMusic())}
+              title={failed ? 'Retry music' : playing ? 'Mute music' : 'Unmute music'}
             >
               {vol <= 0 ? (
                 <VolumeX className="h-3.5 w-3.5" />
