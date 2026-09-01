@@ -74,9 +74,23 @@ export function stableSceneIndex(zone: string, room: number, length: number): nu
   return Math.abs(zoneHash + room) % length
 }
 
+/** Specific atmosphere is a claim and requires support in the room text. */
+function atmosphereMatches(scene: string, description: string): boolean {
+  if (/storm/i.test(scene) && !/\b(storm|stormy|thunder|lightning|rain|tempest|squall)\b/i.test(description)) return false
+  if (/dusk/i.test(scene) && !/\b(dusk|evening|twilight|sunset)\b/i.test(description)) return false
+  if (/night/i.test(scene) && !/\b(night|nighttime|darkness|moonlit|moonlight)\b/i.test(description)) return false
+  if (/sunlit/i.test(scene) && !/\b(sunlit|sunlight|sunny|bright sun)\b/i.test(description)) return false
+  return true
+}
+
 export function grokRoomScene(zone: string, room: number, title?: string | null, text?: string | null): string | null {
-  const family = familyFor(`${title ?? ''} ${text ?? ''}`)
+  const description = `${title ?? ''} ${text ?? ''}`
+  const family = familyFor(description)
   if (family === null) return null
-  const pool = GROK_SCENES[family]
+  const pool = GROK_SCENES[family].filter((scene) => atmosphereMatches(scene, description))
+  // An honest fingerprint is preferable to a literal scene whose weather or
+  // time contradicts the game. A one-image atmospheric family can therefore
+  // deliberately resolve to no image until neutral art exists.
+  if (pool.length === 0) return null
   return pool[stableSceneIndex(zone, room, pool.length)]
 }
