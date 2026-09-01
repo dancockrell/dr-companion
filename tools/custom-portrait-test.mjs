@@ -14,7 +14,7 @@ const docs = read('docs/PLAYER-ART.md')
 assert.match(native, /const MAX_BYTES: usize = 1_000_000/)
 assert.match(native, /const MAX_DIMENSION: u16 = 2048/)
 assert.match(native, /hash\.update\(instance\.trim\(\)\.to_lowercase\(\)\)/)
-assert.match(native, /if validate\(&bytes\)\.is_err\(\) \{ return Ok\(None\); \}/)
+assert.match(native, /if validate\(&bytes\)\.is_err\(\)\s*\{\s*return Ok\(None\);\s*\}/)
 assert.match(native, /webp\.tmp/)
 assert.match(native, /webp\.bak/)
 for (const command of ['save_custom_portrait', 'read_custom_portrait', 'remove_custom_portrait']) {
