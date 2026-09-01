@@ -35,7 +35,14 @@ jobs:
       - run: npm ci
       - name: Regenerate scene assignments
         run: npm run art:scene-patterns
-      - name: Verify generated scene data is committed
-        run: git diff --exit-code -- src/data/roomScenePatterns.ts data/art/scene-basket-coverage.json
       - name: Test scene semantics and basket integrity
         run: npm run test:room-scene-patterns
+      - name: Capture generated scene data
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-scene-data
+          path: |
+            src/data/roomScenePatterns.ts
+            data/art/scene-basket-coverage.json
+      - name: Verify generated scene data is committed
+        run: git diff --exit-code -- src/data/roomScenePatterns.ts data/art/scene-basket-coverage.json
