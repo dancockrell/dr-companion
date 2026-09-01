@@ -8,6 +8,12 @@ export type MapStampKind =
   | 'underground'
   | 'settlement'
   | 'ruins'
+  | 'wetland'
+  | 'coast'
+  | 'arid'
+  | 'cultivated'
+  | 'frozen'
+  | 'burial'
 
 export interface MapStamp {
   kind: MapStampKind
@@ -23,6 +29,7 @@ interface StampRule {
   kind: Exclude<MapStampKind, 'seal'>
   label: string
   pattern: RegExp
+  salience?: number
 }
 
 /**
@@ -32,12 +39,18 @@ interface StampRule {
  * ordinary courtyard a hazard.
  */
 const RULES: StampRule[] = [
-  { kind: 'water', label: 'Waters', pattern: /\b(river|lake|sea|ocean|shore|beach|dock|pier|ferry|harbou?r|swamp|marsh|bog|stream|water)\b/i },
-  { kind: 'woodland', label: 'Woodland', pattern: /\b(forest|woods?|grove|trees?|jungle|vineyard|orchard|garden|thicket)\b/i },
+  { kind: 'wetland', label: 'Wetland', pattern: /\b(swamp|marsh|bog|fen|wetland)\b/i, salience: 1.24 },
+  { kind: 'coast', label: 'Coast', pattern: /\b(coast|shore|beach|strand|bay|cove|islands?|isles?|tidal)\b/i, salience: 1.16 },
+  { kind: 'arid', label: 'Dry country', pattern: /\b(desert|dunes?|sand|sandy|wastes?|badlands)\b/i, salience: 1.22 },
+  { kind: 'cultivated', label: 'Fields', pattern: /\b(farms?|farmland|pastures?|meadows?|orchards?|vineyards?|plantations?|(?:barley|wheat|grain|rice|corn|rye|oat|crop) fields?)\b/i, salience: 1.18 },
+  { kind: 'frozen', label: 'Frozen', pattern: /\b(snow|snowy|ice|icy|frozen|glaciers?|frost|frostweavers?)\b/i, salience: 1.24 },
+  { kind: 'burial', label: 'Burial ground', pattern: /\b(graveyards?|cemeter(?:y|ies)|necropolis|burial|tombs?|crypts?|barrows?)\b/i, salience: 1.2 },
+  { kind: 'water', label: 'Waters', pattern: /\b(rivers?|lakes?|sea|ocean|docks?|piers?|ferr(?:y|ies)|harbou?rs?|streams?|water|canals?|ponds?|quays?)\b/i },
+  { kind: 'woodland', label: 'Woodland', pattern: /\b(forests?|woods?|groves?|trees?|jungle|thickets?)\b/i },
   { kind: 'highland', label: 'High ground', pattern: /\b(mountain|cliff|ridge|peak|hill|canyon|ravine|crag|gorge|slope)\b/i },
   { kind: 'underground', label: 'Below', pattern: /\b(caves?|cavern|tunnels?|mines?|grotto|underground|sewers?|passages?)\b/i },
   { kind: 'settlement', label: 'Settlement', pattern: /\b(street|road|lane|avenue|square|plaza|market|crossing|village|town|city|boulevard)\b/i },
-  { kind: 'ruins', label: 'Old stones', pattern: /\b(ruins?|grave|crypt|tomb|fortress|castle|keep|barrow)\b/i },
+  { kind: 'ruins', label: 'Old stones', pattern: /\b(ruins?|fortress|castle|keep)\b/i },
 ]
 
 function hash(text: string): number {
@@ -157,18 +170,21 @@ export function deriveMapStamps(
     if (matches.length < threshold) return []
 
     return [{
-      kind: rule.kind,
-      label: rule.label,
-      x: middle(matches.map((room) => room.x as number)),
-      y: middle(matches.map((room) => room.y as number)),
-      count: matches.length,
-      rotation: (hash(`${zoneKey}:${rule.kind}`) % 11) - 5,
-      weight: Math.min(1.28, 0.82 + Math.log2(matches.length + 1) / 12),
-    } satisfies MapStamp]
+      stamp: {
+        kind: rule.kind,
+        label: rule.label,
+        x: middle(matches.map((room) => room.x as number)),
+        y: middle(matches.map((room) => room.y as number)),
+        count: matches.length,
+        rotation: (hash(`${zoneKey}:${rule.kind}`) % 11) - 5,
+        weight: Math.min(1.28, 0.82 + Math.log2(matches.length + 1) / 12),
+      } satisfies MapStamp,
+      score: (matches.length / positioned.length) * (rule.salience ?? 1),
+    }]
   })
 
   // Four factual washes plus the seal is enough to give a zone a visual
   // grammar. More becomes wallpaper and starts competing with the map.
-  terrain.sort((a, b) => (b.count / positioned.length) - (a.count / positioned.length) || a.kind.localeCompare(b.kind))
-  return spreadStamps([seal, ...terrain.slice(0, 4)], positioned, zoneKey)
+  terrain.sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind))
+  return spreadStamps([seal, ...terrain.slice(0, 4).map(({ stamp }) => stamp)], positioned, zoneKey)
 }

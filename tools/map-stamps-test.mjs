@@ -50,6 +50,16 @@ check('one isolated mention cannot rename a whole landscape', !deriveMapStamps({
   room(3, 'Plain Room', 20, 0),
 ]).some((stamp) => stamp.kind === 'woodland'))
 
+console.log('\n-- specific landscapes stay specific --')
+const repeated = (word) => [room(1, word, 0, 0), room(2, word, 10, 0), room(3, word, 20, 0)]
+check('marsh country is not flattened into generic water', deriveMapStamps({ zone: 'm', name: 'Marsh' }, repeated('Sedge Marsh')).some((stamp) => stamp.kind === 'wetland'))
+check('beaches receive a coast mark', deriveMapStamps({ zone: 'c', name: 'Coast' }, repeated('Crystalline Beach')).some((stamp) => stamp.kind === 'coast'))
+check('farmland is distinct from wild woodland', deriveMapStamps({ zone: 'f', name: 'Farm' }, repeated('Barley Field')).some((stamp) => stamp.kind === 'cultivated'))
+check('a field of rubble is not imaginary farmland', !deriveMapStamps({ zone: 'r', name: 'Rubble' }, repeated('Field of Rubble')).some((stamp) => stamp.kind === 'cultivated'))
+check('snow country receives a frozen mark', deriveMapStamps({ zone: 's', name: 'Snow' }, repeated('Snowy Trail')).some((stamp) => stamp.kind === 'frozen'))
+check('barrows describe burial ground, not generic ruins', deriveMapStamps({ zone: 'b', name: 'Barrow' }, repeated('Ancient Barrow')).some((stamp) => stamp.kind === 'burial'))
+check('desert country receives a dry-country mark', deriveMapStamps({ zone: 'd', name: 'Desert' }, repeated('Sandy Dune')).some((stamp) => stamp.kind === 'arid'))
+
 console.log('\n-- every shipped map can carry the layer --')
 let zones = 0
 let terrainZones = 0
@@ -77,6 +87,9 @@ const canvas = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')
 const layer = readFileSync('src/components/shared/MapStampLayer.tsx', 'utf8')
 check('stamps paint after paper but before the trail', canvas.indexOf('<MapStampLayer') > canvas.indexOf('fill="url(#map-paper)"') && canvas.indexOf('<MapStampLayer') < canvas.indexOf('segments(trail)'))
 check('stamps can never intercept map interaction', layer.includes('pointer-events-none') && layer.includes('aria-hidden="true"'))
+for (const kind of ['wetland', 'coast', 'arid', 'cultivated', 'frozen', 'burial']) {
+  check(`${kind} has its own authored glyph`, layer.includes(`kind === '${kind}'`))
+}
 
 if (failures) process.exit(1)
 console.log('\nall map stamp checks passed')
