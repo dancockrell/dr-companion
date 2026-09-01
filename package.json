@@ -70,6 +70,7 @@
     "test:trail": "node tools/trail-test.mjs",
     "test:safety": "node tools/safety-test.mjs",
     "test:queue-driver": "node tools/queue-driver-test.mjs",
+    "test:command-history": "node tools/command-history-test.mjs",
     "test:quickswitch": "node tools/quickswitch-test.mjs",
     "test:keybindings": "node tools/keybindings-test.mjs",
     "test:gateway": "node tools/gateway-test.mjs",
