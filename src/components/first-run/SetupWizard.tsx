@@ -21,7 +21,7 @@
  */
 // Counted from the data rather than typed into a label. The hardcoded figure
 // was wrong within a day of being written.
-import MAP_METADATA from '../../data/map/metadata.json'
+import MAP_METADATA from '../../data/map-metadata.json'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, FolderOpen } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'

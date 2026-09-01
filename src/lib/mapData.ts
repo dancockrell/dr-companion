@@ -58,7 +58,6 @@ interface BuiltZone {
 const ZONES = import.meta.glob<{ default: BuiltZone }>([
   '../data/map/*.json',
   '!../data/map/index.json',
-  '!../data/map/metadata.json',
 ])
 
 const cache = new Map<string, MapZone>()
