@@ -1,0 +1,41 @@
+name: Scene art validation
+
+on:
+  pull_request:
+    paths:
+      - 'data/art/**'
+      - 'public/room-scenes/**'
+      - 'src/data/roomScenePatterns.ts'
+      - 'tools/art-*.mjs'
+      - 'tools/build-room-scene-patterns.mjs'
+      - 'tools/room-scene-patterns-test.mjs'
+      - 'tools/scene-semantics.mjs'
+      - '.github/workflows/scene-art.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'data/art/**'
+      - 'public/room-scenes/**'
+      - 'src/data/roomScenePatterns.ts'
+      - 'tools/art-*.mjs'
+      - 'tools/build-room-scene-patterns.mjs'
+      - 'tools/room-scene-patterns-test.mjs'
+      - 'tools/scene-semantics.mjs'
+      - '.github/workflows/scene-art.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Regenerate scene assignments
+        run: npm run art:scene-patterns
+      - name: Verify generated scene data is committed
+        run: git diff --exit-code -- src/data/roomScenePatterns.ts data/art/scene-basket-coverage.json
+      - name: Test scene semantics and basket integrity
+        run: npm run test:room-scene-patterns
