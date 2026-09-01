@@ -732,25 +732,6 @@ export function MapCanvas({
             )
           })}
     </svg>
-    {landmarks.size > 0 && (
-      <div className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-1rem)] rounded border border-border/70 bg-surface/90 px-2 py-1.5 text-xs text-ink-muted shadow-lg backdrop-blur-sm">
-        <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {LANDMARK_LEGEND.filter((entry) => [...landmarks.values()].flat().some((landmark) => landmark.kind === entry.kind)).map((entry) => {
-            const Icon = PIN_ICON_COMPONENT[entry.icon]
-            const count = [...landmarks.values()].flat().filter((landmark) => landmark.kind === entry.kind).length
-            return (
-              <span key={entry.kind} className="flex items-center gap-1" title={entry.label}>
-                <span className="grid h-4 w-4 place-items-center rounded-full" style={{ background: PIN_COLOR_HEX[entry.color] }}>
-                  <Icon className="h-3 w-3 text-surface" strokeWidth={2.75} />
-                </span>
-                <span>{count}</span>
-              </span>
-            )
-          })}
-        </div>
-        <p className="text-ink-faint">World landmarks · click to walk · right-click any room to pin</p>
-      </div>
-    )}
     {hoverId != null && hoverPos && index.get(hoverId) && (
       <RoomHoverCard
         key={hoverId}
@@ -827,6 +808,34 @@ export function MapLegend({ kinds }: { kinds?: RoomKind[] }) {
           />
         </span>
       ))}
+    </div>
+  )
+}
+
+/** Automatic landmark key pinned to the viewport, not to the draggable map
+ * sheet. The previous in-canvas legend moved off-screen with the chart and
+ * was visibly clipped after a pan—the exact opposite of an explanation. */
+export function LandmarkLegend({ rooms, level }: { rooms?: MapZoneRoom[]; level: number }) {
+  const present = new Set(
+    (rooms ?? [])
+      .filter((room) => (room.z ?? 0) === level)
+      .flatMap((room) => landmarksFor(room).map((landmark) => landmark.kind))
+  )
+  const entries = LANDMARK_LEGEND.filter((entry) => present.has(entry.kind))
+  if (entries.length === 0) return null
+  return (
+    <div className="pointer-events-none absolute bottom-2 left-2 z-20 max-w-[calc(100%-1rem)] rounded border border-border/70 bg-surface/92 px-2 py-1.5 text-xs text-ink-muted shadow-lg backdrop-blur-sm">
+      <div className="flex flex-wrap items-center gap-1">
+        {entries.map((entry) => {
+          const Icon = PIN_ICON_COMPONENT[entry.icon]
+          return (
+            <span key={entry.kind} className="grid h-5 w-5 place-items-center rounded-full" style={{ background: PIN_COLOR_HEX[entry.color] }} title={entry.label}>
+              <Icon className="h-3.5 w-3.5 text-surface" strokeWidth={2.75} />
+            </span>
+          )
+        })}
+      </div>
+      <p className="mt-1 text-ink-faint">Landmarks · hover for meaning · click room to walk · right-click to pin</p>
     </div>
   )
 }

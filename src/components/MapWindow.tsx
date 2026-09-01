@@ -16,7 +16,7 @@ import { RefreshCw, Layers, ZoomIn, ZoomOut, Tag, Download, Upload } from 'lucid
 import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import { roomKind } from '../lib/mapData'
-import { MapCanvas, MapLegend } from './shared/MapCanvas'
+import { LandmarkLegend, MapCanvas, MapLegend } from './shared/MapCanvas'
 import { MapPinBar } from './shared/MapPinBar'
 import { QuickTravel } from './shared/QuickTravel'
 import { PinPalette } from './shared/PinPalette'
@@ -459,31 +459,34 @@ export function MapWindow() {
         onClickCapture={handlers.onClickCapture}
       >
         {zone?.ok ? (
-          <div
-            ref={contentRef}
-            className={dragging ? '' : 'transition-transform duration-150 ease-out'}
-            style={{
-              position: 'absolute',
-              transform: `translate3d(${panX}px, ${panY}px, 0) scale(${viewZoom})`,
-              transformOrigin: '0 0',
-              willChange: 'transform',
-            }}
-          >
-            <MapCanvas
-              zone={zone}
-              level={z}
-              onRoute={onRoute}
-              labels={labels}
-              onPick={goThere}
-              onZone={pushZone}
-              trail={trail}
-              onHereAt={onHereAt}
-              pins={pinsByRoom}
-              onPinRoom={pinRoom}
-              onDropPin={dropPin}
-              playerMarker={playerMarker}
-            />
-          </div>
+          <>
+            <div
+              ref={contentRef}
+              className={dragging ? '' : 'transition-transform duration-150 ease-out'}
+              style={{
+                position: 'absolute',
+                transform: `translate3d(${panX}px, ${panY}px, 0) scale(${viewZoom})`,
+                transformOrigin: '0 0',
+                willChange: 'transform',
+              }}
+            >
+              <MapCanvas
+                zone={zone}
+                level={z}
+                onRoute={onRoute}
+                labels={labels}
+                onPick={goThere}
+                onZone={pushZone}
+                trail={trail}
+                onHereAt={onHereAt}
+                pins={pinsByRoom}
+                onPinRoom={pinRoom}
+                onDropPin={dropPin}
+                playerMarker={playerMarker}
+              />
+            </div>
+            <LandmarkLegend rooms={zone.rooms} level={z} />
+          </>
         ) : (
           <p className="p-3 text-xs text-ink-faint">
             {zone?.reason ??
