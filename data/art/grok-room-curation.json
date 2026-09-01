@@ -22,7 +22,7 @@
       "habitat": "river, shore, marsh, swamp, dock and lake rooms",
       "currentImage": null,
       "approvedPrimary": "/grok-art/room-scenes/marsh-dusk-025a5488.jpg",
-      "approvedVariants": ["/grok-art/room-scenes/lantern-dock-02798b8e.jpg"],
+      "approvedVariants": ["/grok-art/room-scenes/lantern-dock-02798b8e.jpg", "/grok-art/room-scenes/reed-marsh-0fb4267f.jpg"],
       "rejects": ["all non-Grok room renders"],
       "regenerationNeeded": false
     },
@@ -54,6 +54,66 @@
       "approvedPrimary": "/grok-art/room-scenes/desert-canyon-0322415e.jpg",
       "approvedVariants": [],
       "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-ocean": {
+      "exactSubject": "open sea and exposed coast",
+      "canonicalTraits": ["large water horizon", "active waves", "exposed coastal weather"],
+      "habitat": "open sea, sea cliffs, lighthouses and storm-water rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/storm-ocean-10d4c18a.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/lighthouse-coast-0ee0be16.jpg"],
+      "rejects": ["calm inland marsh scenes", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-snow": {
+      "exactSubject": "snowbound high-country travel",
+      "canonicalTraits": ["continuous snow cover", "cold open exposure", "distant mountain forms"],
+      "habitat": "snowfields, glaciers, frozen lakes and wintry highlands",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/snowfield-0d5df7bf.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/alpine-lake-108392d4.jpg"],
+      "rejects": ["temperate mountain scenes", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-temple": {
+      "exactSubject": "small sacred interior",
+      "canonicalTraits": ["stone sanctuary", "altar or devotional niche", "controlled candlelight"],
+      "habitat": "temples, shrines, chapels, sanctums and holy rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/shrine-interior-0f2de22b.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic town streets", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-apothecary": {
+      "exactSubject": "clean alchemical workroom and apothecary",
+      "canonicalTraits": ["bottles and reagents", "working counter", "organized shelving"],
+      "habitat": "apothecaries, alchemists, herbalists and potion shops",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/apothecary-09cdec8e.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic market exterior", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-forge": {
+      "exactSubject": "working blacksmith forge",
+      "canonicalTraits": ["active coal fire", "anvil", "smithing tools and dark masonry"],
+      "habitat": "forges, smithies, blacksmiths and foundries",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/forge-11c9cd64.jpg",
+      "approvedVariants": [],
+      "rejects": ["taverns merely mentioning a hearth", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-outfitter": {
+      "exactSubject": "leatherworker and outfitter workshop",
+      "canonicalTraits": ["worked leather", "armor or hides", "cutting and stitching benches"],
+      "habitat": "outfitters, tanneries, leather shops and armor workshops",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/leather-workshop-1390477d.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic store exterior", "all non-Grok room renders"],
       "regenerationNeeded": false
     },
     "generic-town": {
