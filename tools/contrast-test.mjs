@@ -72,6 +72,32 @@ for (const ink of inks) {
   }
 }
 
+console.log('')
+console.log('-- scrollbars belong to the warm interface on every engine --')
+const scrollbarTokens = ['scrollbar-thumb', 'scrollbar-hover', 'scrollbar-active']
+for (const token of scrollbarTokens) {
+  const color = palette[token]
+  check(`${token} is a named theme color`, Boolean(color))
+  if (!color) continue
+  for (const bg of [...surfaces, 'map-ground']) {
+    const background = bg === 'map-ground'
+      ? css.match(/--map-ground:\s*(#[0-9a-fA-F]{6})/)?.[1]
+      : palette[bg]
+    if (!background) continue
+    const ratio = contrast(color, background)
+    check(`${token} visible on ${bg}`, ratio >= 3, `${ratio.toFixed(2)}:1${ratio >= 3 ? '' : ' (needs 3)'}`)
+  }
+}
+check(
+  'retired blue-grey scrollbar literals are gone',
+  !/#2a3142|#3a4255/i.test(css)
+)
+check(
+  'Firefox and WebView receive the same scrollbar tokens',
+  css.includes('scrollbar-color: var(--color-scrollbar-thumb) transparent') &&
+    css.includes('background: var(--color-scrollbar-thumb)')
+)
+
 // --- the type floor ---------------------------------------------------------
 
 console.log('')

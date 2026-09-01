@@ -74,11 +74,22 @@
   --color-danger: #d2635a;
   --color-info: #7ba3c4;
 
+  /* Scrollbar hardware, in the same aged-metal family as panel borders and
+     controls. These remain visible against both ink surfaces and the pale
+     cartographer sheet without resurrecting the discarded blue-grey theme. */
+  --color-scrollbar-thumb: #746a55;
+  --color-scrollbar-hover: #796f59;
+  --color-scrollbar-active: #806536;
+
   --font-sans: "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 * {
   box-sizing: border-box;
+  /* Firefox. `.no-scrollbar` below still opts individual grab-scroll regions
+     out, while ordinary reading panes remain visibly scrollable. */
+  scrollbar-color: var(--color-scrollbar-thumb) transparent;
+  scrollbar-width: thin;
 }
 
 html, body, #root {
@@ -92,7 +103,7 @@ body {
   color: var(--color-ink);
 }
 
-/* Subtle scrollbar for dark UI */
+/* Warm, tokenized scrollbar for WebView2 / Chromium. */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -101,11 +112,14 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a3142;
+  background: var(--color-scrollbar-thumb);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a4255;
+  background: var(--color-scrollbar-hover);
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--color-scrollbar-active);
 }
 
 /* Opt out of the scrollbar above entirely — for the battle board's corner
