@@ -124,12 +124,6 @@ const ALLOWED = new Map([
       '3e95ae7d: "Freeform mode and the panel pop-out-window machinery go with Dashboard"',
   ],
   [
-    'src/components/game/GamePane.tsx',
-    '3e95ae7d: "the Game pane\'s scrolling text log read as a dead box" — its connection ' +
-      'controls moved to GameConnectionBar, its background effects to GameSignals; only the ' +
-      'visible log itself was cut',
-  ],
-  [
     'src/components/shared/Box.tsx',
     "DashboardLayout's own card frame ('everything on this dashboard that holds cards uses " +
       "it' — see its own doc comment) — dead with the dashboard, no other caller",

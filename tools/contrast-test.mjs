@@ -173,7 +173,7 @@ for (const { ink, pct, where } of [...used.values()]) {
 // --- the game pane header must stay able to shrink ---------------------------
 
 console.log('')
-console.log('-- the game pane header can shrink, so Attach stays reachable --')
+console.log('-- the game connection header can shrink, so Attach stays reachable --')
 
 // This bug was found twice, independently, within a day: the header's control
 // group - scrollback search, port box, Clear, Attach - left the pane in a
@@ -192,13 +192,13 @@ console.log('-- the game pane header can shrink, so Attach stays reachable --')
 // measurement proves; that was done across 1400/1300/1250/1200/1150/1120/
 // 1100/1050/1000/900 and is clean. What this catches is the one-word edit
 // that quietly reopens it.
-const gamePane = readFileSync('src/components/game/GamePane.tsx', 'utf8')
-const headerRow = gamePane
+const connectionBar = readFileSync('src/components/game/GameConnectionBar.tsx', 'utf8')
+const headerRow = connectionBar
   .split('\n')
   .find((l) => l.includes('border-b border-border') && l.includes('items-center') && l.includes('className'))
 
 check(
-  'GamePane.tsx still has a header row to check',
+  'GameConnectionBar.tsx still has a header row to check',
   Boolean(headerRow),
   headerRow ? '' : 'no line matched - this check has stopped looking at anything'
 )

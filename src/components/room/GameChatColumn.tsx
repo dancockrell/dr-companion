@@ -5,6 +5,7 @@ import { GameCommandBar } from '../game/GameCommandBar'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { useHighlights } from '../../lib/useHighlights'
 import { TaskFlowPanel } from '../dashboard/TaskFlowPanel'
+import { GameConnectionBar } from '../game/GameConnectionBar'
 
 /**
  * The large lower-left workspace is deliberately split, not switched. The
@@ -20,6 +21,7 @@ export function GameChatColumn() {
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-1 p-1" aria-label="Game and automation workspace">
       <section className="flex min-h-0 min-w-0 flex-col gap-2" aria-label="Game workspace">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border border-border bg-surface-raised">
+          <GameConnectionBar />
           <PanelBoundary label="Game and channels">
             <StreamTabs
               highlights={highlights}
