@@ -21,6 +21,8 @@ import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 import { RoomHoverCard } from './RoomHoverCard'
 import { useAppStore } from '../../store/useAppStore'
 import { landmarksFor } from '../../lib/mapLandmarks'
+import { deriveMapStamps } from '../../lib/mapStamps'
+import { MapStampLayer } from './MapStampLayer'
 
 /**
  * How many rooms the map draws at once.
@@ -242,6 +244,14 @@ export function MapCanvas({
     [rooms]
   )
 
+  // Landscape context painted like old cartographer's ink, beneath every
+  // route and room. Stable per zone and level: returning to Crossing shows
+  // the same rivers, woodland, high ground and seal in the same places.
+  const stamps = useMemo(
+    () => deriveMapStamps({ zone: zone.zone, name: zone.name }, rooms),
+    [zone.zone, zone.name, rooms]
+  )
+
   // Who's next to whom, for highlighting a room's connections on hover - a
   // map that lights up where you can actually go from the room the cursor is
   // over is a map that teaches the city, not just displays it. Built once per
@@ -323,6 +333,16 @@ export function MapCanvas({
         </radialGradient>
       </defs>
       <rect x={0} y={0} width={view.w} height={view.h} fill="url(#map-paper)" />
+
+      {/* Informative atmosphere, never function. This must stay immediately
+          above the paper and below trails, links, rooms, landmarks, pins and
+          the player marker; SVG paint order is the contract. */}
+      <MapStampLayer
+        stamps={stamps}
+        xFor={(x) => x * scale - view.minX + pad}
+        yFor={(y) => y * scale - view.minY + pad}
+        unit={Math.min(scale, Math.max(0.22, Math.min(view.w, view.h) / 160))}
+      />
 
       {/* Where you have been, over the streets and under the rooms.
        *
