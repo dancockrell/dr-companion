@@ -17,7 +17,11 @@ export class AuxiliaryWindowBoundary extends Component<Props, { error: Error | n
   componentDidCatch(error: Error, info: { componentStack: string }) {
     // Retain a developer-visible trace even if the application log callback fails.
     // eslint-disable-next-line no-console
-    console.error(`[${this.props.label}] auxiliary window crashed:`, error, info.componentStack)
+    console.error('Auxiliary window crashed', {
+      label: this.props.label,
+      error,
+      componentStack: info.componentStack,
+    })
     this.props.onError?.(error, info.componentStack)
   }
 
