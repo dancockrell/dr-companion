@@ -90,6 +90,7 @@
     "test:combat-radar-layout": "node --experimental-strip-types tools/combat-radar-layout-test.ts",
     "test:map-landmarks": "node tools/map-landmarks-test.mjs",
     "test:map-viewport": "node tools/map-viewport-test.mjs",
+    "test:map-keyboard": "node --experimental-strip-types tools/map-keyboard-test.ts",
     "test:highlight": "node tools/highlight-test.mjs",
     "test:alert-throttle": "node tools/alert-throttle-test.mjs",
     "test:ambient": "node tools/ambient-test.mjs",
