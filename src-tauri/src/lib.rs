@@ -1,5 +1,6 @@
 pub mod bridge_token;
 pub mod config_import;
+pub mod custom_portraits;
 pub mod elanthipedia;
 pub mod game_link;
 pub mod lich;
@@ -147,6 +148,9 @@ pub fn run() {
             config_import::read_genie_config,
             config_import::write_genie_config,
             config_import::restore_genie_config,
+            custom_portraits::save_custom_portrait,
+            custom_portraits::read_custom_portrait,
+            custom_portraits::remove_custom_portrait,
             elanthipedia::fetch_elanthipedia,
             sounds::read_sound,
             sounds::list_sounds,

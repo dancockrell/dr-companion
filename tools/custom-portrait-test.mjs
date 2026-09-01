@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const native = read('src-tauri/src/custom_portraits.rs')
+const commands = read('src-tauri/src/lib.rs')
+const portrait = read('src/components/shared/Portrait.tsx')
+const editor = read('src/components/shared/CustomPortraitEditor.tsx')
+const processing = read('src/lib/customPortraits.ts')
+const choices = read('src/lib/portraits.ts')
+const battle = read('src/components/room/BattleColumn.tsx')
+const docs = read('docs/PLAYER-ART.md')
+
+assert.match(native, /const MAX_BYTES: usize = 1_000_000/)
+assert.match(native, /const MAX_DIMENSION: u16 = 2048/)
+assert.match(native, /hash\.update\(instance\.trim\(\)\.to_lowercase\(\)\)/)
+assert.match(native, /if validate\(&bytes\)\.is_err\(\) \{ return Ok\(None\); \}/)
+assert.match(native, /webp\.tmp/)
+assert.match(native, /webp\.bak/)
+for (const command of ['save_custom_portrait', 'read_custom_portrait', 'remove_custom_portrait']) {
+  assert.match(commands, new RegExp(`custom_portraits::${command}`), `${command} must be registered with Tauri`)
+}
+
+assert.match(processing, /MAX_SOURCE_BYTES = 20_000_000/)
+assert.match(processing, /MAX_SOURCE_DIMENSION = 12_000/)
+assert.match(processing, /URL\.revokeObjectURL\(url\)/)
+assert.match(processing, /toDataURL\('image\/webp'/)
+assert.match(choices, /instance\.toLowerCase\(\).*character\.toLowerCase\(\)/)
+assert.match(choices, /delete all\[identity\(character, instance\)\]/)
+assert.match(battle, /instance: character\.instance/)
+
+assert.match(editor, /type="file"/)
+assert.match(editor, /onDrop=/)
+assert.match(editor, /onPaste=/)
+assert.match(editor, /Dashboard portrait preview/)
+assert.match(editor, /Combat radar portrait preview/)
+assert.match(editor, /Zoom/)
+assert.match(editor, /Left \/ right/)
+assert.match(editor, /Up \/ down/)
+assert.match(portrait, /Replace or re-crop your image/)
+assert.match(portrait, /Remove local image/)
+assert.match(portrait, /Reset to automatic default/)
+assert.match(portrait, /Local images stay private on this machine/)
+assert.match(docs, /never uploads, commits, or publishes/)
+assert.match(docs, /separate, reviewed repository process/)
+
+console.log('custom portrait contract passed')

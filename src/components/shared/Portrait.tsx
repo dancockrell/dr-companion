@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '../../lib/cn'
-import { catalogue, choose, genericPortraitFor, loadPortraitManifest, portraitFor, portraitUrl } from '../../lib/portraits'
+import { catalogue, choose, genericPortraitFor, loadPortraitManifest, portraitFor, portraitUrl, resetChoice } from '../../lib/portraits'
+import { readCustomPortrait, removeCustomPortrait } from '../../lib/customPortraits'
+import { CustomPortraitEditor } from './CustomPortraitEditor'
 import { useModalDialog } from '../../lib/useModalDialog'
 import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
@@ -20,6 +22,7 @@ import { scrollableRegionProps } from '../../lib/scrollableRegion'
  */
 export function Portrait({
   character,
+  instance = 'Prime',
   look,
   race,
   sex,
@@ -28,6 +31,7 @@ export function Portrait({
   focus = 'center',
 }: {
   character: string
+  instance?: string
   /** The character's LOOK text, if the bridge has read it. */
   look?: string
   race?: string
@@ -44,16 +48,27 @@ export function Portrait({
   const [picking, setPicking] = useState(false)
   const [chosen, setChosen] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
+  const [customUrl, setCustomUrl] = useState<string | null>(null)
+  const [editingCustom, setEditingCustom] = useState(false)
+  const [customError, setCustomError] = useState('')
   const dialogRef = useModalDialog(() => setPicking(false), picking)
 
   useEffect(() => {
     void loadPortraitManifest().then(() => setReady(true))
   }, [])
+  useEffect(() => {
+    let current = true
+    void readCustomPortrait(character, instance).then((url) => { if (current) setCustomUrl(url) }).catch((error) => { if (current) setCustomError(String(error)) })
+    return () => { current = false }
+  }, [character, instance])
 
-  const suggested = ready ? portraitFor({ character, look, race, sex }) : genericPortraitFor(character)
+  const suggested = ready ? portraitFor({ character, instance, look, race, sex }) : genericPortraitFor(character)
   const key = chosen ?? suggested ?? genericPortraitFor(character)
   const emergencyKey = key === 'human-male' ? 'human-female' : 'human-male'
   const displayKey = failed ? emergencyKey : key
+  const displayDescription = customUrl && !failed
+    ? `${character}, local custom portrait`
+    : `${character}, ${sex ? displayKey.replace(/-/g, ' ') : `${race ?? 'generic'} portrait, gender unknown`}`
   // catalogue() has a shipped-core baseline. The chooser must work on the
   // first frame rather than becoming a dead button until an optional manifest
   // request finishes; `ready` only improves automatic matching above.
@@ -69,13 +84,13 @@ export function Portrait({
         onClick={() => setPicking((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={picking}
-        title={`${sex ? displayKey.replace(/-/g, ' ') : `${race ?? 'Generic'} default · gender not yet known`} — click to change`}
+        title={`${customUrl && !failed ? 'Local custom portrait' : sex ? displayKey.replace(/-/g, ' ') : `${race ?? 'Generic'} default · gender not yet known`} — click to change`}
         className={`block overflow-hidden border border-border ${shape === 'oval' ? 'rounded-full ring-1 ring-info/30' : 'rounded-sm'}`}
         style={{ width, height }}
       >
         <img
-          src={portraitUrl(displayKey)}
-          alt={`${character}, ${sex ? displayKey.replace(/-/g, ' ') : `${race ?? 'generic'} portrait, gender unknown`}`}
+          src={customUrl && !failed ? customUrl : portraitUrl(displayKey)}
+          alt={displayDescription}
           onError={() => {
             if (!failed) setFailed(true)
           }}
@@ -83,7 +98,7 @@ export function Portrait({
           // as a face inside the radar's small oval. Zoom the source around
           // its upper centre for that one use; card portraits and the chooser
           // still show the complete authored image.
-          className={`h-full w-full object-cover ${focus === 'face' ? 'object-[center_18%] origin-[50%_18%] scale-[1.72]' : ''}`}
+          className={`h-full w-full object-cover ${focus === 'face' && !customUrl ? 'object-[center_18%] origin-[50%_18%] scale-[1.72]' : ''}`}
         />
       </button>
 
@@ -110,13 +125,21 @@ export function Portrait({
               </div>
               <button type="button" onClick={() => setPicking(false)} className="rounded border border-border px-2 py-1 text-xs text-ink-muted hover:border-accent hover:text-ink">Close</button>
             </header>
+            {editingCustom ? <CustomPortraitEditor character={character} instance={instance} initialUrl={customUrl} onCancel={() => setEditingCustom(false)} onSaved={(url) => { setCustomUrl(url); setFailed(false); setEditingCustom(false); setPicking(false) }} /> : <>
+            <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
+              <button type="button" onClick={() => setEditingCustom(true)} className="rounded border border-info/50 px-2 py-1 text-xs text-info hover:bg-info/10">{customUrl ? 'Replace or re-crop your image' : 'Choose your own image'}</button>
+              {customUrl && <button type="button" onClick={() => void removeCustomPortrait(character, instance).then(() => { setCustomUrl(null); setFailed(false) }).catch((error) => setCustomError(String(error)))} className="rounded border border-danger/40 px-2 py-1 text-xs text-danger">Remove local image</button>}
+              <button type="button" onClick={() => void removeCustomPortrait(character, instance).then(() => { resetChoice(character, instance); setCustomUrl(null); setChosen(null); setFailed(false) }).catch((error) => setCustomError(String(error)))} className="rounded border border-border px-2 py-1 text-xs text-ink-muted">Reset to automatic default</button>
+            </div>
+            {customError && <p role="alert" className="mx-3 mt-2 text-xs text-danger">{customError}</p>}
+            <p className="px-3 pt-2 text-xs text-ink-muted">Local images stay private on this machine. Public community portraits still require a separate reviewed GitHub submission.</p>
             <div {...scrollableRegionProps('Available portraits')} className="grid min-h-0 flex-1 grid-cols-4 gap-2 overflow-y-auto p-3 sm:grid-cols-6">
               {options.map((o) => (
                 <button
                   key={o.key}
                   type="button"
                   onClick={() => {
-                    choose(character, o.key)
+                    choose(character, instance, o.key)
                     setChosen(o.key)
                     setFailed(false)
                     setPicking(false)
@@ -138,6 +161,7 @@ export function Portrait({
                 </button>
               ))}
             </div>
+            </>}
           </section>
         </div>,
         document.body,
