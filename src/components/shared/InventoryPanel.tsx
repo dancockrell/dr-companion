@@ -25,7 +25,7 @@ function ItemRow({ name, onWiki }: { name: string; onWiki: (name: string) => voi
       <div className="flex shrink-0 items-center opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <button type="button" className="rounded px-1 py-0.5 text-xs text-ink-faint hover:bg-surface-overlay hover:text-ink" onClick={() => void sendGame(`appraise ${target} quick`)} title="Quick appraisal">A</button>
         <button type="button" className="rounded px-1 py-0.5 text-xs text-ink-faint hover:bg-surface-overlay hover:text-ink" onClick={() => void sendGame(`analyze ${target}`)} title="Analyze crafting and special properties"><Sparkles className="h-3 w-3" /></button>
-        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-info" onClick={() => onWiki(name)} title="Open Elanthipedia information"><BookOpen className="h-3 w-3" /></button>
+        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-info" onClick={() => onWiki(name)} title={`Look up ${name} on Elanthipedia`} aria-label={`Elanthipedia information for ${name}`}><BookOpen className="h-3 w-3" /></button>
       </div>
     </div>
   )
@@ -179,7 +179,8 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
       {wiki && (
         <aside className="rounded border border-info/40 bg-surface-overlay p-2 text-xs" aria-label={`Elanthipedia information for ${wiki.item}`}>
           <div className="flex items-start justify-between gap-2"><strong className="text-ink">{wiki.item}</strong><button type="button" className="text-ink-faint hover:text-ink" onClick={() => setWiki(null)}>Close</button></div>
-          {wiki.loading ? <p className="mt-1 text-ink-faint">Checking Elanthipedia…</p> : wiki.page?.found ? <><p className="mt-1 line-clamp-6 text-ink-muted">{wiki.page.extract}</p><a className="mt-1 inline-block text-info hover:underline" href={wiki.page.pageUrl} target="_blank" rel="noreferrer">Full Elanthipedia page</a></> : <p className="mt-1 text-ink-faint">{wiki.page?.note || 'No matching Elanthipedia page found.'}</p>}
+          {wiki.loading ? <p className="mt-1 text-ink-faint">Checking Elanthipedia…</p> : wiki.page?.found ? <><p className="mt-1 line-clamp-6 text-ink-muted">{wiki.page.extract}</p><a className="mt-1 inline-block text-info hover:underline" href={wiki.page.pageUrl} target="_blank" rel="noreferrer">Full Elanthipedia page</a></> : <p className="mt-1 text-ink-faint">{wiki.page?.note || 'No exact Elanthipedia page found. Try the full wiki search.'}</p>}
+          <a className="mt-1 block text-info hover:underline" href={`https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(itemTarget(wiki.item))}`} target="_blank" rel="noreferrer">Search Elanthipedia for this item</a>
         </aside>
       )}
 

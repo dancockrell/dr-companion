@@ -1,8 +1,10 @@
-import { Anvil, Apple, Backpack, Beer, Bone, BookOpen, BowArrow, Box, Coins, Cookie, FlaskConical, Gem, Hammer, Key, Leaf, Package, Pickaxe, ScrollText, Shield, Shirt, Skull, Sparkles, Sword, Utensils, Wand2 } from 'lucide-react'
+import { useState } from 'react'
+import { Anvil, Apple, Backpack, Beer, Bone, BookOpen, BowArrow, Box, Coins, Cookie, ExternalLink, FlaskConical, Gem, Hammer, Key, Leaf, Package, Pickaxe, ScrollText, Search, Shield, Shirt, Skull, Sparkles, Sword, Utensils, Wand2, X } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { nounOf } from '../../lib/room'
 import { useRoomItemTake } from '../../lib/useRoomItemTake'
 import { useDragScroll } from '../../lib/useDragScroll'
+import { sendGame } from '../../lib/gameLink'
 
 /**
  * The floor, as its own row — pulled off the battle board itself
@@ -58,6 +60,8 @@ function iconForItem(name: string) {
 export function FloorItems({ items }: { items?: string[] }) {
   const { take, canSend, reason } = useRoomItemTake()
   const drag = useDragScroll()
+  const [query, setQuery] = useState('')
+  const [selected, setSelected] = useState<string | null>(null)
 
   if (!items || items.length === 0) return null
 
@@ -71,9 +75,12 @@ export function FloorItems({ items }: { items?: string[] }) {
       groups.push({ name, count: 1 })
     }
   }
+  const needle = query.trim().toLowerCase()
+  const visible = groups.filter(({ name }) => !needle || name.toLowerCase().includes(needle))
+  const targetOf = (name: string) => name.replace(/^(?:a|an|some|the)\s+/i, '').trim()
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1" aria-label={`Items on the ground: ${groups.length} kinds, ${items.length} total`}>
       <div
         ref={drag.ref}
         onPointerDown={drag.onPointerDown}
@@ -82,21 +89,21 @@ export function FloorItems({ items }: { items?: string[] }) {
         onPointerCancel={drag.onPointerCancel}
         className={cn('no-scrollbar flex touch-none gap-1 overflow-x-auto', drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
       >
-        {groups.map(({ name, count }) => {
+        {visible.map(({ name, count }) => {
           const Icon = iconForItem(name)
           const label = count > 1 ? `${name} (${count})` : name
-          const tooltip = reason ?? `get ${nounOf(name)}`
+          const tooltip = `${label} — click for Look, Get, Appraise, Analyze, and Elanthipedia`
           return (
             <button
               key={name}
               type="button"
-              disabled={!canSend}
-              onClick={() => take(name)}
+              onClick={() => setSelected((current) => current === name ? null : name)}
+              aria-pressed={selected === name}
               title={tooltip}
               className={cn(
                 'flex shrink-0 items-center gap-1 rounded border border-border px-1.5 py-1 text-xs',
                 'text-ink-muted hover:border-ink-faint hover:text-ink',
-                'disabled:cursor-not-allowed disabled:opacity-40'
+                selected === name && 'border-accent bg-accent/10 text-ink'
               )}
             >
               <Icon className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
@@ -105,6 +112,27 @@ export function FloorItems({ items }: { items?: string[] }) {
           )
         })}
       </div>
+      {groups.length > 12 && (
+        <label className="flex h-7 items-center gap-1 rounded border border-border bg-surface px-1.5 text-xs">
+          <Search className="h-3.5 w-3.5 shrink-0 text-ink-faint" aria-hidden />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Find among ${groups.length} kinds / ${items.length} items…`} className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-ink-faint" />
+        </label>
+      )}
+      {selected && (() => {
+        const target = targetOf(selected)
+        const wikiUrl = `https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(target)}`
+        return (
+          <div className="flex flex-wrap items-center gap-1 rounded border border-accent/35 bg-surface-overlay p-1.5 text-xs" aria-label={`Actions for ${selected}`}>
+            <strong className="mr-1 min-w-0 flex-1 truncate text-ink" title={selected}>{selected}</strong>
+            <button type="button" onClick={() => void sendGame(`look ${target}`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Look at ${selected}`}>Look</button>
+            <button type="button" disabled={!canSend} onClick={() => take(selected)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-accent disabled:opacity-40" title={reason ?? `get ${nounOf(selected)}`}>Get</button>
+            <button type="button" onClick={() => void sendGame(`appraise ${target} quick`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Quick-appraise ${selected}`}>Appraise</button>
+            <button type="button" onClick={() => void sendGame(`analyze ${target}`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Analyze ${selected}`}>Analyze</button>
+            <a href={wikiUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-info/40 px-1.5 py-0.5 text-info hover:bg-info/10" title={`Search Elanthipedia for ${selected}`}><BookOpen className="h-3 w-3" /> Elanthipedia <ExternalLink className="h-3 w-3" /></a>
+            <button type="button" onClick={() => setSelected(null)} className="rounded p-0.5 text-ink-faint hover:text-ink" title="Close item actions" aria-label="Close item actions"><X className="h-3.5 w-3.5" /></button>
+          </div>
+        )
+      })()}
       {reason && <p className="text-xs text-warn leading-snug">{reason}</p>}
     </div>
   )
