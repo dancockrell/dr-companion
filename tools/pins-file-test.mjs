@@ -35,7 +35,7 @@ const compile = (src, name) => {
 
 // Real mapPins.ts, so PIN_COLORS/PIN_ICONS are the actual live lists - a
 // preset added there and not here would otherwise go unnoticed.
-writeFileSync(join(dir, 'storage.js'), 'export function readJSON(){return {}}\nexport function writeJSON(){}\n')
+writeFileSync(join(dir, 'storage.js'), 'export function readJSON(){return globalThis.__pinsStore ?? {}}\nexport function writeJSON(_k,v){globalThis.__pinsStore=v}\n')
 writeFileSync(join(dir, 'profiles.js'), 'export function profileKey(n,i){return n+":"+i}\n')
 const mapPinsPath = compile('src/lib/mapPins.ts', 'mapPins.js')
 const pinsFilePath = compile('src/lib/pinsFile.ts', 'pinsFile.js')
@@ -49,8 +49,8 @@ writeFileSync(join(dir, 'genieConfigWrite.js'), 'export async function saveGenie
 const jsYamlUrl = new URL('../node_modules/js-yaml/dist/js-yaml.mjs', import.meta.url).href
 writeFileSync(pinsFilePath, readFileSync(pinsFilePath, 'utf8').replace("from 'js-yaml'", `from '${jsYamlUrl}'`))
 
-const { pinsToYaml, yamlToPins } = await import(pathToFileURL(pinsFilePath).href)
-const { PIN_COLORS, PIN_ICONS } = await import(pathToFileURL(mapPinsPath).href)
+const { applyPinsImport, pinsToYaml, previewPinsImport, undoLastPinsImport, yamlToPins } = await import(pathToFileURL(pinsFilePath).href)
+const { loadAllPins, PIN_COLORS, PIN_ICONS } = await import(pathToFileURL(mapPinsPath).href)
 
 let pass = 0
 let fail = 0
@@ -62,6 +62,11 @@ function ok(label, cond, detail = '') {
     fail++
     console.log(`FAIL ${label}${detail ? ` (${detail})` : ''}`)
   }
+}
+function mustParse(text) {
+  const parsed = yamlToPins(text)
+  if (!parsed.ok) throw new Error(parsed.error)
+  return parsed
 }
 
 console.log('-- round trip: what goes in comes back out --')
@@ -87,7 +92,7 @@ const yaml = pinsToYaml(store)
 ok('the file opens with an explanatory comment', yaml.startsWith('#'))
 ok('the system pin never reaches the file', !yaml.includes('Your corpse'), yaml)
 
-const { store: back, skipped } = yamlToPins(yaml)
+const { store: back, skipped } = mustParse(yaml)
 ok('no entries were skipped on a clean round trip', skipped === 0, String(skipped))
 ok('the character key survived', Object.keys(back).length === 1)
 const pins = back['Prime:dan the bold'] ?? []
@@ -113,7 +118,7 @@ const allIconsPins = PIN_ICONS.map((icon, i) => ({
   icon,
   createdAt: i,
 }))
-const { store: iconBack, skipped: iconSkipped } = yamlToPins(pinsToYaml({ x: allIconsPins }))
+const { store: iconBack, skipped: iconSkipped } = mustParse(pinsToYaml({ x: allIconsPins }))
 ok(
   `all ${PIN_ICONS.length} icons round-trip with none skipped`,
   iconSkipped === 0 && (iconBack.x ?? []).length === PIN_ICONS.length,
@@ -135,7 +140,7 @@ x:
   - notEvenAnObject
 y: "just a string, not a list"
 `
-const { store: messyBack, skipped: messySkipped } = yamlToPins(messy)
+const { store: messyBack, skipped: messySkipped } = mustParse(messy)
 ok('the one genuinely valid entry survived', (messyBack.x ?? []).length === 1, JSON.stringify(messyBack))
 // 4 malformed entries inside `x`, plus `y` itself (not a list) - both
 // branches of yamlToPins increment the same counter, on purpose: a key
@@ -144,17 +149,54 @@ ok('the one genuinely valid entry survived', (messyBack.x ?? []).length === 1, J
 ok('every malformed thing was counted as skipped, not silently dropped', messySkipped === 5, String(messySkipped))
 ok('a key whose value is not a list is skipped rather than crashing', !('y' in messyBack))
 
-console.log('\n-- sabotage: not-YAML-at-all must degrade to empty, not throw --')
-try {
-  const { store: brokenStore, skipped: brokenSkipped } = yamlToPins('{{{not valid yaml::: [')
-  ok('unparseable text yields an empty store', Object.keys(brokenStore).length === 0)
-  ok('and reports nothing skipped, rather than crashing (that is the point)', brokenSkipped === 0)
-} catch (e) {
-  ok('unparseable text must not throw', false, String(e))
+console.log('\n-- invalid and valid-empty files are different states --')
+const broken = yamlToPins('{{{not valid yaml::: [')
+ok('unparseable text reports a parse failure', !broken.ok && broken.error.length > 0)
+const validEmpty = yamlToPins('# deliberately empty\n{}\n')
+ok('a valid empty file parses successfully', validEmpty.ok)
+ok('a valid empty file is identified as empty', validEmpty.ok && validEmpty.empty)
+
+console.log('\n-- staged merge, explicit replace, system preservation, and undo --')
+const local = {
+  hero: [
+    { id: 'local-1', roomId: 1, zone: '1', label: 'Home', color: 'blue', note: 'mine', createdAt: 1 },
+    { id: 'local-2', roomId: 2, zone: '1', label: 'Keep me', color: 'gold', createdAt: 2 },
+    { id: 'corpse', roomId: 99, zone: '1', label: 'Your corpse', color: 'red', system: true, createdAt: 3 },
+  ],
+  untouched: [{ id: 'u', roomId: 8, zone: '', label: 'Other', color: 'green', createdAt: 1 }],
 }
+const incoming = {
+  hero: [
+    { id: 'in-1', roomId: 1, zone: '1', label: 'Home updated', color: 'purple', note: 'shared', createdAt: 9 },
+    { id: 'in-3', roomId: 3, zone: '1', label: 'New', color: 'green', createdAt: 9 },
+  ],
+}
+let preview = previewPinsImport(incoming, local)
+ok('preview reports the conflict before mutation', preview.characters[0].updated === 1)
+ok('preview reports what Replace would delete', preview.characters[0].removedByReplace === 1)
+globalThis.__pinsStore = structuredClone(local)
+const mergedResult = applyPinsImport(preview, { hero: 'merge' })
+let applied = loadAllPins()
+ok('Merge updates the conflicting room', applied.hero.find((p) => p.roomId === 1)?.label === 'Home updated')
+ok('Merge preserves unrelated local pins', applied.hero.some((p) => p.roomId === 2))
+ok('Merge preserves the system corpse pin', applied.hero.some((p) => p.system))
+ok('Merge reports added and updated separately', mergedResult.added === 1 && mergedResult.updated === 1 && mergedResult.removed === 0)
+ok('characters absent from the file are untouched', applied.untouched?.[0]?.note === local.untouched[0].note)
+ok('Undo restores every authored field exactly', undoLastPinsImport() && JSON.stringify(loadAllPins()) === JSON.stringify(local))
+preview = previewPinsImport(incoming, local)
+applyPinsImport(preview, { hero: 'replace' })
+applied = loadAllPins()
+ok('Replace removes only the local pin disclosed by preview', !applied.hero.some((p) => p.roomId === 2))
+ok('Replace still preserves the system corpse pin', applied.hero.some((p) => p.system))
+
+console.log('\n-- import preview follows the shared modal interaction contract --')
+const importDialog = readFileSync('src/components/shared/PinImportDialog.tsx', 'utf8')
+ok('the import dialog uses shared focus trapping, Escape handling, and focus restoration', importDialog.includes('useModalDialog(onClose)'))
+ok('the import dialog can receive fallback focus', importDialog.includes('tabIndex={-1}'))
+ok('gameplay shortcuts are suspended while import choices are open', importDialog.includes('data-gameplay-shortcuts="suspend"'))
 
 console.log('\n-- positive control: this suite can actually fail --')
-const { store: controlStore } = yamlToPins(pinsToYaml({ z: [{ id: 'a', roomId: 1, zone: '', label: 'X', color: 'blue', createdAt: 1 }] }))
+const { store: controlStore } = mustParse(pinsToYaml({ z: [{ id: 'a', roomId: 1, zone: '', label: 'X', color: 'blue', createdAt: 1 }] }))
 ok('sabotage check: a genuinely present pin is detected as present', (controlStore.z ?? []).length === 1)
 
 const denom = pass + fail

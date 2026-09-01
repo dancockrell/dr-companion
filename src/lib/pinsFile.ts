@@ -109,20 +109,25 @@ export function pinsToYaml(store: PinStore = loadAllPins()): string {
 }
 
 /**
- * Parse pins YAML back into a store. Defensive the same way `loadStore` in
- * mapPins.ts is: a malformed file, a wrong shape, or a single bad entry
- * degrades that one entry rather than throwing away everything else in the
- * file - one guildmate's typo in a shared config must not cost every pin
- * in it.
+ * Parse pins YAML without mutating the live store. A bad individual record is
+ * counted and skipped, while syntax/root-shape failures remain explicit errors;
+ * an invalid file must never masquerade as a valid empty import.
  */
-export function yamlToPins(text: string): { store: PinStore; skipped: number } {
+export type PinsParseResult =
+  | { ok: true; store: PinStore; skipped: number; empty: boolean }
+  | { ok: false; error: string }
+
+export function yamlToPins(text: string): PinsParseResult {
   let parsed: unknown
   try {
     parsed = parseYaml(text)
-  } catch {
-    return { store: {}, skipped: 0 }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) }
   }
-  if (typeof parsed !== 'object' || parsed === null) return { store: {}, skipped: 0 }
+  if (parsed == null) return { ok: true, store: {}, skipped: 0, empty: true }
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { ok: false, error: 'The pins file must contain character names followed by pin lists.' }
+  }
 
   const store: PinStore = {}
   let skipped = 0
@@ -139,7 +144,7 @@ export function yamlToPins(text: string): { store: PinStore; skipped: number } {
     })
     if (pins.length) store[key] = pins
   }
-  return { store, skipped }
+  return { ok: true, store, skipped, empty: Object.keys(store).length === 0 && skipped === 0 }
 }
 
 /**
@@ -154,35 +159,115 @@ export async function exportPinsToFile(): Promise<{ path: string }> {
 }
 
 /**
- * Read the shared config file and merge it into localStorage: an imported
- * character's pins replace that character's own list (the file is the
- * thing the player just chose to bring in), but a character present in
- * localStorage and absent from the file keeps what it already had - an
- * empty or partial shared file must not erase pins the file's author never
- * touched.
+ * Read and compare the shared file without mutating localStorage. The caller
+ * must show the returned impact and explicitly apply per-character choices.
  */
-export async function importPinsFromFile(): Promise<{ imported: number; skipped: number; note: string }> {
-  if (!isTauri()) return { imported: 0, skipped: 0, note: 'No Genie install to read from outside the desktop app.' }
+export type PinImportChoice = 'merge' | 'replace' | 'skip'
+export interface PinImportCharacterPreview {
+  key: string
+  incoming: number
+  local: number
+  added: number
+  updated: number
+  unchanged: number
+  removedByReplace: number
+}
+export interface PinImportPreview {
+  incoming: PinStore
+  before: PinStore
+  skipped: number
+  empty: boolean
+  characters: PinImportCharacterPreview[]
+}
+export interface PinImportResult {
+  added: number
+  updated: number
+  unchanged: number
+  skipped: number
+  removed: number
+  affectedCharacters: number
+}
+
+function samePin(a: MapPin, b: MapPin): boolean {
+  return a.roomId === b.roomId && a.zone === b.zone && a.label === b.label && a.color === b.color &&
+    a.icon === b.icon && a.note === b.note
+}
+
+export function previewPinsImport(incoming: PinStore, before: PinStore = loadAllPins(), skipped = 0, empty = false): PinImportPreview {
+  const characters = Object.entries(incoming).map(([key, pins]) => {
+    const local = (before[key] ?? []).filter((pin) => !pin.system)
+    const byRoom = new Map(local.map((pin) => [pin.roomId, pin]))
+    let added = 0
+    let updated = 0
+    let unchanged = 0
+    for (const pin of pins) {
+      const existing = byRoom.get(pin.roomId)
+      if (!existing) added++
+      else if (samePin(existing, pin)) unchanged++
+      else updated++
+    }
+    const incomingRooms = new Set(pins.map((pin) => pin.roomId))
+    return { key, incoming: pins.length, local: local.length, added, updated, unchanged,
+      removedByReplace: local.filter((pin) => !incomingRooms.has(pin.roomId)).length }
+  })
+  return { incoming, before, skipped, empty, characters }
+}
+
+export async function readPinsImportPreview(): Promise<{ preview?: PinImportPreview; note?: string; error?: string }> {
+  if (!isTauri()) return { note: 'No Genie install to read from outside the desktop app.' }
   const file = (await invokeTauri('read_genie_config', { leaf: PINS_LEAF })) as {
     found: boolean
     text: string
     note: string
   }
-  if (!file.found) return { imported: 0, skipped: 0, note: file.note || `No ${PINS_LEAF} found.` }
+  if (!file.found) return { note: file.note || `No ${PINS_LEAF} found.` }
+  const parsed = yamlToPins(file.text)
+  if (!parsed.ok) return { error: `Could not parse ${PINS_LEAF}: ${parsed.error}` }
+  return { preview: previewPinsImport(parsed.store, loadAllPins(), parsed.skipped, parsed.empty) }
+}
 
-  const { store: fromFile, skipped } = yamlToPins(file.text)
-  const current = loadAllPins()
-  const merged: PinStore = { ...current }
-  let imported = 0
-  for (const [key, pins] of Object.entries(fromFile)) {
-    // A character's existing system pin (corpse marker) survives an import -
-    // the file never carries one (see pinsToYaml), so without this an
-    // import would silently erase a live corpse marker along with replacing
-    // the hand-made pins.
-    const keptSystem = (current[key] ?? []).filter((p) => p.system)
-    merged[key] = [...pins, ...keptSystem]
-    imported += pins.length
+let undoSnapshot: PinStore | null = null
+
+export function applyPinsImport(preview: PinImportPreview, choices: Record<string, PinImportChoice>): PinImportResult {
+  const next: PinStore = structuredClone(preview.before)
+  const result: PinImportResult = { added: 0, updated: 0, unchanged: 0, skipped: preview.skipped, removed: 0, affectedCharacters: 0 }
+  for (const character of preview.characters) {
+    const choice = choices[character.key] ?? 'merge'
+    if (choice === 'skip') {
+      result.skipped += character.incoming
+      continue
+    }
+    result.affectedCharacters++
+    const incoming = preview.incoming[character.key] ?? []
+    const allLocal = preview.before[character.key] ?? []
+    const system = allLocal.filter((pin) => pin.system)
+    const local = allLocal.filter((pin) => !pin.system)
+    if (choice === 'replace') {
+      next[character.key] = [...incoming, ...system]
+      result.added += character.added
+      result.updated += character.updated
+      result.unchanged += character.unchanged
+      result.removed += character.removedByReplace
+      continue
+    }
+    const merged = new Map(local.map((pin) => [pin.roomId, pin]))
+    for (const pin of incoming) {
+      const existing = merged.get(pin.roomId)
+      if (!existing) result.added++
+      else if (samePin(existing, pin)) result.unchanged++
+      else result.updated++
+      merged.set(pin.roomId, pin)
+    }
+    next[character.key] = [...merged.values(), ...system]
   }
-  replaceAllPins(merged)
-  return { imported, skipped, note: '' }
+  undoSnapshot = structuredClone(preview.before)
+  replaceAllPins(next)
+  return result
+}
+
+export function undoLastPinsImport(): boolean {
+  if (!undoSnapshot) return false
+  replaceAllPins(undoSnapshot)
+  undoSnapshot = null
+  return true
 }
