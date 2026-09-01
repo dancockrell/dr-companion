@@ -116,13 +116,73 @@
       "rejects": ["generic store exterior", "all non-Grok room renders"],
       "regenerationNeeded": false
     },
+    "generic-tailor": {
+      "exactSubject": "tailor, clothier and textile shop interior",
+      "canonicalTraits": ["folded bolts of cloth", "thread and sewing supplies", "working table under warm light"],
+      "habitat": "tailors, seamstresses, clothiers, weavers and dye shops",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/textile-shop-1eed98c2.jpg",
+      "approvedVariants": [],
+      "rejects": ["leather workshops without textiles", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-harbor": {
+      "exactSubject": "working urban harbor and canal district",
+      "canonicalTraits": ["multiple working boats", "timber wharves", "dense waterside buildings and bridge"],
+      "habitat": "harbors, wharves, quays, shipyards, boathouses and ferry landings",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/working-harbor-1d61dd6a.jpg",
+      "approvedVariants": [],
+      "rejects": ["empty wilderness lakes", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-grassland": {
+      "exactSubject": "open grassland and exposed meadow travel",
+      "canonicalTraits": ["broad grassy horizon", "minimal tree cover", "visible changing weather"],
+      "habitat": "grasslands, prairies, plains, meadows, pastures and open fields",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/storm-grassland-22f4384f.jpg",
+      "approvedVariants": [],
+      "rejects": ["wooded clearings that read as forest", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-orchard": {
+      "exactSubject": "cultivated fruit orchard and farm edge",
+      "canonicalTraits": ["ordered fruit trees", "visible harvest", "managed agricultural ground"],
+      "habitat": "orchards, fruit groves, farmsteads and farm yards",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/apple-orchard-23efadaf.jpg",
+      "approvedVariants": [],
+      "rejects": ["uncultivated generic forest", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-courtyard": {
+      "exactSubject": "enclosed stone courtyard or walled garden",
+      "canonicalTraits": ["bounded masonry", "central fountain", "formal lantern lighting and planted edges"],
+      "habitat": "courtyards, cloisters, enclosed gardens and walled gardens",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/lantern-courtyard-2340613e.jpg",
+      "approvedVariants": [],
+      "rejects": ["open town squares", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-ruins": {
+      "exactSubject": "overgrown ancient woodland ruins",
+      "canonicalTraits": ["recognizable fallen architecture", "long abandonment", "vegetation reclaiming carved stone"],
+      "habitat": "ruins, fallen temples, ancient columns and crumbling shrines",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/woodland-ruins-2c3975b0.jpg",
+      "approvedVariants": [],
+      "rejects": ["intact active temples", "explicit real-world religious symbols", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
     "generic-town": {
       "exactSubject": "settled street, market and road space",
       "canonicalTraits": ["walkable public space", "medieval-fantasy construction", "strong visual depth"],
       "habitat": "default for streets, buildings and uncategorized settled rooms",
       "currentImage": null,
       "approvedPrimary": "/grok-art/room-scenes/night-market-04c61394.jpg",
-      "approvedVariants": [],
+      "approvedVariants": ["/grok-art/room-scenes/town-square-2650911f.jpg"],
       "rejects": ["all non-Grok room renders"],
       "regenerationNeeded": false
     },
