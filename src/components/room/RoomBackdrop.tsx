@@ -165,15 +165,15 @@ export function RoomBackdrop({
         loading="lazy"
         onLoad={(e) => {
           const image = e.currentTarget
-          image.style.display =
+          image.style.opacity =
             image.naturalWidth >= MIN_ROOM_ART_WIDTH && image.naturalHeight >= MIN_ROOM_ART_HEIGHT
-              ? 'block'
-              : 'none'
+              ? '1'
+              : '0'
         }}
         onError={(e) => {
-          e.currentTarget.style.display = 'none'
+          e.currentTarget.style.opacity = '0'
         }}
-        className="absolute inset-0 hidden h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300"
       />
     </>
   )
