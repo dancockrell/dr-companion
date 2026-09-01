@@ -20,6 +20,7 @@ const actionVisuals = readFileSync(new URL('../src/lib/battleActionVisuals.ts', 
 const hotbar = readFileSync(new URL('../src/components/layout/QuickSwitchBar.tsx', import.meta.url), 'utf8')
 const quickSwitch = readFileSync(new URL('../src/lib/quickSwitch.ts', import.meta.url), 'utf8')
 const map = readFileSync(new URL('../src/components/shared/MapPanel.tsx', import.meta.url), 'utf8')
+const grokScenes = readFileSync(new URL('../src/data/grokRoomScenes.ts', import.meta.url), 'utf8')
 
 check('the battle scene uses a landscape tactical field', /shape="landscape"/.test(battle) && /aspect-\[4\/3\]/.test(scene))
 check('room details and inventory receive the remaining useful height', /min-h-\[13rem\][^"']*flex-1/.test(battle))
@@ -39,6 +40,7 @@ check('the radar has persistent grab-scroll enemy and friendly columns', /label=
 check('radar rails are transparent textless overlays on the battle map', /bg-transparent touch-none/.test(radar) && !/Combat radar<\/span>/.test(radar) && !/tone="friendly"/.test(radar) && !/sticky top-0 z-10 py-1 text-center/.test(radar))
 check('room art is the fixed base layer underneath the tactical radar', /aria-label="Room art"/.test(scene) && /absolute inset-0 z-0/.test(scene) && /aria-label="Tactical radar over room art"/.test(scene) && /absolute inset-0 z-10/.test(scene))
 check('every successfully decoded room image renders over the deterministic fallback', /onLoad=/.test(backdrop) && /style\.display = 'block'/.test(backdrop) && /onError=/.test(backdrop) && /style\.display = 'none'/.test(backdrop) && !/MIN_ROOM_ART_WIDTH/.test(backdrop))
+check('generic room art comes only from stable location-aware Grok landscape baskets', /grokRoomScene\(zone, room, title, text\)/.test(readFileSync(new URL('../src/lib/roomText.ts', import.meta.url), 'utf8')) && /HOLD_ROOMS = 3/.test(grokScenes) && /\/grok-art\/room-scenes\//.test(grokScenes) && !/\/rooms\//.test(grokScenes) && !/\/room-scenes\//.test(grokScenes.replaceAll('/grok-art/room-scenes/', '')))
 check('room exits are always wired from live compass or mapped movement commands', /stream\.compass\?\.value \?\? here\?\.moves/.test(battle))
 check('large floor piles collapse duplicates and become searchable', /count: number/.test(floor) && /groups\.length > 12/.test(floor) && /Find among/.test(floor))
 check('floor items open explicit actions instead of taking immediately', /Actions for/.test(floor) && />Look</.test(floor) && />Get</.test(floor) && />Appraise</.test(floor) && />Analyze</.test(floor))

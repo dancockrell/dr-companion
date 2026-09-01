@@ -99,7 +99,7 @@ export function RoomBackdrop({
   text?: string | null
 }) {
   const art = useRoomArt(zone, room, title, text)
-  const artUrl = roomArtUrl(zone, room)
+  const artUrl = roomArtUrl(zone, room, title, text)
 
   /*
    * Unique per rendered instance, not per room.
