@@ -29,6 +29,7 @@ import {
   requestStartFlow,
 } from '../../lib/flowStop'
 import { KEYBINDING_HELP } from '../../lib/keybindings'
+import { useModalDialog } from '../../lib/useModalDialog'
 import {
   musicVolume,
   pauseMusic,
@@ -257,6 +258,7 @@ const GROUP_ORDER: Command['group'][] = ['Safety', 'Tasks', 'Scripts', 'Sound', 
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
+  const dialogRef = useModalDialog(() => setOpen(false), open)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -296,11 +298,6 @@ export function CommandPalette() {
         e.preventDefault()
         setOpen((v) => !v)
         return
-      }
-      if (e.key === 'Escape' && !(e.ctrlKey && e.shiftKey)) {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        setOpen(false)
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -376,6 +373,11 @@ export function CommandPalette() {
       onClick={() => setOpen(false)}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+        tabIndex={-1}
         className="flex w-full max-w-lg flex-col overflow-hidden rounded-xl border border-border bg-surface-raised shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >

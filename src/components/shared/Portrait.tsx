@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '../../lib/cn'
 import { catalogue, choose, genericPortraitFor, loadPortraitManifest, portraitFor, portraitUrl } from '../../lib/portraits'
-import { useDismiss } from '../../lib/useDismiss'
+import { useModalDialog } from '../../lib/useModalDialog'
 
 /**
  * The character's face.
@@ -43,7 +43,7 @@ export function Portrait({
   const [picking, setPicking] = useState(false)
   const [chosen, setChosen] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
-  useDismiss(() => setPicking(false), picking)
+  const dialogRef = useModalDialog(() => setPicking(false), picking)
 
   useEffect(() => {
     void loadPortraitManifest().then(() => setReady(true))
@@ -95,9 +95,11 @@ export function Portrait({
             aria-label="Close portrait chooser"
           />
           <section
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="portrait-chooser-title"
+            tabIndex={-1}
             className="relative z-10 flex max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-info/45 bg-surface-overlay shadow-2xl"
           >
             <header className="flex items-center gap-2 border-b border-border px-3 py-2">

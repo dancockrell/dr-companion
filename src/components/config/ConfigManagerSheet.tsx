@@ -15,13 +15,13 @@ import { SubstitutesEditor } from './SubstitutesEditor'
 import { GagsEditor } from './GagsEditor'
 import { PresetsEditor } from './PresetsEditor'
 import { cn } from '../../lib/cn'
-import { useDismiss } from '../../lib/useDismiss'
+import { useModalDialog } from '../../lib/useModalDialog'
 
 type Tab = 'highlights' | 'aliases' | 'macros' | 'variables' | 'substitutes' | 'gags' | 'presets'
 
 export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('highlights')
-  useDismiss(onClose)
+  const dialogRef = useModalDialog(onClose)
 
   return (
     <div
@@ -31,10 +31,10 @@ export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-surface shadow-2xl max-h-[88vh]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="config-manager-title" tabIndex={-1} className="flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-surface shadow-2xl max-h-[88vh]">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex flex-wrap items-center gap-1">
-            <h2 className="mr-2 text-sm font-semibold text-ink">Genie config</h2>
+            <h2 id="config-manager-title" className="mr-2 text-sm font-semibold text-ink">Genie config</h2>
             <TabButton active={tab === 'highlights'} onClick={() => setTab('highlights')}>
               Highlights
             </TabButton>

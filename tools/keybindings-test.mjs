@@ -7,6 +7,7 @@
  * and Escape being the one key that must reach them anyway.
  */
 import { installKeybindings, isInteractionTarget, isTypingTarget, resolveKeybinding, codeToGenieKey } from '../src/lib/keybindings.ts'
+import { readFileSync } from 'node:fs'
 
 let failed = 0
 const ok = (name, got, want) => {
@@ -165,6 +166,28 @@ console.log('\n-- codeToGenieKey refuses codes no macro in the corpus binds --')
   ok('ControlLeft is a modifier, not a key', codeToGenieKey('ControlLeft'), null)
   ok('Tab is unmapped (nothing in the file binds it)', codeToGenieKey('Tab'), null)
   ok('F13 does not exist in the observed corpus', codeToGenieKey('F13'), null)
+}
+
+console.log('\n-- Every modal uses the shared accessible focus contract --')
+{
+  const modalHook = readFileSync(new URL('../src/lib/useModalDialog.ts', import.meta.url), 'utf8')
+  for (const contract of ['role="dialog"', 'aria-modal="true"', 'aria-labelledby']) {
+    const files = [
+      'layout/SettingsSheet.tsx', 'layout/ReportDialog.tsx', 'config/ConfigManagerSheet.tsx',
+      'dashboard/ScriptIconPicker.tsx', 'shared/PinEditor.tsx', 'shared/PlayerMarkerEditor.tsx',
+    ]
+    for (const file of files) {
+      const source = readFileSync(new URL(`../src/components/${file}`, import.meta.url), 'utf8')
+      ok(`${file} exposes ${contract}`, source.includes(contract), true)
+      ok(`${file} uses the shared modal hook`, source.includes('useModalDialog'), true)
+    }
+  }
+  ok('focus wraps forward at the last control', /document\.activeElement === last/.test(modalHook), true)
+  ok('focus wraps backward at the first control', /document\.activeElement === first/.test(modalHook), true)
+  ok('the background becomes inert', /sibling\.inert = true/.test(modalHook), true)
+  ok('page scrolling is locked', /document\.body\.style\.overflow = 'hidden'/.test(modalHook), true)
+  ok('only the top modal handles keys', /stack\.at\(-1\)/.test(modalHook), true)
+  ok('focus returns to the opener', /opener\.focus\(\)/.test(modalHook), true)
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
