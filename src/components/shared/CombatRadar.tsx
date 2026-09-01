@@ -16,6 +16,7 @@ import type { Vital } from '../../lib/vitals'
 import { requestGameAction } from '../../lib/gameActions'
 import { ArmorManager } from './ArmorManager'
 import { fanRadarSlots, pointOnRadar } from '../../lib/combatRadarLayout'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
  * The room, with everyone in it — a compass filling the whole board edge to
@@ -239,12 +240,13 @@ function RosterStrip({
   const drag = useDragScroll()
   return (
     <div
+      {...scrollableRegionProps('Combat roster')}
       ref={drag.ref}
       onPointerDown={drag.onPointerDown}
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar h-full shrink-0 cursor-grab overflow-x-hidden overflow-y-auto touch-none active:cursor-grabbing ${bordered ? 'border-l border-border/60 bg-surface/85' : ''}`}
+      className={`h-full shrink-0 cursor-grab overflow-x-hidden overflow-y-auto active:cursor-grabbing ${bordered ? 'border-l border-border/60 bg-surface/85' : ''}`}
       style={{ width }}
       aria-label="Roster"
     >
@@ -262,12 +264,13 @@ function RosterColumn({ label, side, width, children }: { label: string; side: '
   const drag = useDragScroll()
   return (
     <div
+      {...scrollableRegionProps(`${label} radar cards`)}
       ref={drag.ref}
       onPointerDown={drag.onPointerDown}
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar absolute top-0 z-20 cursor-grab overflow-x-hidden overflow-y-auto bg-transparent touch-none active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
+      className={`absolute top-0 z-20 cursor-grab overflow-x-hidden overflow-y-auto bg-transparent active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
       style={{ width, bottom: 'var(--radar-loot-height, 0px)' }}
       aria-label={`${label} radar cards`}
       title={label}

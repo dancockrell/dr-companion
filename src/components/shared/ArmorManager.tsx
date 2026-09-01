@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { isIntentImplemented, useAppStore } from '../../store/useAppStore'
 import { useDragScroll } from '../../lib/useDragScroll'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 import {
   ARMOR_COVERAGE,
   armorCandidates,
@@ -233,12 +234,13 @@ export function ArmorManager() {
           </div>
 
           <div
+            {...scrollableRegionProps('Armor pieces')}
             ref={drag.ref}
             onPointerDown={drag.onPointerDown}
             onPointerMove={drag.onPointerMove}
             onPointerUp={drag.onPointerUp}
             onPointerCancel={drag.onPointerCancel}
-            className="no-scrollbar max-h-48 cursor-grab space-y-1 overflow-y-auto touch-none active:cursor-grabbing"
+            className="max-h-48 cursor-grab space-y-1 overflow-y-auto active:cursor-grabbing"
           >
             {shownPieces.map((piece) => {
               const on = wornNow(piece.name, worn)

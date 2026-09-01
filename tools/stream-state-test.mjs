@@ -169,6 +169,33 @@ console.log('\n-- split across reads, as a socket delivers it --')
     JSON.stringify(characterState(s).vitals.value.health))
 }
 
+console.log('\n-- live room presentation follows authoritative component boundaries --')
+{
+  const s = newStreamState()
+  const rendered = feed(
+    s,
+    "<nav rm='123'/><streamWindow id='main' subtitle=' - [River Road] (123)'/>" +
+      "<component id='room desc'>Rain stipples the <a noun='road'>muddy road</a>.</component>\r\n"
+  )
+  eq('title and nested-tag description are captured', characterState(s).roomPresentation?.value, {
+    title: 'River Road',
+    description: 'Rain stipples the muddy road.',
+  })
+  ok('live presentation carries stream provenance', characterState(s).roomPresentation?.from === 'stream')
+  ok('live presentation is timestamped', (characterState(s).roomPresentation?.at ?? 0) > 0)
+  eq('capturing structured state does not remove rendered text', rendered.map((line) => line.text), [
+    'Rain stipples the muddy road.',
+  ])
+
+  feed(s, "<nav rm='124'/>")
+  ok('navigation clears the prior room before the next description arrives', characterState(s).roomPresentation === undefined)
+  feed(s, "<streamWindow id='main' subtitle=' - [Stone Bridge] (124)'/><component id='room desc'>A cold bridge.</component>\r\n")
+  eq('the next arrival replaces rather than merges live room text', characterState(s).roomPresentation?.value, {
+    title: 'Stone Bridge',
+    description: 'A cold bridge.',
+  })
+}
+
 console.log('\n-- room players: ported line-for-line from Lich, not re-derived --')
 {
   // DragonRealms wraps the whole sentence as one text node with no per-name

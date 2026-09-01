@@ -1,5 +1,5 @@
-import { grokRoomScene } from '../data/grokRoomScenes'
-import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom'
+import { grokRoomScene } from '../data/grokRoomScenes.ts'
+import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom.ts'
 
 /**
  * The description of the room you are standing in.
@@ -19,6 +19,16 @@ import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasio
 export interface RoomText {
   title: string | null
   text: string | null
+}
+
+/** Live game presentation wins as one coherent source; static text is fallback. */
+export function resolveRoomPresentation(
+  live: RoomText | null | undefined,
+  mappedTitle: string | null | undefined,
+  fallback: RoomText | null | undefined
+): RoomText {
+  if (live) return { title: live.title ?? mappedTitle ?? fallback?.title ?? null, text: live.text }
+  return { title: mappedTitle ?? fallback?.title ?? null, text: fallback?.text ?? null }
 }
 
 const cache = new Map<string, Record<string, RoomText>>()

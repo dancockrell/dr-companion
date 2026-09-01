@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { cn } from '../../lib/cn'
 import { catalogue, choose, genericPortraitFor, loadPortraitManifest, portraitFor, portraitUrl } from '../../lib/portraits'
 import { useModalDialog } from '../../lib/useModalDialog'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
  * The character's face.
@@ -109,7 +110,7 @@ export function Portrait({
               </div>
               <button type="button" onClick={() => setPicking(false)} className="rounded border border-border px-2 py-1 text-xs text-ink-muted hover:border-accent hover:text-ink">Close</button>
             </header>
-            <div className="no-scrollbar grid min-h-0 flex-1 grid-cols-4 gap-2 overflow-y-auto p-3 sm:grid-cols-6">
+            <div {...scrollableRegionProps('Available portraits')} className="grid min-h-0 flex-1 grid-cols-4 gap-2 overflow-y-auto p-3 sm:grid-cols-6">
               {options.map((o) => (
                 <button
                   key={o.key}

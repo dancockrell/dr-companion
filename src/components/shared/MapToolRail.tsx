@@ -5,6 +5,7 @@ import { useDragScroll } from '../../lib/useDragScroll'
 import { MapPinBar } from './MapPinBar'
 import { QuickTravel } from './QuickTravel'
 import { PinPalette, type PinBrush } from './PinPalette'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
  * The one map-tool rail used by both the docked map and the map window.
@@ -39,8 +40,9 @@ export function MapToolRail({
 
   return (
     <div
+      {...scrollableRegionProps('Map pins and places', 'horizontal')}
       ref={drag.ref}
-      className={`no-scrollbar relative grid min-w-0 shrink-0 auto-cols-max grid-flow-col grid-rows-2 gap-1 overflow-x-auto touch-none ${drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
+      className={`relative grid min-w-0 shrink-0 auto-cols-max grid-flow-col grid-rows-2 gap-1 overflow-x-auto ${drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
       aria-label="Map pins and places"
       title="Map tools — grab to scroll; click a symbol then a room, or drag a symbol directly onto a room"
       onPointerDown={drag.onPointerDown}

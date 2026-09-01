@@ -7,7 +7,7 @@ import { ClassicRoomText } from './ClassicRoomText'
 import { FloorItems } from './FloorItems'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { InventoryPanel } from '../shared/InventoryPanel'
-import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
+import { cachedRoomText, resolveRoomPresentation, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
 import { useHighlights } from '../../lib/useHighlights'
 import { useOffClasses } from '../../lib/offClasses'
@@ -68,6 +68,12 @@ export function BattleColumn() {
 
   const [text, setText] = useState<RoomText | null>(null)
 
+  // The tagged game stream is the authoritative room presentation. Its nav
+  // boundary clears stale live text before the next component arrives, so
+  // this can safely fall back to the static room corpus during that gap.
+  const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
+  const liveRoom = stream.roomPresentation?.value
+
   useEffect(() => {
     if (room === null || zone === null) return setText(null)
     // The cached read first, so walking back into a room you have already been
@@ -81,7 +87,12 @@ export function BattleColumn() {
     }
   }, [zone, room])
 
-  const title = here?.title ?? text?.title ?? null
+  const presentation = resolveRoomPresentation(
+    liveRoom ? { title: liveRoom.title, text: liveRoom.description } : null,
+    here?.title,
+    text
+  )
+  const { title, text: description } = presentation
 
   // A cue that you moved, not just that the picture changed. Hunting and
   // stalking mean walking through a room every few seconds — `stalk` and a
@@ -116,7 +127,6 @@ export function BattleColumn() {
   // `streamCharacterState()` already parsed this; nothing had ever
   // subscribed to it before now — see gameLink.ts's own comment on that
   // function ("the missing wire, not new parsing").
-  const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
   const exits = stream.compass?.value ?? here?.moves
 
   // Same source DashboardLayout's Battle/People boxes used to read — those
@@ -231,7 +241,7 @@ export function BattleColumn() {
             room={room ?? 0}
             locationReady={zone !== null && room !== null}
             title={title}
-            text={text?.text}
+            text={description}
             // The default 42vh assumes a game pane and chat log sharing the
             // rest of the column, sized to leave THEM room. This pane's other
             // occupants — status, actions, description — are all happy at
@@ -274,7 +284,7 @@ export function BattleColumn() {
           ) : (
             <ClassicRoomText
               title={title}
-              text={text?.text}
+              text={description}
               items={roomItems}
               players={character?.roomPlayers}
               exits={exits}
