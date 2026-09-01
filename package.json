@@ -57,6 +57,8 @@
     "test:creature-art": "node tools/creature-art-test.mjs",
     "bestiary:index": "node tools/bestiary-index.mjs",
     "art:rooms": "node tools/art-rooms2.mjs",
+    "art:scene-patterns": "node tools/build-room-scene-patterns.mjs",
+    "test:room-scene-patterns": "node tools/room-scene-patterns-test.mjs",
     "test:freelayout": "node tools/freelayout-test.mjs",
     "map:build": "node tools/build-map.mjs && node tools/build-places.mjs",
     "map:places": "node tools/build-places.mjs",

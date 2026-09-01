@@ -1,4 +1,5 @@
 import { roomArtOverride } from '../data/roomArtOverrides'
+import { roomScenePattern } from '../data/roomScenePatterns'
 
 /**
  * The description of the room you are standing in.
@@ -71,4 +72,4 @@ export function cachedRoomText(zone: string, room: number): RoomText | null {
  * generating a second near-duplicate asset just to repair an assignment.
  */
 export const roomArtUrl = (zone: string, room: number) =>
-  roomArtOverride(zone, room) ?? `/rooms/${zone}-${room}.webp`
+  roomArtOverride(zone, room) ?? roomScenePattern(zone, room) ?? `/rooms/${zone}-${room}.webp`

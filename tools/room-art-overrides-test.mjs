@@ -48,4 +48,15 @@ for (const [zone, room, forbidden] of [
   if (!ok) failures++
   console.log(`${ok ? 'OK  ' : 'FAIL'} boundary ${zone}-${room}: ${got}`)
 }
+const held = roomArtOverride('90', 734)
+for (const room of [735, 736]) {
+  const ok = roomArtOverride('90', room) === held
+  if (!ok) failures++
+  console.log(`${ok ? 'OK  ' : 'FAIL'} deterministic hold 90-${room}: ${roomArtOverride('90', room)}`)
+}
+{
+  const ok = roomArtOverride('90', 737) !== held
+  if (!ok) failures++
+  console.log(`${ok ? 'OK  ' : 'FAIL'} deterministic advance 90-737: ${roomArtOverride('90', 737)}`)
+}
 process.exit(failures ? 1 : 0)

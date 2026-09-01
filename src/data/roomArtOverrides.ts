@@ -1,7 +1,7 @@
 /**
  * Hand-curated corrections for room art with clear description/image mismatches.
- * Multiple approved images rotate deterministically by room key, so long
- * stretches gain variety without changing randomly between launches.
+ * Multiple approved images advance in short deterministic runs, so adjacent
+ * rooms feel connected instead of changing like a shuffled slideshow.
  */
 type RoomRange = readonly [number, number]
 type Rule = { zone: string; ranges: readonly RoomRange[]; arts: readonly string[] }
@@ -71,21 +71,14 @@ const RULES: readonly Rule[] = [
   { zone: '116', ranges: [[496, 499]], arts: ['/room-scenes/archetype-cavern-0.webp', '/room-scenes/archetype-cavern-6.webp'] },
 ]
 
-function hashRoomKey(s: string): number {
-  let h = 2166136261
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return h >>> 0
-}
-
 export function roomArtOverride(zone: string, room: number): string | null {
   for (const rule of RULES) {
     if (rule.zone !== zone) continue
-    if (!rule.ranges.some(([first, last]) => room >= first && room <= last)) continue
-    const key = `${zone}-${room}`
-    return rule.arts[hashRoomKey(key) % rule.arts.length]
+    for (const [first, last] of rule.ranges) {
+      if (room < first || room > last) continue
+      const step = Math.floor((room - first) / 3)
+      return rule.arts[step % rule.arts.length]
+    }
   }
   return null
 }
