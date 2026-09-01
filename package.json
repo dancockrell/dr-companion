@@ -82,6 +82,7 @@
     "art": "node tools/art-daemon.mjs",
     "test:gear": "node tools/gear-test.mjs",
     "test:mounted": "node tools/mounted-test.mjs",
+    "test:aux-window-boundary": "node tools/aux-window-boundary-test.mjs",
     "test:game-connection-owner": "node tools/game-connection-owner-test.mjs",
     "test:battlespace": "node tools/battlespace-test.mjs",
     "test:combat-radar-layout": "node --experimental-strip-types tools/combat-radar-layout-test.ts",

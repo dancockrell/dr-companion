@@ -16,6 +16,7 @@ import { QuickSwitchBar } from './components/layout/QuickSwitchBar'
 import { MapWindow } from './components/MapWindow'
 import { PanelWindow } from './components/PanelWindow'
 import { PanelBoundary } from './components/shared/PanelBoundary'
+import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
 import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
@@ -303,8 +304,29 @@ export default function App() {
     setExperienceW(atLeastVisible(hostW * (1 - share)))
 
   const v = view()
-  if (v.kind === 'map') return <><StorageWarning /><MapWindow /></>
-  if (v.kind === 'panel') return <><StorageWarning /><PanelWindow id={v.id} /></>
+  if (v.kind === 'map') {
+    return (
+      <AuxiliaryWindowBoundary
+        label="Map window"
+        onError={(error) => useAppStore.getState().addLog(`Map window crashed: ${error.message}`, 'error')}
+      >
+        <StorageWarning />
+        <MapWindow />
+      </AuxiliaryWindowBoundary>
+    )
+  }
+  if (v.kind === 'panel') {
+    const label = `${v.id} panel window`
+    return (
+      <AuxiliaryWindowBoundary
+        label={label}
+        onError={(error) => useAppStore.getState().addLog(`${label} crashed: ${error.message}`, 'error')}
+      >
+        <StorageWarning />
+        <PanelWindow id={v.id} />
+      </AuxiliaryWindowBoundary>
+    )
+  }
 
   return (
     <div className="h-full w-full bg-surface flex flex-col">
