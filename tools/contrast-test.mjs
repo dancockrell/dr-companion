@@ -97,6 +97,23 @@ check(
   css.includes('scrollbar-color: var(--color-scrollbar-thumb) transparent') &&
     css.includes('background: var(--color-scrollbar-thumb)')
 )
+console.log('-- global chrome follows motion preferences --')
+const reducedMotion = css.match(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]+)\}\s*$/)?.[1] ?? ''
+check('reduced-motion policy exists', Boolean(reducedMotion))
+check(
+  'reduced motion stops repeated animation',
+  /animation-iteration-count:\s*1\s*!important/.test(reducedMotion)
+)
+check(
+  'reduced motion removes transition travel time',
+  /transition-duration:\s*0\.01ms\s*!important/.test(reducedMotion)
+)
+check(
+  'reduced motion removes decorative press and hover transforms',
+  reducedMotion.includes('[class*="hover:-translate-y"]') &&
+    reducedMotion.includes('[class*="active:scale-"]') &&
+    /transform:\s*none\s*!important/.test(reducedMotion)
+)
 
 // --- the type floor ---------------------------------------------------------
 

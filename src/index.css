@@ -101,6 +101,8 @@ body {
   font-family: var(--font-sans);
   background: var(--color-surface);
   color: var(--color-ink);
+  scrollbar-color: var(--color-scrollbar-thumb) transparent;
+  scrollbar-width: thin;
 }
 
 /* Warm, tokenized scrollbar for WebView2 / Chromium. */
@@ -146,3 +148,29 @@ body {
  * If something needs attention it changes colour, and if it needs attention
  * when nobody is looking at the window it makes a sound. There is no third
  * case that animation solves. */
+
+/* The normal interface still uses short transitions to preserve spatial
+ * continuity. When the player asks the OS to reduce motion, that preference
+ * owns every CSS animation and transition—including utility classes added in
+ * future components. Static transforms are deliberately preserved: the map,
+ * centered tooltips, and other positioned content use them for layout. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* These utility-driven transforms are purely tactile decoration rather
+   * than layout. Remove the state change itself, not merely its easing. */
+  [class*="hover:-translate-y"]:hover,
+  [class*="active:translate-y"]:active,
+  [class*="active:scale-"]:active {
+    transform: none !important;
+  }
+}
