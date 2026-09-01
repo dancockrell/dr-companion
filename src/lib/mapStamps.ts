@@ -14,6 +14,11 @@ export type MapStampKind =
   | 'cultivated'
   | 'frozen'
   | 'burial'
+  | 'worship'
+  | 'fortification'
+  | 'bridge'
+  | 'harbor'
+  | 'market'
 
 export interface MapStamp {
   kind: MapStampKind
@@ -23,6 +28,8 @@ export interface MapStamp {
   count: number
   rotation: number
   weight: number
+  /** Selects a stable drawing from the family so repeated marks do not tile. */
+  variant: number
 }
 
 interface StampRule {
@@ -30,6 +37,11 @@ interface StampRule {
   label: string
   pattern: RegExp
   salience?: number
+  /** Evidence needed before a broad landscape is claimed. */
+  minimum?: 'repeated' | 'named'
+  /** How quickly a large district earns another small drawing. */
+  roomsPerCopy?: number
+  maxCopies?: number
 }
 
 /**
@@ -39,18 +51,29 @@ interface StampRule {
  * ordinary courtyard a hazard.
  */
 const RULES: StampRule[] = [
-  { kind: 'wetland', label: 'Wetland', pattern: /\b(swamp|marsh|bog|fen|wetland)\b/i, salience: 1.24 },
-  { kind: 'coast', label: 'Coast', pattern: /\b(coast|shore|beach|strand|bay|cove|islands?|isles?|tidal)\b/i, salience: 1.16 },
-  { kind: 'arid', label: 'Dry country', pattern: /\b(desert|dunes?|sand|sandy|wastes?|badlands)\b/i, salience: 1.22 },
-  { kind: 'cultivated', label: 'Fields', pattern: /\b(farms?|farmland|pastures?|meadows?|orchards?|vineyards?|plantations?|(?:barley|wheat|grain|rice|corn|rye|oat|crop) fields?)\b/i, salience: 1.18 },
-  { kind: 'frozen', label: 'Frozen', pattern: /\b(snow|snowy|ice|icy|frozen|glaciers?|frost|frostweavers?)\b/i, salience: 1.24 },
-  { kind: 'burial', label: 'Burial ground', pattern: /\b(graveyards?|cemeter(?:y|ies)|necropolis|burial|tombs?|crypts?|barrows?)\b/i, salience: 1.2 },
-  { kind: 'water', label: 'Waters', pattern: /\b(rivers?|lakes?|sea|ocean|docks?|piers?|ferr(?:y|ies)|harbou?rs?|streams?|water|canals?|ponds?|quays?)\b/i },
-  { kind: 'woodland', label: 'Woodland', pattern: /\b(forests?|woods?|groves?|trees?|jungle|thickets?)\b/i },
-  { kind: 'highland', label: 'High ground', pattern: /\b(mountain|cliff|ridge|peak|hill|canyon|ravine|crag|gorge|slope)\b/i },
-  { kind: 'underground', label: 'Below', pattern: /\b(caves?|cavern|tunnels?|mines?|grotto|underground|sewers?|passages?)\b/i },
-  { kind: 'settlement', label: 'Settlement', pattern: /\b(street|road|lane|avenue|square|plaza|market|crossing|village|town|city|boulevard)\b/i },
-  { kind: 'ruins', label: 'Old stones', pattern: /\b(ruins?|fortress|castle|keep)\b/i },
+  { kind: 'wetland', label: 'Wetland', pattern: /\b(swamp|marsh|bog|fen|wetland)\b/i, salience: 1.24, roomsPerCopy: 24, maxCopies: 4 },
+  { kind: 'coast', label: 'Coast', pattern: /\b(coast|shore|beach|strand|bay|cove|islands?|isles?|tidal)\b/i, salience: 1.16, roomsPerCopy: 28, maxCopies: 4 },
+  { kind: 'arid', label: 'Dry country', pattern: /\b(desert|dunes?|sand|sandy|wastes?|badlands)\b/i, salience: 1.22, roomsPerCopy: 28, maxCopies: 4 },
+  { kind: 'cultivated', label: 'Fields', pattern: /\b(farms?|farmlands?|pastures?|meadows?|orchards?|vineyards?|plantations?|(?:barley|wheat|grain|rice|corn|rye|oat|crop) fields?)\b/i, salience: 1.18, roomsPerCopy: 24, maxCopies: 5 },
+  { kind: 'frozen', label: 'Frozen', pattern: /\b(snow|snowy|ice|icy|frozen|glaciers?|frost|frostweavers?)\b/i, salience: 1.24, roomsPerCopy: 30, maxCopies: 4 },
+  { kind: 'burial', label: 'Burial ground', pattern: /\b(graveyards?|cemeter(?:y|ies)|necropolis|burial|tombs?|crypts?|barrows?)\b/i, salience: 1.2, roomsPerCopy: 18, maxCopies: 3 },
+  { kind: 'water', label: 'Waters', pattern: /\b(rivers?|lakes?|sea|ocean|streams?|water|canals?|ponds?)\b/i, roomsPerCopy: 32, maxCopies: 4 },
+  { kind: 'woodland', label: 'Woodland', pattern: /\b(forests?|woods?|groves?|trees?|jungle|thickets?)\b/i, roomsPerCopy: 32, maxCopies: 5 },
+  { kind: 'highland', label: 'High ground', pattern: /\b(mountain|cliff|ridge|peak|hill|canyon|ravine|crag|gorge|slope)\b/i, roomsPerCopy: 32, maxCopies: 4 },
+  { kind: 'underground', label: 'Below', pattern: /\b(caves?|cavern|tunnels?|mines?|grotto|underground|sewers?|passages?)\b/i, roomsPerCopy: 34, maxCopies: 3 },
+  // Settlement ink is plan-view fabric: repeated little footprints beside
+  // streets, not one skyline announcing that the map contains a town.
+  { kind: 'settlement', label: 'Buildings', pattern: /\b(streets?|lanes?|avenues?|squares?|plazas?|markets?|crossing|villages?|towns?|cities?|boulevards?)\b/i, roomsPerCopy: 32, maxCopies: 12 },
+  { kind: 'ruins', label: 'Old stones', pattern: /\b(ruins?|fallen|rubble)\b/i, roomsPerCopy: 20, maxCopies: 3 },
+
+  // Named features need only one honest source room. They are the black-ink
+  // anchors seen on old survey maps: a church, bridge or keep is itself the
+  // evidence and should not need six duplicate room names to appear.
+  { kind: 'worship', label: 'Temple', pattern: /\b(temples?|church(?:es)?|chapels?|cathedrals?|shrines?|abbeys?|monaster(?:y|ies))\b/i, minimum: 'named', roomsPerCopy: 3, maxCopies: 4 },
+  { kind: 'fortification', label: 'Fortification', pattern: /\b(castles?|keeps?|forts?|fortresses?|gatehouses?|citadels?|watchtowers?|battlements?)\b/i, minimum: 'named', roomsPerCopy: 5, maxCopies: 4 },
+  { kind: 'bridge', label: 'Bridge', pattern: /\bbridges?\b/i, minimum: 'named', roomsPerCopy: 4, maxCopies: 5 },
+  { kind: 'harbor', label: 'Harbor', pattern: /\b(docks?|piers?|whar(?:f|ves)|quays?|harbou?rs?|ferr(?:y|ies)|jett(?:y|ies))\b/i, minimum: 'named', roomsPerCopy: 5, maxCopies: 4 },
+  { kind: 'market', label: 'Market', pattern: /\b(markets?|bazaars?|agoras?|caravanserai)\b/i, minimum: 'named', roomsPerCopy: 4, maxCopies: 3 },
 ]
 
 function hash(text: string): number {
@@ -66,6 +89,62 @@ function middle(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b)
   const i = Math.floor(sorted.length / 2)
   return sorted.length % 2 ? sorted[i] : (sorted[i - 1] + sorted[i]) / 2
+}
+
+/**
+ * Choose anchors across the whole district, not the first N matching rooms.
+ * The first point is seeded per map; every later point is whichever source is
+ * farthest from those already chosen. That makes a long river receive marks
+ * along its course and a town receive footprints in several neighbourhoods.
+ */
+function distributedEvidence(matches: MapZoneRoom[], count: number, seed: string): MapZoneRoom[] {
+  if (matches.length <= count) return matches
+  const chosen = [matches[hash(`${seed}:first`) % matches.length]]
+  while (chosen.length < count) {
+    let best = matches[0]
+    let bestDistance = -1
+    for (const candidate of matches) {
+      if (chosen.includes(candidate)) continue
+      const nearest = Math.min(...chosen.map((other) =>
+        ((candidate.x as number) - (other.x as number)) ** 2 +
+        ((candidate.y as number) - (other.y as number)) ** 2
+      ))
+      const tieBreak = hash(`${seed}:${candidate.id ?? candidate.title ?? ''}`) / 0xffffffff
+      const score = nearest + tieBreak * 0.001
+      if (score > bestDistance) {
+        best = candidate
+        bestDistance = score
+      }
+    }
+    chosen.push(best)
+  }
+  return chosen
+}
+
+/** Collapse all rooms inside one named landmark into one map impression. */
+function namedEvidence(matches: MapZoneRoom[], rule: StampRule): MapZoneRoom[] {
+  const byName = new Map<string, MapZoneRoom>()
+  for (const room of matches) {
+    const labels = room.tags ?? []
+    const label = labels.find((candidate) => rule.pattern.test(candidate))
+    const titlePart = (room.title ?? '').split(',').find((candidate) => rule.pattern.test(candidate))
+    const name = (label ?? titlePart ?? room.title ?? `${room.x}:${room.y}`)
+      .toLocaleLowerCase()
+      .replace(/[^a-z0-9']+/g, ' ')
+      .trim()
+    if (!byName.has(name)) byName.set(name, room)
+  }
+  const spatiallyDistinct: MapZoneRoom[] = []
+  for (const candidate of byName.values()) {
+    const repeatsNearby = spatiallyDistinct.some((other) =>
+      Math.hypot(
+        (candidate.x as number) - (other.x as number),
+        (candidate.y as number) - (other.y as number)
+      ) < 150
+    )
+    if (!repeatsNearby) spatiallyDistinct.push(candidate)
+  }
+  return spatiallyDistinct
 }
 
 function quietPoint(rooms: MapZoneRoom[]): { x: number; y: number } {
@@ -192,9 +271,10 @@ function spreadStamps(stamps: MapStamp[], rooms: MapZoneRoom[], zoneKey: string)
 }
 
 /**
- * Derive a restrained set of stable, factual marks from the rooms on one
- * visible level. The seal is always present; terrain stamps need repeated
- * evidence so one room called "Garden" does not declare a whole zone forest.
+ * Build a stable stamp composition for one map sheet. Broad country still
+ * needs repeated evidence, while named landmarks can stand on one source
+ * room. Large districts earn repeated small marks spread across their actual
+ * extent: this is a map-specific drawing plan, not a four-item terrain legend.
  */
 export function deriveMapStamps(
   zone: Pick<MapZone, 'zone' | 'name'>,
@@ -213,33 +293,71 @@ export function deriveMapStamps(
     count: positioned.length,
     rotation: (hash(`${zoneKey}:seal`) % 9) - 4,
     weight: 1,
+    variant: hash(`${zoneKey}:seal:variant`) % 4,
   }
 
   const threshold = Math.min(6, Math.max(2, Math.ceil(positioned.length / 180)))
-  const terrain = RULES.flatMap((rule) => {
+  const candidates = RULES.flatMap((rule) => {
     const matches = positioned.filter((room) => {
-      const words = [room.title, ...(room.tags ?? [])].filter(Boolean).join(' · ')
-      return rule.pattern.test(words)
+      const title = room.title ?? ''
+      const authoredLabels = (room.tags ?? []).join(' · ')
+      if (rule.minimum === 'named') {
+        // A cartographer's explicit room label is strong evidence. A title is
+        // also evidence unless it is merely a road named after the feature:
+        // Church Street is not itself a church.
+        return rule.pattern.test(authoredLabels) || (
+          rule.pattern.test(title) && !/\b(streets?|roads?|lanes?|avenues?|boulevards?)\b/i.test(title)
+        )
+      }
+      return rule.pattern.test([title, authoredLabels].filter(Boolean).join(' · '))
     })
-    if (matches.length < threshold) return []
+    const required = rule.minimum === 'named' ? 1 : threshold
+    if (matches.length < required) return []
 
-    const point = illustrationPoint(matches, positioned, `${zoneKey}:${rule.kind}`)
-    return [{
-      stamp: {
-        kind: rule.kind,
-        label: rule.label,
-        x: point.x,
-        y: point.y,
-        count: matches.length,
-        rotation: (hash(`${zoneKey}:${rule.kind}`) % 11) - 5,
-        weight: Math.min(1.28, 0.82 + Math.log2(matches.length + 1) / 12),
-      } satisfies MapStamp,
-      score: (matches.length / positioned.length) * (rule.salience ?? 1),
-    }]
+    const named = rule.minimum === 'named' ? namedEvidence(matches, rule) : null
+    const copies = Math.min(
+      rule.maxCopies ?? 1,
+      named?.length ?? Math.max(1, Math.ceil(matches.length / (rule.roomsPerCopy ?? matches.length)))
+    )
+    const anchors = named
+      ? distributedEvidence(named, copies, `${zoneKey}:${rule.kind}`)
+      : distributedEvidence(matches, copies, `${zoneKey}:${rule.kind}`)
+    return anchors.map((anchor, index) => {
+      const point = illustrationPoint([anchor], positioned, `${zoneKey}:${rule.kind}:${index}`)
+      return {
+        stamp: {
+          kind: rule.kind,
+          label: rule.label,
+          x: point.x,
+          y: point.y,
+          count: matches.length,
+          rotation: (hash(`${zoneKey}:${rule.kind}:${index}`) % 15) - 7,
+          weight: Math.min(1.05, 0.68 + Math.log2(matches.length + 1) / 18),
+          variant: hash(`${zoneKey}:${rule.kind}:${index}:variant`) % 4,
+        } satisfies MapStamp,
+        // Named black-ink landmarks outrank texture. Landscape then ranks by
+        // how much of this particular sheet supports it.
+        score: (rule.minimum === 'named' ? 2 : 0) +
+          (matches.length / positioned.length) * (rule.salience ?? 1) - index * 0.002,
+        copyIndex: index,
+      }
+    })
   })
 
-  // Four factual washes plus the seal is enough to give a zone a visual
-  // grammar. More becomes wallpaper and starts competing with the map.
-  terrain.sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind))
-  return spreadStamps([seal, ...terrain.slice(0, 4).map(({ stamp }) => stamp)], positioned, zoneKey)
+  // Density follows the source sheet. A tiny interior gets a compass and a
+  // handful of features; Crossing can carry many small footprints without
+  // turning the route graph into wallpaper.
+  const decorationBudget = Math.min(24, Math.max(4, Math.ceil(Math.sqrt(positioned.length) * 0.72)))
+  // First give every evidenced feature one mark; only then spend remaining
+  // ink repeating the broadest districts. Without the rounds, four docks can
+  // crowd all farmland off a large mixed-country sheet.
+  const ordered = Array.from({ length: 12 }, (_, copyIndex) => candidates
+    .filter((candidate) => candidate.copyIndex === copyIndex)
+    .sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind)))
+    .flat()
+  return spreadStamps(
+    [seal, ...ordered.slice(0, decorationBudget).map(({ stamp }) => stamp)],
+    positioned,
+    zoneKey
+  )
 }
