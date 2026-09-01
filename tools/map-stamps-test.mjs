@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
@@ -122,10 +122,16 @@ check('stamps paint after paper but before the trail', canvas.indexOf('<MapStamp
 check('stamps can never intercept map interaction', layer.includes('pointer-events-none') && layer.includes('aria-hidden="true"'))
 check('every impression identifies its stamp family for live QA', layer.includes('data-map-stamp-kind'))
 check('layout never searches blank paper or globally spreads stamps', !derivation.includes('illustrationPoint') && !derivation.includes('spreadStamps') && derivation.includes('structuralPlacement'))
-check('terrain is drawn as pictorial map art, not circular badges', !layer.includes('<circle') && !layer.includes('<text') && layer.includes('function Tree') && layer.includes('function Peak'))
-check('town texture uses plan-view survey footprints', layer.includes('Survey-map fabric') && layer.includes("kind === 'settlement'"))
-for (const kind of ['wetland', 'coast', 'arid', 'cultivated', 'frozen', 'burial', 'worship', 'fortification', 'bridge', 'harbor', 'market']) {
-  check(`${kind} has its own authored glyph`, layer.includes(`kind === '${kind}'`))
+check('map art uses generated raster engravings', layer.includes('<image') && layer.includes('STAMP_ART') && layer.includes('href={art.href}'))
+check('the primitive path renderer has been removed', !layer.includes('<path') && !layer.includes('<circle') && !layer.includes('<text') && !layer.includes('function Tree') && !layer.includes('function Peak') && !layer.includes('MapDrawing'))
+check('engraved ink is integrated into parchment', layer.includes("mixBlendMode: 'multiply'") && layer.includes('preserveAspectRatio="xMidYMid meet"'))
+const stampKinds = ['water', 'woodland', 'highland', 'underground', 'settlement', 'ruins', 'wetland', 'coast', 'arid', 'cultivated', 'frozen', 'burial', 'worship', 'fortification', 'bridge', 'harbor', 'market']
+for (const kind of stampKinds) {
+  const assetPath = `public/map-stamps/${kind}.png`
+  const asset = existsSync(assetPath) ? readFileSync(assetPath) : Buffer.alloc(0)
+  const pngSignature = asset.subarray(0, 8).toString('hex') === '89504e470d0a1a0a'
+  const colorType = asset.length > 25 ? asset[25] : -1
+  check(`${kind} has a generated transparent PNG`, layer.includes(`'/map-stamps/${kind}.png'`) && pngSignature && [4, 6].includes(colorType) && statSync(assetPath).size > 10_000)
 }
 check('gateway destinations are visibly continued off the sheet', canvas.includes('data-map-gateway-callout="true"') && canvas.includes('shortGatewayLabel') && canvas.includes('hasGatewaysOnLevel'))
 check('duplicate gateways share one destination label', canvas.includes('byDestination') && canvas.includes('candidates.reduce'))
