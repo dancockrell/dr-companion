@@ -3,6 +3,7 @@ import { SetupWizard } from './components/first-run/SetupWizard'
 import { WaitingForCharacter } from './components/shared/WaitingForCharacter'
 import { ExperienceStrip } from './components/shared/ExperienceStrip'
 import { GameSignals } from './components/shared/GameSignals'
+import { GameActionNotice } from './components/game/GameActionNotice'
 import { BattleColumn } from './components/room/BattleColumn'
 import { GameChatColumn } from './components/room/GameChatColumn'
 import { MapColumn } from './components/room/MapColumn'
@@ -21,7 +22,7 @@ import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
-import { sendGame } from './lib/gameLink'
+import { requestGameAction } from './lib/gameActions'
 import { requestStartFlow, requestStopAll } from './lib/flowStop'
 import { MACROS } from './data/macros'
 import { canSendMacro } from './lib/canSendMacro'
@@ -108,7 +109,7 @@ export default function App() {
   useEffect(() => {
     if (!setupComplete) return
     return installKeybindings({
-      sendGame: (command) => void sendGame(command),
+      sendGame: (command) => requestGameAction(command, `Keyboard command “${command}”`),
       stopAll: () => {
         requestIntent('stop_all')
         requestStopAll()
@@ -432,6 +433,7 @@ export default function App() {
           </>
         )}
       </main>
+      {setupComplete && <GameActionNotice />}
       {setupComplete && <Console />}
       {setupComplete && <QuickSwitchBar />}
       {setupComplete && <SafetyFooter />}
