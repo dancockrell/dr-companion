@@ -1,4 +1,6 @@
 import { grokRoomScene } from '../data/grokRoomScenes'
+import { roomArtOverride } from '../data/roomArtOverrides'
+import { roomScenePattern } from '../data/roomScenePatterns'
 import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom'
 
 /**
@@ -74,4 +76,6 @@ export function cachedRoomText(zone: string, room: number): RoomText | null {
  * generating a second near-duplicate asset just to repair an assignment.
  */
 export const roomArtUrl = (zone: string, room: number, title?: string | null, text?: string | null) =>
-  grokRoomScene(zone, room, title, text)
+  roomArtOverride(zone, room)
+  ?? roomScenePattern(zone, room)
+  ?? grokRoomScene(zone, room, title, text)
