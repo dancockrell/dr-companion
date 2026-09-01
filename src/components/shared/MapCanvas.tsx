@@ -23,6 +23,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { landmarksFor } from '../../lib/mapLandmarks'
 import { deriveMapStamps } from '../../lib/mapStamps'
 import { MapStampLayer } from './MapStampLayer'
+import { initialMapRoomId, mapRoomAccessibleName, nextMapRoomId, type MapDirection } from '../../lib/mapKeyboard'
 
 /**
  * How many rooms the map draws at once.
@@ -320,6 +321,7 @@ export function MapCanvas({
   }, [rooms])
 
   const [hoverId, setHoverId] = useState<number | null>(null)
+  const [keyboardRoomId, setKeyboardRoomId] = useState<number | null>(null)
   const hoverNeighbors = hoverId != null ? neighbors.get(hoverId) : undefined
 
   // Position for RoomHoverCard, in this component's own positioning
@@ -355,6 +357,12 @@ export function MapCanvas({
   useEffect(() => () => {
     if (hoverCloseTimer.current != null) clearTimeout(hoverCloseTimer.current)
   }, [])
+
+  useEffect(() => {
+    setKeyboardRoomId((current) =>
+      current != null && index.has(current) ? current : initialMapRoomId(rooms, zone.here)
+    )
+  }, [rooms, index, zone.here])
 
   // Reports the "here" room's pixel position whenever it is known, so a
   // viewport (useMapViewport) can center on it without re-deriving px/py
@@ -395,7 +403,52 @@ export function MapCanvas({
 
   return (
     <div ref={wrapRef} className="relative h-full w-full">
-    <svg viewBox={`0 0 ${view.w} ${view.h}`} className="block" {...sizing}>
+    <svg
+      viewBox={`0 0 ${view.w} ${view.h}`}
+      className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+      {...sizing}
+      tabIndex={0}
+      role="application"
+      aria-label={`${zone.name ?? zone.zone} map, level ${level}, ${rooms.length} rooms. Use arrow keys to explore, Enter to choose a route, and Shift F10 to pin.`}
+      aria-activedescendant={keyboardRoomId != null ? `map-room-${zone.zone}-${level}-${keyboardRoomId}` : undefined}
+      onFocus={() => {
+        const id = keyboardRoomId ?? initialMapRoomId(rooms, zone.here)
+        setKeyboardRoomId(id)
+        setHoverId(id)
+        const room = id == null ? null : index.get(id)
+        if (room) setHoverPos({ x: px(room), y: py(room) })
+      }}
+      onBlur={() => {
+        setHoverId(null)
+        setHoverPos(null)
+      }}
+      onKeyDown={(event) => {
+        const directions: Partial<Record<string, MapDirection>> = {
+          ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+        }
+        const direction = directions[event.key]
+        if (direction) {
+          event.preventDefault()
+          const id = nextMapRoomId(rooms, keyboardRoomId, direction)
+          setKeyboardRoomId(id)
+          setHoverId(id)
+          const room = id == null ? null : index.get(id)
+          if (room) setHoverPos({ x: px(room), y: py(room) })
+          return
+        }
+        const room = keyboardRoomId == null ? null : index.get(keyboardRoomId)
+        if (!room || room.id == null) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          if (room.gateway && onZone) onZone(room.gateway.zone)
+          else onPick(room.id)
+        } else if ((event.shiftKey && event.key === 'F10') || event.key === 'ContextMenu') {
+          if (!onPinRoom) return
+          event.preventDefault()
+          onPinRoom(room.id)
+        }
+      }}
+    >
       <defs>
         {/* Lit from the middle, falling off at the edges. A flat fill running
             hard into the panel border reads as a background; this reads as a
@@ -523,6 +576,10 @@ export function MapCanvas({
         return (
           <g
             key={r.id}
+            id={r.id != null ? `map-room-${zone.zone}-${level}-${r.id}` : undefined}
+            role="button"
+            aria-label={mapRoomAccessibleName(r, Boolean(onPinRoom))}
+            aria-current={r.id === keyboardRoomId ? 'true' : undefined}
             className="cursor-pointer"
             onClick={() => {
               // A gateway goes through. Routing to a room you are already
