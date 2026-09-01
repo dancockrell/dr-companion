@@ -5,6 +5,7 @@ import { nounOf } from '../../lib/room'
 import { useRoomItemTake } from '../../lib/useRoomItemTake'
 import { useDragScroll } from '../../lib/useDragScroll'
 import { requestGameAction } from '../../lib/gameActions'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
  * The floor, as its own row — pulled off the battle board itself
@@ -112,13 +113,14 @@ export function FloorItems({
           </span>
         )}
         <div
+          {...scrollableRegionProps('Items on the ground', mode === 'glance' ? 'horizontal' : 'vertical')}
           ref={drag.ref}
           onPointerDown={drag.onPointerDown}
           onPointerMove={drag.onPointerMove}
           onPointerUp={drag.onPointerUp}
           onPointerCancel={drag.onPointerCancel}
           className={cn(
-            'no-scrollbar flex min-h-0 min-w-0 flex-1 touch-none gap-1',
+            'flex min-h-0 min-w-0 flex-1 gap-1',
             mode === 'glance' ? 'overflow-x-auto' : 'flex-wrap content-start overflow-y-auto pr-1',
             drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
           )}

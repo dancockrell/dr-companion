@@ -102,6 +102,7 @@ import { inferScriptIcon, type ScriptIconKey } from '../../lib/scriptIcons'
 import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
 import { iconOverrideFor, setIconOverride, clearIconOverride } from '../../lib/scriptIconOverrides'
 import { useDragScroll } from '../../lib/useDragScroll'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 import { ScriptEditor, type EditorTarget } from './ScriptEditor'
 import { ScriptIconPicker } from './ScriptIconPicker'
 import { onStopAll, onStartFlow } from '../../lib/flowStop'
@@ -679,12 +680,12 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
       )}
 
       <div
+        {...scrollableRegionProps('Functions and scripts', 'both')}
         ref={gridRef}
         className={cn(
-          'no-scrollbar min-h-0 flex-1 overflow-auto touch-none',
+          'min-h-0 flex-1 overflow-auto',
           gridDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
         )}
-        style={{ touchAction: 'none' }}
         onPointerDown={gridOnPointerDown}
         onPointerMove={gridOnPointerMove}
         onPointerUp={gridOnPointerUp}

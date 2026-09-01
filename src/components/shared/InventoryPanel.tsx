@@ -4,6 +4,7 @@ import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { capabilitiesForCharacter } from '../../lib/accountCapabilities'
 import { requestGameAction } from '../../lib/gameActions'
 import { fetchElanthipedia, type ElanthipediaPage } from '../../lib/elanthipedia'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 const FILTERS = [
   ['All', 'list'], ['Weapons', 'weapons full'], ['Armor', 'armor full'],
@@ -114,7 +115,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
         </div>
         <span className={`shrink-0 ${pressureColor}`}>{encumbrance ?? 'not reported'}</span>
       </div>
-      <div className="flex gap-1 overflow-x-auto pb-0.5 no-scrollbar" aria-label="Inventory searches">
+      <div {...scrollableRegionProps('Inventory searches', 'horizontal')} className="flex gap-1 overflow-x-auto pb-0.5">
         {FILTERS.map(([label, command]) => (
           <button key={label} type="button" onClick={() => requestGameAction(`inventory ${command}`, `Inventory: ${label}`)} className="shrink-0 rounded border border-border px-1.5 py-0.5 text-xs text-ink-muted hover:border-accent hover:text-accent" title={`Ask the game for ${label.toLowerCase()} across all containers`}>
             {label}

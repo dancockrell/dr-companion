@@ -3,6 +3,7 @@ import { MACROS, type Macro } from '../../data/macros'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { useDragScroll } from '../../lib/useDragScroll'
 import { actionAccent, actionIcon } from '../../lib/battleActionVisuals'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 const GROUPS: Macro['group'][] = ['combat', 'health', 'hunt', 'goods', 'magic', 'travel', 'info']
 
@@ -33,8 +34,9 @@ export function BattleActionBar() {
   return (
     <div className="relative">
       <div
+        {...scrollableRegionProps('Battle commands', 'horizontal')}
         ref={macroDrag.ref}
-        className={cn('no-scrollbar flex touch-none items-start gap-1 overflow-x-auto', macroDrag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
+        className={cn('flex items-start gap-1 overflow-x-auto', macroDrag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
         aria-label="Battle commands"
         onPointerDown={macroDrag.onPointerDown}
         onPointerMove={macroDrag.onPointerMove}

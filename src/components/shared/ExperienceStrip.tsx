@@ -2,6 +2,7 @@ import { MindstateBoard } from './MindstateBoard'
 import { useDragScroll } from '../../lib/useDragScroll'
 import { cn } from '../../lib/cn'
 import type { SkillState } from '../../data/skills'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
  * Experience, alone, all the way to the right, running the full height of
@@ -27,12 +28,12 @@ export function ExperienceStrip({ skills }: { skills: SkillState[] }) {
 
   return (
     <div
+      {...scrollableRegionProps('Experience and learning progress', 'both')}
       ref={ref}
       className={cn(
-        'no-scrollbar h-full min-h-0 overflow-auto',
+        'h-full min-h-0 overflow-auto',
         dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
       )}
-      style={{ touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
