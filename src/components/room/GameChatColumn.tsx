@@ -7,7 +7,7 @@ import { useHighlights } from '../../lib/useHighlights'
 import { TaskFlowPanel } from '../dashboard/TaskFlowPanel'
 
 /**
- * The large lower-right workspace is deliberately split, not switched. The
+ * The large lower-left workspace is deliberately split, not switched. The
  * game transcript and command entry stay visible while scripts and taskflows
  * occupy a permanent neighbouring pane. A running workflow should never hide
  * the game output a player needs to supervise it.
@@ -17,7 +17,7 @@ export function GameChatColumn() {
   const [query, setQuery] = useState('')
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.85fr)] gap-2 p-2" aria-label="Game and automation workspace">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-1 p-1" aria-label="Game and automation workspace">
       <section className="flex min-h-0 min-w-0 flex-col gap-2" aria-label="Game workspace">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border border-border bg-surface-raised">
           <PanelBoundary label="Game and channels">
