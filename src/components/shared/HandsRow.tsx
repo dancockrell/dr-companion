@@ -1,5 +1,5 @@
 /**
- * Who you are and what you are holding.
+ * What you are holding, in the room header where it matters in a fight.
  *
  * Both of these were already written, correctly, in `CharacterStrip`, which
  * lives in `CharacterHeader.tsx` and is mounted by `AppHeader` — and nothing
@@ -14,12 +14,10 @@
  * code, because the file looks maintained and its reasoning is sound: somebody
  * had the thought, wrote it well, and it never rendered.
  *
- * Race, guild and circle were the same. Their comment notes they were in every
- * status payload and displayed nowhere — fixed, in a component that is not on
- * screen, so still not fixed.
- *
- * This is those two facts moved into the mounted path, which is the whole of
- * what was missing. Everything else `CharacterStrip` drew already had a home:
+ * Race, guild and circle belong in character/skills information, not beside a
+ * room name. "Gor'Tog Barbarian 18" is not a tactical status and consumes the
+ * exact line that needs to keep both hands readable. Everything else
+ * `CharacterStrip` drew already had a home:
  * roundtime and situation in `StatusBoard`, location in the map header,
  * activity in `SafetyFooter`, and mode, pin, settings and the connection light
  * in `AppControls`. Checked one at a time before deleting anything, because
@@ -31,30 +29,20 @@ import type { CharacterStatus } from '../../types'
 export function HandsRow({ character }: { character: CharacterStatus | null }) {
   if (!character) return null
 
-  // Kaldar Bard 1. Filtered rather than assumed present: the bridge sends
-  // 'unknown' for a guild it could not read, and printing that is worse than
-  // printing nothing.
-  const who = [character.race, character.guild?.replace(/_/g, ' '), character.circle]
-    .filter((x) => x !== undefined && x !== null && x !== '' && x !== 'unknown')
-    .join(' ')
-
   const hands = character.hands
 
-  if (!who && !hands) return null
+  if (!hands) return null
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2 text-xs">
-      {who && <span className="min-w-0 max-w-36 shrink-[2] truncate capitalize text-ink-muted" title={who}>{who}</span>}
-      {hands && (
-        <div className="flex min-w-0 flex-1 items-center gap-1.5">
-          <span className="flex min-w-0 flex-1 items-center gap-1 text-ink-faint">
-            R <span className="truncate text-ink-muted" title={hands.right ?? 'empty'}>{hands.right ?? 'empty'}</span>
-          </span>
-          <span className="flex min-w-0 flex-1 items-center gap-1 text-ink-faint">
-            L <span className="truncate text-ink-muted" title={hands.left ?? 'empty'}>{hands.left ?? 'empty'}</span>
-          </span>
-        </div>
-      )}
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <span className="flex min-w-0 flex-1 items-center gap-1 text-ink-faint">
+          R <span className="truncate text-ink-muted" title={hands.right ?? 'empty'}>{hands.right ?? 'empty'}</span>
+        </span>
+        <span className="flex min-w-0 flex-1 items-center gap-1 text-ink-faint">
+          L <span className="truncate text-ink-muted" title={hands.left ?? 'empty'}>{hands.left ?? 'empty'}</span>
+        </span>
+      </div>
     </div>
   )
 }

@@ -17,9 +17,8 @@ import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import { roomKind } from '../lib/mapData'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
-import { MapPinBar } from './shared/MapPinBar'
-import { QuickTravel } from './shared/QuickTravel'
-import { PinPalette, type PinBrush } from './shared/PinPalette'
+import type { PinBrush } from './shared/PinPalette'
+import { MapToolRail } from './shared/MapToolRail'
 import { PinEditor } from './shared/PinEditor'
 import { RoomNudge } from './shared/RoomNudge'
 import { PlaceSearch } from './shared/PlaceSearch'
@@ -28,7 +27,6 @@ import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../
 import { exportPinsToFile, importPinsFromFile } from '../lib/pinsFile'
 import { loadPlayerMarker, savePlayerMarker } from '../lib/playerMarker'
 import { PlayerMarkerEditor } from './shared/PlayerMarkerEditor'
-import { PIN_ICON_COMPONENT } from '../lib/pinIcons'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../lib/scriptFiles'
@@ -399,49 +397,27 @@ export function MapWindow() {
           </div>
         )}
 
-        {(pins.length > 0 || hereId != null) && (
-          <>
-            <div className="flex min-w-0 items-center gap-1.5" aria-label="Map pins and places">
-              {character && playerMarker && (
-                <button
-                  type="button"
-                  onClick={() => setEditingMarker(true)}
-                  title="Customize your mark on the map"
-                  aria-label="Customize your mark on the map"
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border hover:border-accent/60"
-                >
-                  <span
-                    className="flex h-4 w-4 items-center justify-center rounded-full"
-                    style={{ background: playerMarker.color }}
-                  >
-                    {(() => {
-                      const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
-                      return <Icon className="h-2.5 w-2.5" color="var(--map-ground)" strokeWidth={3} />
-                    })()}
-                  </span>
-                </button>
-              )}
-              <MapPinBar
-                pins={pins}
-                onGo={(pin) => goThere(pin.roomId)}
-                onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-                onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-              />
-              <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
-              <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-              <PinPalette selected={pinBrush} onSelect={setPinBrush} />
-            </div>
-            {showNudge && hereId != null && (
-              <RoomNudge
-                visits={hereVisits as number}
-                onPin={() => pinRoom(hereId)}
-                onDismiss={() => {
-                  if (character) dismissNudge(character.name, character.instance, hereId)
-                  setPinVersion((v) => v + 1)
-                }}
-              />
-            )}
-          </>
+        <MapToolRail
+          marker={character ? playerMarker : undefined}
+          onCustomizeMarker={character && playerMarker ? () => setEditingMarker(true) : undefined}
+          pins={pins}
+          onGoPin={(pin) => goThere(pin.roomId)}
+          onEditPin={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+          onWalk={goThere}
+          onPinNearest={(hit) => pinRoom(hit.id, hit.title)}
+          selected={pinBrush}
+          onSelect={setPinBrush}
+        />
+        {showNudge && hereId != null && (
+          <RoomNudge
+            visits={hereVisits as number}
+            onPin={() => pinRoom(hereId)}
+            onDismiss={() => {
+              if (character) dismissNudge(character.name, character.instance, hereId)
+              setPinVersion((v) => v + 1)
+            }}
+          />
         )}
       </div>
 

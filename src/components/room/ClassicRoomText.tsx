@@ -1,12 +1,14 @@
 import { HighlightedText } from './HighlightedText'
 import { ExitButtons } from './ExitButtons'
+import { FloorItems } from './FloorItems'
 import { useDragScroll } from '../../lib/useDragScroll'
 import type { Highlight } from '../../lib/highlights'
 
 /**
  * The room, read the way the game itself hands it to a player — a
- * bracketed title, the prose, then the two summary lines DragonRealms
- * always sends after it: what's lying around, and who else is here. Real
+ * bracketed title, the prose, and who else is here. The operational facts
+ * that cannot disappear below long prose — exits and the clickable floor —
+ * are pinned beneath that reading area. Real
  * clients colour these four pieces differently on sight (title, body,
  * objects, people), and this box does the same rather than the one flat
  * paragraph this app used to draw, because that coding is not decoration —
@@ -19,16 +21,13 @@ import type { Highlight } from '../../lib/highlights'
  * it just does not render, the same "silence over a guess" rule the rest
  * of this app follows.
  *
- * Bounded and scrollable by grab-and-drag (`useDragScroll`) rather than
- * left to push the rest of the pane down — a full classic room line with
- * a crowded object list and a dozen names in it can run long, and a fixed
- * box with its own scroll keeps the actions bar and the rest of the
- * column from jumping every time the character walks somewhere new.
+ * Only the prose is grab-scrollable. Directions and floor actions are a
+ * fixed footer so a long room description cannot hide the controls needed
+ * to leave it or interact with what is there.
  */
 
 const listFormatter = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' })
 
-const MAX_HEIGHT_PX = 190
 const FULL_SUMMARY_LIMIT = 8
 
 export function ClassicRoomText({
@@ -64,63 +63,59 @@ export function ClassicRoomText({
   offClasses?: ReadonlySet<string>
 }) {
   const drag = useDragScroll()
-  const itemKinds = items ? new Set(items.map((item) => item.trim().toLowerCase())).size : 0
-  const crowdedItems = (items?.length ?? 0) > FULL_SUMMARY_LIMIT
   const crowdedPlayers = (players?.length ?? 0) > FULL_SUMMARY_LIMIT
   const visiblePlayers = crowdedPlayers ? players!.slice(0, 3) : players
 
   return (
-    <div
-      ref={drag.ref}
-      onPointerDown={drag.onPointerDown}
-      onPointerMove={drag.onPointerMove}
-      onPointerUp={drag.onPointerUp}
-      onPointerCancel={drag.onPointerCancel}
-      className="no-scrollbar cursor-grab touch-none overflow-y-auto active:cursor-grabbing"
-      style={{ maxHeight: MAX_HEIGHT_PX }}
-    >
-      {(title || room != null) && (
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
-          {title && <p className="min-w-0 font-semibold text-warn">[{title}]</p>}
-          {room != null && (
-            <span className="shrink-0 text-ink-faint">
-              Lich room {room}
-              {uid != null ? `, game uid ${uid}` : ''}
-            </span>
-          )}
-        </div>
-      )}
+    <div className="flex h-full min-h-0 flex-col">
+      <div
+        ref={drag.ref}
+        onPointerDown={drag.onPointerDown}
+        onPointerMove={drag.onPointerMove}
+        onPointerUp={drag.onPointerUp}
+        onPointerCancel={drag.onPointerCancel}
+        className="no-scrollbar min-h-0 flex-1 cursor-grab touch-none overflow-y-auto active:cursor-grabbing"
+      >
+        {(title || room != null) && (
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
+            {title && <p className="min-w-0 font-semibold text-warn">[{title}]</p>}
+            {room != null && (
+              <span className="shrink-0 text-ink-faint">
+                Lich room {room}
+                {uid != null ? `, game uid ${uid}` : ''}
+              </span>
+            )}
+          </div>
+        )}
 
-      {text ? (
-        <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
-          <HighlightedText text={text} highlights={highlights} offClasses={offClasses} />
-        </p>
-      ) : (
-        <p className="mt-0.5 text-xs text-ink-faint">No description for this room.</p>
-      )}
+        {text ? (
+          <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
+            <HighlightedText text={text} highlights={highlights} offClasses={offClasses} />
+          </p>
+        ) : (
+          <p className="mt-0.5 text-xs text-ink-faint">No description for this room.</p>
+        )}
 
-      {items && items.length > 0 && (
-        <p className="mt-1 text-xs leading-relaxed text-ink-faint">
-          {crowdedItems
-            ? `${items.length} loose items in ${itemKinds} kinds — use the searchable, clickable floor controls on the room art.`
-            : `You also see ${listFormatter.format(items)}.`}
-        </p>
-      )}
+        {players && players.length > 0 && (
+          <p className="mt-1 text-xs leading-relaxed text-info">
+            {crowdedPlayers
+              ? `Also here: ${listFormatter.format(visiblePlayers!)} and ${players.length - visiblePlayers!.length} others — inspect the portrait rail for everyone.`
+              : `Also here: ${listFormatter.format(players)}.`}
+          </p>
+        )}
+      </div>
 
-      {players && players.length > 0 && (
-        <p className="mt-1 text-xs leading-relaxed text-info">
-          {crowdedPlayers
-            ? `Also here: ${listFormatter.format(visiblePlayers!)} and ${players.length - visiblePlayers!.length} others — inspect the portrait rail for everyone.`
-            : `Also here: ${listFormatter.format(players)}.`}
-        </p>
-      )}
-
-      {exits && exits.length > 0 && (
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/60 pt-2 text-xs leading-relaxed text-ink-faint" aria-label="Room exits">
+      <div className="mt-1 shrink-0 border-t border-border/60 pt-1.5">
+        <div className="flex min-h-7 flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-relaxed text-ink-faint" aria-label="Room exits">
           <span className="font-semibold uppercase tracking-wide text-ink-muted">Exits</span>
-          <ExitButtons exits={exits} />
+          {exits && exits.length > 0 ? <ExitButtons exits={exits} /> : <span>none reported</span>}
         </div>
-      )}
+        {items && items.length > 0 && (
+          <div className="mt-1 border-t border-border/40 pt-1.5" aria-label="Clickable room items">
+            <FloorItems items={items} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -38,16 +38,14 @@ import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
 import { useZoneBrowsing } from '../../lib/useZoneBrowsing'
-import { MapPinBar } from './MapPinBar'
-import { QuickTravel } from './QuickTravel'
-import { PinPalette, type PinBrush } from './PinPalette'
+import type { PinBrush } from './PinPalette'
+import { MapToolRail } from './MapToolRail'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
 import { exportPinsToFile, importPinsFromFile } from '../../lib/pinsFile'
 import { loadPlayerMarker, savePlayerMarker } from '../../lib/playerMarker'
 import { PlayerMarkerEditor } from './PlayerMarkerEditor'
-import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../../lib/scriptFiles'
@@ -512,38 +510,18 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         </div>
       }
     >
-      {/* One map-tool rail. Operational controls lead; the complete place
-          vocabulary consumes the remaining width and grab-scrolls. */}
-      <div className="flex min-w-0 items-center gap-1.5" aria-label="Map pins and places">
-        {character && playerMarker && (
-          <button
-            type="button"
-            onClick={() => setEditingMarker(true)}
-            title="Customize your mark on the map"
-            aria-label="Customize your mark on the map"
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border hover:border-accent/60"
-          >
-            <span
-              className="flex h-4 w-4 items-center justify-center rounded-full"
-              style={{ background: playerMarker.color }}
-            >
-              {(() => {
-                const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
-                return <Icon className="h-2.5 w-2.5" color="var(--map-ground)" strokeWidth={3} />
-              })()}
-            </span>
-          </button>
-        )}
-        <MapPinBar
-          pins={pins}
-          onGo={(pin) => goThere(pin.roomId)}
-          onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-        />
-        <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
-        <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-        <PinPalette selected={pinBrush} onSelect={setPinBrush} />
-      </div>
+      <MapToolRail
+        marker={character ? playerMarker : undefined}
+        onCustomizeMarker={character && playerMarker ? () => setEditingMarker(true) : undefined}
+        pins={pins}
+        onGoPin={(pin) => goThere(pin.roomId)}
+        onEditPin={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+        onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+        onWalk={goThere}
+        onPinNearest={(hit) => pinRoom(hit.id, hit.title)}
+        selected={pinBrush}
+        onSelect={setPinBrush}
+      />
 
       {showNudge && hereId != null && (
         <RoomNudge

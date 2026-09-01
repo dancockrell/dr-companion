@@ -246,7 +246,7 @@ export function BattleColumn() {
       </div>
 
       <div className="grid min-h-[13rem] flex-1 grid-cols-[minmax(0,1.35fr)_minmax(12rem,0.85fr)] gap-2 overflow-hidden">
-        <section className="min-w-0 overflow-y-auto rounded border border-border bg-surface-raised p-2" aria-label="Room description">
+        <section className="min-w-0 overflow-hidden rounded border border-border bg-surface-raised p-2" aria-label="Room description">
           {room === null ? (
             <p className="text-xs text-ink-faint">Not in a room yet.</p>
           ) : (

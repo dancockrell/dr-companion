@@ -697,7 +697,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                 {group.category}
                 <span className="ml-1 opacity-60">{group.items.length}</span>
               </p>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1">
+              <div className="grid grid-cols-[repeat(auto-fill,2rem)] gap-1">
                 {group.items.map((entry) => {
                   const isCommand = entry.id.startsWith('command.')
                   const overrideKey = isCommand ? null : iconOverrideFor(entry.id)
@@ -770,7 +770,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                         data-action={entry.actionKey}
                         data-entry-id={entry.id}
                         className={cn(
-                          'flex w-full items-center justify-center overflow-hidden rounded border py-2 transition duration-150 hover:-translate-y-px hover:brightness-125 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0',
+                          'flex h-8 w-8 items-center justify-center overflow-hidden rounded border transition duration-150 hover:-translate-y-px hover:brightness-125 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0',
                           active
                             ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface'
                             : entry.readOnly
@@ -836,7 +836,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
               type="button"
               onClick={() => openNew('python')}
               title="Write a new Python task. Saved into python/tasks/user/, where it is picked up automatically."
-              className="flex flex-1 items-center justify-center rounded border border-dashed border-border py-2 text-ink-faint hover:border-ink-faint hover:text-ink"
+              className="grid h-8 w-8 place-items-center rounded border border-dashed border-border text-ink-faint hover:border-ink-faint hover:text-ink"
             >
               <FilePlus2 className="h-4 w-4" />
             </button>
@@ -844,7 +844,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
               type="button"
               onClick={() => openNew('typescript')}
               title="Write a new TypeScript task. Saved into typescript/tasks/user/, where it is picked up automatically. Needs Node.js 22.6+ or 24+."
-              className="flex flex-1 items-center justify-center rounded border border-dashed border-border py-2 text-ink-faint hover:border-ink-faint hover:text-ink"
+              className="grid h-8 w-8 place-items-center rounded border border-dashed border-border text-ink-faint hover:border-ink-faint hover:text-ink"
             >
               <FilePlus2 className="h-4 w-4" />
             </button>
@@ -856,7 +856,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                   ? 'Write a new Lich script, in Ruby, saved into Lich’s scripts folder.'
                   : 'New Ruby script - needs Lich. Finish Lich setup first.'
               }
-              className="flex flex-1 items-center justify-center rounded border border-dashed border-border py-2 text-ink-faint hover:border-ink-faint hover:text-ink"
+              className="grid h-8 w-8 place-items-center rounded border border-dashed border-border text-ink-faint hover:border-ink-faint hover:text-ink"
             >
               <Gem className="h-4 w-4" />
             </button>
