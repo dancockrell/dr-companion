@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { analyzeScene } from './scene-semantics.mjs'
 
 const baskets = JSON.parse(readFileSync('data/art/scene-baskets.json', 'utf8'))
 const places = JSON.parse(readFileSync('data/art/room-prompts-priority.json', 'utf8'))
@@ -8,26 +9,6 @@ const protectedPlaces = new Set([
   ...Object.keys(curated.publishedOverrides ?? {}),
   ...(baskets.landmarkPlaces ?? []),
 ])
-
-const classify = (place) => {
-  const title = String(place.title ?? place.place ?? '').toLowerCase()
-  const lore = String(place.lore ?? '').toLowerCase()
-  const text = `${title} ${lore}`
-  if (/\b(goal line|field of play|arena|stadium|tournament|playing field)\b/.test(text)) return null
-  if (/\b(sewer|drain|cesspit)\b/.test(title)) return 'sewer'
-  if (/\b(tunnel|tunnels|cavern|caverns|cave|catacombs|burrows|warrens|labyrinth)\b/.test(title)) return 'mine-tunnel'
-  if (/\b(desert|dune|dunes|sands|sand valley)\b/.test(title)) return 'desert'
-  if (/\b(swamp|marsh|fen|fens|bog|muck|morass)\b/.test(title)) return 'swamp'
-  if (/\b(river|riverside|water's edge|waters edge|lake shore|shoreline|riverbank|channel)\b/.test(title)) return 'riverside'
-  if (/\b(mountain|ridge|cliff|outcrop|pass|escarpment|ascent|summit|slope)\b/.test(title)) return 'mountain-pass'
-  if (/\b(garden|gardens|courtyard|grove|orchard)\b/.test(title)) return 'garden'
-  if (/\b(grassland|grasslands|prairie|meadow|field|fields|savanna)\b/.test(title)) return 'grassland'
-  if (/\b(forest|woods|wood|understory|brambles|tangle|thicket)\b/.test(title)) {
-    return /\b(path|trail|road|track|way)\b/.test(text) ? 'forest-path' : 'deep-forest'
-  }
-  if (/\b(street|circle|boulevard|plaza|lane|avenue|promenade|city walk|town road)\b/.test(title)) return 'regional-city'
-  return null
-}
 
 const roomsByPlace = new Map()
 for (const [roomKey, placeKey] of Object.entries(placeOf)) {
@@ -56,21 +37,40 @@ const toRanges = (rooms) => {
 
 const rules = []
 const coverage = {}
+const unresolved = []
 for (const [placeKey, place] of Object.entries(places)) {
   const group = roomsByPlace.get(placeKey)
   if (!group || group.rooms.length < 4) continue
   if (protectedPlaces.has(placeKey)) continue
-  const category = classify(place)
-  if (!category) continue
+
+  const analysis = analyzeScene(place)
+  const category = analysis.category
+  if (!category) {
+    unresolved.push({ placeKey, zone: group.zone, roomCount: group.rooms.length, ...analysis })
+    continue
+  }
+
   const arts = category === 'regional-city'
     ? baskets.regionalCity[place.zoneName]
     : baskets.generic[category]
-  if (!arts?.length) continue
+  if (!arts?.length) {
+    unresolved.push({ placeKey, zone: group.zone, roomCount: group.rooms.length, ...analysis, reason: 'no-approved-basket' })
+    continue
+  }
   for (const art of arts) {
     const local = `public${art}`
     if (!existsSync(local)) throw new Error(`${placeKey}: missing basket art ${local}`)
   }
-  rules.push({ zone: group.zone, ranges: toRanges(group.rooms), arts, placeKey, category })
+  rules.push({
+    zone: group.zone,
+    ranges: toRanges(group.rooms),
+    arts,
+    placeKey,
+    category,
+    confidence: analysis.confidence,
+    traits: analysis.traits,
+    signals: analysis.signals,
+  })
   coverage[category] = (coverage[category] ?? 0) + group.rooms.length
 }
 
@@ -106,6 +106,16 @@ writeFileSync('data/art/scene-basket-coverage.json', JSON.stringify({
   roomCount: Object.values(coverage).reduce((a, b) => a + b, 0),
   coverage,
   protectedLandmarks: [...protectedPlaces].sort(),
-  assignments: rules.map(({ placeKey, category, zone, ranges }) => ({ placeKey, category, zone, ranges })),
+  assignments: rules.map(({ placeKey, category, zone, ranges, confidence, traits, signals }) => ({
+    placeKey,
+    category,
+    zone,
+    ranges,
+    confidence,
+    traits,
+    signals,
+  })),
+  unresolved,
 }, null, 2) + '\n')
 console.log(`wrote ${rules.length} rules covering ${Object.values(coverage).reduce((a, b) => a + b, 0)} rooms`)
+console.log(`${unresolved.length} multi-room places remain intentionally unassigned or lack an approved basket`)
