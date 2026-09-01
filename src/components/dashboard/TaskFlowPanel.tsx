@@ -69,6 +69,7 @@ import {
   Search,
   Square,
   Star,
+  Workflow,
 } from 'lucide-react'
 import {
   onTaskLine,
@@ -109,6 +110,8 @@ import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 import { readJSON, writeJSON } from '../../lib/storage'
 import type { QuickSwitchPin } from '../../lib/quickSwitch'
+import { MACROS, type Macro } from '../../data/macros'
+import { useMacroRunner } from '../../lib/useMacroRunner'
 
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200
@@ -125,6 +128,29 @@ const RUBY_CATEGORY = 'Lich scripts'
  * what it is, rather than guessing a category that would just be wrong.
  */
 const TS_CATEGORY = 'TypeScript tasks'
+
+/** Basic game functions live in the same launcher as scripts. The battle rail
+ * is the fast subset; this is the complete, searchable catalog generated from
+ * the single macro source of truth rather than a second hand-maintained list. */
+const COMMAND_CATEGORY: Record<Macro['group'], string> = {
+  combat: 'Combat commands',
+  health: 'Health commands',
+  hunt: 'Hunt commands',
+  goods: 'Goods commands',
+  magic: 'Magic commands',
+  travel: 'Travel commands',
+  info: 'Information commands',
+}
+
+const COMMAND_ICON: Record<Macro['group'], ScriptIconKey> = {
+  combat: 'swords',
+  health: 'heart-pulse',
+  hunt: 'eye-off',
+  goods: 'shopping-bag',
+  magic: 'wand',
+  travel: 'compass',
+  info: 'eye',
+}
 
 /**
  * Where a player's own tile arrangement lives.
@@ -219,12 +245,13 @@ type Entry = {
   editTarget?: EditorTarget
 }
 
-export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
+export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title?: string }) {
   const addLog = useAppStore((s) => s.addLog)
   const setActiveFlow = useAppStore((s) => s.setActiveFlow)
   const startScript = useAppStore((s) => s.startScript)
   const quickSwitchPins = useAppStore((s) => s.quickSwitchPins)
   const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
+  const { run: runMacro, canSend: canSendMacro, reason: macroReason } = useMacroRunner()
 
   const [status, setStatus] = useState<PythonStatus | null>(null)
   const [nodeSt, setNodeSt] = useState<NodeStatus | null>(null)
@@ -453,8 +480,8 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   )
 
   /**
-   * One combined list: every Python task, then every TypeScript task, then
-   * every Ruby script, filtered by name/summary. Python tasks come first and
+   * One combined list: every basic game function, every Python task, every
+   * TypeScript task, then every Ruby script, filtered by name/summary. Tasks
    * already arrive sorted by `runner.py`'s `CATEGORY_ORDER`; appending
    * TypeScript and then Ruby after them - rather than interleaving - is what
    * keeps "Lich scripts" last once grouped, which is the right place for
@@ -465,6 +492,23 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
     const q = filter.trim().toLowerCase()
     const matches = (title: string, summary: string) =>
       !q || title.toLowerCase().includes(q) || summary.toLowerCase().includes(q)
+
+    const fromCommands: Entry[] = MACROS.flatMap((macro) =>
+      macro.variations
+        .filter((variation) => matches(variation.label, `${macro.label} ${variation.note ?? ''} ${variation.commands.join(' ')}`))
+        .map((variation) => ({
+          id: `command.${macro.id}.${variation.id}`,
+          title: variation.label,
+          baseIcon: COMMAND_ICON[macro.group],
+          tooltip:
+            `${variation.label}\n${variation.note ?? macro.label}\n\n` +
+            `${variation.commands.join(' ; ')}\n\nBasic game function — sends directly through the macro safety gate.` +
+            (macroReason ? `\n\n${macroReason}` : ''),
+          category: COMMAND_CATEGORY[macro.group],
+          readOnly: !canSendMacro,
+          run: () => runMacro(variation.commands),
+        }))
+    )
 
     const fromTasks: Entry[] = orderedTasks
       .filter((t) => matches(t.title, t.summary))
@@ -526,11 +570,12 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
         editTarget: { name: s.name, lang: 'ruby' as ScriptLang },
       }))
 
-    return [...fromTasks, ...fromNode, ...fromRuby]
-  }, [orderedTasks, nodeTasks, rubyScripts, filter, startPython, startNode, startScript, addLog])
+    return [...fromCommands, ...fromTasks, ...fromNode, ...fromRuby]
+  }, [orderedTasks, nodeTasks, rubyScripts, filter, startPython, startNode, startScript, addLog, runMacro, canSendMacro, macroReason])
 
   const groups = useMemo(() => groupTasksByCategory(entries), [entries])
-  const totalCount = tasks.length + nodeTasks.length + rubyScripts.length
+  const commandCount = MACROS.reduce((count, macro) => count + macro.variations.length, 0)
+  const totalCount = commandCount + tasks.length + nodeTasks.length + rubyScripts.length
 
   const openNew = useCallback((lang: ScriptLang) => {
     setEditing({ name: '', lang })
@@ -552,22 +597,35 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
   }
 
   return (
-    <div className="flex min-h-0 flex-col gap-1.5">
-      {/* One row: what is running and the control for it, plus the two
-       * folders a player might want to reveal - icons, tooltip-labelled,
-       * same as every tile below rather than a second row of text buttons.
-       * No heading here - the surrounding panel box already says "Tasks &
-       * scripts"; repeating it inline was the exact kind of redundancy this
-       * rewrite exists to remove. */}
-      <div className="flex items-center gap-1">
+    <div className="flex h-full min-h-0 flex-col gap-1.5">
+      {/* One hierarchy, one line: title, live state, global search/count, and
+       * catalog controls are peers in the Functions & Scripts toolbar. */}
+      <div className="flex h-10 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-2">
+        {title && (
+          <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-ink-muted">
+            <Workflow className="h-4 w-4" aria-hidden /> {title}
+          </span>
+        )}
         <span
           className={cn(
-            'min-w-0 flex-1 truncate text-xs',
+            'min-w-0 max-w-36 truncate text-xs',
             running ? 'text-accent' : 'text-ink-faint'
           )}
           title={note || undefined}
         >
           {running ? `Running ${running.replace(/^ts\.|^ruby\./, '')}` : note || ''}
+        </span>
+
+        <Search className="ml-auto h-3 w-3 shrink-0 text-ink-faint" />
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Filter tasks and scripts"
+          spellCheck={false}
+          className="h-7 min-w-0 flex-1 rounded border border-border bg-surface-raised px-2 text-xs text-ink placeholder:text-ink-faint"
+        />
+        <span className="shrink-0 text-xs tabular-nums text-ink-faint">
+          {filter ? `${entries.length}/${totalCount}` : totalCount}
         </span>
 
         {dirs?.pythonDir && (
@@ -601,25 +659,6 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
             <RefreshCw className="h-3 w-3" />
           </button>
         )}
-      </div>
-
-      {/* A filter across everything - tasks and Ruby scripts alike - because
-       * Lich's folder alone can hold the whole dr-scripts suite. The count
-       * says how many of how many, so a filter that matches nothing reads as
-       * "0 of 40" rather than as an empty folder - those are different
-       * problems and look identical without the denominator. */}
-      <div className="flex items-center gap-1">
-        <Search className="h-3 w-3 shrink-0 text-ink-faint" />
-        <input
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filter tasks and scripts"
-          spellCheck={false}
-          className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-0.5 text-xs text-ink placeholder:text-ink-faint"
-        />
-        <span className="shrink-0 text-xs text-ink-faint">
-          {filter ? `${entries.length} of ${totalCount}` : totalCount}
-        </span>
       </div>
 
       {/* Why the grid is empty, when it is. Never a bare "nothing here": the
@@ -664,6 +703,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
               </p>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1">
                 {group.items.map((entry) => {
+                  const isCommand = entry.id.startsWith('command.')
                   const overrideKey = iconOverrideFor(entry.id)
                   const iconKey = overrideKey ?? entry.baseIcon
                   const Icon = SCRIPT_ICON_COMPONENT[iconKey]
@@ -675,10 +715,12 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                   // the synthetic `ruby.${name}` id this panel groups them
                   // under - see quickSwitch.ts's own header on why a pin is a
                   // tagged union rather than a bare id.
-                  const quickSwitchPin: QuickSwitchPin = entry.id.startsWith('ruby.')
+                  const quickSwitchPin: QuickSwitchPin | null = isCommand
+                    ? null
+                    : entry.id.startsWith('ruby.')
                     ? { kind: 'script', name: entry.id.slice('ruby.'.length) }
                     : { kind: 'task', id: entry.id }
-                  const pinned = quickSwitchPins.some((p) =>
+                  const pinned = quickSwitchPin !== null && quickSwitchPins.some((p) =>
                     p.kind === 'script'
                       ? quickSwitchPin.kind === 'script' && p.name === quickSwitchPin.name
                       : quickSwitchPin.kind === 'task' && p.id === quickSwitchPin.id
@@ -698,7 +740,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                       // button) so the reorder gesture and the pointer-based
                       // grid-scroll gesture above don't fight over the same
                       // element's events.
-                      draggable
+                      draggable={!isCommand}
                       onDragStart={(e) => {
                         e.dataTransfer.effectAllowed = 'move'
                         e.dataTransfer.setData('text/plain', entry.id)
@@ -748,25 +790,27 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
                       {active && (
                         <Play className="pointer-events-none absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-surface text-accent" />
                       )}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleQuickSwitchPin(quickSwitchPin)
-                        }}
-                        title={
-                          pinned
-                            ? 'Unpin from the Quick Switch bar'
-                            : 'Pin to the Quick Switch bar — one click or a number key from anywhere in the app'
-                        }
-                        className={cn(
-                          'absolute -left-1 -top-1 rounded-full bg-surface p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
-                          pinned && 'opacity-100',
-                          pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
-                        )}
-                      >
-                        <Star className="h-2.5 w-2.5" fill={pinned ? 'currentColor' : 'none'} />
-                      </button>
+                      {quickSwitchPin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleQuickSwitchPin(quickSwitchPin)
+                          }}
+                          title={
+                            pinned
+                              ? 'Unpin from the Quick Switch bar'
+                              : 'Pin to the Quick Switch bar — one click or a number key from anywhere in the app'
+                          }
+                          className={cn(
+                            'absolute -left-1 -top-1 rounded-full bg-surface p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
+                            pinned && 'opacity-100',
+                            pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
+                          )}
+                        >
+                          <Star className="h-2.5 w-2.5" fill={pinned ? 'currentColor' : 'none'} />
+                        </button>
+                      )}
                       {entry.editTarget && !dense && (
                         <button
                           type="button"

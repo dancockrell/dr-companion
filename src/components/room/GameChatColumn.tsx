@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageSquareText, Workflow } from 'lucide-react'
+import { MessageSquareText } from 'lucide-react'
 import { StreamTabs } from '../game/StreamTabs'
 import { GameCommandBar } from '../game/GameCommandBar'
 import { PanelBoundary } from '../shared/PanelBoundary'
@@ -29,10 +29,7 @@ export function GameChatColumn() {
       </section>
 
       <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded border border-border bg-surface-raised" aria-label="Functions and scripts workspace">
-        <div className="flex h-10 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-3 text-xs font-semibold text-accent">
-          <Workflow className="h-4 w-4" aria-hidden /> Functions &amp; scripts
-        </div>
-        <div className="min-h-0 flex-1 overflow-hidden"><TaskFlowPanel /></div>
+        <div className="min-h-0 flex-1 overflow-hidden"><TaskFlowPanel title="Functions & scripts" /></div>
       </section>
     </div>
   )
