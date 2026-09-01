@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -80,5 +81,15 @@ const wilderness = analyzeScene({
 const context = semanticPromptContext(wilderness)
 check(!/stone and timber architecture|torchlight|candlelight/.test(context), 'semantic prompt context does not inject settlement architecture or artificial light into wilderness')
 check(wilderness.traits.civilization !== 'urban', 'wilderness is not promoted to an urban scene without evidence')
+
+// The source generator is the authority for publishing. Generate the catalog here
+// and verify global style rules cannot leak settlement architecture or artificial
+// lighting into wilderness. Scene-specific prompts are still free to request them.
+execFileSync(process.execPath, ['tools/art-archetypes.mjs'], { stdio: 'ignore' })
+const archetypes = JSON.parse(readFileSync('data/art/archetype-prompts.json', 'utf8'))
+const forestPrompt = archetypes['archetype-deep-forest-0']?.prompt ?? ''
+const templePrompt = archetypes['archetype-temple-0']?.prompt ?? ''
+check(!/stone and timber architecture|torchlight|candlelight/.test(forestPrompt), 'generated wilderness archetype has no settlement architecture or forced artificial light')
+check(/candlelight/.test(templePrompt), 'scene-specific temple prompt can still request candlelight explicitly')
 
 process.exit(failures ? 1 : 0)
