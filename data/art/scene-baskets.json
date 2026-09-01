@@ -83,6 +83,57 @@
     "riverside": ["/room-scenes/master-riverside.webp", "/rooms/127-140.webp", "/room-scenes/archetype-riverside-3.webp"],
     "grassland": ["/room-scenes/master-open-grassland.webp"]
   },
+  "regionalIdentity": {
+    "Crossing": {
+      "subject": "busy inland trade town",
+      "terrain": "lowland settlement",
+      "builtForm": "timber and stone buildings, active market streets",
+      "atmosphere": "lived-in, commercial, busy",
+      "generationHints": ["mixed timber and stone construction", "market-town density", "practical traveled streets"]
+    },
+    "Ratha": {
+      "subject": "fortified urban center",
+      "terrain": "dense settlement",
+      "builtForm": "dark stone, defensive and disciplined architecture",
+      "atmosphere": "formal, martial, enclosed",
+      "generationHints": ["dark stone construction", "fortified civic character", "disciplined streetscape"]
+    },
+    "Shard": {
+      "subject": "mountain trade city",
+      "terrain": "rocky terraces and rising ground",
+      "builtForm": "stone buildings fitted to steep terrain",
+      "atmosphere": "vertical, mountainous, established",
+      "generationHints": ["terraced streets", "visible rock and elevation", "mountain-city construction"]
+    },
+    "Riverhaven": {
+      "subject": "riverside town",
+      "terrain": "settlement organized around waterways",
+      "builtForm": "docks, bridges and river-facing streets",
+      "atmosphere": "water-oriented, mercantile, open",
+      "generationHints": ["visible river relationship", "docks or bridge language where supported", "stone-and-timber riverside town"]
+    },
+    "Muspar'i": {
+      "subject": "desert-adjacent city",
+      "terrain": "dry settlement edge",
+      "builtForm": "sandstone and domed forms",
+      "atmosphere": "sunlit, arid, dense",
+      "generationHints": ["sandstone palette", "arid-city materials", "domed forms only where the room supports architecture"]
+    },
+    "Hibarnhvidar": {
+      "subject": "mountain stone settlement",
+      "terrain": "rocky highland setting",
+      "builtForm": "heavy carved stone halls and streets",
+      "atmosphere": "massive, durable, cool",
+      "generationHints": ["carved stone construction", "mountain-settlement massing", "substantial masonry"]
+    },
+    "Leth Deriel": {
+      "subject": "forest city",
+      "terrain": "settlement integrated with mature trees",
+      "builtForm": "refined architecture among living woodland",
+      "atmosphere": "green, elegant, integrated with nature",
+      "generationHints": ["mature trees remain visually dominant", "refined settlement details", "architecture integrated with forest rather than replacing it"]
+    }
+  },
   "regionalCity": {
     "Crossing": ["/room-scenes/town-crossing-city-street-0.webp", "/room-scenes/town-crossing-city-street-1.webp", "/room-scenes/town-crossing-city-street-2.webp"],
     "Ratha": ["/room-scenes/town-ratha-city-street-0.webp", "/room-scenes/town-ratha-city-street-1.webp", "/room-scenes/town-ratha-city-street-2.webp"],
