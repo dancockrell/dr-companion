@@ -39,6 +39,11 @@ const baskets = JSON.parse(readFileSync('data/art/scene-baskets.json', 'utf8'))
 for (const family of [...Object.values(baskets.generic), ...Object.values(baskets.regionalCity)]) {
   for (const art of family) check(existsSync(`public${art}`), `basket asset exists: ${art}`)
 }
+for (const city of Object.keys(baskets.regionalCity)) {
+  const identity = baskets.regionalIdentity?.[city]
+  check(Boolean(identity?.subject && identity?.terrain && identity?.builtForm && identity?.atmosphere), `${city} has a reviewed regional visual identity`)
+  check(Array.isArray(identity?.generationHints) && identity.generationHints.length >= 2, `${city} regional identity has concrete generation hints`)
+}
 const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 'utf8'))
 const audit = JSON.parse(readFileSync('data/art/out/scene-basket-audit.json', 'utf8'))
 check(coverage.roomCount >= 1700, `generic patterns cover ${coverage.roomCount} rooms without swallowing protected landmarks`)
