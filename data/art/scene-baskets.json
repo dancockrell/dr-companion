@@ -76,9 +76,9 @@
     "deep-forest": ["/room-scenes/master-deep-forest.webp"],
     "mine-tunnel": ["/room-scenes/master-mine-tunnel.webp"],
     "sewer": ["/room-scenes/curated-crossing-sewer.webp", "/room-scenes/archetype-sewer-0.webp", "/room-scenes/archetype-sewer-5.webp"],
-    "desert": ["/room-scenes/master-desert-trail.webp", "/room-scenes/archetype-desert-1.webp", "/room-scenes/archetype-desert-6.webp"],
+    "desert": ["/room-scenes/master-desert-trail.webp"],
     "swamp": ["/room-scenes/master-wild-swamp.webp"],
-    "mountain-pass": ["/room-scenes/master-mountain-pass.webp", "/room-scenes/curated-rain-grooved-outcrop.webp", "/room-scenes/archetype-cliff-overlook-6.webp"],
+    "mountain-pass": ["/room-scenes/master-mountain-pass.webp"],
     "garden": ["/room-scenes/master-garden.webp"],
     "riverside": ["/room-scenes/master-riverside.webp", "/rooms/127-140.webp"],
     "grassland": ["/room-scenes/master-open-grassland.webp"]

@@ -7,12 +7,13 @@
 const HOLD_ROOMS = 3
 
 const GROK_SCENES = {
-  forest: ['/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg', '/grok-art/room-scenes/forest-clearing-06aeb546.jpg'],
-  water: ['/grok-art/room-scenes/marsh-dusk-025a5488.jpg', '/grok-art/room-scenes/lantern-dock-02798b8e.jpg', '/grok-art/room-scenes/reed-marsh-0fb4267f.jpg'],
+  forest: ['/room-scenes/master-deep-forest.webp', '/room-scenes/master-forest-path.webp'],
+  riverside: ['/room-scenes/master-riverside.webp'],
+  swamp: ['/room-scenes/master-wild-swamp.webp', '/grok-art/room-scenes/marsh-dusk-025a5488.jpg', '/grok-art/room-scenes/reed-marsh-0fb4267f.jpg'],
   ocean: ['/grok-art/room-scenes/storm-ocean-10d4c18a.jpg', '/grok-art/room-scenes/lighthouse-coast-0ee0be16.jpg'],
-  cave: ['/grok-art/room-scenes/sea-cave-038edbd8.jpg'],
+  cave: ['/room-scenes/master-natural-cavern.webp'],
   mine: ['/grok-art/room-scenes/crystal-mine-3638b938.jpg'],
-  mountain: ['/grok-art/room-scenes/cliff-monastery-0183963f.jpg', '/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg'],
+  mountain: ['/room-scenes/master-mountain-pass.webp'],
   snow: ['/grok-art/room-scenes/snowfield-0d5df7bf.jpg', '/grok-art/room-scenes/alpine-lake-108392d4.jpg'],
   desert: ['/grok-art/room-scenes/desert-canyon-0322415e.jpg'],
   temple: ['/grok-art/room-scenes/shrine-interior-0f2de22b.jpg'],
@@ -32,7 +33,7 @@ const GROK_SCENES = {
   courtyard: ['/grok-art/room-scenes/lantern-courtyard-2340613e.jpg'],
   ruins: ['/grok-art/room-scenes/woodland-ruins-2c3975b0.jpg'],
   town: ['/grok-art/room-scenes/night-market-04c61394.jpg', '/grok-art/room-scenes/town-square-2650911f.jpg'],
-  treeTown: ['/grok-art/room-scenes/tree-city-04b6c4bd.jpg'],
+  treeTown: ['/room-scenes/town-leth-deriel-master.webp'],
 } as const
 
 type SceneFamily = keyof typeof GROK_SCENES
@@ -59,7 +60,9 @@ function familyFor(description: string): SceneFamily {
   if (/\b(mountain|cliff|ridge|summit|peak|highland|ascent|outcrop)\b/i.test(description)) return 'mountain'
   if (/\b(ocean|open sea|stormy sea|lighthouse|sea cliff)\b/i.test(description)) return 'ocean'
   if (/\b(harbor|harbour|wharf|quay|shipyard|boathouse|ferry landing)\b/i.test(description)) return 'harbor'
-  if (/\b(water|river|sea|lake|shore|bay|dock|pier|marsh|swamp|bog|fen|wave|tide|reed)\b/i.test(description)) return 'water'
+  if (/\b(marsh|swamp|bog|fen|mire|reed)\b/i.test(description)) return 'swamp'
+  if (/\b(dock|pier|jetty|landing)\b/i.test(description)) return 'harbor'
+  if (/\b(water|river|lake|shore|bay|channel|bank)\b/i.test(description)) return 'riverside'
   if (/\b(orchard|apple grove|fruit tree|farmstead|farm yard)\b/i.test(description)) return 'orchard'
   if (/\b(grassland|prairie|plain|meadow|pasture|open field|savanna)\b/i.test(description)) return 'grassland'
   if (/\b(forest|tree|wood|grove|thicket|leaf|leaves|bough|bosk|tangle)\b/i.test(description)) return 'forest'

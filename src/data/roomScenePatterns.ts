@@ -27,7 +27,7 @@ const RULES: readonly PatternRule[] = [
   {"zone":"7","ranges":[[299,305],[309,309],[311,311]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 7::Fields
   {"zone":"7","ranges":[[329,332],[341,342],[355,356],[371,372],[400,400]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 7::Open Grasslands
   {"zone":"7","ranges":[[414,431],[433,433]],"arts":["/room-scenes/master-mine-tunnel.webp"]}, // 7::Tunnels
-  {"zone":"7","ranges":[[463,465],[810,813]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 7::Rocky Pass
+  {"zone":"7","ranges":[[463,465],[810,813]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 7::Rocky Pass
   {"zone":"7c","ranges":[[6,10]],"arts":["/room-scenes/master-garden.webp"]}, // 7c::Chancellor's Gardens
   {"zone":"10","ranges":[[48,59]],"arts":["/room-scenes/master-mine-tunnel.webp"]}, // 10::Stony Labyrinth
   {"zone":"11","ranges":[[149,157]],"arts":["/room-scenes/master-deep-forest.webp"]}, // 11::Deep
@@ -36,7 +36,7 @@ const RULES: readonly PatternRule[] = [
   {"zone":"12a","ranges":[[46,51]],"arts":["/room-scenes/master-mine-tunnel.webp"]}, // 12a::Sanctum Sanctorum
   {"zone":"13","ranges":[[91,114]],"arts":["/room-scenes/master-mine-tunnel.webp"]}, // 13::Ossuary Caverns
   {"zone":"13","ranges":[[189,195]],"arts":["/room-scenes/master-garden.webp"]}, // 13::Courtyard
-  {"zone":"14b","ranges":[[170,174]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 14b::Uneven Slope
+  {"zone":"14b","ranges":[[170,174]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 14b::Uneven Slope
   {"zone":"14c","ranges":[[1,1],[3,19]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp"]}, // 14c::Faldesu River
   {"zone":"30","ranges":[[125,130],[212,212],[319,319]],"arts":["/room-scenes/master-garden.webp"]}, // 30::Garden
   {"zone":"30","ranges":[[284,287],[289,295]],"arts":["/room-scenes/town-riverhaven-master.webp"]}, // 30::Blossom Circle
@@ -54,7 +54,7 @@ const RULES: readonly PatternRule[] = [
   {"zone":"40","ranges":[[322,343]],"arts":["/room-scenes/master-wild-swamp.webp"]}, // 40::In the Water
   {"zone":"40a","ranges":[[39,45]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 40a::Grasslands
   {"zone":"40a","ranges":[[104,105],[146,155]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 40a::Clover Fields
-  {"zone":"41","ranges":[[54,59]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 41::Ascent
+  {"zone":"41","ranges":[[54,59]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 41::Ascent
   {"zone":"42","ranges":[[116,116],[137,168],[338,346]],"arts":["/room-scenes/master-mine-tunnel.webp"]}, // 42::The Breech Tunnels
   {"zone":"42","ranges":[[299,302]],"arts":["/room-scenes/master-garden.webp"]}, // 42::Sister Nongwen's Garden
   {"zone":"47","ranges":[[7,10]],"arts":["/room-scenes/town-muspar-i-city-street-0.webp","/room-scenes/town-muspar-i-city-street-1.webp","/room-scenes/town-muspar-i-city-street-2.webp"]}, // 47::Street of Stoneworkers
@@ -67,9 +67,9 @@ const RULES: readonly PatternRule[] = [
   {"zone":"47","ranges":[[47,47],[67,68],[71,71]],"arts":["/room-scenes/town-muspar-i-city-street-0.webp","/room-scenes/town-muspar-i-city-street-1.webp","/room-scenes/town-muspar-i-city-street-2.webp"]}, // 47::Street of Priests
   {"zone":"47","ranges":[[48,48],[51,54]],"arts":["/room-scenes/town-muspar-i-city-street-0.webp","/room-scenes/town-muspar-i-city-street-1.webp","/room-scenes/town-muspar-i-city-street-2.webp"]}, // 47::Street of Metalsmiths
   {"zone":"47","ranges":[[315,321]],"arts":["/room-scenes/town-muspar-i-city-street-0.webp","/room-scenes/town-muspar-i-city-street-1.webp","/room-scenes/town-muspar-i-city-street-2.webp"]}, // 47::Street of Proprietors
-  {"zone":"47","ranges":[[379,390]],"arts":["/room-scenes/master-desert-trail.webp","/room-scenes/archetype-desert-1.webp","/room-scenes/archetype-desert-6.webp"]}, // 47::Walk of Bones
+  {"zone":"47","ranges":[[379,390]],"arts":["/room-scenes/master-desert-trail.webp"]}, // 47::Walk of Bones
   {"zone":"47","ranges":[[429,429],[433,437]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp"]}, // 47::Heke'mhhg River
-  {"zone":"47","ranges":[[441,455]],"arts":["/room-scenes/master-desert-trail.webp","/room-scenes/archetype-desert-1.webp","/room-scenes/archetype-desert-6.webp"]}, // 47::Migen'hhs Pat'shhry
+  {"zone":"47","ranges":[[441,455]],"arts":["/room-scenes/master-desert-trail.webp"]}, // 47::Migen'hhs Pat'shhry
   {"zone":"50","ranges":[[4,6],[33,33]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp"]}, // 50::North Bank
   {"zone":"50","ranges":[[7,7],[9,11],[16,21],[32,32]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp"]}, // 50::Midstream
   {"zone":"50","ranges":[[12,15]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp"]}, // 50::Near the Boulder
@@ -82,14 +82,14 @@ const RULES: readonly PatternRule[] = [
   {"zone":"61","ranges":[[15,15],[21,21],[29,31],[33,40],[80,82]],"arts":["/room-scenes/town-leth-deriel-master.webp"]}, // 61::Cambium Circle
   {"zone":"61","ranges":[[17,17],[19,19],[25,27],[44,44],[72,72],[79,79]],"arts":["/room-scenes/town-leth-deriel-master.webp"]}, // 61::Oakenheart Circle
   {"zone":"61","ranges":[[262,265]],"arts":["/room-scenes/master-deep-forest.webp"]}, // 61::Old Growth
-  {"zone":"62","ranges":[[160,163]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 62::Silent Ascent
+  {"zone":"62","ranges":[[160,163]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 62::Silent Ascent
   {"zone":"63","ranges":[[42,60]],"arts":["/room-scenes/master-mine-tunnel.webp"]}, // 63::Catacombs
   {"zone":"63","ranges":[[64,65],[67,70]],"arts":["/room-scenes/master-deep-forest.webp"]}, // 63::Alongside the Iron Fence
   {"zone":"66","ranges":[[1,2],[4,9],[19,29]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 66::Prairie
   {"zone":"66","ranges":[[10,11],[30,30],[34,34],[36,36]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 66::Old Homestead
   {"zone":"66","ranges":[[14,18],[462,462]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 66::Wylder Spring
   {"zone":"66","ranges":[[388,401],[448,461]],"arts":["/room-scenes/master-deep-forest.webp"]}, // 66::Nightshade Tangle
-  {"zone":"66","ranges":[[555,559]],"arts":["/room-scenes/master-desert-trail.webp","/room-scenes/archetype-desert-1.webp","/room-scenes/archetype-desert-6.webp"]}, // 66::Sparkling Sands
+  {"zone":"66","ranges":[[555,559]],"arts":["/room-scenes/master-desert-trail.webp"]}, // 66::Sparkling Sands
   {"zone":"66","ranges":[[619,621],[635,635]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 66::Roadway
   {"zone":"66","ranges":[[622,633]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 66::Burned Fields
   {"zone":"66","ranges":[[636,636],[638,642]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 66::Sunbeam Circle
@@ -110,13 +110,13 @@ const RULES: readonly PatternRule[] = [
   {"zone":"68","ranges":[[138,176],[209,210]],"arts":["/room-scenes/master-forest-path.webp"]}, // 68::Barrows
   {"zone":"68a","ranges":[[31,34]],"arts":["/room-scenes/master-forest-path.webp"]}, // 68a::Fissure
   {"zone":"69","ranges":[[59,60],[80,93],[96,99],[105,107],[114,115],[129,132]],"arts":["/room-scenes/master-open-grassland.webp"]}, // 69::Grasslands
-  {"zone":"69","ranges":[[455,456],[460,460],[467,467]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 69::Narrow Plateau
-  {"zone":"69","ranges":[[465,466],[468,470]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 69::Waterfall Edge
-  {"zone":"69","ranges":[[474,478]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 69::Above the Treeline
-  {"zone":"69","ranges":[[480,486],[511,512]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 69::Breeding Grounds
-  {"zone":"69","ranges":[[491,495]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 69::Highlands
-  {"zone":"69","ranges":[[500,501],[506,506],[509,510]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 69::Snowcap
-  {"zone":"69","ranges":[[575,579]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 69::Ridgeline Valley
+  {"zone":"69","ranges":[[455,456],[460,460],[467,467]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 69::Narrow Plateau
+  {"zone":"69","ranges":[[465,466],[468,470]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 69::Waterfall Edge
+  {"zone":"69","ranges":[[474,478]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 69::Above the Treeline
+  {"zone":"69","ranges":[[480,486],[511,512]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 69::Breeding Grounds
+  {"zone":"69","ranges":[[491,495]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 69::Highlands
+  {"zone":"69","ranges":[[500,501],[506,506],[509,510]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 69::Snowcap
+  {"zone":"69","ranges":[[575,579]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 69::Ridgeline Valley
   {"zone":"90","ranges":[[64,69]],"arts":["/room-scenes/town-ratha-master.webp"]}, // 90::Upper Mission Street
   {"zone":"90","ranges":[[70,74]],"arts":["/room-scenes/town-ratha-master.webp"]}, // 90::Lower Mission Street
   {"zone":"90","ranges":[[127,127],[130,134]],"arts":["/room-scenes/town-ratha-master.webp"]}, // 90::East Eslan Street
@@ -147,12 +147,12 @@ const RULES: readonly PatternRule[] = [
   {"zone":"99","ranges":[[374,388]],"arts":["/room-scenes/master-mine-tunnel.webp"]}, // 99::Necropolis Tunnels
   {"zone":"107","ranges":[[1,8]],"arts":["/room-scenes/master-garden.webp"]}, // 107::Garden
   {"zone":"107","ranges":[[196,198],[209,209],[230,230]],"arts":["/room-scenes/master-garden.webp"]}, // 107::Courtyard
-  {"zone":"108","ranges":[[34,41],[43,45],[339,351]],"arts":["/room-scenes/master-desert-trail.webp","/room-scenes/archetype-desert-1.webp","/room-scenes/archetype-desert-6.webp"]}, // 108::Dunes
+  {"zone":"108","ranges":[[34,41],[43,45],[339,351]],"arts":["/room-scenes/master-desert-trail.webp"]}, // 108::Dunes
   {"zone":"108","ranges":[[230,233]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp"]}, // 108::The River Bank
   {"zone":"108","ranges":[[234,251]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp"]}, // 108::The Altanen River
   {"zone":"108","ranges":[[252,263]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp"]}, // 108::The Island
-  {"zone":"108","ranges":[[384,402]],"arts":["/room-scenes/master-desert-trail.webp","/room-scenes/archetype-desert-1.webp","/room-scenes/archetype-desert-6.webp"]}, // 108::High Dunes
-  {"zone":"108","ranges":[[437,441]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 108::Eastern Ascent
+  {"zone":"108","ranges":[[384,402]],"arts":["/room-scenes/master-desert-trail.webp"]}, // 108::High Dunes
+  {"zone":"108","ranges":[[437,441]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 108::Eastern Ascent
   {"zone":"112","ranges":[[172,183]],"arts":["/room-scenes/master-deep-forest.webp"]}, // 112::Among the Trees
   {"zone":"116","ranges":[[57,59],[62,62],[67,67],[69,69],[74,74]],"arts":["/room-scenes/town-hibarnhvidar-master.webp"]}, // 116::Granite Street
   {"zone":"116","ranges":[[70,73]],"arts":["/room-scenes/town-hibarnhvidar-master.webp"]}, // 116::Pebble Lane
@@ -165,9 +165,9 @@ const RULES: readonly PatternRule[] = [
   {"zone":"127","ranges":[[266,290]],"arts":["/room-scenes/master-deep-forest.webp"]}, // 127::Blighted Tangle
   {"zone":"127","ranges":[[293,326],[352,352]],"arts":["/room-scenes/master-mine-tunnel.webp"]}, // 127::Dark Burrows
   {"zone":"127","ranges":[[343,350]],"arts":["/room-scenes/master-deep-forest.webp"]}, // 127::Withered Foothills
-  {"zone":"127","ranges":[[372,372],[374,375],[396,406],[408,418]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 127::Summit
+  {"zone":"127","ranges":[[372,372],[374,375],[396,406],[408,418]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 127::Summit
   {"zone":"127","ranges":[[421,429],[431,432],[437,439],[441,449]],"arts":["/room-scenes/master-mine-tunnel.webp"]}, // 127::Frozen Tunnels
-  {"zone":"150","ranges":[[269,272]],"arts":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"]}, // 150::Verdant Outcrop
+  {"zone":"150","ranges":[[269,272]],"arts":["/room-scenes/master-mountain-pass.webp"]}, // 150::Verdant Outcrop
 ]
 
 export function roomScenePattern(zone: string, room: number): string | null {

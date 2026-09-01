@@ -26,7 +26,10 @@ const { roomArtUrl } = await import(pathToFileURL(join(dir, 'roomText.mjs')).hre
 const checks = [
   ['exact curated override wins', roomArtUrl('95', 175, 'Pokekehekepi korgi', 'dark shifting sands'), '/room-scenes/curated-pokekehekepi-korgi.webp'],
   ['location pattern wins over broad fallback', roomArtUrl('1', 29, 'Clanthew Boulevard', 'a city street'), '/room-scenes/town-crossing-master.webp'],
-  ['semantic fallback remains available', roomArtUrl('unmapped', 999, 'Unknown Forest', 'old trees'), '/grok-art/room-scenes/forest-clearing-06aeb546.jpg'],
+  ['semantic fallback remains available', roomArtUrl('unmapped', 999, 'Unknown Forest', 'old trees'), '/room-scenes/master-forest-path.webp'],
+  ['natural cave fallback is reviewed', roomArtUrl('unmapped', 1000, 'Dark Cavern', 'a rough underground cave'), '/room-scenes/master-natural-cavern.webp'],
+  ['mountain fallback is reviewed', roomArtUrl('unmapped', 1001, 'Mountain Pass', 'a rocky ascent'), '/room-scenes/master-mountain-pass.webp'],
+  ['tree-city fallback is reviewed', roomArtUrl('unmapped', 1002, 'Leth Deriel', 'treetop walks beneath the canopy'), '/room-scenes/town-leth-deriel-master.webp'],
 ]
 let failures = 0
 for (const [label, got, want] of checks) {
