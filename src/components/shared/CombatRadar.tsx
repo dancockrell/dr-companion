@@ -1123,14 +1123,6 @@ export function CombatRadar({
   const orderedStrip = reorderByPin(stripEntries, (e) => e.key, pinned)
   const enemyLane = orderedStrip.filter((entry) => entry.card.deck === 'hostile')
   const friendlyLane = orderedStrip.filter((entry) => entry.card.deck !== 'hostile')
-  const rangeCounts = positioned.reduce(
-    (counts, entry) => {
-      counts[entry.combatant.range!]++
-      return counts
-    },
-    { melee: 0, pole: 0, missile: 0 }
-  )
-
   const attack = () => runMacro(['attack'])
   const attackTitle = (label: string) =>
     attackReason ?? `${label} — attack (whatever is in front of you right now)`
@@ -1202,24 +1194,13 @@ export function CombatRadar({
             }}
           />
 
-          <div className="pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-2 rounded-full border border-border/50 bg-surface/75 px-2 py-1 text-xs text-ink backdrop-blur-sm">
+          <div className="pointer-events-none absolute left-2 top-9 z-10 flex items-center gap-2 rounded-full border border-border/50 bg-surface/75 px-2 py-1 text-xs text-ink backdrop-blur-sm">
             <Activity className="h-4 w-4 text-danger" aria-hidden />
             <span className="font-semibold">Combat radar</span>
             <span className="text-ink-muted">
               {positioned.length} engaged · {stripEntries.length} nearby
             </span>
           </div>
-          <div className="pointer-events-none absolute left-2 top-11 z-10 flex flex-wrap items-center gap-1 text-xs">
-            {(['melee', 'pole', 'missile'] as const).map((range) => (
-              <span
-                key={range}
-                className={`rounded-full border bg-surface/75 px-1.5 py-0.5 font-medium uppercase tracking-wide text-ink-muted backdrop-blur-sm ${range === 'melee' ? 'border-danger/55' : range === 'pole' ? 'border-warn/45' : 'border-info/40'}`}
-              >
-                {RANGE_WORD[range]} · {rangeCounts[range]}
-              </span>
-            ))}
-          </div>
-
           {/* The compass — the whole board, edge to edge. The roster floats
               over its right side as an overlay (below) rather than sharing
               the board's width with it, so the play area itself reaches
