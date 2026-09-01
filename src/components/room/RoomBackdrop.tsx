@@ -160,15 +160,14 @@ export function RoomBackdrop({
         onLoad={(e) => {
           // If the browser decoded it, it is usable room art. A previous
           // 960x540 gate silently rejected the bundled scene for this exact
-          // room and left the radar gray; CSS scaling is preferable to
-          // throwing away a valid visual anchor. Broken images still take
-          // the deterministic fingerprint path below through onError.
-          e.currentTarget.style.display = 'block'
+          // room and left the radar gray. Fade every successfully decoded
+          // scene over the fingerprint; broken images remain transparent.
+          e.currentTarget.style.opacity = '1'
         }}
         onError={(e) => {
-          e.currentTarget.style.display = 'none'
+          e.currentTarget.style.opacity = '0'
         }}
-        className="absolute inset-0 hidden h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300"
       />
     </>
   )
