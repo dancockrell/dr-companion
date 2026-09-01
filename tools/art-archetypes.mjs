@@ -15,12 +15,10 @@ import { writeFileSync, mkdirSync } from 'node:fs'
 import { NEGATIVE } from './art-safety.mjs'
 
 const STYLE =
-  'a scene from a medieval fantasy world, stone and timber architecture, ' +
-  'torchlight and candlelight, no electricity, no cars, no modern buildings, ' +
-  'no contemporary clothing, no office or retail interiors, painterly ' +
-  'digital illustration, muted naturalistic palette, soft directional ' +
-  'light, atmospheric depth, wide establishing shot, no photorealism, no ' +
-  'text, no watermark, no signature, consistent fantasy realism'
+  'a scene from a medieval fantasy world, painterly digital illustration, ' +
+  'muted naturalistic palette, atmospheric depth, wide establishing shot, ' +
+  'consistent fantasy realism, no photorealism, no text, no watermark, ' +
+  'no signature, no modern technology, vehicles, contemporary clothing, or signage'
 
 /**
  * Scene archetypes. `tags` are the keywords tools/art-match-rooms.mjs scores
