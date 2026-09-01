@@ -1,5 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { SetupWizard } from './components/first-run/SetupWizard'
+import { lazy, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { WaitingForCharacter } from './components/shared/WaitingForCharacter'
 import { ExperienceStrip } from './components/shared/ExperienceStrip'
 import { GameSignals } from './components/shared/GameSignals'
@@ -29,6 +28,9 @@ import { MACROS } from './data/macros'
 import { canSendMacro } from './lib/canSendMacro'
 import { writeText } from './lib/storage'
 import { StorageWarning } from './components/shared/StorageWarning'
+import { LazySurface } from './components/shared/LazySurface'
+
+const SetupWizard = lazy(() => import('./components/first-run/SetupWizard').then((module) => ({ default: module.SetupWizard })))
 
 /**
  * Which window this is.
@@ -357,7 +359,9 @@ export default function App() {
       <main ref={hostRef} className="flex min-h-0 flex-1 overflow-hidden">
         {!setupComplete ? (
           <div className="flex-1 overflow-y-auto">
-            <SetupWizard />
+            <LazySurface label="Setup">
+              <SetupWizard />
+            </LazySurface>
           </div>
         ) : !character ? (
           /* Nothing else here has anything real to show without a

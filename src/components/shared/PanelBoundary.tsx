@@ -17,7 +17,7 @@ import { Component, type ReactNode } from 'react'
  * broken.
  */
 export class PanelBoundary extends Component<
-  { label: string; children: ReactNode },
+  { label: string; children: ReactNode; onRetry?: () => void },
   { error: Error | null }
 > {
   state: { error: Error | null } = { error: null }
@@ -40,7 +40,10 @@ export class PanelBoundary extends Component<
           </span>
           <button
             type="button"
-            onClick={() => this.setState({ error: null })}
+            onClick={() => {
+              if (this.props.onRetry) this.props.onRetry()
+              else this.setState({ error: null })
+            }}
             className="self-start rounded border border-danger/40 px-2 py-0.5 text-danger hover:bg-danger/15"
           >
             Retry

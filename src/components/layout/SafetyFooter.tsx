@@ -36,13 +36,15 @@
  * made for living here rather than in a scrollable panel.
  */
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop'
-import { SoundControls } from '../game/SoundControls'
 import { MusicTransport } from '../game/MusicTransport'
 import { isLowHealth } from '../../lib/vitals'
 import { requestOpenSoundPanel } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
+
+const SoundControls = lazy(() => import('../game/SoundControls').then((module) => ({ default: module.SoundControls })))
 
 export function SafetyFooter() {
   const requestIntent = useAppStore((s) => s.requestIntent)
@@ -313,7 +315,9 @@ export function SafetyFooter() {
             scrollable panel is a control you lose the moment that panel
             scrolls off, and this bar is the one place that's always part of
             the window. */}
-        <SoundControls />
+        <Suspense fallback={<span className="text-xs text-ink-faint" role="status">Loading sound…</span>}>
+          <SoundControls />
+        </Suspense>
       </div>
     </footer>
   )
