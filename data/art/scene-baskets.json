@@ -1,146 +1,62 @@
 {
   "holdRooms": 3,
   "purpose": "Curated, location-aware scene families. Generic travel rooms share only approved art; landmarks keep their exact room art or a hand-curated override.",
-  "landmarkPlaces": [
-    "4a::Behind the Goal Line",
-    "13::Narrow Trace",
-    "47::Workroom",
-    "65::Beneath the Ice",
-    "92::Underwater",
-    "98::Underwater"
-  ],
+  "landmarkPlaces": ["4a::Behind the Goal Line", "13::Narrow Trace", "47::Workroom", "65::Beneath the Ice", "92::Underwater", "98::Underwater"],
   "basketCuration": {
-    "deep-forest": {
-      "exactSubject": "generic old-growth forest travel",
-      "canonicalTraits": ["dense mature trees", "narrow traversable floor", "cool filtered daylight"],
-      "habitat": "forested wilderness without a named landmark",
-      "currentImage": "/room-scenes/archetype-deep-forest-0.webp",
-      "approvedPrimary": "/room-scenes/master-deep-forest.webp",
-      "approvedVariants": ["/room-scenes/archetype-deep-forest-0.webp", "/room-scenes/archetype-deep-forest-6.webp"],
-      "rejects": ["remaining repetitive deep-forest archetype renders"],
-      "regenerationNeeded": false
-    },
-    "desert": {
-      "exactSubject": "generic arid overland travel",
-      "canonicalTraits": ["dry exposed route", "sparse scrub and stone", "long desert horizon"],
-      "habitat": "unnamed dunes, sands and desert roads",
-      "currentImage": "/room-scenes/archetype-desert-1.webp",
-      "approvedPrimary": "/room-scenes/master-desert-trail.webp",
-      "approvedVariants": ["/room-scenes/archetype-desert-1.webp", "/room-scenes/archetype-desert-6.webp"],
-      "rejects": ["cartoon-orange and near-duplicate desert renders"],
-      "regenerationNeeded": false
-    },
-    "swamp": {
-      "exactSubject": "generic wild marsh travel",
-      "canonicalTraits": ["shallow dark water", "reeds and wet trees", "no settlement architecture"],
-      "habitat": "unnamed swamps, fens and bogs",
-      "currentImage": "/room-scenes/archetype-swamp-0.webp",
-      "approvedPrimary": "/room-scenes/master-wild-swamp.webp",
-      "approvedVariants": [],
-      "rejects": ["swamp renders dominated by cottages or unrelated buildings"],
-      "regenerationNeeded": false
-    },
-    "mountain-pass": {
-      "exactSubject": "generic high mountain traversal",
-      "canonicalTraits": ["exposed rocky path", "steep elevation", "distant peaks"],
-      "habitat": "unnamed ridges, passes and ascents",
-      "currentImage": "/room-scenes/archetype-mountain-pass-0.webp",
-      "approvedPrimary": "/room-scenes/master-mountain-pass.webp",
-      "approvedVariants": ["/room-scenes/curated-rain-grooved-outcrop.webp", "/room-scenes/archetype-cliff-overlook-6.webp"],
-      "rejects": ["mountain-pass renders that depict town streets and buildings"],
-      "regenerationNeeded": false
-    },
-    "riverside": {
-      "exactSubject": "generic natural riverbank travel",
-      "canonicalTraits": ["visible flowing channel", "natural bank", "open route along water"],
-      "habitat": "unnamed riverbanks and shore routes",
-      "currentImage": "/room-scenes/archetype-riverside-3.webp",
-      "approvedPrimary": "/room-scenes/master-riverside.webp",
-      "approvedVariants": ["/rooms/127-140.webp", "/room-scenes/archetype-riverside-3.webp"],
-      "rejects": ["underwater and landmark-specific scenes"],
-      "regenerationNeeded": false
-    },
-    "grassland": {
-      "exactSubject": "generic open grassland travel",
-      "canonicalTraits": ["broad grass cover", "walkable track", "open horizon"],
-      "habitat": "unnamed fields, meadows and prairies",
-      "currentImage": "/room-scenes/archetype-grassland-0.webp",
-      "approvedPrimary": "/room-scenes/master-open-grassland.webp",
-      "approvedVariants": [],
-      "rejects": ["blank generation", "low-quality repetitive grassland renders"],
-      "regenerationNeeded": false
-    }
+    "deep-forest": {"exactSubject":"generic old-growth forest travel","canonicalTraits":["dense mature trees","narrow traversable floor","cool filtered daylight"],"habitat":"forested wilderness without a named landmark","currentImage":"/room-scenes/archetype-deep-forest-0.webp","approvedPrimary":"/room-scenes/master-deep-forest.webp","approvedVariants":["/room-scenes/archetype-deep-forest-0.webp","/room-scenes/archetype-deep-forest-6.webp"],"rejects":["remaining repetitive deep-forest archetype renders"],"regenerationNeeded":false},
+    "desert": {"exactSubject":"generic arid overland travel","canonicalTraits":["dry exposed route","sparse scrub and stone","long desert horizon"],"habitat":"unnamed dunes, sands and desert roads","currentImage":"/room-scenes/archetype-desert-1.webp","approvedPrimary":"/room-scenes/master-desert-trail.webp","approvedVariants":["/room-scenes/archetype-desert-1.webp","/room-scenes/archetype-desert-6.webp"],"rejects":["cartoon-orange and near-duplicate desert renders"],"regenerationNeeded":false},
+    "swamp": {"exactSubject":"generic wild marsh travel","canonicalTraits":["shallow dark water","reeds and wet trees","no settlement architecture"],"habitat":"unnamed swamps, fens and bogs","currentImage":"/room-scenes/archetype-swamp-0.webp","approvedPrimary":"/room-scenes/master-wild-swamp.webp","approvedVariants":[],"rejects":["swamp renders dominated by cottages or unrelated buildings"],"regenerationNeeded":false},
+    "mountain-pass": {"exactSubject":"generic high mountain traversal","canonicalTraits":["exposed rocky path","steep elevation","distant peaks"],"habitat":"unnamed ridges, passes and ascents","currentImage":"/room-scenes/archetype-mountain-pass-0.webp","approvedPrimary":"/room-scenes/master-mountain-pass.webp","approvedVariants":["/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"],"rejects":["mountain-pass renders that depict town streets and buildings"],"regenerationNeeded":false},
+    "riverside": {"exactSubject":"generic natural riverbank travel","canonicalTraits":["visible flowing channel","natural bank","open route along water"],"habitat":"unnamed riverbanks and shore routes","currentImage":"/room-scenes/archetype-riverside-3.webp","approvedPrimary":"/room-scenes/master-riverside.webp","approvedVariants":["/rooms/127-140.webp","/room-scenes/archetype-riverside-3.webp"],"rejects":["underwater and landmark-specific scenes"],"regenerationNeeded":false},
+    "grassland": {"exactSubject":"generic open grassland travel","canonicalTraits":["broad grass cover","walkable track","open horizon"],"habitat":"unnamed fields, meadows and prairies","currentImage":"/room-scenes/archetype-grassland-0.webp","approvedPrimary":"/room-scenes/master-open-grassland.webp","approvedVariants":[],"rejects":["blank generation","low-quality repetitive grassland renders"],"regenerationNeeded":false}
   },
   "generic": {
-    "forest-path": ["/room-scenes/archetype-forest-path-1.webp", "/room-scenes/archetype-forest-path-2.webp", "/room-scenes/archetype-forest-path-4.webp", "/room-scenes/archetype-forest-path-7.webp"],
-    "deep-forest": ["/room-scenes/master-deep-forest.webp", "/room-scenes/archetype-deep-forest-0.webp", "/room-scenes/archetype-deep-forest-6.webp"],
-    "mine-tunnel": ["/room-scenes/archetype-mine-tunnel-1.webp", "/room-scenes/archetype-mine-tunnel-2.webp", "/room-scenes/archetype-mine-tunnel-7.webp", "/room-scenes/archetype-mine-tunnel-8.webp"],
-    "sewer": ["/room-scenes/curated-crossing-sewer.webp", "/room-scenes/archetype-sewer-0.webp", "/room-scenes/archetype-sewer-5.webp"],
-    "desert": ["/room-scenes/master-desert-trail.webp", "/room-scenes/archetype-desert-1.webp", "/room-scenes/archetype-desert-6.webp"],
-    "swamp": ["/room-scenes/master-wild-swamp.webp"],
-    "mountain-pass": ["/room-scenes/master-mountain-pass.webp", "/room-scenes/curated-rain-grooved-outcrop.webp", "/room-scenes/archetype-cliff-overlook-6.webp"],
-    "garden": ["/room-scenes/archetype-garden-1.webp", "/room-scenes/archetype-garden-4.webp", "/room-scenes/archetype-garden-6.webp"],
-    "riverside": ["/room-scenes/master-riverside.webp", "/rooms/127-140.webp", "/room-scenes/archetype-riverside-3.webp"],
-    "grassland": ["/room-scenes/master-open-grassland.webp"]
+    "forest-path":["/room-scenes/archetype-forest-path-1.webp","/room-scenes/archetype-forest-path-2.webp","/room-scenes/archetype-forest-path-4.webp","/room-scenes/archetype-forest-path-7.webp"],
+    "deep-forest":["/room-scenes/master-deep-forest.webp","/room-scenes/archetype-deep-forest-0.webp","/room-scenes/archetype-deep-forest-6.webp"],
+    "mine-tunnel":["/room-scenes/archetype-mine-tunnel-1.webp","/room-scenes/archetype-mine-tunnel-2.webp","/room-scenes/archetype-mine-tunnel-7.webp","/room-scenes/archetype-mine-tunnel-8.webp"],
+    "sewer":["/room-scenes/curated-crossing-sewer.webp","/room-scenes/archetype-sewer-0.webp","/room-scenes/archetype-sewer-5.webp"],
+    "desert":["/room-scenes/master-desert-trail.webp","/room-scenes/archetype-desert-1.webp","/room-scenes/archetype-desert-6.webp"],
+    "swamp":["/room-scenes/master-wild-swamp.webp"],
+    "mountain-pass":["/room-scenes/master-mountain-pass.webp","/room-scenes/curated-rain-grooved-outcrop.webp","/room-scenes/archetype-cliff-overlook-6.webp"],
+    "garden":["/room-scenes/archetype-garden-1.webp","/room-scenes/archetype-garden-4.webp","/room-scenes/archetype-garden-6.webp"],
+    "riverside":["/room-scenes/master-riverside.webp","/rooms/127-140.webp","/room-scenes/archetype-riverside-3.webp"],
+    "grassland":["/room-scenes/master-open-grassland.webp"]
   },
   "regionalIdentity": {
     "Crossing": {
-      "subject": "busy inland trade town",
-      "terrain": "lowland settlement",
-      "builtForm": "timber and stone buildings, active market streets",
-      "atmosphere": "lived-in, commercial, busy",
-      "generationHints": ["mixed timber and stone construction", "market-town density", "practical traveled streets"]
+      "subject":"large working trade town and player hub",
+      "terrain":"lowland town with riverfront, gates, greens and dense commercial core",
+      "builtForm":"mixed timber and stone construction; practical streets, civic squares, guild compounds, market frontage and working quays",
+      "atmosphere":"busy, old, prosperous in places, rough in others; a town people actually work and live in rather than a pristine fantasy capital",
+      "generationHints":["mixed timber and stone construction","market-town density","practical traveled streets","visible wear, carts, awnings, barrels and trade clutter only where room text supports them","avoid monumental palace-city scale"],
+      "districts": {
+        "town-green-civic": {"subject":"Crossing civic heart and Town Green","places":["Town Green North","Town Green Northeast","Town Green Southeast","Town Green South","Town Green Southwest","Town Green Northwest","S'zella Plaza","Fostra Square","Truffenyi Place"],"visualLanguage":["open civic space","grass or planted public ground where supported","busy surrounding town frontage","fountains, monuments or civic details only when named"]},
+        "market-commercial": {"subject":"dense commercial Crossing","places":["Mercantile Street","Bank Street","Commerce Avenue","Mongers' Bazaar","Mongers' Square","Bazaar Walkway","Traders' Market","Cheopman Lane"],"visualLanguage":["close shopfronts and awnings","pedestrian trade traffic","goods, carts and signs only when supported","more visual clutter than residential streets"]},
+        "river-quays": {"subject":"Crossing riverfront and working quays","places":["Trollferry Quay","Embankment","Gold Barque Quay","Nightrunner's Quay","Water Street","Oxenwaithe Bridge","Dock","Alfren's Ferry","Delivery Pier"],"visualLanguage":["water must read clearly when the room supports it","working timber docks and stone embankments","rope, cargo and boats only where supported","do not reuse inland street compositions"]},
+        "gates-walls": {"subject":"Crossing gates and defensive perimeter","places":["Western Gate","Eastern Gate","Northeast Gate Battlements","East Gate Battlements","East Wall Battlements","North Wall Battlements","South Wall Battlements","West Gate Battlements","West Wall Battlements","Battlement Guardhouse"],"visualLanguage":["fortified town wall rather than giant castle","gate traffic and practical defenses","clear inside/outside orientation when supported"]},
+        "temple-quarter": {"subject":"Crossing religious approaches and temple quarter","places":["Hodierna Way","Immortals' Approach","Esplanade Eluned","Kertigen Road"],"visualLanguage":["quieter ceremonial streets","religious architecture only when room text establishes it","cleaner sightlines than market streets","do not invent glowing magic or cathedral scale"]},
+        "residential-backstreets": {"subject":"Crossing lanes, courts and poorer backstreets","places":["Cutpurse Alley","Covered Alleyway","Dodgers' Row","Boar Alley","Scorpion Lane","Swithen's Court","Elmod Close","Damaris Lane","Varlet's Run"],"visualLanguage":["narrower irregular routes","more enclosed framing","worn practical buildings","avoid turning every alley into a criminal slum"]},
+        "riverpine-outskirts": {"subject":"greener Crossing outskirts around Riverpine","places":["Riverpine Way","Riverpine Circle","Flatlands","Forest","Outside Gate","Outside Northeast Gate"],"visualLanguage":["settlement thins toward vegetation and open land","roads and trees become more important than shopfronts","use wilderness baskets when room semantics clearly leave town"]},
+        "guild-civic-interiors": {"subject":"major Crossing institutions","places":["Main Hall","Council Chamber","Public Meeting Room","Library","Auction Hall","Gathering Hall","Chamber of Justice"],"visualLanguage":["institution-specific interiors","Crossing materials can unify them but room function dominates","never substitute generic city-street art for interiors"]},
+        "amusement-carousel": {"subject":"Crossing amusement and carousel complex","places":["Carousel Square","The Carousel","Carousel Booth","Carousel Chamber","Carousel Desk"],"visualLanguage":["distinct entertainment identity","color and ornament may be stronger than ordinary Crossing","must be generated or curated as a special family rather than generic streets"]}
+      },
+      "priorityLandmarks":["Town Green","Traders' Market","Mongers' Bazaar","Western Gate","Eastern Gate","Oxenwaithe Bridge","Crossing riverfront","major guild compounds","Crossing amusement/carousel complex","Crossing sewer"],
+      "avoid":["one generic medieval street representing the entire town","clean empty streets","palatial capital-city scale","forcing river, temple, market or fortification details into unrelated rooms"]
     },
-    "Ratha": {
-      "subject": "fortified urban center",
-      "terrain": "dense settlement",
-      "builtForm": "dark stone, defensive and disciplined architecture",
-      "atmosphere": "formal, martial, enclosed",
-      "generationHints": ["dark stone construction", "fortified civic character", "disciplined streetscape"]
-    },
-    "Shard": {
-      "subject": "mountain trade city",
-      "terrain": "rocky terraces and rising ground",
-      "builtForm": "stone buildings fitted to steep terrain",
-      "atmosphere": "vertical, mountainous, established",
-      "generationHints": ["terraced streets", "visible rock and elevation", "mountain-city construction"]
-    },
-    "Riverhaven": {
-      "subject": "riverside town",
-      "terrain": "settlement organized around waterways",
-      "builtForm": "docks, bridges and river-facing streets",
-      "atmosphere": "water-oriented, mercantile, open",
-      "generationHints": ["visible river relationship", "docks or bridge language where supported", "stone-and-timber riverside town"]
-    },
-    "Muspar'i": {
-      "subject": "desert-adjacent city",
-      "terrain": "dry settlement edge",
-      "builtForm": "sandstone and domed forms",
-      "atmosphere": "sunlit, arid, dense",
-      "generationHints": ["sandstone palette", "arid-city materials", "domed forms only where the room supports architecture"]
-    },
-    "Hibarnhvidar": {
-      "subject": "mountain stone settlement",
-      "terrain": "rocky highland setting",
-      "builtForm": "heavy carved stone halls and streets",
-      "atmosphere": "massive, durable, cool",
-      "generationHints": ["carved stone construction", "mountain-settlement massing", "substantial masonry"]
-    },
-    "Leth Deriel": {
-      "subject": "forest city",
-      "terrain": "settlement integrated with mature trees",
-      "builtForm": "refined architecture among living woodland",
-      "atmosphere": "green, elegant, integrated with nature",
-      "generationHints": ["mature trees remain visually dominant", "refined settlement details", "architecture integrated with forest rather than replacing it"]
-    }
+    "Ratha":{"subject":"fortified urban center","terrain":"dense settlement","builtForm":"dark stone, defensive and disciplined architecture","atmosphere":"formal, martial, enclosed","generationHints":["dark stone construction","fortified civic character","disciplined streetscape"]},
+    "Shard":{"subject":"mountain trade city","terrain":"rocky terraces and rising ground","builtForm":"stone buildings fitted to steep terrain","atmosphere":"vertical, mountainous, established","generationHints":["terraced streets","visible rock and elevation","mountain-city construction"]},
+    "Riverhaven":{"subject":"riverside town","terrain":"settlement organized around waterways","builtForm":"docks, bridges and river-facing streets","atmosphere":"water-oriented, mercantile, open","generationHints":["visible river relationship","docks or bridge language where supported","stone-and-timber riverside town"]},
+    "Muspar'i":{"subject":"desert-adjacent city","terrain":"dry settlement edge","builtForm":"sandstone and domed forms","atmosphere":"sunlit, arid, dense","generationHints":["sandstone palette","arid-city materials","domed forms only where the room supports architecture"]},
+    "Hibarnhvidar":{"subject":"mountain stone settlement","terrain":"rocky highland setting","builtForm":"heavy carved stone halls and streets","atmosphere":"massive, durable, cool","generationHints":["carved stone construction","mountain-settlement massing","substantial masonry"]},
+    "Leth Deriel":{"subject":"forest city","terrain":"settlement integrated with mature trees","builtForm":"refined architecture among living woodland","atmosphere":"green, elegant, integrated with nature","generationHints":["mature trees remain visually dominant","refined settlement details","architecture integrated with forest rather than replacing it"]}
   },
   "regionalCity": {
-    "Crossing": ["/room-scenes/town-crossing-city-street-0.webp", "/room-scenes/town-crossing-city-street-1.webp", "/room-scenes/town-crossing-city-street-2.webp"],
-    "Ratha": ["/room-scenes/town-ratha-city-street-0.webp", "/room-scenes/town-ratha-city-street-1.webp", "/room-scenes/town-ratha-city-street-2.webp"],
-    "Shard": ["/room-scenes/town-shard-city-street-0.webp", "/room-scenes/town-shard-city-street-1.webp", "/room-scenes/town-shard-city-street-2.webp"],
-    "Riverhaven": ["/room-scenes/town-riverhaven-city-street-0.webp", "/room-scenes/town-riverhaven-city-street-1.webp", "/room-scenes/town-riverhaven-city-street-2.webp"],
-    "Muspar'i": ["/room-scenes/town-muspar-i-city-street-0.webp", "/room-scenes/town-muspar-i-city-street-1.webp", "/room-scenes/town-muspar-i-city-street-2.webp"],
-    "Hibarnhvidar": ["/room-scenes/town-hibarnhvidar-city-street-0.webp", "/room-scenes/town-hibarnhvidar-city-street-1.webp", "/room-scenes/town-hibarnhvidar-city-street-2.webp"],
-    "Leth Deriel": ["/room-scenes/town-leth-deriel-city-street-0.webp", "/room-scenes/town-leth-deriel-city-street-1.webp", "/room-scenes/town-leth-deriel-city-street-2.webp"]
+    "Crossing":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"],
+    "Ratha":["/room-scenes/town-ratha-city-street-0.webp","/room-scenes/town-ratha-city-street-1.webp","/room-scenes/town-ratha-city-street-2.webp"],
+    "Shard":["/room-scenes/town-shard-city-street-0.webp","/room-scenes/town-shard-city-street-1.webp","/room-scenes/town-shard-city-street-2.webp"],
+    "Riverhaven":["/room-scenes/town-riverhaven-city-street-0.webp","/room-scenes/town-riverhaven-city-street-1.webp","/room-scenes/town-riverhaven-city-street-2.webp"],
+    "Muspar'i":["/room-scenes/town-muspar-i-city-street-0.webp","/room-scenes/town-muspar-i-city-street-1.webp","/room-scenes/town-muspar-i-city-street-2.webp"],
+    "Hibarnhvidar":["/room-scenes/town-hibarnhvidar-city-street-0.webp","/room-scenes/town-hibarnhvidar-city-street-1.webp","/room-scenes/town-hibarnhvidar-city-street-2.webp"],
+    "Leth Deriel":["/room-scenes/town-leth-deriel-city-street-0.webp","/room-scenes/town-leth-deriel-city-street-1.webp","/room-scenes/town-leth-deriel-city-street-2.webp"]
   }
 }
