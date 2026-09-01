@@ -29,6 +29,7 @@ import type { Highlight } from '../../lib/highlights'
 const listFormatter = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' })
 
 const MAX_HEIGHT_PX = 190
+const FULL_SUMMARY_LIMIT = 8
 
 export function ClassicRoomText({
   title,
@@ -63,6 +64,10 @@ export function ClassicRoomText({
   offClasses?: ReadonlySet<string>
 }) {
   const drag = useDragScroll()
+  const itemKinds = items ? new Set(items.map((item) => item.trim().toLowerCase())).size : 0
+  const crowdedItems = (items?.length ?? 0) > FULL_SUMMARY_LIMIT
+  const crowdedPlayers = (players?.length ?? 0) > FULL_SUMMARY_LIMIT
+  const visiblePlayers = crowdedPlayers ? players!.slice(0, 3) : players
 
   return (
     <div
@@ -96,12 +101,18 @@ export function ClassicRoomText({
 
       {items && items.length > 0 && (
         <p className="mt-1 text-xs leading-relaxed text-ink-faint">
-          You also see {listFormatter.format(items)}.
+          {crowdedItems
+            ? `${items.length} loose items in ${itemKinds} kinds — use the searchable, clickable floor controls on the room art.`
+            : `You also see ${listFormatter.format(items)}.`}
         </p>
       )}
 
       {players && players.length > 0 && (
-        <p className="mt-1 text-xs leading-relaxed text-info">Also here: {listFormatter.format(players)}.</p>
+        <p className="mt-1 text-xs leading-relaxed text-info">
+          {crowdedPlayers
+            ? `Also here: ${listFormatter.format(visiblePlayers!)} and ${players.length - visiblePlayers!.length} others — inspect the portrait rail for everyone.`
+            : `Also here: ${listFormatter.format(players)}.`}
+        </p>
       )}
 
       {exits && exits.length > 0 && (
