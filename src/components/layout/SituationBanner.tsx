@@ -89,19 +89,23 @@ export function SituationBanner() {
     reading = `${character.vitals.health} of ${character.vitals.healthMax} health`
   }
 
-  const detail = [reading, ...flags.map((f) => f.replace(/_/g, ' '))].filter(
+  // The title already names the primary situation. Repeating `in combat`,
+  // `low health`, or `dead` in the detail was spending a second line to say
+  // the same thing twice — particularly expensive above a live battlespace.
+  const titleFlags = new Set(['in_combat', 'low_health', 'dead', 'dying'])
+  const detail = [reading, ...flags.filter((f) => !titleFlags.has(f)).map((f) => f.replace(/_/g, ' '))].filter(
     Boolean
   )
 
   return (
     <div
-      className={`mx-3 mt-2 mb-0 rounded-xl border px-3 py-2 flex items-center gap-2 text-sm ${tone}`}
+      className={`mx-2 mt-1 flex min-h-8 shrink-0 items-center gap-2 rounded-lg border px-2 py-1 text-sm ${tone}`}
     >
       {icon}
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold leading-tight">{title}</div>
+      <div className="flex min-w-0 flex-1 items-baseline gap-2">
+        <div className="shrink-0 font-semibold leading-tight">{title}</div>
         {detail.length > 0 && (
-          <div className="text-xs opacity-80 truncate">
+          <div className="min-w-0 truncate text-xs opacity-80">
             {detail.join(' · ')}
           </div>
         )}

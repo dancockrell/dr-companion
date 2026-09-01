@@ -216,6 +216,7 @@ export function fitColumns({
   mapEmpty = false,
   dashEmpty = false,
   mapGrowthMax,
+  dashGrowthMax,
 }: {
   hostW: number
   /** Room's own stored preference - map + chat/functions, stacked. A real
@@ -233,6 +234,11 @@ export function fitColumns({
    * is still honoured; this prevents surplus width creating gutters around
    * a height-limited square scene. */
   mapGrowthMax?: number
+  /** Optional contextual ceiling for the Experience rail. During combat the
+   * battle board is the active work surface and a very wide saved skill rail
+   * adds longer bars, not more information. The stored preference is never
+   * rewritten; omitting this ceiling restores it immediately. */
+  dashGrowthMax?: number
 }): ColumnFit {
   // Two dividers when the map is docked, one when it is not.
   const splits = mapDocked ? splitW * 2 : splitW
@@ -241,7 +247,8 @@ export function fitColumns({
   // *larger* stored width is capped, and only while there is nothing behind
   // it to justify the space.
   const mapWantEffective = mapEmpty ? Math.min(mapWant, MAP_EMPTY_WANT) : mapWant
-  const dashWantEffective = dashEmpty ? Math.min(dashWant, DASH_EMPTY_WANT) : dashWant
+  const dashWantVisible = dashGrowthMax == null ? dashWant : Math.min(dashWant, dashGrowthMax)
+  const dashWantEffective = dashEmpty ? Math.min(dashWantVisible, DASH_EMPTY_WANT) : dashWantVisible
   // An empty dashboard has nothing to hide, so it keeps the grabbable sliver.
   // A populated one may not go under DASH_MIN: below that it stops reflowing
   // and starts concealing controls behind a hover-only scrollbar.

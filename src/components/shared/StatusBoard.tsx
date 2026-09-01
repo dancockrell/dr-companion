@@ -93,7 +93,7 @@ function spellTone(minutes: number): string {
   return 'text-ink-muted'
 }
 
-export function StatusBoard() {
+export function StatusBoard({ hideInCombat = false }: { hideInCombat?: boolean } = {}) {
   const character = useAppStore((s) => s.character)
   const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
 
@@ -115,7 +115,7 @@ export function StatusBoard() {
   const bleedRates = bleedReport.map((b) => b.rate).filter(Boolean)
   const worstBleedRate = bleedRates[0]
 
-  const shown = RANK.filter((r) => flags.has(r.flag))
+  const shown = RANK.filter((r) => flags.has(r.flag) && !(hideInCombat && r.flag === 'in_combat'))
 
   // Anything the bridge sends that this list has not heard of still renders,
   // at the end and in the neutral band. A newer bridge adding a flag should

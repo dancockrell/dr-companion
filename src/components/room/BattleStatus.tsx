@@ -31,7 +31,10 @@ export function BattleStatus() {
           stacking under exactly this — see its doc comment: "in a fight
           this is the question." */}
       <HandsRow character={character ?? null} />
-      <StatusBoard />
+      {/* The global urgent strip already says In combat and the radar itself
+          proves it visually. Suppress only that duplicate here; every other
+          injury, action-blocking, stealth, spell and roundtime state remains. */}
+      <StatusBoard hideInCombat />
     </div>
   )
 }

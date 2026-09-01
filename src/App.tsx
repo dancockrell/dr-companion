@@ -242,6 +242,7 @@ export default function App() {
 
   const character = useAppStore((s) => s.character)
   const experienceEmpty = !character
+  const battleActive = character?.situation.includes('in_combat') ?? false
 
   /*
    * `fitColumns`/`pickReset` (lib/columns.ts) still speak of "map" and
@@ -267,6 +268,11 @@ export default function App() {
     // while that width can become visible scene; explicit divider choices
     // above this remain untouched inside fitColumns.
     mapGrowthMax: hostH > 0 ? Math.max(battleW, hostH * 0.62) : undefined,
+    // A single-column skill rail stops gaining information once its labels,
+    // numbers and useful bar length fit. In combat, return any width beyond
+    // that to the two active play surfaces. This is a display-time ceiling:
+    // the player's saved Experience width returns as soon as combat ends.
+    dashGrowthMax: battleActive ? 220 : undefined,
   })
   const battleWFit = fit.map
   const experienceWFit = fit.dash

@@ -168,12 +168,12 @@ export function ArmorManager() {
         title={`${bodyCovered}/10 body zones covered; ${pieces.length} pieces in this character's armor rack`}
       >
         <ShieldCheck className="h-4 w-4 shrink-0 text-info" />
-        <span className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide">Armor rack</span>
-        <span className="text-xs tabular-nums text-ink-muted">{bodyCovered} protected · {pieces.length} pieces</span>
+        <span className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide">Armor</span>
+        <span className="shrink-0 text-xs tabular-nums text-ink-muted">{bodyCovered}/10 · {pieces.length} pcs</span>
         {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
 
-      <div className="grid grid-cols-6 gap-px border-y border-border/60 bg-border/60" aria-label="Current armor coverage — select a body location to filter the rack">
+      {expanded && <div className="grid grid-cols-6 gap-px border-y border-border/60 bg-border/60" aria-label="Current armor coverage — select a body location to filter the rack">
         {ARMOR_COVERAGE.map((part) => {
           const { Icon, label, short } = COVERAGE_META[part]
           const count = coverageCount.get(part) ?? 0
@@ -196,7 +196,7 @@ export function ArmorManager() {
             </button>
           )
         })}
-      </div>
+      </div>}
 
       {expanded && (
         <div className="space-y-1.5 p-2">

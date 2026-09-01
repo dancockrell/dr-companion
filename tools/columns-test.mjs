@@ -90,6 +90,17 @@ console.log('\n-- automatic Battle growth stops where a square scene can use it 
   ok('the ceiling does not mark a healthy layout squeezed', f.squeezed === false, String(f.squeezed))
 }
 
+console.log('\n-- combat can reclaim an oversized Experience rail without rewriting it --')
+{
+  const f = fitColumns({
+    hostW: 1756, roomWant: 700, mapWant: 760, dashWant: 510,
+    mapDocked: true, splitW: SPLIT, dashGrowthMax: 220,
+  })
+  ok('Experience is capped at its useful combat width', f.dash === 220, String(f.dash))
+  ok('Battle keeps at least its requested width', f.map >= 760, String(f.map))
+  ok('the combat layout no longer reports a squeeze', f.squeezed === false, String(f.squeezed))
+}
+
 console.log('\n-- the regression: a squeeze must not hide the dashboard --')
 {
   // The real case. 1180px window, a map width somebody dragged wide.

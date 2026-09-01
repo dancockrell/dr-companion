@@ -43,14 +43,14 @@ export function HandsRow({ character }: { character: CharacterStatus | null }) {
   if (!who && !hands) return null
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-3 text-xs">
-      {who && <span className="shrink-0 capitalize text-ink-muted">{who}</span>}
+    <div className="flex min-w-0 flex-1 items-center gap-2 text-xs">
+      {who && <span className="min-w-0 max-w-36 shrink-[2] truncate capitalize text-ink-muted" title={who}>{who}</span>}
       {hands && (
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="flex min-w-0 items-center gap-1 text-ink-faint">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="flex min-w-0 flex-1 items-center gap-1 text-ink-faint">
             R <span className="truncate text-ink-muted" title={hands.right ?? 'empty'}>{hands.right ?? 'empty'}</span>
           </span>
-          <span className="flex min-w-0 items-center gap-1 text-ink-faint">
+          <span className="flex min-w-0 flex-1 items-center gap-1 text-ink-faint">
             L <span className="truncate text-ink-muted" title={hands.left ?? 'empty'}>{hands.left ?? 'empty'}</span>
           </span>
         </div>
