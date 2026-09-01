@@ -595,15 +595,3 @@ const FALLBACK_ENTRY: ScriptCatalogEntry = {
 export function getScriptCatalogEntry(name: string): ScriptCatalogEntry {
   return SCRIPT_CATALOG[name.toLowerCase()] ?? FALLBACK_ENTRY
 }
-
-export function scriptsByCategory(names: string[]): Map<ScriptCategory, string[]> {
-  const grouped = new Map<ScriptCategory, string[]>()
-  for (const name of names) {
-    const entry = getScriptCatalogEntry(name)
-    if (entry.tier === 'hidden') continue
-    const bucket = grouped.get(entry.category) ?? []
-    bucket.push(name)
-    grouped.set(entry.category, bucket)
-  }
-  return grouped
-}
