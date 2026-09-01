@@ -1,4 +1,5 @@
 import type { InventorySummary } from '../types'
+import { readJSON, writeJSON } from './storage.ts'
 
 /**
  * Coverage is deliberately player-editable. The live Lich inventory feed gives
@@ -110,19 +111,10 @@ export function sameArmorItem(a: string, b: string): boolean {
 }
 
 export function loadArmorLoadouts(): ArmorLoadouts {
-  try {
-    const value = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as ArmorLoadouts
-    return value && typeof value === 'object' ? value : {}
-  } catch {
-    return {}
-  }
+  const value = readJSON<ArmorLoadouts>(STORAGE_KEY, {})
+  return value && typeof value === 'object' ? value : {}
 }
 
 export function saveArmorLoadouts(value: ArmorLoadouts): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
-  } catch {
-    // A private or locked-down webview can deny storage. The manager remains
-    // fully usable for the session; persistence is an enhancement, not a gate.
-  }
+  writeJSON(STORAGE_KEY, value)
 }

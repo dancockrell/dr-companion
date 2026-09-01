@@ -18,11 +18,17 @@ import ts from 'typescript'
 const dir = join('node_modules', '.drc-test')
 mkdirSync(dir, { recursive: true })
 const out = join(dir, 'quickSwitch.mjs')
+const storageOut = join(dir, 'storage.mjs')
+const compilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }
+writeFileSync(
+  storageOut,
+  ts.transpileModule(readFileSync('src/lib/storage.ts', 'utf8'), { compilerOptions }).outputText
+)
 writeFileSync(
   out,
   ts.transpileModule(readFileSync('src/lib/quickSwitch.ts', 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText
+    compilerOptions,
+  }).outputText.replace('./storage.ts', './storage.mjs')
 )
 
 let fails = 0

@@ -11,6 +11,7 @@
  * the same way sound-channel volumes are.
  */
 import { useEffect, useState } from 'react'
+import { readJSON, writeJSON } from './storage.ts'
 
 const KEY = 'drc.off-highlight-classes.v1'
 
@@ -19,22 +20,12 @@ const listeners = new Set<() => void>()
 
 function load(): Set<string> {
   if (cached) return cached
-  try {
-    const raw = localStorage.getItem(KEY)
-    cached = new Set(raw ? (JSON.parse(raw) as string[]) : [])
-  } catch {
-    cached = new Set()
-  }
+  cached = new Set(readJSON<string[]>(KEY, []))
   return cached
 }
 
 function persist() {
-  try {
-    localStorage.setItem(KEY, JSON.stringify([...(cached ?? [])]))
-  } catch {
-    /* Private mode or a full quota - the toggle still works for this
-     * session, it just won't survive a restart. */
-  }
+  writeJSON(KEY, [...(cached ?? [])])
 }
 
 /** The current off-set, read fresh - for call sites that are not React

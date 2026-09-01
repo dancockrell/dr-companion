@@ -26,6 +26,8 @@ import { requestGameAction } from './lib/gameActions'
 import { requestStartFlow, requestStopAll } from './lib/flowStop'
 import { MACROS } from './data/macros'
 import { canSendMacro } from './lib/canSendMacro'
+import { writeText } from './lib/storage'
+import { StorageWarning } from './components/shared/StorageWarning'
 
 /**
  * Which window this is.
@@ -152,11 +154,7 @@ export default function App() {
   const setRoomW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setRoomWState(next)
-    try {
-      localStorage.setItem(ROOM_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(ROOM_KEY, String(next))
   }
 
   const [battleW, setBattleWState] = useState<number>(() => {
@@ -167,11 +165,7 @@ export default function App() {
   const setBattleW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setBattleWState(next)
-    try {
-      localStorage.setItem(BATTLE_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(BATTLE_KEY, String(next))
   }
 
   /** Experience, all the way to the right - see ExperienceStrip.tsx. A
@@ -189,11 +183,7 @@ export default function App() {
   const setExperienceW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setExperienceWState(next)
-    try {
-      localStorage.setItem(EXPERIENCE_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(EXPERIENCE_KEY, String(next))
   }
 
   /**
@@ -213,11 +203,7 @@ export default function App() {
   const setMapH = (px: number) => {
     const next = Math.max(MIN_MAP_H, Math.round(px))
     setMapHState(next)
-    try {
-      localStorage.setItem(MAP_HEIGHT_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(MAP_HEIGHT_KEY, String(next))
   }
 
   const dock = useMapDock()
@@ -317,12 +303,13 @@ export default function App() {
     setExperienceW(atLeastVisible(hostW * (1 - share)))
 
   const v = view()
-  if (v.kind === 'map') return <MapWindow />
-  if (v.kind === 'panel') return <PanelWindow id={v.id} />
+  if (v.kind === 'map') return <><StorageWarning /><MapWindow /></>
+  if (v.kind === 'panel') return <><StorageWarning /><PanelWindow id={v.id} /></>
 
   return (
     <div className="h-full w-full bg-surface flex flex-col">
       <AppControls />
+      <StorageWarning />
       {setupComplete && <SituationBanner />}
       {/* Runs regardless of what is on screen - see GameSignals.tsx's own
           header on why this cannot live inside a panel that might not

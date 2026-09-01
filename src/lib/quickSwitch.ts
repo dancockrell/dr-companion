@@ -38,6 +38,8 @@
  * missing script already gets.
  */
 
+import { readJSON, writeJSON } from './storage.ts'
+
 export type QuickSwitchPin =
   | { kind: 'command'; actionKey: string }
   | { kind: 'task'; id: string }
@@ -63,23 +65,12 @@ function isPin(x: unknown): x is QuickSwitchPin {
 }
 
 function readRaw(): QuickSwitchPin[] {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(isPin)
-  } catch {
-    return []
-  }
+  const parsed = readJSON<unknown>(KEY, [])
+  return Array.isArray(parsed) ? parsed.filter(isPin) : []
 }
 
 function writeRaw(pins: QuickSwitchPin[]): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(pins.slice(0, MAX_SLOTS)))
-  } catch {
-    // Private mode. Losing the pin order is not worth an error dialog.
-  }
+  writeJSON(KEY, pins.slice(0, MAX_SLOTS))
 }
 
 /**
