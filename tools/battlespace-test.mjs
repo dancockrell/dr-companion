@@ -20,7 +20,7 @@ check('the full room description is permanently below the battle', /aria-label="
 check('inventory is permanently visible beside the room description', /aria-label="Inventory"/.test(battle) && /<InventoryPanel/.test(battle))
 check('combat controls use the complete grouped macro catalog', /MACROS\.filter/.test(actions) && /'combat'/.test(actions) && /'goods'/.test(actions) && /'magic'/.test(actions))
 check('every combat variation is a directly wired compact icon button', /macro\.variations\.map/.test(actions) && /onClick=\{\(\) => run\(variation\.commands\)\}/.test(actions) && /h-9 w-9/.test(actions))
-check('the large workspace explicitly switches between game and functions', /paneMode/.test(chat) && /Functions &amp; scripts/.test(chat) && /<StreamTabs/.test(chat) && /<TaskFlowPanel/.test(chat))
+check('game and multiple taskflows permanently share the large split workspace', /grid-cols-\[minmax\(0,1\.35fr\)_minmax\(18rem,0\.85fr\)\]/.test(chat) && /Game and automation workspace/.test(chat) && /Functions &amp; scripts/.test(chat) && /<StreamTabs/.test(chat) && /<TaskFlowPanel/.test(chat) && !/paneMode/.test(chat))
 check('battle controls do not duplicate functions and scripts', !/Scripts and workflows/.test(actions) && !/scriptCatalog/.test(actions))
 check('floor items form their own strip immediately beneath the radar', battle.indexOf('<FloorItems') < battle.indexOf('<BattleActionBar'))
 check('actor hover cards link directly to Elanthipedia', /Search Elanthipedia/.test(radar) && /Special:Search/.test(radar) && /pointer-events-auto/.test(radar))

@@ -7,33 +7,33 @@ import { useHighlights } from '../../lib/useHighlights'
 import { TaskFlowPanel } from '../dashboard/TaskFlowPanel'
 
 /**
- * The large lower-right workspace has two deliberate modes. Game remains the
- * default; Functions & scripts gets the whole useful pane when selected rather
- * than duplicating a cramped row of mystery icons beneath battle commands.
+ * The large lower-right workspace is deliberately split, not switched. The
+ * game transcript and command entry stay visible while scripts and taskflows
+ * occupy a permanent neighbouring pane. A running workflow should never hide
+ * the game output a player needs to supervise it.
  */
 export function GameChatColumn() {
   const { highlights } = useHighlights()
   const [query, setQuery] = useState('')
-  const [paneMode, setPaneMode] = useState<'game' | 'functions'>('game')
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 p-2">
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border border-border bg-surface-raised">
-        <div className="flex shrink-0 gap-1 border-b border-border bg-surface px-2 py-1.5" aria-label="Workspace mode">
-          <button type="button" onClick={() => setPaneMode('game')} aria-pressed={paneMode === 'game'} className={`flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium ${paneMode === 'game' ? 'bg-accent/15 text-accent' : 'text-ink-faint hover:bg-surface-overlay hover:text-ink'}`}>
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.85fr)] gap-2 p-2" aria-label="Game and automation workspace">
+      <section className="flex min-h-0 min-w-0 flex-col gap-2" aria-label="Game workspace">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border border-border bg-surface-raised">
+          <div className="flex h-10 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-3 text-xs font-semibold text-accent">
             <MessageSquareText className="h-4 w-4" aria-hidden /> Game
-          </button>
-          <button type="button" onClick={() => setPaneMode('functions')} aria-pressed={paneMode === 'functions'} className={`flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium ${paneMode === 'functions' ? 'bg-accent/15 text-accent' : 'text-ink-faint hover:bg-surface-overlay hover:text-ink'}`}>
-            <Workflow className="h-4 w-4" aria-hidden /> Functions &amp; scripts
-          </button>
-        </div>
-        {paneMode === 'game' ? (
+          </div>
           <PanelBoundary label="Game and channels"><StreamTabs highlights={highlights} /></PanelBoundary>
-        ) : (
-          <div className="min-h-0 flex-1 overflow-hidden"><TaskFlowPanel /></div>
-        )}
-      </div>
-      {paneMode === 'game' && <GameCommandBar query={query} setQuery={setQuery} />}
+        </div>
+        <GameCommandBar query={query} setQuery={setQuery} />
+      </section>
+
+      <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded border border-border bg-surface-raised" aria-label="Functions and scripts workspace">
+        <div className="flex h-10 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-3 text-xs font-semibold text-accent">
+          <Workflow className="h-4 w-4" aria-hidden /> Functions &amp; scripts
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden"><TaskFlowPanel /></div>
+      </section>
     </div>
   )
 }
