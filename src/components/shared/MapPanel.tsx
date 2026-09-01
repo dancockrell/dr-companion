@@ -16,7 +16,7 @@
  * this file's original design, where a route was previewed and moving stayed
  * a separate decision - see the comment on `goThere` below.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Map as MapIcon,
   RefreshCw,
@@ -168,31 +168,22 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    * transform avoids the old discontinuity where crossing 1x swapped between
    * two differently sized SVGs and made cursor-anchored zoom jump.
    */
+  const onMapZoomChange = useCallback((z: number) => setMapDock({ zoom: z }), [])
   const viewport = useMapViewport({
     zoom: dock.zoom,
-    onZoomChange: (z) => setMapDock({ zoom: z }),
+    onZoomChange: onMapZoomChange,
     min: ZOOM_MIN,
     max: ZOOM_MAX,
   })
-  const { containerRef, contentRef, x: panX, y: panY, dragging, handlers, zoomBy, resetPan } = viewport
+  const { containerRef, contentRef, x: panX, y: panY, dragging, handlers, zoomBy, fitView } = viewport
 
   // A room update must update the view, not only the red "here" marker in an
   // off-screen part of a previously panned map. Return the docked map to fit
   // when live location changes; deliberate browsing keeps its own view.
   useEffect(() => {
     if (browsing) return
-    resetPan()
-    setMapDock({ zoom: 1 })
-  }, [browsing, hereId, level, resetPan, zone?.zone])
-
-  // A room update must update the view, not only the red "here" marker in an
-  // off-screen part of a previously panned map. Return the docked map to fit
-  // when live location changes; deliberate browsing keeps its own view.
-  useEffect(() => {
-    if (browsing) return
-    resetPan()
-    setMapDock({ zoom: 1 })
-  }, [browsing, hereId, level, resetPan, zone?.zone])
+    fitView()
+  }, [browsing, fitView, hereId, level, zone?.zone])
 
   const character = useAppStore((s) => s.character)
   const addLog = useAppStore((s) => s.addLog)
@@ -488,10 +479,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
                 type="button"
                 className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
                 title="Back to the whole zone"
-                onClick={() => {
-                  setMapDock({ zoom: 1 })
-                  resetPan()
-                }}
+                onClick={() => fitView()}
               >
                 {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
               </button>
