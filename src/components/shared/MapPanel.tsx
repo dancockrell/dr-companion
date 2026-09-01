@@ -43,10 +43,11 @@ import type { PinBrush } from './PinPalette'
 import { MapToolRail } from './MapToolRail'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
-import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
+import { addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
 import { exportPinsToFile, readPinsImportPreview, type PinImportPreview } from '../../lib/pinsFile'
 import { PinImportDialog } from './PinImportDialog'
-import { loadPlayerMarker, savePlayerMarker } from '../../lib/playerMarker'
+import { savePlayerMarker } from '../../lib/playerMarker'
+import { useMapPins, usePinsByRoom, usePlayerMarker } from '../../lib/useMapState'
 import { PlayerMarkerEditor } from './PlayerMarkerEditor'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
@@ -174,36 +175,25 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const addLog = useAppStore((s) => s.addLog)
 
   /**
-   * The character's own mark on the map - see playerMarker.ts. Loaded the
-   * same on-demand-from-storage way pins are (not kept only in state),
-   * `markerVersion` forcing a re-read after this component's own save the
-   * same way `pinVersion` does for pins.
+   * The character's own mark on the map - see playerMarker.ts. The shared
+   * subscribed snapshot updates after this webview's saves and after the
+   * popped-out webview writes the same persistent store.
    */
-  const [markerVersion, setMarkerVersion] = useState(0)
   const [editingMarker, setEditingMarker] = useState(false)
   const [pinImport, setPinImport] = useState<PinImportPreview | null>(null)
-  const playerMarker = useMemo(
-    () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
-    [character, markerVersion]
-  )
+  const playerMarker = usePlayerMarker(character?.name, character?.instance)
 
   /**
    * Saved places, and the hotbar under the map that walks to them.
    *
    * Loaded per character (Home for one is not Home for another - see
-   * mapPins.ts) straight from localStorage during render rather than kept
-   * only in this component's state, so a pin added in the popped-out window
-   * shows up here too the next time either one re-renders - both windows
-   * read the same storage. `pinVersion` exists only to force a re-read after
-   * a write this component made itself, since editing a pin doesn't
-   * otherwise touch anything React tracks as having changed.
+   * mapPins.ts) through a stable external-store snapshot. Local writes notify
+   * this document immediately, while `storage` events synchronize the other
+   * webview without depending on an unrelated render.
    */
-  const [pinVersion, setPinVersion] = useState(0)
   const [pinBrush, setPinBrush] = useState<PinBrush | null>(null)
-  const { pins, pinsByRoom } = useMemo(() => {
-    const list = character ? loadPins(character.name, character.instance) : []
-    return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
-  }, [character, pinVersion])
+  const pins = useMapPins(character?.name, character?.instance)
+  const pinsByRoom = usePinsByRoom(pins)
 
   // Either a fresh pin on this room (no `existing`) or an edit of one already
   // there - one piece of state either way, since PinEditor is the same modal
@@ -261,7 +251,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         note,
       })
     }
-    setPinVersion((v) => v + 1)
     setEditingRoom(null)
   }
 
@@ -288,7 +277,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         icon: preset.icon,
       })
     }
-    setPinVersion((v) => v + 1)
   }
 
   async function doExportPins() {
@@ -335,7 +323,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   function deletePin() {
     if (!character || !editingRoom?.existing) return
     removePin(character.name, character.instance, editingRoom.existing.id)
-    setPinVersion((v) => v + 1)
     setEditingRoom(null)
   }
   if (!connected) {
@@ -533,7 +520,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onPin={() => pinRoom(hereId)}
           onDismiss={() => {
             if (character) dismissNudge(character.name, character.instance, hereId)
-            setPinVersion((v) => v + 1)
           }}
         />
       )}
@@ -706,7 +692,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onClose={() => setEditingMarker(false)}
           onSave={(m) => {
             savePlayerMarker(character.name, character.instance, m)
-            setMarkerVersion((v) => v + 1)
             setEditingMarker(false)
           }}
         />
@@ -715,7 +700,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         <PinImportDialog
           preview={pinImport}
           onClose={() => setPinImport(null)}
-          onChanged={() => setPinVersion((v) => v + 1)}
           onResult={addLog}
         />
       )}

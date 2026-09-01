@@ -36,6 +36,7 @@
     "test:map-nearest": "node tools/ruby-test.mjs lich-scripts/test/map_nearest_test.rb lich-scripts/companion_bridge.lic",
     "test:pins": "node tools/pins-test.mjs",
     "test:pins-file": "node tools/pins-file-test.mjs",
+    "test:map-state-sync": "node tools/map-state-sync-test.mjs",
     "test:pin-nudge": "node tools/pin-nudge-test.mjs",
     "test:pin-task-gen": "node tools/pin-task-generator-test.mjs",
     "test:drtask": "python python/test_drtask.py",
