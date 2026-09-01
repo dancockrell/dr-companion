@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-01",
+  "reviewMethod": "visual contact-sheet review against scene-basket semantics and regional lore",
+  "reviewRules": [
+    {
+      "match": "^/room-scenes/archetype-(deep-forest|forest-path)-",
+      "verdict": "rejected",
+      "semanticTags": ["forest", "legacy-archetype"],
+      "environments": ["woodland"],
+      "visualAttributes": ["painted", "moody", "contains-settlement-architecture"],
+      "notes": "Atmospheric, but buildings, lanterns or gate structures make these unsafe for generic uninhabited forest travel.",
+      "replacedBy": ["/room-scenes/master-deep-forest.webp", "/room-scenes/master-forest-path.webp"]
+    },
+    {
+      "match": "^/room-scenes/archetype-desert-",
+      "verdict": "rejected",
+      "semanticTags": ["desert", "legacy-archetype"],
+      "environments": ["arid-overland"],
+      "visualAttributes": ["painted", "warm", "contains-settlement-or-figures"],
+      "notes": "Reads as a desert settlement or staged vista rather than region-neutral overland travel.",
+      "replacedBy": ["/room-scenes/master-desert-trail.webp"]
+    },
+    {
+      "match": "^/room-scenes/archetype-garden-",
+      "verdict": "rejected",
+      "semanticTags": ["garden", "legacy-archetype"],
+      "environments": ["formal-garden"],
+      "visualAttributes": ["painted", "formal", "palace-dominated"],
+      "notes": "Good formal courtyards, but the dominant northern-European palace architecture is unsafe across unrelated regional gardens.",
+      "replacedBy": ["/room-scenes/master-garden.webp"]
+    },
+    {
+      "match": "^/room-scenes/archetype-mine-tunnel-",
+      "verdict": "rejected",
+      "semanticTags": ["mine", "legacy-archetype"],
+      "environments": ["underground"],
+      "visualAttributes": ["painted", "timber-framed", "finished-interior"],
+      "notes": "These read as finished timber halls more often than excavated working mines.",
+      "replacedBy": ["/room-scenes/master-mine-tunnel.webp"]
+    },
+    {
+      "match": "^/room-scenes/archetype-riverside-",
+      "verdict": "rejected",
+      "semanticTags": ["river", "legacy-archetype"],
+      "environments": ["urban-waterfront"],
+      "visualAttributes": ["painted", "misty", "town-dominated"],
+      "notes": "A town canal is not a safe match for generic natural riverbank travel.",
+      "replacedBy": ["/room-scenes/master-riverside.webp"]
+    },
+    {
+      "match": "^/room-scenes/archetype-swamp-",
+      "verdict": "rejected",
+      "semanticTags": ["swamp", "legacy-archetype"],
+      "environments": ["wetland"],
+      "visualAttributes": ["painted", "misty", "cottage-focal-point"],
+      "notes": "The cottage makes this settlement-specific rather than a safe wild-swamp scene.",
+      "replacedBy": ["/room-scenes/master-wild-swamp.webp"]
+    },
+    {
+      "match": "^/room-scenes/town-(crossing|ratha|shard|riverhaven|hibarnhvidar|leth-deriel)-city-street-",
+      "verdict": "rejected",
+      "semanticTags": ["city-street", "legacy-regional-set"],
+      "environments": ["urban"],
+      "visualAttributes": ["painted", "northern-european-medieval", "repetitive"],
+      "notes": "Competent street art, but the shared half-timber visual language erases the cities' distinct lore and architecture.",
+      "replacedBy": ["/room-scenes/town-crossing-master.webp", "/room-scenes/town-ratha-master.webp", "/room-scenes/town-shard-master.webp", "/room-scenes/town-riverhaven-master.webp", "/room-scenes/town-hibarnhvidar-master.webp", "/room-scenes/town-leth-deriel-master.webp"]
+    },
+    {
+      "match": "^/room-scenes/town-muspar-i-city-street-",
+      "verdict": "approved",
+      "semanticTags": ["city-street", "desert-city", "muspari"],
+      "intendedRegions": ["Muspar'i"],
+      "environments": ["urban", "arid"],
+      "visualAttributes": ["painted", "pale-stone", "domes", "warm-light"],
+      "notes": "The pale stone, arcades and domes meaningfully distinguish Muspar'i as an arid-region city."
+    },
+    {
+      "match": "^/room-scenes/(master-|curated-)|^/rooms/127-140\\.webp$",
+      "verdict": "approved",
+      "semanticTags": ["curated", "runtime-approved"],
+      "environments": [],
+      "visualAttributes": ["painterly-realistic", "landscape", "ui-safe"],
+      "notes": "Visually reviewed and approved for its named semantic basket or curated landmark use."
+    }
+  ],
+  "generated": {
+    "/room-scenes/master-forest-path.webp": {"semanticTags":["forest","path","old-growth"],"environments":["woodland","overland"],"intendedRegions":["region-neutral"],"visualAttributes":["cool-daylight","uninhabited","natural-trail","painterly-realistic"],"prompt":"A secluded old-growth forest footpath in Elanthia, narrow natural earth trail winding between dense mature trees, filtered cool daylight, moss and leaf litter, no buildings, no lantern posts, no people, no creatures, no text, no signs, no watermark.","supersedes":["/room-scenes/archetype-forest-path-1.webp","/room-scenes/archetype-forest-path-2.webp","/room-scenes/archetype-forest-path-4.webp","/room-scenes/archetype-forest-path-7.webp"]},
+    "/room-scenes/master-garden.webp": {"semanticTags":["garden","cultivated","fountain"],"environments":["garden"],"intendedRegions":["region-neutral"],"visualAttributes":["soft-daylight","botanical","painterly-realistic"],"prompt":"A cultivated fantasy garden that is region-neutral: herb beds, flowering borders, clipped shrubs, gravel paths and a modest stone fountain, enclosed by greenery rather than a European palace.","supersedes":["/room-scenes/archetype-garden-1.webp","/room-scenes/archetype-garden-4.webp","/room-scenes/archetype-garden-6.webp"]},
+    "/room-scenes/master-mine-tunnel.webp": {"semanticTags":["mine","tunnel","ore","rails"],"environments":["underground","working-mine"],"intendedRegions":["region-neutral"],"visualAttributes":["low-light","rough-stone","timber-shoring","painterly-realistic"],"prompt":"A working underground mine tunnel in a low-magic medieval fantasy world, rough excavated stone, timber shoring, ore seams, mine cart rails and sparse oil-lamp light.","supersedes":["/room-scenes/archetype-mine-tunnel-1.webp","/room-scenes/archetype-mine-tunnel-2.webp","/room-scenes/archetype-mine-tunnel-7.webp","/room-scenes/archetype-mine-tunnel-8.webp"]},
+    "/room-scenes/town-crossing-master.webp": {"semanticTags":["city-street","crossing","zoluren"],"environments":["urban","temperate"],"intendedRegions":["The Crossing","Zoluren"],"visualAttributes":["daylight","timber-and-stone","practical","painterly-realistic"],"prompt":"The Crossing in Zoluren: busy practical provincial city street, mixed timber-and-stone shops and homes, broad cobbled road, temperate climate, established but not grand.","supersedes":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]},
+    "/room-scenes/town-ratha-master.webp": {"semanticTags":["city-street","ratha","tiered-city","island"],"environments":["urban","tropical-island"],"intendedRegions":["Ratha"],"visualAttributes":["pale-stone","terraces","stairways","sea-haze","painterly-realistic"],"prompt":"Ratha, a warm island city built in rising tiers: pale weathered stone, broad stairways and terraces climbing a hillside, sea haze and tropical vegetation glimpsed between buildings.","supersedes":["/room-scenes/town-ratha-city-street-0.webp","/room-scenes/town-ratha-city-street-1.webp","/room-scenes/town-ratha-city-street-2.webp"]},
+    "/room-scenes/town-shard-master.webp": {"semanticTags":["city-street","shard","ilithi","crystal"],"environments":["urban","mountain"],"intendedRegions":["Shard","Ilithi"],"visualAttributes":["pale-stone","faceted-arches","cool-light","painterly-realistic"],"prompt":"Shard, an elegant Ilithi city street whose architecture echoes faceted crystal and the nearby mountain: pale stone, slender geometric arches, subtle colored glass facets.","supersedes":["/room-scenes/town-shard-city-street-0.webp","/room-scenes/town-shard-city-street-1.webp","/room-scenes/town-shard-city-street-2.webp"]},
+    "/room-scenes/town-leth-deriel-master.webp": {"semanticTags":["city-street","leth-deriel","living-trees"],"environments":["urban","forest-canopy"],"intendedRegions":["Leth Deriel"],"visualAttributes":["organic-architecture","elevated-walks","dappled-light","painterly-realistic"],"prompt":"Leth Deriel, a living woodland city: graceful buildings integrated around immense ancient trees, elevated wooden walks, carved organic railings, leafy canopy and dappled light.","supersedes":["/room-scenes/town-leth-deriel-city-street-0.webp","/room-scenes/town-leth-deriel-city-street-1.webp","/room-scenes/town-leth-deriel-city-street-2.webp"]},
+    "/room-scenes/town-hibarnhvidar-master.webp": {"semanticTags":["city-street","hibarnhvidar","dwarven"],"environments":["urban","mountain-interior"],"intendedRegions":["Hibarnhvidar"],"visualAttributes":["monumental-stone","massive-arches","geometric-relief","forge-light","painterly-realistic"],"prompt":"Hibarnhvidar, a monumental dwarven city street carved into and beneath a mountain: massive fitted stone blocks, broad load-bearing arches, geometric relief carving, warm forge light.","supersedes":["/room-scenes/town-hibarnhvidar-city-street-0.webp","/room-scenes/town-hibarnhvidar-city-street-1.webp","/room-scenes/town-hibarnhvidar-city-street-2.webp"]},
+    "/room-scenes/town-riverhaven-master.webp": {"semanticTags":["city-street","riverhaven","fortified-river-city"],"environments":["urban","river"],"intendedRegions":["Riverhaven"],"visualAttributes":["weathered-stone","defensive","misty","painterly-realistic"],"prompt":"Riverhaven, a fortified river city street: weathered stone walls, compact timber-and-stone buildings, glimpses of a broad river and bridge, misty northern temperate air.","supersedes":["/room-scenes/town-riverhaven-city-street-0.webp","/room-scenes/town-riverhaven-city-street-1.webp","/room-scenes/town-riverhaven-city-street-2.webp"]}
+  },
+  "generationProvenance": {"provider":"Magnific","model":"Recraft V4.1","creditsPerAsset":60,"generatedAt":"2026-09-01","aspectRatio":"16:9","workflow":"text-to-image, visual QA, WebP quality 88"}
+}
