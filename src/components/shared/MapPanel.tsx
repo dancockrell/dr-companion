@@ -191,8 +191,8 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   useEffect(() => {
     if (browsing) return
     resetPan()
-    if (dock.zoom < 1) setMapDock({ zoom: 1 })
-  }, [browsing, dock.zoom, hereId, level, resetPan, zone?.zone])
+    setMapDock({ zoom: 1 })
+  }, [browsing, hereId, level, resetPan, zone?.zone])
 
   const character = useAppStore((s) => s.character)
   const addLog = useAppStore((s) => s.addLog)
