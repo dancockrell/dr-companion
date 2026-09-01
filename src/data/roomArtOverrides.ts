@@ -16,6 +16,9 @@ const RULES: readonly Rule[] = [
   { zone: '7', ranges: [[8, 63]], arts: ['/room-scenes/curated-underwater-marsh-channel.webp'] },
   { zone: '112', ranges: [[73, 74], [77, 77], [113, 155]], arts: ['/room-scenes/curated-underwater-marsh-channel.webp'] },
 
+  // Brambles: replace the unrelated village gathering with the scarred living thicket described by the rooms.
+  { zone: '6', ranges: [[26, 35], [38, 38], [40, 40], [44, 44], [48, 49], [58, 58], [65, 65], [67, 79], [85, 92], [269, 270], [272, 272], [274, 285], [290, 292], [294, 294], [296, 301]], arts: ['/room-scenes/curated-hostile-brambles.jpg'] },
+
   // Ehhrsk Highway and Breech Tunnels: wet sewer / low rough tunnel art.
   { zone: '90', ranges: [[734, 782]], arts: ['/room-scenes/archetype-sewer-0.webp', '/room-scenes/archetype-sewer-5.webp'] },
   { zone: '42', ranges: [[116, 116], [137, 168], [338, 346]], arts: ['/room-scenes/master-mine-tunnel.webp'] },
