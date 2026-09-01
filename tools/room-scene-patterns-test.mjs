@@ -42,6 +42,20 @@ const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 
 check(coverage.roomCount >= 1700, `generic patterns cover ${coverage.roomCount} rooms without swallowing protected landmarks`)
 check(!coverage.assignments.some(({ placeKey }) => placeKey === '4a::Behind the Goal Line'), 'special sports location is not treated as generic grassland')
 check(coverage.protectedLandmarks.includes('1::Sewer'), 'curated landmark places remain protected')
+check(!coverage.assignments.some(({ placeKey }) => placeKey === '4::Doline'), 'ambiguous Doline is not forced into a water basket from lore alone')
+check(!coverage.assignments.some(({ placeKey }) => placeKey === '7::Low Rise'), 'ambiguous Low Rise is not forced into a garden basket from lore alone')
+check(coverage.assignments.every((assignment) =>
+  Number.isFinite(assignment.confidence) &&
+  assignment.confidence >= 0 && assignment.confidence <= 1 &&
+  assignment.traits && typeof assignment.traits === 'object' &&
+  Array.isArray(assignment.signals) &&
+  assignment.signals.some((signal) => signal.startsWith('title:'))
+), 'every automatic assignment is explainable, scored, and backed by title evidence')
+check((coverage.unresolved ?? []).every((assignment) =>
+  Number.isFinite(assignment.confidence) &&
+  assignment.traits && typeof assignment.traits === 'object' &&
+  Array.isArray(assignment.signals)
+), 'unresolved places retain semantic evidence for later curation')
 
 const cases = [
   [{ title: 'Paasvadh Forest, Understory', lore: 'Shadows hang from the forest canopy above thick undergrowth.' }, 'deep-forest'],
@@ -50,6 +64,8 @@ const cases = [
   [{ title: 'Temple Catacombs', lore: 'Frost-covered stairs descend into subterranean passages.' }, 'mine-tunnel'],
   [{ title: 'Magen Road', lore: 'Cobbled buildings line the busy town street.' }, 'regional-city'],
   [{ title: 'Behind the Goal Line', lore: 'The playing field opens toward the stadium.' }, null],
+  [{ title: 'Doline', lore: 'A river curls through the low ground below the path.' }, null],
+  [{ title: 'Low Rise', lore: 'Flowerbeds and clipped hedges are visible beyond the slope.' }, null],
 ]
 for (const [place, category] of cases) {
   const result = analyzeScene(place)
