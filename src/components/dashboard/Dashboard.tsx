@@ -16,17 +16,17 @@
  * No width is assumed anywhere. The window is only as wide as the player has
  * decided we are worth against the game window next to it. See §2.115.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { LichLauncher } from '../shared/LichLauncher'
 import { useAppStore } from '../../store/useAppStore'
 import { useLayout } from '../../lib/useLayout'
 import type { PanelId } from '../../lib/layout'
-import { isTauri, invokeTauri } from '../../lib/tauri'
 import { DashboardLayout } from './DashboardLayout'
 import { cn } from '../../lib/cn'
 import { PANEL_CONTENT, PANEL_TITLES } from './panels'
 import { FreeCanvas } from './FreeCanvas'
 import { useHiddenMiddlePanels, type MiddlePanelId } from '../../lib/panelVisibility'
+import { closePanelWindow, openPanelWindow, usePanelWindows } from '../../lib/panelWindows'
 
 /**
  * The ids that exist in both `PanelId` (freeform/pop-out/dock) and
@@ -67,39 +67,11 @@ export function Dashboard() {
   // Which panels are in windows of their own. Asked rather than remembered:
   // each is a separate webview, and the player can close one by hand without
   // this window hearing about it.
-  const [out, setOut] = useState<PanelId[]>([])
-  const refreshOut = useCallback(() => {
-    if (!isTauri()) return
-    void invokeTauri('panel_windows')
-      .then((ids) => setOut(Array.isArray(ids) ? (ids as PanelId[]) : []))
-      .catch(() => setOut([]))
-  }, [])
-
-  useEffect(() => {
-    refreshOut()
-    // Cheap poll rather than an event, because the interesting change happens
-    // in another window and closing one by hand emits nothing here.
-    const t = setInterval(refreshOut, 2000)
-    return () => clearInterval(t)
-  }, [refreshOut])
-
-  const popOut = useCallback(
-    (id: PanelId) => {
-      void invokeTauri('open_panel_window', { id, title: PANEL_TITLES[id] })
-        .then(refreshOut)
-        .catch(refreshOut)
-    },
-    [refreshOut]
-  )
-
-  const popBack = useCallback(
-    (id: PanelId) => {
-      void invokeTauri('close_panel_window', { id })
-        .then(refreshOut)
-        .catch(refreshOut)
-    },
-    [refreshOut]
-  )
+  const windows = usePanelWindows()
+  const out = windows.open
+  const popOut = (id: PanelId) => void openPanelWindow(id, PANEL_TITLES[id])
+  const popBack = (id: PanelId) => void closePanelWindow(id)
+  const windowErrors = Object.entries(windows.errors) as Array<[PanelId, string | undefined]>
 
   // Measured, not read off the viewport. This app can be docked beside other
   // things, and a media query would describe the screen rather than the space
@@ -285,6 +257,19 @@ export function Dashboard() {
           layout.freeform ? 'justify-start' : 'justify-end'
         )}
       >
+        {windows.registryError && (
+          <p role="status" className="mr-auto text-xs text-warn">{windows.registryError} Keeping the last known layout.</p>
+        )}
+        {windowErrors.map(([id, error]) => error && (
+          <button
+            key={id}
+            type="button"
+            className="mr-auto rounded border border-warn/50 bg-warn/10 px-2 py-0.5 text-left text-xs text-warn"
+            onClick={() => out.includes(id) ? popBack(id) : popOut(id)}
+          >
+            {PANEL_TITLES[id] ?? id}: {error} Retry.
+          </button>
+        ))}
         <button
           type="button"
           onClick={() => (layout.freeform ? unplace() : enterFreeArrange())}
@@ -318,15 +303,17 @@ export function Dashboard() {
           <div className="flex flex-wrap items-center gap-1 px-2 pt-1 text-xs">
             <span className="text-ink-faint">In their own windows:</span>
             {out.map((id) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => popBack(id)}
-                title="Bring it back in here" aria-label="Bring it back in here"
-                className="rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
-              >
-                {PANEL_TITLES[id] ?? id}
-              </button>
+              <span key={id} className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => popBack(id)}
+                  disabled={windows.pending[id] === 'closing'}
+                  title="Bring it back in here" aria-label="Bring it back in here"
+                  className="rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink disabled:opacity-50"
+                >
+                  {windows.pending[id] === 'closing' ? 'Closing…' : (PANEL_TITLES[id] ?? id)}
+                </button>
+              </span>
             ))}
           </div>
         )}
