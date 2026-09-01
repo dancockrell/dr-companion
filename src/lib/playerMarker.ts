@@ -23,6 +23,8 @@ export interface PlayerMarker {
 export const DEFAULT_MARKER: PlayerMarker = { icon: 'shield', color: '#e0554f' }
 
 const STORAGE_KEY = 'drc.player-marker.v1'
+export const PLAYER_MARKER_STORAGE_KEY = STORAGE_KEY
+export const PLAYER_MARKER_CHANGED_EVENT = 'drc:player-marker-changed'
 type MarkerStore = Record<string, PlayerMarker>
 
 function isHexColor(v: unknown): v is string {
@@ -46,4 +48,5 @@ export function savePlayerMarker(name: string, instance: GameInstance, marker: P
   const store = loadStore()
   store[profileKey(name, instance)] = marker
   writeJSON(STORAGE_KEY, store)
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(PLAYER_MARKER_CHANGED_EVENT))
 }

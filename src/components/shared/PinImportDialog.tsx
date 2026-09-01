@@ -8,10 +8,9 @@ import {
 } from '../../lib/pinsFile'
 import { useModalDialog } from '../../lib/useModalDialog'
 
-export function PinImportDialog({ preview, onClose, onChanged, onResult }: {
+export function PinImportDialog({ preview, onClose, onResult }: {
   preview: PinImportPreview
   onClose: () => void
-  onChanged: () => void
   onResult: (message: string, level?: 'info' | 'warn' | 'error') => void
 }) {
   const initial = useMemo(() => Object.fromEntries(preview.characters.map((item) => [item.key, 'merge' as const])), [preview])
@@ -25,13 +24,11 @@ export function PinImportDialog({ preview, onClose, onChanged, onResult }: {
   function apply() {
     const next = applyPinsImport(preview, choices)
     setResult(next)
-    onChanged()
     onResult(`Pin import applied: ${next.added} added, ${next.updated} updated, ${next.unchanged} unchanged, ${next.skipped} skipped, ${next.removed} removed.`)
   }
 
   function undo() {
     if (!undoLastPinsImport()) return
-    onChanged()
     onResult('Pin import undone. The complete pre-import pin store was restored.')
     onClose()
   }
