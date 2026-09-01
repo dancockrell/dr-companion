@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "generatedAt": "2026-09-01",
   "summary": {
-    "totalAssets": 12823,
+    "totalAssets": 12824,
     "indexedOnly": 10400,
-    "visuallyReviewed": 2423,
-    "approved": 492,
+    "visuallyReviewed": 2424,
+    "approved": 493,
     "rejected": 1931,
-    "runtimeEligible": 67,
-    "runtimeUsageRecords": 266
+    "runtimeEligible": 68,
+    "runtimeUsageRecords": 267
   },
   "assets": [
     {
@@ -3386,6 +3386,70 @@
         "prompt": null
       },
       "replacementHistory": []
+    },
+    {
+      "path": "/room-scenes/curated-paasvadh-understory.jpg",
+      "sha256": "193e4fc16d1ab6e07b24adeb974e69e5d30c15310ce8e2cb56fa6d9dfef701ad",
+      "bytes": 157899,
+      "format": "jpg",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "forest",
+        "paasvadh",
+        "understory",
+        "mist",
+        "uncanny"
+      ],
+      "intendedRegions": [
+        "Boar Clan",
+        "Paasvadh Forest"
+      ],
+      "environments": [
+        "woodland",
+        "dense-understory"
+      ],
+      "visualAttributes": [
+        "dusky-shadow",
+        "skeletal-canopy",
+        "low-mist",
+        "layered-depth",
+        "painterly"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Google Nano Banana 2 Lite",
+        "creditsPerAsset": 60,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "creationReference": "hu5B0d7vqL",
+        "prompt": "Paasvadh Forest understory beneath bony interlaced limbs, with heavy dusky shadows merging into low rising mist and layered trunks fading into fog; entirely natural, disorienting and acoustically uncanny, with no graveyard, walls, fences, buildings, people, creatures, lights, text, or watermark."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/rooms/127-164.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/curated-pokekehekepi-korgi.webp",
@@ -381245,7 +381309,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-165.webp",
@@ -381283,7 +381354,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-166.webp",
@@ -381321,7 +381399,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-167.webp",
@@ -381359,7 +381444,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-168.webp",
@@ -381397,7 +381489,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-169.webp",
@@ -381435,7 +381534,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-170.webp",
@@ -381473,7 +381579,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-171.webp",
@@ -381511,7 +381624,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-172.webp",
@@ -381549,7 +381669,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-173.webp",
@@ -381587,7 +381714,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-174.webp",
@@ -381625,7 +381759,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-175.webp",
@@ -381663,7 +381804,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-176.webp",
@@ -381701,7 +381849,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-177.webp",
@@ -381739,7 +381894,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-178.webp",
@@ -381777,7 +381939,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-179.webp",
@@ -381815,7 +381984,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-180.webp",
@@ -381853,7 +382029,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-181.webp",
@@ -381891,7 +382074,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-182.webp",
@@ -381929,7 +382119,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-183.webp",
@@ -381967,7 +382164,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-184.webp",
@@ -382005,7 +382209,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-185.webp",
@@ -382043,7 +382254,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-186.webp",
@@ -382081,7 +382299,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-187.webp",
@@ -382119,7 +382344,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-188.webp",
@@ -382157,7 +382389,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-189.webp",
@@ -382195,7 +382434,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-190.webp",
@@ -382233,7 +382479,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-191.webp",
@@ -382271,7 +382524,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-192.webp",
@@ -382309,7 +382569,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-193.webp",
@@ -382347,7 +382614,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-194.webp",
@@ -382385,7 +382659,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-195.webp",
@@ -382423,7 +382704,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-196.webp",
@@ -382461,7 +382749,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-197.webp",
@@ -382499,7 +382794,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-198.webp",
@@ -382537,7 +382839,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-199.webp",
@@ -382575,7 +382884,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-200.webp",
@@ -382613,7 +382929,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-201.webp",
@@ -382651,7 +382974,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-202.webp",
@@ -382689,7 +383019,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-203.webp",
@@ -382727,7 +383064,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-204.webp",
@@ -382765,7 +383109,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-205.webp",
@@ -382803,7 +383154,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-206.webp",
@@ -382841,7 +383199,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-207.webp",
@@ -382879,7 +383244,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-208.webp",
@@ -382917,7 +383289,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-209.webp",
@@ -382955,7 +383334,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-210.webp",
@@ -382993,7 +383379,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-211.webp",
@@ -383031,7 +383424,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-212.webp",
@@ -383069,7 +383469,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-213.webp",
@@ -383107,7 +383514,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-214.webp",
@@ -383145,7 +383559,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-215.webp",
@@ -397387,7 +397808,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-638.webp",
@@ -397425,7 +397853,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-639.webp",
@@ -397539,7 +397974,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-642.webp",
@@ -397577,7 +398019,14 @@
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/curated-paasvadh-understory.jpg"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/127-643.webp",

@@ -39,6 +39,7 @@ const RULES: readonly Rule[] = [
   // Boar Clan: split a forest-village fallback into field, path, forest and mountain art.
   { zone: '127', ranges: [[560, 580]], arts: ['/rooms/127-midfield.webp', '/rooms/127-midfield-north.webp', '/rooms/127-midfield-south.webp'] },
   { zone: '127', ranges: [[114, 121], [163, 163]], arts: ['/room-scenes/master-forest-path.webp'] },
+  { zone: '127', ranges: [[164, 214], [637, 638], [641, 642]], arts: ['/room-scenes/curated-paasvadh-understory.jpg'] },
   { zone: '127', ranges: [[19, 28]], arts: ['/room-scenes/master-forest-path.webp'] },
   { zone: '127', ranges: [[124, 129]], arts: ['/room-scenes/master-forest-path.webp'] },
   { zone: '127', ranges: [[555, 559], [581, 581]], arts: ['/room-scenes/master-forest-path.webp'] },

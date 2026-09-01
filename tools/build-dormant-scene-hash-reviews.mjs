@@ -48,6 +48,7 @@ const decisions = {
 }
 const replacements = new Map([
   ['/rooms/6-26.webp', ['/room-scenes/curated-hostile-brambles.jpg']],
+  ['/rooms/127-164.webp', ['/room-scenes/curated-paasvadh-understory.jpg']],
 ])
 
 const reviewFor = (representative, paths, verdict) => {

@@ -228,7 +228,10 @@
         "landscape",
         "legacy-low-resolution"
       ],
-      "notes": "The pictured subject does not meaningfully match this named room family, or contains distracting text/composition defects. Quarantined from future runtime selection."
+      "notes": "The pictured subject does not meaningfully match this named room family, or contains distracting text/composition defects. Quarantined from future runtime selection.",
+      "replacedBy": [
+        "/room-scenes/curated-paasvadh-understory.jpg"
+      ]
     },
     {
       "sha256": "d673cf6910522a16c88ae79750a2211f4b61c5c636d222858f6245f78ef33150",
