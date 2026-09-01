@@ -18,6 +18,23 @@ const SPORTS = /\b(goal line|field of play|arena|stadium|tournament|playing fiel
 const SETTLEMENT = /\b(building|buildings|house|houses|shop|shops|wall|walls|gate|town|city|village|settlement|cottage|inn|temple)\b/
 const WATER = /\b(river|stream|creek|water|pool|lake|shore|marsh|swamp|bog|canal)\b/
 const ELEVATED = /\b(mountain|ridge|cliff|peak|summit|slope|ascent|precipice|high above)\b/
+const AUTO_ASSIGN_SCORE = 5
+
+function unknownAnalysis(text, signals = [], confidence = 0) {
+  return {
+    category: null,
+    confidence,
+    traits: {
+      environment: 'unknown',
+      subtype: 'unknown',
+      water: WATER.test(text) ? 'present' : 'unknown',
+      elevation: ELEVATED.test(text) ? 'high' : 'unknown',
+      civilization: SETTLEMENT.test(text) ? 'settled' : 'unknown',
+      route: ROUTE.test(text),
+    },
+    signals,
+  }
+}
 
 function mergeTraits(base, title, lore) {
   const text = `${title} ${lore}`
@@ -53,32 +70,26 @@ export function analyzeScene(place) {
     return { ...rule, score, signals }
   }).filter((rule) => rule.score > 0)
 
-  // A forest route is visually different enough to deserve its own basket.
-  const forest = scored.find((rule) => rule.category === 'deep-forest')
-  if (forest && ROUTE.test(text)) {
-    return {
-      category: 'forest-path',
-      confidence: Math.min(1, (forest.score + 2) / 7),
-      traits: mergeTraits({ ...forest.traits, subtype: 'route' }, title, lore),
-      signals: [...forest.signals, 'route:forest-path'],
-    }
-  }
-
   scored.sort((a, b) => b.score - a.score || CATEGORY_RULES.indexOf(a) - CATEGORY_RULES.indexOf(b))
   const best = scored[0]
-  if (!best) {
+  if (!best) return unknownAnalysis(text)
+
+  // Lore is useful evidence, but a single lore keyword is too weak to choose art for
+  // an entire multi-room place. Automatic basket assignment therefore requires a
+  // category signal in the place title. Low-confidence lore still survives in the
+  // audit report so it can guide later curation without showing the player bad art.
+  if (best.score < AUTO_ASSIGN_SCORE) {
+    return unknownAnalysis(text, best.signals, Math.min(1, best.score / 7))
+  }
+
+  // A title that is explicitly forest-like plus a route signal is visually different
+  // enough to use the forest-path basket. Do not promote lore-only forests to paths.
+  if (best.category === 'deep-forest' && ROUTE.test(text)) {
     return {
-      category: null,
-      confidence: 0,
-      traits: {
-        environment: 'unknown',
-        subtype: 'unknown',
-        water: WATER.test(text) ? 'present' : 'unknown',
-        elevation: ELEVATED.test(text) ? 'high' : 'unknown',
-        civilization: SETTLEMENT.test(text) ? 'settled' : 'unknown',
-        route: ROUTE.test(text),
-      },
-      signals: [],
+      category: 'forest-path',
+      confidence: Math.min(1, best.score / 7),
+      traits: mergeTraits({ ...best.traits, subtype: 'route' }, title, lore),
+      signals: [...best.signals, 'route:forest-path'],
     }
   }
 
