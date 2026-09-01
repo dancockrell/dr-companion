@@ -74,30 +74,23 @@ import {
 import {
   onTaskLine,
   onTaskState,
-  pythonStatus,
   startTask,
   stopTask,
   taskState,
-  type PythonStatus,
   type TaskInfo,
 } from '../../lib/pythonTasks'
 import {
-  nodeStatus,
   onNodeTaskLine,
   onNodeTaskState,
   startNodeTask,
   stopNodeTask,
   nodeTaskState,
-  type NodeStatus,
 } from '../../lib/nodeTasks'
 import { groupTasksByCategory } from '../../lib/taskGrouping'
 import {
-  listScripts,
-  scriptDirs,
-  type ScriptDirs,
-  type ScriptFile,
   type ScriptLang,
 } from '../../lib/scriptFiles'
+import { refreshTaskCatalogs, useTaskCatalogs } from '../../lib/taskCatalogStatus'
 import { inferScriptIcon, type ScriptIconKey } from '../../lib/scriptIcons'
 import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
 import { iconOverrideFor, setIconOverride, clearIconOverride } from '../../lib/scriptIconOverrides'
@@ -116,6 +109,7 @@ import { accentForIndex, actionAccent, actionIcon } from '../../lib/battleAction
 
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200
+const EMPTY_SCRIPTS: import('../../lib/scriptFiles').ScriptFile[] = []
 
 /** Ruby scripts are grouped under this, after every task category - see the
  * module comment: the only thing neither catalog can already cover. */
@@ -258,10 +252,11 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
   const { run: runMacro, canSend: canSendMacro, reason: macroReason } = useMacroRunner()
 
-  const [status, setStatus] = useState<PythonStatus | null>(null)
-  const [nodeSt, setNodeSt] = useState<NodeStatus | null>(null)
-  const [scripts, setScripts] = useState<ScriptFile[]>([])
-  const [dirs, setDirs] = useState<ScriptDirs | null>(null)
+  const catalogs = useTaskCatalogs()
+  const status = catalogs.python.value
+  const nodeSt = catalogs.node.value
+  const scripts = catalogs.scripts.value ?? EMPTY_SCRIPTS
+  const dirs = catalogs.dirs.value
   const [editing, setEditing] = useState<EditorTarget | null>(null)
   // A bare entry id is enough here (unlike the two-backend `start`/`stop`
   // logic below) because every Entry already carries a unique one - Python's
@@ -298,27 +293,19 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
-    const [st, nst, files, where] = await Promise.all([
-      pythonStatus(),
-      nodeStatus(),
-      listScripts(),
-      scriptDirs(),
-    ])
-    setStatus(st)
-    setNodeSt(nst)
-    setScripts(files)
-    setDirs(where)
+  const refreshRunning = useCallback(async () => {
     // Asked, never assumed. A task that exited on its own leaves no event for
     // a panel that mounted afterwards, and a remembered "running" that has
     // gone stale is indistinguishable from a live one. Checked in both
     // backends - the invariant is "at most one task, of either language,"
     // not "at most one per language," so either could be the live one.
-    const [pyState, nodeState] = await Promise.all([taskState(), nodeTaskState()])
-    if (pyState.running) {
+    const [pyResult, nodeResult] = await Promise.allSettled([taskState(), nodeTaskState()])
+    const pyState = pyResult.status === 'fulfilled' ? pyResult.value : null
+    const nodeState = nodeResult.status === 'fulfilled' ? nodeResult.value : null
+    if (pyState?.running) {
       setRunning(pyState.task)
       setActiveFlow(pyState.task)
-    } else if (nodeState.running) {
+    } else if (nodeState?.running) {
       setRunning(`ts.${nodeState.task}`)
       setActiveFlow(nodeState.task)
     } else {
@@ -327,9 +314,13 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
     }
   }, [setActiveFlow])
 
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshTaskCatalogs(), refreshRunning()])
+  }, [refreshRunning])
+
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    void refreshRunning()
+  }, [refreshRunning])
 
   useEffect(
     () =>
@@ -459,6 +450,12 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   const tasks: TaskInfo[] = useMemo(() => status?.tasks ?? [], [status])
   const nodeTasks = useMemo(() => nodeSt?.tasks ?? [], [nodeSt])
   const rubyScripts = useMemo(() => scripts.filter((s) => s.lang === 'ruby'), [scripts])
+  const catalogErrors = [
+    catalogs.python.state === 'error' ? `Python: ${catalogs.python.error}` : null,
+    catalogs.node.state === 'error' ? `TypeScript: ${catalogs.node.error}` : null,
+    catalogs.scripts.state === 'error' ? `Scripts: ${catalogs.scripts.error}` : null,
+    catalogs.dirs.state === 'error' ? `Folders: ${catalogs.dirs.error}` : null,
+  ].filter((item): item is string => item !== null)
   const orderedTasks = useMemo(() => orderTasks(tasks, tileOrder), [tasks, tileOrder])
 
   // Drop `id` where `overId` currently sits, everything between the two
@@ -663,14 +660,23 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
           <button
             type="button"
             onClick={() => void refresh()}
+            disabled={catalogs.refreshing}
             title="Re-read the task catalogs and the scripts folders"
             aria-label="Re-read the task catalogs and the scripts folders"
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
           >
-            <RefreshCw className="h-3 w-3" />
+            <RefreshCw className={cn('h-3 w-3', catalogs.refreshing && 'animate-spin')} />
           </button>
         )}
       </div>
+
+      {catalogs.refreshing && <p role="status" className="px-1 text-xs text-ink-faint">Refreshing task and script catalogs…</p>}
+      {catalogErrors.length > 0 && (
+        <div role="alert" className="flex flex-wrap items-center gap-2 rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
+          <span>{catalogErrors.join(' · ')}</span>
+          <button type="button" className="underline" onClick={() => void refresh()}>Retry failed sources</button>
+        </div>
+      )}
 
       {filter && entries.length === 0 && (
         <p className="px-1 text-xs text-ink-faint">
