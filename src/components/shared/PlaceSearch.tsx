@@ -141,7 +141,11 @@ export function PlaceSearch({
           spellCheck={false}
           autoComplete="off"
           aria-label="Find a place by name"
-          className="min-w-0 flex-1 bg-transparent py-1 text-xs text-ink outline-none placeholder:text-ink-faint"
+          // The docked map can be very narrow. The zone picker used to be
+          // shrink-0, which left this perfectly real input at exactly 0px:
+          // present to assistive technology, impossible to click. Both
+          // controls now keep a small usable floor and share whatever remains.
+          className="min-w-12 flex-[2_1_8rem] bg-transparent py-1 text-xs text-ink outline-none placeholder:text-ink-faint"
         />
         {query && (
           <button
@@ -168,7 +172,7 @@ export function PlaceSearch({
               onChange={(e) => onZone(e.target.value)}
               aria-label="Browse any map zone"
               title="Browse any map zone"
-              className="max-w-40 shrink-0 bg-surface py-1 text-xs text-ink-muted outline-none"
+              className="min-w-12 max-w-40 flex-[1_1_7rem] bg-surface py-1 text-xs text-ink-muted outline-none"
             >
               {!here && <option value="">All zones</option>}
               {here && !hereIsShipped && <option value={here}>Current zone</option>}

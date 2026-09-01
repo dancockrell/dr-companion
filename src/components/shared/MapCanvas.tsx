@@ -328,7 +328,33 @@ export function MapCanvas({
   // appear near where the hover started.
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
+  const hoverCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const character = useAppStore((s) => s.character)
+
+  const keepHoverOpen = () => {
+    if (hoverCloseTimer.current != null) {
+      clearTimeout(hoverCloseTimer.current)
+      hoverCloseTimer.current = null
+    }
+  }
+
+  // There is a small physical gap between a room mark and its card. Closing
+  // the card on the room's mouseleave made the link inside it a mirage: the
+  // card disappeared while the pointer crossed that gap. A short grace period
+  // lets the card take ownership of the hover without leaving stale cards
+  // behind when the player simply moves elsewhere on the map.
+  const closeHoverSoon = () => {
+    keepHoverOpen()
+    hoverCloseTimer.current = setTimeout(() => {
+      setHoverId(null)
+      setHoverPos(null)
+      hoverCloseTimer.current = null
+    }, 240)
+  }
+
+  useEffect(() => () => {
+    if (hoverCloseTimer.current != null) clearTimeout(hoverCloseTimer.current)
+  }, [])
 
   // Reports the "here" room's pixel position whenever it is known, so a
   // viewport (useMapViewport) can center on it without re-deriving px/py
@@ -512,14 +538,14 @@ export function MapCanvas({
             }}
             onMouseEnter={(e) => {
               if (r.id == null) return
+              keepHoverOpen()
               setHoverId(r.id)
               const box = wrapRef.current?.getBoundingClientRect()
               if (box) setHoverPos({ x: e.clientX - box.left, y: e.clientY - box.top })
             }}
             onMouseLeave={() => {
               if (r.id == null) return
-              setHoverId((h) => (h === r.id ? null : h))
-              setHoverPos(null)
+              closeHoverSoon()
             }}
             // Drag-and-drop a pin type onto this room. Reuses the same hover
             // lift a mouseenter gives - the room under the drag should read
@@ -850,7 +876,11 @@ export function MapCanvas({
         pin={pins?.get(hoverId)}
         x={hoverPos.x}
         y={hoverPos.y}
+        containerWidth={wrapRef.current?.clientWidth ?? 0}
+        containerHeight={wrapRef.current?.clientHeight ?? 0}
         character={character?.name ? { name: character.name, instance: character.instance } : null}
+        onMouseEnter={keepHoverOpen}
+        onMouseLeave={closeHoverSoon}
       />
     )}
     </div>

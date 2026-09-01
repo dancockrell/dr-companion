@@ -46,6 +46,9 @@ const hoverCard = readFileSync('src/components/shared/RoomHoverCard.tsx', 'utf8'
 check('automatic landmarks render below saved pins', canvas.indexOf('Automatic world landmarks') < canvas.indexOf('A saved place'))
 check('automatic landmarks do not add a second persistent pin bar', !canvas.includes('Landmarks · hover for meaning'))
 check('every room tooltip offers an Elanthipedia lookup', hoverCard.includes('Look up this place on Elanthipedia') && hoverCard.includes('Special:Search'))
+check('room tooltips remain open while crossing into their controls', canvas.includes('closeHoverSoon') && canvas.includes('onMouseEnter={keepHoverOpen}') && hoverCard.includes('onMouseEnter={onMouseEnter}'))
+check('room tooltips grow inward from map edges', hoverCard.includes('containerWidth / 2') && hoverCard.includes('containerHeight / 2') && hoverCard.includes('max-h-[calc(100%-1rem)]'))
+check('room tooltips explain gateway and movement context', hoverCard.includes('Next map') && hoverCard.includes('Leaves by') && hoverCard.includes('Ways out'))
 
 if (failures) process.exit(1)
 console.log('\nall map landmark checks passed')
