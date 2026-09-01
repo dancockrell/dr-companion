@@ -4,7 +4,7 @@ import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
 import { Paperdoll, type Pose } from './Paperdoll'
-import { Activity, Anchor, Ban, BookOpen, Bug, Droplet, ExternalLink, FlaskConical, HeartCrack, HeartPulse, Skull, Zap, type LucideIcon } from 'lucide-react'
+import { Anchor, Ban, BookOpen, Bug, Droplet, ExternalLink, FlaskConical, HeartCrack, HeartPulse, Skull, Zap, type LucideIcon } from 'lucide-react'
 import { playerArtFor, playerDefaultArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { RoomBackdrop } from '../room/RoomBackdrop'
@@ -259,7 +259,7 @@ function RosterStrip({
  * its allegiance colour, while the columns merely guarantee stable places
  * to grab and scroll even when one side is temporarily empty.
  */
-function RosterColumn({ label, tone, side, children }: { label: string; tone: 'enemy' | 'friendly'; side: 'left' | 'right'; children: ReactNode }) {
+function RosterColumn({ label, side, children }: { label: string; side: 'left' | 'right'; children: ReactNode }) {
   const drag = useDragScroll()
   return (
     <div
@@ -268,13 +268,10 @@ function RosterColumn({ label, tone, side, children }: { label: string; tone: 'e
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar absolute bottom-0 top-0 z-20 w-[68px] cursor-grab overflow-x-hidden overflow-y-auto border-border/60 bg-surface/76 backdrop-blur-sm touch-none active:cursor-grabbing ${side === 'left' ? 'left-0 border-r' : 'right-0 border-l'}`}
+      className={`no-scrollbar absolute bottom-0 top-0 z-20 w-[68px] cursor-grab overflow-x-hidden overflow-y-auto bg-transparent touch-none active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
       aria-label={`${label} radar cards`}
       title={label}
     >
-      <div className={`sticky top-0 z-10 py-1 text-center text-xs font-semibold uppercase tracking-wide bg-surface/90 ${tone === 'enemy' ? 'text-danger' : 'text-info'}`}>
-        {label}
-      </div>
       <div className="flex flex-col items-center gap-1 p-1">{children}</div>
     </div>
   )
@@ -1194,13 +1191,6 @@ export function CombatRadar({
             }}
           />
 
-          <div className="pointer-events-none absolute left-2 top-9 z-10 flex items-center gap-2 rounded-full border border-border/50 bg-surface/75 px-2 py-1 text-xs text-ink backdrop-blur-sm">
-            <Activity className="h-4 w-4 text-danger" aria-hidden />
-            <span className="font-semibold">Combat radar</span>
-            <span className="text-ink-muted">
-              {positioned.length} engaged · {stripEntries.length} nearby
-            </span>
-          </div>
           {/* The compass — the whole board, edge to edge. The roster floats
               over its right side as an overlay (below) rather than sharing
               the board's width with it, so the play area itself reaches
@@ -1260,12 +1250,12 @@ export function CombatRadar({
           )}
 
           <div aria-label="Scrollable friendly and enemy radar columns">
-            <RosterColumn label="Friends" tone="friendly" side="left">
+            <RosterColumn label="Friends" side="left">
               {friendlyLane.map((entry) => (
                 <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
               ))}
             </RosterColumn>
-            <RosterColumn label="Enemies" tone="enemy" side="right">
+            <RosterColumn label="Enemies" side="right">
               {enemyLane.map((entry) => (
                 <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
               ))}
