@@ -131,26 +131,19 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
           const expanded = open.has(c.name) || revealedBySearch
           return (
             <div key={c.name} className="space-y-1">
-              <button type="button" className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-sm hover:bg-surface-overlay" onClick={() => setOpen((previous) => { const next = new Set(previous); if (next.has(c.name)) next.delete(c.name); else next.add(c.name); return next })} aria-expanded={expanded} title={revealedBySearch ? `${c.name} contains a search match` : `Show ${c.name} contents`}>
-                <span className="text-ink flex items-center gap-1 min-w-0">
-                  {expanded ? <ChevronDown className="h-3 w-3 shrink-0 text-ink-faint" /> : <ChevronRight className="h-3 w-3 shrink-0 text-ink-faint" />}
-                  <Package className="w-3.5 h-3.5 text-ink-faint shrink-0" />
-                  <span className="truncate">{c.name}</span>
-                </span>
-                <span
-                  className={
-                    !known
-                      ? 'text-ink-faint text-xs'
-                      : pct >= 90
-                        ? 'text-danger text-xs'
-                        : pct >= 70
-                          ? 'text-warn text-xs'
-                          : 'text-ink-muted text-xs'
-                  }
-                >
-                  {known ? `${c.used}/${c.capacity}` : 'contents unknown'}
-                </span>
-              </button>
+              <div className="flex items-stretch hover:bg-surface-overlay">
+                <button type="button" className="flex min-w-0 flex-1 items-center justify-between gap-2 px-2 py-1.5 text-sm" onClick={() => setOpen((previous) => { const next = new Set(previous); if (next.has(c.name)) next.delete(c.name); else next.add(c.name); return next })} aria-expanded={expanded} title={revealedBySearch ? `${c.name} contains a search match` : `Show ${c.name} contents`}>
+                  <span className="text-ink flex items-center gap-1 min-w-0">
+                    {expanded ? <ChevronDown className="h-3 w-3 shrink-0 text-ink-faint" /> : <ChevronRight className="h-3 w-3 shrink-0 text-ink-faint" />}
+                    <Package className="w-3.5 h-3.5 text-ink-faint shrink-0" />
+                    <span className="truncate">{c.name}</span>
+                  </span>
+                  <span className={!known ? 'text-ink-faint text-xs' : pct >= 90 ? 'text-danger text-xs' : pct >= 70 ? 'text-warn text-xs' : 'text-ink-muted text-xs'}>
+                    {known ? `${c.used}/${c.capacity}` : c.items ? `${c.items.length} items` : 'contents unknown'}
+                  </span>
+                </button>
+                <button type="button" className="grid w-8 shrink-0 place-items-center border-l border-border/50 text-ink-faint hover:text-info" onClick={() => showWiki(c.name)} title={`Look up ${c.name} on Elanthipedia`} aria-label={`Elanthipedia information for ${c.name}`}><BookOpen className="h-3.5 w-3.5" /></button>
+              </div>
               {known && (
                 <div className="mx-2 mb-1.5 h-1.5 rounded-full bg-surface overflow-hidden border border-border/40">
                   <div
