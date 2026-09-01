@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { lazy, useState } from 'react'
 import { Pin, PinOff, Circle, Settings, Map as MapIcon, Highlighter } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
 import { useMapDock, setMapDock } from '../../lib/mapDock'
-import { SettingsSheet } from './SettingsSheet'
-import { ConfigManagerSheet } from '../config/ConfigManagerSheet'
 import { cn } from '../../lib/cn'
+import { LazySurface } from '../shared/LazySurface'
+
+const SettingsSheet = lazy(() => import('./SettingsSheet').then((module) => ({ default: module.SettingsSheet })))
+const ConfigManagerSheet = lazy(() => import('../config/ConfigManagerSheet').then((module) => ({ default: module.ConfigManagerSheet })))
 
 /**
  * Three controls and a connection light, floating over the top right corner.
@@ -137,8 +139,8 @@ export function AppControls() {
         </button>
       </div>
 
-      {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
-      {configOpen && <ConfigManagerSheet onClose={() => setConfigOpen(false)} />}
+      {settingsOpen && <LazySurface label="Settings"><SettingsSheet onClose={() => setSettingsOpen(false)} /></LazySurface>}
+      {configOpen && <LazySurface label="Genie config"><ConfigManagerSheet onClose={() => setConfigOpen(false)} /></LazySurface>}
     </>
   )
 }
