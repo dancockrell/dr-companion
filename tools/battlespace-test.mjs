@@ -47,6 +47,7 @@ const stringLiterals = (source) => source.match(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\
 check('the battle scene uses a compact 16:10 tactical field', /shape="landscape"/.test(battle) && /aspect-\[8\/5\]/.test(scene))
 check('room details and inventory receive the remaining useful height', /min-h-\[13rem\][^"']*flex-1/.test(battle))
 check('the full room description is permanently below the battle', /aria-label="Room description"/.test(battle) && /<ClassicRoomText/.test(battle))
+check('long room descriptions scroll independently and reset on movement', /roomDescriptionRef/.test(battle) && /overflow-y-auto/.test(battle) && /overscroll-contain/.test(battle) && /scrollTo\(\{ top: 0 \}\)/.test(battle))
 check('crowded rooms summarize people without replacing the clickable floor rail', /FULL_SUMMARY_LIMIT = 8/.test(classicRoom) && /inspect the portrait rail/.test(classicRoom) && /slice\(0, 3\)/.test(classicRoom) && /<FloorItems items=\{items\}/.test(classicRoom))
 check('inventory is permanently visible beside the room description', /aria-label="Inventory"/.test(battle) && /<InventoryPanel/.test(battle))
 check('combat controls use the complete grouped macro catalog', /MACROS\.filter/.test(actions) && /'combat'/.test(actions) && /'goods'/.test(actions) && /'magic'/.test(actions))

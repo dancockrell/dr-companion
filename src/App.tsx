@@ -245,6 +245,11 @@ export default function App() {
   const battleActive = character?.situation.includes('in_combat') ?? false
   const roomWantVisible = combatRoomWant(roomW, hostW, battleActive)
   const battleWantVisible = combatBattleWant(battleW, hostW, battleActive)
+  // When both minimum panes physically cannot fit, preserve the primary game
+  // surface and temporarily collapse the supplementary map. This is a view
+  // adaptation only: mapH is not rewritten and returns with a taller window.
+  const mapCanShareHeight =
+    hostH <= 0 || hostH >= MIN_MAP_H + MIN_GAME_CHAT_H + SPLIT_W
 
   /*
    * `fitColumns`/`pickReset` (lib/columns.ts) still speak of "map" and
@@ -352,7 +357,7 @@ export default function App() {
         ) : (
           <>
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              {dock.docked && (
+              {dock.docked && mapCanShareHeight && (
                 <>
                   <div
                     className="shrink-0 overflow-hidden"
@@ -368,13 +373,20 @@ export default function App() {
                     </PanelBoundary>
                   </div>
                   <Splitter
+                    label="Resize map and game chat"
                     orientation="horizontal"
                     value={hostH > 0 ? mapH / hostH : DEFAULT_MAP_SHARE}
                     onChange={(share) => setMapH(hostH * share)}
                     min={MIN_MAP_H / Math.max(hostH, 1)}
                     max={hostH > 0 ? 1 - (MIN_GAME_CHAT_H + SPLIT_W) / hostH : 0.8}
+                    defaultValue={DEFAULT_MAP_SHARE}
                   />
                 </>
+              )}
+              {dock.docked && !mapCanShareHeight && (
+                <div className="flex h-8 shrink-0 items-center border-b border-border bg-surface-raised px-2 text-xs text-ink-faint" role="status">
+                  Map hidden while the window is this short. Enlarge it to restore your saved map height.
+                </div>
               )}
               <div className="min-h-0 flex-1 overflow-auto">
                 <PanelBoundary label="Game and chat">
@@ -384,6 +396,7 @@ export default function App() {
             </div>
 
             <Splitter
+              label="Resize room and battle columns"
               value={hostW > 0 ? leftWFit / hostW : 0.34}
               onChange={moveLeftBattleEdge}
               min={0}
@@ -400,6 +413,7 @@ export default function App() {
             </div>
 
             <Splitter
+              label="Resize battle and experience columns"
               value={hostW > 0 ? 1 - experienceWFit / hostW : 0.85}
               onChange={moveBattleExperienceEdge}
               min={0}

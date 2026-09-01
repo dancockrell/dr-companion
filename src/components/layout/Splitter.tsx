@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { clampSplitterValue, splitterRange } from '../../lib/splitterRange'
 
 /**
  * A draggable divider between two columns.
@@ -27,6 +28,8 @@ export function Splitter({
    * change.
    */
   orientation = 'vertical',
+  label,
+  defaultValue,
 }: {
   /** The first column/pane's share, 0 to 1. */
   value: number
@@ -34,10 +37,19 @@ export function Splitter({
   min?: number
   max?: number
   orientation?: 'vertical' | 'horizontal'
+  /** Names the two surfaces this divider resizes. */
+  label: string
+  /** Product default used by double-click; midpoint when omitted. */
+  defaultValue?: number
 }) {
   const [dragging, setDragging] = useState(false)
   const host = useRef<HTMLDivElement>(null)
   const horizontal = orientation === 'horizontal'
+  const range = splitterRange(min, max)
+  const emit = useCallback(
+    (next: number) => onChange(clampSplitterValue(next, range)),
+    [onChange, range.min, range.max]
+  )
 
   const shareAt = useCallback(
     (clientPos: number) => {
@@ -47,9 +59,9 @@ export function Splitter({
       const extent = horizontal ? box.height : box.width
       const origin = horizontal ? box.top : box.left
       if (extent <= 0) return null
-      return Math.min(max, Math.max(min, (clientPos - origin) / extent))
+      return clampSplitterValue((clientPos - origin) / extent, range)
     },
-    [max, min, horizontal]
+    [range.min, range.max, horizontal]
   )
 
   /**
@@ -124,28 +136,35 @@ export function Splitter({
     <div
       ref={host}
       role="separator"
+      aria-label={label}
       aria-orientation={horizontal ? 'horizontal' : 'vertical'}
-      aria-valuenow={Math.round(value * 100)}
+      aria-valuemin={Math.round(range.min * 100)}
+      aria-valuemax={Math.round(range.max * 100)}
+      aria-valuenow={Math.round(clampSplitterValue(value, range) * 100)}
+      aria-valuetext={`${Math.round(clampSplitterValue(value, range) * 100)}% to the first pane`}
       tabIndex={0}
-      title="Drag to resize. Double-click to even them up."
+      title={`${label}. Drag or use arrow keys to resize; Home/End move to the limits; double-click restores the default.`}
       onPointerDown={start}
       onPointerMove={(e) => {
         if (activePointer.current !== e.pointerId) return
         const next = shareAt(horizontal ? e.clientY : e.clientX)
-        if (next !== null) onChange(next)
+        if (next !== null) emit(next)
       }}
       onPointerUp={end}
       onPointerCancel={end}
-      onDoubleClick={() => onChange(0.5)}
+      onDoubleClick={() => emit(defaultValue ?? (range.min + range.max) / 2)}
       // Arrow keys, because a divider that only answers to the mouse is one
       // more thing that cannot be reached without it. Up/down for a
       // horizontal bar, left/right for a vertical one - whichever axis the
       // bar actually moves along.
       onKeyDown={(e) => {
         const [dec, inc] = horizontal ? ['ArrowUp', 'ArrowDown'] : ['ArrowLeft', 'ArrowRight']
-        if (e.key === dec) onChange(Math.max(min, value - 0.02))
-        if (e.key === inc) onChange(Math.min(max, value + 0.02))
-        if (e.key === 'Home') onChange(0.5)
+        if (![dec, inc, 'Home', 'End'].includes(e.key)) return
+        e.preventDefault()
+        if (e.key === dec) emit(value - 0.02)
+        if (e.key === inc) emit(value + 0.02)
+        if (e.key === 'Home') emit(range.min)
+        if (e.key === 'End') emit(range.max)
       }}
       className={
         horizontal

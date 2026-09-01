@@ -51,6 +51,7 @@
     "test:live": "node tools/live-bridge-test.mjs",
     "test:cards": "node tools/cards-test.mjs",
     "test:layout": "node tools/layout-test.mjs",
+    "test:splitter-range": "node tools/splitter-range-test.mjs",
     "test:columns": "node tools/columns-test.mjs",
     "test:room": "node tools/room-test.mjs",
     "test:bestiary": "node tools/bestiary-test.mjs",

@@ -129,6 +129,12 @@ export function BattleColumn() {
   const [floorSelectionState, setFloorSelectionState] = useState<{ room: number | null; item: string | null }>({ room, item: null })
   const floorSelection = floorSelectionState.room === room ? floorSelectionState.item : null
   const setFloorSelection = (item: string | null) => setFloorSelectionState({ room, item })
+  const roomDescriptionRef = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    // A new room is new reading material. Same-room live updates retain the
+    // player's place, but movement always begins at the title and exits.
+    roomDescriptionRef.current?.scrollTo({ top: 0 })
+  }, [zone, room])
 
   // The board draws itself for nothing rather than an empty compass over
   // every peaceful room — exactly the kind of chrome this app's
@@ -256,7 +262,12 @@ export function BattleColumn() {
       </div>
 
       <div className="grid min-h-[13rem] flex-1 grid-cols-[minmax(0,0.9fr)_minmax(12rem,1.1fr)] gap-2 overflow-hidden">
-        <section className="min-w-0 overflow-hidden rounded border border-border bg-surface-raised p-2" aria-label="Room description">
+        <section
+          ref={roomDescriptionRef}
+          tabIndex={0}
+          className="no-scrollbar min-w-0 overflow-y-auto overscroll-contain rounded border border-border bg-surface-raised p-2 pb-3 focus:outline-none focus:ring-1 focus:ring-accent/60"
+          aria-label="Room description"
+        >
           {room === null ? (
             <p className="text-xs text-ink-faint">Not in a room yet.</p>
           ) : (
