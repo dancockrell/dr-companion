@@ -109,7 +109,7 @@ export function QuickSwitchBar() {
         Icon: Play,
         title: task?.title ?? pin.id,
         summary:
-          task?.summary ?? (catalogs.python.state === 'error'
+          task?.summary ?? (catalogs.python.error
             ? `Task lookup failed: ${catalogs.python.error}. Open Functions & Scripts to retry.`
             : catalogs.python.state === 'loading'
               ? 'Task details are loading — press to try it anyway.'

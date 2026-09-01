@@ -25,10 +25,14 @@ globalThis.__catalogDirs = () => impl.dirs()
 
 const dir = mkdtempSync(join(tmpdir(), 'task-catalog-status-'))
 const output = join(dir, 'taskCatalogStatus.mjs')
+writeFileSync(join(dir, 'asyncState.mjs'), ts.transpileModule(readFileSync('src/lib/asyncState.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText)
 let source = ts.transpileModule(readFileSync('src/lib/taskCatalogStatus.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText
 source = source
+  .replace("from './asyncState';", "from './asyncState.mjs';")
   .replace("import { useSyncExternalStore } from 'react';", 'const useSyncExternalStore = () => {};')
   .replace("import { nodeStatus } from './nodeTasks';", 'const nodeStatus = globalThis.__catalogNode;')
   .replace("import { pythonStatus } from './pythonTasks';", 'const pythonStatus = globalThis.__catalogPython;')
@@ -51,7 +55,7 @@ impl = {
 await store.refreshTaskCatalogs()
 state = store.getTaskCatalogSnapshot()
 ok('retry recovers a failed source in-session', state.python.value?.tasks[0].id === 'py.recovered' && state.python.state === 'ready')
-ok('multiple failures remain independently identified', state.node.state === 'error' && state.scripts.state === 'error')
+ok('multiple refresh failures remain independently identified as stale', state.node.state === 'stale' && state.scripts.state === 'stale')
 ok('a newly failed source preserves its last healthy value', state.node.value?.tasks[0].id === 'ts.healthy')
 
 let releaseOld

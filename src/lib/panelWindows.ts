@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import type { PanelId } from './layout'
 import { invokeTauri, isTauri, listenTauri } from './tauri'
+import { LatestOperation } from './asyncState'
 
 export type PanelWindowAction = 'opening' | 'closing'
 export interface PanelWindowSnapshot {
@@ -13,6 +14,7 @@ export interface PanelWindowSnapshot {
 let snapshot: PanelWindowSnapshot = { open: [], pending: {}, errors: {}, registryError: null }
 const listeners = new Set<() => void>()
 let started = false
+const operations = new LatestOperation<PanelId>()
 
 function publish(next: PanelWindowSnapshot) {
   snapshot = next
@@ -59,6 +61,7 @@ export function usePanelWindows() {
 }
 
 async function act(id: PanelId, action: PanelWindowAction, command: string, args: Record<string, unknown>) {
+  const operationId = operations.begin(id)
   publish({
     ...snapshot,
     pending: { ...snapshot.pending, [id]: action },
@@ -66,14 +69,16 @@ async function act(id: PanelId, action: PanelWindowAction, command: string, args
   })
   try {
     await invokeTauri(command, args)
+    if (!operations.isCurrent(id, operationId)) return
     await refreshPanelWindows()
   } catch (error) {
+    if (!operations.isCurrent(id, operationId)) return
     publish({
       ...snapshot,
       errors: { ...snapshot.errors, [id]: `${action === 'opening' ? 'Could not open' : 'Could not close'} this window: ${message(error)}` },
     })
   } finally {
-    publish({ ...snapshot, pending: { ...snapshot.pending, [id]: undefined } })
+    if (operations.finish(id, operationId)) publish({ ...snapshot, pending: { ...snapshot.pending, [id]: undefined } })
   }
 }
 
