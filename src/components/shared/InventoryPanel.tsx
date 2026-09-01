@@ -65,6 +65,11 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
   const caps = character ? capabilitiesForCharacter(character) : null
   const needle = query.trim().toLowerCase()
   const worn = (inventory.worn ?? []).filter((item) => !needle || item.toLowerCase().includes(needle))
+  const containers = inventory.containers.filter((container) =>
+    !needle ||
+    container.name.toLowerCase().includes(needle) ||
+    (container.items ?? []).some((item) => item.toLowerCase().includes(needle))
+  )
 
   /**
    * `pressure`/`used`/`capacity` come from the bridge already fabricated:
@@ -119,14 +124,16 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
       </div>
 
       <div className="rounded-xl border border-border bg-surface-raised divide-y divide-border">
-        {inventory.containers.map((c) => {
+        {containers.map((c) => {
           const known = c.capacity > 0
           const pct = known ? Math.round((c.used / c.capacity) * 100) : 0
+          const revealedBySearch = Boolean(needle) && Boolean(c.items)
+          const expanded = open.has(c.name) || revealedBySearch
           return (
             <div key={c.name} className="space-y-1">
-              <button type="button" className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-sm hover:bg-surface-overlay" onClick={() => setOpen((previous) => { const next = new Set(previous); if (next.has(c.name)) next.delete(c.name); else next.add(c.name); return next })} aria-expanded={open.has(c.name)}>
+              <button type="button" className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-sm hover:bg-surface-overlay" onClick={() => setOpen((previous) => { const next = new Set(previous); if (next.has(c.name)) next.delete(c.name); else next.add(c.name); return next })} aria-expanded={expanded} title={revealedBySearch ? `${c.name} contains a search match` : `Show ${c.name} contents`}>
                 <span className="text-ink flex items-center gap-1 min-w-0">
-                  {open.has(c.name) ? <ChevronDown className="h-3 w-3 shrink-0 text-ink-faint" /> : <ChevronRight className="h-3 w-3 shrink-0 text-ink-faint" />}
+                  {expanded ? <ChevronDown className="h-3 w-3 shrink-0 text-ink-faint" /> : <ChevronRight className="h-3 w-3 shrink-0 text-ink-faint" />}
                   <Package className="w-3.5 h-3.5 text-ink-faint shrink-0" />
                   <span className="truncate">{c.name}</span>
                 </span>
@@ -158,7 +165,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
                   />
                 </div>
               )}
-              {open.has(c.name) && (
+              {expanded && (
                 <div className="border-t border-border/60 bg-surface/50">
                   {groupedItems((c.items ?? []).filter((item) => !needle || item.toLowerCase().includes(needle))).map(({ name, count }) => <ItemRow key={name} name={name} count={count} onWiki={showWiki} />)}
                   {!c.items && <button type="button" className="w-full px-2 py-1.5 text-left text-xs text-info hover:bg-surface-overlay" onClick={() => void sendGame(`inventory ${itemTarget(c.name)}`)}>Scan this container in game</button>}
@@ -168,9 +175,9 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
             </div>
           )
         })}
-        {inventory.containers.length === 0 && (
+        {containers.length === 0 && (
           <div className="px-2 py-1.5 text-xs text-ink-faint">
-            No containers reported
+            {needle ? `Nothing carried matches “${query.trim()}”` : 'No containers reported'}
           </div>
         )}
         <div className="px-2 py-1.5 flex justify-between text-xs text-ink-faint">

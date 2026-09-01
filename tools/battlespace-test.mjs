@@ -29,6 +29,7 @@ check('floor items open explicit actions instead of taking immediately', /Action
 check('floor and carried items link to Elanthipedia searches', /Special:Search/.test(floor) && /Special:Search/.test(inventory) && /Full Elanthipedia page/.test(inventory))
 check('carried duplicates collapse into stable counted rows', /function groupedItems/.test(inventory) && /count > 1/.test(inventory) && /key=\{name\}/.test(inventory))
 check('late wiki replies cannot replace the currently selected item', /wikiRequest/.test(inventory) && /request === wikiRequest\.current/.test(inventory))
+check('inventory search reveals matching bags and contents', /container\.items.*\.some/.test(inventory) && /revealedBySearch/.test(inventory) && /Nothing carried matches/.test(inventory))
 
 if (failures) process.exit(1)
 console.log('\nall battlespace checks passed')
