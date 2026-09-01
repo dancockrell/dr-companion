@@ -3,6 +3,7 @@ type PatternRule = { zone: string; ranges: readonly (readonly [number, number])[
 const HOLD_ROOMS = 3
 const RULES: readonly PatternRule[] = [
   {"zone":"1","ranges":[[129,132]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Gildleaf Circle
+  {"zone":"1","ranges":[[391,394]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Traders' Market
   {"zone":"1","ranges":[[516,522]],"arts":["/room-scenes/archetype-garden-1.webp","/room-scenes/archetype-garden-4.webp","/room-scenes/archetype-garden-6.webp"]}, // 1::Gardens
   {"zone":"1","ranges":[[607,610],[612,614]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Smithy Lane
   {"zone":"1a","ranges":[[12,17]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp","/room-scenes/archetype-riverside-3.webp"]}, // 1a::Under the Segoltha
