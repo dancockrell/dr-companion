@@ -30,13 +30,13 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Pull requests normally check out a detached merge commit. Use the
           # actual same-repo head branch so generated runtime data can be
           # synchronized once, then verified in this same run.
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -46,7 +46,7 @@ jobs:
       - name: Test scene semantics and basket integrity
         run: npm run test:room-scene-patterns
       - name: Capture generated scene data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: generated-scene-data
           path: |
