@@ -234,6 +234,10 @@ export interface CharacterStatus {
   accountTier: AccountTier
   guild?: string
   race?: string
+  /** Character gender when the bridge or an explicit local profile knows it.
+   * Optional because older bridges and some game-data providers expose race
+   * without gender; the portrait system must not turn absence into a claim. */
+  sex?: 'male' | 'female'
   circle?: number
   /**
    * Favors held with the gods. Consumed on death to reduce the penalty, so

@@ -620,6 +620,10 @@ for (const p of Object.values(presets)) {
   // Gor'Tog because it is the least generic-looking of the eleven and shows
   // immediately whether the matching works.
   p.character.race = p.character.race ?? 'Gor'+String.fromCharCode(39)+'Tog'
+  // These are authored demo-character facts, not name-based inference. The
+  // real bridge leaves sex absent until it has a source; the mock carries it
+  // so portrait QA can detect an accidental "first catalog entry" choice.
+  p.character.sex = p.character.sex ?? (p.id === 'f2p_prime' ? 'female' : 'male')
   p.character.roomItems = level > 20 ? [...DEMO_INVASION_ITEMS] : DEMO_INVASION_ITEMS.slice(0, 24)
 }
 

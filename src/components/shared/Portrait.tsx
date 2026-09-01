@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '../../lib/cn'
-import { catalogue, choose, loadPortraitManifest, portraitFor, portraitUrl } from '../../lib/portraits'
+import { catalogue, choose, genericPortraitFor, loadPortraitManifest, portraitFor, portraitUrl } from '../../lib/portraits'
 
 /**
  * The character's face.
@@ -11,9 +12,9 @@ import { catalogue, choose, loadPortraitManifest, portraitFor, portraitUrl } fro
  * default Elf — so changing it is one click and uploading your own stays the
  * better answer.
  *
- * Until the pack exists it draws the race initial rather than a grey
- * rectangle, because an empty box reads as broken and a letter reads as
- * waiting.
+ * The core pack ships with the app, so loading and incomplete metadata use a
+ * stable photographic default. A character portrait never collapses to a
+ * letter, which reads like missing art rather than a person.
  */
 export function Portrait({
   character,
@@ -46,66 +47,91 @@ export function Portrait({
     void loadPortraitManifest().then(() => setReady(true))
   }, [])
 
-  const key = chosen ?? (ready ? portraitFor({ character, look, race, sex }) : null)
-  const options = ready ? catalogue() : []
+  const suggested = ready ? portraitFor({ character, look, race, sex }) : genericPortraitFor(character)
+  const key = chosen ?? suggested ?? genericPortraitFor(character)
+  const emergencyKey = key === 'human-male' ? 'human-female' : 'human-male'
+  const displayKey = failed ? emergencyKey : key
+  // catalogue() has a shipped-core baseline. The chooser must work on the
+  // first frame rather than becoming a dead button until an optional manifest
+  // request finishes; `ready` only improves automatic matching above.
+  const options = catalogue()
 
   const height = size
   const width = Math.round(size * 0.75)
-
-  if (!key || failed) {
-    return (
-      <div
-        style={{ width, height }}
-        className={`flex shrink-0 items-center justify-center border border-border bg-surface-overlay text-sm text-ink-faint ${shape === 'oval' ? 'rounded-full' : 'rounded-sm'}`}
-        title={ready ? 'No portrait for this race yet' : 'Looking for portraits'}
-      >
-        {(race ?? character).charAt(0).toUpperCase()}
-      </div>
-    )
-  }
 
   return (
     <div className="relative shrink-0">
       <button
         type="button"
         onClick={() => setPicking((v) => !v)}
-        title={`${key.replace(/-/g, ' ')} — click to change`}
+        aria-haspopup="dialog"
+        aria-expanded={picking}
+        title={`${sex ? displayKey.replace(/-/g, ' ') : `${race ?? 'Generic'} default · gender not yet known`} — click to change`}
         className={`block overflow-hidden border border-border ${shape === 'oval' ? 'rounded-full ring-1 ring-info/30' : 'rounded-sm'}`}
         style={{ width, height }}
       >
         <img
-          src={portraitUrl(key)}
-          alt={`${character}, ${key.replace(/-/g, ' ')}`}
-          onError={() => setFailed(true)}
+          src={portraitUrl(displayKey)}
+          alt={`${character}, ${sex ? displayKey.replace(/-/g, ' ') : `${race ?? 'generic'} portrait, gender unknown`}`}
+          onError={() => {
+            if (!failed) setFailed(true)
+          }}
           className={`h-full w-full object-cover ${focus === 'face' ? 'object-[center_18%]' : ''}`}
         />
       </button>
 
-      {picking && options.length > 0 && (
-        <div className="absolute left-0 top-full z-40 mt-1 grid max-h-56 w-56 grid-cols-4 gap-1 overflow-auto rounded border border-border bg-surface-overlay p-1 shadow-lg">
-          {options.map((o) => (
-            <button
-              key={o.key}
-              type="button"
-              onClick={() => {
-                choose(character, o.key)
-                setChosen(o.key)
-                setPicking(false)
-              }}
-              title={`${o.race} ${o.sex}`}
-              className={cn(
-                'overflow-hidden rounded-sm border',
-                o.key === key ? 'border-accent' : 'border-transparent hover:border-ink-faint'
-              )}
-            >
-              <img
-                src={portraitUrl(o.key)}
-                alt={`${o.race} ${o.sex}`}
-                className="h-12 w-full object-cover"
-              />
-            </button>
-          ))}
-        </div>
+      {picking && options.length > 0 && createPortal(
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/65 p-4" role="presentation">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            onClick={() => setPicking(false)}
+            aria-label="Close portrait chooser"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="portrait-chooser-title"
+            className="relative z-10 flex max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-info/45 bg-surface-overlay shadow-2xl"
+          >
+            <header className="flex items-center gap-2 border-b border-border px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <h2 id="portrait-chooser-title" className="text-sm font-semibold text-ink">Choose {character}'s portrait</h2>
+                <p className="text-xs text-ink-muted">Your choice is saved for this character and overrides the automatic default.</p>
+              </div>
+              <button type="button" onClick={() => setPicking(false)} className="rounded border border-border px-2 py-1 text-xs text-ink-muted hover:border-accent hover:text-ink">Close</button>
+            </header>
+            <div className="no-scrollbar grid min-h-0 flex-1 grid-cols-4 gap-2 overflow-y-auto p-3 sm:grid-cols-6">
+              {options.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => {
+                    choose(character, o.key)
+                    setChosen(o.key)
+                    setFailed(false)
+                    setPicking(false)
+                  }}
+                  title={`Use ${o.race} ${o.sex}`}
+                  aria-pressed={o.key === displayKey}
+                  className={cn(
+                    'overflow-hidden rounded-lg border bg-surface-raised p-1 text-left',
+                    o.key === displayKey ? 'border-accent ring-1 ring-accent/50' : 'border-border hover:border-info'
+                  )}
+                >
+                  <img
+                    src={portraitUrl(o.key)}
+                    alt={`${o.race} ${o.sex}`}
+                    className="aspect-[3/4] w-full rounded object-cover object-top"
+                  />
+                  <span className="mt-1 block truncate text-xs capitalize text-ink-muted">{o.race}</span>
+                  <span className="block text-xs capitalize text-ink-faint">{o.sex}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>,
+        document.body,
       )}
     </div>
   )

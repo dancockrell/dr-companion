@@ -181,6 +181,7 @@ export function BattleColumn() {
     ? {
         character: character.name,
         race: character.race,
+        sex: character.sex,
         injuries: character.injuries ?? {},
         injuriesKnown: character.injuries !== undefined,
         bleeding: character.bleeding,
