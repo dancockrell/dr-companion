@@ -21,6 +21,8 @@ export function Portrait({
   race,
   sex,
   size = 72,
+  shape = 'card',
+  focus = 'center',
 }: {
   character: string
   /** The character's LOOK text, if the bridge has read it. */
@@ -28,6 +30,12 @@ export function Portrait({
   race?: string
   sex?: 'male' | 'female'
   size?: number
+  /** Radar uses an oval face crop inside its oval dashboard; other portrait
+   * pickers retain the full rectangular character card. */
+  shape?: 'card' | 'oval'
+  /** Generated portraits include shoulders and clothing. The radar needs the
+   * face to remain visible as its frame scales down. */
+  focus?: 'center' | 'face'
 }) {
   const [ready, setReady] = useState(false)
   const [picking, setPicking] = useState(false)
@@ -48,7 +56,7 @@ export function Portrait({
     return (
       <div
         style={{ width, height }}
-        className="flex shrink-0 items-center justify-center rounded-sm border border-border bg-surface-overlay text-sm text-ink-faint"
+        className={`flex shrink-0 items-center justify-center border border-border bg-surface-overlay text-sm text-ink-faint ${shape === 'oval' ? 'rounded-full' : 'rounded-sm'}`}
         title={ready ? 'No portrait for this race yet' : 'Looking for portraits'}
       >
         {(race ?? character).charAt(0).toUpperCase()}
@@ -62,14 +70,14 @@ export function Portrait({
         type="button"
         onClick={() => setPicking((v) => !v)}
         title={`${key.replace(/-/g, ' ')} — click to change`}
-        className="block overflow-hidden rounded-sm border border-border"
+        className={`block overflow-hidden border border-border ${shape === 'oval' ? 'rounded-full ring-1 ring-info/30' : 'rounded-sm'}`}
         style={{ width, height }}
       >
         <img
           src={portraitUrl(key)}
           alt={`${character}, ${key.replace(/-/g, ' ')}`}
           onError={() => setFailed(true)}
-          className="h-full w-full object-cover"
+          className={`h-full w-full object-cover ${focus === 'face' ? 'object-[center_18%]' : ''}`}
         />
       </button>
 

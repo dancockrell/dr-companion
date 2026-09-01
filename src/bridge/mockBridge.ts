@@ -25,6 +25,7 @@ import type { GuildId } from '../data/hunting'
 import { ranksOf, type SkillState, SKILLS_BY_SET, SKILL_SETS } from '../data/skills'
 import { effectiveAthletics } from '../data/obstacles'
 import { DEMO_ZONE, demoPath } from '../data/demoMap'
+import { DEMO_INVASION_ROOM } from '../data/demoInvasionRoom'
 import { loadZone, DEFAULT_ZONE } from '../lib/mapData'
 import { loadPrefs, savePrefs } from '../lib/persistence'
 import { EXPECTED_BRIDGE_VERSION } from '../lib/versions'
@@ -156,6 +157,40 @@ interface DemoPreset {
   character: CharacterStatus
   inventory: InventorySummary
 }
+
+/** A crowded real Crossing interior, chosen because its bundled 608-character
+ * description and guild-office art stress the same room viewer as the invasion
+ * roster instead of leaving the demo on an undescribed street. */
+const DEMO_INVASION_PLAYERS = [
+  'Kestrel', 'Vessa', 'Thendish', 'Orlathe', 'Brannick', 'Ysabeau',
+  'Darragh', 'Mirelle', 'Sarkranis', 'Kaelie', 'Vaerek', 'Navesi',
+  'Aislynn', 'Rhadyn', 'Talur', 'Xionara', 'Miskton', 'Leayne',
+]
+
+/** Sixty loose objects, deliberately mixing duplicates with many distinct
+ * kinds. The floor overlay must collapse repeats, expose search, and remain
+ * useful when an invasion leaves more loot than one line can hold. */
+const DEMO_INVASION_ITEMS = [
+  'some copper kronars', 'some copper kronars', 'some copper kronars', 'some copper kronars',
+  'a battered strongbox', 'a battered strongbox', 'a dented iron coffer',
+  'a rusty dagger', 'a rusty dagger', 'a chipped broadsword', 'a notched battle axe',
+  'a bent spear', 'a splintered short bow', 'a bundle of barbed arrows',
+  'a blackened tower shield', 'a cracked bone buckler', 'a torn chain hauberk',
+  'a scorched leather helm', 'a goblin skin', 'a goblin skin', 'a boar pelt',
+  'a cave troll hide', 'a blood wolf fang', 'a curved ivory tusk',
+  'an uncut sapphire', 'an uncut sapphire', 'a smoky quartz', 'a tiny ruby',
+  'a cloudy moonstone', 'a cambrinth ring', 'a glowing crystal orb',
+  'a stoppered healing potion', 'a stoppered healing potion', 'a cracked mana vial',
+  'some jadice flowers', 'some jadice flowers', 'some nemoih root', 'some hulnik grass',
+  'a sealed orders scroll', 'a bloodstained field report', 'a singed spellbook',
+  'a brass gate key', 'a ring of lockpicks', 'a coil of climbing rope',
+  'a field repair kit', 'a heavy forging hammer', 'a miner\'s pickaxe',
+  'a canvas supply sack', 'a canvas supply sack', 'a torn leather backpack',
+  'a loaf of travel bread', 'a red winter apple', 'a flask of dark ale',
+  'a smoked haunch of meat', 'a silver invasion token', 'a silver invasion token',
+  'a ceremonial banner', 'a shattered war horn', 'a charred wooden idol',
+  'a mud-caked dispatch case',
+]
 
 const presets: Record<DemoPresetId, DemoPreset> = {
   basic_prime: {
@@ -569,29 +604,28 @@ for (const p of Object.values(presets)) {
   // computed 2 - and a fabricated number that looks plausible is worse than an
   // obviously missing one, because nothing about it invites checking.
   p.character.circle = p.character.circle ?? Math.max(1, Math.round(level / 3))
-  p.character.roomPlayers = ['Kestrel', 'Vessa', 'Thendish', 'Orlathe', 'Brannick']
+  p.character.roomPlayers = [...DEMO_INVASION_PLAYERS]
   p.character.encumbrance = level > 100 ? 'Somewhat Burdened' : 'Light'
-  // The default room description contains people and floor items, not a
-  // fight. Do not inject stress-test creatures into every preset: they read
-  // as live enemies on the radar even though no game line ever announced
-  // them. Combat fixtures belong in an explicit combat demo, never ambient
-  // state presented as truth.
-  p.character.roomCreatures = []
-  p.character.roomCombatants = []
-  p.character.roomDeadCreatures = []
+  // The mock is explicitly a development fixture, not a claim about a live
+  // room. Keep the crowded invasion active on load so scaling, two grab-scroll
+  // rails, tooltips, floor search, and redraw behavior are always exercised.
+  p.character.roomCreatures = demoCombatCreatures(level)
+  p.character.roomCombatants = demoCombatAssessments(level)
+  p.character.roomDeadCreatures = ['a field goblin', 'a wild boar', 'an alley thug', 'a blood wolf']
+  p.character.situation = [...new Set([...(p.character.situation ?? []), 'in_combat' as const])]
+  p.character.activity = 'Holding the guild during a major invasion'
   p.character.injuries = demoInjuries(level)
   p.character.bleeding = demoBleeding(level)
   // A race, so the portrait has something to match. Every demo preset is a
   // Gor'Tog because it is the least generic-looking of the eleven and shows
   // immediately whether the matching works.
   p.character.race = p.character.race ?? 'Gor'+String.fromCharCode(39)+'Tog'
-  p.character.roomItems =
-    level > 20 ? ['a kobold skin', 'some copper kronars', 'a rusty dagger'] : []
+  p.character.roomItems = level > 20 ? [...DEMO_INVASION_ITEMS] : DEMO_INVASION_ITEMS.slice(0, 24)
 }
 
 /**
  * The demo room, unconditionally — overwritten 28 Aug 2026 to be a
- * deliberate stress test rather than tiered by level: 13 hostiles across 5
+ * deliberate stress test rather than tiered by level: 18 hostiles across 8
  * distinct creature types plus a player-controlled pet, all in one room, so
  * the room viewer is always exercised under real load rather than only in
  * whichever preset happens to be open.
@@ -612,6 +646,11 @@ export function demoCombatCreatures(_level: number): string[] {
     'a goblin shaman',
     'a goblin shaman',
     'a goblin shaman',
+    'a cave troll',
+    'an alley thug',
+    'a black bear',
+    'a bison',
+    'a blood wolf',
     'a goblin shaman',
     'a goblin shaman',
     // A necromancer's animated combat pet — player-controlled, not a wild
@@ -1097,7 +1136,7 @@ export class MockBridge {
           this.emit({
             type: 'map_zone',
             payload: zone
-              ? { ...zone, here: zone.rooms?.[0]?.id ?? null }
+              ? { ...zone, here: DEMO_INVASION_ROOM }
               : DEMO_ZONE,
           })
         })
@@ -1110,7 +1149,7 @@ export class MockBridge {
         // missed. This is where the room picture-viewer gets what to show.
         void loadZone(DEFAULT_ZONE).then((zone) => {
           const rooms = zone?.rooms ?? DEMO_ZONE.rooms ?? []
-          const here = rooms.find((r) => r.id === (zone ? rooms[0]?.id : DEMO_ZONE.here)) ?? rooms[0]
+          const here = rooms.find((r) => r.id === (zone ? DEMO_INVASION_ROOM : DEMO_ZONE.here)) ?? rooms[0]
           this.emit({
             type: 'map_here',
             payload: {

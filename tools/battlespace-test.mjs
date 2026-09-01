@@ -23,7 +23,15 @@ const map = readFileSync(new URL('../src/components/shared/MapPanel.tsx', import
 const grokScenes = readFileSync(new URL('../src/data/grokRoomScenes.ts', import.meta.url), 'utf8')
 const armorManager = readFileSync(new URL('../src/components/shared/ArmorManager.tsx', import.meta.url), 'utf8')
 const armorLoadout = readFileSync(new URL('../src/lib/armorLoadout.ts', import.meta.url), 'utf8')
+const portrait = readFileSync(new URL('../src/components/shared/Portrait.tsx', import.meta.url), 'utf8')
+const mockBridge = readFileSync(new URL('../src/bridge/mockBridge.ts', import.meta.url), 'utf8')
+const demoRoom = readFileSync(new URL('../src/data/demoInvasionRoom.ts', import.meta.url), 'utf8')
+const roomText = readFileSync(new URL('../src/lib/roomText.ts', import.meta.url), 'utf8')
 const bridge = readFileSync(new URL('../lich-scripts/companion_bridge.lic', import.meta.url), 'utf8')
+const invasionPlayers = mockBridge.match(/const DEMO_INVASION_PLAYERS = \[([\s\S]*?)\n\]/)?.[1] ?? ''
+const invasionItems = mockBridge.match(/const DEMO_INVASION_ITEMS = \[([\s\S]*?)\n\]/)?.[1] ?? ''
+const invasionCreatures = mockBridge.match(/export function demoCombatCreatures[\s\S]*?return \[([\s\S]*?)\n  \]/)?.[1] ?? ''
+const stringLiterals = (source) => source.match(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g) ?? []
 
 check('the battle scene uses a landscape tactical field', /shape="landscape"/.test(battle) && /aspect-\[4\/3\]/.test(scene))
 check('room details and inventory receive the remaining useful height', /min-h-\[13rem\][^"']*flex-1/.test(battle))
@@ -68,10 +76,16 @@ check('library commands can be added to and removed from the shared hotbar', /ki
 check('hotbar commands keep their exact icon, color, tooltip, and macro execution path', /actionIcon\(pin\.actionKey\)/.test(hotbar) && /actionAccent\(pin\.actionKey\)/.test(hotbar) && /variation\.commands\.join/.test(hotbar) && /macro\.run\(variation\.commands\)/.test(hotbar))
 check('map title, character, search and controls share one compact header line', /search=\{<PlaceSearch/.test(map) && /<header className="flex min-w-0 items-start gap-2"/.test(map) && !/gives is a place on the map/.test(map))
 check('room title, hands and statuses share the scene header line', /header=\{<PanelBoundary label="Status"><BattleStatus/.test(battle) && /absolute inset-x-0 top-0 z-30 flex/.test(scene))
-check('the unused radar corner is a compact armor and shield manager', /<ArmorManager/.test(radar) && /right-\[72px\] top-9/.test(armorManager) && /Wear all/.test(armorManager) && /Off all/.test(armorManager) && /Wear shield/.test(armorManager) && /Adjust shield/.test(armorManager) && /Remove shield/.test(armorManager))
+check('radar cards, rails and corner tools scale together with the viewer', /useMeasuredSize/.test(radar) && /boardHeight/.test(radar) && /viewerScale/.test(radar) && /width=\{railWidth\}/.test(radar) && /scale=\{viewerScale\}/.test(radar) && /--radar-rail/.test(radar) && /--armor-width/.test(radar))
+check('the main character portrait is an oval with a face-aware crop', /shape="oval"/.test(radar) && /focus="face"/.test(radar) && /shape\?: 'card' \| 'oval'/.test(portrait) && /object-\[center_18%\]/.test(portrait))
+check('the unused radar corner is a responsive armor and shield manager', /<ArmorManager/.test(radar) && /var\(--radar-rail/.test(armorManager) && /var\(--armor-width/.test(armorManager) && /Wear all/.test(armorManager) && /Off all/.test(armorManager) && /Wear shield/.test(armorManager) && /Adjust shield/.test(armorManager) && /Remove shield/.test(armorManager))
 check('armor coverage is per-piece, complete, editable, and character-persistent', /ARMOR_COVERAGE/.test(armorManager) && /toggleCoverage/.test(armorManager) && /provenance: 'player'/.test(armorManager) && /drc\.armor-loadouts\.v1/.test(armorLoadout) && /'head'[\s\S]*'eyes'[\s\S]*'neck'[\s\S]*'chest'[\s\S]*'abdomen'[\s\S]*'back'[\s\S]*'arms'[\s\S]*'hands'[\s\S]*'legs'[\s\S]*'feet'[\s\S]*'shield'/.test(armorLoadout))
+check('armor coverage is an interactive two-row summary with gaps and overlaps', /coverageFilter/.test(armorManager) && /shownPieces/.test(armorManager) && /aria-pressed/.test(armorManager) && /open zones/.test(armorManager) && /overlaps/.test(armorManager) && /grid-cols-6/.test(armorManager))
 check('armor controls and slot swaps reach the guarded real bridge', /requestIntent\('armor_manage'/.test(armorManager) && /conflicting\.length \? 'swap' : 'wear'/.test(armorManager) && /COMMAND_SENDING[^\n]*armor_manage/.test(bridge) && /DRCI\.wear_item\?/.test(bridge) && /DRCI\.remove_item\?/.test(bridge) && /operation == 'swap'/.test(bridge))
 check('armor manager keeps the readable type floor', !/text-\[(?:10|11)px\]/.test(armorManager))
+check('the mock invasion balances eighteen PCs against eighteen live monsters', stringLiterals(invasionPlayers).length === 18 && stringLiterals(invasionCreatures).length === 18 && /roomPlayers = \[\.\.\.DEMO_INVASION_PLAYERS\]/.test(mockBridge) && /roomCreatures = demoCombatCreatures/.test(mockBridge))
+check('the mock invasion fills the searchable floor with a large varied pile', stringLiterals(invasionItems).length >= 50 && /roomItems = level > 20 \? \[\.\.\.DEMO_INVASION_ITEMS\]/.test(mockBridge))
+check('the mock uses a long, real data-derived room description in a fresh clone', /DEMO_INVASION_ROOM = 308/.test(demoRoom) && /room-prompts-priority\.json/.test(demoRoom) && /Paneled in dark mahogany/.test(demoRoom) && demoRoom.length > 900 && /DEMO_INVASION_ROOM_TEXT/.test(roomText))
 
 if (failures) process.exit(1)
 console.log('\nall battlespace checks passed')

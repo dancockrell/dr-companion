@@ -77,6 +77,7 @@ export function ArmorManager() {
   const [expanded, setExpanded] = useState(false)
   const [loadouts, setLoadouts] = useState<ArmorLoadouts>(loadArmorLoadouts)
   const [selected, setSelected] = useState('')
+  const [coverageFilter, setCoverageFilter] = useState<ArmorCoverage | null>(null)
   const drag = useDragScroll()
 
   const characterKey = character?.name.trim().toLowerCase() || 'unknown'
@@ -131,6 +132,8 @@ export function ArmorManager() {
     for (const part of piece.coverage) coverageCount.set(part, (coverageCount.get(part) ?? 0) + 1)
   }
   const bodyCovered = ARMOR_COVERAGE.filter((part) => part !== 'shield' && (coverageCount.get(part) ?? 0) > 0).length
+  const overlaps = ARMOR_COVERAGE.filter((part) => (coverageCount.get(part) ?? 0) > 1).length
+  const shownPieces = coverageFilter ? pieces.filter((piece) => piece.coverage.includes(coverageFilter)) : pieces
 
   const addSelected = () => {
     if (!selected) return
@@ -153,7 +156,8 @@ export function ArmorManager() {
 
   return (
     <aside
-      className="absolute right-[72px] top-9 z-30 w-[min(18rem,calc(100%-9rem))] overflow-hidden rounded-xl border border-info/35 bg-surface/88 text-ink shadow-xl shadow-black/40 backdrop-blur-md"
+      className="absolute top-9 z-30 max-w-[calc(100%-8rem)] overflow-hidden rounded-xl border border-info/35 bg-surface/88 text-ink shadow-xl shadow-black/40 backdrop-blur-md"
+      style={{ right: 'calc(var(--radar-rail, 68px) + 4px)', width: 'var(--armor-width, 288px)' }}
       aria-label="Armor manager"
     >
       <button
@@ -165,31 +169,47 @@ export function ArmorManager() {
       >
         <ShieldCheck className="h-4 w-4 shrink-0 text-info" />
         <span className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide">Armor rack</span>
-        <span className="text-xs tabular-nums text-ink-muted">{bodyCovered}/10 · {pieces.length}</span>
+        <span className="text-xs tabular-nums text-ink-muted">{bodyCovered} protected · {pieces.length} pieces</span>
         {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
 
-      <div className="grid grid-cols-11 gap-px border-y border-border/60 bg-border/60" aria-label="Current armor coverage">
+      <div className="grid grid-cols-6 gap-px border-y border-border/60 bg-border/60" aria-label="Current armor coverage — select a body location to filter the rack">
         {ARMOR_COVERAGE.map((part) => {
           const { Icon, label, short } = COVERAGE_META[part]
           const count = coverageCount.get(part) ?? 0
           return (
-            <span
+            <button
+              type="button"
               key={part}
-              className={`relative grid aspect-square place-items-center bg-surface/95 ${count === 0 ? 'text-ink-faint' : count === 1 ? 'text-good' : 'text-warn'}`}
-              title={`${label}: ${count === 0 ? 'uncovered' : count === 1 ? 'covered' : `${count} overlapping pieces`}`}
+              className={`relative flex min-h-7 items-center justify-center gap-1 bg-surface/95 px-1 ${count === 0 ? 'text-ink-faint' : count === 1 ? 'text-good' : 'text-warn'} ${coverageFilter === part ? 'ring-1 ring-inset ring-accent' : 'hover:bg-surface-overlay'}`}
+              title={`${label}: ${count === 0 ? 'uncovered' : count === 1 ? 'covered' : `${count} overlapping pieces`} — click to ${coverageFilter === part ? 'show all armor' : `show ${label.toLowerCase()} pieces`}`}
               aria-label={`${label}: ${count === 0 ? 'uncovered' : `${count} pieces`}`}
+              aria-pressed={coverageFilter === part}
+              onClick={() => {
+                setCoverageFilter((current) => current === part ? null : part)
+                setExpanded(true)
+              }}
             >
               <Icon className="h-3.5 w-3.5" />
-              <span className="sr-only">{short}</span>
-              {count > 1 && <span className="absolute right-0 top-0 text-xs leading-none">{count}</span>}
-            </span>
+              <span className="text-xs font-medium">{short}</span>
+              {count > 0 && <span className="text-xs tabular-nums">{count}</span>}
+            </button>
           )
         })}
       </div>
 
       {expanded && (
         <div className="space-y-1.5 p-2">
+          <div className="flex items-center gap-1 text-xs text-ink-muted">
+            <span>{10 - bodyCovered} open zones</span>
+            <span aria-hidden>·</span>
+            <span className={overlaps ? 'text-warn' : 'text-good'}>{overlaps} overlaps</span>
+            {coverageFilter && (
+              <button type="button" onClick={() => setCoverageFilter(null)} className="ml-auto rounded border border-accent/45 px-1.5 py-0.5 text-accent hover:bg-accent/10" title="Show every armor piece">
+                {COVERAGE_META[coverageFilter].label} · clear
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-3 gap-1">
             <button type="button" disabled={!canSend || wearAll.length === 0} onClick={() => run('wear', wearAll)} className="flex items-center justify-center gap-1 rounded border border-good/45 bg-good/10 px-1 py-1 text-xs text-good hover:bg-good/20 disabled:cursor-not-allowed disabled:opacity-35" title={wearAll.length ? `Wear ${wearAll.length} missing rack pieces` : 'Every rack piece is already worn'}><ShieldCheck className="h-3.5 w-3.5" />Wear all</button>
             <button type="button" disabled={!canSend || removeAll.length === 0} onClick={() => run('remove', removeAll)} className="flex items-center justify-center gap-1 rounded border border-danger/45 bg-danger/10 px-1 py-1 text-xs text-danger hover:bg-danger/20 disabled:cursor-not-allowed disabled:opacity-35" title={removeAll.length ? `Remove ${removeAll.length} worn rack pieces` : 'No rack pieces are currently worn'}><ShieldOff className="h-3.5 w-3.5" />Off all</button>
@@ -220,7 +240,7 @@ export function ArmorManager() {
             onPointerCancel={drag.onPointerCancel}
             className="no-scrollbar max-h-48 cursor-grab space-y-1 overflow-y-auto touch-none active:cursor-grabbing"
           >
-            {pieces.map((piece) => {
+            {shownPieces.map((piece) => {
               const on = wornNow(piece.name, worn)
               const conflicting = on ? [] : pieces.filter((candidate) =>
                 candidate.id !== piece.id
@@ -258,6 +278,7 @@ export function ArmorManager() {
               )
             })}
             {pieces.length === 0 && <p className="px-1 py-2 text-center text-xs text-ink-faint">Add armor from inventory.</p>}
+            {pieces.length > 0 && shownPieces.length === 0 && <p className="px-1 py-2 text-center text-xs text-ink-faint">Nothing covers {coverageFilter ? COVERAGE_META[coverageFilter].label.toLowerCase() : 'this location'}.</p>}
           </div>
 
           {!available && <p className="text-xs text-warn">Update the Companion bridge to enable armor commands.</p>}

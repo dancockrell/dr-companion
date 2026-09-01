@@ -1,4 +1,5 @@
 import { grokRoomScene } from '../data/grokRoomScenes'
+import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom'
 
 /**
  * The description of the room you are standing in.
@@ -53,12 +54,14 @@ async function loadZoneText(zone: string): Promise<Record<string, RoomText>> {
 /** The description for one room, or null while it loads or if there is none. */
 export async function roomTextFor(zone: string, room: number): Promise<RoomText | null> {
   const all = await loadZoneText(zone)
-  return all[`${zone}-${room}`] ?? null
+  return all[`${zone}-${room}`]
+    ?? (zone === '1' && room === DEMO_INVASION_ROOM ? DEMO_INVASION_ROOM_TEXT : null)
 }
 
 /** Synchronous read, for a zone already fetched. Null means "not yet". */
 export function cachedRoomText(zone: string, room: number): RoomText | null {
-  return cache.get(zone)?.[`${zone}-${room}`] ?? null
+  return cache.get(zone)?.[`${zone}-${room}`]
+    ?? (zone === '1' && room === DEMO_INVASION_ROOM ? DEMO_INVASION_ROOM_TEXT : null)
 }
 
 /**

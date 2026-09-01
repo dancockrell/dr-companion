@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useDragScroll } from '../../lib/useDragScroll'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
@@ -261,7 +261,7 @@ function RosterStrip({
  * its allegiance colour, while the columns merely guarantee stable places
  * to grab and scroll even when one side is temporarily empty.
  */
-function RosterColumn({ label, side, children }: { label: string; side: 'left' | 'right'; children: ReactNode }) {
+function RosterColumn({ label, side, width, children }: { label: string; side: 'left' | 'right'; width: number; children: ReactNode }) {
   const drag = useDragScroll()
   return (
     <div
@@ -270,7 +270,8 @@ function RosterColumn({ label, side, children }: { label: string; side: 'left' |
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar absolute bottom-0 top-0 z-20 w-[68px] cursor-grab overflow-x-hidden overflow-y-auto bg-transparent touch-none active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
+      className={`no-scrollbar absolute bottom-0 top-0 z-20 cursor-grab overflow-x-hidden overflow-y-auto bg-transparent touch-none active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
+      style={{ width }}
       aria-label={`${label} radar cards`}
       title={label}
     >
@@ -284,18 +285,22 @@ function RosterColumn({ label, side, children }: { label: string; side: 'left' |
  * inside a resizable pane or a genuinely small screen are the same event
  * to this hook, neither is a media query.
  */
-function useMeasuredWidth() {
+function useMeasuredSize() {
   const ref = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
+  const [size, setSize] = useState({ width: 0, height: 0 })
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    setWidth(el.getBoundingClientRect().width)
-    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    const first = el.getBoundingClientRect()
+    setSize({ width: first.width, height: first.height })
+    const ro = new ResizeObserver(([entry]) => setSize({
+      width: entry.contentRect.width,
+      height: entry.contentRect.height,
+    }))
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  return { ref, width }
+  return { ref, ...size }
 }
 
 /**
@@ -922,7 +927,7 @@ function nsysIcon(wound: number): LucideIcon {
  */
 function YouCard({
   you,
-  compact,
+  scale,
 }: {
   you: {
     character: string
@@ -934,7 +939,7 @@ function YouCard({
     pose: Pose
     statusFlags: string[]
   }
-  compact: boolean
+  scale: number
 }) {
   const nsysWound = you.injuries.nsys?.wound ?? 0
   const poisoned = you.statusFlags.includes('poisoned')
@@ -949,7 +954,7 @@ function YouCard({
   // tuned number that happened to be close. The doll's own viewBox is
   // trimmed tight to its body now (Paperdoll.tsx), so there is no leftover
   // dead space at this height to justify picking a different one.
-  const portraitSize = compact ? 62 : 78
+  const portraitSize = Math.round(Math.max(54, Math.min(94, 78 * scale)))
   const dollHeight = portraitSize
 
   return (
@@ -962,7 +967,7 @@ function YouCard({
       className="pointer-events-auto flex max-w-[15rem] items-center gap-1.5 rounded-full bg-surface/70 py-1 pl-1 pr-3 ring-1 ring-border/35 backdrop-blur-sm"
       style={{ boxShadow: '0 3px 14px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.05)' }}
     >
-      <Portrait character={you.character} race={you.race ?? undefined} size={portraitSize} />
+      <Portrait character={you.character} race={you.race ?? undefined} size={portraitSize} shape="oval" focus="face" />
       <Paperdoll injuries={you.injuries} bleeding={you.bleeding} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
 
       {/* justify-start, not -center: centering a handful of short rows in a
@@ -1083,15 +1088,26 @@ export function CombatRadar({
 }) {
   const index = indexCombatants(combatants)
   const { run: runMacro, canSend: canAttack, reason: attackReason } = useMacroRunner()
-  const { ref: boardRef, width: boardWidth } = useMeasuredWidth()
+  const { ref: boardRef, width: boardWidth, height: boardHeight } = useMeasuredSize()
   const compact = boardWidth > 0 && boardWidth < COMPACT_MIN_PX
 
-  const portraitPx = compact ? 60 : 84
+  // Every movable thing is sized from the same two-dimensional viewer scale.
+  // A fixed 50px portrait looked acceptable in one screenshot and enormous
+  // or microscopic as soon as the player resized the pane. Width alone also
+  // fails when a short landscape viewer is height-constrained, so the smaller
+  // of the two axes owns the scale.
+  const viewerScale = boardWidth > 0 && boardHeight > 0
+    ? Math.max(0.65, Math.min(1.25, Math.min(boardWidth / 900, boardHeight / 650)))
+    : 1
+
+  const portraitPx = Math.round((compact ? 60 : 84) * viewerScale)
   // The strip's own cards — smaller than a positioned compass puck, since
   // "2 cards wide" only fits at a size the strip's own measured width
   // actually allows.
-  const stripPx = compact ? 40 : 50
-  const compassPortraitPx = compact ? 40 : 52
+  const stripPx = Math.round((compact ? 40 : 50) * viewerScale)
+  const compassPortraitPx = Math.round((compact ? 40 : 52) * viewerScale)
+  const railWidth = Math.max(44, Math.round(stripPx + 12))
+  const armorWidth = Math.max(224, Math.min(336, Math.round(boardWidth * 0.34)))
 
   // The compass draws edge to edge underneath two balanced side lanes.
   const compassWidth = boardWidth
@@ -1226,6 +1242,11 @@ export function CombatRadar({
           ? 'absolute inset-0 overflow-hidden'
           : 'relative mx-auto flex aspect-square w-full max-w-[300px] flex-col overflow-hidden rounded border-2 border-danger/70'
       }
+      style={{
+        '--radar-scale': viewerScale,
+        '--radar-rail': `${railWidth}px`,
+        '--armor-width': `${armorWidth}px`,
+      } as CSSProperties}
     >
       {embedded ? (
         <>
@@ -1292,7 +1313,7 @@ export function CombatRadar({
               className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{ left: `${centerXPct}%`, top: `${centerYPct}%` }}
             >
-              <YouCard you={you} compact={compact} />
+              <YouCard you={you} scale={viewerScale} />
             </div>
           )}
 
@@ -1306,12 +1327,12 @@ export function CombatRadar({
           )}
 
           <div aria-label="Scrollable friendly and enemy radar columns">
-            <RosterColumn label="Friends" side="left">
+            <RosterColumn label="Friends" side="left" width={railWidth}>
               {friendlyLane.map((entry) => (
                 <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
               ))}
             </RosterColumn>
-            <RosterColumn label="Enemies" side="right">
+            <RosterColumn label="Enemies" side="right" width={railWidth}>
               {enemyLane.map((entry) => (
                 <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
               ))}
