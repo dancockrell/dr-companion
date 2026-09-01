@@ -25,6 +25,8 @@
  *   node tools/columns-test.mjs
  */
 import {
+  combatBattleWant,
+  combatRoomWant,
   fitColumns,
   pickReset,
   ROOM_MIN,
@@ -99,6 +101,26 @@ console.log('\n-- combat can reclaim an oversized Experience rail without rewrit
   ok('Experience is capped at its useful combat width', f.dash === 220, String(f.dash))
   ok('Battle keeps at least its requested width', f.map >= 760, String(f.map))
   ok('the combat layout no longer reports a squeeze', f.squeezed === false, String(f.squeezed))
+}
+
+console.log('\n-- combat makes the battlespace the primary visual surface --')
+{
+  ok('ordinary room width is unchanged outside combat', combatRoomWant(900, 1412, false) === 900, String(combatRoomWant(900, 1412, false)))
+  ok('combat caps an oversized left workspace contextually', combatRoomWant(900, 1412, true) === 508, String(combatRoomWant(900, 1412, true)))
+  ok('combat preserves a deliberately narrow left workspace', combatRoomWant(430, 1412, true) === 430, String(combatRoomWant(430, 1412, true)))
+  ok('first paint does not invent a width before measurement', combatRoomWant(900, 0, true) === 900, String(combatRoomWant(900, 0, true)))
+  ok('ordinary Battle width is unchanged outside combat', combatBattleWant(502, 1412, false) === 502, String(combatBattleWant(502, 1412, false)))
+  ok('combat expands a stale narrow Battle preference contextually', combatBattleWant(502, 1412, true) === 691, String(combatBattleWant(502, 1412, true)))
+  ok('combat preserves an already generous Battle preference', combatBattleWant(820, 1412, true) === 820, String(combatBattleWant(820, 1412, true)))
+
+  const roomWant = combatRoomWant(900, 1412, true)
+  const battleWant = combatBattleWant(502, 1412, true)
+  const f = fitColumns({
+    hostW: 1412, roomWant, mapWant: battleWant, dashWant: 510,
+    mapDocked: true, splitW: SPLIT, dashGrowthMax: 220,
+  })
+  ok('Battle is wider than the left workspace in the laptop combat layout', f.map > f.room, `${f.map} > ${f.room}`)
+  ok('Battle receives a materially useful landscape width', f.map >= 650, `${f.map} >= 650`)
 }
 
 console.log('\n-- the regression: a squeeze must not hide the dashboard --')

@@ -1,7 +1,6 @@
 import type { MapZone, MapZoneRoom } from '../bridge/types'
 
 export type MapStampKind =
-  | 'seal'
   | 'water'
   | 'woodland'
   | 'highland'
@@ -33,7 +32,7 @@ export interface MapStamp {
 }
 
 interface StampRule {
-  kind: Exclude<MapStampKind, 'seal'>
+  kind: MapStampKind
   label: string
   pattern: RegExp
   salience?: number
@@ -63,7 +62,7 @@ const RULES: StampRule[] = [
   { kind: 'underground', label: 'Below', pattern: /\b(caves?|cavern|tunnels?|mines?|grotto|underground|sewers?|passages?)\b/i, roomsPerCopy: 34, maxCopies: 3 },
   // Settlement ink is plan-view fabric: repeated little footprints beside
   // streets, not one skyline announcing that the map contains a town.
-  { kind: 'settlement', label: 'Buildings', pattern: /\b(streets?|lanes?|avenues?|squares?|plazas?|markets?|crossing|villages?|towns?|cities?|boulevards?)\b/i, roomsPerCopy: 32, maxCopies: 12 },
+  { kind: 'settlement', label: 'Buildings', pattern: /\b(streets?|lanes?|avenues?|squares?|plazas?|markets?|crossing|villages?|towns?|cities?|boulevards?)\b/i, roomsPerCopy: 8, maxCopies: 24 },
   { kind: 'ruins', label: 'Old stones', pattern: /\b(ruins?|fallen|rubble)\b/i, roomsPerCopy: 20, maxCopies: 3 },
 
   // Named features need only one honest source room. They are the black-ink
@@ -83,12 +82,6 @@ function hash(text: string): number {
     value = Math.imul(value, 16777619)
   }
   return value >>> 0
-}
-
-function middle(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b)
-  const i = Math.floor(sorted.length / 2)
-  return sorted.length % 2 ? sorted[i] : (sorted[i - 1] + sorted[i]) / 2
 }
 
 /**
@@ -147,127 +140,52 @@ function namedEvidence(matches: MapZoneRoom[], rule: StampRule): MapZoneRoom[] {
   return spatiallyDistinct
 }
 
-function quietPoint(rooms: MapZoneRoom[]): { x: number; y: number } {
-  const points = rooms
-    .filter((room) => room.x != null && room.y != null)
-    .map((room) => ({ x: room.x as number, y: room.y as number }))
-  if (!points.length) return { x: 0, y: 0 }
+const LANDMARK_KINDS = new Set<MapStampKind>(['worship', 'fortification', 'bridge', 'harbor', 'market', 'burial', 'underground'])
 
-  const xs = points.map((point) => point.x)
-  const ys = points.map((point) => point.y)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
-
-  // Find the quietest part of the authored sheet instead of always stamping
-  // the lower-right corner, which is often a gate or a whole district. A
-  // seven-by-seven sample is deterministic and cheap even for Crossing.
-  let best = points[0]
-  let bestDistance = -1
-  for (let gy = 1; gy <= 7; gy++) {
-    for (let gx = 1; gx <= 7; gx++) {
-      const candidate = {
-        x: minX + ((maxX - minX) * gx) / 8,
-        y: minY + ((maxY - minY) * gy) / 8,
-      }
-      let nearest = Number.POSITIVE_INFINITY
-      for (const point of points) {
-        const distance = (candidate.x - point.x) ** 2 + (candidate.y - point.y) ** 2
-        if (distance < nearest) nearest = distance
-      }
-      if (nearest > bestDistance) {
-        best = candidate
-        bestDistance = nearest
-      }
-    }
+/** Find the direction of the route through an evidence room. */
+function routeBearing(anchor: MapZoneRoom, rooms: MapZoneRoom[]): number {
+  const targets = new Set([...(anchor.links ?? []).map((link) => link.to), ...(anchor.to ?? [])])
+  let neighbor = rooms.find((room) => room.id != null && targets.has(room.id))
+  if (!neighbor) {
+    neighbor = rooms
+      .filter((room) => room !== anchor)
+      .reduce<MapZoneRoom | undefined>((best, room) => {
+        if (!best) return room
+        const distance = ((room.x as number) - (anchor.x as number)) ** 2 + ((room.y as number) - (anchor.y as number)) ** 2
+        const bestDistance = ((best.x as number) - (anchor.x as number)) ** 2 + ((best.y as number) - (anchor.y as number)) ** 2
+        return distance < bestDistance ? room : best
+      }, undefined)
   }
-  return best
+  if (!neighbor) return 0
+  return Math.atan2((neighbor.y as number) - (anchor.y as number), (neighbor.x as number) - (anchor.x as number))
 }
 
-/** Put a terrain drawing in open paper near the rooms that justify it.
- * Historical pictorial symbols sit beside the route network instead of being
- * centered directly on top of it. The median keeps the illustration in the
- * right district; the distance score finds nearby breathing room. */
-function illustrationPoint(matches: MapZoneRoom[], rooms: MapZoneRoom[], seed: string): { x: number; y: number } {
-  const evidenceCenter = {
-    x: middle(matches.map((room) => room.x as number)),
-    y: middle(matches.map((room) => room.y as number)),
+/**
+ * Attach a drawing to the geography that caused it. Landmarks sit directly on
+ * their room. Terrain and town fabric sit a short normal step beside the local
+ * route, like buildings and field hatching on a survey sheet. Nothing searches
+ * for a large blank patch, because that produced the floating clip-art the
+ * user correctly rejected.
+ */
+function structuralPlacement(
+  anchor: MapZoneRoom,
+  rooms: MapZoneRoom[],
+  kind: MapStampKind,
+  seed: string
+): { x: number; y: number; rotation: number } {
+  const bearing = routeBearing(anchor, rooms)
+  const landmark = LANDMARK_KINDS.has(kind)
+  const side = hash(`${seed}:side`) % 2 ? 1 : -1
+  const offset = landmark ? 0 : kind === 'settlement' ? 17 : 21
+  const x = (anchor.x as number) + Math.cos(bearing + Math.PI / 2) * offset * side
+  const y = (anchor.y as number) + Math.sin(bearing + Math.PI / 2) * offset * side
+  const routeRotation = (bearing * 180) / Math.PI
+  const naturalRotation = (hash(`${seed}:rotation`) % 11) - 5
+  return {
+    x,
+    y,
+    rotation: kind === 'settlement' || kind === 'bridge' ? routeRotation : naturalRotation,
   }
-  const xs = rooms.map((room) => room.x as number)
-  const ys = rooms.map((room) => room.y as number)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
-  const insetX = Math.min(36, (maxX - minX) / 5)
-  const insetY = Math.min(36, (maxY - minY) / 5)
-  const safeMinX = minX + insetX
-  const safeMaxX = maxX - insetX
-  const safeMinY = minY + insetY
-  const safeMaxY = maxY - insetY
-  const shortSpan = Math.min(maxX - minX || 40, maxY - minY || 40)
-  const center = {
-    x: Math.max(safeMinX, Math.min(safeMaxX, evidenceCenter.x)),
-    y: Math.max(safeMinY, Math.min(safeMaxY, evidenceCenter.y)),
-  }
-  const radius = Math.max(18, Math.min(70, shortSpan / 4))
-  const start = hash(`${seed}:illustration`) % 12
-  const candidates = [center]
-  for (const ring of [0.55, 1]) {
-    for (let step = 0; step < 12; step++) {
-      const angle = ((start + step) * Math.PI) / 6
-      candidates.push({
-        x: Math.max(safeMinX, Math.min(safeMaxX, center.x + Math.cos(angle) * radius * ring)),
-        y: Math.max(safeMinY, Math.min(safeMaxY, center.y + Math.sin(angle) * radius * ring)),
-      })
-    }
-  }
-  const score = (point: { x: number; y: number }) => {
-    const nearestRoom = Math.min(...rooms.map((room) =>
-      (point.x - (room.x as number)) ** 2 + (point.y - (room.y as number)) ** 2
-    ))
-    const fromEvidence = (point.x - evidenceCenter.x) ** 2 + (point.y - evidenceCenter.y) ** 2
-    return nearestRoom - fromEvidence * 0.12
-  }
-  return candidates.reduce((best, point) => score(point) > score(best) ? point : best)
-}
-
-function spreadStamps(stamps: MapStamp[], rooms: MapZoneRoom[], zoneKey: string): MapStamp[] {
-  if (stamps.length < 2) return stamps
-  const xs = rooms.map((room) => room.x as number)
-  const ys = rooms.map((room) => room.y as number)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
-  const insetX = Math.min(36, (maxX - minX) / 5)
-  const insetY = Math.min(36, (maxY - minY) / 5)
-  const safeMinX = minX + insetX
-  const safeMaxX = maxX - insetX
-  const safeMinY = minY + insetY
-  const safeMaxY = maxY - insetY
-  const shortSpan = Math.min(maxX - minX || 40, maxY - minY || 40)
-  const gap = Math.max(24, Math.min(52, shortSpan / 3))
-  const placed = [stamps[0]]
-
-  for (const stamp of stamps.slice(1)) {
-    const start = hash(`${zoneKey}:${stamp.kind}:position`) % 8
-    const candidates = [{ x: stamp.x, y: stamp.y }]
-    for (let step = 0; step < 8; step++) {
-      const angle = ((start + step) * Math.PI) / 4
-      candidates.push({
-        x: Math.max(safeMinX, Math.min(safeMaxX, stamp.x + Math.cos(angle) * gap)),
-        y: Math.max(safeMinY, Math.min(safeMaxY, stamp.y + Math.sin(angle) * gap)),
-      })
-    }
-    const score = (point: { x: number; y: number }) => Math.min(...placed.map((other) =>
-      (point.x - other.x) ** 2 + (point.y - other.y) ** 2
-    ))
-    const best = candidates.reduce((winner, point) => score(point) > score(winner) ? point : winner)
-    placed.push({ ...stamp, ...best })
-  }
-  return placed
 }
 
 /**
@@ -284,18 +202,6 @@ export function deriveMapStamps(
   if (!positioned.length) return []
 
   const zoneKey = String(zone.zone ?? zone.name ?? 'map')
-  const sealAt = quietPoint(positioned)
-  const seal: MapStamp = {
-    kind: 'seal',
-    label: zone.name ?? `Zone ${zoneKey}`,
-    x: sealAt.x,
-    y: sealAt.y,
-    count: positioned.length,
-    rotation: (hash(`${zoneKey}:seal`) % 9) - 4,
-    weight: 1,
-    variant: hash(`${zoneKey}:seal:variant`) % 4,
-  }
-
   const threshold = Math.min(6, Math.max(2, Math.ceil(positioned.length / 180)))
   const candidates = RULES.flatMap((rule) => {
     const matches = positioned.filter((room) => {
@@ -323,7 +229,7 @@ export function deriveMapStamps(
       ? distributedEvidence(named, copies, `${zoneKey}:${rule.kind}`)
       : distributedEvidence(matches, copies, `${zoneKey}:${rule.kind}`)
     return anchors.map((anchor, index) => {
-      const point = illustrationPoint([anchor], positioned, `${zoneKey}:${rule.kind}:${index}`)
+      const point = structuralPlacement(anchor, positioned, rule.kind, `${zoneKey}:${rule.kind}:${index}`)
       return {
         stamp: {
           kind: rule.kind,
@@ -331,7 +237,7 @@ export function deriveMapStamps(
           x: point.x,
           y: point.y,
           count: matches.length,
-          rotation: (hash(`${zoneKey}:${rule.kind}:${index}`) % 15) - 7,
+          rotation: point.rotation,
           weight: Math.min(1.05, 0.68 + Math.log2(matches.length + 1) / 18),
           variant: hash(`${zoneKey}:${rule.kind}:${index}:variant`) % 4,
         } satisfies MapStamp,
@@ -344,20 +250,22 @@ export function deriveMapStamps(
     })
   })
 
-  // Density follows the source sheet. A tiny interior gets a compass and a
-  // handful of features; Crossing can carry many small footprints without
-  // turning the route graph into wallpaper.
-  const decorationBudget = Math.min(24, Math.max(4, Math.ceil(Math.sqrt(positioned.length) * 0.72)))
-  // First give every evidenced feature one mark; only then spend remaining
-  // ink repeating the broadest districts. Without the rounds, four docks can
-  // crowd all farmland off a large mixed-country sheet.
-  const ordered = Array.from({ length: 12 }, (_, copyIndex) => candidates
-    .filter((candidate) => candidate.copyIndex === copyIndex)
-    .sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind)))
-    .flat()
-  return spreadStamps(
-    [seal, ...ordered.slice(0, decorationBudget).map(({ stamp }) => stamp)],
-    positioned,
-    zoneKey
-  )
+  // Density follows the source sheet. Tiny interiors stay honest and sparse;
+  // Crossing can carry many small footprints without turning the route graph
+  // into wallpaper.
+  // At most 25 geographic impressions. The earlier 40-mark experiment made
+  // the busiest sheets harder to read than the room graph they explain.
+  const decorationBudget = Math.min(25, Math.max(4, Math.ceil(Math.sqrt(positioned.length) * 1.05)))
+  const firstOfEachKind = candidates
+    .filter((candidate) => candidate.copyIndex === 0)
+    .sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind))
+  const townFabric = candidates
+    .filter((candidate) => candidate.copyIndex > 0 && candidate.stamp.kind === 'settlement')
+    .sort((a, b) => a.copyIndex - b.copyIndex)
+  const landscapeRepeats = candidates
+    .filter((candidate) => candidate.copyIndex > 0 && candidate.stamp.kind !== 'settlement')
+    .sort((a, b) => a.copyIndex - b.copyIndex || b.score - a.score)
+  return [...firstOfEachKind, ...townFabric, ...landscapeRepeats]
+    .slice(0, decorationBudget)
+    .map(({ stamp }) => stamp)
 }

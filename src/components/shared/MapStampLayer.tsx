@@ -32,7 +32,7 @@ export function MapStampLayer({
     >
       {stamps.map((stamp) => {
         const landmark = ['worship', 'fortification', 'bridge', 'harbor', 'market'].includes(stamp.kind)
-        const baseSize = stamp.kind === 'seal' ? 25 : stamp.kind === 'settlement' ? 25 : landmark ? 28 : 31
+        const baseSize = stamp.kind === 'settlement' ? 25 : landmark ? 28 : 31
         const size = baseSize * unit * stamp.weight
         return (
           <g
@@ -40,7 +40,7 @@ export function MapStampLayer({
             data-map-stamp="true"
             data-map-stamp-kind={stamp.kind}
             transform={`translate(${xFor(stamp.x)} ${yFor(stamp.y)}) rotate(${stamp.rotation})`}
-            opacity={stamp.kind === 'seal' ? 0.3 : landmark ? 0.62 : stamp.kind === 'settlement' ? 0.54 : 0.43}
+            opacity={landmark ? 0.62 : stamp.kind === 'settlement' ? 0.54 : 0.43}
           >
             <MapDrawing
               kind={stamp.kind}
@@ -193,10 +193,5 @@ function MapDrawing({
     </>
   }
 
-  // An unbadged compass rose in the quietest part of the paper.
-  return <>
-    <path d={`M 0 ${-s * 0.72} L ${s * 0.13} ${-s * 0.12} L 0 ${-s * 0.24} L ${-s * 0.13} ${-s * 0.12} Z M 0 ${s * 0.72} L ${s * 0.1} ${s * 0.12} L 0 ${s * 0.24} L ${-s * 0.1} ${s * 0.12} Z`} fill="var(--map-ink)" fillOpacity={0.08} strokeWidth={line} />
-    <path d={`M ${-s * 0.72} 0 L ${-s * 0.12} ${s * 0.1} L ${-s * 0.24} 0 L ${-s * 0.12} ${-s * 0.1} Z M ${s * 0.72} 0 L ${s * 0.12} ${s * 0.1} L ${s * 0.24} 0 L ${s * 0.12} ${-s * 0.1} Z`} strokeWidth={line} />
-    <path d={`M ${-s * 0.38} ${-s * 0.38} L ${s * 0.38} ${s * 0.38} M ${s * 0.38} ${-s * 0.38} L ${-s * 0.38} ${s * 0.38}`} strokeWidth={line * 0.58} />
-  </>
+  return null
 }

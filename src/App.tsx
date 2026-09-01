@@ -17,7 +17,7 @@ import { PanelWindow } from './components/PanelWindow'
 import { PanelBoundary } from './components/shared/PanelBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
-import { fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
+import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
@@ -243,6 +243,8 @@ export default function App() {
   const character = useAppStore((s) => s.character)
   const experienceEmpty = !character
   const battleActive = character?.situation.includes('in_combat') ?? false
+  const roomWantVisible = combatRoomWant(roomW, hostW, battleActive)
+  const battleWantVisible = combatBattleWant(battleW, hostW, battleActive)
 
   /*
    * `fitColumns`/`pickReset` (lib/columns.ts) still speak of "map" and
@@ -258,8 +260,8 @@ export default function App() {
    */
   const fit = fitColumns({
     hostW,
-    roomWant: roomW,
-    mapWant: battleW,
+    roomWant: roomWantVisible,
+    mapWant: battleWantVisible,
     dashWant: experienceW,
     mapDocked: true,
     splitW: SPLIT_W,

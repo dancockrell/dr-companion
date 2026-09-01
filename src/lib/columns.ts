@@ -113,6 +113,32 @@ export const DEFAULT_DASH_W = 420
  * actually asked for in practice before room had a stored width of its own. */
 export const DEFAULT_ROOM_W = 460
 
+/**
+ * The left workspace (map plus game/functions) is important, but in combat it
+ * must not be allowed to spend most of the window while the actual room,
+ * actors, armor, floor pile and commands collapse into the middle. This is a
+ * display-only request: it never rewrites the divider position the player
+ * chose, and the complete preference returns the instant combat ends.
+ *
+ * Thirty-six percent keeps map labels and the two lower work panes useful at
+ * ordinary laptop widths while leaving Battle visibly larger. The normal
+ * room default is the floor so entering combat never makes an already narrow
+ * left workspace narrower still.
+ */
+export function combatRoomWant(roomWant: number, hostW: number, inCombat: boolean): number {
+  if (!inCombat || hostW <= 0) return roomWant
+  return Math.min(roomWant, Math.max(DEFAULT_ROOM_W, Math.floor(hostW * 0.36)))
+}
+
+/** Battle's matching combat-only floor. A historic narrow divider choice is
+ * still the right preference outside combat, but preserving it while eighteen
+ * actors, armor, items and actions are live defeats the purpose of a dedicated
+ * battlespace. Like combatRoomWant, this affects display allocation only. */
+export function combatBattleWant(battleWant: number, hostW: number, inCombat: boolean): number {
+  if (!inCombat || hostW <= 0) return battleWant
+  return Math.max(battleWant, Math.floor(hostW * 0.49))
+}
+
 export interface ResetPlan {
   /** New width to set, or null to leave that column's stored preference alone. */
   room: number | null

@@ -31,21 +31,23 @@ const second = deriveMapStamps({ zone: 'test', name: 'Test Vale' }, sample)
 
 console.log('-- stable, restrained and factual --')
 check('the same zone produces the same stamps every time', JSON.stringify(first) === JSON.stringify(second))
-check('every mapped level receives one cartographer seal', first.filter((stamp) => stamp.kind === 'seal').length === 1)
+check('maps do not receive a compulsory floating compass', first.every((stamp) => stamp.kind !== 'seal'))
 check('repeated water rooms produce a waters stamp', first.some((stamp) => stamp.kind === 'water'))
 check('repeated forest rooms produce a woodland stamp', first.some((stamp) => stamp.kind === 'woodland'))
-check('no more than four terrain facts compete with the seal', first.length <= 5, `${first.length} stamps`)
+check('a small mixed map remains restrained', first.length <= 4, `${first.length} stamps`)
 check('every stamp has a finite authored position', first.every((stamp) => Number.isFinite(stamp.x) && Number.isFinite(stamp.y)))
 check('facts with the same centroid fan into distinct positions', new Set(first.map((stamp) => `${stamp.x}:${stamp.y}`)).size === first.length)
 check('the zone id authors a distinct composition', JSON.stringify(first) !== JSON.stringify(deriveMapStamps({ zone: 'other', name: 'Test Vale' }, sample)))
+check('every drawing stays attached to its source geography', first.every((stamp) => Math.min(...sample.map((source) => Math.hypot(stamp.x - source.x, stamp.y - source.y))) <= 22))
 
 console.log('\n-- dense sheets receive repeated cartographic fabric --')
 const denseTown = Array.from({ length: 240 }, (_, index) =>
   room(index + 1, `Old Town, ${index % 3 === 0 ? 'Market Street' : index % 3 === 1 ? 'Long Lane' : 'Civic Plaza'}`, (index % 24) * 20, Math.floor(index / 24) * 20)
 )
 const townStamps = deriveMapStamps({ zone: 'town', name: 'Old Town' }, denseTown)
-check('a large town receives several building-footprint stamps', townStamps.filter((stamp) => stamp.kind === 'settlement').length >= 4, `${townStamps.filter((stamp) => stamp.kind === 'settlement').length} building groups`)
+check('a large town receives street-lining building stamps', townStamps.filter((stamp) => stamp.kind === 'settlement').length >= 12, `${townStamps.filter((stamp) => stamp.kind === 'settlement').length} building groups`)
 check('a dense sheet still has a strict decoration budget', townStamps.length <= 25, `${townStamps.length} total marks`)
+check('town fabric remains beside its mapped streets', townStamps.every((stamp) => Math.min(...denseTown.map((source) => Math.hypot(stamp.x - source.x, stamp.y - source.y))) <= 18))
 
 const namedFeatures = deriveMapStamps({ zone: 'features', name: 'Pilgrim Road' }, [
   room(1, 'St. Ratha Church', 0, 0),
@@ -56,6 +58,7 @@ const namedFeatures = deriveMapStamps({ zone: 'features', name: 'Pilgrim Road' }
 for (const kind of ['worship', 'bridge', 'harbor', 'fortification']) {
   check(`one named ${kind} can mark its actual place`, namedFeatures.some((stamp) => stamp.kind === kind))
 }
+check('named landmarks sit on their mapped room', namedFeatures.every((stamp) => namedFeatures.some((source) => source.x === stamp.x && source.y === stamp.y)))
 
 console.log('\n-- word boundaries prevent plausible nonsense --')
 const astral = deriveMapStamps({ zone: '999', name: 'Microcosm' }, [
@@ -89,7 +92,7 @@ let terrainZones = 0
 let levels = 0
 let repeatedCompositions = 0
 let busiestComposition = 0
-const missingSeals = []
+let straySeals = 0
 for (const file of readdirSync('src/data/map').filter((name) => name !== 'index.json')) {
   const zone = JSON.parse(readFileSync(`src/data/map/${file}`, 'utf8'))
   for (const level of [...new Set(zone.rooms.map((r) => r.z ?? 0))]) {
@@ -98,15 +101,15 @@ for (const file of readdirSync('src/data/map').filter((name) => name !== 'index.
       .map((r) => room(r.id, r.name, r.x, r.y, r.label ? [r.label] : []))
     const stamps = deriveMapStamps({ zone: zone.id, name: zone.name }, rooms)
     levels++
-    if (rooms.length > 0 && !stamps.some((stamp) => stamp.kind === 'seal')) missingSeals.push(`${zone.id}:${level}`)
-    if (stamps.some((stamp) => stamp.kind !== 'seal')) terrainZones++
+    if (stamps.some((stamp) => stamp.kind === 'seal')) straySeals++
+    if (stamps.length) terrainZones++
     if (stamps.length >= 4) repeatedCompositions++
     busiestComposition = Math.max(busiestComposition, stamps.length)
   }
   zones++
 }
 check('all shipped zones were audited', zones >= 85, `${zones}`)
-check('every drawable level carries its zone seal', missingSeals.length === 0, `${levels} levels${missingSeals.length ? `, missing ${missingSeals.join(', ')}` : ''}`)
+check('no drawable level carries a meaningless compass', straySeals === 0, `${levels} levels`)
 check('terrain information appears across most of the world', terrainZones >= 60, `${terrainZones} mapped levels`)
 check('many shipped maps receive a multi-stamp composition', repeatedCompositions >= 35, `${repeatedCompositions} mapped levels`)
 check('no shipped sheet exceeds the decoration ceiling', busiestComposition <= 25, `${busiestComposition} marks on the busiest sheet`)
@@ -114,9 +117,11 @@ check('no shipped sheet exceeds the decoration ceiling', busiestComposition <= 2
 console.log('\n-- the visual layer stays below function --')
 const canvas = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')
 const layer = readFileSync('src/components/shared/MapStampLayer.tsx', 'utf8')
+const derivation = readFileSync('src/lib/mapStamps.ts', 'utf8')
 check('stamps paint after paper but before the trail', canvas.indexOf('<MapStampLayer') > canvas.indexOf('fill="url(#map-paper)"') && canvas.indexOf('<MapStampLayer') < canvas.indexOf('segments(trail)'))
 check('stamps can never intercept map interaction', layer.includes('pointer-events-none') && layer.includes('aria-hidden="true"'))
 check('every impression identifies its stamp family for live QA', layer.includes('data-map-stamp-kind'))
+check('layout never searches blank paper or globally spreads stamps', !derivation.includes('illustrationPoint') && !derivation.includes('spreadStamps') && derivation.includes('structuralPlacement'))
 check('terrain is drawn as pictorial map art, not circular badges', !layer.includes('<circle') && !layer.includes('<text') && layer.includes('function Tree') && layer.includes('function Peak'))
 check('town texture uses plan-view survey footprints', layer.includes('Survey-map fabric') && layer.includes("kind === 'settlement'"))
 for (const kind of ['wetland', 'coast', 'arid', 'cultivated', 'frozen', 'burial', 'worship', 'fortification', 'bridge', 'harbor', 'market']) {
