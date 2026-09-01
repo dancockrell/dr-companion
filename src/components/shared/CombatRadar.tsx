@@ -4,7 +4,7 @@ import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
 import { Paperdoll, type Pose } from './Paperdoll'
-import { Activity, Anchor, Ban, Bug, Droplet, FlaskConical, HeartCrack, HeartPulse, Skull, Zap, type LucideIcon } from 'lucide-react'
+import { Activity, Anchor, Ban, BookOpen, Bug, Droplet, ExternalLink, FlaskConical, HeartCrack, HeartPulse, Skull, Zap, type LucideIcon } from 'lucide-react'
 import { playerArtFor, playerDefaultArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { RoomBackdrop } from '../room/RoomBackdrop'
@@ -483,13 +483,17 @@ function HoverCard({ children, content }: { children: ReactNode; content: ReactN
       onMouseEnter={show}
       onMouseLeave={hide}
       onFocus={show}
-      onBlur={hide}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) hide()
+      }}
     >
       {children}
       {open && pos && (
         <div
           role="tooltip"
-          className={`pointer-events-none fixed z-50 w-64 -translate-x-1/2 rounded border border-border bg-surface-overlay p-2 shadow-xl ${pos.flip ? '' : '-translate-y-full'}`}
+          onMouseEnter={show}
+          onMouseLeave={hide}
+          className={`pointer-events-auto fixed z-50 w-64 -translate-x-1/2 rounded border border-border bg-surface-overlay p-2 shadow-xl ${pos.flip ? '' : '-translate-y-full'}`}
           style={{ top: pos.top, left: Math.min(Math.max(pos.left, 132), window.innerWidth - 132) }}
         >
           {content}
@@ -521,9 +525,9 @@ function Fact({ label, value }: { label: string; value: ReactNode }) {
  *
  * The bestiary facts here are exactly what `data/bestiary.json` already
  * ships (scraped from Elanthipedia once, at build time — see
- * `tools/bestiary-index.mjs`), not a live re-scrape: this app has no route
- * to fetch a wiki page at runtime, and a card mid-fight is the wrong place
- * to first attempt one. A genuinely live pipeline — folding what a
+ * `tools/bestiary-index.mjs`). The card also exposes a deliberate wiki search
+ * when the player wants more detail; it does not silently fetch while merely
+ * hovering in a fight. A genuinely live pipeline — folding what a
  * character's own `assess`/`diagnose` output reveals turn to turn back into
  * this same static index, so an approximate match sharpens the more this
  * particular creature gets fought — is a real, separate feature and not
@@ -542,6 +546,7 @@ function InfoCard({
   const stale =
     combatant?.enrichedAgeSeconds != null && combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS
   const playerArtwork = card.deck === 'people' ? (playerArtFor(card.name) ?? playerDefaultArtFor(card.name)) : undefined
+  const wikiTarget = card.noun || card.name
 
   return (
     <div className="flex flex-col gap-1.5 text-xs">
@@ -616,6 +621,19 @@ function InfoCard({
             )}
           </dl>
         </div>
+      )}
+      {card.deck !== 'people' && (
+        <a
+          href={`https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(wikiTarget)}`}
+          target="_blank"
+          rel="noreferrer"
+          title={`Search Elanthipedia for ${wikiTarget}`}
+          className="flex items-center gap-1 border-t border-border/60 pt-1.5 text-info hover:underline"
+        >
+          <BookOpen className="h-3.5 w-3.5" aria-hidden />
+          Search Elanthipedia
+          <ExternalLink className="ml-auto h-3 w-3" aria-hidden />
+        </a>
       )}
     </div>
   )
