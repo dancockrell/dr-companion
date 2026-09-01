@@ -330,10 +330,10 @@ export function deriveMapStamps(
     const landmark = landmarksFor(room)[0]
     const presentation = landmark ? SERVICE_STAMPS[landmark.kind] : null
     if (!presentation) return []
-    if (serviceAnchors.some((entry) => entry.kind === presentation.kind && Math.hypot(
-      (entry.room.x as number) - (room.x as number),
-      (entry.room.y as number) - (room.y as number)
-    ) < 90)) return []
+    // A map sheet receives one exaggerated exemplar per service family. The
+    // smaller room badges still identify every branch. Repeating a huge bank
+    // or guild drawing at every matching room turns a city into a floor plan.
+    if (serviceAnchors.some((entry) => entry.kind === presentation.kind)) return []
     serviceAnchors.push({ room, kind: presentation.kind })
     return [{
       stamp: {
@@ -347,18 +347,24 @@ export function deriveMapStamps(
         role: 'hero' as const,
         variant: hash(`${zoneKey}:${presentation.kind}:${room.id ?? room.title}:variant`) % 4,
       } satisfies MapStamp,
-      score: 8,
+      score: 6 + presentation.weight,
       copyIndex: 0,
     }]
   })
 
   const candidates = [...serviceCandidates, ...geographicCandidates]
-  // Density follows the actual sheet: a 240-room town can carry hundreds of
-  // faint roof and street impressions, while a tiny interior stays sparse.
-  const decorationBudget = Math.min(500, Math.max(18, Math.ceil(positioned.length * 1.85)))
-  const heroes = candidates
+  // Generated assets are a vocabulary, not an instruction to print every
+  // possible mark. Screen-sized maps need enough quiet paper for the route
+  // graph to remain the first read, even when the underlying zone is huge.
+  const decorationBudget = Math.min(64, Math.max(12, Math.ceil(Math.sqrt(positioned.length) * 1.8)))
+  const serviceHeroes = serviceCandidates
+    .sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind))
+    .slice(0, 8)
+  const geographicHeroes = geographicCandidates
     .filter((candidate) => candidate.stamp.role === 'hero')
     .sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind))
+    .slice(0, 4)
+  const heroes = [...serviceHeroes, ...geographicHeroes].slice(0, 10)
   const firstOfEachKind = candidates
     .filter((candidate) => candidate.stamp.role === 'illustration')
     .sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind))

@@ -50,9 +50,9 @@ const denseTown = Array.from({ length: 240 }, (_, index) =>
   room(index + 1, `Old Town, ${index % 3 === 0 ? 'Market Street' : index % 3 === 1 ? 'Long Lane' : 'Civic Plaza'}`, (index % 24) * 20, Math.floor(index / 24) * 20)
 )
 const townStamps = deriveMapStamps({ zone: 'town', name: 'Old Town' }, denseTown)
-check('a large town receives hundreds of street-lining stamps', townStamps.filter((stamp) => stamp.kind === 'settlement').length >= 300, `${townStamps.filter((stamp) => stamp.kind === 'settlement').length} building groups`)
-check('a dense sheet still has a strict decoration budget', townStamps.length <= 450, `${townStamps.length} total marks`)
-check('town fabric is explicitly a faint background layer', townStamps.filter((stamp) => stamp.kind === 'settlement' && stamp.role === 'background').length >= 299)
+check('a large town receives dozens of street-lining stamps', townStamps.filter((stamp) => stamp.kind === 'settlement').length >= 22, `${townStamps.filter((stamp) => stamp.kind === 'settlement').length} building groups`)
+check('a dense sheet still preserves substantial blank paper', townStamps.length <= 32, `${townStamps.length} total marks`)
+check('town fabric is explicitly a faint background layer', townStamps.filter((stamp) => stamp.kind === 'settlement' && stamp.role === 'background').length >= 21)
 check('town fabric remains beside its mapped streets', townStamps.every((stamp) => Math.min(...denseTown.map((source) => Math.hypot(stamp.x - source.x, stamp.y - source.y))) <= 34))
 
 const namedFeatures = deriveMapStamps({ zone: 'features', name: 'Pilgrim Road' }, [
@@ -76,6 +76,7 @@ const services = deriveMapStamps({ zone: 'services', name: 'Civic Quarter' }, [
 for (const kind of ['service-bank', 'service-healer', 'service-arcane', 'service-civic']) {
   check(`${kind} receives an oversized generated service drawing`, services.some((stamp) => stamp.kind === kind && stamp.role === 'hero'))
 }
+check('a sheet never prints more than ten giant landmarks', services.filter((stamp) => stamp.role === 'hero').length <= 10)
 
 console.log('\n-- word boundaries prevent plausible nonsense --')
 const astral = deriveMapStamps({ zone: '999', name: 'Microcosm' }, [
@@ -133,7 +134,7 @@ check('all shipped zones were audited', zones >= 85, `${zones}`)
 check('no drawable level carries a meaningless compass', straySeals === 0, `${levels} levels`)
 check('terrain information appears across most of the world', terrainZones >= 60, `${terrainZones} mapped levels`)
 check('many shipped maps receive a multi-stamp composition', repeatedCompositions >= 35, `${repeatedCompositions} mapped levels`)
-check('no shipped sheet exceeds the illustrated-atlas ceiling', busiestComposition <= 500, `${busiestComposition} marks on the busiest sheet`)
+check('no shipped sheet exceeds the legibility ceiling', busiestComposition <= 64, `${busiestComposition} marks on the busiest sheet`)
 
 console.log('\n-- the visual layer stays below function --')
 const canvas = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')

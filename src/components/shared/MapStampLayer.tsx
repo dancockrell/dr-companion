@@ -69,11 +69,11 @@ export function MapStampLayer({
           : art.images[0]
         // Faint repeating fabric sits behind readable illustrations. Major
         // services deliberately break scale like cathedrals on historical maps.
-        const baseDimension = stamp.role === 'hero' ? 112 : stamp.role === 'background' ? 46 : 64
+        const baseDimension = stamp.role === 'hero' ? 72 : stamp.role === 'background' ? 24 : 56
         const maxDimension = baseDimension * unit * stamp.weight * art.scale
         const width = image.aspect >= 1 ? maxDimension : maxDimension * image.aspect
         const height = image.aspect >= 1 ? maxDimension / image.aspect : maxDimension
-        const roleOpacity = stamp.role === 'background' ? 0.5 : stamp.role === 'hero' ? 0.95 : 1
+        const roleOpacity = stamp.role === 'background' ? 0.18 : stamp.role === 'hero' ? 0.68 : 0.86
 
         return (
           <image
