@@ -30,6 +30,26 @@ export interface MapLandmark {
   color: PinColor
 }
 
+/**
+ * The mapper writes room titles as "venue, street or district". Only the
+ * first half says what the room is. Reading the whole title turned Bank
+ * Street into a bank, Market Road into a shop, and Temple Hill Lane into a
+ * temple — useful words, attached to the wrong kind of thing.
+ *
+ * Titles without a comma are already the venue name and stay untouched.
+ */
+function subjectOf(title: string): string {
+  const comma = title.indexOf(',')
+  if (comma < 0) return title
+
+  const subject = title.slice(0, comma).trim()
+  const context = title.slice(comma + 1).trim()
+  // "Temple Hill, Temple Hill Lane" names the district twice; its first
+  // half is still geography, not a temple. A real venue such as "Paladins'
+  // Guild, Sentinel's Way" does not repeat into its street context.
+  return context.toLocaleLowerCase().startsWith(subject.toLocaleLowerCase()) ? '' : subject
+}
+
 const RULES: Array<{
   kind: LandmarkKind
   label: string
@@ -69,6 +89,7 @@ const RULES: Array<{
 export function landmarksFor(room: MapZoneRoom): MapLandmark[] {
   const authored = (room.tags ?? []).filter(Boolean).join(' · ')
   const title = room.title ?? ''
+  const subject = subjectOf(title)
   const travel = [room.gateway?.name, room.gateway?.zone, ...(room.leaves ?? [])].filter(Boolean).join(' · ')
   if (!authored && !title && !travel) return []
   // Tags are deliberate cartographer annotations, titles provide human
@@ -79,7 +100,7 @@ export function landmarksFor(room: MapZoneRoom): MapLandmark[] {
     rule,
     score:
       (rule.pattern.test(authored) ? (rule.kind === 'shop' || rule.kind === 'craft' ? 2 : 6) : 0) +
-      (rule.pattern.test(title) ? (rule.kind === 'shop' || rule.kind === 'craft' ? 1 : 3) : 0) +
+      (rule.pattern.test(subject) ? (rule.kind === 'shop' || rule.kind === 'craft' ? 1 : 3) : 0) +
       (rule.pattern.test(travel) ? 7 : 0) +
       ((room.gateway && ['travel', 'dock', 'portal'].includes(rule.kind)) ? 2 : 0),
   }))

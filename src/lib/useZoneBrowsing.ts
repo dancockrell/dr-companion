@@ -6,7 +6,7 @@
  * and watched could not follow a gateway or answer a place search at all,
  * while the small docked panel beside it could do both.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadZone, DEFAULT_ZONE } from './mapData'
 import type { MapZone } from '../bridge/types'
 import { bridge } from '../bridge'
@@ -14,6 +14,7 @@ import type { PlaceHit } from './placeSearch'
 
 export function useZoneBrowsing(liveZone: MapZone | null) {
   const [builtZone, setBuiltZone] = useState<MapZone | null>(null)
+  const browseRequest = useRef(0)
 
   /**
    * A stack rather than a single id, because following gates without a way
@@ -44,6 +45,62 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
   const zone = browsing ? builtZone : liveZone?.ok ? liveZone : builtZone
 
   /**
+   * Draw a shipped zone only after its file has arrived. Gate clicks used to
+   * push the destination first, briefly pairing the new zone id with the old
+   * zone's rooms. The map could blank or show the wrong geography under the
+   * new title while the chunk loaded.
+   *
+   * This is also the escape hatch for maps which are intentionally reached by
+   * teleport, event entry, or special command and therefore have no ordinary
+   * gateway in the cartographer graph.
+   */
+  function browseZone(id: string) {
+    if (!id || id === zone?.zone) return
+
+    if (id === liveZone?.zone) {
+      browseRequest.current++
+      setZoneStack([])
+      return
+    }
+
+    const request = ++browseRequest.current
+    void loadZone(id).then((z) => {
+      if (!z || request !== browseRequest.current) return
+      setBuiltZone(z)
+      setZoneStack((st) => [...st, id])
+    })
+  }
+
+  function popZone() {
+    const target = zoneStack[zoneStack.length - 2]
+    if (!target) {
+      resetZone()
+      return
+    }
+
+    const request = ++browseRequest.current
+    void loadZone(target).then((z) => {
+      if (!z || request !== browseRequest.current) return
+      setBuiltZone(z)
+      setZoneStack((st) => st.slice(0, -1))
+    })
+  }
+
+  function resetZone() {
+    const request = ++browseRequest.current
+    if (liveZone?.ok) {
+      setZoneStack([])
+      return
+    }
+
+    void loadZone(DEFAULT_ZONE).then((z) => {
+      if (!z || request !== browseRequest.current) return
+      setBuiltZone(z)
+      setZoneStack([])
+    })
+  }
+
+  /**
    * Going where the search says the place is.
    *
    * Two things happen and neither of them is walking there. The zone changes
@@ -65,7 +122,7 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
     if (hit.zone === zone?.zone) return
 
     if (hit.zone === liveZone?.zone) {
-      setZoneStack([])
+      resetZone()
       return
     }
 
@@ -79,23 +136,16 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
      * map and the search box all blink out together. Loading first means the
      * push and the map arrive in the same render.
      */
-    void loadZone(hit.zone).then((z) => {
-      // No file for that zone means the index is ahead of the cartography.
-      // Staying put is the honest answer; the route was already asked for.
-      if (!z) return
-      setBuiltZone(z)
-      setZoneStack((st) => [...st, hit.zone])
-    })
+    browseZone(hit.zone)
   }
 
   return {
     zone,
     browsing,
     zoneStack,
-    /** Follow a gateway - pushes without loading, since MapCanvas already has the room data for the zone it just left the character's own zone into. */
-    pushZone: (id: string) => setZoneStack((st) => [...st, id]),
-    popZone: () => setZoneStack((st) => st.slice(0, -1)),
-    resetZone: () => setZoneStack([]),
+    pushZone: browseZone,
+    popZone,
+    resetZone,
     goToPlace,
   }
 }

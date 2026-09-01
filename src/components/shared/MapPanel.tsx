@@ -439,7 +439,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       onPopOut={isTauri() ? popOut : undefined}
       onExportPins={isTauri() && character ? doExportPins : undefined}
       onImportPins={isTauri() && character ? doImportPins : undefined}
-      search={<PlaceSearch here={zone.zone} onPick={goToPlace} />}
+      search={<PlaceSearch here={zone.zone} onPick={goToPlace} onZone={pushZone} />}
       right={
         <div className="flex items-center gap-2">
           {/* Levels and zoom, in the header itself rather than a row of

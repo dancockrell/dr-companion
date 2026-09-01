@@ -20,14 +20,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { searchPlaces, type Place, type PlaceHit } from '../../lib/placeSearch'
 import { loadPlaces } from '../../lib/placeIndex'
+import { ZONE_INDEX } from '../../lib/mapZoneIndex'
 
 export function PlaceSearch({
   here,
   onPick,
+  onZone,
 }: {
   /** The zone on screen, so a hit you are already looking at says so. */
   here?: string | null
   onPick: (hit: PlaceHit) => void
+  /** Browse any shipped map, including special zones with no ordinary gate. */
+  onZone?: (id: string) => void
 }) {
   const [query, setQuery] = useState('')
   const [places, setPlaces] = useState<Place[] | null>(null)
@@ -57,6 +61,7 @@ export function PlaceSearch({
   // would be an empty box sitting open over the map for the whole first
   // keystroke. Closed is the truthful state there.
   const open = focused && query.trim().length >= 2
+  const hereIsShipped = ZONE_INDEX.some((zone) => zone.id === here)
 
   // Arrowing past the bottom of a scrolling list has to bring the row with it,
   // or the keyboard path silently stops matching what is on screen.
@@ -144,6 +149,26 @@ export function PlaceSearch({
           >
             <X className="h-3 w-3" />
           </button>
+        )}
+        {onZone && (
+          <>
+            <span className="h-4 w-px shrink-0 bg-border" aria-hidden="true" />
+            <select
+              value={here ?? ''}
+              onChange={(e) => onZone(e.target.value)}
+              aria-label="Browse any map zone"
+              title="Browse any map zone"
+              className="max-w-40 shrink-0 bg-surface py-1 text-xs text-ink-muted outline-none"
+            >
+              {!here && <option value="">All zones</option>}
+              {here && !hereIsShipped && <option value={here}>Current zone</option>}
+              {ZONE_INDEX.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.name}
+                </option>
+              ))}
+            </select>
+          </>
         )}
       </div>
 

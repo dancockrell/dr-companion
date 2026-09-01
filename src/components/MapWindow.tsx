@@ -374,7 +374,7 @@ export function MapWindow() {
             both. Same component, same onZone wiring MapPanel.tsx uses -
             useZoneBrowsing is the shared piece that makes both surfaces
             capable of the same trip planning. */}
-        <PlaceSearch here={zone?.zone} onPick={goToPlace} />
+        <PlaceSearch here={zone?.zone} onPick={goToPlace} onZone={pushZone} />
 
         {browsing && (
           <div className="flex items-center gap-1 text-xs">

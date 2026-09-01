@@ -37,11 +37,13 @@ const noneOf = (name, bad, total, atLeast, detail = '') => {
 
 const DIR = 'src/data/map'
 const zones = new Map()
-for (const f of readdirSync(DIR)) {
-  if (f === 'index.json') continue
+const zoneFiles = readdirSync(DIR).filter((f) => f !== 'index.json')
+for (const f of zoneFiles) {
   const z = JSON.parse(readFileSync(`${DIR}/${f}`, 'utf8'))
   zones.set(z.id, z)
 }
+
+const index = JSON.parse(readFileSync(`${DIR}/index.json`, 'utf8'))
 
 const rooms = [...zones.values()].flatMap((z) => z.rooms.map((r) => ({ z, r })))
 const gates = rooms.filter(({ r }) => r.gateway)
@@ -49,6 +51,38 @@ const gates = rooms.filter(({ r }) => r.gateway)
 console.log('-- the gateways exist at all --')
 ok('the map has zones', zones.size > 50, `${zones.size}`)
 ok('gateways were resolved', gates.length > 250, `${gates.length} of ${rooms.length} rooms`)
+
+console.log('\n-- every shipped zone and room is structurally usable --')
+{
+  const fileIds = new Set(zoneFiles.map((f) => f.replace(/\.json$/, '')))
+  const indexIds = new Set(index.map((z) => z.id))
+  ok('zone index covers every map file', fileIds.size === indexIds.size && [...fileIds].every((id) => indexIds.has(id)), `${indexIds.size}`)
+  ok('every indexed zone has a map file', [...indexIds].every((id) => fileIds.has(id)))
+
+  const badIndex = index.filter((entry) => {
+    const zone = zones.get(entry.id)
+    return !zone || entry.name !== zone.name || entry.rooms !== zone.rooms.length
+  })
+  noneOf('index names and room counts match zone files', badIndex.length, index.length, 50)
+
+  const duplicateRooms = []
+  const brokenExits = []
+  for (const zone of zones.values()) {
+    const ids = new Set()
+    for (const room of zone.rooms) {
+      if (ids.has(room.id)) duplicateRooms.push(`${zone.id}:${room.id}`)
+      ids.add(room.id)
+    }
+    for (const room of zone.rooms) {
+      for (const exit of room.exits ?? []) {
+        if (!ids.has(exit.to)) brokenExits.push(`${zone.id}:${room.id}->${exit.to}`)
+      }
+    }
+  }
+  noneOf('no zone contains duplicate room ids', duplicateRooms.length, rooms.length, 17000, duplicateRooms.slice(0, 3).join(', '))
+  const exits = rooms.reduce((sum, { r }) => sum + (r.exits?.length ?? 0), 0)
+  noneOf('every internal exit reaches a real room', brokenExits.length, exits, 40000, brokenExits.slice(0, 3).join(', '))
+}
 
 console.log('\n-- every gateway points at a zone that exists --')
 {
@@ -98,6 +132,35 @@ console.log('\n-- gates lead somewhere you can come back from --')
   })
   ok('most gates have a way back', reciprocal.length > gates.length * 0.5,
     `${reciprocal.length} of ${gates.length}`)
+}
+
+console.log('\n-- every zone is reachable through the map UI --')
+{
+  const neighbors = new Map([...zones.keys()].map((id) => [id, new Set()]))
+  for (const { z, r } of gates) {
+    neighbors.get(z.id).add(r.gateway.zone)
+    neighbors.get(r.gateway.zone).add(z.id)
+  }
+  const seen = new Set()
+  const stack = ['1']
+  while (stack.length) {
+    const id = stack.pop()
+    if (seen.has(id)) continue
+    seen.add(id)
+    for (const next of neighbors.get(id) ?? []) stack.push(next)
+  }
+  ok('ordinary gateway graph covers the main world', seen.size >= 75, `${seen.size} of ${zones.size}`)
+  const special = [...zones.keys()].filter((id) => !seen.has(id))
+  console.log(`INFO ${special.length} special or isolated maps use the all-zone browser: ${special.join(', ') || 'none'}`)
+
+  const mapIndex = readFileSync('src/lib/mapZoneIndex.ts', 'utf8')
+  const search = readFileSync('src/components/shared/PlaceSearch.tsx', 'utf8')
+  const panel = readFileSync('src/components/shared/MapPanel.tsx', 'utf8')
+  const window = readFileSync('src/components/MapWindow.tsx', 'utf8')
+  const browsing = readFileSync('src/lib/useZoneBrowsing.ts', 'utf8')
+  ok('all-zone browser is populated from the shipped index', mapIndex.includes('export const ZONE_INDEX') && search.includes('ZONE_INDEX.map'))
+  ok('docked and popped-out maps expose all-zone browsing', panel.includes('<PlaceSearch here={zone.zone} onPick={goToPlace} onZone={pushZone} />') && window.includes('<PlaceSearch here={zone?.zone} onPick={goToPlace} onZone={pushZone} />'))
+  ok('zone transitions load before changing the visible stack', browsing.indexOf('void loadZone(id)') < browsing.indexOf('setZoneStack((st) => [...st, id])'))
 }
 
 console.log('\n-- the leaving exits that identified them are kept --')
