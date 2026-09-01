@@ -38,6 +38,7 @@ export function RoomScene({
   footer,
   shape = 'square',
   framed = true,
+  locationReady = true,
 }: {
   zone: string
   room: number
@@ -76,6 +77,8 @@ export function RoomScene({
   footer?: import('react').ReactNode
   /** False when a parent owns the shared battle frame and header. */
   framed?: boolean
+  /** False while room and zone have not yet arrived as one coherent pair. */
+  locationReady?: boolean
 }) {
   const sceneRef = useRef<HTMLDivElement>(null)
   const [sceneSize, setSceneSize] = useState({ width: 0, height: 0 })
@@ -143,7 +146,15 @@ export function RoomScene({
           background. Explicit z-order makes that survive future radar CSS
           changes instead of depending on incidental DOM paint order. */}
       <div className="absolute inset-0 z-0" aria-label="Room art">
-        <RoomBackdrop zone={zone} room={room} title={title} text={text} />
+        {locationReady ? (
+          <RoomBackdrop zone={zone} room={room} title={title} text={text} />
+        ) : (
+          <div
+            className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(124,132,142,0.22),transparent_42%),linear-gradient(155deg,#1d2229,#101318)]"
+            role="status"
+            aria-label="Waiting for the current map zone"
+          />
+        )}
       </div>
 
       {overlay && <div className="absolute inset-0 z-10" aria-label="Tactical radar over room art">{overlay}</div>}

@@ -60,16 +60,16 @@ export function BattleColumn() {
   }, [connected])
 
   // The zone id the description files are keyed by. mapHere carries the room
-  // number but not the zone, so the current zone payload supplies it, and
-  // Crossing stands in before the bridge has answered — it is where a
-  // character starts and the demo opens there.
-  const zone = (zoneLive?.ok ? zoneLive.zone : null) ?? '1'
+  // number but not the zone, so a room is not a coherent art/text location
+  // until map_zone has answered too. Never combine an out-of-zone room with
+  // invented Crossing data during attach or reconnect.
+  const zone = zoneLive?.ok && zoneLive.zone ? zoneLive.zone : null
   const room = here?.id ?? null
 
   const [text, setText] = useState<RoomText | null>(null)
 
   useEffect(() => {
-    if (room === null) return setText(null)
+    if (room === null || zone === null) return setText(null)
     // The cached read first, so walking back into a room you have already been
     // in does not blank the pane for a frame while a fetch resolves.
     const cached = cachedRoomText(zone, room)
@@ -227,8 +227,9 @@ export function BattleColumn() {
             </div>
           </div>
           <RoomScene
-            zone={zone}
+            zone={zone ?? 'unknown'}
             room={room ?? 0}
+            locationReady={zone !== null && room !== null}
             title={title}
             text={text?.text}
             // The default 42vh assumes a game pane and chat log sharing the
