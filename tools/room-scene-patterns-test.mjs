@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
+import { analyzeScene, semanticPromptContext } from './scene-semantics.mjs'
 
 const dir = mkdtempSync(join(tmpdir(), 'room-scene-patterns-'))
 const out = join(dir, 'roomScenePatterns.mjs')
@@ -41,5 +42,26 @@ const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 
 check(coverage.roomCount >= 1700, `generic patterns cover ${coverage.roomCount} rooms without swallowing protected landmarks`)
 check(!coverage.assignments.some(({ placeKey }) => placeKey === '4a::Behind the Goal Line'), 'special sports location is not treated as generic grassland')
 check(coverage.protectedLandmarks.includes('1::Sewer'), 'curated landmark places remain protected')
+
+const cases = [
+  [{ title: 'Paasvadh Forest, Understory', lore: 'Shadows hang from the forest canopy above thick undergrowth.' }, 'deep-forest'],
+  [{ title: 'Old Forest Trail', lore: 'A narrow path winds between mature trees.' }, 'forest-path'],
+  [{ title: 'The Marsh, In The Water', lore: 'Cold wet moss and standing water surround twisted trees.' }, 'swamp'],
+  [{ title: 'Temple Catacombs', lore: 'Frost-covered stairs descend into subterranean passages.' }, 'mine-tunnel'],
+  [{ title: 'Magen Road', lore: 'Cobbled buildings line the busy town street.' }, 'regional-city'],
+  [{ title: 'Behind the Goal Line', lore: 'The playing field opens toward the stadium.' }, null],
+]
+for (const [place, category] of cases) {
+  const result = analyzeScene(place)
+  check(result.category === category, `${place.title} classifies as ${category ?? 'special/unassigned'}`)
+}
+
+const wilderness = analyzeScene({
+  title: 'Brambles',
+  lore: 'A huge hole tears through the brambles. A scarred tree leaks sap beside the dirt trail.',
+})
+const context = semanticPromptContext(wilderness)
+check(!/stone and timber architecture|torchlight|candlelight/.test(context), 'semantic prompt context does not inject settlement architecture or artificial light into wilderness')
+check(wilderness.traits.civilization !== 'urban', 'wilderness is not promoted to an urban scene without evidence')
 
 process.exit(failures ? 1 : 0)
