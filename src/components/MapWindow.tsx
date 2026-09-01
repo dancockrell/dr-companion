@@ -23,6 +23,7 @@ import { PinEditor } from './shared/PinEditor'
 import { RoomNudge } from './shared/RoomNudge'
 import { PlaceSearch } from './shared/PlaceSearch'
 import { useZoneBrowsing } from '../lib/useZoneBrowsing'
+import { ZoneLoadNotice } from './shared/ZoneLoadNotice'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
 import { exportPinsToFile, importPinsFromFile } from '../lib/pinsFile'
 import { loadPlayerMarker, savePlayerMarker } from '../lib/playerMarker'
@@ -36,8 +37,18 @@ import { useMapViewport } from '../lib/useMapViewport'
 
 export function MapWindow() {
   const liveZone = useAppStore((s) => s.mapZone)
-  const { zone, browsing, zoneStack, pushZone, popZone, resetZone, goToPlace } =
-    useZoneBrowsing(liveZone)
+  const {
+    zone,
+    browsing,
+    zoneStack,
+    zoneLoading,
+    zoneLoadError,
+    retryZone,
+    pushZone,
+    popZone,
+    resetZone,
+    goToPlace,
+  } = useZoneBrowsing(liveZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const connectBridge = useAppStore((s) => s.connectBridge)
@@ -373,6 +384,13 @@ export function MapWindow() {
             useZoneBrowsing is the shared piece that makes both surfaces
             capable of the same trip planning. */}
         <PlaceSearch here={zone?.zone} onPick={goToPlace} onZone={pushZone} />
+
+        <ZoneLoadNotice
+          loading={zoneLoading}
+          error={zoneLoadError}
+          onRetry={retryZone}
+          hasMap={!!zone?.ok}
+        />
 
         {browsing && (
           <div className="flex items-center gap-1 text-xs">

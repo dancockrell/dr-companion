@@ -11,6 +11,7 @@
  * so this is a chunk of its own rather than weight every launch pays for.
  */
 import type { Place } from './placeSearch'
+import { createRetryableCache } from './recoverableLoad'
 
 /**
  * What tools/build-places.mjs writes.
@@ -28,15 +29,11 @@ interface PackedIndex {
 /** Vite resolves this at build time and fetches it only when asked. */
 const INDEX = import.meta.glob<{ default: PackedIndex }>('../data/places.json')
 
-let cached: Place[] | null = null
-let inFlight: Promise<Place[]> | null = null
-
 async function fetchPlaces(): Promise<Place[]> {
   const load = INDEX['../data/places.json']
-  // An index that was never built gives an empty list rather than an
-  // exception. The box then says nothing matches, which is wrong but visible,
-  // where a throw under a keystroke would take the whole map panel down.
-  if (!load) return []
+  // Missing data is not an empty, successfully searched world. Throwing lets
+  // PlaceSearch explain the unavailable map data and offer a real Retry.
+  if (!load) throw new Error('The place index is not included in this build.')
 
   const { zones, places } = (await load()).default
   return places.map(([zone, room, label, aliases]) => ({
@@ -48,6 +45,8 @@ async function fetchPlaces(): Promise<Place[]> {
   }))
 }
 
+const placeIndex = createRetryableCache(fetchPlaces)
+
 /**
  * The whole searchable list, loaded once.
  *
@@ -56,7 +55,5 @@ async function fetchPlaces(): Promise<Place[]> {
  * is a bug nobody would ever see and everybody would pay for.
  */
 export function loadPlaces(): Promise<Place[]> {
-  if (cached) return Promise.resolve(cached)
-  if (!inFlight) inFlight = fetchPlaces().then((p) => (cached = p))
-  return inFlight
+  return placeIndex.load()
 }

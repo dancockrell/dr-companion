@@ -160,7 +160,8 @@ console.log('\n-- every zone is reachable through the map UI --')
   const browsing = readFileSync('src/lib/useZoneBrowsing.ts', 'utf8')
   ok('all-zone browser is populated from the shipped index', mapIndex.includes('export const ZONE_INDEX') && search.includes('ZONE_INDEX.map'))
   ok('docked and popped-out maps expose all-zone browsing', panel.includes('<PlaceSearch here={zone.zone} onPick={goToPlace} onZone={pushZone} />') && window.includes('<PlaceSearch here={zone?.zone} onPick={goToPlace} onZone={pushZone} />'))
-  ok('zone transitions load before changing the visible stack', browsing.indexOf('void loadZone(id)') < browsing.indexOf('setZoneStack((st) => [...st, id])'))
+  ok('zone transitions load before changing the visible stack', browsing.indexOf("beginZoneLoad(id, 'browse'") < browsing.indexOf('setZoneStack((st) => [...st, id])'))
+  ok('zone transitions expose failure and retry state', browsing.includes('zoneLoadError') && browsing.includes('retryZone'))
 }
 
 console.log('\n-- the leaving exits that identified them are kept --')

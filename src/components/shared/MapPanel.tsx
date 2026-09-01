@@ -38,6 +38,7 @@ import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
 import { useZoneBrowsing } from '../../lib/useZoneBrowsing'
+import { ZoneLoadNotice } from './ZoneLoadNotice'
 import type { PinBrush } from './PinPalette'
 import { MapToolRail } from './MapToolRail'
 import { PinEditor } from './PinEditor'
@@ -57,8 +58,18 @@ import { listScripts, writeScript } from '../../lib/scriptFiles'
  */
 export function MapPanel({ plane = false }: { plane?: boolean }) {
   const liveZone = useAppStore((s) => s.mapZone)
-  const { zone, browsing, zoneStack, pushZone, popZone, resetZone, goToPlace } =
-    useZoneBrowsing(liveZone)
+  const {
+    zone,
+    browsing,
+    zoneStack,
+    zoneLoading,
+    zoneLoadError,
+    retryZone,
+    pushZone,
+    popZone,
+    resetZone,
+    goToPlace,
+  } = useZoneBrowsing(liveZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
@@ -389,10 +400,18 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   if (!zone) {
     return (
       <Shell plane={plane} onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
-        <p className="text-xs text-ink-faint leading-relaxed">
-          Nothing asked for yet. Press refresh, or move a room and it will
-          arrive on its own.
-        </p>
+        <ZoneLoadNotice
+          loading={zoneLoading}
+          error={zoneLoadError}
+          onRetry={retryZone}
+          hasMap={false}
+        />
+        {!zoneLoading && !zoneLoadError && (
+          <p className="text-xs text-ink-faint leading-relaxed">
+            Nothing asked for yet. Press refresh, or move a room and it will
+            arrive on its own.
+          </p>
+        )}
       </Shell>
     )
   }
@@ -510,6 +529,8 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         </div>
       }
     >
+      <ZoneLoadNotice loading={zoneLoading} error={zoneLoadError} onRetry={retryZone} />
+
       <MapToolRail
         marker={character ? playerMarker : undefined}
         onCustomizeMarker={character && playerMarker ? () => setEditingMarker(true) : undefined}
