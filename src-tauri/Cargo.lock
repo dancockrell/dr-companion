@@ -735,6 +735,7 @@ dependencies = [
 name = "dr-companion"
 version = "0.1.1"
 dependencies = [
+ "base64 0.22.1",
  "getrandom 0.4.3",
  "reqwest 0.12.28",
  "serde",

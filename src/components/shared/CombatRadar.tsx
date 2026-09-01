@@ -931,6 +931,7 @@ function YouCard({
 }: {
   you: {
     character: string
+    instance: string
     race?: string | null
     sex?: 'male' | 'female'
     injuries: Partial<Record<BodyPart, Injury>>
@@ -968,7 +969,7 @@ function YouCard({
       className="pointer-events-auto flex max-w-[15rem] items-center gap-1.5 rounded-full bg-surface/70 py-1 pl-1 pr-3 ring-1 ring-border/35 backdrop-blur-sm"
       style={{ boxShadow: '0 3px 14px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.05)' }}
     >
-      <Portrait character={you.character} race={you.race ?? undefined} sex={you.sex} size={portraitSize} shape="oval" focus="face" />
+      <Portrait character={you.character} instance={you.instance} race={you.race ?? undefined} sex={you.sex} size={portraitSize} shape="oval" focus="face" />
       <Paperdoll injuries={you.injuries} bleeding={you.bleeding} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
 
       {/* justify-start, not -center: centering a handful of short rows in a
@@ -1062,6 +1063,8 @@ export function CombatRadar({
    */
   you?: {
     character: string
+    /** Character names are only unique within a game instance. */
+    instance: string
     race?: string | null
     sex?: 'male' | 'female'
     injuries: Partial<Record<BodyPart, Injury>>
