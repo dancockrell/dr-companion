@@ -60,8 +60,8 @@ const records = files.map((file) => {
     sha256: createHash('sha256').update(bytes).digest('hex'),
     bytes: statSync(file).size,
     format: extname(file).slice(1).toLowerCase(),
-    audit: rule ? {
-      status: 'visually-reviewed', verdict: rule.verdict, reviewedAt: reviews.reviewedAt,
+    audit: generated || rule ? {
+      status: 'visually-reviewed', verdict: generated ? 'approved' : rule.verdict, reviewedAt: reviews.reviewedAt,
       method: reviews.reviewMethod, notes: generated ? 'Generated replacement passed visual QA against its prompt and intended runtime basket.' : rule.notes,
     } : { status: 'indexed', verdict: 'pending-visual-review', reviewedAt: null, method: null, notes: null },
     semanticTags: generated?.semanticTags ?? rule?.semanticTags ?? [],

@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "generatedAt": "2026-09-01",
   "summary": {
-    "totalAssets": 12821,
-    "indexedOnly": 12756,
-    "visuallyReviewed": 65,
-    "approved": 23,
-    "rejected": 42,
-    "runtimeEligible": 85,
-    "runtimeUsageRecords": 332
+    "totalAssets": 12822,
+    "indexedOnly": 12694,
+    "visuallyReviewed": 128,
+    "approved": 67,
+    "rejected": 61,
+    "runtimeEligible": 66,
+    "runtimeUsageRecords": 265
   },
   "assets": [
     {
@@ -17,16 +17,23 @@
       "bytes": 906204,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -52,16 +59,23 @@
       "bytes": 677590,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -87,16 +101,23 @@
       "bytes": 1145517,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -122,16 +143,23 @@
       "bytes": 704957,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -157,34 +185,43 @@
       "bytes": 786442,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The subject is plausible, but large horizontal render blocks make the image visibly broken at runtime."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "render-corruption"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "semantic-fallback",
-          "placeKey": null,
-          "category": "description-keyword-family",
-          "region": null,
-          "roomCount": null
-        }
+      "visualAttributes": [
+        "painterly",
+        "horizontal-block-corruption"
       ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "Grok source pack",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-deep-forest.webp",
+            "/room-scenes/master-forest-path.webp",
+            "/room-scenes/master-mountain-pass.webp",
+            "/room-scenes/master-natural-cavern.webp",
+            "/room-scenes/town-leth-deriel-master.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/grok-art/room-scenes/crystal-mine-3638b938.jpg",
@@ -192,16 +229,23 @@
       "bytes": 924486,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -227,16 +271,23 @@
       "bytes": 786443,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -262,34 +313,43 @@
       "bytes": 786444,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The subject is plausible, but large horizontal render blocks make the image visibly broken at runtime."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "render-corruption"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "semantic-fallback",
-          "placeKey": null,
-          "category": "description-keyword-family",
-          "region": null,
-          "roomCount": null
-        }
+      "visualAttributes": [
+        "painterly",
+        "horizontal-block-corruption"
       ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "Grok source pack",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-deep-forest.webp",
+            "/room-scenes/master-forest-path.webp",
+            "/room-scenes/master-mountain-pass.webp",
+            "/room-scenes/master-natural-cavern.webp",
+            "/room-scenes/town-leth-deriel-master.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg",
@@ -297,34 +357,43 @@
       "bytes": 786443,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The subject is plausible, but large horizontal render blocks make the image visibly broken at runtime."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "render-corruption"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "semantic-fallback",
-          "placeKey": null,
-          "category": "description-keyword-family",
-          "region": null,
-          "roomCount": null
-        }
+      "visualAttributes": [
+        "painterly",
+        "horizontal-block-corruption"
       ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "Grok source pack",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-deep-forest.webp",
+            "/room-scenes/master-forest-path.webp",
+            "/room-scenes/master-mountain-pass.webp",
+            "/room-scenes/master-natural-cavern.webp",
+            "/room-scenes/town-leth-deriel-master.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/grok-art/room-scenes/forge-11c9cd64.jpg",
@@ -332,16 +401,23 @@
       "bytes": 885849,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -367,16 +443,23 @@
       "bytes": 790899,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -402,16 +485,23 @@
       "bytes": 996952,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -437,16 +527,23 @@
       "bytes": 825732,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -472,16 +569,23 @@
       "bytes": 1027956,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -507,27 +611,26 @@
       "bytes": 714017,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "semantic-fallback",
-          "placeKey": null,
-          "category": "description-keyword-family",
-          "region": null,
-          "roomCount": null
-        }
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
       ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "Grok source pack",
         "model": null,
@@ -542,16 +645,23 @@
       "bytes": 783088,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -577,16 +687,23 @@
       "bytes": 886834,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -612,16 +729,23 @@
       "bytes": 884811,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -647,16 +771,23 @@
       "bytes": 739494,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -682,34 +813,43 @@
       "bytes": 786444,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The subject is plausible, but large horizontal render blocks make the image visibly broken at runtime."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "render-corruption"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "semantic-fallback",
-          "placeKey": null,
-          "category": "description-keyword-family",
-          "region": null,
-          "roomCount": null
-        }
+      "visualAttributes": [
+        "painterly",
+        "horizontal-block-corruption"
       ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "Grok source pack",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-deep-forest.webp",
+            "/room-scenes/master-forest-path.webp",
+            "/room-scenes/master-mountain-pass.webp",
+            "/room-scenes/master-natural-cavern.webp",
+            "/room-scenes/town-leth-deriel-master.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/grok-art/room-scenes/night-market-04c61394.jpg",
@@ -717,16 +857,23 @@
       "bytes": 786443,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -752,16 +899,23 @@
       "bytes": 719088,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -787,34 +941,43 @@
       "bytes": 786443,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The subject is plausible, but large horizontal render blocks make the image visibly broken at runtime."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "render-corruption"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "semantic-fallback",
-          "placeKey": null,
-          "category": "description-keyword-family",
-          "region": null,
-          "roomCount": null
-        }
+      "visualAttributes": [
+        "painterly",
+        "horizontal-block-corruption"
       ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "Grok source pack",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-deep-forest.webp",
+            "/room-scenes/master-forest-path.webp",
+            "/room-scenes/master-mountain-pass.webp",
+            "/room-scenes/master-natural-cavern.webp",
+            "/room-scenes/town-leth-deriel-master.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/grok-art/room-scenes/shrine-interior-0f2de22b.jpg",
@@ -822,16 +985,23 @@
       "bytes": 745131,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -857,16 +1027,23 @@
       "bytes": 710428,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -892,16 +1069,23 @@
       "bytes": 742504,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -927,16 +1111,23 @@
       "bytes": 798968,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -962,16 +1153,23 @@
       "bytes": 850848,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -997,16 +1195,23 @@
       "bytes": 911392,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -1032,16 +1237,23 @@
       "bytes": 969773,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -1067,16 +1279,23 @@
       "bytes": 864247,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -1102,34 +1321,43 @@
       "bytes": 786442,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The subject is plausible, but large horizontal render blocks make the image visibly broken at runtime."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "render-corruption"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "semantic-fallback",
-          "placeKey": null,
-          "category": "description-keyword-family",
-          "region": null,
-          "roomCount": null
-        }
+      "visualAttributes": [
+        "painterly",
+        "horizontal-block-corruption"
       ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "Grok source pack",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-deep-forest.webp",
+            "/room-scenes/master-forest-path.webp",
+            "/room-scenes/master-mountain-pass.webp",
+            "/room-scenes/master-natural-cavern.webp",
+            "/room-scenes/town-leth-deriel-master.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/grok-art/room-scenes/woodland-ruins-2c3975b0.jpg",
@@ -1137,16 +1365,23 @@
       "bytes": 924339,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -1172,16 +1407,23 @@
       "bytes": 949691,
       "format": "jpg",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Visually reviewed against the named semantic fallback family; subject and rendering are strong enough for fallback use."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "grok-source-pack",
+        "semantic-fallback"
+      ],
       "intendedRegions": [],
       "environments": [],
-      "visualAttributes": [],
+      "visualAttributes": [
+        "painterly-realistic",
+        "landscape",
+        "ui-safe"
+      ],
       "usage": [
         {
           "selectionTier": "semantic-fallback",
@@ -1207,34 +1449,41 @@
       "bytes": 16058,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "These depict finished halls, towers, rooftops or monumental masonry rather than a safe natural cavern."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "cavern",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "underground"
+      ],
+      "visualAttributes": [
+        "painted",
+        "architecture-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-natural-cavern.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-cavern-1.webp",
@@ -1242,34 +1491,41 @@
       "bytes": 15994,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "These depict finished halls, towers, rooftops or monumental masonry rather than a safe natural cavern."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "cavern",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "underground"
+      ],
+      "visualAttributes": [
+        "painted",
+        "architecture-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-natural-cavern.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-cavern-2.webp",
@@ -1277,34 +1533,41 @@
       "bytes": 13608,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "These depict finished halls, towers, rooftops or monumental masonry rather than a safe natural cavern."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "cavern",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "underground"
+      ],
+      "visualAttributes": [
+        "painted",
+        "architecture-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-natural-cavern.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-cavern-3.webp",
@@ -1312,34 +1575,41 @@
       "bytes": 16168,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "These depict finished halls, towers, rooftops or monumental masonry rather than a safe natural cavern."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "cavern",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "underground"
+      ],
+      "visualAttributes": [
+        "painted",
+        "architecture-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-natural-cavern.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-cavern-4.webp",
@@ -1347,34 +1617,41 @@
       "bytes": 16242,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "These depict finished halls, towers, rooftops or monumental masonry rather than a safe natural cavern."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "cavern",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "underground"
+      ],
+      "visualAttributes": [
+        "painted",
+        "architecture-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-natural-cavern.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-cavern-5.webp",
@@ -1382,34 +1659,41 @@
       "bytes": 15206,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "These depict finished halls, towers, rooftops or monumental masonry rather than a safe natural cavern."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "cavern",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "underground"
+      ],
+      "visualAttributes": [
+        "painted",
+        "architecture-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-natural-cavern.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-cavern-6.webp",
@@ -1417,34 +1701,41 @@
       "bytes": 14992,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "These depict finished halls, towers, rooftops or monumental masonry rather than a safe natural cavern."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "cavern",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "underground"
+      ],
+      "visualAttributes": [
+        "painted",
+        "architecture-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-natural-cavern.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-cavern-7.webp",
@@ -1452,34 +1743,41 @@
       "bytes": 16104,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "These depict finished halls, towers, rooftops or monumental masonry rather than a safe natural cavern."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "cavern",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "underground"
+      ],
+      "visualAttributes": [
+        "painted",
+        "architecture-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-natural-cavern.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-cavern-8.webp",
@@ -1487,34 +1785,41 @@
       "bytes": 16222,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "These depict finished halls, towers, rooftops or monumental masonry rather than a safe natural cavern."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "cavern",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "underground"
+      ],
+      "visualAttributes": [
+        "painted",
+        "architecture-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-natural-cavern.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-cliff-overlook-6.webp",
@@ -1522,125 +1827,41 @@
       "bytes": 12300,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Buildings and fortified structures dominate scenes intended for generic natural mountain traversal."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "7::Rocky Pass",
-          "category": "mountain-pass",
-          "region": "Northern Trade Road",
-          "roomCount": 7
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "14b::Uneven Slope",
-          "category": "mountain-pass",
-          "region": "Greater Fist",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "41::Ascent",
-          "category": "mountain-pass",
-          "region": "Ker'Leor Fornsted and Hraval",
-          "roomCount": 6
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "62::Silent Ascent",
-          "category": "mountain-pass",
-          "region": "Southern Trade Route Part 2",
-          "roomCount": 4
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Narrow Plateau",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 4
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Waterfall Edge",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Above the Treeline",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Breeding Grounds",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 9
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Highlands",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Snowcap",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Ridgeline Valley",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "108::Eastern Ascent",
-          "category": "mountain-pass",
-          "region": "M'Riss",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "127::Summit",
-          "category": "mountain-pass",
-          "region": "Boar Clan",
-          "roomCount": 25
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "150::Verdant Outcrop",
-          "category": "mountain-pass",
-          "region": "Fang Cove",
-          "roomCount": 4
-        }
+      "semanticTags": [
+        "mountain",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "highland"
+      ],
+      "visualAttributes": [
+        "painted",
+        "building-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-mountain-pass.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-deep-forest-0.webp",
@@ -1755,50 +1976,7 @@
         "warm",
         "contains-settlement-or-figures"
       ],
-      "usage": [
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "47::Walk of Bones",
-          "category": "desert",
-          "region": "Muspar'i",
-          "roomCount": 12
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "47::Migen'hhs Pat'shhry",
-          "category": "desert",
-          "region": "Muspar'i",
-          "roomCount": 15
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "66::Sparkling Sands",
-          "category": "desert",
-          "region": "Shard to Gondola Area",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "108::Dunes",
-          "category": "desert",
-          "region": "M'Riss",
-          "roomCount": 24
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "108::High Dunes",
-          "category": "desert",
-          "region": "M'Riss",
-          "roomCount": 19
-        },
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -1841,15 +2019,7 @@
         "warm",
         "contains-settlement-or-figures"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -1892,50 +2062,7 @@
         "warm",
         "contains-settlement-or-figures"
       ],
-      "usage": [
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "47::Walk of Bones",
-          "category": "desert",
-          "region": "Muspar'i",
-          "roomCount": 12
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "47::Migen'hhs Pat'shhry",
-          "category": "desert",
-          "region": "Muspar'i",
-          "roomCount": 15
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "66::Sparkling Sands",
-          "category": "desert",
-          "region": "Shard to Gondola Area",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "108::Dunes",
-          "category": "desert",
-          "region": "M'Riss",
-          "roomCount": 24
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "108::High Dunes",
-          "category": "desert",
-          "region": "M'Riss",
-          "roomCount": 19
-        },
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -1978,15 +2105,7 @@
         "moody",
         "contains-settlement-architecture"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2030,15 +2149,7 @@
         "moody",
         "contains-settlement-architecture"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2082,15 +2193,7 @@
         "moody",
         "contains-settlement-architecture"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2134,15 +2237,7 @@
         "moody",
         "contains-settlement-architecture"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2186,15 +2281,7 @@
         "moody",
         "contains-settlement-architecture"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2238,15 +2325,7 @@
         "moody",
         "contains-settlement-architecture"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2290,15 +2369,7 @@
         "moody",
         "contains-settlement-architecture"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2342,15 +2413,7 @@
         "formal",
         "palace-dominated"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2436,15 +2499,7 @@
         "formal",
         "palace-dominated"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2487,15 +2542,7 @@
         "timber-framed",
         "finished-interior"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2581,15 +2628,7 @@
         "timber-framed",
         "finished-interior"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2699,34 +2738,41 @@
       "bytes": 14408,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Buildings and fortified structures dominate scenes intended for generic natural mountain traversal."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "mountain",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "highland"
+      ],
+      "visualAttributes": [
+        "painted",
+        "building-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-mountain-pass.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-mountain-pass-8.webp",
@@ -2734,34 +2780,41 @@
       "bytes": 17508,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Buildings and fortified structures dominate scenes intended for generic natural mountain traversal."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "mountain",
+        "legacy-archetype"
       ],
+      "intendedRegions": [],
+      "environments": [
+        "highland"
+      ],
+      "visualAttributes": [
+        "painted",
+        "building-dominated"
+      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/room-scenes/master-mountain-pass.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/archetype-riverside-3.webp",
@@ -2812,16 +2865,27 @@
       "bytes": 17320,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Both scenes clearly read as navigable masonry sewers and remain safe for the explicit sewer ranges."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "sewer",
+        "underground-waterway"
+      ],
       "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
+      "environments": [
+        "sewer",
+        "underground"
+      ],
+      "visualAttributes": [
+        "masonry",
+        "standing-water",
+        "torchlight",
+        "painted"
+      ],
       "usage": [
         {
           "selectionTier": "curated-override",
@@ -2847,16 +2911,27 @@
       "bytes": 14140,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Both scenes clearly read as navigable masonry sewers and remain safe for the explicit sewer ranges."
       },
-      "semanticTags": [],
+      "semanticTags": [
+        "sewer",
+        "underground-waterway"
+      ],
       "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
+      "environments": [
+        "sewer",
+        "underground"
+      ],
+      "visualAttributes": [
+        "masonry",
+        "standing-water",
+        "torchlight",
+        "painted"
+      ],
       "usage": [
         {
           "selectionTier": "curated-override",
@@ -2901,15 +2976,7 @@
         "misty",
         "cottage-focal-point"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -2952,15 +3019,7 @@
         "misty",
         "cottage-focal-point"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -3003,15 +3062,7 @@
         "misty",
         "cottage-focal-point"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
       "runtimeEligible": false,
       "provenance": {
@@ -3347,104 +3398,6 @@
         "ui-safe"
       ],
       "usage": [
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "7::Rocky Pass",
-          "category": "mountain-pass",
-          "region": "Northern Trade Road",
-          "roomCount": 7
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "14b::Uneven Slope",
-          "category": "mountain-pass",
-          "region": "Greater Fist",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "41::Ascent",
-          "category": "mountain-pass",
-          "region": "Ker'Leor Fornsted and Hraval",
-          "roomCount": 6
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "62::Silent Ascent",
-          "category": "mountain-pass",
-          "region": "Southern Trade Route Part 2",
-          "roomCount": 4
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Narrow Plateau",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 4
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Waterfall Edge",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Above the Treeline",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Breeding Grounds",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 9
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Highlands",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Snowcap",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "69::Ridgeline Valley",
-          "category": "mountain-pass",
-          "region": "Shard West Gate",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "108::Eastern Ascent",
-          "category": "mountain-pass",
-          "region": "M'Riss",
-          "roomCount": 5
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "127::Summit",
-          "category": "mountain-pass",
-          "region": "Boar Clan",
-          "roomCount": 25
-        },
-        {
-          "selectionTier": "location-pattern",
-          "placeKey": "150::Verdant Outcrop",
-          "category": "mountain-pass",
-          "region": "Fang Cove",
-          "roomCount": 4
-        },
         {
           "selectionTier": "curated-landmark",
           "placeKey": "4::Rocky Outcrop",
@@ -3787,6 +3740,13 @@
           "category": "desert",
           "region": "M'Riss",
           "roomCount": 19
+        },
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
         }
       ],
       "intendedRoom": null,
@@ -3864,6 +3824,13 @@
           "category": "forest-path",
           "region": "Ice Caves",
           "roomCount": 4
+        },
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
         }
       ],
       "intendedRoom": null,
@@ -4036,6 +4003,13 @@
           "category": "garden",
           "region": "Hibarnhvidar",
           "roomCount": 5
+        },
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
         }
       ],
       "intendedRoom": null,
@@ -4315,6 +4289,13 @@
           "category": "mine-tunnel",
           "region": "Boar Clan",
           "roomCount": 23
+        },
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
         }
       ],
       "intendedRoom": null,
@@ -4461,6 +4442,13 @@
           "category": "mountain-pass",
           "region": "Fang Cove",
           "roomCount": 4
+        },
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
         }
       ],
       "intendedRoom": null,
@@ -4472,6 +4460,75 @@
         "prompt": null
       },
       "replacementHistory": []
+    },
+    {
+      "path": "/room-scenes/master-natural-cavern.webp",
+      "sha256": "289a97444c895dd3820c810f26ded2acccee5c94826b9cac0e610560b3b00ad9",
+      "bytes": 138946,
+      "format": "webp",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "cavern",
+        "natural-cave",
+        "limestone"
+      ],
+      "intendedRegions": [
+        "region-neutral"
+      ],
+      "environments": [
+        "underground",
+        "natural-cavern"
+      ],
+      "visualAttributes": [
+        "cool-low-light",
+        "stalactites",
+        "stalagmites",
+        "rough-stone",
+        "painterly-realistic"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Recraft V4.1",
+        "creditsPerAsset": 60,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "prompt": "A vast natural limestone cavern in a low-magic medieval fantasy world, rough irregular rock walls, stalactites and stalagmites, a traversable stone floor, faint cool reflected light and deep shadow, subtle moisture, clearly underground and naturally formed."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/grok-art/room-scenes/sea-cave-038edbd8.jpg",
+            "/room-scenes/archetype-cavern-0.webp",
+            "/room-scenes/archetype-cavern-1.webp",
+            "/room-scenes/archetype-cavern-2.webp",
+            "/room-scenes/archetype-cavern-3.webp",
+            "/room-scenes/archetype-cavern-4.webp",
+            "/room-scenes/archetype-cavern-5.webp",
+            "/room-scenes/archetype-cavern-6.webp",
+            "/room-scenes/archetype-cavern-7.webp",
+            "/room-scenes/archetype-cavern-8.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/room-scenes/master-open-grassland.webp",
@@ -4818,6 +4875,13 @@
           "category": "swamp",
           "region": "Langenfirth to Therenborough",
           "roomCount": 22
+        },
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
         }
       ],
       "intendedRoom": null,
@@ -4980,11 +5044,11 @@
       "bytes": 217208,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
       },
       "semanticTags": [
         "city-street",
@@ -5228,11 +5292,11 @@
       "bytes": 212768,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
       },
       "semanticTags": [
         "city-street",
@@ -5441,11 +5505,11 @@
       "bytes": 173570,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
       },
       "semanticTags": [
         "city-street",
@@ -5996,11 +6060,11 @@
       "bytes": 180540,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
       },
       "semanticTags": [
         "city-street",
@@ -6294,11 +6358,11 @@
       "bytes": 166904,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
       },
       "semanticTags": [
         "city-street",
@@ -6499,11 +6563,11 @@
       "bytes": 167236,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
       },
       "semanticTags": [
         "city-street",
@@ -167095,16 +167159,29 @@
       "bytes": 21190,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The subject is recognizably palace-specific and appropriate for the exact Velakan approach ranges."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
+      "semanticTags": [
+        "velaka",
+        "palace",
+        "fortification"
+      ],
+      "intendedRegions": [
+        "Velaka"
+      ],
+      "environments": [
+        "palace-exterior",
+        "urban"
+      ],
+      "visualAttributes": [
+        "stone-walls",
+        "gatehouse",
+        "arid-light"
+      ],
       "usage": [
         {
           "selectionTier": "curated-override",
@@ -167133,37 +167210,48 @@
       "bytes": 20966,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "rejected",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The image is a dark canal and does not show a usable palace-wall approach."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
+      "semanticTags": [
+        "velaka",
+        "palace",
+        "assignment-mismatch"
       ],
+      "intendedRegions": [
+        "Velaka"
+      ],
+      "environments": [
+        "urban-waterway"
+      ],
+      "visualAttributes": [
+        "canal",
+        "stone-walls",
+        "night"
+      ],
+      "usage": [],
       "intendedRoom": {
         "roomKey": "47-before-the-palace-wall",
         "placeKey": null
       },
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "legacy repository asset",
         "model": null,
         "generatedAt": null,
         "prompt": null
       },
-      "replacementHistory": []
+      "replacementHistory": [
+        {
+          "action": "superseded-by",
+          "assets": [
+            "/rooms/47-beside-the-palace-wall.webp"
+          ]
+        }
+      ]
     },
     {
       "path": "/rooms/47-beside-the-palace-wall.webp",
@@ -167171,16 +167259,29 @@
       "bytes": 18036,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The subject is recognizably palace-specific and appropriate for the exact Velakan approach ranges."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
+      "semanticTags": [
+        "velaka",
+        "palace",
+        "fortification"
+      ],
+      "intendedRegions": [
+        "Velaka"
+      ],
+      "environments": [
+        "palace-exterior",
+        "urban"
+      ],
+      "visualAttributes": [
+        "stone-walls",
+        "gatehouse",
+        "arid-light"
+      ],
       "usage": [
         {
           "selectionTier": "curated-override",
@@ -167209,16 +167310,29 @@
       "bytes": 28712,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "The subject is recognizably palace-specific and appropriate for the exact Velakan approach ranges."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
+      "semanticTags": [
+        "velaka",
+        "palace",
+        "fortification"
+      ],
+      "intendedRegions": [
+        "Velaka"
+      ],
+      "environments": [
+        "palace-exterior",
+        "urban"
+      ],
+      "visualAttributes": [
+        "stone-walls",
+        "gatehouse",
+        "arid-light"
+      ],
       "usage": [
         {
           "selectionTier": "curated-override",
@@ -335937,16 +336051,29 @@
       "bytes": 8268,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "A strong dark-dune scene appropriate for the explicit M'Riss and Pokekehekepi sand ranges."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
+      "semanticTags": [
+        "dunes",
+        "desert",
+        "mriss"
+      ],
+      "intendedRegions": [
+        "M'Riss"
+      ],
+      "environments": [
+        "desert",
+        "dunes"
+      ],
+      "visualAttributes": [
+        "night",
+        "dark-sand",
+        "distant-lights"
+      ],
       "usage": [
         {
           "selectionTier": "curated-override",
@@ -379618,16 +379745,29 @@
       "bytes": 16642,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "All three scenes visibly communicate the Boar Clan's named midfield and its settlement-specific arena context."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
+      "semanticTags": [
+        "boar-clan",
+        "midfield",
+        "arena"
+      ],
+      "intendedRegions": [
+        "Boar Clan"
+      ],
+      "environments": [
+        "field",
+        "clan-settlement"
+      ],
+      "visualAttributes": [
+        "grass",
+        "wooden-towers",
+        "boar-iconography"
+      ],
       "usage": [
         {
           "selectionTier": "curated-override",
@@ -379656,16 +379796,29 @@
       "bytes": 17650,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "All three scenes visibly communicate the Boar Clan's named midfield and its settlement-specific arena context."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
+      "semanticTags": [
+        "boar-clan",
+        "midfield",
+        "arena"
+      ],
+      "intendedRegions": [
+        "Boar Clan"
+      ],
+      "environments": [
+        "field",
+        "clan-settlement"
+      ],
+      "visualAttributes": [
+        "grass",
+        "wooden-towers",
+        "boar-iconography"
+      ],
       "usage": [
         {
           "selectionTier": "curated-override",
@@ -379694,16 +379847,29 @@
       "bytes": 26198,
       "format": "webp",
       "audit": {
-        "status": "indexed",
-        "verdict": "pending-visual-review",
-        "reviewedAt": null,
-        "method": null,
-        "notes": null
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "All three scenes visibly communicate the Boar Clan's named midfield and its settlement-specific arena context."
       },
-      "semanticTags": [],
-      "intendedRegions": [],
-      "environments": [],
-      "visualAttributes": [],
+      "semanticTags": [
+        "boar-clan",
+        "midfield",
+        "arena"
+      ],
+      "intendedRegions": [
+        "Boar Clan"
+      ],
+      "environments": [
+        "field",
+        "clan-settlement"
+      ],
+      "visualAttributes": [
+        "grass",
+        "wooden-towers",
+        "boar-iconography"
+      ],
       "usage": [
         {
           "selectionTier": "curated-override",
