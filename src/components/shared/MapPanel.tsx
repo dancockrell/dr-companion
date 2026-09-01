@@ -40,7 +40,7 @@ import { PlaceSearch } from './PlaceSearch'
 import { useZoneBrowsing } from '../../lib/useZoneBrowsing'
 import { MapPinBar } from './MapPinBar'
 import { QuickTravel } from './QuickTravel'
-import { PinPalette } from './PinPalette'
+import { PinPalette, type PinBrush } from './PinPalette'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
@@ -185,6 +185,15 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     setMapDock({ zoom: 1 })
   }, [browsing, hereId, level, resetPan, zone?.zone])
 
+  // A room update must update the view, not only the red "here" marker in an
+  // off-screen part of a previously panned map. Return the docked map to fit
+  // when live location changes; deliberate browsing keeps its own view.
+  useEffect(() => {
+    if (browsing) return
+    resetPan()
+    setMapDock({ zoom: 1 })
+  }, [browsing, hereId, level, resetPan, zone?.zone])
+
   const character = useAppStore((s) => s.character)
   const addLog = useAppStore((s) => s.addLog)
 
@@ -213,6 +222,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    * otherwise touch anything React tracks as having changed.
    */
   const [pinVersion, setPinVersion] = useState(0)
+  const [pinBrush, setPinBrush] = useState<PinBrush | null>(null)
   const { pins, pinsByRoom } = useMemo(() => {
     const list = character ? loadPins(character.name, character.instance) : []
     return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
@@ -518,22 +528,9 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           It costs one row and gives back the thing the map could not do. */}
       <PlaceSearch here={zone.zone} onPick={goToPlace} />
 
-      {/* Pinned places and nearest-tag search, sharing one flex-wrap row
-          instead of two. Both are the same shape - a row of small pill
-          buttons - and neither reliably fills a row on its own (a fresh
-          character has one "Pin here" button; QuickTravel is four category
-          chips until you press one), so stacking them was two mostly-empty
-          rows costing 30px+ together. flex-wrap still drops MapPinBar's
-          pins to a second line once QuickTravel's answers actually arrive,
-          which is the one case that legitimately needs it. */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <MapPinBar
-          pins={pins}
-          onGo={(pin) => goThere(pin.roomId)}
-          onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-        />
-        <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
+      {/* One map-tool rail. Operational controls lead; the complete place
+          vocabulary consumes the remaining width and grab-scrolls. */}
+      <div className="flex min-w-0 items-center gap-1.5" aria-label="Map pins and places">
         {character && playerMarker && (
           <button
             type="button"
@@ -553,11 +550,16 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             </span>
           </button>
         )}
+        <MapPinBar
+          pins={pins}
+          onGo={(pin) => goThere(pin.roomId)}
+          onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+        />
+        <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
+        <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+        <PinPalette selected={pinBrush} onSelect={setPinBrush} />
       </div>
-
-      {/* Every preset pin type, drag-and-drop onto a room - see PinPalette's
-          own header for why this can't just be more QuickTravel buttons. */}
-      <PinPalette />
 
       {showNudge && hereId != null && (
         <RoomNudge
@@ -656,7 +658,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             level={z}
             onRoute={onRoute}
             fit
-            onPick={goThere}
+            onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
             onZone={pushZone}
             trail={trail}
             pins={pinsByRoom}

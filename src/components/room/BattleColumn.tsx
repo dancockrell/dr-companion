@@ -233,17 +233,16 @@ export function BattleColumn() {
         </PanelBoundary>
       </div>
 
+      {roomItems && roomItems.length > 0 && (
+        <div className="shrink-0 rounded border border-border bg-surface-raised px-2 py-1.5">
+          <PanelBoundary label="Items on the ground"><FloorItems items={roomItems} /></PanelBoundary>
+        </div>
+      )}
+
       <div className="shrink-0 rounded border border-border bg-surface-raised p-2">
         <PanelBoundary label="Combat controls">
           <BattleActionBar />
         </PanelBoundary>
-        {roomItems && roomItems.length > 0 && (
-          <div className="mt-1.5 border-t border-border/60 pt-1.5">
-            <PanelBoundary label="Floor">
-              <FloorItems items={roomItems} />
-            </PanelBoundary>
-          </div>
-        )}
       </div>
 
       <div className="grid min-h-[13rem] flex-1 grid-cols-[minmax(0,1.35fr)_minmax(12rem,0.85fr)] gap-2 overflow-hidden">

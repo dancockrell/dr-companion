@@ -80,7 +80,7 @@ export function QuickTravel({
           }}
           title={`Nearest ${label} (drag onto a room on the map to pin it there directly)`}
           aria-label={`Nearest ${label}`}
-          className={`flex items-center rounded-full border px-1.5 py-0.5 ${
+          className={`grid h-6 w-6 shrink-0 place-items-center rounded border ${
             activeTag === tag ? 'border-accent' : 'border-border hover:border-accent/60'
           }`}
         >
@@ -91,7 +91,7 @@ export function QuickTravel({
             * the icon shape alone is too small to tell apart quickly. The
             * colour is also a preview of what the pin will look like on the
             * map once dropped, so it is not a cue invented just for this row. */}
-          <Icon className="h-3 w-3" style={{ color: PIN_COLOR_HEX[color] }} />
+          <Icon className="h-3.5 w-3.5" style={{ color: PIN_COLOR_HEX[color] }} />
         </button>
       ))}
       {answered &&

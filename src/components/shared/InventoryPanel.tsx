@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { BookOpen, ChevronDown, ChevronRight, Package, Search, Sparkles } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { capabilitiesForCharacter } from '../../lib/accountCapabilities'
@@ -15,17 +15,23 @@ function itemTarget(name: string): string {
   return name.replace(/^(?:a|an|some|the)\s+/i, '').trim()
 }
 
-function ItemRow({ name, onWiki }: { name: string; onWiki: (name: string) => void }) {
+function groupedItems(items: string[]): Array<{ name: string; count: number }> {
+  const counts = new Map<string, number>()
+  for (const name of items) counts.set(name, (counts.get(name) ?? 0) + 1)
+  return [...counts].map(([name, count]) => ({ name, count }))
+}
+
+function ItemRow({ name, count = 1, onWiki }: { name: string; count?: number; onWiki: (name: string) => void }) {
   const target = itemTarget(name)
   return (
     <div className="group flex min-w-0 items-center gap-1 border-t border-border/50 px-2 py-1 first:border-t-0">
       <button type="button" className="min-w-0 flex-1 truncate text-left text-xs text-ink hover:text-accent" onClick={() => void sendGame(`look ${target}`)} title={`Look at ${name}`}>
-        {name}
+        {name}{count > 1 ? ` (${count})` : ''}
       </button>
       <div className="flex shrink-0 items-center opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <button type="button" className="rounded px-1 py-0.5 text-xs text-ink-faint hover:bg-surface-overlay hover:text-ink" onClick={() => void sendGame(`appraise ${target} quick`)} title="Quick appraisal">A</button>
         <button type="button" className="rounded px-1 py-0.5 text-xs text-ink-faint hover:bg-surface-overlay hover:text-ink" onClick={() => void sendGame(`analyze ${target}`)} title="Analyze crafting and special properties"><Sparkles className="h-3 w-3" /></button>
-        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-info" onClick={() => onWiki(name)} title="Open Elanthipedia information"><BookOpen className="h-3 w-3" /></button>
+        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-info" onClick={() => onWiki(name)} title={`Look up ${name} on Elanthipedia`} aria-label={`Elanthipedia information for ${name}`}><BookOpen className="h-3 w-3" /></button>
       </div>
     </div>
   )
@@ -40,10 +46,14 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState<Set<string>>(() => new Set())
   const [wiki, setWiki] = useState<{ item: string; page: ElanthipediaPage | null; loading: boolean } | null>(null)
+  const wikiRequest = useRef(0)
 
   const showWiki = (item: string) => {
+    const request = ++wikiRequest.current
     setWiki({ item, page: null, loading: true })
-    void fetchElanthipedia(itemTarget(item)).then((page) => setWiki({ item, page, loading: false }))
+    void fetchElanthipedia(itemTarget(item)).then((page) => {
+      if (request === wikiRequest.current) setWiki({ item, page, loading: false })
+    })
   }
 
   if (!inventory) {
@@ -55,6 +65,11 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
   const caps = character ? capabilitiesForCharacter(character) : null
   const needle = query.trim().toLowerCase()
   const worn = (inventory.worn ?? []).filter((item) => !needle || item.toLowerCase().includes(needle))
+  const containers = inventory.containers.filter((container) =>
+    !needle ||
+    container.name.toLowerCase().includes(needle) ||
+    (container.items ?? []).some((item) => item.toLowerCase().includes(needle))
+  )
 
   /**
    * `pressure`/`used`/`capacity` come from the bridge already fabricated:
@@ -109,31 +124,26 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
       </div>
 
       <div className="rounded-xl border border-border bg-surface-raised divide-y divide-border">
-        {inventory.containers.map((c) => {
+        {containers.map((c) => {
           const known = c.capacity > 0
           const pct = known ? Math.round((c.used / c.capacity) * 100) : 0
+          const revealedBySearch = Boolean(needle) && Boolean(c.items)
+          const expanded = open.has(c.name) || revealedBySearch
           return (
             <div key={c.name} className="space-y-1">
-              <button type="button" className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-sm hover:bg-surface-overlay" onClick={() => setOpen((previous) => { const next = new Set(previous); if (next.has(c.name)) next.delete(c.name); else next.add(c.name); return next })} aria-expanded={open.has(c.name)}>
-                <span className="text-ink flex items-center gap-1 min-w-0">
-                  {open.has(c.name) ? <ChevronDown className="h-3 w-3 shrink-0 text-ink-faint" /> : <ChevronRight className="h-3 w-3 shrink-0 text-ink-faint" />}
-                  <Package className="w-3.5 h-3.5 text-ink-faint shrink-0" />
-                  <span className="truncate">{c.name}</span>
-                </span>
-                <span
-                  className={
-                    !known
-                      ? 'text-ink-faint text-xs'
-                      : pct >= 90
-                        ? 'text-danger text-xs'
-                        : pct >= 70
-                          ? 'text-warn text-xs'
-                          : 'text-ink-muted text-xs'
-                  }
-                >
-                  {known ? `${c.used}/${c.capacity}` : 'contents unknown'}
-                </span>
-              </button>
+              <div className="flex items-stretch hover:bg-surface-overlay">
+                <button type="button" className="flex min-w-0 flex-1 items-center justify-between gap-2 px-2 py-1.5 text-sm" onClick={() => setOpen((previous) => { const next = new Set(previous); if (next.has(c.name)) next.delete(c.name); else next.add(c.name); return next })} aria-expanded={expanded} title={revealedBySearch ? `${c.name} contains a search match` : `Show ${c.name} contents`}>
+                  <span className="text-ink flex items-center gap-1 min-w-0">
+                    {expanded ? <ChevronDown className="h-3 w-3 shrink-0 text-ink-faint" /> : <ChevronRight className="h-3 w-3 shrink-0 text-ink-faint" />}
+                    <Package className="w-3.5 h-3.5 text-ink-faint shrink-0" />
+                    <span className="truncate">{c.name}</span>
+                  </span>
+                  <span className={!known ? 'text-ink-faint text-xs' : pct >= 90 ? 'text-danger text-xs' : pct >= 70 ? 'text-warn text-xs' : 'text-ink-muted text-xs'}>
+                    {known ? `${c.used}/${c.capacity}` : c.items ? `${c.items.length} items` : 'contents unknown'}
+                  </span>
+                </button>
+                <button type="button" className="grid w-8 shrink-0 place-items-center border-l border-border/50 text-ink-faint hover:text-info" onClick={() => showWiki(c.name)} title={`Look up ${c.name} on Elanthipedia`} aria-label={`Elanthipedia information for ${c.name}`}><BookOpen className="h-3.5 w-3.5" /></button>
+              </div>
               {known && (
                 <div className="mx-2 mb-1.5 h-1.5 rounded-full bg-surface overflow-hidden border border-border/40">
                   <div
@@ -148,9 +158,9 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
                   />
                 </div>
               )}
-              {open.has(c.name) && (
+              {expanded && (
                 <div className="border-t border-border/60 bg-surface/50">
-                  {(c.items ?? []).filter((item) => !needle || item.toLowerCase().includes(needle)).map((item) => <ItemRow key={item} name={item} onWiki={showWiki} />)}
+                  {groupedItems((c.items ?? []).filter((item) => !needle || item.toLowerCase().includes(needle))).map(({ name, count }) => <ItemRow key={name} name={name} count={count} onWiki={showWiki} />)}
                   {!c.items && <button type="button" className="w-full px-2 py-1.5 text-left text-xs text-info hover:bg-surface-overlay" onClick={() => void sendGame(`inventory ${itemTarget(c.name)}`)}>Scan this container in game</button>}
                   {c.items && c.items.length === 0 && <div className="px-2 py-1.5 text-xs text-ink-faint">Empty</div>}
                 </div>
@@ -158,9 +168,9 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
             </div>
           )
         })}
-        {inventory.containers.length === 0 && (
+        {containers.length === 0 && (
           <div className="px-2 py-1.5 text-xs text-ink-faint">
-            No containers reported
+            {needle ? `Nothing carried matches “${query.trim()}”` : 'No containers reported'}
           </div>
         )}
         <div className="px-2 py-1.5 flex justify-between text-xs text-ink-faint">
@@ -172,14 +182,15 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
       {(inventory.worn?.length ?? 0) > 0 && (
         <details className="rounded border border-border bg-surface-raised" open={Boolean(needle)}>
           <summary className="cursor-pointer px-2 py-1.5 text-xs text-ink-muted">Worn equipment · {inventory.wornCount}</summary>
-          <div className="max-h-48 overflow-y-auto">{worn.map((item) => <ItemRow key={item} name={item} onWiki={showWiki} />)}</div>
+          <div className="max-h-48 overflow-y-auto">{groupedItems(worn).map(({ name, count }) => <ItemRow key={name} name={name} count={count} onWiki={showWiki} />)}</div>
         </details>
       )}
 
       {wiki && (
         <aside className="rounded border border-info/40 bg-surface-overlay p-2 text-xs" aria-label={`Elanthipedia information for ${wiki.item}`}>
-          <div className="flex items-start justify-between gap-2"><strong className="text-ink">{wiki.item}</strong><button type="button" className="text-ink-faint hover:text-ink" onClick={() => setWiki(null)}>Close</button></div>
-          {wiki.loading ? <p className="mt-1 text-ink-faint">Checking Elanthipedia…</p> : wiki.page?.found ? <><p className="mt-1 line-clamp-6 text-ink-muted">{wiki.page.extract}</p><a className="mt-1 inline-block text-info hover:underline" href={wiki.page.pageUrl} target="_blank" rel="noreferrer">Full Elanthipedia page</a></> : <p className="mt-1 text-ink-faint">{wiki.page?.note || 'No matching Elanthipedia page found.'}</p>}
+          <div className="flex items-start justify-between gap-2"><strong className="text-ink">{wiki.item}</strong><button type="button" className="text-ink-faint hover:text-ink" onClick={() => { wikiRequest.current += 1; setWiki(null) }}>Close</button></div>
+          {wiki.loading ? <p className="mt-1 text-ink-faint">Checking Elanthipedia…</p> : wiki.page?.found ? <><p className="mt-1 line-clamp-6 text-ink-muted">{wiki.page.extract}</p><a className="mt-1 inline-block text-info hover:underline" href={wiki.page.pageUrl} target="_blank" rel="noreferrer">Full Elanthipedia page</a></> : <p className="mt-1 text-ink-faint">{wiki.page?.note || 'No exact Elanthipedia page found. Try the full wiki search.'}</p>}
+          <a className="mt-1 block text-info hover:underline" href={`https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(itemTarget(wiki.item))}`} target="_blank" rel="noreferrer">Search Elanthipedia for this item</a>
         </aside>
       )}
 
