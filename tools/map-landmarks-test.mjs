@@ -38,6 +38,7 @@ check('a real bank before the comma remains a bank', landmarkFor(room('First Pro
 check('a real guild before the comma remains a guild', landmarkFor(room("Paladins' Guild, Sentinel's Way"))?.kind === 'guild')
 check('an office has a distinct public-office symbol', landmarkFor(room('Estate Holder Office'))?.kind === 'office')
 check('a courthouse has a distinct justice symbol', landmarkFor(room('Provincial Courthouse'))?.kind === 'justice')
+check('a food court is not a courthouse', landmarkFor(room('Market Plaza, Food Court', ['Food Court']))?.kind !== 'justice')
 check('one room never receives an overlapping pile of automatic pins', landmarksFor(room('Temple Grounds, Entry Gates', ['temple', 'gate'])).length === 1)
 
 const canvas = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')

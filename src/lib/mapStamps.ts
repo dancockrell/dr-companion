@@ -61,6 +61,44 @@ interface StampRule {
 }
 
 /**
+ * Map titles sometimes describe an indoor themed display rather than the
+ * surrounding country: "Market Plaza, Water Room" and "Crystal Plaza, River
+ * Room" are rooms decorated after those subjects, not rivers running through
+ * the building.  Evaluate comma-separated title parts and authored tags on
+ * their own so the real "Market Plaza" settlement evidence survives while
+ * the decorative "Water Room" evidence does not become landscape ink.
+ */
+function factualBroadEvidence(room: MapZoneRoom, pattern: RegExp): boolean {
+  const parts = [
+    ...(room.title ?? '').split(','),
+    ...(room.tags ?? []),
+  ].map((part) => part.trim()).filter(Boolean)
+
+  return parts.some((part) => pattern.test(part) && !/\broom\b/i.test(part))
+}
+
+/** Oversized service drawings need stronger evidence than an automatic pin. */
+function supportsServiceHero(room: MapZoneRoom, kind: LandmarkKind): boolean {
+  const evidence = [room.title ?? '', ...(room.tags ?? [])].join(' · ')
+
+  // An "Armor Room" or "Weapon Room" may be an exhibit, dormitory theme, or
+  // storage room.  Keep its useful room badge, but do not print a giant forge
+  // unless the mapper also identifies commerce or actual craft work.
+  if (kind === 'armor' || kind === 'weapon') {
+    return /\b(armou?ry|shop|store|dealer|forge|smithy|workshop|craft|repair|supplies|wares|outfitter)\b/i.test(evidence)
+  }
+
+  // "Office" alone is a location, not necessarily a civic service. Explicit
+  // administrative, legal, postal, registration, or housing language is
+  // enough to earn the deliberately exaggerated public-building drawing.
+  if (kind === 'office') {
+    return /\b(public|civic|bureau|administration|administrative|government|housing|registration|registrar|consulate|courthouse|justice|post|records|licensing)\b/i.test(evidence)
+  }
+
+  return true
+}
+
+/**
  * Broad landscape facts which make sense as ink beneath the navigable map.
  * Every expression is word-bounded: "city" must not turn the Pillar of Unity
  * into a settlement, the same class of substring error that once made an
@@ -279,7 +317,7 @@ export function deriveMapStamps(
           rule.pattern.test(title) && !/\b(streets?|roads?|lanes?|avenues?|boulevards?)\b/i.test(title)
         )
       }
-      return rule.pattern.test([title, authoredLabels].filter(Boolean).join(' · '))
+      return factualBroadEvidence(room, rule.pattern)
     })
     const required = rule.minimum === 'named' ? 1 : threshold
     if (matches.length < required) return []
@@ -329,7 +367,7 @@ export function deriveMapStamps(
   const serviceCandidates = positioned.flatMap((room) => {
     const landmark = landmarksFor(room)[0]
     const presentation = landmark ? SERVICE_STAMPS[landmark.kind] : null
-    if (!presentation) return []
+    if (!presentation || !landmark || !supportsServiceHero(room, landmark.kind)) return []
     // A map sheet receives one exaggerated exemplar per service family. The
     // smaller room badges still identify every branch. Repeating a huge bank
     // or guild drawing at every matching room turns a city into a floor plan.
