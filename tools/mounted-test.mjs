@@ -275,6 +275,23 @@ console.log('\n-- the allowlist is a list of decisions, not a dumping ground --'
   ok('every entry carries a reason', unreasoned.length === 0, unreasoned.map(([f]) => f).join(', '))
 }
 
+console.log('\n-- critical connection controls have one owner --')
+{
+  const owners = [...sources.entries()]
+    .filter(([, text]) =>
+      text.includes("const PORT_KEY = 'drc.attach-port.v2'") &&
+      text.includes('attachGame(Number(port))') &&
+      text.includes('detachGame()')
+    )
+    .map(([file]) => file)
+
+  ok(
+    'one component owns attach, detach, and port selection',
+    owners.length === 1,
+    owners.join(', ') || 'no owner found'
+  )
+}
+
 console.log('\n-- sabotage: a two-file dead chain must still be caught --')
 {
   // Reproduces the exact bug this rewrite fixes: RoomCards.tsx's only
