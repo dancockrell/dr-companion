@@ -20,7 +20,7 @@ import {
   type MapPin,
 } from '../../lib/mapPins'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
-import { useDismiss } from '../../lib/useDismiss'
+import { useModalDialog } from '../../lib/useModalDialog'
 
 export function PinEditor({
   roomId,
@@ -46,11 +46,12 @@ export function PinEditor({
    */
   onCreateTask?: (pin: MapPin) => void
 }) {
-  useDismiss(onClose)
+  const dialogRef = useModalDialog(onClose)
   const [label, setLabel] = useState(existing?.label ?? roomTitle)
   const [color, setColor] = useState<PinColor>(existing?.color ?? 'blue')
   const [icon, setIcon] = useState<PinIcon | undefined>(existing?.icon)
   const [note, setNote] = useState(existing?.note ?? '')
+  const dirty = label !== (existing?.label ?? roomTitle) || color !== (existing?.color ?? 'blue') || icon !== existing?.icon || note !== (existing?.note ?? '')
 
   const save = () => {
     if (!label.trim()) return
@@ -79,16 +80,22 @@ export function PinEditor({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       data-gameplay-shortcuts="suspend"
-      onClick={onClose}
+      onClick={() => { if (!dirty) onClose() }}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pin-editor-title"
+        aria-describedby="pin-editor-room"
+        tabIndex={-1}
         className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-lg border border-border bg-surface p-3 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-sm font-semibold text-ink">
+        <h3 id="pin-editor-title" className="text-sm font-semibold text-ink">
           {existing ? 'Edit pin' : 'Pin this room'}
         </h3>
-        <p className="mt-0.5 text-xs text-ink-faint truncate">
+        <p id="pin-editor-room" className="mt-0.5 text-xs text-ink-faint truncate">
           Room {roomId}
           {roomTitle ? ` — ${roomTitle}` : ''}
         </p>
@@ -129,7 +136,6 @@ export function PinEditor({
             onChange={(e) => setLabel(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') save()
-              if (e.key === 'Escape') onClose()
             }}
             className="mt-1 w-full rounded border border-border bg-surface-overlay px-2 py-1 text-sm text-ink"
             placeholder="Home, Bank, Favorite hunting spot…"

@@ -13,7 +13,7 @@
 import { SCRIPT_ICON_KEYS, type ScriptIconKey } from '../../lib/scriptIcons'
 import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
 import { cn } from '../../lib/cn'
-import { useDismiss } from '../../lib/useDismiss'
+import { useModalDialog } from '../../lib/useModalDialog'
 
 export function ScriptIconPicker({
   title,
@@ -34,7 +34,7 @@ export function ScriptIconPicker({
   onReset?: () => void
   onClose: () => void
 }) {
-  useDismiss(onClose)
+  const dialogRef = useModalDialog(onClose)
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -42,10 +42,15 @@ export function ScriptIconPicker({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="script-icon-picker-title"
+        tabIndex={-1}
         className="w-full max-w-xs rounded-lg border border-border bg-surface p-3 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-sm font-semibold text-ink">Choose an icon</h3>
+        <h3 id="script-icon-picker-title" className="text-sm font-semibold text-ink">Choose an icon</h3>
         <p className="mt-0.5 truncate text-xs text-ink-faint">{title}</p>
 
         <div className="mt-3 flex flex-wrap gap-1.5">

@@ -14,7 +14,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { Button } from '../shared/Button'
 import { buildReport, issueUrl } from '../../lib/bugReport'
 import { APP_VERSION } from '../../lib/versions'
-import { useDismiss } from '../../lib/useDismiss'
+import { useModalDialog } from '../../lib/useModalDialog'
 
 
 export function ReportDialog({ onClose }: { onClose: () => void }) {
@@ -73,7 +73,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
   }
 
   const trimmed = report.body.length < report.full.length
-  useDismiss(onClose)
+  const dialogRef = useModalDialog(onClose)
 
   return (
     <div
@@ -82,11 +82,16 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="report-title"
+        tabIndex={-1}
         className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-          <h2 className="text-sm font-semibold text-ink">Report a problem</h2>
+          <h2 id="report-title" className="text-sm font-semibold text-ink">Report a problem</h2>
           <button
             type="button"
             className="p-1 rounded-md text-ink-faint hover:text-ink"
