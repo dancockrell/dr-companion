@@ -35,8 +35,10 @@ check('a courthouse has a distinct justice symbol', landmarkFor(room('Provincial
 check('one room never receives an overlapping pile of automatic pins', landmarksFor(room('Temple Grounds, Entry Gates', ['temple', 'gate'])).length === 1)
 
 const canvas = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')
+const hoverCard = readFileSync('src/components/shared/RoomHoverCard.tsx', 'utf8')
 check('automatic landmarks render below saved pins', canvas.indexOf('Automatic world landmarks') < canvas.indexOf('A saved place'))
 check('automatic landmarks do not add a second persistent pin bar', !canvas.includes('Landmarks · hover for meaning'))
+check('every room tooltip offers an Elanthipedia lookup', hoverCard.includes('Look up this place on Elanthipedia') && hoverCard.includes('Special:Search'))
 
 if (failures) process.exit(1)
 console.log('\nall map landmark checks passed')

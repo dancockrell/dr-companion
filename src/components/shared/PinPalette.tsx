@@ -1,6 +1,7 @@
 /**
- * Every preset pin type, in one grab-and-drag row - drag one onto a room on
- * the map to place it there directly.
+ * The vocabulary end of the single map-tool rail. Operational controls
+ * (saved, pin-here, nearest, player marker) sit immediately before this
+ * component; these are the place meanings a player can apply to any room.
  *
  * QuickTravel's four buttons (bank/healer/guild/shop) already do this, but
  * they are also a live "nearest" search, which only those four categories
@@ -24,6 +25,8 @@ export interface PinBrush {
   icon: (typeof PIN_PRESETS)[number]['icon']
   color: (typeof PIN_PRESETS)[number]['color']
 }
+
+const GROUP_STARTS = new Set(['Healer', 'Shop', 'Smithy', 'Landmark', 'Hunting Spot', 'Hangout'])
 
 export function PinPalette({ selected, onSelect }: { selected?: PinBrush | null; onSelect?: (preset: PinBrush | null) => void }) {
   const rowRef = useRef<HTMLDivElement | null>(null)
@@ -64,15 +67,15 @@ export function PinPalette({ selected, onSelect }: { selected?: PinBrush | null;
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
       onClickCapture={onClickCapture}
-      title="Drag any of these onto a room on the map to pin it there"
-      className="flex w-full min-w-0 cursor-grab gap-1 overflow-x-auto active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      title="Place symbols — click one, then a room; or drag it onto a room"
+      className="grid min-w-0 flex-1 auto-cols-max grid-flow-col grid-rows-2 gap-1 overflow-x-auto cursor-grab active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {PIN_PRESETS.map((preset, i) => {
         const Icon = PIN_ICON_COMPONENT[preset.icon]
         // Quiet dividers preserve the compact icon-only row while making
         // its vocabulary scannable: home/banking, services, shops,
         // gathering, places, danger, and social/logistics.
-        const startsGroup = [4, 12, 22, 30, 36, 43].includes(i)
+        const startsGroup = GROUP_STARTS.has(preset.label)
         return (
           <button
             key={`${preset.label}-${i}`}

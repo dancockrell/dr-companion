@@ -401,15 +401,7 @@ export function MapWindow() {
 
         {(pins.length > 0 || hereId != null) && (
           <>
-            {/* One shared flex-wrap row, not two - see MapPinBar.tsx's note. */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <MapPinBar
-                pins={pins}
-                onGo={(pin) => goThere(pin.roomId)}
-                onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-                onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-              />
-              <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
+            <div className="flex min-w-0 items-center gap-1.5" aria-label="Map pins and places">
               {character && playerMarker && (
                 <button
                   type="button"
@@ -429,9 +421,16 @@ export function MapWindow() {
                   </span>
                 </button>
               )}
+              <MapPinBar
+                pins={pins}
+                onGo={(pin) => goThere(pin.roomId)}
+                onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+                onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+              />
+              <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
+              <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+              <PinPalette selected={pinBrush} onSelect={setPinBrush} />
             </div>
-            {/* Every preset pin type, drag-and-drop onto a room - see PinPalette.tsx's own header. */}
-            <PinPalette selected={pinBrush} onSelect={setPinBrush} />
             {showNudge && hereId != null && (
               <RoomNudge
                 visits={hereVisits as number}

@@ -528,22 +528,9 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           It costs one row and gives back the thing the map could not do. */}
       <PlaceSearch here={zone.zone} onPick={goToPlace} />
 
-      {/* Pinned places and nearest-tag search, sharing one flex-wrap row
-          instead of two. Both are the same shape - a row of small pill
-          buttons - and neither reliably fills a row on its own (a fresh
-          character has one "Pin here" button; QuickTravel is four category
-          chips until you press one), so stacking them was two mostly-empty
-          rows costing 30px+ together. flex-wrap still drops MapPinBar's
-          pins to a second line once QuickTravel's answers actually arrive,
-          which is the one case that legitimately needs it. */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <MapPinBar
-          pins={pins}
-          onGo={(pin) => goThere(pin.roomId)}
-          onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-        />
-        <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
+      {/* One map-tool rail. Operational controls lead; the complete place
+          vocabulary consumes the remaining width and grab-scrolls. */}
+      <div className="flex min-w-0 items-center gap-1.5" aria-label="Map pins and places">
         {character && playerMarker && (
           <button
             type="button"
@@ -563,11 +550,16 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             </span>
           </button>
         )}
+        <MapPinBar
+          pins={pins}
+          onGo={(pin) => goThere(pin.roomId)}
+          onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+        />
+        <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
+        <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+        <PinPalette selected={pinBrush} onSelect={setPinBrush} />
       </div>
-
-      {/* Every preset pin type, drag-and-drop onto a room - see PinPalette's
-          own header for why this can't just be more QuickTravel buttons. */}
-      <PinPalette selected={pinBrush} onSelect={setPinBrush} />
 
       {showNudge && hereId != null && (
         <RoomNudge
