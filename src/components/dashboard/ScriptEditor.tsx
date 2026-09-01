@@ -85,6 +85,8 @@ export function ScriptEditor({
   const [note, setNote] = useState('')
   const [dirty, setDirty] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [decision, setDecision] = useState<'close' | 'delete' | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const area = useRef<HTMLTextAreaElement>(null)
 
   // Existing script: load it. New one: a template, so the first thing a player
@@ -162,14 +164,23 @@ export function ScriptEditor({
   }, [save, lang, name, onRun, startScript, addLog])
 
   const remove = useCallback(async () => {
+    if (deleting) return
+    setDeleting(true)
     try {
       await deleteScript(lang, name)
       onSaved()
       onClose()
     } catch (e) {
       setNote(e instanceof Error ? e.message : String(e))
+      setDeleting(false)
+      setDecision(null)
     }
-  }, [lang, name, onSaved, onClose])
+  }, [deleting, lang, name, onSaved, onClose])
+
+  const requestClose = useCallback(() => {
+    if (dirty) setDecision('close')
+    else onClose()
+  }, [dirty, onClose])
 
   /**
    * Tab indents rather than leaving the field.
@@ -236,7 +247,7 @@ export function ScriptEditor({
 
         <button
           type="button"
-          onClick={onClose}
+          onClick={requestClose}
           title="Close the editor" aria-label="Close the editor"
           className="rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
         >
@@ -314,7 +325,8 @@ export function ScriptEditor({
         {target.name && lang !== 'ruby' && (
           <button
             type="button"
-            onClick={() => void remove()}
+            onClick={() => setDecision('delete')}
+            disabled={deleting}
             title="Delete this script" aria-label="Delete this script"
             className="ml-auto rounded border border-danger/40 px-1.5 py-0.5 text-danger hover:bg-danger/15"
           >
@@ -322,6 +334,28 @@ export function ScriptEditor({
           </button>
         )}
       </div>
+
+      {decision === 'close' && (
+        <div role="dialog" aria-modal="true" aria-label="Unsaved script changes" className="rounded border border-warn/50 bg-warn/10 p-2 text-xs">
+          <p className="font-semibold text-warn">Save changes to {name.trim() || 'this new script'} before closing?</p>
+          <div className="mt-2 flex flex-wrap gap-1">
+            <button type="button" className="rounded border border-accent/50 bg-accent/15 px-2 py-1 text-accent" onClick={() => void save().then((saved) => saved && onClose())}>Save and close</button>
+            <button type="button" className="rounded border border-danger/50 px-2 py-1 text-danger" onClick={onClose}>Discard changes</button>
+            <button type="button" autoFocus className="rounded border border-border px-2 py-1 text-ink" onClick={() => { setDecision(null); area.current?.focus() }}>Keep editing</button>
+          </div>
+        </div>
+      )}
+
+      {decision === 'delete' && (
+        <div role="dialog" aria-modal="true" aria-label={`Delete ${name}`} className="rounded border border-danger/50 bg-danger/10 p-2 text-xs">
+          <p className="font-semibold text-danger">Permanently delete {name}.{lang === 'typescript' ? 'ts' : 'py'}?</p>
+          <p className="mt-1 text-ink-muted">This file cannot be recovered in DR Companion.</p>
+          <div className="mt-2 flex gap-1">
+            <button type="button" disabled={deleting} className="rounded border border-danger/60 bg-danger/15 px-2 py-1 text-danger disabled:opacity-50" onClick={() => void remove()}>{deleting ? 'Deleting…' : `Delete ${name}`}</button>
+            <button type="button" autoFocus disabled={deleting} className="rounded border border-border px-2 py-1 text-ink disabled:opacity-50" onClick={() => { setDecision(null); area.current?.focus() }}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {note && <p className="truncate text-xs text-ink-faint" title={note}>{note}</p>}
     </div>
