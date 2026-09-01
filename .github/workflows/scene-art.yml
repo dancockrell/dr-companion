@@ -44,5 +44,6 @@ jobs:
           path: |
             src/data/roomScenePatterns.ts
             data/art/scene-basket-coverage.json
-      - name: Verify generated scene data is committed
+            data/art/out/scene-basket-audit.json
+      - name: Verify committed runtime map and coverage summary are current
         run: git diff --exit-code -- src/data/roomScenePatterns.ts data/art/scene-basket-coverage.json
