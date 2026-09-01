@@ -40,19 +40,22 @@ for (const family of [...Object.values(baskets.generic), ...Object.values(basket
   for (const art of family) check(existsSync(`public${art}`), `basket asset exists: ${art}`)
 }
 const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 'utf8'))
+const audit = JSON.parse(readFileSync('data/art/out/scene-basket-audit.json', 'utf8'))
 check(coverage.roomCount >= 1700, `generic patterns cover ${coverage.roomCount} rooms without swallowing protected landmarks`)
-check(!coverage.assignments.some(({ placeKey }) => placeKey === '4a::Behind the Goal Line'), 'special sports location is not treated as generic grassland')
+check(coverage.assignmentCount === audit.assignments.length, 'coverage assignment count matches full audit')
+check(coverage.unresolvedCount === audit.unresolved.length, 'coverage unresolved count matches full audit')
+check(!audit.assignments.some(({ placeKey }) => placeKey === '4a::Behind the Goal Line'), 'special sports location is not treated as generic grassland')
 check(coverage.protectedLandmarks.includes('1::Sewer'), 'curated landmark places remain protected')
-check(coverage.assignments.some(({ placeKey, category }) => placeKey === '4::Doline' && category === 'riverside'), 'Applebrandy River Doline keeps its title-backed riverside assignment')
-check(coverage.assignments.some(({ placeKey, category }) => placeKey === '7::Low Rise' && category === 'deep-forest'), 'Sicle Grove Low Rise uses natural-grove art rather than a cultivated garden')
-check(coverage.assignments.every((assignment) =>
+check(audit.assignments.some(({ placeKey, category }) => placeKey === '4::Doline' && category === 'riverside'), 'Applebrandy River Doline keeps its title-backed riverside assignment')
+check(audit.assignments.some(({ placeKey, category }) => placeKey === '7::Low Rise' && category === 'deep-forest'), 'Sicle Grove Low Rise uses natural-grove art rather than a cultivated garden')
+check(audit.assignments.every((assignment) =>
   Number.isFinite(assignment.confidence) &&
   assignment.confidence >= 0 && assignment.confidence <= 1 &&
   assignment.traits && typeof assignment.traits === 'object' &&
   Array.isArray(assignment.signals) &&
   assignment.signals.some((signal) => signal.startsWith('title:'))
 ), 'every automatic assignment is explainable, scored, and backed by title evidence')
-check((coverage.unresolved ?? []).every((assignment) =>
+check(audit.unresolved.every((assignment) =>
   Number.isFinite(assignment.confidence) &&
   assignment.traits && typeof assignment.traits === 'object' &&
   Array.isArray(assignment.signals)
