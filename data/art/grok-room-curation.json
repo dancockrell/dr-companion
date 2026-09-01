@@ -87,6 +87,97 @@
       "regenerationNeeded": false
     },
     "generic-apothecary": {
+<<<<<<< HEAD
+      "exactSubject": "working herbalist and alchemical supply shop",
+      "canonicalTraits": ["bottles, dried herbs and reagents", "working counter", "organized shelving"],
+      "habitat": "apothecaries, alchemists, herbalists and potion shops",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/herbalist-ab006279.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/apothecary-09cdec8e.jpg"],
+      "rejects": ["generic market exterior", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-jeweler": {
+      "exactSubject": "jeweler, gemcutter and precious-metal shop",
+      "canonicalTraits": ["glass display cases", "small precision tools", "gems and finished jewelry"],
+      "habitat": "jewelers, gem shops, gemcutters, goldsmiths and silversmiths",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/jeweler-35a7845f.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic market stalls", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-magic-shop": {
+      "exactSubject": "arcane supply, enchanting and crystal shop",
+      "canonicalTraits": ["crystals and magical curios", "dense specialist shelving", "warm controlled interior light"],
+      "habitat": "magic shops, enchanters, artificers and arcane supply rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/magic-shop-4ef50ab1.jpg",
+      "approvedVariants": [],
+      "rejects": ["ordinary apothecaries without arcane goods", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-archive": {
+      "exactSubject": "scribe archive and working library room",
+      "canonicalTraits": ["books and scroll storage", "reading or copying table", "quiet enclosed workroom"],
+      "habitat": "libraries, archives, scriptoria, scribes and reading rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/archive-494b55cb.jpg",
+      "approvedVariants": [],
+      "rejects": ["bookless public halls", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-theater": {
+      "exactSubject": "small theater and performance hall",
+      "canonicalTraits": ["visible stage", "audience seating", "curtain and performance lighting"],
+      "habitat": "theaters, playhouses, auditoriums, stages and music halls",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/theater-4013bf56.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic assembly halls without a stage", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-training-hall": {
+      "exactSubject": "indoor martial training and sparring hall",
+      "canonicalTraits": ["clear practice ring", "wall-mounted weapons and shields", "durable enclosed floor"],
+      "habitat": "training halls, sparring rooms, combat academies and weapon-practice rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/training-hall-650f2679.jpg",
+      "approvedVariants": [],
+      "rejects": ["active battlefields", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-guild-hall": {
+      "exactSubject": "formal guild, bank and civic service hall",
+      "canonicalTraits": ["large institutional interior", "service counters or records", "formal stone architecture"],
+      "habitat": "banks, guildhalls, council halls, registries and public offices",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/guild-hall-441c3d78.jpg",
+      "approvedVariants": [],
+      "rejects": ["temples dominated by devotional furniture", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-mine": {
+      "exactSubject": "crystal-bearing mine and underground excavation",
+      "canonicalTraits": ["enclosed rock passage", "visible mineral deposits", "strong tunnel depth"],
+      "habitat": "mines, mineshafts, quarries, ore tunnels and crystal caverns",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/crystal-mine-3638b938.jpg",
+      "approvedVariants": [],
+      "rejects": ["open sea caves without mining context", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-tavern": {
+      "exactSubject": "tavern, inn common room and public house",
+      "canonicalTraits": ["communal tables", "service bar or hearth", "believable lodging or drinking-house character"],
+      "habitat": "taverns, inns, public houses, taprooms and common rooms",
+      "currentImage": null,
+      "approvedPrimary": null,
+      "approvedVariants": [],
+      "rejects": ["shops or theaters relabeled as taverns", "generic exterior streets", "all non-Grok room renders"],
+      "regenerationNeeded": true
+    },
+=======
       "exactSubject": "clean alchemical workroom and apothecary",
       "canonicalTraits": ["bottles and reagents", "working counter", "organized shelving"],
       "habitat": "apothecaries, alchemists, herbalists and potion shops",
@@ -96,6 +187,7 @@
       "rejects": ["generic market exterior", "all non-Grok room renders"],
       "regenerationNeeded": false
     },
+>>>>>>> origin/main
     "generic-forge": {
       "exactSubject": "working blacksmith forge",
       "canonicalTraits": ["active coal fire", "anvil", "smithing tools and dark masonry"],
@@ -198,4 +290,5 @@
     }
   }
 }
+
 

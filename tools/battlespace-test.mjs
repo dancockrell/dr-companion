@@ -44,6 +44,8 @@ check('every successfully decoded room image fades over the deterministic fallba
 check('generic room art comes only from stable location-aware Grok landscape baskets', /grokRoomScene\(zone, room, title, text\)/.test(readFileSync(new URL('../src/lib/roomText.ts', import.meta.url), 'utf8')) && /HOLD_ROOMS = 3/.test(grokScenes) && /\/grok-art\/room-scenes\//.test(grokScenes) && !/\/rooms\//.test(grokScenes) && !/\/room-scenes\//.test(grokScenes.replaceAll('/grok-art/room-scenes/', '')))
 check('Grok scene families distinguish high-reuse interiors, snow, ocean and wetlands', /return 'apothecary'/.test(grokScenes) && /return 'forge'/.test(grokScenes) && /return 'outfitter'/.test(grokScenes) && /return 'temple'/.test(grokScenes) && /return 'snow'/.test(grokScenes) && /return 'ocean'/.test(grokScenes) && /reed-marsh/.test(grokScenes))
 check('Grok scene families distinguish civic, trade and rural rooms', /return 'tailor'/.test(grokScenes) && /return 'harbor'/.test(grokScenes) && /return 'grassland'/.test(grokScenes) && /return 'orchard'/.test(grokScenes) && /return 'courtyard'/.test(grokScenes) && /return 'ruins'/.test(grokScenes) && /town-square/.test(grokScenes))
+<<<<<<< HEAD
+check('Grok scene families distinguish institutions, specialist interiors and mines', /return 'jeweler'/.test(grokScenes) && /return 'magicShop'/.test(grokScenes) && /return 'archive'/.test(grokScenes) && /return 'theater'/.test(grokScenes) && /return 'training'/.test(grokScenes) && /return 'guildHall'/.test(grokScenes) && /return 'mine'/.test(grokScenes) && /herbalist-ab006279/.test(grokScenes))
 check('room exits are always wired from live compass or mapped movement commands', /stream\.compass\?\.value \?\? here\?\.moves/.test(battle))
 check('large floor piles collapse duplicates and become searchable', /count: number/.test(floor) && /groups\.length > 12/.test(floor) && /Find among/.test(floor))
 check('floor items open explicit actions instead of taking immediately', /Actions for/.test(floor) && />Look</.test(floor) && />Get</.test(floor) && />Appraise</.test(floor) && />Analyze</.test(floor))
@@ -67,4 +69,30 @@ check('room title, hands and statuses share the scene header line', /header=\{<P
 
 if (failures) process.exit(1)
 console.log('\nall battlespace checks passed')
+=======
+check('room exits are always wired from live compass or mapped movement commands', /stream\.compass\?\.value \?\? here\?\.moves/.test(battle))
+check('large floor piles collapse duplicates and become searchable', /count: number/.test(floor) && /groups\.length > 12/.test(floor) && /Find among/.test(floor))
+check('floor items open explicit actions instead of taking immediately', /Actions for/.test(floor) && />Look</.test(floor) && />Get</.test(floor) && />Appraise</.test(floor) && />Analyze</.test(floor))
+check('floor and carried items link to Elanthipedia searches', /Special:Search/.test(floor) && /Special:Search/.test(inventory) && /Full Elanthipedia page/.test(inventory))
+check('carried duplicates collapse into stable counted rows', /function groupedItems/.test(inventory) && /count > 1/.test(inventory) && /key=\{name\}/.test(inventory))
+check('late wiki replies cannot replace the currently selected item', /wikiRequest/.test(inventory) && /request === wikiRequest\.current/.test(inventory))
+check('inventory search reveals matching bags and contents', /container\.items.*\.some/.test(inventory) && /revealedBySearch/.test(inventory) && /Nothing carried matches/.test(inventory))
+check('containers expose their own Elanthipedia action', /Elanthipedia information for \$\{c\.name\}/.test(inventory) && /showWiki\(c\.name\)/.test(inventory))
+check('the central player dashboard is a compact oval', /rounded-full bg-surface\/70/.test(radar) && /max-w-\[15rem\]/.test(radar))
+check('the paperdoll uses the live bleed report instead of guessing from wound severity', /bleeding\?: Array/.test(paperdoll) && /isActiveBleed/.test(paperdoll) && !/inj\.wound >= 2 && <BloodStamp/.test(paperdoll))
+check('the radar exposes every combat-critical and tactical status feed', /bags_full/.test(radar) && /roundtime/.test(radar) && /hidden/.test(radar) && /invisible/.test(radar) && /joined/.test(radar) && /character\?\.roundtime/.test(battle))
+check('every battle action has a unique explicit icon contract', /const ACTION_ICONS/.test(actionVisuals) && /missingVisuals/.test(actionVisuals) && /duplicateIcons/.test(actionVisuals) && /throw new Error/.test(actionVisuals))
+check('every battle action is directly wired to its exact commands', /data-action=\{actionKey\}/.test(actions) && /onClick=\{\(\) => run\(variation\.commands\)\}/.test(actions) && /Runs: \$\{variation\.commands\.join/.test(actions))
+check('every battle action receives a unique stable color signature', /ACTION_INDEX/.test(actionVisuals) && /137\.508/.test(actionVisuals) && /style=\{actionAccent\(actionKey\)\}/.test(actions))
+check('the complete functions launcher reuses semantic command icons and uniquely colors every tile', /actionKey: `\$\{macro\.id\}:\$\{variation\.id\}`/.test(taskflows) && /actionIcon\(entry\.actionKey\)/.test(taskflows) && /accentForIndex\(entryVisualIndex/.test(taskflows) && /data-entry-id=\{entry\.id\}/.test(taskflows))
+check('unavailable command buttons are honestly disabled instead of accepting dead clicks', /disabled: !canSendMacro/.test(taskflows) && /disabled=\{entry\.disabled\}/.test(taskflows))
+check('library commands can be added to and removed from the shared hotbar', /kind: 'command'/.test(quickSwitch) && /kind: 'command', actionKey: entry\.actionKey/.test(taskflows) && /Remove .* from the hotbar/.test(hotbar) && /togglePin\(slot\.pin\)/.test(hotbar))
+check('hotbar commands keep their exact icon, color, tooltip, and macro execution path', /actionIcon\(pin\.actionKey\)/.test(hotbar) && /actionAccent\(pin\.actionKey\)/.test(hotbar) && /variation\.commands\.join/.test(hotbar) && /macro\.run\(variation\.commands\)/.test(hotbar))
+check('map title, character, search and controls share one compact header line', /search=\{<PlaceSearch/.test(map) && /<header className="flex min-w-0 items-start gap-2"/.test(map) && !/gives is a place on the map/.test(map))
+check('room title, hands and statuses share the scene header line', /header=\{<PanelBoundary label="Status"><BattleStatus/.test(battle) && /absolute inset-x-0 top-0 z-30 flex/.test(scene))
+
+if (failures) process.exit(1)
+console.log('\nall battlespace checks passed')
+
+>>>>>>> origin/main
 
