@@ -53,13 +53,12 @@ pub struct GameLine {
     pub text: String,
 }
 
-/// How many chunks the backlog retains.
-///
-/// One chunk is at most one line, and the pane renders a few hundred at a
-/// time, so this refills a full screen many times over. Bounded because a
-/// session runs for hours: unbounded, a long hunt would grow it without limit
-/// and nothing would ever read the oldest end.
-const BACKLOG_MAX: usize = 2000;
+/// Native recovery budget for the frontend's 20,000-display-line contract.
+/// A chunk is at most one wire line; 25,000 therefore covers the full visible
+/// history plus framing/tag chunks that may not become display lines. The
+/// realistic-corpus measurement in `tools/backlog-test.mjs` keeps this budget
+/// honest about serialized recovery payload size.
+const BACKLOG_MAX: usize = 25_000;
 
 /// Chunks already emitted, kept so a frontend that mounts late can catch up.
 #[derive(Default)]
@@ -68,6 +67,16 @@ struct BacklogBuf {
     /// Read, then aged out. Counted rather than forgotten: a pane that quietly
     /// begins mid-session is indistinguishable from one that lost nothing.
     dropped: u64,
+}
+
+impl BacklogBuf {
+    fn push(&mut self, line: GameLine) {
+        if self.lines.len() >= BACKLOG_MAX {
+            self.lines.pop_front();
+            self.dropped += 1;
+        }
+        self.lines.push_back(line);
+    }
 }
 
 /// What `game_backlog` hands back.
@@ -377,11 +386,7 @@ pub fn game_attach(
                         let line = GameLine { seq, text };
                         {
                             let mut b = backlog.lock().unwrap();
-                            if b.lines.len() >= BACKLOG_MAX {
-                                b.lines.pop_front();
-                                b.dropped += 1;
-                            }
-                            b.lines.push_back(line.clone());
+                            b.push(line.clone());
                         }
 
                         let _ = app.emit("game:line", line);
@@ -523,6 +528,30 @@ mod tests {
     use super::*;
     use std::io::Read;
     use std::net::TcpListener;
+
+    #[test]
+    fn recovery_backlog_matches_the_frontend_scrollback_contract() {
+        let mut backlog = BacklogBuf::default();
+        for seq in 1..=(BACKLOG_MAX as u64 + 137) {
+            backlog.push(GameLine {
+                seq,
+                text: format!("line {seq}\n"),
+            });
+        }
+        assert_eq!(backlog.lines.len(), BACKLOG_MAX);
+        assert_eq!(backlog.dropped, 137);
+        assert_eq!(backlog.lines.front().map(|line| line.seq), Some(138));
+        assert_eq!(
+            backlog.lines.back().map(|line| line.seq),
+            Some(BACKLOG_MAX as u64 + 137)
+        );
+        const {
+            assert!(
+                BACKLOG_MAX >= 20_000,
+                "native recovery must cover the frontend's display budget"
+            );
+        }
+    }
 
     /// The transport, end to end, against a socket standing in for Lich.
     ///
