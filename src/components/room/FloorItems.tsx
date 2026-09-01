@@ -80,7 +80,14 @@ export function FloorItems({ items, overlay = false }: { items?: string[]; overl
   const targetOf = (name: string) => name.replace(/^(?:a|an|some|the)\s+/i, '').trim()
 
   return (
-    <div className={cn('flex flex-col gap-1', overlay && 'justify-end')} aria-label={`Items on the ground: ${groups.length} kinds, ${items.length} total`}>
+    <div
+      className={cn('flex flex-col', overlay && 'justify-end')}
+      style={{
+        gap: 'calc(0.25rem * var(--radar-scale, 1))',
+        fontSize: 'max(0.75rem, calc(0.75rem * var(--radar-scale, 1)))',
+      }}
+      aria-label={`Items on the ground: ${groups.length} kinds, ${items.length} total`}
+    >
       <div
         ref={drag.ref}
         onPointerDown={drag.onPointerDown}
@@ -89,9 +96,10 @@ export function FloorItems({ items, overlay = false }: { items?: string[]; overl
         onPointerCancel={drag.onPointerCancel}
         className={cn(
           'no-scrollbar flex touch-none gap-1',
-          overlay ? 'max-h-28 flex-wrap content-end overflow-auto' : 'overflow-x-auto',
+          overlay ? 'flex-wrap content-end overflow-auto' : 'overflow-x-auto',
           drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
         )}
+        style={overlay ? { maxHeight: 'calc(7rem * var(--radar-scale, 1))' } : undefined}
       >
         {visible.map(({ name, count }) => {
           const Icon = iconForItem(name)
@@ -105,13 +113,26 @@ export function FloorItems({ items, overlay = false }: { items?: string[]; overl
               aria-pressed={selected === name}
               title={tooltip}
               className={cn(
-                'flex shrink-0 items-center gap-1 rounded border border-border px-1.5 py-1 text-xs shadow-sm backdrop-blur-sm',
+                'flex shrink-0 items-center rounded border border-border shadow-sm backdrop-blur-sm',
                 overlay ? 'bg-surface/72' : 'bg-surface-raised',
                 'text-ink-muted hover:border-ink-faint hover:text-ink',
                 selected === name && 'border-accent bg-accent/10 text-ink'
               )}
+              style={{
+                gap: 'calc(0.25rem * var(--radar-scale, 1))',
+                paddingInline: 'calc(0.375rem * var(--radar-scale, 1))',
+                paddingBlock: 'calc(0.25rem * var(--radar-scale, 1))',
+                fontSize: 'inherit',
+              }}
             >
-              <Icon className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+              <Icon
+                className="shrink-0 text-accent"
+                style={{
+                  width: 'clamp(0.75rem, calc(0.875rem * var(--radar-scale, 1)), 1.1rem)',
+                  height: 'clamp(0.75rem, calc(0.875rem * var(--radar-scale, 1)), 1.1rem)',
+                }}
+                aria-hidden
+              />
               <span className="whitespace-nowrap">{label}</span>
             </button>
           )

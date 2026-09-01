@@ -76,7 +76,11 @@ export function Portrait({
           onError={() => {
             if (!failed) setFailed(true)
           }}
-          className={`h-full w-full object-cover ${focus === 'face' ? 'object-[center_18%]' : ''}`}
+          // `object-position` alone cannot make a full-body race default read
+          // as a face inside the radar's small oval. Zoom the source around
+          // its upper centre for that one use; card portraits and the chooser
+          // still show the complete authored image.
+          className={`h-full w-full object-cover ${focus === 'face' ? 'object-[center_18%] origin-[50%_18%] scale-[1.72]' : ''}`}
         />
       </button>
 
