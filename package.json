@@ -85,6 +85,7 @@
     "test:highlight": "node tools/highlight-test.mjs",
     "test:alert-throttle": "node tools/alert-throttle-test.mjs",
     "test:ambient": "node tools/ambient-test.mjs",
+    "test:sound-actions": "node tools/sound-actions-test.mjs",
     "test:aliases": "node tools/aliases-test.mjs",
     "test:macros": "node tools/macros-test.mjs",
     "test:variables": "node tools/variables-test.mjs",

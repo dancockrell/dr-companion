@@ -34,6 +34,7 @@ export function MapPinBar({
 }) {
   const [open, setOpen] = useState(false)
   const boxRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
 
   // Closes on a click anywhere else, and on Escape - a dropdown that only
   // closes by picking something or hunting for the toggle button again is
@@ -44,7 +45,11 @@ export function MapPinBar({
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
     }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
@@ -63,11 +68,13 @@ export function MapPinBar({
       {pins.length > 0 && (
         <div className="relative h-8 w-8 shrink-0" ref={boxRef}>
           <button
+            ref={triggerRef}
             type="button"
             onClick={() => setOpen((o) => !o)}
             title={`${pins.length} saved ${pins.length === 1 ? 'pin' : 'pins'} - click to browse`}
             aria-label={`${pins.length} saved pins`}
             aria-expanded={open}
+            aria-controls="saved-pins-list"
             className={`relative grid h-8 w-8 place-items-center rounded border bg-surface-raised ${
               open ? 'border-accent text-accent' : 'border-border text-ink-muted hover:text-ink'
             }`}
@@ -77,7 +84,8 @@ export function MapPinBar({
           </button>
           {open && (
             <div
-              role="menu"
+              id="saved-pins-list"
+              aria-label="Saved pins"
               className="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded border border-border bg-surface-raised shadow-lg"
             >
               {pins.map((pin) => {
@@ -85,7 +93,7 @@ export function MapPinBar({
                 return (
                   <div
                     key={pin.id}
-                    className="group flex items-center gap-1.5 border-b border-border/50 px-2 py-1 last:border-b-0 hover:bg-surface-overlay"
+                    className="group flex items-center gap-1.5 border-b border-border/50 px-2 py-1 last:border-b-0 hover:bg-surface-overlay focus-within:bg-surface-overlay"
                   >
                     <Icon className="h-3 w-3 shrink-0" style={{ color: PIN_COLOR_HEX[pin.color] }} />
                     <button
@@ -108,7 +116,7 @@ export function MapPinBar({
                         onEdit(pin)
                         setOpen(false)
                       }}
-                      className="shrink-0 rounded p-0.5 text-ink-faint opacity-0 hover:text-ink group-hover:opacity-100"
+                      className="shrink-0 rounded p-0.5 text-ink-faint outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>

@@ -185,12 +185,14 @@ function TrackRow({
   onPlay,
   inTarget,
   onToggleTarget,
+  targetName,
 }: {
   t: SearchableTrack
   active: boolean
   onPlay: () => void
   inTarget?: boolean
   onToggleTarget?: () => void
+  targetName?: string
 }) {
   return (
     <div
@@ -203,11 +205,16 @@ function TrackRow({
         <button
           type="button"
           className={cn(
-            'shrink-0 rounded p-0.5',
-            inTarget ? 'text-accent' : 'text-ink-faint opacity-0 hover:text-accent group-hover:opacity-100'
+            'shrink-0 rounded p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-accent',
+            inTarget ? 'text-accent' : 'text-ink-faint hover:text-accent'
           )}
           onClick={onToggleTarget}
           title={inTarget ? `Remove "${t.title}" from this playlist` : `Add "${t.title}" to this playlist`}
+          aria-label={
+            inTarget
+              ? `Remove ${t.title} from ${targetName ?? 'the target playlist'}`
+              : `Add ${t.title} to ${targetName ?? 'the target playlist'}`
+          }
         >
           {inTarget ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
         </button>
@@ -329,6 +336,7 @@ export function SoundControls() {
   // want" instead of a dropdown per row. Defaults to the most recently
   // created playlist once one exists.
   const [addTargetId, setAddTargetId] = useState<string | null>(null)
+  const addTargetName = userPlaylists.find((playlist) => playlist.id === addTargetId)?.name
   const [showAllTracks, setShowAllTracks] = useState(false)
   // Keep the target pointed at a playlist that still exists - falls back to
   // the most recently created one (newest last, same order favorites.ts's
@@ -792,6 +800,7 @@ export function SoundControls() {
                       onPlay={() => playSearchTrack(t)}
                       inTarget={addTargetId ? isTrackInPlaylist(addTargetId, t.id) : undefined}
                       onToggleTarget={addTargetId ? () => toggleTrackInPlaylist(addTargetId, t.id) : undefined}
+                      targetName={addTargetName}
                     />
                   ))
                 )}
@@ -835,9 +844,10 @@ export function SoundControls() {
                         </button>
                         <button
                           type="button"
-                          className="shrink-0 rounded p-0.5 text-ink-faint opacity-0 hover:text-warn group-hover:opacity-100"
+                          className="shrink-0 rounded p-0.5 text-ink-faint outline-none hover:text-warn focus-visible:ring-2 focus-visible:ring-accent"
                           onClick={() => removeFavorite(f.kind, f.id)}
                           title={`Remove ${f.name} from favorites`}
+                          aria-label={`Remove ${f.name} from favorites`}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -900,17 +910,19 @@ export function SoundControls() {
                               'shrink-0 rounded p-0.5',
                               addTargetId === p.id
                                 ? 'text-accent'
-                                : 'text-ink-faint opacity-0 hover:text-accent group-hover:opacity-100'
+                                : 'text-ink-faint hover:text-accent'
                             )}
                             onClick={() => setAddTargetId(p.id)}
                             title={addTargetId === p.id ? 'Adding tracks to this playlist' : `Add tracks to "${p.name}"`}
+                            aria-label={addTargetId === p.id ? `${p.name} is the playlist-building target` : `Add tracks to ${p.name}`}
                           >
                             <Pencil className="h-3 w-3" />
                           </button>
                           <button
                             type="button"
-                            className="shrink-0 rounded p-0.5 text-ink-faint opacity-0 hover:text-warn group-hover:opacity-100"
+                            className="shrink-0 rounded p-0.5 text-ink-faint outline-none hover:text-warn focus-visible:ring-2 focus-visible:ring-accent"
                             onClick={() => {
+                              if (!confirm(`Delete playlist “${p.name}” and its ${p.trackIds.length} saved track${p.trackIds.length === 1 ? '' : 's'}?`)) return
                               // Ask the engine directly rather than trusting
                               // `active` (this component's own, possibly
                               // stale, copy) - deleting the playlist that's
@@ -921,6 +933,7 @@ export function SoundControls() {
                               deletePlaylist(p.id)
                             }}
                             title={`Delete "${p.name}"`}
+                            aria-label={`Delete ${p.name}`}
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -1039,8 +1052,9 @@ export function SoundControls() {
                     <button
                       type="button"
                       onClick={() => toggleBuiltinFavorite(s.id, s.name)}
-                      className={cn('shrink-0 p-0.5', favorited ? 'text-accent' : 'text-ink-faint opacity-0 hover:text-accent group-hover:opacity-100')}
+                      className={cn('shrink-0 rounded p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-accent', favorited ? 'text-accent' : 'text-ink-faint hover:text-accent')}
                       title={favorited ? `Remove ${s.name} from favorites` : `Save ${s.name} to favorites`}
+                      aria-label={favorited ? `Remove ${s.name} from favorites` : `Save ${s.name} to favorites`}
                     >
                       <Star className={cn('h-3 w-3', favorited && 'fill-current')} />
                     </button>
@@ -1181,6 +1195,7 @@ export function SoundControls() {
                           onPlay={() => playSearchTrack(t)}
                           inTarget={addTargetId ? isTrackInPlaylist(addTargetId, t.id) : undefined}
                           onToggleTarget={addTargetId ? () => toggleTrackInPlaylist(addTargetId, t.id) : undefined}
+                          targetName={addTargetName}
                         />
                       ))}
                     </div>
