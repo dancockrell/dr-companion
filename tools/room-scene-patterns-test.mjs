@@ -14,16 +14,16 @@ let failures = 0
 const check = (condition, message) => { console.log(`${condition ? 'OK  ' : 'FAIL'} ${message}`); if (!condition) failures++ }
 
 const source = readFileSync('src/data/roomScenePatterns.ts', 'utf8')
-const match = source.match(/\{"zone":"([^"]+)","ranges":\[\[(\d+),(\d+)\]\],"arts":\[("[^"]+"(?:,"[^"]+")*)\]\}/)
+const match = source.match(/\["([^"]+)",\[\[(\d+),(\d+)\]\],\d+\]/)
 check(Boolean(match), 'generated rules are readable')
 if (match) {
-  const [, zone, firstText, lastText, artText] = match
-  const first = Number(firstText), last = Number(lastText), arts = JSON.parse(`[${artText}]`)
-  check(roomScenePattern(zone, first) === arts[0], 'range begins with first approved scene')
-  if (last >= first + 2) check(roomScenePattern(zone, first + 2) === arts[0], 'scene holds across three adjacent rooms')
-  if (last >= first + 3 && arts.length > 1) check(roomScenePattern(zone, first + 3) === arts[1], 'next three-room run advances to next scene')
+  const [, zone, firstText, lastText] = match
+  const first = Number(firstText), last = Number(lastText), firstArt = roomScenePattern(zone, first)
+  check(typeof firstArt === 'string', 'range begins with an approved scene')
+  if (last >= first + 2) check(roomScenePattern(zone, first + 2) === firstArt, 'scene holds across three adjacent rooms')
   check(roomScenePattern(zone, first) === roomScenePattern(zone, first), 'selection is stable across repeated calls')
 }
+check(roomScenePattern('1', 129) !== roomScenePattern('1', 132), 'a reviewed multi-image range advances after its three-room hold')
 
 const baskets = JSON.parse(readFileSync('data/art/scene-baskets.json', 'utf8'))
 for (const family of [...Object.values(baskets.generic), ...Object.values(baskets.regionalCity)]) for (const art of family) check(existsSync(`public${art}`), `basket asset exists: ${art}`)

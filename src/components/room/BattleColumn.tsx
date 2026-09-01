@@ -197,8 +197,9 @@ export function BattleColumn() {
   if ((character?.roundtime ?? 0) > 0 && !statusFlags.includes('roundtime')) statusFlags.push('roundtime')
 
   const you = character
-    ? {
+      ? {
         character: character.name,
+        instance: character.instance,
         race: character.race,
         sex: character.sex,
         injuries: character.injuries ?? {},
