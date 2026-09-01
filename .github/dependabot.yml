@@ -6,6 +6,19 @@ updates:
     schedule: { interval: monthly }
     groups:
       npm: { patterns: ['*'] }
+    ignore:
+      # 7.x is the Go rewrite: its root export is a version string, not the
+      # classic compiler API. 27 tools/*-test.mjs files call
+      # ts.transpileModule/ts.ModuleKind/ts.ScriptTarget as a lightweight
+      # in-memory TSX->JS shim for tests, and 7.x has no compatible
+      # replacement (functionality moved behind an incompatible unstable/ast
+      # subpath). A routine grouped bump silently broke ~20 test suites at
+      # once (PR #160) with the CI summary undercounting it, since a test
+      # that throws before asserting anything lands in "not run", not
+      # "failed". Revisit only as a deliberate migration that rewrites the
+      # test harness's transpilation strategy, never as a version bump.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: cargo
     directory: /src-tauri
