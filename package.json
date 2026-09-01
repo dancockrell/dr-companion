@@ -122,6 +122,7 @@
     "test:all": "node tools/run-tests.mjs",
     "test:backlog": "node --experimental-test-module-mocks tools/backlog-test.mjs",
     "test:game-time": "node --experimental-strip-types tools/game-time-test.mjs",
+    "test:scrollable-region": "node --experimental-strip-types tools/scrollable-region-test.mjs",
     "test:cdp-timeout": "node tools/cdp-timeout-test.mjs",
     "test:macroguard": "node tools/macro-guard-test.mjs",
     "test:streamstate": "node tools/stream-state-test.mjs",

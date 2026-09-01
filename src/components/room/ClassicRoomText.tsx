@@ -3,6 +3,7 @@ import { ExitButtons } from './ExitButtons'
 import { FloorItems } from './FloorItems'
 import { useDragScroll } from '../../lib/useDragScroll'
 import type { Highlight } from '../../lib/highlights'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
  * The room, read the way the game itself hands it to a player — a
@@ -73,12 +74,13 @@ export function ClassicRoomText({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div
+        {...scrollableRegionProps('Room description')}
         ref={drag.ref}
         onPointerDown={drag.onPointerDown}
         onPointerMove={drag.onPointerMove}
         onPointerUp={drag.onPointerUp}
         onPointerCancel={drag.onPointerCancel}
-        className="no-scrollbar max-h-[42%] shrink-0 cursor-grab touch-none overflow-y-auto active:cursor-grabbing"
+        className="max-h-[42%] shrink-0 cursor-grab overflow-y-auto active:cursor-grabbing"
       >
         {(title || room != null) && (
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
