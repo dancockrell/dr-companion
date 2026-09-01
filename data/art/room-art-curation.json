@@ -1,6 +1,68 @@
 {
   "places": {},
   "archetypes": {},
+  "publishedOverrides": {
+    "95::Pokekehekepi korgi": {
+      "exactSubject": "Pokekehekepi korgi",
+      "canonicalTraits": ["living sand formation", "regal mountain-like peaks and valleys", "dark shifting surface"],
+      "habitat": "Pokekehekepi subterranean sands beyond torch range",
+      "roomCount": 73,
+      "currentImage": "/rooms/95-175.webp",
+      "approvedPrimary": "/room-scenes/curated-pokekehekepi-korgi.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/95-175.webp", "/rooms/108-high-dunes.webp"],
+      "regenerationNeeded": false,
+      "decision": "The prior image reads as a palace and the generic dunes omit the living mountain-scale subject."
+    },
+    "7::In The Water": {
+      "exactSubject": "The Marsh, In The Water",
+      "canonicalTraits": ["near-total underwater darkness", "objects visible only inches away", "dangerous submerged passage"],
+      "habitat": "a deep marsh channel",
+      "roomCount": 56,
+      "currentImage": "/rooms/7-8.webp",
+      "approvedPrimary": "/room-scenes/curated-underwater-marsh-channel.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/7-8.webp", "/rooms/150-deep-water.webp"],
+      "regenerationNeeded": false,
+      "decision": "The prior town scene and generic open water contradict the pitch-dark submerged marsh."
+    },
+    "112::In the Water": {
+      "exactSubject": "Ilaya Taipa, In the Water",
+      "canonicalTraits": ["deep murky channel", "funneling current", "poor underwater visibility"],
+      "habitat": "the deepest part of the Ilaya Taipa channel",
+      "roomCount": 46,
+      "currentImage": "/rooms/112-73.webp",
+      "approvedPrimary": "/room-scenes/curated-underwater-marsh-channel.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/112-73.webp", "/rooms/150-deep-water.webp"],
+      "regenerationNeeded": false,
+      "decision": "The shared town image is impossible underwater; the approved scene preserves murk, depth and current."
+    },
+    "127::Catacombs": {
+      "exactSubject": "Temple of the North Wind, Catacombs",
+      "canonicalTraits": ["serpentine descending stairs", "frost-covered stone", "ancient burial alcoves"],
+      "habitat": "frozen catacombs beneath the Temple of the North Wind",
+      "roomCount": 58,
+      "currentImage": "/rooms/127-435.webp",
+      "approvedPrimary": "/room-scenes/curated-north-wind-catacombs.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/127-435.webp"],
+      "regenerationNeeded": false,
+      "decision": "The prior clean stair hall lacks tombs, frost and the winding descent."
+    },
+    "106::Seord Fal": {
+      "exactSubject": "Hara'jaal, Seord Fal",
+      "canonicalTraits": ["thunderous southbound watercourse", "rocks and rushing water", "hazardous jungle river"],
+      "habitat": "wild Hara'jaal jungle",
+      "roomCount": 43,
+      "currentImage": "/rooms/106-117.webp",
+      "approvedPrimary": "/room-scenes/curated-seord-fal.webp",
+      "approvedVariants": [],
+      "rejects": ["/rooms/106-117.webp", "/rooms/13-waterfall.webp"],
+      "regenerationNeeded": false,
+      "decision": "The city canal and generic waterfall do not communicate a violent natural jungle river."
+    }
+  },
   "notes": {
     "purpose": "Manual curation for room-art publishing. Pick a primary image, optional approved variants, and explicit rejects for any rendered place or archetype subject.",
     "usage": [
@@ -8,7 +70,8 @@
       "keys under archetypes must match archetype-prompts.json keys exactly",
       "primary and variants name files exactly as they appear in data/art/out/rooms or data/art/out/archetypes",
       "reject may list filenames to ignore even if they are newer than the good render",
-      "when variants are listed, publish-room-art.mjs rotates among primary+variants deterministically by room key so neighbouring rooms can get variety without changing randomly between runs"
+      "when variants are listed, publish-room-art.mjs rotates among primary+variants deterministically by room key so neighbouring rooms can get variety without changing randomly between runs",
+      "publishedOverrides records subject-level decisions for already-published room assets when raw generation folders are unavailable"
     ]
   }
 }

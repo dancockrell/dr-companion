@@ -8,20 +8,23 @@ type Rule = { zone: string; ranges: readonly RoomRange[]; arts: readonly string[
 
 const RULES: readonly Rule[] = [
   // Pokekehekepi: replace sci-fi/snowy-town failures with dark sand.
-  { zone: '95', ranges: [[175, 243], [246, 249]], arts: ['/rooms/108-high-dunes.webp'] },
+  { zone: '95', ranges: [[175, 243], [246, 249]], arts: ['/room-scenes/curated-pokekehekepi-korgi.webp'] },
   { zone: '95', ranges: [[78, 83], [87, 92], [94, 95], [118, 120], [129, 131], [133, 164], [173, 173]], arts: ['/rooms/108-high-dunes.webp'] },
   { zone: '95', ranges: [[84, 86], [96, 117], [121, 128], [132, 132], [165, 172], [174, 174]], arts: ['/rooms/108-high-dunes.webp'] },
 
   // Submerged rooms: use actual underwater/murky scenes.
-  { zone: '7', ranges: [[8, 63]], arts: ['/rooms/150-deep-water.webp'] },
-  { zone: '112', ranges: [[73, 74], [77, 77], [113, 155]], arts: ['/rooms/150-deep-water.webp'] },
+  { zone: '7', ranges: [[8, 63]], arts: ['/room-scenes/curated-underwater-marsh-channel.webp'] },
+  { zone: '112', ranges: [[73, 74], [77, 77], [113, 155]], arts: ['/room-scenes/curated-underwater-marsh-channel.webp'] },
 
   // Ehhrsk Highway and Breech Tunnels: wet sewer / low rough tunnel art.
   { zone: '90', ranges: [[734, 782]], arts: ['/room-scenes/archetype-sewer-0.webp', '/room-scenes/archetype-sewer-5.webp'] },
   { zone: '42', ranges: [[116, 116], [137, 168], [338, 346]], arts: ['/room-scenes/archetype-mine-tunnel-6.webp', '/room-scenes/archetype-mine-tunnel-1.webp'] },
 
   // Seord Fal: hazardous rushing river.
-  { zone: '106', ranges: [[117, 159]], arts: ['/rooms/13-waterfall.webp'] },
+  { zone: '106', ranges: [[117, 159]], arts: ['/room-scenes/curated-seord-fal.webp'] },
+
+  // Temple of the North Wind: replace a clean torchlit stair hall with frozen catacombs.
+  { zone: '127', ranges: [[435, 436], [450, 505]], arts: ['/room-scenes/curated-north-wind-catacombs.webp'] },
 
   // M'Riss: the old shared sea-cave fallback was serving dunes, swamp, woods and tunnels.
   { zone: '108', ranges: [[1, 17], [25, 30]], arts: ['/rooms/108-high-dunes.webp', '/room-scenes/archetype-desert-6.webp'] },
