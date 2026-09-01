@@ -1,3 +1,5 @@
+import { effectiveAudioGain, onMasterMuteChange } from './audioMaster.ts'
+
 /**
  * Music: per-zone playlists and an optional radio override. No ambient
  * terrain-texture layer - it shipped once (28 Aug 2026) and was pulled back
@@ -217,8 +219,9 @@ const TICK_MS = 50
  * into the background" instruction, 28 Aug 2026) so the 100% gain position
  * is already a reasonable level rather than a starting point to find by ear.
  * `gain` is the listener's own slider, 0 to 1.5 (0% to 150%), default 1 -
- * turning gain to 0 is how this goes silent; there is no separate mute flag
- * to fall out of sync with the slider. `trackGain` (29 Aug 2026) corrects
+ * turning gain to 0 configures this channel silent. The independent master
+ * gate is applied only to the final target and never changes `gain`.
+ * `trackGain` (29 Aug 2026) corrects
  * for the source material itself - see `TRACK_GAIN`'s own header - and is
  * the only one of the three that changes with every track rather than
  * staying fixed for a whole listening session.
@@ -251,11 +254,15 @@ class Layer {
   private failed = false
 
   private get target(): number {
-    return Math.min(1, this.mix * this.gain * this.trackGain)
+    return effectiveAudioGain(Math.min(1, this.mix * this.gain * this.trackGain))
   }
 
   setGain(v: number) {
     this.gain = Math.max(0, Math.min(1.5, v))
+    if (this.el) this.el.volume = this.target
+  }
+
+  refreshMasterGain() {
     if (this.el) this.el.volume = this.target
   }
 
@@ -362,9 +369,9 @@ class Layer {
   }
 
   private fadeIn(el: HTMLAudioElement) {
-    const target = this.target
-    const step = target / (FADE_MS / TICK_MS)
     const timer = setInterval(() => {
+      const target = this.target
+      const step = target / (FADE_MS / TICK_MS)
       el.volume = Math.min(target, el.volume + step)
       if (el.volume >= target - 0.001) clearInterval(timer)
     }, TICK_MS)
@@ -412,6 +419,7 @@ class Layer {
 }
 
 const music = new Layer()
+onMasterMuteChange(() => music.refreshMasterGain())
 
 let currentZone: string | null = null
 
@@ -874,8 +882,8 @@ export function skipTrack(dir: 1 | -1) {
 }
 
 /**
- * 0 to 1.5 (0% to 150%); 0 is silent, and there is no separate mute flag -
- * see `Layer`'s header for why. Default 0 (28 Aug 2026, Dan) - a first run
+ * 0 to 1.5 (0% to 150%); 0 configures the music channel silent. The master
+ * gate is separate; see `Layer`'s header. Default 0 (28 Aug 2026, Dan) - a first run
  * starts silent; kept in sync by hand with persistence.ts's own default.
  */
 let musicGain = 0
@@ -894,7 +902,7 @@ export function musicVolume(): number {
  * change this number, which `initMediaSession` below is: an OS-level pause
  * has to be visible on the panel too, or the slider would silently disagree
  * with what's actually playing, the exact bug class this file's own
- * "no separate mute flag" design was built to avoid.
+ * configured-gain design was built to avoid.
  */
 export function onMusicVolumeChange(fn: (v: number) => void): () => void {
   musicVolumeListeners.add(fn)
