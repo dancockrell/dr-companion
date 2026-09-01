@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '../../lib/cn'
 import { catalogue, choose, genericPortraitFor, loadPortraitManifest, portraitFor, portraitUrl } from '../../lib/portraits'
+import { useDismiss } from '../../lib/useDismiss'
 
 /**
  * The character's face.
@@ -42,6 +43,7 @@ export function Portrait({
   const [picking, setPicking] = useState(false)
   const [chosen, setChosen] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
+  useDismiss(() => setPicking(false), picking)
 
   useEffect(() => {
     void loadPortraitManifest().then(() => setReady(true))
@@ -85,7 +87,7 @@ export function Portrait({
       </button>
 
       {picking && options.length > 0 && createPortal(
-        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/65 p-4" role="presentation">
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/65 p-4" role="presentation" data-gameplay-shortcuts="suspend">
           <button
             type="button"
             className="absolute inset-0 cursor-default"

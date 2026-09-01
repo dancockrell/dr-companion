@@ -45,8 +45,9 @@ export function MapPinBar({
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !(e.ctrlKey && e.shiftKey)) {
         e.preventDefault()
+        e.stopImmediatePropagation()
         setOpen(false)
         triggerRef.current?.focus()
       }
@@ -66,7 +67,7 @@ export function MapPinBar({
   return (
     <>
       {pins.length > 0 && (
-        <div className="relative h-8 w-8 shrink-0" ref={boxRef}>
+        <div className="relative h-8 w-8 shrink-0" ref={boxRef} data-gameplay-shortcuts={open ? 'suspend' : undefined}>
           <button
             ref={triggerRef}
             type="button"

@@ -12,12 +12,17 @@ import { useEffect } from 'react'
  * e.stopPropagation()}` on the panel inside it for backdrop-click-to-close
  * too - that part is one line each and not worth hiding behind a hook.
  */
-export function useDismiss(onClose: () => void) {
+export function useDismiss(onClose: () => void, active = true) {
   useEffect(() => {
+    if (!active) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && !(e.ctrlKey && e.shiftKey)) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        onClose()
+      }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [active, onClose])
 }

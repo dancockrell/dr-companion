@@ -56,6 +56,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-3"
+      data-gameplay-shortcuts="suspend"
       onClick={onClose}
     >
       <div
