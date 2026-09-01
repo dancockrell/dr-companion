@@ -38,6 +38,11 @@ const toRanges = (rooms) => {
 const rules = []
 const coverage = {}
 const unresolved = []
+const placeNameOf = (placeKey) => placeKey.slice(placeKey.indexOf('::') + 2)
+const regionalDistrictOf = (identity, placeKey) => {
+  const name = placeNameOf(placeKey)
+  return Object.entries(identity?.districts ?? {}).find(([, district]) => district.places?.includes(name))?.[0] ?? null
+}
 for (const [placeKey, place] of Object.entries(places)) {
   const group = roomsByPlace.get(placeKey)
   if (!group || group.rooms.length < 4) continue
@@ -47,6 +52,22 @@ for (const [placeKey, place] of Object.entries(places)) {
   const category = analysis.category
   if (!category) {
     unresolved.push({ placeKey, zone: group.zone, roomCount: group.rooms.length, ...analysis })
+    continue
+  }
+
+  const regionalIdentity = category === 'regional-city' ? baskets.regionalIdentity?.[place.zoneName] : null
+  const regionalDistrict = category === 'regional-city' ? regionalDistrictOf(regionalIdentity, placeKey) : null
+  if (place.zoneName === 'Crossing' && category === 'regional-city' && !regionalIdentity?.approvedGenericPlaces?.includes(placeNameOf(placeKey))) {
+    unresolved.push({
+      placeKey,
+      zone: group.zone,
+      roomCount: group.rooms.length,
+      ...analysis,
+      selectionLayer: 'regional-family',
+      regionalIdentity: place.zoneName,
+      regionalDistrict,
+      reason: regionalDistrict ? 'crossing-district-art-required' : 'crossing-place-review-required',
+    })
     continue
   }
 
@@ -67,6 +88,9 @@ for (const [placeKey, place] of Object.entries(places)) {
     arts,
     placeKey,
     category,
+    selectionLayer: category === 'regional-city' ? 'regional-family' : 'archetype',
+    regionalIdentity: category === 'regional-city' ? place.zoneName : null,
+    regionalDistrict,
     confidence: analysis.confidence,
     traits: analysis.traits,
     signals: analysis.signals,
@@ -104,9 +128,12 @@ writeFileSync('src/data/roomScenePatterns.ts', lines.join('\n'))
 
 const roomCount = Object.values(coverage).reduce((a, b) => a + b, 0)
 const protectedLandmarks = [...protectedPlaces].sort()
-const assignments = rules.map(({ placeKey, category, zone, ranges, confidence, traits, signals }) => ({
+const assignments = rules.map(({ placeKey, category, selectionLayer, regionalIdentity, regionalDistrict, zone, ranges, confidence, traits, signals }) => ({
   placeKey,
   category,
+  selectionLayer,
+  regionalIdentity,
+  regionalDistrict,
   zone,
   ranges,
   confidence,

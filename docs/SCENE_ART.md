@@ -13,6 +13,8 @@ Scene selection should become more specific only when the data justifies it:
 
 The generator in `tools/build-room-scene-patterns.mjs` preserves curated places and uses `tools/scene-semantics.mjs` for reusable scene assignment.
 
+For Crossing, a title-backed street classification is necessary but not sufficient. The current three-image city-street family is narrowly allow-listed to reviewed places. Riverfronts, green outskirts, guild grounds, ceremonial approaches, walls, markets and other recognizable districts remain unresolved until matching regional or landmark art exists. Their district and reason are retained in the full audit.
+
 ## Semantic model
 
 A scene analysis records more than one category. It also records traits used to explain and eventually improve selection:
@@ -69,6 +71,8 @@ When reviewing or generating scene art:
 5. Reserve bespoke images for landmarks and genuinely distinctive spaces.
 6. Reject images whose dominant architecture, biome, water, elevation, or route contradicts the text even if the picture is attractive.
 7. Record recurring failures as basket curation or semantic rules rather than fixing rooms one at a time.
+
+Crossing's prioritized missing-image plan lives in `regionalIdentity.Crossing.productionQueue` in `data/art/scene-baskets.json`. Each entry has an ordered priority, exact place scope, production rationale and a generation-ready prompt. These are specifications for later reviewed generation; the scene-data pipeline does not create or substitute binary art.
 
 ## Current limitation
 

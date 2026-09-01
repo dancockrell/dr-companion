@@ -2,14 +2,9 @@
 type PatternRule = { zone: string; ranges: readonly (readonly [number, number])[]; arts: readonly string[] }
 const HOLD_ROOMS = 3
 const RULES: readonly PatternRule[] = [
-  {"zone":"1","ranges":[[8,8],[11,11],[18,18],[29,31]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Clanthew Boulevard
   {"zone":"1","ranges":[[129,132]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Gildleaf Circle
-  {"zone":"1","ranges":[[177,183]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Riverpine Circle
-  {"zone":"1","ranges":[[264,273]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Midton Circle
   {"zone":"1","ranges":[[516,522]],"arts":["/room-scenes/archetype-garden-1.webp","/room-scenes/archetype-garden-4.webp","/room-scenes/archetype-garden-6.webp"]}, // 1::Gardens
   {"zone":"1","ranges":[[607,610],[612,614]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Smithy Lane
-  {"zone":"1","ranges":[[806,810]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Holy Warrior's Promenade
-  {"zone":"1","ranges":[[1052,1057]],"arts":["/room-scenes/town-crossing-city-street-0.webp","/room-scenes/town-crossing-city-street-1.webp","/room-scenes/town-crossing-city-street-2.webp"]}, // 1::Riverlace Lane
   {"zone":"1a","ranges":[[12,17]],"arts":["/room-scenes/master-riverside.webp","/rooms/127-140.webp","/room-scenes/archetype-riverside-3.webp"]}, // 1a::Under the Segoltha
   {"zone":"1a","ranges":[[18,21]],"arts":["/room-scenes/archetype-mine-tunnel-1.webp","/room-scenes/archetype-mine-tunnel-2.webp","/room-scenes/archetype-mine-tunnel-7.webp","/room-scenes/archetype-mine-tunnel-8.webp"]}, // 1a::Passage
   {"zone":"2","ranges":[[31,50]],"arts":["/room-scenes/archetype-forest-path-1.webp","/room-scenes/archetype-forest-path-2.webp","/room-scenes/archetype-forest-path-4.webp","/room-scenes/archetype-forest-path-7.webp"]}, // 2::Deep Tangle

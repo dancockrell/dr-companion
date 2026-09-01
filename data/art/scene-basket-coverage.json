@@ -1,11 +1,11 @@
 {
-  "ruleCount": 180,
-  "roomCount": 1904,
-  "assignmentCount": 180,
-  "unresolvedCount": 583,
+  "ruleCount": 175,
+  "roomCount": 1870,
+  "assignmentCount": 175,
+  "unresolvedCount": 588,
   "coverage": {
     "deep-forest": 229,
-    "regional-city": 376,
+    "regional-city": 342,
     "mine-tunnel": 496,
     "forest-path": 80,
     "riverside": 163,

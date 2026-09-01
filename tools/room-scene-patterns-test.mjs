@@ -39,6 +39,10 @@ for (const district of ['town-green-civic','market-commercial','river-quays','ga
   check(Array.isArray(crossingDistricts[district]?.visualLanguage) && crossingDistricts[district].visualLanguage.length >= 3, `Crossing ${district} has visual-language constraints`)
 }
 check((crossing?.priorityLandmarks ?? []).length >= 8, 'Crossing has a landmark production priority list')
+check((crossing?.productionQueue ?? []).length >= 8, 'Crossing has a precise missing-art production queue')
+check(crossing.productionQueue.every((item) => Number.isInteger(item.priority) && item.id && item.kind && item.places?.length && item.reason && item.prompt?.length >= 200), 'every Crossing production item has priority, scope, rationale, and a generation-ready prompt')
+check(new Set(crossing.productionQueue.map((item) => item.priority)).size === crossing.productionQueue.length, 'Crossing production priorities are unique')
+check(crossing.approvedGenericPlaces.length > 0 && crossing.approvedGenericPlaces.length < 4, 'Crossing generic street art is narrowly allow-listed')
 check((crossing?.avoid ?? []).some((item) => /generic medieval street/.test(item)), 'Crossing explicitly rejects one-street-fits-all art')
 
 const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 'utf8'))
@@ -52,6 +56,12 @@ check(audit.assignments.some(({ placeKey, category }) => placeKey === '4::Doline
 check(audit.assignments.some(({ placeKey, category }) => placeKey === '7::Low Rise' && category === 'deep-forest'), 'Sicle Grove Low Rise uses natural-grove art rather than a cultivated garden')
 check(audit.assignments.every((assignment) => Number.isFinite(assignment.confidence) && assignment.confidence >= 0 && assignment.confidence <= 1 && assignment.traits && typeof assignment.traits === 'object' && Array.isArray(assignment.signals) && assignment.signals.some((signal) => signal.startsWith('title:'))), 'every automatic assignment is explainable, scored, and backed by title evidence')
 check(audit.unresolved.every((assignment) => Number.isFinite(assignment.confidence) && assignment.traits && typeof assignment.traits === 'object' && Array.isArray(assignment.signals)), 'unresolved places retain semantic evidence for later curation')
+const crossingAssignments = audit.assignments.filter(({ zone }) => zone === '1')
+check(crossingAssignments.filter(({ category }) => category === 'regional-city').every(({ placeKey, selectionLayer, regionalIdentity, regionalDistrict }) => crossing.approvedGenericPlaces.includes(placeKey.split('::')[1]) && selectionLayer === 'regional-family' && regionalIdentity === 'Crossing' && regionalDistrict), 'Crossing regional art is assigned only to reviewed generic-compatible places with district evidence')
+for (const placeKey of ['1::Clanthew Boulevard','1::Riverpine Circle','1::Midton Circle',"1::Holy Warrior's Promenade",'1::Riverlace Lane']) {
+  check(!audit.assignments.some((assignment) => assignment.placeKey === placeKey), `${placeKey} is not forced into generic Crossing street art`)
+  check(audit.unresolved.some((assignment) => assignment.placeKey === placeKey && assignment.reason === 'crossing-district-art-required' && assignment.regionalDistrict), `${placeKey} retains its Crossing district requirement in the audit`)
+}
 
 const cases = [
   [{ title: 'Paasvadh Forest, Understory', lore: 'Shadows hang from the forest canopy above thick undergrowth.' }, 'deep-forest'],
