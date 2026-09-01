@@ -41,6 +41,7 @@ import type {
   IndicatorState,
   RoomPlayer,
   RoomItem,
+  LiveRoomPresentation,
 } from '../types/stream'
 
 /** A line ready to render, with what the game said it was. */
@@ -157,6 +158,10 @@ export interface StreamState {
    * creature and is left alone, see `RoomItem` for why.
    */
   roomItemCapture: { noun: string | null; text: string } | null
+  /** Text inside the authoritative `<component id='room desc'>`. */
+  roomDescriptionCapture: string | null
+  /** Title from the current main streamWindow subtitle. */
+  roomTitle: string | null
 }
 
 /**
@@ -186,6 +191,7 @@ export function newStreamState(): StreamState {
     afterPrompt: false, afterTagBreak: false, partial: '',
     partialWasStateOnly: false, roomPlayersCapture: null,
     inRoomObjsComponent: false, roomItemsBuilding: null, roomItemCapture: null,
+    roomDescriptionCapture: null, roomTitle: null,
     // Empty rather than absent, and the two are different on purpose: an
     // empty indicator map means no icon has ever been reported, which a
     // reader must be able to tell from an icon reported as 'unknown'.
@@ -526,6 +532,23 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
           // definition.
           if (state.stack.length > 0) state.stack.length = 0
         }
+      } else if (name === 'nav' && !closing) {
+        // A navigation boundary invalidates the previous room immediately.
+        // The next title/description may arrive in later chunks; retaining
+        // the old one during that gap would confidently label the new room
+        // with stale live data, which is worse than using static fallback.
+        state.character.roomPresentation = undefined
+        state.roomDescriptionCapture = null
+        state.roomTitle = null
+        state.partialWasStateOnly = state.partial.length === 0
+      } else if (name === 'streamwindow' && !closing) {
+        const a = attrs(tag)
+        if ((a.id ?? '').toLowerCase() === 'main' && a.subtitle) {
+          // DragonRealms subtitles are " - [Room title] (optional uid)".
+          // Preserve only the bracketed game title; nav remains the identity
+          // boundary and room ids continue to come from the map bridge.
+          state.roomTitle = a.subtitle.match(/\[([^\]]+)\]/)?.[1] ?? (a.subtitle.trim() || null)
+        }
       } else if (name === 'progressbar') {
         // State, not text. See vitalFromText for why this reads `text` and
         // never `value`, and types/stream.ts for why only these five ids
@@ -599,10 +622,18 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
         if (!closing) {
           const id = attrs(tag).id
           if (id === 'room players') state.roomPlayersCapture = ''
+          else if (id === 'room desc') state.roomDescriptionCapture = ''
           else if (id === 'room objs') {
             state.inRoomObjsComponent = true
             state.roomItemsBuilding = []
           }
+        } else if (state.roomDescriptionCapture !== null) {
+          const value: LiveRoomPresentation = {
+            title: state.roomTitle,
+            description: state.roomDescriptionCapture.trim(),
+          }
+          state.character.roomPresentation = { value, from: 'stream', at: Date.now() }
+          state.roomDescriptionCapture = null
         } else if (state.roomPlayersCapture !== null) {
           state.character.roomPlayers = {
             value: parseRoomPlayers(state.roomPlayersCapture),
@@ -677,6 +708,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
     // the depth at emit time reports every bold line as plain.
     if (state.boldDepth > 0) state.partialBold = true
     if (state.roomPlayersCapture !== null) state.roomPlayersCapture += ch
+    if (state.roomDescriptionCapture !== null) state.roomDescriptionCapture += ch
     if (state.roomItemCapture !== null) state.roomItemCapture.text += ch
     i++
   }

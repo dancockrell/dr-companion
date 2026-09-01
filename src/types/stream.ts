@@ -149,11 +149,24 @@ export interface RoomItem {
   name: string
 }
 
+/** Authoritative presentation text from the game's current room component. */
+export interface LiveRoomPresentation {
+  title: string | null
+  description: string
+}
+
 export interface StreamCharacterState {
   vitals: Sourced<StreamVitals>
   indicators: Sourced<StreamIndicators>
   /** Available exits, from the compass tag. */
   compass?: Sourced<string[]>
+  /**
+   * Current room title and description from the live tagged game stream.
+   * Cleared at `<nav>` so a prior room can never label a new arrival while
+   * its component is still in flight. Absence means "not reported yet", not
+   * an empty room.
+   */
+  roomPresentation?: Sourced<LiveRoomPresentation>
   /** Active spell, as the game names it. */
   spell?: Sourced<string | null>
   /**
