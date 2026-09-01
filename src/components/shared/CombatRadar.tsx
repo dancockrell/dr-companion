@@ -777,7 +777,7 @@ function Puck({
   // here instead of skipping straight past it to a dot.
   return (
     <div
-      className={pulse ? 'animate-pulse' : ''}
+      className={pulse ? 'animate-pulse motion-reduce:animate-none' : ''}
       style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}
     >
       <CreatureArt
@@ -1210,7 +1210,7 @@ export function CombatRadar({
           disabled={attackable && !canAttack}
           onClick={onClick}
           aria-label={label}
-          className="flex shrink-0 items-center justify-center disabled:cursor-not-allowed"
+          className="flex shrink-0 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-overlay disabled:cursor-not-allowed"
           style={{ width: px, height: Math.round(px * PORTRAIT_ASPECT), opacity: dead ? 0.55 : undefined }}
         >
           <Puck card={card} px={px} ringClass={meta.ringClass} shape="rect" />

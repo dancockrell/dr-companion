@@ -214,7 +214,7 @@ export function BattleColumn() {
           // spare pixel in a tall window; the latter left a large black void
           // beneath the actual scene. Useful spare height belongs to the
           // description and inventory below.
-          'mx-auto shrink-0 overflow-hidden rounded border border-border bg-surface-raised ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500',
+          'mx-auto shrink-0 overflow-hidden rounded border border-border bg-surface-raised ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500 motion-reduce:transition-none',
           justArrived && 'ring-2'
         )}
         style={{ width: 'min(100%, 83.2vh)' }}
