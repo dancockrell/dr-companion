@@ -11,7 +11,7 @@
  * the same way sound-channel volumes are.
  */
 import { useEffect, useState } from 'react'
-import { readJSON, writeJSON } from './storage.ts'
+import { readJSON, writeJSON } from './storage'
 
 const KEY = 'drc.off-highlight-classes.v1'
 

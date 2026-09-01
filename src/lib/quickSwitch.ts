@@ -38,7 +38,7 @@
  * missing script already gets.
  */
 
-import { readJSON, writeJSON } from './storage.ts'
+import { readJSON, writeJSON } from './storage'
 
 export type QuickSwitchPin =
   | { kind: 'command'; actionKey: string }

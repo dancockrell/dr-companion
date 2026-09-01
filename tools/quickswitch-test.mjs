@@ -28,7 +28,7 @@ writeFileSync(
   out,
   ts.transpileModule(readFileSync('src/lib/quickSwitch.ts', 'utf8'), {
     compilerOptions,
-  }).outputText.replace('./storage.ts', './storage.mjs')
+  }).outputText.replace('./storage', './storage.mjs')
 )
 
 let fails = 0
