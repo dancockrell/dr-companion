@@ -53,7 +53,11 @@ export async function loadPortraitManifest(): Promise<void> {
 
 /** Every portrait we actually have, described well enough to rank. */
 export function catalogue(): PortraitMeta[] {
-  return installed
+  // The core files are part of the application, not optional network data.
+  // A failed or still-pending manifest fetch must not turn the portrait
+  // chooser into an empty click target when those 22 files are available.
+  const files = installed.length > 0 ? installed : CORE_DEFAULTS
+  return files
     .map((file) => {
       // "elothean-female.webp" -> race, sex
       const stem = file.replace(/\.webp$/i, '')
@@ -78,6 +82,15 @@ export function genericPortraitFor(seed: string): string {
     hash = Math.imul(hash, 16777619)
   }
   return choices[(hash >>> 0) % choices.length]
+}
+
+function stableIndex(seed: string, length: number): number {
+  let hash = 2166136261
+  for (const char of seed) {
+    hash ^= char.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0) % Math.max(1, length)
 }
 
 /** What this character chose, if anything. Keyed by name so alts differ. */
@@ -123,11 +136,19 @@ export function portraitFor(opts: {
     // an apostrophe, so this silently lost more than a third of them.
     const plain = (x: string) => x.toLowerCase().replace(/[^a-z]/g, '')
     const want = plain(opts.race)
-    const match =
-      all.find((p) => plain(p.race) === want && (!opts.sex || p.sex === opts.sex)) ??
-      all.find((p) => plain(p.race) === want)
+    const raceMatches = all.filter((p) => plain(p.race) === want)
+    // Gender absent is not "female" merely because the manifest happens to
+    // list that filename first. Keep the race accurate and choose a stable
+    // visual variant until the profile supplies gender; the UI labels that
+    // state honestly rather than presenting the selected variant as fact.
+    const match = opts.sex
+      ? raceMatches.find((p) => p.sex === opts.sex) ?? raceMatches[0]
+      : raceMatches[stableIndex(opts.character, raceMatches.length)]
     if (match) return match.key
   }
 
-  return null
+  // The core pack ships with the application, so an unknown race still gets
+  // a stable photographic default. Returning null used to make Portrait draw
+  // an initial letter during loading and on incomplete profiles.
+  return genericPortraitFor(opts.character)
 }

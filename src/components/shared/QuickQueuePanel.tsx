@@ -35,7 +35,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
       // The same path the command line uses, per Dan's own wording — "cue
       // actions to send to the browser" — not the bridge's run_macro, which
       // is what Task Flows use. Different queue, different path on purpose.
-      sendCommand: (c) => void sendGame(c),
+      sendCommand: sendGame,
       startScript,
       onChange: setState,
       log: addLog,
@@ -47,6 +47,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
   useEffect(() => () => driver.current?.dispose(), [])
 
   const running = state.status === 'running'
+  const failed = state.status === 'failed'
 
   function addCommand() {
     const value = commandText.trim()
@@ -91,7 +92,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
     setQueue([])
   }
 
-  const currentId = running ? queue[state.index]?.id : null
+  const currentId = running || failed ? queue[state.index]?.id : null
 
   return (
     <div className="space-y-1.5">
@@ -104,6 +105,8 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
           <span className={cn('text-xs', running ? 'text-accent' : 'text-ink-faint')}>
             {running
               ? `${state.index + 1} of ${state.total}`
+              : failed
+                ? `stopped at ${state.index + 1}`
               : state.status === 'done'
                 ? 'done'
                 : state.status === 'stopped'
@@ -174,7 +177,9 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
                 'flex items-center gap-1 rounded border px-1.5 text-xs',
                 dense ? 'py-0.5' : 'py-1',
                 item.id === currentId
-                  ? 'border-accent/50 bg-accent/10 text-accent'
+                  ? failed
+                    ? 'border-danger/60 bg-danger/10 text-danger'
+                    : 'border-accent/50 bg-accent/10 text-accent'
                   : 'border-border bg-surface-raised text-ink-muted'
               )}
             >
@@ -188,7 +193,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
                 {item.kind === 'script' ? 'script' : 'cmd'}
               </span>
               <span className="min-w-0 flex-1 truncate font-mono">{item.label}</span>
-              {!running && (
+              {!running && !failed && (
                 <>
                   <button
                     type="button"
@@ -223,6 +228,13 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
         </ul>
       )}
 
+      {failed && (
+        <div className="rounded border border-danger/40 bg-danger/10 px-2 py-1.5 text-xs text-danger" role="alert">
+          <div className="font-semibold">Not sent: {queue[state.index]?.label}</div>
+          <div className="mt-0.5 text-ink-muted">{state.error}</div>
+        </div>
+      )}
+
       {/* Always shown, unlike other panels' `dense` gate on secondary text —
           Run/Stop/Clear are the panel's entire purpose, not decoration to
           trim in the tighter mode. Power always mounts this with dense=true
@@ -230,7 +242,31 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
           summary line is gated elsewhere would have made the panel
           unusable in the one mode it actually ships in. */}
       <div className="flex gap-1">
-        {running ? (
+        {failed ? (
+          <>
+            <button
+              type="button"
+              onClick={() => driver.current?.retry()}
+              className="flex-1 rounded border border-accent/40 bg-accent/15 px-2 py-1 text-xs font-semibold text-accent"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={() => driver.current?.skip()}
+              className="flex-1 rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs font-semibold text-warn"
+            >
+              Skip
+            </button>
+            <button
+              type="button"
+              onClick={stop}
+              className="flex-1 rounded border border-danger/40 bg-danger/15 px-2 py-1 text-xs font-semibold text-danger"
+            >
+              Stop
+            </button>
+          </>
+        ) : running ? (
             <button
               type="button"
               onClick={stop}

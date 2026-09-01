@@ -26,14 +26,23 @@ export function RoomHoverCard({
   pin,
   x,
   y,
+  containerWidth,
+  containerHeight,
   character,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   room: MapZoneRoom
   pin?: MapPin
   /** Cursor position relative to the map's own positioning container. */
   x: number
   y: number
+  /** Visible map bounds. The card grows inward from the nearest edge. */
+  containerWidth: number
+  containerHeight: number
   character: { name: string; instance: GameInstance } | null
+  onMouseEnter: () => void
+  onMouseLeave: () => void
 }) {
   const [watched, setWatched] = useState(() =>
     character && room.id != null ? isWatched(character.name, character.instance, room.id) : false
@@ -82,12 +91,23 @@ export function RoomHoverCard({
     setWatched(toggleWatched(character.name, character.instance, room.id))
   }
 
+  // Grow away from the nearest edge. This keeps the useful controls on the
+  // sheet even when a room sits in a corner, without guessing the card's
+  // eventual height after an Elanthipedia result arrives.
+  const horizontal = x > containerWidth / 2
+    ? { right: Math.max(8, containerWidth - x + 12) }
+    : { left: Math.max(8, x + 12) }
+  const vertical = y > containerHeight / 2
+    ? { bottom: Math.max(8, containerHeight - y + 12) }
+    : { top: Math.max(8, y + 12) }
+
   return (
     <div
-      className="pointer-events-none absolute z-30"
-      style={{ left: x + 14, top: y + 14 }}
+      className="pointer-events-auto absolute z-30 max-h-[calc(100%-1rem)] w-64 max-w-[calc(100%-1rem)] overflow-y-auto rounded-lg border border-border bg-surface-raised p-2 text-xs shadow-lg"
+      style={{ ...horizontal, ...vertical }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
-      <div className="pointer-events-auto w-64 rounded-lg border border-border bg-surface-raised p-2 text-xs shadow-lg">
         <p className="truncate font-medium text-ink" title={room.title ?? undefined}>
           {room.title ?? 'Unknown room'}
         </p>
@@ -97,6 +117,22 @@ export function RoomHoverCard({
             {room.tags.join(', ')}
           </p>
         ) : null}
+
+        {(room.gateway || room.leaves?.length || room.moves?.length) && (
+          <div className="mt-1.5 border-t border-border pt-1.5 text-ink-muted">
+            {room.gateway && (
+              <p><strong className="font-medium text-ink">Next map</strong> — {room.gateway.name}</p>
+            )}
+            {room.leaves?.length ? (
+              <p className="mt-0.5"><strong className="font-medium text-ink">Leaves by</strong> {room.leaves.join(', ')}</p>
+            ) : null}
+            {room.moves?.length ? (
+              <p className="mt-0.5 truncate" title={room.moves.join(', ')}>
+                <strong className="font-medium text-ink">Ways out</strong> {room.moves.join(', ')}
+              </p>
+            ) : null}
+          </div>
+        )}
 
         {landmarks.length > 0 && (
           <div className="mt-1.5 border-t border-border pt-1.5">
@@ -174,7 +210,6 @@ export function RoomHoverCard({
             )}
           </div>
         )}
-      </div>
     </div>
   )
 }

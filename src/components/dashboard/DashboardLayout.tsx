@@ -215,6 +215,7 @@ export function DashboardLayout({
                 <Portrait
                   character={character?.name ?? 'You'}
                   race={character?.race ?? undefined}
+                  sex={character?.sex}
                   size={116}
                 />
                 <Paperdoll

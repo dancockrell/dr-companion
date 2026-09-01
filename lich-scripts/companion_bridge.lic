@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.11.0'
+  BRIDGE_VERSION = '0.12.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1654,7 +1654,7 @@ module Companion
     # is visible at the one place that decides whether an intent may run
     # concurrently with a Stop, rather than buried in a helper three calls
     # deep.
-    COMMAND_SENDING = %w[check_toggles check_health stow_all escape run_macro].freeze
+    COMMAND_SENDING = %w[check_toggles check_health stow_all escape run_macro armor_manage].freeze
     CMD_LOCK = Mutex.new
 
     # Set by stop_all, checked between iterations by anything in
@@ -1726,6 +1726,7 @@ module Companion
       'resume'   => ->(_args, server) { resume_all(server) },
       'escape'   => ->(_args, server) { escape(server) },
       'run_macro' => ->(args, server) { run_macro(args, server) },
+      'armor_manage' => ->(args, server) { armor_manage(args, server) },
       'check_health' => ->(_args, server) { check_health(server) },
       'check_teaching'  => ->(_args, server) { check_teaching(server) },
       'listen_to'       => ->(args, server)  { listen_to(args, server) },
@@ -2630,6 +2631,70 @@ module Companion
       end
 
       [true, "#{ran} command(s) sent"]
+    end
+
+    MAX_ARMOR_ITEMS = 16
+
+    # Named armor operations deliberately use DRCI's inventory-aware helpers
+    # when dr-scripts provides them. They can locate a piece inside a player's
+    # configured containers; the fallback remains useful on a plain Lich
+    # install and sends only a single, tightly validated game command.
+    def armor_manage(args, server)
+      operation = args.is_a?(Hash) ? args['operation'].to_s : ''
+      raw = args.is_a?(Hash) ? args['items'] : nil
+      return [false, 'invalid armor operation'] unless %w[wear remove adjust swap].include?(operation)
+      return [false, 'no armor items given'] unless raw.is_a?(Array)
+
+      items = raw.first(MAX_ARMOR_ITEMS).map(&:to_s).map(&:strip).reject(&:empty?)
+      return [false, 'no armor items given'] if items.empty?
+      return [false, 'invalid armor item name'] if items.any? { |name| name.length > 160 || name.match?(/[\r\n;\x00-\x1f]/) }
+      return [false, 'stopped — press Resume'] if stop_requested?
+
+      requested_operation = operation
+      ran = 0
+      if operation == 'swap'
+        replacement, *old_pieces = items
+        old_pieces.each do |name|
+          return [true, "stopped after #{ran} of #{items.size}"] if stop_requested?
+          target = name.sub(/\A(?:a|an|some|the)\s+/i, '')
+          if defined?(DRCI) && DRCI.respond_to?(:remove_item?)
+            DRCI.remove_item?(name)
+          else
+            Cmd.exec("remove #{target}", label: 'armor')
+          end
+          ran += 1
+        end
+        items = [replacement]
+        operation = 'wear'
+      end
+
+      items.each do |name|
+        return [true, "stopped after #{ran} of #{items.size}"] if stop_requested?
+        target = name.sub(/\A(?:a|an|some|the)\s+/i, '')
+        case operation
+        when 'wear'
+          if defined?(DRCI) && DRCI.respond_to?(:wear_item?)
+            DRCI.wear_item?(name)
+          else
+            Cmd.exec("wear #{target}", label: 'armor')
+          end
+        when 'remove'
+          if defined?(DRCI) && DRCI.respond_to?(:remove_item?)
+            DRCI.remove_item?(name)
+          else
+            Cmd.exec("remove #{target}", label: 'armor')
+          end
+        when 'adjust'
+          Cmd.exec("adjust #{target}", label: 'armor')
+        end
+        ran += 1
+      end
+
+      server.log("Armor: #{requested_operation} #{ran} item(s).")
+      [true, "#{requested_operation} #{ran} armor item(s)"]
+    rescue StandardError => e
+      server.log("Armor #{operation} failed: #{e.message}", 'warn')
+      [false, "armor #{operation} failed: #{e.message}"]
     end
   end
 

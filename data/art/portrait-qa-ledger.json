@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "reviewContract": {
+    "pixelReviewed": "The shipped file was inspected at native card size, not inferred from its filename or prompt.",
+    "cardCrop": "Subject identity and important details remain readable in the rectangular portrait card.",
+    "radarCrop": "Eyes, face, and identity cues remain readable with Portrait focus=face and object-position center 18%.",
+    "decision": "approved, rejected, or pending-review"
+  },
+  "records": {
+    "dwarf-female": {
+      "file": "public/portraits/dwarf-female.webp",
+      "sha256": "63202A92170C08A3AF2D76629EE8394A45C876486F3A1870D2895BC6470C34FA",
+      "pixelReviewed": true,
+      "cardCrop": "pass",
+      "radarCrop": "pass",
+      "loreReferences": [
+        "https://elanthipedia.play.net/Concept%3ADwarves",
+        "https://elanthipedia.play.net/Facial_Hair"
+      ],
+      "reviewer": "Codex technical-art audit",
+      "decision": "approved",
+      "notes": "Clearly female and Dwarven at card size; robust proportions, mountain-citadel setting, master-crafted armor, and a shorter ornamented beard with metal and gem details. Replaces the human-male-reading studio portrait reported in GitHub issue 107."
+    }
+  },
+  "contactSheetReview": {
+    "status": "pending-review",
+    "scope": "All 22 core race/sex defaults in public/portraits/manifest.json",
+    "notes": "Do not infer review from manifest membership. Add one record per asset after inspecting its shipped pixels and both runtime crops."
+  }
+}

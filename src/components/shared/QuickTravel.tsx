@@ -12,7 +12,7 @@
  * pick from what's actually nearby.
  */
 import { useState } from 'react'
-import { Landmark, HeartPulse, Shield, ShoppingBag, MapPin as MapPinIcon, Compass, type LucideIcon } from 'lucide-react'
+import { Landmark, HeartPulse, Shield, ShoppingBag, MapPin as MapPinIcon, type LucideIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
 import { PIN_DRAG_TYPE, PIN_COLOR_HEX, type PinIcon, type PinColor } from '../../lib/mapPins'
@@ -54,13 +54,11 @@ export function QuickTravel({
   // instant before the fresh reply arrives.
   const answered = activeTag !== null && mapNearest?.tag === activeTag
 
-  // A fragment, not its own wrapping div - see MapPinBar.tsx's matching
-  // note. The caller puts this in a shared flex-wrap row with MapPinBar.
+  // A fragment, not its own toolbar: these four fixed-square controls are
+  // direct members of MapPanel's shared two-row pin grid. The answer floats
+  // below that rail instead of becoming a wide grid cell and breaking it.
   return (
     <>
-      <span className="flex items-center text-ink-faint" title="Nearest: find the closest bank, healer, guild or shop from here">
-        <Compass className="h-3 w-3" />
-      </span>
       {PRESETS.map(({ tag, label, icon: Icon, pinIcon, color }) => (
         <button
           key={tag}
@@ -80,7 +78,7 @@ export function QuickTravel({
           }}
           title={`Nearest ${label} (drag onto a room on the map to pin it there directly)`}
           aria-label={`Nearest ${label}`}
-          className={`flex items-center rounded-full border px-1.5 py-0.5 ${
+          className={`grid h-8 w-8 shrink-0 place-items-center rounded border bg-surface-raised ${
             activeTag === tag ? 'border-accent' : 'border-border hover:border-accent/60'
           }`}
         >
@@ -91,12 +89,12 @@ export function QuickTravel({
             * the icon shape alone is too small to tell apart quickly. The
             * colour is also a preview of what the pin will look like on the
             * map once dropped, so it is not a cue invented just for this row. */}
-          <Icon className="h-3 w-3" style={{ color: PIN_COLOR_HEX[color] }} />
+          <Icon className="h-4 w-4" style={{ color: PIN_COLOR_HEX[color] }} />
         </button>
       ))}
       {answered &&
         (mapNearest.ok && mapNearest.rooms?.length ? (
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="absolute left-0 top-full z-40 mt-1 flex max-w-full flex-wrap items-center gap-1 rounded border border-border bg-surface-raised p-1 shadow-lg">
             {mapNearest.rooms.map((r) => (
               <div
                 key={r.id}
@@ -131,7 +129,7 @@ export function QuickTravel({
             ))}
           </div>
         ) : (
-          <span className="text-xs text-ink-faint">{mapNearest.reason ?? 'none nearby'}</span>
+          <span className="absolute left-0 top-full z-40 mt-1 rounded border border-border bg-surface-raised px-2 py-1 text-xs text-ink-faint shadow-lg">{mapNearest.reason ?? 'none nearby'}</span>
         ))}
     </>
   )

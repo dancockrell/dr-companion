@@ -3,6 +3,7 @@ import { SetupWizard } from './components/first-run/SetupWizard'
 import { WaitingForCharacter } from './components/shared/WaitingForCharacter'
 import { ExperienceStrip } from './components/shared/ExperienceStrip'
 import { GameSignals } from './components/shared/GameSignals'
+import { GameActionNotice } from './components/game/GameActionNotice'
 import { BattleColumn } from './components/room/BattleColumn'
 import { GameChatColumn } from './components/room/GameChatColumn'
 import { MapColumn } from './components/room/MapColumn'
@@ -15,14 +16,19 @@ import { QuickSwitchBar } from './components/layout/QuickSwitchBar'
 import { MapWindow } from './components/MapWindow'
 import { PanelWindow } from './components/PanelWindow'
 import { PanelBoundary } from './components/shared/PanelBoundary'
+import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
-import { fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
+import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
-import { sendGame } from './lib/gameLink'
+import { requestGameAction } from './lib/gameActions'
 import { requestStartFlow, requestStopAll } from './lib/flowStop'
+import { MACROS } from './data/macros'
+import { canSendMacro } from './lib/canSendMacro'
+import { writeText } from './lib/storage'
+import { StorageWarning } from './components/shared/StorageWarning'
 
 /**
  * Which window this is.
@@ -106,7 +112,7 @@ export default function App() {
   useEffect(() => {
     if (!setupComplete) return
     return installKeybindings({
-      sendGame: (command) => void sendGame(command),
+      sendGame: (command) => requestGameAction(command, `Keyboard command “${command}”`),
       stopAll: () => {
         requestIntent('stop_all')
         requestStopAll()
@@ -115,6 +121,15 @@ export default function App() {
         const { quickSwitchPins, activeFlow, startScript } = useAppStore.getState()
         const pin = quickSwitchPins[slot]
         if (!pin) return
+        if (pin.kind === 'command') {
+          const [macroId, variationId] = pin.actionKey.split(':')
+          const variation = MACROS.find((macro) => macro.id === macroId)?.variations.find((item) => item.id === variationId)
+          const state = useAppStore.getState()
+          if (variation && canSendMacro({ stopLatched: state.character?.stopLatched, inFlight: false, connected: !!state.character }).canSend) {
+            state.requestIntent('run_macro', { commands: variation.commands })
+          }
+          return
+        }
         if (pin.kind === 'script') {
           startScript(pin.name)
           return
@@ -140,11 +155,7 @@ export default function App() {
   const setRoomW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setRoomWState(next)
-    try {
-      localStorage.setItem(ROOM_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(ROOM_KEY, String(next))
   }
 
   const [battleW, setBattleWState] = useState<number>(() => {
@@ -155,11 +166,7 @@ export default function App() {
   const setBattleW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setBattleWState(next)
-    try {
-      localStorage.setItem(BATTLE_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(BATTLE_KEY, String(next))
   }
 
   /** Experience, all the way to the right - see ExperienceStrip.tsx. A
@@ -177,11 +184,7 @@ export default function App() {
   const setExperienceW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setExperienceWState(next)
-    try {
-      localStorage.setItem(EXPERIENCE_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(EXPERIENCE_KEY, String(next))
   }
 
   /**
@@ -201,11 +204,7 @@ export default function App() {
   const setMapH = (px: number) => {
     const next = Math.max(MIN_MAP_H, Math.round(px))
     setMapHState(next)
-    try {
-      localStorage.setItem(MAP_HEIGHT_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(MAP_HEIGHT_KEY, String(next))
   }
 
   const dock = useMapDock()
@@ -231,6 +230,14 @@ export default function App() {
 
   const character = useAppStore((s) => s.character)
   const experienceEmpty = !character
+  const battleActive = character?.situation.includes('in_combat') ?? false
+  const roomWantVisible = combatRoomWant(roomW, hostW, battleActive)
+  const battleWantVisible = combatBattleWant(battleW, hostW, battleActive)
+  // When both minimum panes physically cannot fit, preserve the primary game
+  // surface and temporarily collapse the supplementary map. This is a view
+  // adaptation only: mapH is not rewritten and returns with a taller window.
+  const mapCanShareHeight =
+    hostH <= 0 || hostH >= MIN_MAP_H + MIN_GAME_CHAT_H + SPLIT_W
 
   /*
    * `fitColumns`/`pickReset` (lib/columns.ts) still speak of "map" and
@@ -246,8 +253,8 @@ export default function App() {
    */
   const fit = fitColumns({
     hostW,
-    roomWant: roomW,
-    mapWant: battleW,
+    roomWant: roomWantVisible,
+    mapWant: battleWantVisible,
     dashWant: experienceW,
     mapDocked: true,
     splitW: SPLIT_W,
@@ -256,6 +263,11 @@ export default function App() {
     // while that width can become visible scene; explicit divider choices
     // above this remain untouched inside fitColumns.
     mapGrowthMax: hostH > 0 ? Math.max(battleW, hostH * 0.62) : undefined,
+    // A single-column skill rail stops gaining information once its labels,
+    // numbers and useful bar length fit. In combat, return any width beyond
+    // that to the two active play surfaces. This is a display-time ceiling:
+    // the player's saved Experience width returns as soon as combat ends.
+    dashGrowthMax: battleActive ? 220 : undefined,
   })
   const battleWFit = fit.map
   const experienceWFit = fit.dash
@@ -292,12 +304,34 @@ export default function App() {
     setExperienceW(atLeastVisible(hostW * (1 - share)))
 
   const v = view()
-  if (v.kind === 'map') return <MapWindow />
-  if (v.kind === 'panel') return <PanelWindow id={v.id} />
+  if (v.kind === 'map') {
+    return (
+      <AuxiliaryWindowBoundary
+        label="Map window"
+        onError={(error) => useAppStore.getState().addLog(`Map window crashed: ${error.message}`, 'error')}
+      >
+        <StorageWarning />
+        <MapWindow />
+      </AuxiliaryWindowBoundary>
+    )
+  }
+  if (v.kind === 'panel') {
+    const label = `${v.id} panel window`
+    return (
+      <AuxiliaryWindowBoundary
+        label={label}
+        onError={(error) => useAppStore.getState().addLog(`${label} crashed: ${error.message}`, 'error')}
+      >
+        <StorageWarning />
+        <PanelWindow id={v.id} />
+      </AuxiliaryWindowBoundary>
+    )
+  }
 
   return (
     <div className="h-full w-full bg-surface flex flex-col">
       <AppControls />
+      <StorageWarning />
       {setupComplete && <SituationBanner />}
       {/* Runs regardless of what is on screen - see GameSignals.tsx's own
           header on why this cannot live inside a panel that might not
@@ -333,7 +367,7 @@ export default function App() {
         ) : (
           <>
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              {dock.docked && (
+              {dock.docked && mapCanShareHeight && (
                 <>
                   <div
                     className="shrink-0 overflow-hidden"
@@ -349,13 +383,20 @@ export default function App() {
                     </PanelBoundary>
                   </div>
                   <Splitter
+                    label="Resize map and game chat"
                     orientation="horizontal"
                     value={hostH > 0 ? mapH / hostH : DEFAULT_MAP_SHARE}
                     onChange={(share) => setMapH(hostH * share)}
                     min={MIN_MAP_H / Math.max(hostH, 1)}
                     max={hostH > 0 ? 1 - (MIN_GAME_CHAT_H + SPLIT_W) / hostH : 0.8}
+                    defaultValue={DEFAULT_MAP_SHARE}
                   />
                 </>
+              )}
+              {dock.docked && !mapCanShareHeight && (
+                <div className="flex h-8 shrink-0 items-center border-b border-border bg-surface-raised px-2 text-xs text-ink-faint" role="status">
+                  Map hidden while the window is this short. Enlarge it to restore your saved map height.
+                </div>
               )}
               <div className="min-h-0 flex-1 overflow-auto">
                 <PanelBoundary label="Game and chat">
@@ -365,6 +406,7 @@ export default function App() {
             </div>
 
             <Splitter
+              label="Resize room and battle columns"
               value={hostW > 0 ? leftWFit / hostW : 0.34}
               onChange={moveLeftBattleEdge}
               min={0}
@@ -381,6 +423,7 @@ export default function App() {
             </div>
 
             <Splitter
+              label="Resize battle and experience columns"
               value={hostW > 0 ? 1 - experienceWFit / hostW : 0.85}
               onChange={moveBattleExperienceEdge}
               min={0}
@@ -399,6 +442,7 @@ export default function App() {
           </>
         )}
       </main>
+      {setupComplete && <GameActionNotice />}
       {setupComplete && <Console />}
       {setupComplete && <QuickSwitchBar />}
       {setupComplete && <SafetyFooter />}

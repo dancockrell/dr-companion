@@ -29,6 +29,7 @@ import { isTauri } from '../../lib/tauri'
 import { useHighlights } from '../../lib/useHighlights'
 import { useAliases } from '../../lib/useAliases'
 import { cn } from '../../lib/cn'
+import { writeText } from '../../lib/storage'
 
 const DEFAULT_PORT = '11024'
 const PORT_KEY = 'drc.attach-port.v2'
@@ -56,11 +57,7 @@ export function GameConnectionBar() {
   const [port, setPortState] = useState<string>(loadPort)
   const setPort = (v: string) => {
     setPortState(v)
-    try {
-      if (validPort(v)) localStorage.setItem(PORT_KEY, v)
-    } catch {
-      // Private mode; the value still works for this session.
-    }
+    if (validPort(v)) writeText(PORT_KEY, v)
   }
 
   return (
@@ -100,7 +97,9 @@ export function GameConnectionBar() {
         <button
           type="button"
           className="rounded p-1 text-ink-faint hover:text-ink"
-          onClick={clearGame}
+          onClick={() => {
+            if (confirm('Clear all game scrollback? This cannot be undone. The live connection will stay attached.')) clearGame()
+          }}
           title="Clear the scrollback. The connection is untouched."
           aria-label="Clear the scrollback"
         >

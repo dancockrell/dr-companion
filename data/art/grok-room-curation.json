@@ -1,0 +1,280 @@
+{
+  "policy": {
+    "approvedProvenance": "Grok Imagine full pack 1938",
+    "sourceDirectory": "GROK_FULL_ART_PACK_1938/all",
+    "runtimeFallback": "none",
+    "selection": "terrain family, stable for each three-room run"
+  },
+  "subjects": {
+    "generic-forest": {
+      "exactSubject": "unnamed forest travel and clearings",
+      "canonicalTraits": ["mature trees", "traversable ground", "filtered natural light"],
+      "habitat": "forest, grove, wood, thicket and tangle rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/forest-clearing-06aeb546.jpg"],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-water": {
+      "exactSubject": "unnamed waterside and wetland travel",
+      "canonicalTraits": ["visible water", "natural bank or built landing", "clear environmental depth"],
+      "habitat": "river, shore, marsh, swamp, dock and lake rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/marsh-dusk-025a5488.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/lantern-dock-02798b8e.jpg", "/grok-art/room-scenes/reed-marsh-0fb4267f.jpg"],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-cave": {
+      "exactSubject": "cave, grotto and underground travel",
+      "canonicalTraits": ["rock enclosure", "strong entrance or passage", "legible depth"],
+      "habitat": "caves, caverns, grottoes, tunnels, crypts and sewers",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/sea-cave-038edbd8.jpg",
+      "approvedVariants": [],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-mountain": {
+      "exactSubject": "high mountain traversal and cliff architecture",
+      "canonicalTraits": ["steep elevation", "exposed stone", "distant peaks or drop"],
+      "habitat": "mountains, ridges, summits, cliffs and ascents",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/cliff-monastery-0183963f.jpg"],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-desert": {
+      "exactSubject": "arid overland travel",
+      "canonicalTraits": ["dry exposed route", "sand or weathered stone", "long horizon"],
+      "habitat": "deserts, dunes, wastes and badlands",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/desert-canyon-0322415e.jpg",
+      "approvedVariants": [],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-ocean": {
+      "exactSubject": "open sea and exposed coast",
+      "canonicalTraits": ["large water horizon", "active waves", "exposed coastal weather"],
+      "habitat": "open sea, sea cliffs, lighthouses and storm-water rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/storm-ocean-10d4c18a.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/lighthouse-coast-0ee0be16.jpg"],
+      "rejects": ["calm inland marsh scenes", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-snow": {
+      "exactSubject": "snowbound high-country travel",
+      "canonicalTraits": ["continuous snow cover", "cold open exposure", "distant mountain forms"],
+      "habitat": "snowfields, glaciers, frozen lakes and wintry highlands",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/snowfield-0d5df7bf.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/alpine-lake-108392d4.jpg"],
+      "rejects": ["temperate mountain scenes", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-temple": {
+      "exactSubject": "small sacred interior",
+      "canonicalTraits": ["stone sanctuary", "altar or devotional niche", "controlled candlelight"],
+      "habitat": "temples, shrines, chapels, sanctums and holy rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/shrine-interior-0f2de22b.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic town streets", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-apothecary": {
+      "exactSubject": "working herbalist and alchemical supply shop",
+      "canonicalTraits": ["bottles, dried herbs and reagents", "working counter", "organized shelving"],
+      "habitat": "apothecaries, alchemists, herbalists and potion shops",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/herbalist-ab006279.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/apothecary-09cdec8e.jpg"],
+      "rejects": ["generic market exterior", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-jeweler": {
+      "exactSubject": "jeweler, gemcutter and precious-metal shop",
+      "canonicalTraits": ["glass display cases", "small precision tools", "gems and finished jewelry"],
+      "habitat": "jewelers, gem shops, gemcutters, goldsmiths and silversmiths",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/jeweler-35a7845f.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic market stalls", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-magic-shop": {
+      "exactSubject": "arcane supply, enchanting and crystal shop",
+      "canonicalTraits": ["crystals and magical curios", "dense specialist shelving", "warm controlled interior light"],
+      "habitat": "magic shops, enchanters, artificers and arcane supply rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/magic-shop-4ef50ab1.jpg",
+      "approvedVariants": [],
+      "rejects": ["ordinary apothecaries without arcane goods", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-archive": {
+      "exactSubject": "scribe archive and working library room",
+      "canonicalTraits": ["books and scroll storage", "reading or copying table", "quiet enclosed workroom"],
+      "habitat": "libraries, archives, scriptoria, scribes and reading rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/archive-494b55cb.jpg",
+      "approvedVariants": [],
+      "rejects": ["bookless public halls", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-theater": {
+      "exactSubject": "small theater and performance hall",
+      "canonicalTraits": ["visible stage", "audience seating", "curtain and performance lighting"],
+      "habitat": "theaters, playhouses, auditoriums, stages and music halls",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/theater-4013bf56.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic assembly halls without a stage", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-training-hall": {
+      "exactSubject": "indoor martial training and sparring hall",
+      "canonicalTraits": ["clear practice ring", "wall-mounted weapons and shields", "durable enclosed floor"],
+      "habitat": "training halls, sparring rooms, combat academies and weapon-practice rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/training-hall-650f2679.jpg",
+      "approvedVariants": [],
+      "rejects": ["active battlefields", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-guild-hall": {
+      "exactSubject": "formal guild, bank and civic service hall",
+      "canonicalTraits": ["large institutional interior", "service counters or records", "formal stone architecture"],
+      "habitat": "banks, guildhalls, council halls, registries and public offices",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/guild-hall-441c3d78.jpg",
+      "approvedVariants": [],
+      "rejects": ["temples dominated by devotional furniture", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-mine": {
+      "exactSubject": "crystal-bearing mine and underground excavation",
+      "canonicalTraits": ["enclosed rock passage", "visible mineral deposits", "strong tunnel depth"],
+      "habitat": "mines, mineshafts, quarries, ore tunnels and crystal caverns",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/crystal-mine-3638b938.jpg",
+      "approvedVariants": [],
+      "rejects": ["open sea caves without mining context", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-tavern": {
+      "exactSubject": "tavern, inn common room and public house",
+      "canonicalTraits": ["communal tables", "service bar or hearth", "believable lodging or drinking-house character"],
+      "habitat": "taverns, inns, public houses, taprooms and common rooms",
+      "currentImage": null,
+      "approvedPrimary": null,
+      "approvedVariants": [],
+      "rejects": ["shops or theaters relabeled as taverns", "generic exterior streets", "all non-Grok room renders"],
+      "regenerationNeeded": true
+    },
+    "generic-forge": {
+      "exactSubject": "working blacksmith forge",
+      "canonicalTraits": ["active coal fire", "anvil", "smithing tools and dark masonry"],
+      "habitat": "forges, smithies, blacksmiths and foundries",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/forge-11c9cd64.jpg",
+      "approvedVariants": [],
+      "rejects": ["taverns merely mentioning a hearth", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-outfitter": {
+      "exactSubject": "leatherworker and outfitter workshop",
+      "canonicalTraits": ["worked leather", "armor or hides", "cutting and stitching benches"],
+      "habitat": "outfitters, tanneries, leather shops and armor workshops",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/leather-workshop-1390477d.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic store exterior", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-tailor": {
+      "exactSubject": "tailor, clothier and textile shop interior",
+      "canonicalTraits": ["folded bolts of cloth", "thread and sewing supplies", "working table under warm light"],
+      "habitat": "tailors, seamstresses, clothiers, weavers and dye shops",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/textile-shop-1eed98c2.jpg",
+      "approvedVariants": [],
+      "rejects": ["leather workshops without textiles", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-harbor": {
+      "exactSubject": "working urban harbor and canal district",
+      "canonicalTraits": ["multiple working boats", "timber wharves", "dense waterside buildings and bridge"],
+      "habitat": "harbors, wharves, quays, shipyards, boathouses and ferry landings",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/working-harbor-1d61dd6a.jpg",
+      "approvedVariants": [],
+      "rejects": ["empty wilderness lakes", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-grassland": {
+      "exactSubject": "open grassland and exposed meadow travel",
+      "canonicalTraits": ["broad grassy horizon", "minimal tree cover", "visible changing weather"],
+      "habitat": "grasslands, prairies, plains, meadows, pastures and open fields",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/storm-grassland-22f4384f.jpg",
+      "approvedVariants": [],
+      "rejects": ["wooded clearings that read as forest", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-orchard": {
+      "exactSubject": "cultivated fruit orchard and farm edge",
+      "canonicalTraits": ["ordered fruit trees", "visible harvest", "managed agricultural ground"],
+      "habitat": "orchards, fruit groves, farmsteads and farm yards",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/apple-orchard-23efadaf.jpg",
+      "approvedVariants": [],
+      "rejects": ["uncultivated generic forest", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-courtyard": {
+      "exactSubject": "enclosed stone courtyard or walled garden",
+      "canonicalTraits": ["bounded masonry", "central fountain", "formal lantern lighting and planted edges"],
+      "habitat": "courtyards, cloisters, enclosed gardens and walled gardens",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/lantern-courtyard-2340613e.jpg",
+      "approvedVariants": [],
+      "rejects": ["open town squares", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-ruins": {
+      "exactSubject": "overgrown ancient woodland ruins",
+      "canonicalTraits": ["recognizable fallen architecture", "long abandonment", "vegetation reclaiming carved stone"],
+      "habitat": "ruins, fallen temples, ancient columns and crumbling shrines",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/woodland-ruins-2c3975b0.jpg",
+      "approvedVariants": [],
+      "rejects": ["intact active temples", "explicit real-world religious symbols", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-town": {
+      "exactSubject": "settled street, market and road space",
+      "canonicalTraits": ["walkable public space", "medieval-fantasy construction", "strong visual depth"],
+      "habitat": "default for streets, buildings and uncategorized settled rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/night-market-04c61394.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/town-square-2650911f.jpg"],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "leth-deriel-tree-town": {
+      "exactSubject": "forest settlement built into living trees",
+      "canonicalTraits": ["large living trees", "elevated timber paths", "lantern-lit dwellings"],
+      "habitat": "Leth Deriel and explicit canopy or treehouse settlements",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/tree-city-04b6c4bd.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic forest without settlement", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    }
+  }
+}

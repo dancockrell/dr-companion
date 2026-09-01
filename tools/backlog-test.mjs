@@ -49,6 +49,7 @@
  * Run: node --experimental-test-module-mocks tools/backlog-test.mjs
  */
 import { mock } from 'node:test'
+import { readFileSync } from 'node:fs'
 
 let checks = 0
 let failures = 0
@@ -199,6 +200,34 @@ console.log('backlog backfill')
   eq(L.gameDropped(), 87, 'chunks Rust could not retain are counted, not hidden')
 }
 
+// ------------------------------------------- full long-session recovery depth
+// Substantially beyond the old 2,000-chunk native cap. A fresh module is the
+// frontend-reload boundary: nothing from an earlier JS buffer can help it.
+{
+  const count = 12_000
+  backlogReply = {
+    lines: Array.from({ length: count }, (_, i) => chunk(i + 1, `A realistic room line ${i + 1}: the copper lantern throws a long shadow across the cobblestones.`)),
+    dropped: 0,
+  }
+  const payloadBytes = Buffer.byteLength(JSON.stringify(backlogReply))
+  const L = await freshLink()
+  L.subscribeGame(() => {})
+  await settle()
+  eq(texts(L).length, count, 'a fresh frontend recovers substantially more than the old 2,000-chunk cap')
+  eq(L.gameDropped(), 0, 'full retained recovery does not invent dropped history')
+  ok(payloadBytes < 4 * 1024 * 1024, `12,000 realistic recovery chunks serialize below 4 MiB (${(payloadBytes / 1024 / 1024).toFixed(2)} MiB measured)`)
+}
+
+// The two caps are deliberately different units, but the native raw-chunk
+// recovery budget may never be smaller than the display-line promise.
+{
+  const rust = readFileSync('src-tauri/src/game_link.rs', 'utf8')
+  const frontend = readFileSync('src/lib/gameLink.ts', 'utf8')
+  const nativeCap = Number(rust.match(/const BACKLOG_MAX: usize = ([\d_]+);/)?.[1].replaceAll('_', ''))
+  const displayCap = Number(frontend.match(/const MAX_LINES = ([\d_]+)/)?.[1].replaceAll('_', ''))
+  ok(nativeCap >= displayCap, `native recovery budget ${nativeCap} covers display budget ${displayCap}`)
+}
+
 // -------------------------------------------- a failed backlog must not strand
 //
 // The one that matters most. If the request throws and the queue is never
@@ -219,7 +248,7 @@ console.log('backlog backfill')
 //
 // A run that asserted nothing prints the same "no failures" as a run that
 // asserted everything.
-const FLOOR = 10
+const FLOOR = 14
 if (checks < FLOOR) {
   console.log(
     `${NL}FAIL only ${checks} checks ran, expected at least ${FLOOR} - the suite did not execute`

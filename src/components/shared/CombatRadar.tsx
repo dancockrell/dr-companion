@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useDragScroll } from '../../lib/useDragScroll'
 import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
 import { Paperdoll, type Pose } from './Paperdoll'
-import { Activity, Anchor, Ban, Bug, Droplet, FlaskConical, HeartCrack, HeartPulse, Skull, Zap, type LucideIcon } from 'lucide-react'
-import { playerArtFor, playerDefaultArtFor, notePlayerArtMissing } from '../../lib/playerArt'
+import { Activity, Anchor, Backpack, Ban, BookOpen, Bug, Droplet, ExternalLink, EyeOff, FlaskConical, Ghost, HeartCrack, HeartPulse, Skull, Timer, Users, Zap, type LucideIcon } from 'lucide-react'
+import { playerArtFor, playerDefaultArtFor, playerProfileFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { RoomBackdrop } from '../room/RoomBackdrop'
 import { type Deck } from '../../lib/cards'
@@ -13,6 +13,9 @@ import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body'
 import type { Vital } from '../../lib/vitals'
+import { requestGameAction } from '../../lib/gameActions'
+import { ArmorManager } from './ArmorManager'
+import { fanRadarSlots, pointOnRadar } from '../../lib/combatRadarLayout'
 
 /**
  * The room, with everyone in it — a compass filling the whole board edge to
@@ -77,8 +80,9 @@ const STALE_AFTER_SECONDS = 60
 /** Below this measured width, pucks shrink too, so a marker never claims
  * more of a tiny board than the gap between two of them can afford.
  * Nothing on this board ever prints an always-visible name, so this is the
- * only responsive threshold left: marker size, not label visibility. */
-const COMPACT_MIN_PX = 160
+ * only responsive bands left: marker and gutter size, not label visibility. */
+const STANDARD_MIN_PX = 680
+const WIDE_MIN_PX = 900
 
 /**
  * Melee wide, pole and missile progressively tighter. A floor, not the
@@ -147,11 +151,6 @@ function angleFor(relation: string, id: string): number {
  * rather than sharing the board's width) — the *visual* center still
  * needs to sit clear of that overlay, so the caller nudges it left by
  * however much of the right edge the strip actually covers. */
-function pointOn(cx: number, cy: number, angleDeg: number, radiusPct: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180
-  return { x: cx + radiusPct * Math.cos(rad), y: cy + radiusPct * Math.sin(rad) }
-}
-
 /**
  * Pinned keys move to the front, in the order they were pinned — the most
  * recently promoted lands first, same as bringing a card to the top of a
@@ -259,7 +258,7 @@ function RosterStrip({
  * its allegiance colour, while the columns merely guarantee stable places
  * to grab and scroll even when one side is temporarily empty.
  */
-function RosterColumn({ label, tone, side, children }: { label: string; tone: 'enemy' | 'friendly'; side: 'left' | 'right'; children: ReactNode }) {
+function RosterColumn({ label, side, width, children }: { label: string; side: 'left' | 'right'; width: number; children: ReactNode }) {
   const drag = useDragScroll()
   return (
     <div
@@ -268,13 +267,11 @@ function RosterColumn({ label, tone, side, children }: { label: string; tone: 'e
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar absolute bottom-0 top-0 z-20 w-[68px] cursor-grab overflow-x-hidden overflow-y-auto border-border/60 bg-surface/76 backdrop-blur-sm touch-none active:cursor-grabbing ${side === 'left' ? 'left-0 border-r' : 'right-0 border-l'}`}
+      className={`no-scrollbar absolute top-0 z-20 cursor-grab overflow-x-hidden overflow-y-auto bg-transparent touch-none active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
+      style={{ width, bottom: 'var(--radar-loot-height, 0px)' }}
       aria-label={`${label} radar cards`}
       title={label}
     >
-      <div className={`sticky top-0 z-10 py-1 text-center text-xs font-semibold uppercase tracking-wide bg-surface/90 ${tone === 'enemy' ? 'text-danger' : 'text-info'}`}>
-        {label}
-      </div>
       <div className="flex flex-col items-center gap-1 p-1">{children}</div>
     </div>
   )
@@ -285,18 +282,22 @@ function RosterColumn({ label, tone, side, children }: { label: string; tone: 'e
  * inside a resizable pane or a genuinely small screen are the same event
  * to this hook, neither is a media query.
  */
-function useMeasuredWidth() {
+function useMeasuredSize() {
   const ref = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
+  const [size, setSize] = useState({ width: 0, height: 0 })
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    setWidth(el.getBoundingClientRect().width)
-    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    const first = el.getBoundingClientRect()
+    setSize({ width: first.width, height: first.height })
+    const ro = new ResizeObserver(([entry]) => setSize({
+      width: entry.contentRect.width,
+      height: entry.contentRect.height,
+    }))
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  return { ref, width }
+  return { ref, ...size }
 }
 
 /**
@@ -451,8 +452,13 @@ function HoverCard({ children, content }: { children: ReactNode; content: ReactN
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number; flip: boolean } | null>(null)
   const anchorRef = useRef<HTMLSpanElement>(null)
+  const hideTimer = useRef<number | null>(null)
 
   const show = () => {
+    if (hideTimer.current !== null) {
+      window.clearTimeout(hideTimer.current)
+      hideTimer.current = null
+    }
     const r = anchorRef.current?.getBoundingClientRect()
     if (r) {
       // Opens upward by default (the usual case: a puck low enough on the
@@ -468,7 +474,17 @@ function HoverCard({ children, content }: { children: ReactNode; content: ReactN
     }
     setOpen(true)
   }
-  const hide = () => setOpen(false)
+  const hide = () => {
+    if (hideTimer.current !== null) window.clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => {
+      setOpen(false)
+      hideTimer.current = null
+    }, 180)
+  }
+
+  useEffect(() => () => {
+    if (hideTimer.current !== null) window.clearTimeout(hideTimer.current)
+  }, [])
 
   return (
     // A plain span, not `display: contents` — a contents element generates
@@ -483,13 +499,17 @@ function HoverCard({ children, content }: { children: ReactNode; content: ReactN
       onMouseEnter={show}
       onMouseLeave={hide}
       onFocus={show}
-      onBlur={hide}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) hide()
+      }}
     >
       {children}
       {open && pos && (
         <div
           role="tooltip"
-          className={`pointer-events-none fixed z-50 w-64 -translate-x-1/2 rounded border border-border bg-surface-overlay p-2 shadow-xl ${pos.flip ? '' : '-translate-y-full'}`}
+          onMouseEnter={show}
+          onMouseLeave={hide}
+          className={`pointer-events-auto fixed z-50 w-64 -translate-x-1/2 rounded border border-border bg-surface-overlay p-2 shadow-xl ${pos.flip ? '' : '-translate-y-full'}`}
           style={{ top: pos.top, left: Math.min(Math.max(pos.left, 132), window.innerWidth - 132) }}
         >
           {content}
@@ -521,9 +541,9 @@ function Fact({ label, value }: { label: string; value: ReactNode }) {
  *
  * The bestiary facts here are exactly what `data/bestiary.json` already
  * ships (scraped from Elanthipedia once, at build time — see
- * `tools/bestiary-index.mjs`), not a live re-scrape: this app has no route
- * to fetch a wiki page at runtime, and a card mid-fight is the wrong place
- * to first attempt one. A genuinely live pipeline — folding what a
+ * `tools/bestiary-index.mjs`). The card also exposes a deliberate wiki search
+ * when the player wants more detail; it does not silently fetch while merely
+ * hovering in a fight. A genuinely live pipeline — folding what a
  * character's own `assess`/`diagnose` output reveals turn to turn back into
  * this same static index, so an approximate match sharpens the more this
  * particular creature gets fought — is a real, separate feature and not
@@ -542,6 +562,9 @@ function InfoCard({
   const stale =
     combatant?.enrichedAgeSeconds != null && combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS
   const playerArtwork = card.deck === 'people' ? (playerArtFor(card.name) ?? playerDefaultArtFor(card.name)) : undefined
+  const playerProfile = card.deck === 'people' ? playerProfileFor(card.name) : undefined
+  const wikiTarget = card.noun || card.name
+  const kind = card.deck === 'people' ? 'Player character' : card.deck === 'hostile' ? 'Hostile creature' : 'Friendly NPC'
 
   return (
     <div className="flex flex-col gap-1.5 text-xs">
@@ -555,6 +578,15 @@ function InfoCard({
           {card.status === 'stunned' && <p className="text-warn">stunned</p>}
         </div>
       </div>
+
+      <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 border-t border-border/60 pt-1.5">
+        <Fact label="Kind" value={kind} />
+        {card.noun && card.noun.toLowerCase() !== card.name.toLowerCase() && <Fact label="Noun" value={card.noun} />}
+        {card.count > 1 && <Fact label="Count" value={card.count} />}
+        {playerProfile?.race && <Fact label="Race" value={playerProfile.race} />}
+        {playerProfile?.sex && <Fact label="Gender" value={playerProfile.sex} />}
+        {playerProfile?.guild && <Fact label="Guild" value={playerProfile.guild} />}
+      </dl>
 
       {playerArtwork?.description && (
         <dl className="grid grid-cols-[auto_1fr] gap-x-2 border-t border-border/60 pt-1.5">
@@ -617,6 +649,35 @@ function InfoCard({
           </dl>
         </div>
       )}
+      <div className="flex flex-wrap gap-1 border-t border-border/60 pt-1.5">
+        <button
+          type="button"
+          onClick={() => requestGameAction(`look ${card.noun || card.name}`, `Look at ${card.name}`)}
+          className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:border-info/50 hover:text-ink"
+          title={`Look at ${card.name}`}
+        >
+          Look
+        </button>
+        <button
+          type="button"
+          onClick={() => requestGameAction(`assess ${card.noun || card.name}`, `Assess ${card.name}`)}
+          className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:border-warn/50 hover:text-ink"
+          title={`Assess ${card.name}`}
+        >
+          Assess
+        </button>
+        <a
+          href={`https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(wikiTarget)}`}
+          target="_blank"
+          rel="noreferrer"
+          title={`Search Elanthipedia for ${wikiTarget}`}
+          className="ml-auto flex items-center gap-1 rounded border border-info/40 px-1.5 py-0.5 text-info hover:bg-info/10"
+        >
+          <BookOpen className="h-3.5 w-3.5" aria-hidden />
+          Elanthipedia
+          <ExternalLink className="h-3 w-3" aria-hidden />
+        </a>
+      </div>
     </div>
   )
 }
@@ -716,7 +777,7 @@ function Puck({
   // here instead of skipping straight past it to a dot.
   return (
     <div
-      className={pulse ? 'animate-pulse' : ''}
+      className={pulse ? 'animate-pulse motion-reduce:animate-none' : ''}
       style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}
     >
       <CreatureArt
@@ -798,6 +859,11 @@ const STATUS_ICON: Partial<Record<string, { Icon: LucideIcon; label: string; ton
   diseased: { Icon: Bug, label: 'Diseased', tone: 'text-danger' },
   webbed: { Icon: Anchor, label: 'Webbed', tone: 'text-warn' },
   immobilized: { Icon: Ban, label: 'Immobilised', tone: 'text-warn' },
+  bags_full: { Icon: Backpack, label: 'Bags full', tone: 'text-warn' },
+  roundtime: { Icon: Timer, label: 'Roundtime', tone: 'text-warn' },
+  hidden: { Icon: EyeOff, label: 'Hidden', tone: 'text-good' },
+  invisible: { Icon: Ghost, label: 'Invisible', tone: 'text-good' },
+  joined: { Icon: Users, label: 'Joined to a group', tone: 'text-good' },
 }
 
 /** Nerves, poisoned and stunned all get a permanent slot in the row instead
@@ -858,18 +924,20 @@ function nsysIcon(wound: number): LucideIcon {
  */
 function YouCard({
   you,
-  compact,
+  scale,
 }: {
   you: {
     character: string
     race?: string | null
+    sex?: 'male' | 'female'
     injuries: Partial<Record<BodyPart, Injury>>
     injuriesKnown: boolean
+    bleeding?: Array<{ part: BodyPart | null; rate: string }>
     vitals: Vital[]
     pose: Pose
     statusFlags: string[]
   }
-  compact: boolean
+  scale: number
 }) {
   const nsysWound = you.injuries.nsys?.wound ?? 0
   const poisoned = you.statusFlags.includes('poisoned')
@@ -884,7 +952,7 @@ function YouCard({
   // tuned number that happened to be close. The doll's own viewBox is
   // trimmed tight to its body now (Paperdoll.tsx), so there is no leftover
   // dead space at this height to justify picking a different one.
-  const portraitSize = compact ? 68 : 88
+  const portraitSize = Math.round(Math.max(54, Math.min(94, 78 * scale)))
   const dollHeight = portraitSize
 
   return (
@@ -894,22 +962,22 @@ function YouCard({
     // vitals and status icons beside the doll instead of below it uses
     // that width and buys back the vertical space the second row cost.
     <div
-      className="pointer-events-auto flex max-w-[16rem] items-start gap-1 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
-      style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
+      className="pointer-events-auto flex max-w-[15rem] items-center gap-1.5 rounded-full bg-surface/70 py-1 pl-1 pr-3 ring-1 ring-border/35 backdrop-blur-sm"
+      style={{ boxShadow: '0 3px 14px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.05)' }}
     >
-      <Portrait character={you.character} race={you.race ?? undefined} size={portraitSize} />
-      <Paperdoll injuries={you.injuries} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
+      <Portrait character={you.character} race={you.race ?? undefined} sex={you.sex} size={portraitSize} shape="oval" focus="face" />
+      <Paperdoll injuries={you.injuries} bleeding={you.bleeding} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
 
       {/* justify-start, not -center: centering a handful of short rows in a
           column as tall as the doll left visible empty space above and
           below them both, worst at the bottom under the icon row. Hugging
           the top costs nothing — the doll and portrait fill their own
           columns regardless of what this one does. */}
-      <div className="flex flex-col justify-start gap-0.5" style={{ height: dollHeight }}>
+      <div className="flex min-w-[3.35rem] flex-col justify-center gap-0" style={{ minHeight: dollHeight }}>
         {you.vitals.map((v) => {
           const share = v.max > 0 ? v.value / v.max : 1
           return (
-            <span key={v.key} className="whitespace-nowrap text-xs text-ink-muted" title={`${v.label}: ${v.value}/${v.max}`}>
+            <span key={v.key} className="whitespace-nowrap text-xs leading-[1.15rem] text-ink-muted" title={`${v.label}: ${v.value}/${v.max}`}>
               {v.label.slice(0, 2).toUpperCase()}{' '}
               <span className="text-base font-bold tabular-nums" style={{ color: vitalColor(share) }}>
                 {v.value}
@@ -924,22 +992,22 @@ function YouCard({
             overflowing: this column is narrow on purpose, and a fight
             carrying five status flags at once is rare enough that
             wrapping to a second line costs nothing most of the time. */}
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-border/30 pt-1">
-          <span title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
+        <div className="mt-0.5 flex max-w-[4.5rem] flex-wrap items-center gap-1 border-t border-border/30 pt-1">
+          <span role="img" aria-label={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`} title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
             {(() => {
               const NsysIcon = nsysIcon(nsysWound)
-              return <NsysIcon className="h-4 w-4" style={{ color: nsysColor(nsysWound) }} aria-hidden />
+              return <NsysIcon className="h-3.5 w-3.5" style={{ color: nsysColor(nsysWound) }} aria-hidden />
             })()}
           </span>
-          <span title={poisoned ? 'Poisoned' : 'Not poisoned'}>
-            <FlaskConical className={`h-4 w-4 ${alwaysTone(poisoned)}`} aria-hidden />
+          <span role="img" aria-label={poisoned ? 'Poisoned' : 'Not poisoned'} title={poisoned ? 'Poisoned' : 'Not poisoned'}>
+            <FlaskConical className={`h-3.5 w-3.5 ${alwaysTone(poisoned)}`} aria-hidden />
           </span>
-          <span title={stunned ? 'Stunned' : 'Not stunned'}>
-            <Zap className={`h-4 w-4 ${alwaysTone(stunned, true)}`} aria-hidden />
+          <span role="img" aria-label={stunned ? 'Stunned' : 'Not stunned'} title={stunned ? 'Stunned' : 'Not stunned'}>
+            <Zap className={`h-3.5 w-3.5 ${alwaysTone(stunned, true)}`} aria-hidden />
           </span>
           {statusIcons.map(({ Icon, label, tone }) => (
-            <span key={label} title={label}>
-              <Icon className={`h-4 w-4 ${tone}`} aria-hidden />
+            <span key={label} role="img" aria-label={label} title={label}>
+              <Icon className={`h-3.5 w-3.5 ${tone}`} aria-hidden />
             </span>
           ))}
         </div>
@@ -992,8 +1060,10 @@ export function CombatRadar({
   you?: {
     character: string
     race?: string | null
+    sex?: 'male' | 'female'
     injuries: Partial<Record<BodyPart, Injury>>
     injuriesKnown: boolean
+    bleeding?: Array<{ part: BodyPart | null; rate: string }>
     vitals: Vital[]
     /** Standing, sitting cross-legged, or lying down — the caller derives
      * this from the character's own situation flags (see BattleColumn) and
@@ -1017,15 +1087,30 @@ export function CombatRadar({
 }) {
   const index = indexCombatants(combatants)
   const { run: runMacro, canSend: canAttack, reason: attackReason } = useMacroRunner()
-  const { ref: boardRef, width: boardWidth } = useMeasuredWidth()
-  const compact = boardWidth > 0 && boardWidth < COMPACT_MIN_PX
+  const { ref: boardRef, width: boardWidth, height: boardHeight } = useMeasuredSize()
+  const wide = boardWidth >= WIDE_MIN_PX
+  const standard = boardWidth >= STANDARD_MIN_PX
+  const compact = boardWidth > 0 && !standard
 
-  const portraitPx = compact ? 60 : 84
+  // Every movable thing is sized from the same two-dimensional viewer scale.
+  // A fixed 50px portrait looked acceptable in one screenshot and enormous
+  // or microscopic as soon as the player resized the pane. Width alone also
+  // fails when a short landscape viewer is height-constrained, so the smaller
+  // of the two axes owns the scale.
+  const viewerScale = boardWidth > 0 && boardHeight > 0
+    ? Math.max(0.65, Math.min(1.25, Math.min(boardWidth / 900, boardHeight / 650)))
+    : 1
+
+  const portraitPx = Math.max(40, Math.round((compact ? 60 : 84) * viewerScale))
   // The strip's own cards — smaller than a positioned compass puck, since
   // "2 cards wide" only fits at a size the strip's own measured width
   // actually allows.
-  const stripPx = compact ? 40 : 50
-  const compassPortraitPx = compact ? 40 : 52
+  const stripBasePx = wide ? 56 : standard ? 48 : 40
+  const railBasePx = wide ? 72 : standard ? 60 : 50
+  const stripPx = Math.max(40, Math.round(stripBasePx * viewerScale))
+  const compassPortraitPx = Math.max(40, Math.round((compact ? 44 : 52) * viewerScale))
+  const railWidth = Math.max(stripPx + 8, Math.round(railBasePx * viewerScale))
+  const armorWidth = Math.max(224, Math.min(336, Math.round(boardWidth * 0.34)))
 
   // The compass draws edge to edge underneath two balanced side lanes.
   const compassWidth = boardWidth
@@ -1071,29 +1156,11 @@ export function CombatRadar({
     }
   }
 
-  // Same-angle jitter: two combatants sharing one of the four cardinal
-  // angles fan out into a small grid around their shared point rather than
-  // stacking exactly on top of each other.
-  const FAN_COLS = 3
+  // Only combatants in the exact same assessed slot need fanning. Actors at
+  // different ranges in the same direction already have distinct positions
+  // and must remain centered on their real rings.
   const fanGapPct = compassWidth > 0 ? Math.max((compassPortraitPx * 1.3 * 100) / compassWidth, 5) : 8
-  const byAngle = new Map<number, Positioned[]>()
-  for (const p of positioned) {
-    const list = byAngle.get(p.angleDeg)
-    if (list) list.push(p)
-    else byAngle.set(p.angleDeg, [p])
-  }
-  const fanned = new Map<string, { x: number; y: number }>()
-  for (const group of byAngle.values()) {
-    group.forEach((p, i) => {
-      const { x, y } = pointOn(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
-      const cols = Math.min(group.length, FAN_COLS)
-      const col = i % cols
-      const row = Math.floor(i / cols)
-      const offsetX = (col - (cols - 1) / 2) * fanGapPct
-      const offsetY = row * fanGapPct
-      fanned.set(p.key, { x: x + offsetX, y: y + offsetY })
-    })
-  }
+  const fanned = fanRadarSlots(positioned, centerXPct, centerYPct, fanGapPct)
 
   // Click anything and it jumps to the top of the strip — a scrolling pile
   // of hundreds is only useful if the one you're looking for can be pulled
@@ -1105,14 +1172,6 @@ export function CombatRadar({
   const orderedStrip = reorderByPin(stripEntries, (e) => e.key, pinned)
   const enemyLane = orderedStrip.filter((entry) => entry.card.deck === 'hostile')
   const friendlyLane = orderedStrip.filter((entry) => entry.card.deck !== 'hostile')
-  const rangeCounts = positioned.reduce(
-    (counts, entry) => {
-      counts[entry.combatant.range!]++
-      return counts
-    },
-    { melee: 0, pole: 0, missile: 0 }
-  )
-
   const attack = () => runMacro(['attack'])
   const attackTitle = (label: string) =>
     attackReason ?? `${label} — attack (whatever is in front of you right now)`
@@ -1151,7 +1210,7 @@ export function CombatRadar({
           disabled={attackable && !canAttack}
           onClick={onClick}
           aria-label={label}
-          className="flex shrink-0 items-center justify-center disabled:cursor-not-allowed"
+          className="flex shrink-0 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-overlay disabled:cursor-not-allowed"
           style={{ width: px, height: Math.round(px * PORTRAIT_ASPECT), opacity: dead ? 0.55 : undefined }}
         >
           <Puck card={card} px={px} ringClass={meta.ringClass} shape="rect" />
@@ -1168,6 +1227,11 @@ export function CombatRadar({
           ? 'absolute inset-0 overflow-hidden'
           : 'relative mx-auto flex aspect-square w-full max-w-[300px] flex-col overflow-hidden rounded border-2 border-danger/70'
       }
+      style={{
+        '--radar-scale': viewerScale,
+        '--radar-rail': `${railWidth}px`,
+        '--armor-width': `${armorWidth}px`,
+      } as CSSProperties}
     >
       {embedded ? (
         <>
@@ -1183,24 +1247,6 @@ export function CombatRadar({
                 'radial-gradient(circle at 42% 50%, rgba(15,23,31,0.08) 0%, rgba(10,14,20,0.28) 58%, rgba(5,8,12,0.62) 100%)',
             }}
           />
-
-          <div className="pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-2 rounded-full border border-border/50 bg-surface/75 px-2 py-1 text-xs text-ink backdrop-blur-sm">
-            <Activity className="h-4 w-4 text-danger" aria-hidden />
-            <span className="font-semibold">Combat radar</span>
-            <span className="text-ink-muted">
-              {positioned.length} engaged · {stripEntries.length} nearby
-            </span>
-          </div>
-          <div className="pointer-events-none absolute left-2 top-11 z-10 flex flex-wrap items-center gap-1 text-xs">
-            {(['melee', 'pole', 'missile'] as const).map((range) => (
-              <span
-                key={range}
-                className={`rounded-full border bg-surface/75 px-1.5 py-0.5 font-medium uppercase tracking-wide text-ink-muted backdrop-blur-sm ${range === 'melee' ? 'border-danger/55' : range === 'pole' ? 'border-warn/45' : 'border-info/40'}`}
-              >
-                {RANGE_WORD[range]} · {rangeCounts[range]}
-              </span>
-            ))}
-          </div>
 
           {/* The compass — the whole board, edge to edge. The roster floats
               over its right side as an overlay (below) rather than sharing
@@ -1226,8 +1272,13 @@ export function CombatRadar({
             />
           ))}
 
+          {/* The upper-right quadrant used to be empty scenery. This compact
+              rack keeps armor and shield changes in the battlespace without
+              moving either roster lane or covering the player's center card. */}
+          <ArmorManager />
+
           {positioned.map((p) => {
-            const pos = fanned.get(p.key) ?? pointOn(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
+            const pos = fanned.get(p.key) ?? pointOnRadar(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
             return (
               <div
                 key={p.key}
@@ -1247,7 +1298,7 @@ export function CombatRadar({
               className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{ left: `${centerXPct}%`, top: `${centerYPct}%` }}
             >
-              <YouCard you={you} compact={compact} />
+              <YouCard you={you} scale={viewerScale} />
             </div>
           )}
 
@@ -1261,12 +1312,12 @@ export function CombatRadar({
           )}
 
           <div aria-label="Scrollable friendly and enemy radar columns">
-            <RosterColumn label="Friends" tone="friendly" side="left">
+            <RosterColumn label="Friends" side="left" width={railWidth}>
               {friendlyLane.map((entry) => (
                 <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
               ))}
             </RosterColumn>
-            <RosterColumn label="Enemies" tone="enemy" side="right">
+            <RosterColumn label="Enemies" side="right" width={railWidth}>
               {enemyLane.map((entry) => (
                 <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
               ))}

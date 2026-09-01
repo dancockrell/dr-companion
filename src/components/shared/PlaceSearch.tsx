@@ -17,20 +17,26 @@
  * gives up 160px while a search is actually open and takes it straight back.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { RefreshCw, Search, X } from 'lucide-react'
 import { searchPlaces, type Place, type PlaceHit } from '../../lib/placeSearch'
 import { loadPlaces } from '../../lib/placeIndex'
+import { ZONE_INDEX } from '../../lib/mapZoneIndex'
 
 export function PlaceSearch({
   here,
   onPick,
+  onZone,
 }: {
   /** The zone on screen, so a hit you are already looking at says so. */
   here?: string | null
   onPick: (hit: PlaceHit) => void
+  /** Browse any shipped map, including special zones with no ordinary gate. */
+  onZone?: (id: string) => void
 }) {
   const [query, setQuery] = useState('')
   const [places, setPlaces] = useState<Place[] | null>(null)
+  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [retry, setRetry] = useState(0)
   const [active, setActive] = useState(0)
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -41,15 +47,23 @@ export function PlaceSearch({
   // time it takes to type two characters, which is the whole wait.
   const wanted = focused || query.length > 0
   useEffect(() => {
-    if (!wanted || places) return
+    if (!wanted || places !== null) return
     let cancelled = false
-    void loadPlaces().then((p) => {
-      if (!cancelled) setPlaces(p)
-    })
+    setLoadState('loading')
+    void loadPlaces().then(
+      (p) => {
+        if (cancelled) return
+        setPlaces(p)
+        setLoadState('ready')
+      },
+      () => {
+        if (!cancelled) setLoadState('error')
+      }
+    )
     return () => {
       cancelled = true
     }
-  }, [wanted, places])
+  }, [wanted, places, retry])
 
   const hits = useMemo(() => (places ? searchPlaces(query, places) : []), [query, places])
 
@@ -57,6 +71,7 @@ export function PlaceSearch({
   // would be an empty box sitting open over the map for the whole first
   // keystroke. Closed is the truthful state there.
   const open = focused && query.trim().length >= 2
+  const hereIsShipped = ZONE_INDEX.some((zone) => zone.id === here)
 
   // Arrowing past the bottom of a scrolling list has to bring the row with it,
   // or the keyboard path silently stops matching what is on screen.
@@ -126,7 +141,11 @@ export function PlaceSearch({
           spellCheck={false}
           autoComplete="off"
           aria-label="Find a place by name"
-          className="min-w-0 flex-1 bg-transparent py-1 text-xs text-ink outline-none placeholder:text-ink-faint"
+          // The docked map can be very narrow. The zone picker used to be
+          // shrink-0, which left this perfectly real input at exactly 0px:
+          // present to assistive technology, impossible to click. Both
+          // controls now keep a small usable floor and share whatever remains.
+          className="min-w-12 flex-[2_1_8rem] bg-transparent py-1 text-xs text-ink outline-none placeholder:text-ink-faint"
         />
         {query && (
           <button
@@ -145,6 +164,26 @@ export function PlaceSearch({
             <X className="h-3 w-3" />
           </button>
         )}
+        {onZone && (
+          <>
+            <span className="h-4 w-px shrink-0 bg-border" aria-hidden="true" />
+            <select
+              value={here ?? ''}
+              onChange={(e) => onZone(e.target.value)}
+              aria-label="Browse any map zone"
+              title="Browse any map zone"
+              className="min-w-12 max-w-40 flex-[1_1_7rem] bg-surface py-1 text-xs text-ink-muted outline-none"
+            >
+              {!here && <option value="">All zones</option>}
+              {here && !hereIsShipped && <option value={here}>Current zone</option>}
+              {ZONE_INDEX.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       {open && (
@@ -155,11 +194,35 @@ export function PlaceSearch({
           className="max-h-40 shrink-0 overflow-auto rounded border border-border bg-surface-raised"
           onMouseDown={(e) => e.preventDefault()}
         >
-          {places === null && (
-            <p className="px-2 py-1 text-xs text-ink-faint">Reading the map.</p>
+          {loadState === 'loading' && (
+            <p className="px-2 py-1 text-xs text-ink-faint" role="status">
+              Reading the map…
+            </p>
           )}
 
-          {places !== null && hits.length === 0 && (
+          {loadState === 'error' && (
+            <div
+              className="flex items-center justify-between gap-2 px-2 py-1 text-xs"
+              role="alert"
+            >
+              <span className="text-warn">Couldn’t load map data.</span>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setLoadState('idle')
+                  setRetry((value) => value + 1)
+                  inputRef.current?.focus()
+                }}
+                className="flex shrink-0 items-center gap-1 rounded border border-warn/40 px-2 py-0.5 text-warn hover:bg-warn/10"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Retry
+              </button>
+            </div>
+          )}
+
+          {loadState === 'ready' && places !== null && hits.length === 0 && (
             <p className="px-2 py-1 text-xs text-ink-faint">
               Nothing by that name, across {places.length.toLocaleString()} places.
             </p>

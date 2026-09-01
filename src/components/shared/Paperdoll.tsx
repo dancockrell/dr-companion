@@ -38,9 +38,9 @@ export type { BodyPart, Injury, Severity } from '../../lib/body'
  * Two more facts get their own mark, distinct from the fill colour that
  * already carries wound severity: a **scar** (history, not now) stamps
  * three short parallel strokes in a part's top-right corner, like
- * stitches; active **bleeding** (`wound >= 2`) stamps a small drop in the
- * bottom-right, opposite the scar so a part carrying both shows both. See
- * `ScarStamp`/`BloodStamp` below.
+ * stitches; **active bleeding** comes from the bridge's separate bleeding
+ * report and stamps a small drop in the bottom-right. Wound severity must
+ * never invent bleeding: a serious wound may already be clotted.
  *
  * A soft silhouette sits behind the parts — a head halo and a torso glow —
  * so the independent shapes read as one body at a glance instead of a
@@ -57,8 +57,8 @@ export type { BodyPart, Injury, Severity } from '../../lib/body'
  * back is the same shapes, on their side. */
 export type Pose = 'standing' | 'sitting' | 'lying'
 
-/** Rounded boxes (and two circles for the head) on a 60x100 grid. Crude on
- * purpose: it reads as a body at 90px tall, not an anatomy chart.
+/** Compact anatomical regions on a 60x84 grid. Limbs are capsules and the
+ * torso is broad enough to read as a person rather than a stack of boxes.
  *
  * `nsys` (nervous system) has no box here — it did, once, as a spine down
  * the torso, and no width short of competing with the chest for attention
@@ -71,18 +71,18 @@ const LAYOUT_STANDING: Record<
   Exclude<BodyPart, 'head' | 'leftEye' | 'rightEye' | 'nsys'>,
   [number, number, number, number]
 > = {
-  neck: [27, 15, 6, 4],
-  chest: [21, 19, 15, 15],
-  back: [17, 19, 3, 27],
-  abdomen: [22, 34, 13, 11],
-  leftArm: [11, 20, 5, 17],
-  rightArm: [38, 20, 6, 17],
-  leftHand: [11, 38, 5, 6],
-  rightHand: [38, 38, 6, 6],
-  leftLeg: [23, 46, 6, 28],
-  rightLeg: [31, 46, 6, 28],
-  leftFoot: [22, 75, 7, 6],
-  rightFoot: [31, 75, 7, 6],
+  neck: [26, 15, 8, 5],
+  chest: [20, 19, 18, 17],
+  back: [16.5, 21, 3, 25],
+  abdomen: [21.5, 36, 15, 11],
+  leftArm: [10.5, 20, 7, 20],
+  rightArm: [39.5, 20, 7, 20],
+  leftHand: [10, 40, 8, 7],
+  rightHand: [39, 40, 8, 7],
+  leftLeg: [21, 47, 8, 26],
+  rightLeg: [31, 47, 8, 26],
+  leftFoot: [18.5, 73, 11, 7],
+  rightFoot: [30.5, 73, 11, 7],
 }
 
 /** Cross-legged: torso, arms and hands stay exactly where standing put
@@ -113,7 +113,8 @@ const EYE_R = 1.5
  * limb and the torso share. */
 function radiusFor(part: keyof typeof LAYOUT_STANDING): number {
   if (part === 'back') return 1.2
-  return 1.8
+  if (/Arm|Hand|Leg|Foot/.test(part)) return 4
+  return 2.5
 }
 
 function tone(wound: Severity) {
@@ -141,9 +142,7 @@ function ScarStamp({ x, y }: { x: number; y: number }) {
 
 /** A wound bleeding now, stamped as a small drop rather than folded into
  * the fill colour — the fill already says how hurt the part is; this says
- * the separate fact that it's actively bleeding, not just injured. Shown
- * from `wound >= 2` ("serious" and up) — the two levels DR's own severity
- * words describe as the kind of injury that bleeds, not just bruises.
+ * the separate fact that the bridge currently reports active blood loss.
  * Anchored to a box's own bottom-right corner, opposite the scar stamp, so
  * a part carrying both at once shows both without overlapping. */
 function BloodStamp({ x, y }: { x: number; y: number }) {
@@ -158,6 +157,7 @@ function BloodStamp({ x, y }: { x: number; y: number }) {
 
 export function Paperdoll({
   injuries,
+  bleeding,
   height = 100,
   /** Absent is not uninjured. Before the first parse this says so. */
   known = true,
@@ -166,6 +166,7 @@ export function Paperdoll({
   pose = 'standing',
 }: {
   injuries: Partial<Record<BodyPart, Injury>>
+  bleeding?: Array<{ part: BodyPart | null; rate: string }>
   height?: number
   known?: boolean
   pose?: Pose
@@ -173,11 +174,20 @@ export function Paperdoll({
   const worst = Math.max(0, ...BODY_PARTS.map((p) => injuries[p]?.wound ?? 0))
   const layout = layoutFor(pose)
 
+  const bleedFor = (part: BodyPart) => bleeding?.find((entry) => entry.part === part)
+  const isActiveBleed = (part: BodyPart) => {
+    const rate = bleedFor(part)?.rate.trim()
+    return Boolean(rate && !/^(?:clotted|tended|none|stopped|not bleeding)$/i.test(rate))
+  }
+
   const injuryOf = (part: BodyPart) => injuries[part] ?? { wound: 0 as Severity, scar: 0 as Severity }
   const titleFor = (part: BodyPart) => {
     const inj = injuryOf(part)
     const pretty = PRETTY[part] ?? part
-    return `${pretty}: ${SEVERITY_LABEL[inj.wound]}` + (inj.scar > 0 ? `, ${SEVERITY_LABEL[inj.scar]} scar` : '')
+    const bleed = bleedFor(part)?.rate
+    return `${pretty}: ${SEVERITY_LABEL[inj.wound]}` +
+      (inj.scar > 0 ? `, ${SEVERITY_LABEL[inj.scar]} scar` : '') +
+      (bleed ? `, bleeding: ${bleed}` : '')
   }
 
   return (
@@ -194,7 +204,7 @@ export function Paperdoll({
       // narrower doll at the same `height`, not a doll cropped at the
       // edges. `height` still sets the actual pixel height the caller
       // asked for.
-      viewBox="3 0 54 84"
+      viewBox="5 0 50 82"
       style={{ height }}
       className={cn('shrink-0', !known && 'opacity-40')}
       role="img"
@@ -212,9 +222,9 @@ export function Paperdoll({
       <g transform={pose === 'lying' ? 'rotate(90 30 42)' : undefined}>
       {/* A crisp anatomical outline binds the independently coloured injury
           regions into one body. It carries no state of its own. */}
-      <g aria-hidden fill="none" stroke="var(--color-ink-faint)" strokeWidth={0.65} opacity={0.45}>
+      <g aria-hidden fill="var(--color-surface-overlay)" fillOpacity={0.34} stroke="var(--color-ink-faint)" strokeWidth={0.65} opacity={0.7}>
         <circle cx={HEAD.cx} cy={HEAD.cy} r={HEAD.r + 1.5} />
-        <path d="M22 18 Q30 14 38 18 L42 43 Q37 47 36 50 L38 81 M18 43 Q23 47 24 50 L22 81 M18 20 L10 45 M42 20 L46 45" />
+        <path d="M24 17 Q30 14 36 17 Q42 19 44 25 L48 43 Q48 47 44 48 Q40 48 39 43 L37 47 L40 78 Q40 81 36 81 Q32 81 30 75 Q28 81 24 81 Q20 81 20 77 L23 47 L20 42 Q19 48 15 48 Q11 48 11 44 L16 24 Q18 19 24 17 Z" />
       </g>
 
       {/* The head, drawn separately from the rest of LAYOUT because it is a
@@ -232,7 +242,7 @@ export function Paperdoll({
           strokeWidth={injuryOf('head').wound >= 2 ? 1 : 0.4}
         />
         {injuryOf('head').scar > 0 && <ScarStamp x={HEAD.cx + HEAD.r - 4.5} y={HEAD.cy - HEAD.r + 0.5} />}
-        {injuryOf('head').wound >= 2 && <BloodStamp x={HEAD.cx} y={HEAD.cy + HEAD.r - 0.5} />}
+        {isActiveBleed('head') && <BloodStamp x={HEAD.cx} y={HEAD.cy + HEAD.r - 0.5} />}
       </g>
 
       {/* Eyes — always present, bigger and better separated from the skull
@@ -261,12 +271,11 @@ export function Paperdoll({
       {(Object.keys(layout) as Array<keyof typeof LAYOUT_STANDING>).map((part) => {
         const inj = injuryOf(part)
         const t = tone(inj.wound)
-        const pretty = PRETTY[part] ?? part
         const [x, y, w, h] = layout[part]
         const rx = radiusFor(part)
         return (
           <g key={part}>
-            <title>{`${pretty}: ${SEVERITY_LABEL[inj.wound]}${inj.scar > 0 ? `, ${SEVERITY_LABEL[inj.scar]} scar` : ''}`}</title>
+            <title>{titleFor(part)}</title>
             <rect
               x={x}
               y={y}
@@ -284,7 +293,7 @@ export function Paperdoll({
                 now", and a part can be both scarred and freshly bleeding
                 at once, which is exactly why each gets its own corner. */}
             {inj.scar > 0 && <ScarStamp x={x + w - 4.2} y={y + 0.6} />}
-            {inj.wound >= 2 && <BloodStamp x={x + w - 1.6} y={y + h - 1.4} />}
+            {isActiveBleed(part) && <BloodStamp x={x + w - 1.6} y={y + h - 1.4} />}
           </g>
         )
       })}

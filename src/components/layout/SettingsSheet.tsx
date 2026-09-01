@@ -19,7 +19,7 @@ import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
 import { loadPrefs } from '../../lib/persistence'
-import { useDismiss } from '../../lib/useDismiss'
+import { useModalDialog } from '../../lib/useModalDialog'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -51,19 +51,25 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // it and does not report it back; the select would otherwise sit on its
   // default while the app showed somebody else.
   const [demoPreset, setDemoPreset] = useState(() => loadPrefs().demoPreset ?? 'basic_prime')
-  useDismiss(onClose)
+  const dialogRef = useModalDialog(onClose)
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-3"
+      data-gameplay-shortcuts="suspend"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        tabIndex={-1}
         className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold text-ink">Settings</h2>
+          <h2 id="settings-title" className="text-sm font-semibold text-ink">Settings</h2>
           <button
             type="button"
             className="p-1 rounded-md text-ink-faint hover:text-ink"

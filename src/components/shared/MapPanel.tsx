@@ -16,7 +16,7 @@
  * this file's original design, where a route was previewed and moving stayed
  * a separate decision - see the comment on `goThere` below.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Map as MapIcon,
   RefreshCw,
@@ -38,16 +38,16 @@ import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
 import { useZoneBrowsing } from '../../lib/useZoneBrowsing'
-import { MapPinBar } from './MapPinBar'
-import { QuickTravel } from './QuickTravel'
-import { PinPalette } from './PinPalette'
+import { ZoneLoadNotice } from './ZoneLoadNotice'
+import type { PinBrush } from './PinPalette'
+import { MapToolRail } from './MapToolRail'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
-import { exportPinsToFile, importPinsFromFile } from '../../lib/pinsFile'
+import { exportPinsToFile, readPinsImportPreview, type PinImportPreview } from '../../lib/pinsFile'
+import { PinImportDialog } from './PinImportDialog'
 import { loadPlayerMarker, savePlayerMarker } from '../../lib/playerMarker'
 import { PlayerMarkerEditor } from './PlayerMarkerEditor'
-import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../../lib/scriptFiles'
@@ -59,8 +59,18 @@ import { listScripts, writeScript } from '../../lib/scriptFiles'
  */
 export function MapPanel({ plane = false }: { plane?: boolean }) {
   const liveZone = useAppStore((s) => s.mapZone)
-  const { zone, browsing, zoneStack, pushZone, popZone, resetZone, goToPlace } =
-    useZoneBrowsing(liveZone)
+  const {
+    zone,
+    browsing,
+    zoneStack,
+    zoneLoading,
+    zoneLoadError,
+    retryZone,
+    pushZone,
+    popZone,
+    resetZone,
+    goToPlace,
+  } = useZoneBrowsing(liveZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
@@ -168,22 +178,22 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    * transform avoids the old discontinuity where crossing 1x swapped between
    * two differently sized SVGs and made cursor-anchored zoom jump.
    */
+  const onMapZoomChange = useCallback((z: number) => setMapDock({ zoom: z }), [])
   const viewport = useMapViewport({
     zoom: dock.zoom,
-    onZoomChange: (z) => setMapDock({ zoom: z }),
+    onZoomChange: onMapZoomChange,
     min: ZOOM_MIN,
     max: ZOOM_MAX,
   })
-  const { containerRef, contentRef, x: panX, y: panY, dragging, handlers, zoomBy, resetPan } = viewport
+  const { containerRef, contentRef, x: panX, y: panY, dragging, handlers, zoomBy, fitView } = viewport
 
   // A room update must update the view, not only the red "here" marker in an
   // off-screen part of a previously panned map. Return the docked map to fit
   // when live location changes; deliberate browsing keeps its own view.
   useEffect(() => {
     if (browsing) return
-    resetPan()
-    setMapDock({ zoom: 1 })
-  }, [browsing, hereId, level, resetPan, zone?.zone])
+    fitView()
+  }, [browsing, fitView, hereId, level, zone?.zone])
 
   const character = useAppStore((s) => s.character)
   const addLog = useAppStore((s) => s.addLog)
@@ -196,6 +206,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    */
   const [markerVersion, setMarkerVersion] = useState(0)
   const [editingMarker, setEditingMarker] = useState(false)
+  const [pinImport, setPinImport] = useState<PinImportPreview | null>(null)
   const playerMarker = useMemo(
     () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
     [character, markerVersion]
@@ -213,6 +224,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    * otherwise touch anything React tracks as having changed.
    */
   const [pinVersion, setPinVersion] = useState(0)
+  const [pinBrush, setPinBrush] = useState<PinBrush | null>(null)
   const { pins, pinsByRoom } = useMemo(() => {
     const list = character ? loadPins(character.name, character.instance) : []
     return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
@@ -315,15 +327,16 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
   async function doImportPins() {
     try {
-      const { imported, skipped, note } = await importPinsFromFile()
+      const { preview, note, error } = await readPinsImportPreview()
       if (note) {
         addLog(note, 'warn')
         return
       }
-      addLog(
-        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
-      )
-      setPinVersion((v) => v + 1)
+      if (error) {
+        addLog(error, 'error')
+        return
+      }
+      if (preview) setPinImport(preview)
     } catch (e) {
       addLog(String(e), 'error')
     }
@@ -390,10 +403,18 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   if (!zone) {
     return (
       <Shell plane={plane} onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
-        <p className="text-xs text-ink-faint leading-relaxed">
-          Nothing asked for yet. Press refresh, or move a room and it will
-          arrive on its own.
-        </p>
+        <ZoneLoadNotice
+          loading={zoneLoading}
+          error={zoneLoadError}
+          onRetry={retryZone}
+          hasMap={false}
+        />
+        {!zoneLoading && !zoneLoadError && (
+          <p className="text-xs text-ink-faint leading-relaxed">
+            Nothing asked for yet. Press refresh, or move a room and it will
+            arrive on its own.
+          </p>
+        )}
       </Shell>
     )
   }
@@ -429,6 +450,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       onPopOut={isTauri() ? popOut : undefined}
       onExportPins={isTauri() && character ? doExportPins : undefined}
       onImportPins={isTauri() && character ? doImportPins : undefined}
+      search={<PlaceSearch here={zone.zone} onPick={goToPlace} onZone={pushZone} />}
       right={
         <div className="flex items-center gap-2">
           {/* Levels and zoom, in the header itself rather than a row of
@@ -477,10 +499,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
                 type="button"
                 className="min-w-8 rounded px-1 text-xs tabular-nums text-ink-faint hover:text-ink"
                 title="Back to the whole zone"
-                onClick={() => {
-                  setMapDock({ zoom: 1 })
-                  resetPan()
-                }}
+                onClick={() => fitView()}
               >
                 {dock.zoom === 1 ? 'fit' : `${dock.zoom.toFixed(1)}x`}
               </button>
@@ -513,51 +532,20 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         </div>
       }
     >
-      {/* Above the map rather than beside the title, because the answer it
-          gives is a place on the map and the two want to be read together.
-          It costs one row and gives back the thing the map could not do. */}
-      <PlaceSearch here={zone.zone} onPick={goToPlace} />
+      <ZoneLoadNotice loading={zoneLoading} error={zoneLoadError} onRetry={retryZone} />
 
-      {/* Pinned places and nearest-tag search, sharing one flex-wrap row
-          instead of two. Both are the same shape - a row of small pill
-          buttons - and neither reliably fills a row on its own (a fresh
-          character has one "Pin here" button; QuickTravel is four category
-          chips until you press one), so stacking them was two mostly-empty
-          rows costing 30px+ together. flex-wrap still drops MapPinBar's
-          pins to a second line once QuickTravel's answers actually arrive,
-          which is the one case that legitimately needs it. */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <MapPinBar
-          pins={pins}
-          onGo={(pin) => goThere(pin.roomId)}
-          onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-        />
-        <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
-        {character && playerMarker && (
-          <button
-            type="button"
-            onClick={() => setEditingMarker(true)}
-            title="Customize your mark on the map"
-            aria-label="Customize your mark on the map"
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border hover:border-accent/60"
-          >
-            <span
-              className="flex h-4 w-4 items-center justify-center rounded-full"
-              style={{ background: playerMarker.color }}
-            >
-              {(() => {
-                const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
-                return <Icon className="h-2.5 w-2.5" color="var(--map-ground)" strokeWidth={3} />
-              })()}
-            </span>
-          </button>
-        )}
-      </div>
-
-      {/* Every preset pin type, drag-and-drop onto a room - see PinPalette's
-          own header for why this can't just be more QuickTravel buttons. */}
-      <PinPalette />
+      <MapToolRail
+        marker={character ? playerMarker : undefined}
+        onCustomizeMarker={character && playerMarker ? () => setEditingMarker(true) : undefined}
+        pins={pins}
+        onGoPin={(pin) => goThere(pin.roomId)}
+        onEditPin={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+        onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+        onWalk={goThere}
+        onPinNearest={(hit) => pinRoom(hit.id, hit.title)}
+        selected={pinBrush}
+        onSelect={setPinBrush}
+      />
 
       {showNudge && hereId != null && (
         <RoomNudge
@@ -656,7 +644,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             level={z}
             onRoute={onRoute}
             fit
-            onPick={goThere}
+            onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
             onZone={pushZone}
             trail={trail}
             pins={pinsByRoom}
@@ -743,6 +731,14 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           }}
         />
       )}
+      {pinImport && (
+        <PinImportDialog
+          preview={pinImport}
+          onClose={() => setPinImport(null)}
+          onChanged={() => setPinVersion((v) => v + 1)}
+          onResult={addLog}
+        />
+      )}
     </>
   )
 }
@@ -754,6 +750,7 @@ function Shell({
   onPopOut,
   onExportPins,
   onImportPins,
+  search,
   right,
   plane = false,
 }: {
@@ -765,6 +762,8 @@ function Shell({
   onExportPins?: () => void
   /** Read that same file back in, merging it into this browser's own pins. */
   onImportPins?: () => void
+  /** Search belongs to the map heading and shares that line until its result list opens. */
+  search?: React.ReactNode
   right?: React.ReactNode
   plane?: boolean
 }) {
@@ -791,7 +790,7 @@ function Shell({
         plane ? 'flex flex-col h-full min-h-0' : ''
       }`}
     >
-      <header className="flex items-center justify-between gap-2">
+      <header className="flex min-w-0 items-start gap-2">
         <h3 className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider min-w-0">
           <MapIcon className="w-3.5 h-3.5 shrink-0" />
           {/* Zone first, and it keeps the room. The shrink factors are the
@@ -832,7 +831,8 @@ function Shell({
             </>
           )}
         </h3>
-        <div className="flex items-center gap-2 shrink-0">
+        {search && <div className="min-w-[10rem] flex-1">{search}</div>}
+        <div className="flex shrink-0 items-center gap-2 pt-0.5">
           {right}
           {onPopOut && (
             <button

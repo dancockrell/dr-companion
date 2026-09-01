@@ -86,6 +86,10 @@ export interface MapViewport {
   /** Recenter the content point (px, py) — in the same unscaled pixel space
    *  the content is drawn in — in the middle of the container. */
   centerOn: (px: number, py: number) => void
+  /** Restore the whole-map view in one state transition. Unlike calling the
+   * controlled zoom setter and resetPan separately, this always bounds the
+   * pan against the target zoom, even during HMR or a rapid resize. */
+  fitView: (targetZoom?: number) => void
   /** Pan back to the origin without changing zoom. */
   resetPan: () => void
 }
@@ -283,6 +287,23 @@ export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOpti
     }))
   }, [bounded])
 
+  const fitView = useCallback((targetZoom = 1) => {
+    const nextZoom = clampZoom(targetZoom)
+    const nextPan = bounded({ x: 0, y: 0 }, nextZoom)
+
+    // Keep the imperative drag refs, React state, rendered transform, and the
+    // caller's persisted zoom in agreement before the browser gets another
+    // frame. A split setMapDock/resetPan update can otherwise briefly clamp
+    // against the previous zoom and leave a freshly redrawn map off-canvas.
+    zoomRef.current = nextZoom
+    panRef.current = nextPan
+    if (contentRef.current) {
+      contentRef.current.style.transform = `translate3d(${nextPan.x}px, ${nextPan.y}px, 0) scale(${nextZoom})`
+    }
+    setPan(nextPan)
+    onZoomChange(nextZoom)
+  }, [bounded, clampZoom, onZoomChange])
+
   const resetPan = useCallback(() => setPan(bounded({ x: 0, y: 0 })), [bounded])
 
   return {
@@ -295,6 +316,7 @@ export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOpti
     handlers: { onWheel, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClickCapture },
     zoomBy,
     centerOn,
+    fitView,
     resetPan,
   }
 }

@@ -33,23 +33,30 @@
  * says how to fill one instead.
  */
 import { useEffect, useState } from 'react'
-import { Play, Terminal, type LucideIcon } from 'lucide-react'
+import { Play, Terminal, X, type LucideIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { pythonStatus, type TaskInfo } from '../../lib/pythonTasks'
 import { requestStartFlow, requestStopAll } from '../../lib/flowStop'
 import { KEYBOARD_SLOTS } from '../../lib/quickSwitch'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
 import { cn } from '../../lib/cn'
+import { MACROS } from '../../data/macros'
+import { actionAccent, actionIcon } from '../../lib/battleActionVisuals'
+import { useMacroRunner } from '../../lib/useMacroRunner'
+import type { CSSProperties } from 'react'
+import type { QuickSwitchPin } from '../../lib/quickSwitch'
 
 /** What the bar actually needs to draw one slot, task or script alike. */
 interface SlotView {
   key: string
+  pin: QuickSwitchPin
   Icon: LucideIcon
   title: string
   summary: string
   active: boolean
   onClick: () => void
   footer: (keyed: boolean, i: number) => string
+  style?: CSSProperties
 }
 
 export function QuickSwitchBar() {
@@ -58,6 +65,8 @@ export function QuickSwitchBar() {
   const scriptStates = useAppStore((s) => s.scriptStates)
   const startScript = useAppStore((s) => s.startScript)
   const character = useAppStore((s) => s.character)
+  const togglePin = useAppStore((s) => s.toggleQuickSwitchPin)
+  const macro = useMacroRunner()
 
   // Fetched once, not on every render: unlike the old flow list (a handful
   // of localStorage reads), this is a Tauri invoke into a Python process.
@@ -81,11 +90,31 @@ export function QuickSwitchBar() {
   )
 
   const slots: SlotView[] = pins.map((pin): SlotView => {
+    if (pin.kind === 'command') {
+      const [macroId, variationId] = pin.actionKey.split(':')
+      const definition = MACROS.find((item) => item.id === macroId)
+      const variation = definition?.variations.find((item) => item.id === variationId)
+      return {
+        key: `command:${pin.actionKey}`,
+        pin,
+        Icon: actionIcon(pin.actionKey),
+        title: variation?.label ?? pin.actionKey,
+        summary: variation
+          ? `${variation.note ?? definition?.label ?? 'Game command'} Runs: ${variation.commands.join(' ; ')}`
+          : 'This command is no longer in the library. Remove it from the hotbar.',
+        active: false,
+        onClick: () => variation && macro.run(variation.commands),
+        footer: (keyed, i) =>
+          !variation ? 'Unavailable' : !macro.canSend ? (macro.reason ?? 'Unavailable') : keyed ? `Key ${i + 1}, or click` : 'Click to run',
+        style: actionAccent(pin.actionKey),
+      }
+    }
     if (pin.kind === 'task') {
       const task = tasks.find((t) => t.id === pin.id)
       const active = activeFlow === pin.id
       return {
         key: `task:${pin.id}`,
+        pin,
         Icon: Play,
         title: task?.title ?? pin.id,
         summary:
@@ -104,6 +133,7 @@ export function QuickSwitchBar() {
     const active = runningScripts.has(pin.name.toLowerCase())
     return {
       key: `script:${pin.name}`,
+      pin,
       Icon: Terminal,
       title: pin.name,
       summary: entry.description ?? 'Raw Lich script.',
@@ -120,8 +150,8 @@ export function QuickSwitchBar() {
     return (
       <div className="flex shrink-0 items-center gap-1.5 border-t border-border bg-surface px-3 py-1 text-xs text-ink-faint">
         <span>
-          Quick Switch is empty — pin a task or a script (the star on each
-          one) to jump between activities with a click or the number keys.
+          Hotbar is empty — use the star on any command, task, or script in
+          Functions &amp; scripts. Click here or use number keys 1–9 once pinned.
         </span>
       </div>
     )
@@ -142,13 +172,18 @@ export function QuickSwitchBar() {
             <button
               type="button"
               onClick={slot.onClick}
+              disabled={slot.pin.kind === 'command' && !macro.canSend}
               aria-label={`${slot.title}${slot.active ? ', running' : ''}`}
               className={cn(
                 'relative flex h-10 w-10 items-center justify-center rounded-lg border transition-colors',
-                slot.active
+                slot.style
+                  ? 'hover:brightness-125'
+                  : slot.active
                   ? 'border-accent bg-accent/15 text-accent'
-                  : 'border-border bg-surface-raised text-ink-muted hover:border-ink-faint hover:text-ink'
+                  : 'border-border bg-surface-raised text-ink-muted hover:border-ink-faint hover:text-ink',
+                'disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0'
               )}
+              style={slot.style}
             >
               <Icon className="h-5 w-5" />
               {keyed && (
@@ -164,6 +199,19 @@ export function QuickSwitchBar() {
               {slot.active && (
                 <span className="absolute -bottom-1 -right-1 h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                togglePin(slot.pin)
+              }}
+              title={`Remove ${slot.title} from the hotbar`}
+              aria-label={`Remove ${slot.title} from the hotbar`}
+              className="absolute -right-1 -top-1 z-10 grid h-4 w-4 place-items-center rounded-full border border-border bg-surface-overlay text-ink-faint opacity-0 shadow transition group-hover:opacity-100 group-focus-within:opacity-100 hover:border-danger/60 hover:text-danger"
+            >
+              <X className="h-2.5 w-2.5" aria-hidden />
             </button>
 
             {/* The tooltip. An ability's full text: what it is, what it does

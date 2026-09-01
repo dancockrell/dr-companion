@@ -22,6 +22,11 @@ import { gameState, sendGame, subscribeGame } from '../../lib/gameLink'
 import { useAliases } from '../../lib/useAliases'
 import { expandAlias } from '../../lib/aliases'
 import { cn } from '../../lib/cn'
+import {
+  freshCommandHistoryCursor,
+  historyNext,
+  historyPrevious,
+} from '../../lib/commandHistory'
 
 export function GameCommandBar({
   query,
@@ -42,7 +47,11 @@ export function GameCommandBar({
    * does not shift where the reader is. -1 means "not browsing".
    */
   const [history, setHistory] = useState<string[]>([])
-  const [historyAt, setHistoryAt] = useState(-1)
+  const [historyCursor, setHistoryCursor] = useState(freshCommandHistoryCursor)
+
+  /** A failed handoff is local to this line, so report it beside this line. */
+  const [sendError, setSendError] = useState('')
+  const [sending, setSending] = useState(false)
 
   /** What the last typed line expanded to, or empty. Cleared by the next send. */
   const [expansion, setExpansion] = useState('')
@@ -62,9 +71,11 @@ export function GameCommandBar({
     setQuery('')
   }
 
-  const send = () => {
-    const text = command.trim()
+  const send = async () => {
+    const typed = command
+    const text = typed.trim()
     if (!text) return
+    if (sending) return
 
     /**
      * Aliases expand here, at the one place a typed line becomes a game
@@ -90,46 +101,54 @@ export function GameCommandBar({
           : ''
     )
 
-    void sendGame(outgoing).catch(() => {
-      /* The link reports its own failure; a toast here would be a second one. */
-    })
+    setSendError('')
+    setSending(true)
+    try {
+      // A line disappearing is the player's receipt that native accepted it,
+      // not merely that React began asking. The connected check improves the
+      // known-detached case; rejection still handles a mid-send socket loss.
+      if (!link.connected) throw new Error('Not attached to a game')
+      await sendGame(outgoing)
+    } catch (error) {
+      const detail = error instanceof Error && error.message ? error.message : String(error)
+      setSendError(`Not sent — ${detail || 'the game connection refused it'}. Your command is still here.`)
+      inputRef.current?.focus()
+      return
+    } finally {
+      setSending(false)
+    }
     // History keeps what was typed, not what was sent. Up-arrow is for
     // retyping your own line, and handing back the expansion would make the
     // alias unrecoverable after one press.
     setHistory((h) => (h[h.length - 1] === text ? h : [...h, text].slice(-500)))
-    setHistoryAt(-1)
-    setCommand('')
+    setHistoryCursor(freshCommandHistoryCursor())
+    // Do not erase text typed while the native handoff was in flight.
+    setCommand((current) => (current === typed ? '' : current))
   }
 
   const onCommandKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      send()
+      void send()
       return
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault()
       if (!history.length) return
-      const next = historyAt < 0 ? history.length - 1 : Math.max(0, historyAt - 1)
-      setHistoryAt(next)
-      setCommand(history[next])
+      const next = historyPrevious(history, historyCursor, command)
+      setHistoryCursor({ at: next.at, draft: next.draft })
+      setCommand(next.command)
       return
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      if (historyAt < 0) return
-      const next = historyAt + 1
-      if (next >= history.length) {
-        setHistoryAt(-1)
-        setCommand('')
-      } else {
-        setHistoryAt(next)
-        setCommand(history[next])
-      }
+      const next = historyNext(history, historyCursor, command)
+      setHistoryCursor({ at: next.at, draft: next.draft })
+      setCommand(next.command)
     }
   }
 
   return (
-    <div className="flex shrink-0 flex-col rounded border border-border bg-surface-raised">
+    <div className="flex shrink-0 flex-col rounded border border-border bg-surface-raised" data-gameplay-shortcuts={searchOpen ? 'suspend' : undefined}>
       {/* What the last line actually became, when an alias changed it.
           Directly above the input, because that is where the player is
           looking, and it is the only way to tell a wrong alias from the game
@@ -142,20 +161,36 @@ export function GameCommandBar({
           {expansion}
         </div>
       )}
+      {sendError && !searchOpen && (
+        <div
+          className="shrink-0 border-b border-danger/30 bg-danger/10 px-2 py-1 text-xs text-danger"
+          role="alert"
+        >
+          {sendError}
+        </div>
+      )}
       <div className="flex shrink-0 items-center gap-1 p-1.5">
         {/* One box, two modes - see this file's header. Never both a command
             field and a search field at once, so there is only ever one
             answer to "what does Enter do right now." */}
         <input
-          ref={searchOpen ? inputRef : undefined}
+          ref={inputRef}
           type={searchOpen ? 'search' : 'text'}
           value={searchOpen ? query : command}
-          onChange={(e) => (searchOpen ? setQuery(e.target.value) : setCommand(e.target.value))}
+          onChange={(e) => {
+            if (searchOpen) return setQuery(e.target.value)
+            setCommand(e.target.value)
+            setSendError('')
+            // Editing a recalled line turns it into the new draft. Stored
+            // history stays immutable until a successful send.
+            if (historyCursor.at >= 0) setHistoryCursor(freshCommandHistoryCursor())
+          }}
           onKeyDown={
             searchOpen
               ? (e) => {
                   if (e.key === 'Escape') {
                     e.preventDefault()
+                    e.stopPropagation()
                     closeSearch()
                   }
                 }
@@ -196,9 +231,17 @@ export function GameCommandBar({
         <button
           type="button"
           onClick={send}
-          disabled={searchOpen}
+          disabled={searchOpen || sending || !link.connected}
           className="shrink-0 rounded border border-border p-1.5 text-ink-faint hover:text-ink disabled:opacity-30"
-          title={searchOpen ? 'Close search to send a command' : 'Send'}
+          title={
+            searchOpen
+              ? 'Close search to send a command'
+              : !link.connected
+                ? 'Connect to the game to send; your draft will stay here'
+                : sending
+                  ? 'Sending…'
+                  : 'Send'
+          }
           aria-label={searchOpen ? 'Close search to send a command' : 'Send'}
         >
           <Send className="h-3.5 w-3.5" />

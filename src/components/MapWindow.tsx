@@ -17,18 +17,18 @@ import { useAppStore } from '../store/useAppStore'
 import { bridge } from '../bridge'
 import { roomKind } from '../lib/mapData'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
-import { MapPinBar } from './shared/MapPinBar'
-import { QuickTravel } from './shared/QuickTravel'
-import { PinPalette } from './shared/PinPalette'
+import type { PinBrush } from './shared/PinPalette'
+import { MapToolRail } from './shared/MapToolRail'
 import { PinEditor } from './shared/PinEditor'
 import { RoomNudge } from './shared/RoomNudge'
 import { PlaceSearch } from './shared/PlaceSearch'
 import { useZoneBrowsing } from '../lib/useZoneBrowsing'
+import { ZoneLoadNotice } from './shared/ZoneLoadNotice'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
-import { exportPinsToFile, importPinsFromFile } from '../lib/pinsFile'
+import { exportPinsToFile, readPinsImportPreview, type PinImportPreview } from '../lib/pinsFile'
 import { loadPlayerMarker, savePlayerMarker } from '../lib/playerMarker'
 import { PlayerMarkerEditor } from './shared/PlayerMarkerEditor'
-import { PIN_ICON_COMPONENT } from '../lib/pinIcons'
+import { PinImportDialog } from './shared/PinImportDialog'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../lib/scriptFiles'
@@ -38,8 +38,18 @@ import { useMapViewport } from '../lib/useMapViewport'
 
 export function MapWindow() {
   const liveZone = useAppStore((s) => s.mapZone)
-  const { zone, browsing, zoneStack, pushZone, popZone, resetZone, goToPlace } =
-    useZoneBrowsing(liveZone)
+  const {
+    zone,
+    browsing,
+    zoneStack,
+    zoneLoading,
+    zoneLoadError,
+    retryZone,
+    pushZone,
+    popZone,
+    resetZone,
+    goToPlace,
+  } = useZoneBrowsing(liveZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const connectBridge = useAppStore((s) => s.connectBridge)
@@ -108,6 +118,7 @@ export function MapWindow() {
   /** The character's own mark on the map - see playerMarker.ts and MapPanel.tsx's matching state. */
   const [markerVersion, setMarkerVersion] = useState(0)
   const [editingMarker, setEditingMarker] = useState(false)
+  const [pinImport, setPinImport] = useState<PinImportPreview | null>(null)
   const playerMarker = useMemo(
     () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
     [character, markerVersion]
@@ -124,6 +135,7 @@ export function MapWindow() {
   // Read straight from storage during render; pinVersion exists only to
   // force a re-read after a write this window made itself.
   const [pinVersion, setPinVersion] = useState(0)
+  const [pinBrush, setPinBrush] = useState<PinBrush | null>(null)
   const { pins, pinsByRoom } = useMemo(() => {
     const list = character ? loadPins(character.name, character.instance) : []
     return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
@@ -201,15 +213,16 @@ export function MapWindow() {
   }
   async function doImportPins() {
     try {
-      const { imported, skipped, note } = await importPinsFromFile()
+      const { preview, note, error } = await readPinsImportPreview()
       if (note) {
         addLog(note, 'warn')
         return
       }
-      addLog(
-        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
-      )
-      setPinVersion((v) => v + 1)
+      if (error) {
+        addLog(error, 'error')
+        return
+      }
+      if (preview) setPinImport(preview)
     } catch (e) {
       addLog(String(e), 'error')
     }
@@ -373,7 +386,14 @@ export function MapWindow() {
             both. Same component, same onZone wiring MapPanel.tsx uses -
             useZoneBrowsing is the shared piece that makes both surfaces
             capable of the same trip planning. */}
-        <PlaceSearch here={zone?.zone} onPick={goToPlace} />
+        <PlaceSearch here={zone?.zone} onPick={goToPlace} onZone={pushZone} />
+
+        <ZoneLoadNotice
+          loading={zoneLoading}
+          error={zoneLoadError}
+          onRetry={retryZone}
+          hasMap={!!zone?.ok}
+        />
 
         {browsing && (
           <div className="flex items-center gap-1 text-xs">
@@ -398,50 +418,27 @@ export function MapWindow() {
           </div>
         )}
 
-        {(pins.length > 0 || hereId != null) && (
-          <>
-            {/* One shared flex-wrap row, not two - see MapPinBar.tsx's note. */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <MapPinBar
-                pins={pins}
-                onGo={(pin) => goThere(pin.roomId)}
-                onEdit={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
-                onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
-              />
-              <QuickTravel onWalk={goThere} onPin={(hit) => pinRoom(hit.id, hit.title)} />
-              {character && playerMarker && (
-                <button
-                  type="button"
-                  onClick={() => setEditingMarker(true)}
-                  title="Customize your mark on the map"
-                  aria-label="Customize your mark on the map"
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border hover:border-accent/60"
-                >
-                  <span
-                    className="flex h-4 w-4 items-center justify-center rounded-full"
-                    style={{ background: playerMarker.color }}
-                  >
-                    {(() => {
-                      const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
-                      return <Icon className="h-2.5 w-2.5" color="var(--map-ground)" strokeWidth={3} />
-                    })()}
-                  </span>
-                </button>
-              )}
-            </div>
-            {/* Every preset pin type, drag-and-drop onto a room - see PinPalette.tsx's own header. */}
-            <PinPalette />
-            {showNudge && hereId != null && (
-              <RoomNudge
-                visits={hereVisits as number}
-                onPin={() => pinRoom(hereId)}
-                onDismiss={() => {
-                  if (character) dismissNudge(character.name, character.instance, hereId)
-                  setPinVersion((v) => v + 1)
-                }}
-              />
-            )}
-          </>
+        <MapToolRail
+          marker={character ? playerMarker : undefined}
+          onCustomizeMarker={character && playerMarker ? () => setEditingMarker(true) : undefined}
+          pins={pins}
+          onGoPin={(pin) => goThere(pin.roomId)}
+          onEditPin={(pin) => setEditingRoom({ id: pin.roomId, title: pin.label, existing: pin })}
+          onAddHere={hereId != null ? () => pinRoom(hereId) : undefined}
+          onWalk={goThere}
+          onPinNearest={(hit) => pinRoom(hit.id, hit.title)}
+          selected={pinBrush}
+          onSelect={setPinBrush}
+        />
+        {showNudge && hereId != null && (
+          <RoomNudge
+            visits={hereVisits as number}
+            onPin={() => pinRoom(hereId)}
+            onDismiss={() => {
+              if (character) dismissNudge(character.name, character.instance, hereId)
+              setPinVersion((v) => v + 1)
+            }}
+          />
         )}
       </div>
 
@@ -474,7 +471,7 @@ export function MapWindow() {
               level={z}
               onRoute={onRoute}
               labels={labels}
-              onPick={goThere}
+              onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
               onZone={pushZone}
               trail={trail}
               onHereAt={onHereAt}
@@ -533,6 +530,14 @@ export function MapWindow() {
             setMarkerVersion((v) => v + 1)
             setEditingMarker(false)
           }}
+        />
+      )}
+      {pinImport && (
+        <PinImportDialog
+          preview={pinImport}
+          onClose={() => setPinImport(null)}
+          onChanged={() => setPinVersion((v) => v + 1)}
+          onResult={addLog}
         />
       )}
     </>

@@ -10,6 +10,8 @@ writeFileSync(out, ts.transpileModule(readFileSync('src/lib/useMapViewport.ts', 
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
 }).outputText)
 const { clampMapPan } = await import(`${pathToFileURL(out).href}?v=${Date.now()}`)
+const hookSource = readFileSync('src/lib/useMapViewport.ts', 'utf8')
+const panelSource = readFileSync('src/components/shared/MapPanel.tsx', 'utf8')
 
 let failures = 0
 const check = (label, actual, expected) => {
@@ -26,6 +28,9 @@ check('a zoomed map stops at its near edges', clampMapPan({ x: 300, y: 200 }, vi
 check('a zoomed map can pan inside its bounds', clampMapPan({ x: -300, y: -220 }, viewport, fitted, 2), { x: -300, y: -220 })
 check('a zoomed-out map stays centered', clampMapPan({ x: -400, y: 200 }, viewport, fitted, 0.5), { x: 225, y: 150 })
 check('a naturally small map stays centered', clampMapPan({ x: 0, y: 0 }, viewport, { width: 300, height: 200 }, 1), { x: 300, y: 200 })
+check('fit is an atomic viewport operation', /const fitView = useCallback/.test(hookSource) && /bounded\(\{ x: 0, y: 0 \}, nextZoom\)/.test(hookSource), true)
+check('the docked fit button uses the atomic viewport operation', /onClick=\{\(\) => fitView\(\)\}/.test(panelSource), true)
+check('room changes have one reset path, not duplicate effects', (panelSource.match(/A room update must update the view/g) || []).length, 1)
 
 if (failures) process.exit(1)
 console.log('\nall map viewport checks passed')

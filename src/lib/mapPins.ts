@@ -489,13 +489,19 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
 
   // Services and training
   { label: 'Healer', icon: 'heart-pulse', color: 'green' },
+  { label: 'Hospital', icon: 'hospital', color: 'green' },
   { label: 'Guild', icon: 'shield', color: 'purple' },
   { label: 'Trainer', icon: 'swords', color: 'gold' },
+  { label: 'Training Hall', icon: 'graduation-cap', color: 'gold' },
   { label: 'Empath', icon: 'sparkles', color: 'green' },
   { label: 'Enchanter', icon: 'wand', color: 'purple' },
   { label: 'Locksmith', icon: 'key-round', color: 'gold' },
   { label: 'Stable', icon: 'paw-print', color: 'gold' },
   { label: "Thieves' Den", icon: 'lock', color: 'purple' },
+  { label: 'Public Office', icon: 'building', color: 'slate' },
+  { label: 'Courthouse', icon: 'scale', color: 'red' },
+  { label: 'Registry', icon: 'scroll-text', color: 'blue' },
+  { label: 'Post Office', icon: 'scroll', color: 'blue' },
 
   // Shops
   { label: 'Shop', icon: 'shopping-bag', color: 'blue' },
@@ -507,6 +513,9 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
   { label: 'Bookstore', icon: 'book-open', color: 'blue' },
   { label: 'Jeweler', icon: 'gem', color: 'blue' },
   { label: 'Bathhouse', icon: 'droplet', color: 'blue' },
+  { label: 'Library', icon: 'book-open', color: 'blue' },
+  { label: 'Inn', icon: 'bed', color: 'gold' },
+  { label: 'Tavern', icon: 'beer', color: 'gold' },
 
   // Crafting and gathering
   { label: 'Smithy', icon: 'anvil', color: 'green' },
@@ -522,6 +531,10 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
   { label: 'Landmark', icon: 'star', color: 'slate' },
   { label: 'Gate', icon: 'compass', color: 'slate' },
   { label: 'Dock', icon: 'anchor', color: 'slate' },
+  { label: 'Ferry', icon: 'anchor', color: 'blue' },
+  { label: 'Portal', icon: 'orbit', color: 'purple' },
+  { label: 'Temple', icon: 'church', color: 'purple' },
+  { label: 'Shrine', icon: 'cross', color: 'purple' },
   { label: 'Crossing', icon: 'waves', color: 'slate' },
   { label: 'Overlook', icon: 'sun', color: 'slate' },
   { label: 'Camp', icon: 'moon', color: 'slate' },

@@ -100,6 +100,10 @@ export default defineConfig({
         path.resolve(root, 'src-tauri') + '/**',
         path.resolve(root, 'data/art/comfy-venv') + '/**',
         path.resolve(root, 'data/art/out') + '/**',
+        // Generated atlas masters and source renders are production inputs,
+        // not live modules. Windows can hold them locked while they are cut,
+        // which otherwise kills the preview watcher with EBUSY.
+        path.resolve(root, 'data/art/map-stamp-sources') + '/**',
       ],
     },
   },

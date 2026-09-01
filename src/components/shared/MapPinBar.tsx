@@ -34,6 +34,7 @@ export function MapPinBar({
 }) {
   const [open, setOpen] = useState(false)
   const boxRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
 
   // Closes on a click anywhere else, and on Escape - a dropdown that only
   // closes by picking something or hunting for the toggle button again is
@@ -44,7 +45,12 @@ export function MapPinBar({
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape' && !(e.ctrlKey && e.shiftKey)) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
     }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
@@ -56,31 +62,31 @@ export function MapPinBar({
 
   if (pins.length === 0 && !onAddHere) return null
 
-  // A fragment, not its own wrapping div: the caller (MapPanel.tsx,
-  // MapWindow.tsx) puts this in a shared flex-wrap row alongside
-  // QuickTravel, since both are the same shape - a row of small controls -
-  // and stacking each in its own wrapper meant two mostly-empty rows
-  // instead of one that only wraps when it has to.
+  // A fragment, not a rail of its own: MapPanel makes saved pins and pin-here
+  // peers of every other fixed-square control in its shared two-row grid.
   return (
     <>
       {pins.length > 0 && (
-        <div className="relative" ref={boxRef}>
+        <div className="relative h-8 w-8 shrink-0" ref={boxRef} data-gameplay-shortcuts={open ? 'suspend' : undefined}>
           <button
+            ref={triggerRef}
             type="button"
             onClick={() => setOpen((o) => !o)}
             title={`${pins.length} saved ${pins.length === 1 ? 'pin' : 'pins'} - click to browse`}
             aria-label={`${pins.length} saved pins`}
             aria-expanded={open}
-            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${
+            aria-controls="saved-pins-list"
+            className={`relative grid h-8 w-8 place-items-center rounded border bg-surface-raised ${
               open ? 'border-accent text-accent' : 'border-border text-ink-muted hover:text-ink'
             }`}
           >
-            <MapPinIcon className="h-3 w-3" />
-            <span className="text-xs tabular-nums">{pins.length}</span>
+            <MapPinIcon className="h-4 w-4" />
+            <span className="absolute -right-1.5 -top-1.5 min-w-4 rounded-full bg-accent px-0.5 text-center text-xs font-bold leading-4 text-surface" aria-hidden>{pins.length}</span>
           </button>
           {open && (
             <div
-              role="menu"
+              id="saved-pins-list"
+              aria-label="Saved pins"
               className="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded border border-border bg-surface-raised shadow-lg"
             >
               {pins.map((pin) => {
@@ -88,7 +94,7 @@ export function MapPinBar({
                 return (
                   <div
                     key={pin.id}
-                    className="group flex items-center gap-1.5 border-b border-border/50 px-2 py-1 last:border-b-0 hover:bg-surface-overlay"
+                    className="group flex items-center gap-1.5 border-b border-border/50 px-2 py-1 last:border-b-0 hover:bg-surface-overlay focus-within:bg-surface-overlay"
                   >
                     <Icon className="h-3 w-3 shrink-0" style={{ color: PIN_COLOR_HEX[pin.color] }} />
                     <button
@@ -111,7 +117,7 @@ export function MapPinBar({
                         onEdit(pin)
                         setOpen(false)
                       }}
-                      className="shrink-0 rounded p-0.5 text-ink-faint opacity-0 hover:text-ink group-hover:opacity-100"
+                      className="shrink-0 rounded p-0.5 text-ink-faint outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
@@ -128,10 +134,10 @@ export function MapPinBar({
           title="Pin the room you are standing in"
           aria-label="Pin the room you are standing in"
           onClick={onAddHere}
-          className="flex items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-ink-faint hover:border-accent/60 hover:text-accent"
+          className="relative grid h-8 w-8 shrink-0 place-items-center rounded border border-dashed border-border bg-surface-raised text-ink-faint hover:border-accent/60 hover:text-accent"
         >
-          <Plus className="h-3 w-3" />
-          <MapPinIcon className="h-3 w-3" />
+          <MapPinIcon className="h-4 w-4" />
+          <Plus className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-surface" strokeWidth={3} />
         </button>
       )}
     </>

@@ -60,16 +60,16 @@ export function BattleColumn() {
   }, [connected])
 
   // The zone id the description files are keyed by. mapHere carries the room
-  // number but not the zone, so the current zone payload supplies it, and
-  // Crossing stands in before the bridge has answered — it is where a
-  // character starts and the demo opens there.
-  const zone = (zoneLive?.ok ? zoneLive.zone : null) ?? '1'
+  // number but not the zone, so a room is not a coherent art/text location
+  // until map_zone has answered too. Never combine an out-of-zone room with
+  // invented Crossing data during attach or reconnect.
+  const zone = zoneLive?.ok && zoneLive.zone ? zoneLive.zone : null
   const room = here?.id ?? null
 
   const [text, setText] = useState<RoomText | null>(null)
 
   useEffect(() => {
-    if (room === null) return setText(null)
+    if (room === null || zone === null) return setText(null)
     // The cached read first, so walking back into a room you have already been
     // in does not blank the pane for a frame while a fetch resolves.
     const cached = cachedRoomText(zone, room)
@@ -126,6 +126,15 @@ export function BattleColumn() {
   const character = useAppStore((s) => s.character)
   const cards = fromRoom(character)
   const roomItems = character?.roomItems
+  const [floorSelectionState, setFloorSelectionState] = useState<{ room: number | null; item: string | null }>({ room, item: null })
+  const floorSelection = floorSelectionState.room === room ? floorSelectionState.item : null
+  const setFloorSelection = (item: string | null) => setFloorSelectionState({ room, item })
+  const roomDescriptionRef = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    // A new room is new reading material. Same-room live updates retain the
+    // player's place, but movement always begins at the title and exits.
+    roomDescriptionRef.current?.scrollTo({ top: 0 })
+  }, [zone, room])
 
   // The board draws itself for nothing rather than an empty compass over
   // every peaceful room — exactly the kind of chrome this app's
@@ -168,15 +177,23 @@ export function BattleColumn() {
     'stunned',
     'webbed',
     'immobilized',
+    'bags_full',
+    'roundtime',
+    'hidden',
+    'invisible',
+    'joined',
   ]
   const statusFlags = situation ? STATUS_ICON_FLAGS.filter((f) => situation.has(f)) : []
+  if ((character?.roundtime ?? 0) > 0 && !statusFlags.includes('roundtime')) statusFlags.push('roundtime')
 
   const you = character
     ? {
         character: character.name,
         race: character.race,
+        sex: character.sex,
         injuries: character.injuries ?? {},
         injuriesKnown: character.injuries !== undefined,
+        bleeding: character.bleeding,
         vitals: vitalsFor(character, stream.vitals.value),
         pose,
         statusFlags,
@@ -185,10 +202,6 @@ export function BattleColumn() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-2">
-      <PanelBoundary label="Status">
-        <BattleStatus />
-      </PanelBoundary>
-
       {/* The pulse lives on this wrapper, not inside RoomScene — RoomScene
           is shared with the legacy composed column and a caller that only
           wants a picture should not have to know about room-transition
@@ -201,14 +214,22 @@ export function BattleColumn() {
           // spare pixel in a tall window; the latter left a large black void
           // beneath the actual scene. Useful spare height belongs to the
           // description and inventory below.
-          'shrink-0 overflow-hidden rounded ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500',
+          'mx-auto shrink-0 overflow-hidden rounded border border-border bg-surface-raised ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500 motion-reduce:transition-none',
           justArrived && 'ring-2'
         )}
+        style={{ width: 'min(100%, 83.2vh)' }}
       >
         <PanelBoundary label="Scene">
+          <div className="flex h-9 min-w-0 items-center gap-2 border-b border-border/70 bg-surface/92 px-2" aria-label="Battle room and status">
+            <span className="min-w-0 shrink truncate text-xs font-semibold text-ink" title={title ?? 'Current room'}>{title ?? 'Current room'}</span>
+            <div className="ml-auto min-w-0 flex-1 overflow-hidden">
+              <PanelBoundary label="Status"><BattleStatus /></PanelBoundary>
+            </div>
+          </div>
           <RoomScene
-            zone={zone}
+            zone={zone ?? 'unknown'}
             room={room ?? 0}
+            locationReady={zone !== null && room !== null}
             title={title}
             text={text?.text}
             // The default 42vh assumes a game pane and chat log sharing the
@@ -219,6 +240,7 @@ export function BattleColumn() {
             // that moved out.
             maxHeightVh={52}
             shape="landscape"
+            framed={false}
             overlay={
               boardActive ? (
                 <CombatRadar
@@ -229,25 +251,24 @@ export function BattleColumn() {
                 />
               ) : undefined
             }
+            footer={roomItems && roomItems.length > 0 ? <PanelBoundary label="Items on the ground"><FloorItems items={roomItems} mode="glance" selectedItem={floorSelection} onSelectedItemChange={setFloorSelection} /></PanelBoundary> : undefined}
           />
         </PanelBoundary>
       </div>
 
-      <div className="shrink-0 rounded border border-border bg-surface-raised p-2">
+      <div className="shrink-0 rounded border border-border bg-surface-raised px-1.5 py-1">
         <PanelBoundary label="Combat controls">
           <BattleActionBar />
         </PanelBoundary>
-        {roomItems && roomItems.length > 0 && (
-          <div className="mt-1.5 border-t border-border/60 pt-1.5">
-            <PanelBoundary label="Floor">
-              <FloorItems items={roomItems} />
-            </PanelBoundary>
-          </div>
-        )}
       </div>
 
-      <div className="grid min-h-[13rem] flex-1 grid-cols-[minmax(0,1.35fr)_minmax(12rem,0.85fr)] gap-2 overflow-hidden">
-        <section className="min-w-0 overflow-y-auto rounded border border-border bg-surface-raised p-2" aria-label="Room description">
+      <div className="grid min-h-[13rem] flex-1 grid-cols-[minmax(0,0.9fr)_minmax(12rem,1.1fr)] gap-2 overflow-hidden">
+        <section
+          ref={roomDescriptionRef}
+          tabIndex={0}
+          className="no-scrollbar min-w-0 overflow-y-auto overscroll-contain rounded border border-border bg-surface-raised p-2 pb-3 focus:outline-none focus:ring-1 focus:ring-accent/60"
+          aria-label="Room description"
+        >
           {room === null ? (
             <p className="text-xs text-ink-faint">Not in a room yet.</p>
           ) : (
@@ -261,6 +282,8 @@ export function BattleColumn() {
               uid={here?.uid}
               highlights={highlights}
               offClasses={offClasses}
+              selectedItem={floorSelection}
+              onSelectedItemChange={setFloorSelection}
             />
           )}
         </section>

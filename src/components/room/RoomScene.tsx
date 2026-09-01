@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { RoomBackdrop } from './RoomBackdrop'
 
 /**
@@ -34,7 +35,10 @@ export function RoomScene({
   maxHeightVh = 42,
   chips,
   overlay,
+  footer,
   shape = 'square',
+  framed = true,
+  locationReady = true,
 }: {
   zone: string
   room: number
@@ -69,9 +73,51 @@ export function RoomScene({
    * disagree the moment either one changed independently of the other.
    */
   overlay?: import('react').ReactNode
+  /** Interactive scene content anchored over the bottom of the art. */
+  footer?: import('react').ReactNode
+  /** False when a parent owns the shared battle frame and header. */
+  framed?: boolean
+  /** False while room and zone have not yet arrived as one coherent pair. */
+  locationReady?: boolean
 }) {
+  const sceneRef = useRef<HTMLDivElement>(null)
+  const [sceneSize, setSceneSize] = useState({ width: 0, height: 0 })
+
+  useLayoutEffect(() => {
+    const node = sceneRef.current
+    if (!node) return
+    const measure = () => {
+      const rect = node.getBoundingClientRect()
+      setSceneSize((current) => current.width === rect.width && current.height === rect.height
+        ? current
+        : { width: rect.width, height: rect.height })
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  // One scale contract for everything painted on the room art. CombatRadar
+  // already sizes combatants from both axes; exposing the same measurement at
+  // their common parent means the floor overlay, controls, and future scene
+  // furniture cannot drift into a collection of unrelated screenshot-tuned
+  // pixel sizes. The floor remains bounded so its text never drops below the
+  // app's 12px accessibility floor.
+  const sceneScale = sceneSize.width > 0 && sceneSize.height > 0
+    ? Math.max(0.65, Math.min(1.25, Math.min(sceneSize.width / 900, sceneSize.height / 650)))
+    : 1
+  const sceneStyle: CSSProperties & { '--radar-scale': number; '--radar-loot-height': string } = {
+    ...(height
+      ? { height }
+      : { width: shape === 'landscape' ? `min(100%, ${maxHeightVh * 8 / 5}vh)` : `min(100%, ${maxHeightVh}vh)` }),
+    '--radar-scale': sceneScale,
+    '--radar-loot-height': footer ? '2.25rem' : '0px',
+  }
+
   return (
     <div
+      ref={sceneRef}
       // No fixed height by default: a true square, width min(column, Nvh) so
       // it reads as a peer to whatever else is in the column, without
       // ballooning past a shorter neighbour on a wide window. The width is
@@ -88,32 +134,40 @@ export function RoomScene({
       // exactly as before.
       className={
         height
-          ? 'relative w-full overflow-hidden rounded border border-border'
+          ? `relative w-full overflow-hidden ${framed ? 'rounded border border-border' : ''}`
           : shape === 'landscape'
-            ? 'relative mx-auto aspect-[4/3] overflow-hidden rounded border border-border'
-            : 'relative mx-auto aspect-square overflow-hidden rounded border border-border'
+            ? `relative mx-auto aspect-[8/5] overflow-hidden ${framed ? 'rounded border border-border' : ''}`
+            : `relative mx-auto aspect-square overflow-hidden ${framed ? 'rounded border border-border' : ''}`
       }
-      style={height ? { height } : { width: shape === 'landscape' ? `min(100%, ${maxHeightVh * 4 / 3}vh)` : `min(100%, ${maxHeightVh}vh)` }}
+      style={sceneStyle}
     >
       {/* A named, fixed base layer: the combat radar is tactical ink on this
           picture, never a sibling panel that can replace it with a flat
           background. Explicit z-order makes that survive future radar CSS
           changes instead of depending on incidental DOM paint order. */}
       <div className="absolute inset-0 z-0" aria-label="Room art">
-        <RoomBackdrop zone={zone} room={room} title={title} text={text} />
+        {locationReady ? (
+          <RoomBackdrop zone={zone} room={room} title={title} text={text} />
+        ) : (
+          <div
+            className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(124,132,142,0.22),transparent_42%),linear-gradient(155deg,#1d2229,#101318)]"
+            role="status"
+            aria-label="Waiting for the current map zone"
+          />
+        )}
       </div>
 
       {overlay && <div className="absolute inset-0 z-10" aria-label="Tactical radar over room art">{overlay}</div>}
 
-      {title && (
-        <div className="absolute inset-x-0 top-0 z-20 bg-surface/80 px-2 py-1 text-xs text-ink backdrop-blur-sm">
-          <span className="truncate">{title}</span>
+      {footer && (
+        <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 h-9 overflow-hidden border-t border-border/70 bg-surface/82 px-1.5 py-1 backdrop-blur-md">
+          {footer}
         </div>
       )}
 
       {/* Who's here, on the felt rather than in a list beside it — the
           bottom edge, since the title moved to the top to make room. */}
-      {chips && (
+      {chips && !footer && (
         <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-6">
           {chips}
         </div>

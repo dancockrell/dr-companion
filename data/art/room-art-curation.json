@@ -1,5 +1,20 @@
 {
-  "places": {},
+  "places": {
+    "1::Magen Road": {
+      "exactSubject": "The Crossing, Magen Road",
+      "canonicalTraits": ["busy provincial city road", "established Crossing architecture", "location-specific street identity"],
+      "habitat": "The Crossing in Zoluren",
+      "currentImage": "/rooms/1-1.webp",
+      "primary": null,
+      "variants": [],
+      "reject": ["1-1.webp", "1-2.webp", "1-3.webp"],
+      "approvedPrimary": null,
+      "approvedVariants": [],
+      "rejects": ["/rooms/1-1.webp", "/rooms/1-2.webp", "/rooms/1-3.webp"],
+      "regenerationNeeded": true,
+      "decision": "The current 336x192 generic medieval street is visibly blurred when stretched across the battle canvas. It is ineligible even as filler; use the crisp room fingerprint until an approved HD Crossing street exists."
+    }
+  },
   "archetypes": {},
   "publishedOverrides": {
     "95::Pokekehekepi korgi": {
@@ -136,6 +151,8 @@
     }
   },
   "notes": {
+    "minimumPublishedResolution": "960x540",
+    "qualityPolicy": "Room images below the minimum resolution are rejected at render time and must never be used as filler. Missing approved HD art falls back to the deterministic room fingerprint.",
     "purpose": "Manual curation for room-art publishing. Pick a primary image, optional approved variants, and explicit rejects for any rendered place or archetype subject.",
     "usage": [
       "keys under places must match room-place-map.json place keys such as \"1::Magen Road\"",
