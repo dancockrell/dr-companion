@@ -40,7 +40,7 @@ import { PlaceSearch } from './PlaceSearch'
 import { useZoneBrowsing } from '../../lib/useZoneBrowsing'
 import { MapPinBar } from './MapPinBar'
 import { QuickTravel } from './QuickTravel'
-import { PinPalette } from './PinPalette'
+import { PinPalette, type PinBrush } from './PinPalette'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
@@ -222,6 +222,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    * otherwise touch anything React tracks as having changed.
    */
   const [pinVersion, setPinVersion] = useState(0)
+  const [pinBrush, setPinBrush] = useState<PinBrush | null>(null)
   const { pins, pinsByRoom } = useMemo(() => {
     const list = character ? loadPins(character.name, character.instance) : []
     return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
@@ -566,7 +567,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
       {/* Every preset pin type, drag-and-drop onto a room - see PinPalette's
           own header for why this can't just be more QuickTravel buttons. */}
-      <PinPalette />
+      <PinPalette selected={pinBrush} onSelect={setPinBrush} />
 
       {showNudge && hereId != null && (
         <RoomNudge
@@ -665,7 +666,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             level={z}
             onRoute={onRoute}
             fit
-            onPick={goThere}
+            onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
             onZone={pushZone}
             trail={trail}
             pins={pinsByRoom}

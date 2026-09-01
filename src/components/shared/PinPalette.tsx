@@ -19,7 +19,13 @@ import { useRef } from 'react'
 import { PIN_PRESETS, PIN_COLOR_HEX, PIN_DRAG_TYPE } from '../../lib/mapPins'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 
-export function PinPalette() {
+export interface PinBrush {
+  label: string
+  icon: (typeof PIN_PRESETS)[number]['icon']
+  color: (typeof PIN_PRESETS)[number]['color']
+}
+
+export function PinPalette({ selected, onSelect }: { selected?: PinBrush | null; onSelect?: (preset: PinBrush | null) => void }) {
   const rowRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null)
 
@@ -63,10 +69,16 @@ export function PinPalette() {
     >
       {PIN_PRESETS.map((preset, i) => {
         const Icon = PIN_ICON_COMPONENT[preset.icon]
+        // Quiet dividers preserve the compact icon-only row while making
+        // its vocabulary scannable: home/banking, services, shops,
+        // gathering, places, danger, and social/logistics.
+        const startsGroup = [4, 12, 22, 30, 36, 43].includes(i)
         return (
           <button
             key={`${preset.label}-${i}`}
             type="button"
+            aria-pressed={selected?.label === preset.label}
+            onClick={() => onSelect?.(selected?.label === preset.label ? null : preset)}
             draggable
             onDragStart={(e) => {
               e.dataTransfer.setData(
@@ -75,9 +87,9 @@ export function PinPalette() {
               )
               e.dataTransfer.effectAllowed = 'copy'
             }}
-            title={`${preset.label} (drag onto a room on the map)`}
+            title={`${preset.label} — click, then click a room; or drag directly onto a room`}
             aria-label={preset.label}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-border hover:border-accent/60"
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border hover:border-accent/60 ${startsGroup ? 'ml-1.5' : ''} ${selected?.label === preset.label ? 'border-accent bg-accent/20 ring-1 ring-accent' : 'border-border'}`}
           >
             <Icon className="h-3.5 w-3.5" style={{ color: PIN_COLOR_HEX[preset.color] }} />
           </button>

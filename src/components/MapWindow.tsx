@@ -19,7 +19,7 @@ import { roomKind } from '../lib/mapData'
 import { MapCanvas, MapLegend } from './shared/MapCanvas'
 import { MapPinBar } from './shared/MapPinBar'
 import { QuickTravel } from './shared/QuickTravel'
-import { PinPalette } from './shared/PinPalette'
+import { PinPalette, type PinBrush } from './shared/PinPalette'
 import { PinEditor } from './shared/PinEditor'
 import { RoomNudge } from './shared/RoomNudge'
 import { PlaceSearch } from './shared/PlaceSearch'
@@ -124,6 +124,7 @@ export function MapWindow() {
   // Read straight from storage during render; pinVersion exists only to
   // force a re-read after a write this window made itself.
   const [pinVersion, setPinVersion] = useState(0)
+  const [pinBrush, setPinBrush] = useState<PinBrush | null>(null)
   const { pins, pinsByRoom } = useMemo(() => {
     const list = character ? loadPins(character.name, character.instance) : []
     return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
@@ -430,7 +431,7 @@ export function MapWindow() {
               )}
             </div>
             {/* Every preset pin type, drag-and-drop onto a room - see PinPalette.tsx's own header. */}
-            <PinPalette />
+            <PinPalette selected={pinBrush} onSelect={setPinBrush} />
             {showNudge && hereId != null && (
               <RoomNudge
                 visits={hereVisits as number}
@@ -474,7 +475,7 @@ export function MapWindow() {
               level={z}
               onRoute={onRoute}
               labels={labels}
-              onPick={goThere}
+              onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
               onZone={pushZone}
               trail={trail}
               onHereAt={onHereAt}
