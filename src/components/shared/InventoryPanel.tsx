@@ -100,7 +100,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs">
+      <div className="flex min-w-0 items-center gap-2 text-xs">
         {/* A heading, not a span - this box is mounted bare (no Box `title`,
          * see DashboardLayout), so this is the only accessible name the
          * panel has. A visually-identical span with no heading role reads
@@ -108,12 +108,11 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
         <h2 className="font-medium text-ink-faint uppercase tracking-wider">
           Inventory
         </h2>
-        <span className={pressureColor}>{encumbrance ?? 'not reported'}</span>
-      </div>
-
-      <div className="flex min-w-0 items-center gap-1 rounded border border-border bg-surface px-1.5 py-1">
-        <Search className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find anything carried…" className="min-w-0 flex-1 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint" />
+        <div className="flex min-w-0 flex-1 items-center gap-1 rounded border border-border bg-surface px-1.5 py-1">
+          <Search className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find anything carried…" className="min-w-0 flex-1 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint" />
+        </div>
+        <span className={`shrink-0 ${pressureColor}`}>{encumbrance ?? 'not reported'}</span>
       </div>
       <div className="flex gap-1 overflow-x-auto pb-0.5 no-scrollbar" aria-label="Inventory searches">
         {FILTERS.map(([label, command]) => (

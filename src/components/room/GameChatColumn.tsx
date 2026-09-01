@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageSquareText, Workflow } from 'lucide-react'
+import { MessageSquareText } from 'lucide-react'
 import { StreamTabs } from '../game/StreamTabs'
 import { GameCommandBar } from '../game/GameCommandBar'
 import { PanelBoundary } from '../shared/PanelBoundary'
@@ -20,19 +20,18 @@ export function GameChatColumn() {
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.85fr)] gap-2 p-2" aria-label="Game and automation workspace">
       <section className="flex min-h-0 min-w-0 flex-col gap-2" aria-label="Game workspace">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border border-border bg-surface-raised">
-          <div className="flex h-10 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-3 text-xs font-semibold text-accent">
-            <MessageSquareText className="h-4 w-4" aria-hidden /> Game
-          </div>
-          <PanelBoundary label="Game and channels"><StreamTabs highlights={highlights} /></PanelBoundary>
+          <PanelBoundary label="Game and channels">
+            <StreamTabs
+              highlights={highlights}
+              heading={<><MessageSquareText className="h-4 w-4" aria-hidden /><span>Game</span></>}
+            />
+          </PanelBoundary>
         </div>
         <GameCommandBar query={query} setQuery={setQuery} />
       </section>
 
       <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded border border-border bg-surface-raised" aria-label="Functions and scripts workspace">
-        <div className="flex h-10 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-3 text-xs font-semibold text-accent">
-          <Workflow className="h-4 w-4" aria-hidden /> Functions &amp; scripts
-        </div>
-        <div className="min-h-0 flex-1 overflow-hidden"><TaskFlowPanel /></div>
+        <div className="min-h-0 flex-1 overflow-hidden"><TaskFlowPanel title="Functions & scripts" /></div>
       </section>
     </div>
   )
