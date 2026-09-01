@@ -1,4 +1,5 @@
 import type { MapZone, MapZoneRoom } from '../bridge/types'
+import { landmarksFor, type LandmarkKind } from './mapLandmarks'
 
 export type MapStampKind =
   | 'water'
@@ -18,6 +19,18 @@ export type MapStampKind =
   | 'bridge'
   | 'harbor'
   | 'market'
+  | 'service-bank'
+  | 'service-healer'
+  | 'service-guild'
+  | 'service-inn'
+  | 'service-forge'
+  | 'service-library'
+  | 'service-training'
+  | 'service-gate'
+  | 'service-arcane'
+  | 'service-civic'
+
+export type MapStampRole = 'background' | 'illustration' | 'hero'
 
 export interface MapStamp {
   kind: MapStampKind
@@ -27,6 +40,8 @@ export interface MapStamp {
   count: number
   rotation: number
   weight: number
+  /** Background fabric, a readable terrain illustration, or an oversized landmark. */
+  role: MapStampRole
   /** Selects a stable drawing from the family so repeated marks do not tile. */
   variant: number
 }
@@ -41,6 +56,8 @@ interface StampRule {
   /** How quickly a large district earns another small drawing. */
   roomsPerCopy?: number
   maxCopies?: number
+  /** Copies per source room; values above one build dense town and terrain fabric. */
+  density?: number
 }
 
 /**
@@ -50,20 +67,20 @@ interface StampRule {
  * ordinary courtyard a hazard.
  */
 const RULES: StampRule[] = [
-  { kind: 'wetland', label: 'Wetland', pattern: /\b(swamp|marsh|bog|fen|wetland)\b/i, salience: 1.24, roomsPerCopy: 24, maxCopies: 4 },
-  { kind: 'coast', label: 'Coast', pattern: /\b(coast|shore|beach|strand|bay|cove|islands?|isles?|tidal)\b/i, salience: 1.16, roomsPerCopy: 28, maxCopies: 4 },
-  { kind: 'arid', label: 'Dry country', pattern: /\b(desert|dunes?|sand|sandy|wastes?|badlands)\b/i, salience: 1.22, roomsPerCopy: 28, maxCopies: 4 },
-  { kind: 'cultivated', label: 'Fields', pattern: /\b(farms?|farmlands?|pastures?|meadows?|orchards?|vineyards?|plantations?|(?:barley|wheat|grain|rice|corn|rye|oat|crop) fields?)\b/i, salience: 1.18, roomsPerCopy: 24, maxCopies: 5 },
-  { kind: 'frozen', label: 'Frozen', pattern: /\b(snow|snowy|ice|icy|frozen|glaciers?|frost|frostweavers?)\b/i, salience: 1.24, roomsPerCopy: 30, maxCopies: 4 },
-  { kind: 'burial', label: 'Burial ground', pattern: /\b(graveyards?|cemeter(?:y|ies)|necropolis|burial|tombs?|crypts?|barrows?)\b/i, salience: 1.2, roomsPerCopy: 18, maxCopies: 3 },
-  { kind: 'water', label: 'Waters', pattern: /\b(rivers?|lakes?|sea|ocean|streams?|water|canals?|ponds?)\b/i, roomsPerCopy: 32, maxCopies: 4 },
-  { kind: 'woodland', label: 'Woodland', pattern: /\b(forests?|woods?|groves?|trees?|jungle|thickets?)\b/i, roomsPerCopy: 32, maxCopies: 5 },
-  { kind: 'highland', label: 'High ground', pattern: /\b(mountain|cliff|ridge|peak|hill|canyon|ravine|crag|gorge|slope)\b/i, roomsPerCopy: 32, maxCopies: 4 },
-  { kind: 'underground', label: 'Below', pattern: /\b(caves?|cavern|tunnels?|mines?|grotto|underground|sewers?|passages?)\b/i, roomsPerCopy: 34, maxCopies: 3 },
+  { kind: 'wetland', label: 'Wetland', pattern: /\b(swamp|marsh|bog|fen|wetland)\b/i, salience: 1.24, density: 1.1, maxCopies: 140 },
+  { kind: 'coast', label: 'Coast', pattern: /\b(coast|shore|beach|strand|bay|cove|islands?|isles?|tidal)\b/i, salience: 1.16, density: 1.05, maxCopies: 140 },
+  { kind: 'arid', label: 'Dry country', pattern: /\b(desert|dunes?|sand|sandy|wastes?|badlands)\b/i, salience: 1.22, density: 1.1, maxCopies: 140 },
+  { kind: 'cultivated', label: 'Fields', pattern: /\b(farms?|farmlands?|pastures?|meadows?|orchards?|vineyards?|plantations?|(?:barley|wheat|grain|rice|corn|rye|oat|crop) fields?)\b/i, salience: 1.18, density: 1.15, maxCopies: 160 },
+  { kind: 'frozen', label: 'Frozen', pattern: /\b(snow|snowy|ice|icy|frozen|glaciers?|frost|frostweavers?)\b/i, salience: 1.24, density: 1.05, maxCopies: 140 },
+  { kind: 'burial', label: 'Burial ground', pattern: /\b(graveyards?|cemeter(?:y|ies)|necropolis|burial|tombs?|crypts?|barrows?)\b/i, salience: 1.2, density: 0.8, maxCopies: 90 },
+  { kind: 'water', label: 'Waters', pattern: /\b(rivers?|lakes?|sea|ocean|streams?|water|canals?|ponds?)\b/i, density: 1.2, maxCopies: 180 },
+  { kind: 'woodland', label: 'Woodland', pattern: /\b(forests?|woods?|groves?|trees?|jungle|thickets?)\b/i, density: 1.25, maxCopies: 180 },
+  { kind: 'highland', label: 'High ground', pattern: /\b(mountain|cliff|ridge|peak|hill|canyon|ravine|crag|gorge|slope)\b/i, density: 1.1, maxCopies: 150 },
+  { kind: 'underground', label: 'Below', pattern: /\b(caves?|cavern|tunnels?|mines?|grotto|underground|sewers?|passages?)\b/i, density: 0.9, maxCopies: 100 },
   // Settlement ink is plan-view fabric: repeated little footprints beside
   // streets, not one skyline announcing that the map contains a town.
-  { kind: 'settlement', label: 'Buildings', pattern: /\b(streets?|lanes?|avenues?|squares?|plazas?|markets?|crossing|villages?|towns?|cities?|boulevards?)\b/i, roomsPerCopy: 8, maxCopies: 24 },
-  { kind: 'ruins', label: 'Old stones', pattern: /\b(ruins?|fallen|rubble)\b/i, roomsPerCopy: 20, maxCopies: 3 },
+  { kind: 'settlement', label: 'Buildings', pattern: /\b(streets?|lanes?|avenues?|squares?|plazas?|markets?|crossing|villages?|towns?|cities?|boulevards?)\b/i, density: 1.5, maxCopies: 420 },
+  { kind: 'ruins', label: 'Old stones', pattern: /\b(ruins?|fallen|rubble)\b/i, density: 0.9, maxCopies: 100 },
 
   // Named features need only one honest source room. They are the black-ink
   // anchors seen on old survey maps: a church, bridge or keep is itself the
@@ -114,6 +131,24 @@ function distributedEvidence(matches: MapZoneRoom[], count: number, seed: string
   return chosen
 }
 
+/**
+ * Reuse honest source rooms when an illustrated district needs more than one
+ * faint impression per room. Placement remains seeded and route-aware, so the
+ * extra ink reads as a continuous neighbourhood rather than a random loop.
+ */
+function repeatedEvidence(matches: MapZoneRoom[], count: number, seed: string): MapZoneRoom[] {
+  const ordered = [...matches].sort((a, b) =>
+    (a.x as number) - (b.x as number) ||
+    (a.y as number) - (b.y as number) ||
+    String(a.id ?? a.title ?? '').localeCompare(String(b.id ?? b.title ?? ''))
+  )
+  const divisor = (a: number, b: number): number => b ? divisor(b, a % b) : a
+  let stride = Math.max(1, hash(`${seed}:stride`) % ordered.length)
+  while (divisor(stride, ordered.length) !== 1) stride++
+  const start = hash(`${seed}:start`) % ordered.length
+  return Array.from({ length: count }, (_, index) => ordered[(start + index * stride) % ordered.length])
+}
+
 /** Collapse all rooms inside one named landmark into one map impression. */
 function namedEvidence(matches: MapZoneRoom[], rule: StampRule): MapZoneRoom[] {
   const byName = new Map<string, MapZoneRoom>()
@@ -140,7 +175,34 @@ function namedEvidence(matches: MapZoneRoom[], rule: StampRule): MapZoneRoom[] {
   return spatiallyDistinct
 }
 
-const LANDMARK_KINDS = new Set<MapStampKind>(['worship', 'fortification', 'bridge', 'harbor', 'market', 'burial', 'underground'])
+const SERVICE_STAMPS: Partial<Record<LandmarkKind, { kind: MapStampKind; label: string; weight: number }>> = {
+  bank: { kind: 'service-bank', label: 'Bank', weight: 1.22 },
+  healer: { kind: 'service-healer', label: 'Healer', weight: 1.18 },
+  alchemy: { kind: 'service-healer', label: 'Apothecary', weight: 1.08 },
+  guild: { kind: 'service-guild', label: 'Guild', weight: 1.22 },
+  inn: { kind: 'service-inn', label: 'Inn', weight: 1.16 },
+  craft: { kind: 'service-forge', label: 'Crafting', weight: 1.14 },
+  weapon: { kind: 'service-forge', label: 'Weapons', weight: 1.12 },
+  armor: { kind: 'service-forge', label: 'Armor', weight: 1.12 },
+  library: { kind: 'service-library', label: 'Library', weight: 1.14 },
+  hunt: { kind: 'service-training', label: 'Hunting ground', weight: 1.12 },
+  trainer: { kind: 'service-training', label: 'Training', weight: 1.15 },
+  travel: { kind: 'service-gate', label: 'Travel', weight: 1.16 },
+  portal: { kind: 'service-gate', label: 'Portal', weight: 1.14 },
+  magic: { kind: 'service-arcane', label: 'Arcane service', weight: 1.2 },
+  office: { kind: 'service-civic', label: 'Public office', weight: 1.12 },
+  justice: { kind: 'service-civic', label: 'Court', weight: 1.16 },
+  post: { kind: 'service-civic', label: 'Post', weight: 1.08 },
+  shop: { kind: 'market', label: 'Market', weight: 1.08 },
+  dock: { kind: 'harbor', label: 'Harbor', weight: 1.12 },
+  temple: { kind: 'worship', label: 'Temple', weight: 1.14 },
+}
+
+const LANDMARK_KINDS = new Set<MapStampKind>([
+  'worship', 'fortification', 'bridge', 'harbor', 'market', 'burial', 'underground',
+  'service-bank', 'service-healer', 'service-guild', 'service-inn', 'service-forge',
+  'service-library', 'service-training', 'service-gate', 'service-arcane', 'service-civic',
+])
 
 /** Find the direction of the route through an evidence room. */
 function routeBearing(anchor: MapZoneRoom, rooms: MapZoneRoom[]): number {
@@ -176,9 +238,11 @@ function structuralPlacement(
   const bearing = routeBearing(anchor, rooms)
   const landmark = LANDMARK_KINDS.has(kind)
   const side = hash(`${seed}:side`) % 2 ? 1 : -1
-  const offset = landmark ? 0 : kind === 'settlement' ? 17 : 21
-  const x = (anchor.x as number) + Math.cos(bearing + Math.PI / 2) * offset * side
-  const y = (anchor.y as number) + Math.sin(bearing + Math.PI / 2) * offset * side
+  const baseOffset = kind === 'settlement' ? 14 : 19
+  const offset = landmark ? 0 : baseOffset + (hash(`${seed}:offset`) % 13)
+  const along = landmark ? 0 : (hash(`${seed}:along`) % 17) - 8
+  const x = (anchor.x as number) + Math.cos(bearing + Math.PI / 2) * offset * side + Math.cos(bearing) * along
+  const y = (anchor.y as number) + Math.sin(bearing + Math.PI / 2) * offset * side + Math.sin(bearing) * along
   const routeRotation = (bearing * 180) / Math.PI
   const naturalRotation = (hash(`${seed}:rotation`) % 11) - 5
   return {
@@ -203,7 +267,7 @@ export function deriveMapStamps(
 
   const zoneKey = String(zone.zone ?? zone.name ?? 'map')
   const threshold = Math.min(6, Math.max(2, Math.ceil(positioned.length / 180)))
-  const candidates = RULES.flatMap((rule) => {
+  const geographicCandidates = RULES.flatMap((rule) => {
     const matches = positioned.filter((room) => {
       const title = room.title ?? ''
       const authoredLabels = (room.tags ?? []).join(' · ')
@@ -221,15 +285,20 @@ export function deriveMapStamps(
     if (matches.length < required) return []
 
     const named = rule.minimum === 'named' ? namedEvidence(matches, rule) : null
-    const copies = Math.min(
-      rule.maxCopies ?? 1,
-      named?.length ?? Math.max(1, Math.ceil(matches.length / (rule.roomsPerCopy ?? matches.length)))
-    )
+    const copies = Math.min(rule.maxCopies ?? 1, named?.length ?? Math.max(
+      1,
+      rule.density
+        ? Math.ceil(matches.length * rule.density)
+        : Math.ceil(matches.length / (rule.roomsPerCopy ?? matches.length))
+    ))
     const anchors = named
       ? distributedEvidence(named, copies, `${zoneKey}:${rule.kind}`)
-      : distributedEvidence(matches, copies, `${zoneKey}:${rule.kind}`)
+      : repeatedEvidence(matches, copies, `${zoneKey}:${rule.kind}`)
     return anchors.map((anchor, index) => {
       const point = structuralPlacement(anchor, positioned, rule.kind, `${zoneKey}:${rule.kind}:${index}`)
+      const role: MapStampRole = rule.minimum === 'named'
+        ? 'hero'
+        : index === 0 ? 'illustration' : 'background'
       return {
         stamp: {
           kind: rule.kind,
@@ -238,7 +307,10 @@ export function deriveMapStamps(
           y: point.y,
           count: matches.length,
           rotation: point.rotation,
-          weight: Math.min(1.05, 0.68 + Math.log2(matches.length + 1) / 18),
+          weight: role === 'background'
+            ? Math.min(0.62, 0.4 + Math.log2(matches.length + 1) / 28)
+            : Math.min(1.08, 0.75 + Math.log2(matches.length + 1) / 18),
+          role,
           variant: hash(`${zoneKey}:${rule.kind}:${index}:variant`) % 4,
         } satisfies MapStamp,
         // Named black-ink landmarks outrank texture. Landscape then ranks by
@@ -250,22 +322,60 @@ export function deriveMapStamps(
     })
   })
 
-  // Density follows the source sheet. Tiny interiors stay honest and sparse;
-  // Crossing can carry many small footprints without turning the route graph
-  // into wallpaper.
-  // At most 25 geographic impressions. The earlier 40-mark experiment made
-  // the busiest sheets harder to read than the room graph they explain.
-  const decorationBudget = Math.min(25, Math.max(4, Math.ceil(Math.sqrt(positioned.length) * 1.05)))
+  // Major services are exaggerated landmarks, the same way an old atlas makes
+  // a cathedral or station larger than the street plan beneath it. Nearby
+  // rooms which describe the same service collapse into one hero drawing.
+  const serviceAnchors: Array<{ room: MapZoneRoom; kind: MapStampKind }> = []
+  const serviceCandidates = positioned.flatMap((room) => {
+    const landmark = landmarksFor(room)[0]
+    const presentation = landmark ? SERVICE_STAMPS[landmark.kind] : null
+    if (!presentation) return []
+    if (serviceAnchors.some((entry) => entry.kind === presentation.kind && Math.hypot(
+      (entry.room.x as number) - (room.x as number),
+      (entry.room.y as number) - (room.y as number)
+    ) < 90)) return []
+    serviceAnchors.push({ room, kind: presentation.kind })
+    return [{
+      stamp: {
+        kind: presentation.kind,
+        label: presentation.label,
+        x: room.x as number,
+        y: room.y as number,
+        count: 1,
+        rotation: (hash(`${zoneKey}:${presentation.kind}:${room.id ?? room.title}:rotation`) % 7) - 3,
+        weight: presentation.weight,
+        role: 'hero' as const,
+        variant: hash(`${zoneKey}:${presentation.kind}:${room.id ?? room.title}:variant`) % 4,
+      } satisfies MapStamp,
+      score: 8,
+      copyIndex: 0,
+    }]
+  })
+
+  const candidates = [...serviceCandidates, ...geographicCandidates]
+  // Density follows the actual sheet: a 240-room town can carry hundreds of
+  // faint roof and street impressions, while a tiny interior stays sparse.
+  const decorationBudget = Math.min(500, Math.max(18, Math.ceil(positioned.length * 1.85)))
+  const heroes = candidates
+    .filter((candidate) => candidate.stamp.role === 'hero')
+    .sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind))
   const firstOfEachKind = candidates
-    .filter((candidate) => candidate.copyIndex === 0)
+    .filter((candidate) => candidate.stamp.role === 'illustration')
     .sort((a, b) => b.score - a.score || a.stamp.kind.localeCompare(b.stamp.kind))
   const townFabric = candidates
-    .filter((candidate) => candidate.copyIndex > 0 && candidate.stamp.kind === 'settlement')
+    .filter((candidate) => candidate.stamp.role === 'background' && candidate.stamp.kind === 'settlement')
     .sort((a, b) => a.copyIndex - b.copyIndex)
   const landscapeRepeats = candidates
-    .filter((candidate) => candidate.copyIndex > 0 && candidate.stamp.kind !== 'settlement')
+    .filter((candidate) => candidate.stamp.role === 'background' && candidate.stamp.kind !== 'settlement')
     .sort((a, b) => a.copyIndex - b.copyIndex || b.score - a.score)
-  return [...firstOfEachKind, ...townFabric, ...landscapeRepeats]
+  const seen = new Set<string>()
+  return [...heroes, ...firstOfEachKind, ...townFabric, ...landscapeRepeats]
+    .filter(({ stamp }) => {
+      const key = `${stamp.kind}:${stamp.role}:${Math.round(stamp.x)}:${Math.round(stamp.y)}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
     .slice(0, decorationBudget)
     .map(({ stamp }) => stamp)
 }

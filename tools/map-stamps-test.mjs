@@ -5,10 +5,14 @@ import ts from 'typescript'
 
 const dir = join('node_modules', '.drc-test')
 mkdirSync(dir, { recursive: true })
+const landmarksOut = join(dir, 'mapLandmarks.mjs')
+writeFileSync(landmarksOut, ts.transpileModule(readFileSync('src/lib/mapLandmarks.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText)
 const out = join(dir, 'mapStamps.mjs')
 writeFileSync(out, ts.transpileModule(readFileSync('src/lib/mapStamps.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText)
+}).outputText.replace("'./mapLandmarks'", "'./mapLandmarks.mjs'"))
 const { deriveMapStamps } = await import(`${pathToFileURL(out).href}?v=${Date.now()}`)
 
 let failures = 0
@@ -34,20 +38,22 @@ check('the same zone produces the same stamps every time', JSON.stringify(first)
 check('maps do not receive a compulsory floating compass', first.every((stamp) => stamp.kind !== 'seal'))
 check('repeated water rooms produce a waters stamp', first.some((stamp) => stamp.kind === 'water'))
 check('repeated forest rooms produce a woodland stamp', first.some((stamp) => stamp.kind === 'woodland'))
-check('a small mixed map remains restrained', first.length <= 4, `${first.length} stamps`)
+check('a small mixed map receives layered terrain fabric', first.length >= 6 && first.length <= 10, `${first.length} stamps`)
+check('small maps include illustrations and background fabric', new Set(first.map((stamp) => stamp.role)).has('illustration') && new Set(first.map((stamp) => stamp.role)).has('background'))
 check('every stamp has a finite authored position', first.every((stamp) => Number.isFinite(stamp.x) && Number.isFinite(stamp.y)))
 check('facts with the same centroid fan into distinct positions', new Set(first.map((stamp) => `${stamp.x}:${stamp.y}`)).size === first.length)
 check('the zone id authors a distinct composition', JSON.stringify(first) !== JSON.stringify(deriveMapStamps({ zone: 'other', name: 'Test Vale' }, sample)))
-check('every drawing stays attached to its source geography', first.every((stamp) => Math.min(...sample.map((source) => Math.hypot(stamp.x - source.x, stamp.y - source.y))) <= 22))
+check('every drawing stays attached to its source geography', first.every((stamp) => Math.min(...sample.map((source) => Math.hypot(stamp.x - source.x, stamp.y - source.y))) <= 34))
 
 console.log('\n-- dense sheets receive repeated cartographic fabric --')
 const denseTown = Array.from({ length: 240 }, (_, index) =>
   room(index + 1, `Old Town, ${index % 3 === 0 ? 'Market Street' : index % 3 === 1 ? 'Long Lane' : 'Civic Plaza'}`, (index % 24) * 20, Math.floor(index / 24) * 20)
 )
 const townStamps = deriveMapStamps({ zone: 'town', name: 'Old Town' }, denseTown)
-check('a large town receives street-lining building stamps', townStamps.filter((stamp) => stamp.kind === 'settlement').length >= 12, `${townStamps.filter((stamp) => stamp.kind === 'settlement').length} building groups`)
-check('a dense sheet still has a strict decoration budget', townStamps.length <= 25, `${townStamps.length} total marks`)
-check('town fabric remains beside its mapped streets', townStamps.every((stamp) => Math.min(...denseTown.map((source) => Math.hypot(stamp.x - source.x, stamp.y - source.y))) <= 18))
+check('a large town receives hundreds of street-lining stamps', townStamps.filter((stamp) => stamp.kind === 'settlement').length >= 300, `${townStamps.filter((stamp) => stamp.kind === 'settlement').length} building groups`)
+check('a dense sheet still has a strict decoration budget', townStamps.length <= 450, `${townStamps.length} total marks`)
+check('town fabric is explicitly a faint background layer', townStamps.filter((stamp) => stamp.kind === 'settlement' && stamp.role === 'background').length >= 299)
+check('town fabric remains beside its mapped streets', townStamps.every((stamp) => Math.min(...denseTown.map((source) => Math.hypot(stamp.x - source.x, stamp.y - source.y))) <= 34))
 
 const namedFeatures = deriveMapStamps({ zone: 'features', name: 'Pilgrim Road' }, [
   room(1, 'St. Ratha Church', 0, 0),
@@ -59,6 +65,17 @@ for (const kind of ['worship', 'bridge', 'harbor', 'fortification']) {
   check(`one named ${kind} can mark its actual place`, namedFeatures.some((stamp) => stamp.kind === kind))
 }
 check('named landmarks sit on their mapped room', namedFeatures.every((stamp) => namedFeatures.some((source) => source.x === stamp.x && source.y === stamp.y)))
+check('named landmarks are rendered as oversized hero art', namedFeatures.filter((stamp) => ['worship', 'bridge', 'harbor', 'fortification'].includes(stamp.kind)).every((stamp) => stamp.role === 'hero'))
+
+const services = deriveMapStamps({ zone: 'services', name: 'Civic Quarter' }, [
+  room(1, 'First Provincial Bank, Civic Plaza', 0, 0),
+  room(2, 'Empaths Guild, Mercy Lane', 140, 0),
+  room(3, 'Moon Mage Academy, Observatory Way', 280, 0),
+  room(4, 'Courthouse, Civic Plaza', 420, 0),
+])
+for (const kind of ['service-bank', 'service-healer', 'service-arcane', 'service-civic']) {
+  check(`${kind} receives an oversized generated service drawing`, services.some((stamp) => stamp.kind === kind && stamp.role === 'hero'))
+}
 
 console.log('\n-- word boundaries prevent plausible nonsense --')
 const astral = deriveMapStamps({ zone: '999', name: 'Microcosm' }, [
@@ -75,6 +92,10 @@ check('a street named after a church does not invent a church', !deriveMapStamps
   room(1, 'Town, Church Street', 0, 0),
   room(2, 'Town, Church Street', 20, 0),
 ]).some((stamp) => stamp.kind === 'worship'))
+check('Bank Street does not invent a bank complex', !deriveMapStamps({ zone: 'bank-street', name: 'Town' }, [
+  room(1, 'Crossing, Bank Street', 0, 0),
+  room(2, 'Crossing, Bank Street', 20, 0),
+]).some((stamp) => stamp.kind === 'service-bank'))
 
 console.log('\n-- specific landscapes stay specific --')
 const repeated = (word) => [room(1, word, 0, 0), room(2, word, 10, 0), room(3, word, 20, 0)]
@@ -112,7 +133,7 @@ check('all shipped zones were audited', zones >= 85, `${zones}`)
 check('no drawable level carries a meaningless compass', straySeals === 0, `${levels} levels`)
 check('terrain information appears across most of the world', terrainZones >= 60, `${terrainZones} mapped levels`)
 check('many shipped maps receive a multi-stamp composition', repeatedCompositions >= 35, `${repeatedCompositions} mapped levels`)
-check('no shipped sheet exceeds the decoration ceiling', busiestComposition <= 25, `${busiestComposition} marks on the busiest sheet`)
+check('no shipped sheet exceeds the illustrated-atlas ceiling', busiestComposition <= 500, `${busiestComposition} marks on the busiest sheet`)
 
 console.log('\n-- the visual layer stays below function --')
 const canvas = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')
@@ -121,17 +142,24 @@ const derivation = readFileSync('src/lib/mapStamps.ts', 'utf8')
 check('stamps paint after paper but before the trail', canvas.indexOf('<MapStampLayer') > canvas.indexOf('fill="url(#map-paper)"') && canvas.indexOf('<MapStampLayer') < canvas.indexOf('segments(trail)'))
 check('stamps can never intercept map interaction', layer.includes('pointer-events-none') && layer.includes('aria-hidden="true"'))
 check('every impression identifies its stamp family for live QA', layer.includes('data-map-stamp-kind'))
+check('every impression declares background, illustration, or hero role', layer.includes('data-map-stamp-role'))
 check('layout never searches blank paper or globally spreads stamps', !derivation.includes('illustrationPoint') && !derivation.includes('spreadStamps') && derivation.includes('structuralPlacement'))
-check('map art uses generated raster engravings', layer.includes('<image') && layer.includes('STAMP_ART') && layer.includes('href={art.href}'))
+check('map art uses generated raster engravings', layer.includes('<image') && layer.includes('STAMP_ART') && layer.includes('href={image.href}'))
 check('the primitive path renderer has been removed', !layer.includes('<path') && !layer.includes('<circle') && !layer.includes('<text') && !layer.includes('function Tree') && !layer.includes('function Peak') && !layer.includes('MapDrawing'))
 check('engraved ink is integrated into parchment', layer.includes("mixBlendMode: 'multiply'") && layer.includes('preserveAspectRatio="xMidYMid meet"'))
-const stampKinds = ['water', 'woodland', 'highland', 'underground', 'settlement', 'ruins', 'wetland', 'coast', 'arid', 'cultivated', 'frozen', 'burial', 'worship', 'fortification', 'bridge', 'harbor', 'market']
+const stampKinds = ['water', 'woodland', 'highland', 'underground', 'settlement', 'ruins', 'wetland', 'coast', 'arid', 'cultivated', 'frozen', 'burial', 'worship', 'fortification', 'bridge', 'harbor', 'market', 'service-bank', 'service-healer', 'service-guild', 'service-inn', 'service-forge', 'service-library', 'service-training', 'service-gate', 'service-arcane', 'service-civic']
 for (const kind of stampKinds) {
   const assetPath = `public/map-stamps/${kind}.png`
   const asset = existsSync(assetPath) ? readFileSync(assetPath) : Buffer.alloc(0)
   const pngSignature = asset.subarray(0, 8).toString('hex') === '89504e470d0a1a0a'
   const colorType = asset.length > 25 ? asset[25] : -1
   check(`${kind} has a generated transparent PNG`, layer.includes(`'/map-stamps/${kind}.png'`) && pngSignature && [4, 6].includes(colorType) && statSync(assetPath).size > 10_000)
+}
+for (let index = 1; index <= 30; index++) {
+  const name = String(index).padStart(2, '0')
+  const assetPath = `public/map-stamps/atlas/${name}.png`
+  const asset = existsSync(assetPath) ? readFileSync(assetPath) : Buffer.alloc(0)
+  check(`Magnific atlas cell ${name} is a transparent runtime asset`, layer.includes(`/map-stamps/atlas/${name}.png`) && asset.length > 10_000 && asset[25] === 6, `${asset.length} bytes`)
 }
 check('gateway destinations are visibly continued off the sheet', canvas.includes('data-map-gateway-callout="true"') && canvas.includes('shortGatewayLabel') && canvas.includes('hasGatewaysOnLevel'))
 check('duplicate gateways share one destination label', canvas.includes('byDestination') && canvas.includes('candidates.reduce'))

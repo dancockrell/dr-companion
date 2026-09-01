@@ -66,7 +66,7 @@ const RULES: Array<{
   { kind: 'weapon', label: 'Weapons', icon: 'bow-arrow', color: 'red', pattern: /\b(weapons?|swords?|blades?|bowyer|fletcher|archery|arms dealer)\b/i },
   { kind: 'armor', label: 'Armor', icon: 'shield', color: 'blue', pattern: /\b(armor|armour|armory|shield|chainmail|plate)\b/i },
   { kind: 'alchemy', label: 'Alchemy', icon: 'flask-conical', color: 'green', pattern: /\b(alchem\w*|apothecar\w*|potions?|herb shop|laboratory)\b/i },
-  { kind: 'magic', label: 'Magic', icon: 'wand-sparkles', color: 'purple', pattern: /\b(magic|magical|enchant|arcane|spell|talisman|wand|grimoire)\b/i },
+  { kind: 'magic', label: 'Magic', icon: 'wand-sparkles', color: 'purple', pattern: /\b(mages?|magic|magical|enchant|arcane|spell|talisman|wand|grimoire)\b/i },
   { kind: 'portal', label: 'Portal', icon: 'orbit', color: 'purple', pattern: /\b(portal|teleport|moongate|rift)\b/i },
   { kind: 'dock', label: 'Boat travel', icon: 'anchor', color: 'blue', pattern: /\b(dock|pier|ferry|barge|gondola|harbor|harbour|shipyard|wharf)\b/i },
   { kind: 'guild', label: 'Guild or trainer', icon: 'graduation-cap', color: 'purple', pattern: /\b(guild|trainer|training (room|yard|field)|academy|headquarters|recruitment office)\b/i },
