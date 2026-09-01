@@ -439,6 +439,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
       onPopOut={isTauri() ? popOut : undefined}
       onExportPins={isTauri() && character ? doExportPins : undefined}
       onImportPins={isTauri() && character ? doImportPins : undefined}
+      search={<PlaceSearch here={zone.zone} onPick={goToPlace} />}
       right={
         <div className="flex items-center gap-2">
           {/* Levels and zoom, in the header itself rather than a row of
@@ -523,11 +524,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         </div>
       }
     >
-      {/* Above the map rather than beside the title, because the answer it
-          gives is a place on the map and the two want to be read together.
-          It costs one row and gives back the thing the map could not do. */}
-      <PlaceSearch here={zone.zone} onPick={goToPlace} />
-
       {/* One map-tool rail. Operational controls lead; the complete place
           vocabulary consumes the remaining width and grab-scrolls. */}
       <div className="flex min-w-0 items-center gap-1.5" aria-label="Map pins and places">
@@ -756,6 +752,7 @@ function Shell({
   onPopOut,
   onExportPins,
   onImportPins,
+  search,
   right,
   plane = false,
 }: {
@@ -767,6 +764,8 @@ function Shell({
   onExportPins?: () => void
   /** Read that same file back in, merging it into this browser's own pins. */
   onImportPins?: () => void
+  /** Search belongs to the map heading and shares that line until its result list opens. */
+  search?: React.ReactNode
   right?: React.ReactNode
   plane?: boolean
 }) {
@@ -793,7 +792,7 @@ function Shell({
         plane ? 'flex flex-col h-full min-h-0' : ''
       }`}
     >
-      <header className="flex items-center justify-between gap-2">
+      <header className="flex min-w-0 items-start gap-2">
         <h3 className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider min-w-0">
           <MapIcon className="w-3.5 h-3.5 shrink-0" />
           {/* Zone first, and it keeps the room. The shrink factors are the
@@ -834,7 +833,8 @@ function Shell({
             </>
           )}
         </h3>
-        <div className="flex items-center gap-2 shrink-0">
+        {search && <div className="min-w-[10rem] flex-1">{search}</div>}
+        <div className="flex shrink-0 items-center gap-2 pt-0.5">
           {right}
           {onPopOut && (
             <button

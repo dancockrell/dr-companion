@@ -1,12 +1,6 @@
 import { useId, useMemo } from 'react'
 import { roomArtUrl } from '../../lib/roomText'
 
-/** A 336x192 thumbnail stretched across the battle field is never acceptable
- * scene art. Keep it out of the renderer completely; a sharp deterministic
- * room fingerprint is a better placeholder until an approved HD scene exists. */
-export const MIN_ROOM_ART_WIDTH = 960
-export const MIN_ROOM_ART_HEIGHT = 540
-
 /**
  * The picture of the room, or something that stands in for it — pulled out of
  * `RoomScene` so the radar can sit on the same backdrop instead of a flat
@@ -164,11 +158,12 @@ export function RoomBackdrop({
         alt=""
         loading="lazy"
         onLoad={(e) => {
-          const image = e.currentTarget
-          image.style.display =
-            image.naturalWidth >= MIN_ROOM_ART_WIDTH && image.naturalHeight >= MIN_ROOM_ART_HEIGHT
-              ? 'block'
-              : 'none'
+          // If the browser decoded it, it is usable room art. A previous
+          // 960x540 gate silently rejected the bundled scene for this exact
+          // room and left the radar gray; CSS scaling is preferable to
+          // throwing away a valid visual anchor. Broken images still take
+          // the deterministic fingerprint path below through onError.
+          e.currentTarget.style.display = 'block'
         }}
         onError={(e) => {
           e.currentTarget.style.display = 'none'

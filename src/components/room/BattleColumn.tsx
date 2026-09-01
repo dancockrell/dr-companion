@@ -168,8 +168,14 @@ export function BattleColumn() {
     'stunned',
     'webbed',
     'immobilized',
+    'bags_full',
+    'roundtime',
+    'hidden',
+    'invisible',
+    'joined',
   ]
   const statusFlags = situation ? STATUS_ICON_FLAGS.filter((f) => situation.has(f)) : []
+  if ((character?.roundtime ?? 0) > 0 && !statusFlags.includes('roundtime')) statusFlags.push('roundtime')
 
   const you = character
     ? {
@@ -177,6 +183,7 @@ export function BattleColumn() {
         race: character.race,
         injuries: character.injuries ?? {},
         injuriesKnown: character.injuries !== undefined,
+        bleeding: character.bleeding,
         vitals: vitalsFor(character, stream.vitals.value),
         pose,
         statusFlags,
@@ -185,10 +192,6 @@ export function BattleColumn() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-2">
-      <PanelBoundary label="Status">
-        <BattleStatus />
-      </PanelBoundary>
-
       {/* The pulse lives on this wrapper, not inside RoomScene — RoomScene
           is shared with the legacy composed column and a caller that only
           wants a picture should not have to know about room-transition
@@ -229,15 +232,11 @@ export function BattleColumn() {
                 />
               ) : undefined
             }
+            header={<PanelBoundary label="Status"><BattleStatus /></PanelBoundary>}
+            footer={roomItems && roomItems.length > 0 ? <PanelBoundary label="Items on the ground"><FloorItems items={roomItems} overlay /></PanelBoundary> : undefined}
           />
         </PanelBoundary>
       </div>
-
-      {roomItems && roomItems.length > 0 && (
-        <div className="shrink-0 rounded border border-border bg-surface-raised px-2 py-1.5">
-          <PanelBoundary label="Items on the ground"><FloorItems items={roomItems} /></PanelBoundary>
-        </div>
-      )}
 
       <div className="shrink-0 rounded border border-border bg-surface-raised p-2">
         <PanelBoundary label="Combat controls">

@@ -34,6 +34,8 @@ export function RoomScene({
   maxHeightVh = 42,
   chips,
   overlay,
+  header,
+  footer,
   shape = 'square',
 }: {
   zone: string
@@ -69,6 +71,10 @@ export function RoomScene({
    * disagree the moment either one changed independently of the other.
    */
   overlay?: import('react').ReactNode
+  /** Compact live character/status content sharing the room-title strip. */
+  header?: import('react').ReactNode
+  /** Interactive scene content anchored over the bottom of the art. */
+  footer?: import('react').ReactNode
 }) {
   return (
     <div
@@ -105,15 +111,22 @@ export function RoomScene({
 
       {overlay && <div className="absolute inset-0 z-10" aria-label="Tactical radar over room art">{overlay}</div>}
 
-      {title && (
-        <div className="absolute inset-x-0 top-0 z-20 bg-surface/80 px-2 py-1 text-xs text-ink backdrop-blur-sm">
-          <span className="truncate">{title}</span>
+      {(title || header) && (
+        <div className="absolute inset-x-0 top-0 z-30 flex min-w-0 items-center gap-2 bg-surface/76 px-2 py-1 text-xs text-ink backdrop-blur-sm">
+          {title && <span className="min-w-0 shrink truncate font-medium">{title}</span>}
+          {header && <div className="ml-auto min-w-0 flex-1">{header}</div>}
+        </div>
+      )}
+
+      {footer && (
+        <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 max-h-[42%] overflow-hidden bg-gradient-to-t from-black/72 via-black/35 to-transparent px-2 pb-2 pt-8">
+          {footer}
         </div>
       )}
 
       {/* Who's here, on the felt rather than in a list beside it — the
           bottom edge, since the title moved to the top to make room. */}
-      {chips && (
+      {chips && !footer && (
         <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-6">
           {chips}
         </div>

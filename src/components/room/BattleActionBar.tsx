@@ -1,8 +1,8 @@
-import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { MACROS, type Macro } from '../../data/macros'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { useDragScroll } from '../../lib/useDragScroll'
+import { actionAccent, actionIcon } from '../../lib/battleActionVisuals'
 
 const GROUPS: Macro['group'][] = ['combat', 'health', 'hunt', 'goods', 'magic', 'travel', 'info']
 
@@ -16,32 +16,6 @@ const GROUP_TONE: Partial<Record<Macro['group'], string>> = {
   info: 'border-slate-400/40',
 }
 
-function variationIcon(macro: Macro, label: string, commands: string[]): Icons.LucideIcon {
-  const text = `${label} ${commands.join(' ')}`.toLowerCase()
-  const matches: Array<[RegExp, Icons.LucideIcon]> = [
-    [/retreat twice/, Icons.ChevronsLeft], [/retreat/, Icons.ChevronLeft], [/flee/, Icons.LogOut],
-    [/advance|engage/, Icons.MoveUpRight], [/aimed|aim/, Icons.Crosshair], [/ambush/, Icons.BetweenHorizontalEnd],
-    [/defensive/, Icons.ShieldCheck], [/guarded|stance/, Icons.ShieldHalf], [/offensive/, Icons.Swords],
-    [/find an empath/, Icons.UserRoundSearch], [/go to healer/, Icons.Hospital], [/sleep/, Icons.BedSingle],
-    [/diagnose/, Icons.Stethoscope], [/wounds?/, Icons.Bandage], [/tend/, Icons.HandHeart], [/heal|health/, Icons.HeartPulse],
-    [/stop stalking/, Icons.Eye], [/stalk/, Icons.Footprints], [/sneak/, Icons.MousePointer2], [/hide/, Icons.EyeOff],
-    [/skin/, Icons.Bone], [/coins only/, Icons.Coins], [/take all/, Icons.PackagePlus], [/stow all/, Icons.ArchiveRestore],
-    [/loot/, Icons.PackageOpen], [/wealth/, Icons.WalletCards], [/bank/, Icons.Landmark], [/appraise/, Icons.Scale],
-    [/harness/, Icons.Orbit], [/prepare/, Icons.Sparkles], [/release/, Icons.WandSparkles],
-    [/buffs?/, Icons.ShieldPlus], [/active spells?/, Icons.ListChecks], [/refresh/, Icons.RefreshCw],
-    [/town run/, Icons.Building2], [/safe room/, Icons.House], [/guild/, Icons.GraduationCap], [/travel/, Icons.Route],
-    [/exits?/, Icons.SignpostBig], [/experience/, Icons.TrendingUp], [/learning/, Icons.Brain], [/skills?/, Icons.ChartNoAxesColumnIncreasing],
-    [/tdps?/, Icons.BadgePlus], [/inventory/, Icons.Backpack], [/yourself/, Icons.UserRound], [/who/, Icons.UsersRound],
-    [/perceive/, Icons.ScanEye], [/search/, Icons.ScanSearch], [/look/, Icons.Eye],
-    [/throw/, Icons.CircleDotDashed], [/parry/, Icons.Swords], [/block|shield/, Icons.ShieldCheck],
-    [/dodge|evade/, Icons.Wind], [/north/, Icons.ArrowUp], [/south/, Icons.ArrowDown],
-    [/east/, Icons.ArrowRight], [/west/, Icons.ArrowLeft], [/climb/, Icons.Mountain],
-    [/go |walk/, Icons.Navigation], [/cast|spell|mana/, Icons.WandSparkles],
-    [/assess/, Icons.ClipboardCheck], [/attack|jab|slice|swing|thrust|lunge/, Icons.Sword],
-  ]
-  const match = matches.find(([pattern]) => pattern.test(text))
-  return match?.[1] ?? (Icons as unknown as Record<string, Icons.LucideIcon>)[macro.icon] ?? Icons.Zap
-}
 
 /**
  * Dense direct access, not a toolbar of menus. Every variation is a button of
@@ -76,28 +50,29 @@ export function BattleActionBar() {
               aria-label={`${group} commands`}
             >
               {macros.flatMap((macro) => {
-                return macro.variations.map((variation, variationIndex) => (
+                return macro.variations.map((variation) => {
+                  const actionKey = `${macro.id}:${variation.id}`
+                  const Icon = actionIcon(actionKey)
+                  return (
                   <button
-                    key={`${macro.id}:${variation.id}`}
+                    key={actionKey}
                     type="button"
                     disabled={!canSend}
                     onClick={() => run(variation.commands)}
-                    title={`${variation.label}${variation.note ? ` — ${variation.note}` : ''}\n${variation.commands.join(' ; ')}`}
+                    title={`${variation.label}${variation.note ? ` — ${variation.note}` : ''}\nRuns: ${variation.commands.join(' ; ')}`}
                     aria-label={`${variation.label}: ${variation.commands.join('; ')}`}
-                    className={cn(
-                      'relative grid h-9 w-9 place-items-center rounded border border-border bg-surface text-ink-muted hover:border-ink-faint hover:bg-surface-overlay hover:text-ink focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40',
-                      macro.id === 'attack' && variationIndex === 0 && 'border-danger/70 bg-danger/10 text-danger'
-                    )}
+                    data-action={actionKey}
+                    className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded border transition duration-150 hover:-translate-y-px hover:brightness-125 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-accent active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0"
+                    style={actionAccent(actionKey)}
                   >
-                    {(() => {
-                      const Icon = variationIcon(macro, variation.label, variation.commands)
-                      return <Icon className="h-[18px] w-[18px]" aria-hidden />
-                    })()}
+                    <span className="absolute inset-x-1 top-0 h-px bg-current opacity-45" aria-hidden />
+                    <Icon className="h-[18px] w-[18px] drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]" aria-hidden />
                     {macro.variations.length > 1 && (
-                      <span className="absolute bottom-0.5 right-0.5 h-1 w-1 rounded-full bg-current opacity-45" aria-hidden />
+                      <span className="absolute bottom-0.5 right-0.5 h-1 w-1 rotate-45 rounded-[1px] bg-current opacity-65" aria-hidden />
                     )}
                   </button>
-                ))
+                  )
+                })
               })}
             </div>
           )

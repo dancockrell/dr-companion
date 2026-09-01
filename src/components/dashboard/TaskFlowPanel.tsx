@@ -109,9 +109,10 @@ import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 import { readJSON, writeJSON } from '../../lib/storage'
-import type { QuickSwitchPin } from '../../lib/quickSwitch'
+import { isPinned, type QuickSwitchPin } from '../../lib/quickSwitch'
 import { MACROS, type Macro } from '../../data/macros'
 import { useMacroRunner } from '../../lib/useMacroRunner'
+import { accentForIndex, actionAccent, actionIcon } from '../../lib/battleActionVisuals'
 
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200
@@ -234,11 +235,15 @@ type Entry = {
    * without a player's override - carried alongside the resolved icon so
    * the picker's "reset to guess" can compare against it. */
   baseIcon: ScriptIconKey
+  /** Basic commands share their exact semantic identity with the battle rail. */
+  actionKey?: string
   tooltip: string
   category: string
   /** Shown as a small badge only while running; never printed on the tile
    * otherwise - see the module comment on why text lives in the tooltip. */
   readOnly: boolean
+  /** An unavailable game connection is a disabled command, not a dead click. */
+  disabled?: boolean
   run: () => void
   /** Present only for something backed by a real file - see the module
    * comment on why built-ins get no pencil. */
@@ -500,12 +505,14 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
           id: `command.${macro.id}.${variation.id}`,
           title: variation.label,
           baseIcon: COMMAND_ICON[macro.group],
+          actionKey: `${macro.id}:${variation.id}`,
           tooltip:
             `${variation.label}\n${variation.note ?? macro.label}\n\n` +
             `${variation.commands.join(' ; ')}\n\nBasic game function — sends directly through the macro safety gate.` +
             (macroReason ? `\n\n${macroReason}` : ''),
           category: COMMAND_CATEGORY[macro.group],
-          readOnly: !canSendMacro,
+          readOnly: false,
+          disabled: !canSendMacro,
           run: () => runMacro(variation.commands),
         }))
     )
@@ -574,6 +581,10 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   }, [orderedTasks, nodeTasks, rubyScripts, filter, startPython, startNode, startScript, addLog, runMacro, canSendMacro, macroReason])
 
   const groups = useMemo(() => groupTasksByCategory(entries), [entries])
+  const entryVisualIndex = useMemo(
+    () => new Map(entries.map((entry, index) => [entry.id, index])),
+    [entries]
+  )
   const commandCount = MACROS.reduce((count, macro) => count + macro.variations.length, 0)
   const totalCount = commandCount + tasks.length + nodeTasks.length + rubyScripts.length
 
@@ -689,9 +700,12 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
               <div className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1">
                 {group.items.map((entry) => {
                   const isCommand = entry.id.startsWith('command.')
-                  const overrideKey = iconOverrideFor(entry.id)
+                  const overrideKey = isCommand ? null : iconOverrideFor(entry.id)
                   const iconKey = overrideKey ?? entry.baseIcon
-                  const Icon = SCRIPT_ICON_COMPONENT[iconKey]
+                  const Icon = entry.actionKey ? actionIcon(entry.actionKey) : SCRIPT_ICON_COMPONENT[iconKey]
+                  const tileStyle = entry.actionKey
+                    ? actionAccent(entry.actionKey)
+                    : accentForIndex(entryVisualIndex.get(entry.id) ?? 0)
                   const active = running === entry.id
                   const isDragging = draggingId === entry.id
                   const isDropTarget =
@@ -700,16 +714,12 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                   // the synthetic `ruby.${name}` id this panel groups them
                   // under - see quickSwitch.ts's own header on why a pin is a
                   // tagged union rather than a bare id.
-                  const quickSwitchPin: QuickSwitchPin | null = isCommand
-                    ? null
+                  const quickSwitchPin: QuickSwitchPin = isCommand
+                    ? { kind: 'command', actionKey: entry.actionKey! }
                     : entry.id.startsWith('ruby.')
                     ? { kind: 'script', name: entry.id.slice('ruby.'.length) }
                     : { kind: 'task', id: entry.id }
-                  const pinned = quickSwitchPin !== null && quickSwitchPins.some((p) =>
-                    p.kind === 'script'
-                      ? quickSwitchPin.kind === 'script' && p.name === quickSwitchPin.name
-                      : quickSwitchPin.kind === 'task' && p.id === quickSwitchPin.id
-                  )
+                  const pinned = isPinned(quickSwitchPins, quickSwitchPin)
                   return (
                     <div
                       key={entry.id}
@@ -750,32 +760,36 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                     >
                       <button
                         type="button"
+                        disabled={entry.disabled}
                         onClick={entry.run}
-                        onContextMenu={(e) => {
+                        onContextMenu={isCommand ? undefined : (e) => {
                           e.preventDefault()
                           setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
                         }}
-                        title={`${entry.tooltip}\n\n(right-click to choose an icon, drag to rearrange)`}
+                        title={`${entry.tooltip}${isCommand ? '' : '\n\n(right-click to choose an icon, drag to rearrange)'}`}
+                        data-action={entry.actionKey}
+                        data-entry-id={entry.id}
                         className={cn(
-                          'flex w-full items-center justify-center rounded border py-2 transition-colors',
+                          'flex w-full items-center justify-center overflow-hidden rounded border py-2 transition duration-150 hover:-translate-y-px hover:brightness-125 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0',
                           active
-                            ? 'border-accent bg-accent/15'
+                            ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface'
                             : entry.readOnly
-                              ? 'border-border bg-surface-raised hover:border-ink-faint'
-                              : 'border-border bg-surface-raised hover:border-accent/60'
+                              ? 'opacity-70'
+                              : ''
                         )}
+                        style={tileStyle}
                       >
                         <Icon
                           className={cn(
-                            'h-4 w-4',
-                            active ? 'text-accent' : entry.readOnly ? 'text-ink-faint' : 'text-ink'
+                            'h-4 w-4 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]',
+                            entry.readOnly && 'opacity-70'
                           )}
                         />
                       </button>
                       {active && (
                         <Play className="pointer-events-none absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-surface text-accent" />
                       )}
-                      {quickSwitchPin && (
+                      {(
                         <button
                           type="button"
                           onClick={(e) => {
@@ -784,9 +798,10 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                           }}
                           title={
                             pinned
-                              ? 'Unpin from the Quick Switch bar'
-                              : 'Pin to the Quick Switch bar — one click or a number key from anywhere in the app'
+                              ? 'Remove from the hotbar'
+                              : 'Add to the hotbar — one click or a number key from anywhere in the app'
                           }
+                          aria-label={`${pinned ? 'Remove' : 'Add'} ${entry.title} ${pinned ? 'from' : 'to'} the hotbar`}
                           className={cn(
                             'absolute -left-1 -top-1 rounded-full bg-surface p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
                             pinned && 'opacity-100',

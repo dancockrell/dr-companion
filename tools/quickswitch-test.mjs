@@ -1,5 +1,5 @@
 /**
- * The Quick Switch pin list: a tagged union (task or script), capped at 50,
+ * The hotbar pin list: a tagged union (command, task, or script), capped at 50,
  * persisted, and validated on load for shape only — see quickSwitch.ts's
  * module note for why neither kind is checked against a known-id set any
  * more (both catalogs are read asynchronously now that the flow engine's
@@ -64,6 +64,7 @@ console.log('\n-- togglePin: pin, unpin, and the cap --')
   const m = await load()
   const taskPin = { kind: 'task', id: 'flow.hunt' }
   const scriptPin = { kind: 'script', name: 'hunting-buddy' }
+  const commandPin = { kind: 'command', actionKey: 'attack:ambush' }
 
   const afterTask = m.togglePin([], taskPin)
   ok('pinning a task adds it', afterTask.pins.length, 1)
@@ -72,8 +73,12 @@ console.log('\n-- togglePin: pin, unpin, and the cap --')
   const afterBoth = m.togglePin(afterTask.pins, scriptPin)
   ok('pinning a script alongside a task keeps both', afterBoth.pins.length, 2)
 
-  const unpinned = m.togglePin(afterBoth.pins, taskPin)
-  ok('toggling the same task pin again removes only it', unpinned.pins.length, 1)
+  const afterAllKinds = m.togglePin(afterBoth.pins, commandPin)
+  ok('pinning a command uses the same ordered hotbar', afterAllKinds.pins.length, 3)
+  ok('  and retains its semantic action identity', afterAllKinds.pins[2], commandPin)
+
+  const unpinned = m.togglePin(afterAllKinds.pins, taskPin)
+  ok('toggling the same task pin again removes only it', unpinned.pins.length, 2)
   ok('  and the script pin survives', unpinned.pins[0].kind, 'script')
 
   // The control: fifty distinct pins fill every slot, and the fifty-first
@@ -95,9 +100,10 @@ console.log('\n-- isPinned: matches by kind and identity, not just by name/id co
   // Deliberately a task id and a script name that are the same string - the
   // shape this test exists to catch is a task pin and a script pin being
   // treated as the same pin because only the second field was compared.
-  const pins = [{ kind: 'task', id: 'train' }]
+  const pins = [{ kind: 'task', id: 'train' }, { kind: 'command', actionKey: 'train:train' }]
   ok('a task pin is not confused with a script of the same name', m.isPinned(pins, { kind: 'script', name: 'train' }), false)
   ok('but the real task pin is recognised', m.isPinned(pins, { kind: 'task', id: 'train' }), true)
+  ok('and command identity stays separate from both', m.isPinned(pins, { kind: 'command', actionKey: 'train:train' }), true)
 }
 
 console.log('\n-- loadPins trusts both kinds - neither is validated against a known list --')
@@ -110,10 +116,11 @@ console.log('\n-- loadPins trusts both kinds - neither is validated against a kn
     { kind: 'task', id: 'a-task-that-may-no-longer-exist' },
     { kind: 'task', id: 'flow.hunt' },
     { kind: 'script', name: 'whatever-script' },
+    { kind: 'command', actionKey: 'attack:advance' },
   ]) }
   const m = await load()
   const loaded = m.loadPins()
-  ok('all three well-formed pins survive, unfiltered', loaded.length, 3)
+  ok('all four well-formed pins survive, unfiltered', loaded.length, 4)
   ok('  including the one naming an unverifiable task', loaded.some((p) => p.kind === 'task' && p.id === 'a-task-that-may-no-longer-exist'), true)
 }
 
@@ -124,6 +131,7 @@ console.log('\n-- loadPins rejects malformed entries rather than crashing on the
     'a-bare-string-from-the-old-v1-shape',
     { kind: 'task' }, // no id
     { kind: 'script' }, // no name
+    { kind: 'command' }, // no actionKey
     { kind: 'nonsense', id: 'x' },
     null,
   ]) }

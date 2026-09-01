@@ -4,8 +4,8 @@ import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
 import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
 import { Paperdoll, type Pose } from './Paperdoll'
-import { Activity, Anchor, Ban, BookOpen, Bug, Droplet, ExternalLink, FlaskConical, HeartCrack, HeartPulse, Skull, Zap, type LucideIcon } from 'lucide-react'
-import { playerArtFor, playerDefaultArtFor, notePlayerArtMissing } from '../../lib/playerArt'
+import { Activity, Anchor, Backpack, Ban, BookOpen, Bug, Droplet, ExternalLink, EyeOff, FlaskConical, Ghost, HeartCrack, HeartPulse, Skull, Timer, Users, Zap, type LucideIcon } from 'lucide-react'
+import { playerArtFor, playerDefaultArtFor, playerProfileFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { RoomBackdrop } from '../room/RoomBackdrop'
 import { type Deck } from '../../lib/cards'
@@ -13,6 +13,7 @@ import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body'
 import type { Vital } from '../../lib/vitals'
+import { sendGame } from '../../lib/gameLink'
 
 /**
  * The room, with everyone in it — a compass filling the whole board edge to
@@ -259,7 +260,7 @@ function RosterStrip({
  * its allegiance colour, while the columns merely guarantee stable places
  * to grab and scroll even when one side is temporarily empty.
  */
-function RosterColumn({ label, tone, side, children }: { label: string; tone: 'enemy' | 'friendly'; side: 'left' | 'right'; children: ReactNode }) {
+function RosterColumn({ label, side, children }: { label: string; side: 'left' | 'right'; children: ReactNode }) {
   const drag = useDragScroll()
   return (
     <div
@@ -268,13 +269,10 @@ function RosterColumn({ label, tone, side, children }: { label: string; tone: 'e
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar absolute bottom-0 top-0 z-20 w-[68px] cursor-grab overflow-x-hidden overflow-y-auto border-border/60 bg-surface/76 backdrop-blur-sm touch-none active:cursor-grabbing ${side === 'left' ? 'left-0 border-r' : 'right-0 border-l'}`}
+      className={`no-scrollbar absolute bottom-0 top-0 z-20 w-[68px] cursor-grab overflow-x-hidden overflow-y-auto bg-transparent touch-none active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
       aria-label={`${label} radar cards`}
       title={label}
     >
-      <div className={`sticky top-0 z-10 py-1 text-center text-xs font-semibold uppercase tracking-wide bg-surface/90 ${tone === 'enemy' ? 'text-danger' : 'text-info'}`}>
-        {label}
-      </div>
       <div className="flex flex-col items-center gap-1 p-1">{children}</div>
     </div>
   )
@@ -451,8 +449,13 @@ function HoverCard({ children, content }: { children: ReactNode; content: ReactN
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number; flip: boolean } | null>(null)
   const anchorRef = useRef<HTMLSpanElement>(null)
+  const hideTimer = useRef<number | null>(null)
 
   const show = () => {
+    if (hideTimer.current !== null) {
+      window.clearTimeout(hideTimer.current)
+      hideTimer.current = null
+    }
     const r = anchorRef.current?.getBoundingClientRect()
     if (r) {
       // Opens upward by default (the usual case: a puck low enough on the
@@ -468,7 +471,17 @@ function HoverCard({ children, content }: { children: ReactNode; content: ReactN
     }
     setOpen(true)
   }
-  const hide = () => setOpen(false)
+  const hide = () => {
+    if (hideTimer.current !== null) window.clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => {
+      setOpen(false)
+      hideTimer.current = null
+    }, 180)
+  }
+
+  useEffect(() => () => {
+    if (hideTimer.current !== null) window.clearTimeout(hideTimer.current)
+  }, [])
 
   return (
     // A plain span, not `display: contents` — a contents element generates
@@ -546,7 +559,9 @@ function InfoCard({
   const stale =
     combatant?.enrichedAgeSeconds != null && combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS
   const playerArtwork = card.deck === 'people' ? (playerArtFor(card.name) ?? playerDefaultArtFor(card.name)) : undefined
+  const playerProfile = card.deck === 'people' ? playerProfileFor(card.name) : undefined
   const wikiTarget = card.noun || card.name
+  const kind = card.deck === 'people' ? 'Player character' : card.deck === 'hostile' ? 'Hostile creature' : 'Friendly NPC'
 
   return (
     <div className="flex flex-col gap-1.5 text-xs">
@@ -560,6 +575,15 @@ function InfoCard({
           {card.status === 'stunned' && <p className="text-warn">stunned</p>}
         </div>
       </div>
+
+      <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 border-t border-border/60 pt-1.5">
+        <Fact label="Kind" value={kind} />
+        {card.noun && card.noun.toLowerCase() !== card.name.toLowerCase() && <Fact label="Noun" value={card.noun} />}
+        {card.count > 1 && <Fact label="Count" value={card.count} />}
+        {playerProfile?.race && <Fact label="Race" value={playerProfile.race} />}
+        {playerProfile?.sex && <Fact label="Gender" value={playerProfile.sex} />}
+        {playerProfile?.guild && <Fact label="Guild" value={playerProfile.guild} />}
+      </dl>
 
       {playerArtwork?.description && (
         <dl className="grid grid-cols-[auto_1fr] gap-x-2 border-t border-border/60 pt-1.5">
@@ -622,19 +646,35 @@ function InfoCard({
           </dl>
         </div>
       )}
-      {card.deck !== 'people' && (
+      <div className="flex flex-wrap gap-1 border-t border-border/60 pt-1.5">
+        <button
+          type="button"
+          onClick={() => void sendGame(`look ${card.noun || card.name}`)}
+          className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:border-info/50 hover:text-ink"
+          title={`Look at ${card.name}`}
+        >
+          Look
+        </button>
+        <button
+          type="button"
+          onClick={() => void sendGame(`assess ${card.noun || card.name}`)}
+          className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:border-warn/50 hover:text-ink"
+          title={`Assess ${card.name}`}
+        >
+          Assess
+        </button>
         <a
           href={`https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(wikiTarget)}`}
           target="_blank"
           rel="noreferrer"
           title={`Search Elanthipedia for ${wikiTarget}`}
-          className="flex items-center gap-1 border-t border-border/60 pt-1.5 text-info hover:underline"
+          className="ml-auto flex items-center gap-1 rounded border border-info/40 px-1.5 py-0.5 text-info hover:bg-info/10"
         >
           <BookOpen className="h-3.5 w-3.5" aria-hidden />
-          Search Elanthipedia
-          <ExternalLink className="ml-auto h-3 w-3" aria-hidden />
+          Elanthipedia
+          <ExternalLink className="h-3 w-3" aria-hidden />
         </a>
-      )}
+      </div>
     </div>
   )
 }
@@ -816,6 +856,11 @@ const STATUS_ICON: Partial<Record<string, { Icon: LucideIcon; label: string; ton
   diseased: { Icon: Bug, label: 'Diseased', tone: 'text-danger' },
   webbed: { Icon: Anchor, label: 'Webbed', tone: 'text-warn' },
   immobilized: { Icon: Ban, label: 'Immobilised', tone: 'text-warn' },
+  bags_full: { Icon: Backpack, label: 'Bags full', tone: 'text-warn' },
+  roundtime: { Icon: Timer, label: 'Roundtime', tone: 'text-warn' },
+  hidden: { Icon: EyeOff, label: 'Hidden', tone: 'text-good' },
+  invisible: { Icon: Ghost, label: 'Invisible', tone: 'text-good' },
+  joined: { Icon: Users, label: 'Joined to a group', tone: 'text-good' },
 }
 
 /** Nerves, poisoned and stunned all get a permanent slot in the row instead
@@ -883,6 +928,7 @@ function YouCard({
     race?: string | null
     injuries: Partial<Record<BodyPart, Injury>>
     injuriesKnown: boolean
+    bleeding?: Array<{ part: BodyPart | null; rate: string }>
     vitals: Vital[]
     pose: Pose
     statusFlags: string[]
@@ -902,7 +948,7 @@ function YouCard({
   // tuned number that happened to be close. The doll's own viewBox is
   // trimmed tight to its body now (Paperdoll.tsx), so there is no leftover
   // dead space at this height to justify picking a different one.
-  const portraitSize = compact ? 68 : 88
+  const portraitSize = compact ? 62 : 78
   const dollHeight = portraitSize
 
   return (
@@ -912,22 +958,22 @@ function YouCard({
     // vitals and status icons beside the doll instead of below it uses
     // that width and buys back the vertical space the second row cost.
     <div
-      className="pointer-events-auto flex max-w-[16rem] items-start gap-1 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
-      style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
+      className="pointer-events-auto flex max-w-[15rem] items-center gap-1.5 rounded-full bg-surface/70 py-1 pl-1 pr-3 ring-1 ring-border/35 backdrop-blur-sm"
+      style={{ boxShadow: '0 3px 14px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.05)' }}
     >
       <Portrait character={you.character} race={you.race ?? undefined} size={portraitSize} />
-      <Paperdoll injuries={you.injuries} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
+      <Paperdoll injuries={you.injuries} bleeding={you.bleeding} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
 
       {/* justify-start, not -center: centering a handful of short rows in a
           column as tall as the doll left visible empty space above and
           below them both, worst at the bottom under the icon row. Hugging
           the top costs nothing — the doll and portrait fill their own
           columns regardless of what this one does. */}
-      <div className="flex flex-col justify-start gap-0.5" style={{ height: dollHeight }}>
+      <div className="flex min-w-[3.35rem] flex-col justify-center gap-0" style={{ minHeight: dollHeight }}>
         {you.vitals.map((v) => {
           const share = v.max > 0 ? v.value / v.max : 1
           return (
-            <span key={v.key} className="whitespace-nowrap text-xs text-ink-muted" title={`${v.label}: ${v.value}/${v.max}`}>
+            <span key={v.key} className="whitespace-nowrap text-xs leading-[1.15rem] text-ink-muted" title={`${v.label}: ${v.value}/${v.max}`}>
               {v.label.slice(0, 2).toUpperCase()}{' '}
               <span className="text-base font-bold tabular-nums" style={{ color: vitalColor(share) }}>
                 {v.value}
@@ -942,22 +988,22 @@ function YouCard({
             overflowing: this column is narrow on purpose, and a fight
             carrying five status flags at once is rare enough that
             wrapping to a second line costs nothing most of the time. */}
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-border/30 pt-1">
-          <span title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
+        <div className="mt-0.5 flex max-w-[4.5rem] flex-wrap items-center gap-1 border-t border-border/30 pt-1">
+          <span role="img" aria-label={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`} title={`Nerves: ${SEVERITY_LABEL[nsysWound as Severity]}`}>
             {(() => {
               const NsysIcon = nsysIcon(nsysWound)
-              return <NsysIcon className="h-4 w-4" style={{ color: nsysColor(nsysWound) }} aria-hidden />
+              return <NsysIcon className="h-3.5 w-3.5" style={{ color: nsysColor(nsysWound) }} aria-hidden />
             })()}
           </span>
-          <span title={poisoned ? 'Poisoned' : 'Not poisoned'}>
-            <FlaskConical className={`h-4 w-4 ${alwaysTone(poisoned)}`} aria-hidden />
+          <span role="img" aria-label={poisoned ? 'Poisoned' : 'Not poisoned'} title={poisoned ? 'Poisoned' : 'Not poisoned'}>
+            <FlaskConical className={`h-3.5 w-3.5 ${alwaysTone(poisoned)}`} aria-hidden />
           </span>
-          <span title={stunned ? 'Stunned' : 'Not stunned'}>
-            <Zap className={`h-4 w-4 ${alwaysTone(stunned, true)}`} aria-hidden />
+          <span role="img" aria-label={stunned ? 'Stunned' : 'Not stunned'} title={stunned ? 'Stunned' : 'Not stunned'}>
+            <Zap className={`h-3.5 w-3.5 ${alwaysTone(stunned, true)}`} aria-hidden />
           </span>
           {statusIcons.map(({ Icon, label, tone }) => (
-            <span key={label} title={label}>
-              <Icon className={`h-4 w-4 ${tone}`} aria-hidden />
+            <span key={label} role="img" aria-label={label} title={label}>
+              <Icon className={`h-3.5 w-3.5 ${tone}`} aria-hidden />
             </span>
           ))}
         </div>
@@ -1012,6 +1058,7 @@ export function CombatRadar({
     race?: string | null
     injuries: Partial<Record<BodyPart, Injury>>
     injuriesKnown: boolean
+    bleeding?: Array<{ part: BodyPart | null; rate: string }>
     vitals: Vital[]
     /** Standing, sitting cross-legged, or lying down — the caller derives
      * this from the character's own situation flags (see BattleColumn) and
@@ -1123,14 +1170,6 @@ export function CombatRadar({
   const orderedStrip = reorderByPin(stripEntries, (e) => e.key, pinned)
   const enemyLane = orderedStrip.filter((entry) => entry.card.deck === 'hostile')
   const friendlyLane = orderedStrip.filter((entry) => entry.card.deck !== 'hostile')
-  const rangeCounts = positioned.reduce(
-    (counts, entry) => {
-      counts[entry.combatant.range!]++
-      return counts
-    },
-    { melee: 0, pole: 0, missile: 0 }
-  )
-
   const attack = () => runMacro(['attack'])
   const attackTitle = (label: string) =>
     attackReason ?? `${label} — attack (whatever is in front of you right now)`
@@ -1202,24 +1241,6 @@ export function CombatRadar({
             }}
           />
 
-          <div className="pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-2 rounded-full border border-border/50 bg-surface/75 px-2 py-1 text-xs text-ink backdrop-blur-sm">
-            <Activity className="h-4 w-4 text-danger" aria-hidden />
-            <span className="font-semibold">Combat radar</span>
-            <span className="text-ink-muted">
-              {positioned.length} engaged · {stripEntries.length} nearby
-            </span>
-          </div>
-          <div className="pointer-events-none absolute left-2 top-11 z-10 flex flex-wrap items-center gap-1 text-xs">
-            {(['melee', 'pole', 'missile'] as const).map((range) => (
-              <span
-                key={range}
-                className={`rounded-full border bg-surface/75 px-1.5 py-0.5 font-medium uppercase tracking-wide text-ink-muted backdrop-blur-sm ${range === 'melee' ? 'border-danger/55' : range === 'pole' ? 'border-warn/45' : 'border-info/40'}`}
-              >
-                {RANGE_WORD[range]} · {rangeCounts[range]}
-              </span>
-            ))}
-          </div>
-
           {/* The compass — the whole board, edge to edge. The roster floats
               over its right side as an overlay (below) rather than sharing
               the board's width with it, so the play area itself reaches
@@ -1279,12 +1300,12 @@ export function CombatRadar({
           )}
 
           <div aria-label="Scrollable friendly and enemy radar columns">
-            <RosterColumn label="Friends" tone="friendly" side="left">
+            <RosterColumn label="Friends" side="left">
               {friendlyLane.map((entry) => (
                 <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
               ))}
             </RosterColumn>
-            <RosterColumn label="Enemies" tone="enemy" side="right">
+            <RosterColumn label="Enemies" side="right">
               {enemyLane.map((entry) => (
                 <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
               ))}

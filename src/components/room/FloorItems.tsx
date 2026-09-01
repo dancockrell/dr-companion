@@ -57,7 +57,7 @@ function iconForItem(name: string) {
   return Package
 }
 
-export function FloorItems({ items }: { items?: string[] }) {
+export function FloorItems({ items, overlay = false }: { items?: string[]; overlay?: boolean }) {
   const { take, canSend, reason } = useRoomItemTake()
   const drag = useDragScroll()
   const [query, setQuery] = useState('')
@@ -80,14 +80,18 @@ export function FloorItems({ items }: { items?: string[] }) {
   const targetOf = (name: string) => name.replace(/^(?:a|an|some|the)\s+/i, '').trim()
 
   return (
-    <div className="flex flex-col gap-1" aria-label={`Items on the ground: ${groups.length} kinds, ${items.length} total`}>
+    <div className={cn('flex flex-col gap-1', overlay && 'justify-end')} aria-label={`Items on the ground: ${groups.length} kinds, ${items.length} total`}>
       <div
         ref={drag.ref}
         onPointerDown={drag.onPointerDown}
         onPointerMove={drag.onPointerMove}
         onPointerUp={drag.onPointerUp}
         onPointerCancel={drag.onPointerCancel}
-        className={cn('no-scrollbar flex touch-none gap-1 overflow-x-auto', drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
+        className={cn(
+          'no-scrollbar flex touch-none gap-1',
+          overlay ? 'max-h-28 flex-wrap content-end overflow-auto' : 'overflow-x-auto',
+          drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+        )}
       >
         {visible.map(({ name, count }) => {
           const Icon = iconForItem(name)
@@ -101,7 +105,8 @@ export function FloorItems({ items }: { items?: string[] }) {
               aria-pressed={selected === name}
               title={tooltip}
               className={cn(
-                'flex shrink-0 items-center gap-1 rounded border border-border px-1.5 py-1 text-xs',
+                'flex shrink-0 items-center gap-1 rounded border border-border px-1.5 py-1 text-xs shadow-sm backdrop-blur-sm',
+                overlay ? 'bg-surface/72' : 'bg-surface-raised',
                 'text-ink-muted hover:border-ink-faint hover:text-ink',
                 selected === name && 'border-accent bg-accent/10 text-ink'
               )}
@@ -122,7 +127,7 @@ export function FloorItems({ items }: { items?: string[] }) {
         const target = targetOf(selected)
         const wikiUrl = `https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(target)}`
         return (
-          <div className="flex flex-wrap items-center gap-1 rounded border border-accent/35 bg-surface-overlay p-1.5 text-xs" aria-label={`Actions for ${selected}`}>
+          <div className="flex flex-wrap items-center gap-1 rounded border border-accent/45 bg-surface-overlay/90 p-1.5 text-xs shadow-lg backdrop-blur" aria-label={`Actions for ${selected}`}>
             <strong className="mr-1 min-w-0 flex-1 truncate text-ink" title={selected}>{selected}</strong>
             <button type="button" onClick={() => void sendGame(`look ${target}`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Look at ${selected}`}>Look</button>
             <button type="button" disabled={!canSend} onClick={() => take(selected)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-accent disabled:opacity-40" title={reason ?? `get ${nounOf(selected)}`}>Get</button>

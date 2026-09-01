@@ -23,6 +23,8 @@ import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
 import { sendGame } from './lib/gameLink'
 import { requestStartFlow, requestStopAll } from './lib/flowStop'
+import { MACROS } from './data/macros'
+import { canSendMacro } from './lib/canSendMacro'
 
 /**
  * Which window this is.
@@ -115,6 +117,15 @@ export default function App() {
         const { quickSwitchPins, activeFlow, startScript } = useAppStore.getState()
         const pin = quickSwitchPins[slot]
         if (!pin) return
+        if (pin.kind === 'command') {
+          const [macroId, variationId] = pin.actionKey.split(':')
+          const variation = MACROS.find((macro) => macro.id === macroId)?.variations.find((item) => item.id === variationId)
+          const state = useAppStore.getState()
+          if (variation && canSendMacro({ stopLatched: state.character?.stopLatched, inFlight: false, connected: !!state.character }).canSend) {
+            state.requestIntent('run_macro', { commands: variation.commands })
+          }
+          return
+        }
         if (pin.kind === 'script') {
           startScript(pin.name)
           return

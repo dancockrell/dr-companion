@@ -38,7 +38,10 @@
  * missing script already gets.
  */
 
-export type QuickSwitchPin = { kind: 'task'; id: string } | { kind: 'script'; name: string }
+export type QuickSwitchPin =
+  | { kind: 'command'; actionKey: string }
+  | { kind: 'task'; id: string }
+  | { kind: 'script'; name: string }
 
 const KEY = 'drc.quickswitch.v3'
 export const MAX_SLOTS = 50
@@ -46,12 +49,14 @@ export const MAX_SLOTS = 50
 export const KEYBOARD_SLOTS = 9
 
 function keyOf(pin: QuickSwitchPin): string {
+  if (pin.kind === 'command') return `command:${pin.actionKey}`
   return pin.kind === 'task' ? `task:${pin.id}` : `script:${pin.name}`
 }
 
 function isPin(x: unknown): x is QuickSwitchPin {
   if (typeof x !== 'object' || x === null) return false
   const o = x as Record<string, unknown>
+  if (o.kind === 'command') return typeof o.actionKey === 'string' && o.actionKey.length > 0
   if (o.kind === 'task') return typeof o.id === 'string' && o.id.length > 0
   if (o.kind === 'script') return typeof o.name === 'string' && o.name.length > 0
   return false

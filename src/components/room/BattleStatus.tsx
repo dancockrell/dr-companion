@@ -26,12 +26,12 @@ export function BattleStatus() {
     // header strip, not a fifth card: PanelBoundary already gives it a
     // label if something inside throws, and the picture below is the thing
     // that should look like a card here, not this.
-    <div className="flex min-w-0 items-center gap-2 px-0.5">
-      <StatusBoard />
+    <div className="flex min-w-0 items-center justify-end gap-2">
       {/* HandsRow supplies its own top border and spacing, built for
           stacking under exactly this — see its doc comment: "in a fight
           this is the question." */}
       <HandsRow character={character ?? null} />
+      <StatusBoard />
     </div>
   )
 }
