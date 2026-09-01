@@ -545,10 +545,12 @@ mod tests {
             backlog.lines.back().map(|line| line.seq),
             Some(BACKLOG_MAX as u64 + 137)
         );
-        assert!(
-            BACKLOG_MAX >= 20_000,
-            "native recovery must cover the frontend's display budget"
-        );
+        const {
+            assert!(
+                BACKLOG_MAX >= 20_000,
+                "native recovery must cover the frontend's display budget"
+            );
+        }
     }
 
     /// The transport, end to end, against a socket standing in for Lich.
