@@ -150,18 +150,6 @@ export const SKILLS_BY_SET: Record<SkillSet, string[]> = {
   ],
 }
 
-const SET_BY_SKILL: Record<string, SkillSet> = (() => {
-  const out: Record<string, SkillSet> = {}
-  for (const set of SKILL_SETS) {
-    for (const skill of SKILLS_BY_SET[set]) out[skill.toLowerCase()] = set
-  }
-  return out
-})()
-
-export function skillSetFor(skill: string): SkillSet | null {
-  return SET_BY_SKILL[skill.toLowerCase()] ?? null
-}
-
 /** One skill's live state, as reported by the bridge from DRSkill. */
 export interface SkillState {
   name: string
@@ -185,25 +173,12 @@ export function headroom(skill: SkillState): number {
   return MINDSTATE_MAX - clampMindstate(skill.mindstate)
 }
 
-export function isMindLocked(skill: SkillState): boolean {
-  return clampMindstate(skill.mindstate) >= MINDSTATE_MAX
-}
-
 /**
  * "Nearly locked" (33) is the point where a player switches. Treat it as
  * saturated for recommendation purposes rather than waiting for a hard 34,
  * since the pool will fill during the time it takes to act.
  */
 export const SATURATED_AT = 33
-
-export function isSaturated(skill: SkillState): boolean {
-  return clampMindstate(skill.mindstate) >= SATURATED_AT
-}
-
-/** Absorbing well: enough headroom that training pays off now. */
-export function isAbsorbing(skill: SkillState): boolean {
-  return clampMindstate(skill.mindstate) < 25
-}
 
 export type TrainingUrgency = 'wasted' | 'poor' | 'fine' | 'ideal'
 
