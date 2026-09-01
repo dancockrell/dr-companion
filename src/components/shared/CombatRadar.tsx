@@ -13,7 +13,7 @@ import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body'
 import type { Vital } from '../../lib/vitals'
-import { sendGame } from '../../lib/gameLink'
+import { requestGameAction } from '../../lib/gameActions'
 import { ArmorManager } from './ArmorManager'
 
 /**
@@ -656,7 +656,7 @@ function InfoCard({
       <div className="flex flex-wrap gap-1 border-t border-border/60 pt-1.5">
         <button
           type="button"
-          onClick={() => void sendGame(`look ${card.noun || card.name}`)}
+          onClick={() => requestGameAction(`look ${card.noun || card.name}`, `Look at ${card.name}`)}
           className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:border-info/50 hover:text-ink"
           title={`Look at ${card.name}`}
         >
@@ -664,7 +664,7 @@ function InfoCard({
         </button>
         <button
           type="button"
-          onClick={() => void sendGame(`assess ${card.noun || card.name}`)}
+          onClick={() => requestGameAction(`assess ${card.noun || card.name}`, `Assess ${card.name}`)}
           className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:border-warn/50 hover:text-ink"
           title={`Assess ${card.name}`}
         >
