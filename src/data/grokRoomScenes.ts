@@ -11,11 +11,18 @@ const GROK_SCENES = {
   water: ['/grok-art/room-scenes/marsh-dusk-025a5488.jpg', '/grok-art/room-scenes/lantern-dock-02798b8e.jpg', '/grok-art/room-scenes/reed-marsh-0fb4267f.jpg'],
   ocean: ['/grok-art/room-scenes/storm-ocean-10d4c18a.jpg', '/grok-art/room-scenes/lighthouse-coast-0ee0be16.jpg'],
   cave: ['/grok-art/room-scenes/sea-cave-038edbd8.jpg'],
+  mine: ['/grok-art/room-scenes/crystal-mine-3638b938.jpg'],
   mountain: ['/grok-art/room-scenes/cliff-monastery-0183963f.jpg', '/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg'],
   snow: ['/grok-art/room-scenes/snowfield-0d5df7bf.jpg', '/grok-art/room-scenes/alpine-lake-108392d4.jpg'],
   desert: ['/grok-art/room-scenes/desert-canyon-0322415e.jpg'],
   temple: ['/grok-art/room-scenes/shrine-interior-0f2de22b.jpg'],
-  apothecary: ['/grok-art/room-scenes/apothecary-09cdec8e.jpg'],
+  apothecary: ['/grok-art/room-scenes/herbalist-ab006279.jpg', '/grok-art/room-scenes/apothecary-09cdec8e.jpg'],
+  jeweler: ['/grok-art/room-scenes/jeweler-35a7845f.jpg'],
+  magicShop: ['/grok-art/room-scenes/magic-shop-4ef50ab1.jpg'],
+  archive: ['/grok-art/room-scenes/archive-494b55cb.jpg'],
+  theater: ['/grok-art/room-scenes/theater-4013bf56.jpg'],
+  training: ['/grok-art/room-scenes/training-hall-650f2679.jpg'],
+  guildHall: ['/grok-art/room-scenes/guild-hall-441c3d78.jpg'],
   forge: ['/grok-art/room-scenes/forge-11c9cd64.jpg'],
   outfitter: ['/grok-art/room-scenes/leather-workshop-1390477d.jpg'],
   tailor: ['/grok-art/room-scenes/textile-shop-1eed98c2.jpg'],
@@ -33,6 +40,13 @@ type SceneFamily = keyof typeof GROK_SCENES
 function familyFor(description: string): SceneFamily {
   if (/\b(treehouse|treetop|canopy|wood elf|leth deriel)\b/i.test(description)) return 'treeTown'
   if (/\b(apothecary|alchemy|alchemist|potion|herb shop|herbalist)\b/i.test(description)) return 'apothecary'
+  if (/\b(magic shop|enchanter|enchanting|artificer|arcane shop|crystal shop|magical supplies)\b/i.test(description)) return 'magicShop'
+  if (/\b(jeweler|jeweller|gem shop|gemcutter|goldsmith|silversmith)\b/i.test(description)) return 'jeweler'
+  if (/\b(theater|theatre|stage|playhouse|auditorium|performance hall|music hall)\b/i.test(description)) return 'theater'
+  if (/\b(training hall|practice hall|sparring room|sparring ring|combat academy|weapon practice)\b/i.test(description)) return 'training'
+  if (/\b(library|archive|scriptorium|scribe|scroll room|reading room)\b/i.test(description)) return 'archive'
+  if (/\b(bank|guildhall|guild hall|council hall|registry|public office|teller)\b/i.test(description)) return 'guildHall'
+  if (/\b(mine|mineshaft|mining|ore|quarry|crystal cavern|crystal cave)\b/i.test(description)) return 'mine'
   if (/\b(forge|smithy|blacksmith|anvil|foundry)\b/i.test(description)) return 'forge'
   if (/\b(tailor|seamstress|clothier|weaver|textile|fabric|dye shop)\b/i.test(description)) return 'tailor'
   if (/\b(outfitter|tannery|leather|armorer|armor shop)\b/i.test(description)) return 'outfitter'
