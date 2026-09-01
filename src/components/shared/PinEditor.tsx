@@ -20,6 +20,7 @@ import {
   type MapPin,
 } from '../../lib/mapPins'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
+import { useDismiss } from '../../lib/useDismiss'
 
 export function PinEditor({
   roomId,
@@ -45,6 +46,7 @@ export function PinEditor({
    */
   onCreateTask?: (pin: MapPin) => void
 }) {
+  useDismiss(onClose)
   const [label, setLabel] = useState(existing?.label ?? roomTitle)
   const [color, setColor] = useState<PinColor>(existing?.color ?? 'blue')
   const [icon, setIcon] = useState<PinIcon | undefined>(existing?.icon)
@@ -76,6 +78,7 @@ export function PinEditor({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      data-gameplay-shortcuts="suspend"
       onClick={onClose}
     >
       <div

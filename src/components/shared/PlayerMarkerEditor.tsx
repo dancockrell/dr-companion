@@ -13,6 +13,7 @@ import { useRef, useState } from 'react'
 import { PIN_ICONS } from '../../lib/mapPins'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 import type { PlayerMarker } from '../../lib/playerMarker'
+import { useDismiss } from '../../lib/useDismiss'
 
 export function PlayerMarkerEditor({
   marker,
@@ -23,6 +24,7 @@ export function PlayerMarkerEditor({
   onSave: (marker: PlayerMarker) => void
   onClose: () => void
 }) {
+  useDismiss(onClose)
   const [icon, setIcon] = useState(marker.icon)
   const [color, setColor] = useState(marker.color)
 
@@ -56,7 +58,7 @@ export function PlayerMarkerEditor({
   const SelectedIcon = PIN_ICON_COMPONENT[icon]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" data-gameplay-shortcuts="suspend" onClick={onClose}>
       <div
         className="w-full max-w-xs rounded-lg border border-border bg-surface p-3 shadow-lg"
         onClick={(e) => e.stopPropagation()}

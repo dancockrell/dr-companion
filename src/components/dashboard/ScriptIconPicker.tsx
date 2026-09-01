@@ -13,6 +13,7 @@
 import { SCRIPT_ICON_KEYS, type ScriptIconKey } from '../../lib/scriptIcons'
 import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
 import { cn } from '../../lib/cn'
+import { useDismiss } from '../../lib/useDismiss'
 
 export function ScriptIconPicker({
   title,
@@ -33,9 +34,11 @@ export function ScriptIconPicker({
   onReset?: () => void
   onClose: () => void
 }) {
+  useDismiss(onClose)
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      data-gameplay-shortcuts="suspend"
       onClick={onClose}
     >
       <div

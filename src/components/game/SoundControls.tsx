@@ -522,7 +522,11 @@ export function SoundControls() {
       setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape' && !(e.ctrlKey && e.shiftKey)) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setOpen(false)
+      }
     }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
@@ -559,7 +563,7 @@ export function SoundControls() {
   const overallPct = Math.round(((alerts + danger + speech + music) / 4) * 100)
 
   return (
-    <div ref={wrapperRef} className="relative flex items-center gap-0.5">
+    <div ref={wrapperRef} className="relative flex items-center gap-0.5" data-gameplay-shortcuts={open ? 'suspend' : undefined}>
       {/* Quick mute: one click, not open-panel-then-drag-two-sliders-to-zero. */}
       <button
         type="button"

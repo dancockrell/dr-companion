@@ -14,8 +14,8 @@
  * Split into a pure resolver (`resolveKeybinding`, no DOM, no side effects,
  * trivially unit-testable) and a thin installer that wires it to the real
  * `window` and the real send functions. The property that matters —
- * "this key does this, unless the player is typing, except Escape" — lives
- * entirely in the pure half.
+ * "this key does this unless a foreground interaction owns it" — lives in
+ * the pure half. The installer determines ownership from the live DOM.
  */
 
 /** NumPad movement, read directly off Dan's Genie config. */
@@ -91,8 +91,11 @@ export const KEYBINDING_HELP: string[] = [
   'NumPad 5 — out',
   'F1 — look at what you\u2019re facing, F2 — health, F4 — skills',
   '1-9 — switch to that Quick Switch slot (pin a task or script to fill one)',
-  'Escape — stop all, even while typing in a text field',
+  'Escape — stop all when no foreground panel is open',
+  'Ctrl+Shift+Escape — emergency stop while a foreground panel is open',
 ]
+
+export const SHORTCUT_SCOPE_SELECTOR = '[data-gameplay-shortcuts="suspend"]'
 
 /**
  * Whether the event's target is somewhere text goes — an input, a textarea,
@@ -112,6 +115,16 @@ export function isTypingTarget(target: EventTarget | null): boolean {
   return t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable === true
 }
 
+/** Controls and foreground surfaces own keystrokes before live-game bindings. */
+export function isInteractionTarget(target: EventTarget | null): boolean {
+  if (isTypingTarget(target)) return true
+  if (target == null || typeof target !== 'object') return false
+  const t = target as { closest?: (selector: string) => unknown }
+  return typeof t.closest === 'function' && !!t.closest(
+    `${SHORTCUT_SCOPE_SELECTOR},button,select,[role="dialog"],[role="menu"],[role="listbox"]`
+  )
+}
+
 export type KeyResolution =
   | { kind: 'game'; command: string }
   | { kind: 'stop' }
@@ -121,17 +134,20 @@ export type KeyResolution =
 /**
  * Pure decision: what should this keydown do, if anything.
  *
- * Escape is checked before the typing guard on purpose — it is the one
- * binding that must reach the player mid-sentence, because that is exactly
- * when a hunt has gone wrong and they are still typing the command that
- * would not have saved them.
+ * A blocked foreground scope owns every ordinary key, including bare Escape.
+ * Ctrl+Shift+Escape is deliberately distinct and remains available as the
+ * emergency stop without turning "close this panel" into a gameplay action.
  */
 export function resolveKeybinding(
-  e: { key: string; code: string },
-  typing: boolean
+  e: { key: string; code: string; ctrlKey?: boolean; shiftKey?: boolean },
+  blocked: boolean
 ): KeyResolution {
+  if (blocked) {
+    return e.key === 'Escape' && e.ctrlKey === true && e.shiftKey === true
+      ? { kind: 'stop' }
+      : null
+  }
   if (e.key === 'Escape') return { kind: 'stop' }
-  if (typing) return null
   const command = GAME_KEYS[e.code]
   if (command) return { kind: 'game', command }
   const slot = QUICK_SWITCH_KEYS[e.code]
@@ -150,7 +166,9 @@ export interface KeybindingHooks {
 /** Installs the one global listener. Returns the cleanup. */
 export function installKeybindings(hooks: KeybindingHooks): () => void {
   function onKeyDown(e: KeyboardEvent) {
-    const action = resolveKeybinding(e, isTypingTarget(e.target))
+    const foregroundOpen = !!document.querySelector(SHORTCUT_SCOPE_SELECTOR)
+    const controlOwnsKey = e.key !== 'Escape' && isInteractionTarget(e.target)
+    const action = resolveKeybinding(e, foregroundOpen || controlOwnsKey)
     if (!action) return
     e.preventDefault()
     if (action.kind === 'stop') hooks.stopAll()

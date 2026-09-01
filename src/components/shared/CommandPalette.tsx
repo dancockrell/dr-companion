@@ -297,7 +297,11 @@ export function CommandPalette() {
         setOpen((v) => !v)
         return
       }
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape' && !(e.ctrlKey && e.shiftKey)) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setOpen(false)
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -368,6 +372,7 @@ export function CommandPalette() {
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[12vh]"
+      data-gameplay-shortcuts="suspend"
       onClick={() => setOpen(false)}
     >
       <div

@@ -148,7 +148,7 @@ export function GameCommandBar({
   }
 
   return (
-    <div className="flex shrink-0 flex-col rounded border border-border bg-surface-raised">
+    <div className="flex shrink-0 flex-col rounded border border-border bg-surface-raised" data-gameplay-shortcuts={searchOpen ? 'suspend' : undefined}>
       {/* What the last line actually became, when an alias changed it.
           Directly above the input, because that is where the player is
           looking, and it is the only way to tell a wrong alias from the game
@@ -190,6 +190,7 @@ export function GameCommandBar({
               ? (e) => {
                   if (e.key === 'Escape') {
                     e.preventDefault()
+                    e.stopPropagation()
                     closeSearch()
                   }
                 }
