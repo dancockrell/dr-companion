@@ -189,6 +189,12 @@ applied = loadAllPins()
 ok('Replace removes only the local pin disclosed by preview', !applied.hero.some((p) => p.roomId === 2))
 ok('Replace still preserves the system corpse pin', applied.hero.some((p) => p.system))
 
+console.log('\n-- import preview follows the shared modal interaction contract --')
+const importDialog = readFileSync('src/components/shared/PinImportDialog.tsx', 'utf8')
+ok('the import dialog uses shared focus trapping, Escape handling, and focus restoration', importDialog.includes('useModalDialog(onClose)'))
+ok('the import dialog can receive fallback focus', importDialog.includes('tabIndex={-1}'))
+ok('gameplay shortcuts are suspended while import choices are open', importDialog.includes('data-gameplay-shortcuts="suspend"'))
+
 console.log('\n-- positive control: this suite can actually fail --')
 const { store: controlStore } = mustParse(pinsToYaml({ z: [{ id: 'a', roomId: 1, zone: '', label: 'X', color: 'blue', createdAt: 1 }] }))
 ok('sabotage check: a genuinely present pin is detected as present', (controlStore.z ?? []).length === 1)

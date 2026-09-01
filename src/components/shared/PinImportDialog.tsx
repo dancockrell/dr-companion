@@ -6,6 +6,7 @@ import {
   type PinImportPreview,
   type PinImportResult,
 } from '../../lib/pinsFile'
+import { useModalDialog } from '../../lib/useModalDialog'
 
 export function PinImportDialog({ preview, onClose, onChanged, onResult }: {
   preview: PinImportPreview
@@ -16,6 +17,7 @@ export function PinImportDialog({ preview, onClose, onChanged, onResult }: {
   const initial = useMemo(() => Object.fromEntries(preview.characters.map((item) => [item.key, 'merge' as const])), [preview])
   const [choices, setChoices] = useState<Record<string, PinImportChoice>>(initial)
   const [result, setResult] = useState<PinImportResult | null>(null)
+  const dialogRef = useModalDialog(onClose)
   const replacementDeletes = preview.characters.reduce(
     (sum, item) => sum + (choices[item.key] === 'replace' ? item.removedByReplace : 0), 0
   )
@@ -35,8 +37,8 @@ export function PinImportDialog({ preview, onClose, onChanged, onResult }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4" role="presentation">
-      <section className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-surface-overlay shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="pin-import-title">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4" role="presentation" data-gameplay-shortcuts="suspend" onClick={onClose}>
+      <div ref={dialogRef} tabIndex={-1} className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-surface-overlay shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="pin-import-title" onClick={(event) => event.stopPropagation()}>
         <header className="border-b border-border px-4 py-3">
           <h2 id="pin-import-title" className="font-semibold text-ink">Preview pin import</h2>
           <p className="mt-1 text-xs text-ink-muted">Nothing changes until you apply this plan. Merge preserves unrelated local pins and is recommended.</p>
@@ -67,7 +69,7 @@ export function PinImportDialog({ preview, onClose, onChanged, onResult }: {
             <><button type="button" onClick={onClose} className="rounded border border-border px-3 py-1.5 text-sm text-ink-muted">Cancel</button><button type="button" disabled={preview.empty || preview.characters.length === 0} onClick={apply} className="rounded bg-accent px-3 py-1.5 text-sm text-surface disabled:opacity-40">{replacementDeletes > 0 ? `Apply and remove ${replacementDeletes}` : 'Apply import'}</button></>
           )}
         </footer>
-      </section>
+      </div>
     </div>
   )
 }
