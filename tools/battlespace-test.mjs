@@ -43,6 +43,7 @@ check('room art is the fixed base layer underneath the tactical radar', /aria-la
 check('every successfully decoded room image fades over the deterministic fallback', /onLoad=/.test(backdrop) && /style\.opacity = '1'/.test(backdrop) && /onError=/.test(backdrop) && /style\.opacity = '0'/.test(backdrop) && /opacity-0 transition-opacity/.test(backdrop) && !/MIN_ROOM_ART_WIDTH/.test(backdrop))
 check('generic room art comes only from stable location-aware Grok landscape baskets', /grokRoomScene\(zone, room, title, text\)/.test(readFileSync(new URL('../src/lib/roomText.ts', import.meta.url), 'utf8')) && /HOLD_ROOMS = 3/.test(grokScenes) && /\/grok-art\/room-scenes\//.test(grokScenes) && !/\/rooms\//.test(grokScenes) && !/\/room-scenes\//.test(grokScenes.replaceAll('/grok-art/room-scenes/', '')))
 check('Grok scene families distinguish high-reuse interiors, snow, ocean and wetlands', /return 'apothecary'/.test(grokScenes) && /return 'forge'/.test(grokScenes) && /return 'outfitter'/.test(grokScenes) && /return 'temple'/.test(grokScenes) && /return 'snow'/.test(grokScenes) && /return 'ocean'/.test(grokScenes) && /reed-marsh/.test(grokScenes))
+check('Grok scene families distinguish civic, trade and rural rooms', /return 'tailor'/.test(grokScenes) && /return 'harbor'/.test(grokScenes) && /return 'grassland'/.test(grokScenes) && /return 'orchard'/.test(grokScenes) && /return 'courtyard'/.test(grokScenes) && /return 'ruins'/.test(grokScenes) && /town-square/.test(grokScenes))
 check('room exits are always wired from live compass or mapped movement commands', /stream\.compass\?\.value \?\? here\?\.moves/.test(battle))
 check('large floor piles collapse duplicates and become searchable', /count: number/.test(floor) && /groups\.length > 12/.test(floor) && /Find among/.test(floor))
 check('floor items open explicit actions instead of taking immediately', /Actions for/.test(floor) && />Look</.test(floor) && />Get</.test(floor) && />Appraise</.test(floor) && />Analyze</.test(floor))
@@ -66,3 +67,4 @@ check('room title, hands and statuses share the scene header line', /header=\{<P
 
 if (failures) process.exit(1)
 console.log('\nall battlespace checks passed')
+
