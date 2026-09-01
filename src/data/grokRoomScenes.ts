@@ -5,8 +5,6 @@
  * selector returns no literal scene so the caller can keep the honest room
  * fingerprint instead of presenting a confident but invented location.
  */
-const HOLD_ROOMS = 3
-
 const GROK_SCENES = {
   forest: ['/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg', '/grok-art/room-scenes/forest-clearing-06aeb546.jpg'],
   water: ['/grok-art/room-scenes/marsh-dusk-025a5488.jpg', '/grok-art/room-scenes/lantern-dock-02798b8e.jpg', '/grok-art/room-scenes/reed-marsh-0fb4267f.jpg'],
@@ -67,15 +65,18 @@ export function familyFor(description: string): SceneFamily | null {
   if (/\b(town square|night market|market square|village square|city plaza|town plaza)\b/i.test(description)) return 'town'
   return null
 }
-function stableIndex(zone: string, room: number, length: number): number {
+export function stableSceneIndex(zone: string, room: number, length: number): number {
   let zoneHash = 0
   for (const char of zone) zoneHash = Math.imul(zoneHash, 31) + char.charCodeAt(0)
-  return Math.abs(zoneHash + Math.floor(room / HOLD_ROOMS)) % length
+  // A room id is an identity, not a spatial coordinate. Hash every room on
+  // its own until the map pipeline provides an explicit topology-derived
+  // scene cluster; arithmetic buckets falsely group disconnected locations.
+  return Math.abs(zoneHash + room) % length
 }
 
 export function grokRoomScene(zone: string, room: number, title?: string | null, text?: string | null): string | null {
   const family = familyFor(`${title ?? ''} ${text ?? ''}`)
   if (family === null) return null
   const pool = GROK_SCENES[family]
-  return pool[stableIndex(zone, room, pool.length)]
+  return pool[stableSceneIndex(zone, room, pool.length)]
 }
