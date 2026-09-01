@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { BookOpen, ChevronDown, ChevronRight, Package, Search, Sparkles } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { capabilitiesForCharacter } from '../../lib/accountCapabilities'
@@ -15,12 +15,18 @@ function itemTarget(name: string): string {
   return name.replace(/^(?:a|an|some|the)\s+/i, '').trim()
 }
 
-function ItemRow({ name, onWiki }: { name: string; onWiki: (name: string) => void }) {
+function groupedItems(items: string[]): Array<{ name: string; count: number }> {
+  const counts = new Map<string, number>()
+  for (const name of items) counts.set(name, (counts.get(name) ?? 0) + 1)
+  return [...counts].map(([name, count]) => ({ name, count }))
+}
+
+function ItemRow({ name, count = 1, onWiki }: { name: string; count?: number; onWiki: (name: string) => void }) {
   const target = itemTarget(name)
   return (
     <div className="group flex min-w-0 items-center gap-1 border-t border-border/50 px-2 py-1 first:border-t-0">
       <button type="button" className="min-w-0 flex-1 truncate text-left text-xs text-ink hover:text-accent" onClick={() => void sendGame(`look ${target}`)} title={`Look at ${name}`}>
-        {name}
+        {name}{count > 1 ? ` (${count})` : ''}
       </button>
       <div className="flex shrink-0 items-center opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <button type="button" className="rounded px-1 py-0.5 text-xs text-ink-faint hover:bg-surface-overlay hover:text-ink" onClick={() => void sendGame(`appraise ${target} quick`)} title="Quick appraisal">A</button>
@@ -40,10 +46,14 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState<Set<string>>(() => new Set())
   const [wiki, setWiki] = useState<{ item: string; page: ElanthipediaPage | null; loading: boolean } | null>(null)
+  const wikiRequest = useRef(0)
 
   const showWiki = (item: string) => {
+    const request = ++wikiRequest.current
     setWiki({ item, page: null, loading: true })
-    void fetchElanthipedia(itemTarget(item)).then((page) => setWiki({ item, page, loading: false }))
+    void fetchElanthipedia(itemTarget(item)).then((page) => {
+      if (request === wikiRequest.current) setWiki({ item, page, loading: false })
+    })
   }
 
   if (!inventory) {
@@ -150,7 +160,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
               )}
               {open.has(c.name) && (
                 <div className="border-t border-border/60 bg-surface/50">
-                  {(c.items ?? []).filter((item) => !needle || item.toLowerCase().includes(needle)).map((item) => <ItemRow key={item} name={item} onWiki={showWiki} />)}
+                  {groupedItems((c.items ?? []).filter((item) => !needle || item.toLowerCase().includes(needle))).map(({ name, count }) => <ItemRow key={name} name={name} count={count} onWiki={showWiki} />)}
                   {!c.items && <button type="button" className="w-full px-2 py-1.5 text-left text-xs text-info hover:bg-surface-overlay" onClick={() => void sendGame(`inventory ${itemTarget(c.name)}`)}>Scan this container in game</button>}
                   {c.items && c.items.length === 0 && <div className="px-2 py-1.5 text-xs text-ink-faint">Empty</div>}
                 </div>
@@ -172,13 +182,13 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
       {(inventory.worn?.length ?? 0) > 0 && (
         <details className="rounded border border-border bg-surface-raised" open={Boolean(needle)}>
           <summary className="cursor-pointer px-2 py-1.5 text-xs text-ink-muted">Worn equipment · {inventory.wornCount}</summary>
-          <div className="max-h-48 overflow-y-auto">{worn.map((item) => <ItemRow key={item} name={item} onWiki={showWiki} />)}</div>
+          <div className="max-h-48 overflow-y-auto">{groupedItems(worn).map(({ name, count }) => <ItemRow key={name} name={name} count={count} onWiki={showWiki} />)}</div>
         </details>
       )}
 
       {wiki && (
         <aside className="rounded border border-info/40 bg-surface-overlay p-2 text-xs" aria-label={`Elanthipedia information for ${wiki.item}`}>
-          <div className="flex items-start justify-between gap-2"><strong className="text-ink">{wiki.item}</strong><button type="button" className="text-ink-faint hover:text-ink" onClick={() => setWiki(null)}>Close</button></div>
+          <div className="flex items-start justify-between gap-2"><strong className="text-ink">{wiki.item}</strong><button type="button" className="text-ink-faint hover:text-ink" onClick={() => { wikiRequest.current += 1; setWiki(null) }}>Close</button></div>
           {wiki.loading ? <p className="mt-1 text-ink-faint">Checking Elanthipedia…</p> : wiki.page?.found ? <><p className="mt-1 line-clamp-6 text-ink-muted">{wiki.page.extract}</p><a className="mt-1 inline-block text-info hover:underline" href={wiki.page.pageUrl} target="_blank" rel="noreferrer">Full Elanthipedia page</a></> : <p className="mt-1 text-ink-faint">{wiki.page?.note || 'No exact Elanthipedia page found. Try the full wiki search.'}</p>}
           <a className="mt-1 block text-info hover:underline" href={`https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(itemTarget(wiki.item))}`} target="_blank" rel="noreferrer">Search Elanthipedia for this item</a>
         </aside>
