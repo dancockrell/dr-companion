@@ -44,7 +44,8 @@ import { MapToolRail } from './MapToolRail'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
-import { exportPinsToFile, importPinsFromFile } from '../../lib/pinsFile'
+import { exportPinsToFile, readPinsImportPreview, type PinImportPreview } from '../../lib/pinsFile'
+import { PinImportDialog } from './PinImportDialog'
 import { loadPlayerMarker, savePlayerMarker } from '../../lib/playerMarker'
 import { PlayerMarkerEditor } from './PlayerMarkerEditor'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
@@ -205,6 +206,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    */
   const [markerVersion, setMarkerVersion] = useState(0)
   const [editingMarker, setEditingMarker] = useState(false)
+  const [pinImport, setPinImport] = useState<PinImportPreview | null>(null)
   const playerMarker = useMemo(
     () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
     [character, markerVersion]
@@ -325,15 +327,16 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
   async function doImportPins() {
     try {
-      const { imported, skipped, note } = await importPinsFromFile()
+      const { preview, note, error } = await readPinsImportPreview()
       if (note) {
         addLog(note, 'warn')
         return
       }
-      addLog(
-        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
-      )
-      setPinVersion((v) => v + 1)
+      if (error) {
+        addLog(error, 'error')
+        return
+      }
+      if (preview) setPinImport(preview)
     } catch (e) {
       addLog(String(e), 'error')
     }
@@ -726,6 +729,14 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             setMarkerVersion((v) => v + 1)
             setEditingMarker(false)
           }}
+        />
+      )}
+      {pinImport && (
+        <PinImportDialog
+          preview={pinImport}
+          onClose={() => setPinImport(null)}
+          onChanged={() => setPinVersion((v) => v + 1)}
+          onResult={addLog}
         />
       )}
     </>

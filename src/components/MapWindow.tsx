@@ -25,9 +25,10 @@ import { PlaceSearch } from './shared/PlaceSearch'
 import { useZoneBrowsing } from '../lib/useZoneBrowsing'
 import { ZoneLoadNotice } from './shared/ZoneLoadNotice'
 import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
-import { exportPinsToFile, importPinsFromFile } from '../lib/pinsFile'
+import { exportPinsToFile, readPinsImportPreview, type PinImportPreview } from '../lib/pinsFile'
 import { loadPlayerMarker, savePlayerMarker } from '../lib/playerMarker'
 import { PlayerMarkerEditor } from './shared/PlayerMarkerEditor'
+import { PinImportDialog } from './shared/PinImportDialog'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../lib/scriptFiles'
@@ -117,6 +118,7 @@ export function MapWindow() {
   /** The character's own mark on the map - see playerMarker.ts and MapPanel.tsx's matching state. */
   const [markerVersion, setMarkerVersion] = useState(0)
   const [editingMarker, setEditingMarker] = useState(false)
+  const [pinImport, setPinImport] = useState<PinImportPreview | null>(null)
   const playerMarker = useMemo(
     () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
     [character, markerVersion]
@@ -211,15 +213,16 @@ export function MapWindow() {
   }
   async function doImportPins() {
     try {
-      const { imported, skipped, note } = await importPinsFromFile()
+      const { preview, note, error } = await readPinsImportPreview()
       if (note) {
         addLog(note, 'warn')
         return
       }
-      addLog(
-        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
-      )
-      setPinVersion((v) => v + 1)
+      if (error) {
+        addLog(error, 'error')
+        return
+      }
+      if (preview) setPinImport(preview)
     } catch (e) {
       addLog(String(e), 'error')
     }
@@ -527,6 +530,14 @@ export function MapWindow() {
             setMarkerVersion((v) => v + 1)
             setEditingMarker(false)
           }}
+        />
+      )}
+      {pinImport && (
+        <PinImportDialog
+          preview={pinImport}
+          onClose={() => setPinImport(null)}
+          onChanged={() => setPinVersion((v) => v + 1)}
+          onResult={addLog}
         />
       )}
     </>
