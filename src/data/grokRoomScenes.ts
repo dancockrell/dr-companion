@@ -1,8 +1,9 @@
 /**
  * Visually reviewed landscape scenes from the Grok source pack.  This is the
  * only generic room-art pool: older local renders must not leak back in as
- * fallback filler.  Nearby rooms hold the same scene for three room numbers,
- * giving movement a readable visual rhythm instead of a per-room slot machine.
+ * fallback filler. When the description does not support a family, the
+ * selector returns no literal scene so the caller can keep the honest room
+ * fingerprint instead of presenting a confident but invented location.
  */
 const HOLD_ROOMS = 3
 
@@ -37,7 +38,7 @@ const GROK_SCENES = {
 
 type SceneFamily = keyof typeof GROK_SCENES
 
-function familyFor(description: string): SceneFamily {
+export function familyFor(description: string): SceneFamily | null {
   if (/\b(treehouse|treetop|canopy|wood elf|leth deriel)\b/i.test(description)) return 'treeTown'
   if (/\b(apothecary|alchemy|alchemist|potion|herb shop|herbalist)\b/i.test(description)) return 'apothecary'
   if (/\b(magic shop|enchanter|enchanting|artificer|arcane shop|crystal shop|magical supplies)\b/i.test(description)) return 'magicShop'
@@ -63,7 +64,8 @@ function familyFor(description: string): SceneFamily {
   if (/\b(orchard|apple grove|fruit tree|farmstead|farm yard)\b/i.test(description)) return 'orchard'
   if (/\b(grassland|prairie|plain|meadow|pasture|open field|savanna)\b/i.test(description)) return 'grassland'
   if (/\b(forest|tree|wood|grove|thicket|leaf|leaves|bough|bosk|tangle)\b/i.test(description)) return 'forest'
-  return 'town'
+  if (/\b(town square|night market|market square|village square|city plaza|town plaza)\b/i.test(description)) return 'town'
+  return null
 }
 function stableIndex(zone: string, room: number, length: number): number {
   let zoneHash = 0
@@ -71,8 +73,9 @@ function stableIndex(zone: string, room: number, length: number): number {
   return Math.abs(zoneHash + Math.floor(room / HOLD_ROOMS)) % length
 }
 
-export function grokRoomScene(zone: string, room: number, title?: string | null, text?: string | null): string {
+export function grokRoomScene(zone: string, room: number, title?: string | null, text?: string | null): string | null {
   const family = familyFor(`${title ?? ''} ${text ?? ''}`)
+  if (family === null) return null
   const pool = GROK_SCENES[family]
   return pool[stableIndex(zone, room, pool.length)]
 }
