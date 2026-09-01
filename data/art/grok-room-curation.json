@@ -1,0 +1,81 @@
+{
+  "policy": {
+    "approvedProvenance": "Grok Imagine full pack 1938",
+    "sourceDirectory": "GROK_FULL_ART_PACK_1938/all",
+    "runtimeFallback": "none",
+    "selection": "terrain family, stable for each three-room run"
+  },
+  "subjects": {
+    "generic-forest": {
+      "exactSubject": "unnamed forest travel and clearings",
+      "canonicalTraits": ["mature trees", "traversable ground", "filtered natural light"],
+      "habitat": "forest, grove, wood, thicket and tangle rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/forest-clearing-06aeb546.jpg"],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-water": {
+      "exactSubject": "unnamed waterside and wetland travel",
+      "canonicalTraits": ["visible water", "natural bank or built landing", "clear environmental depth"],
+      "habitat": "river, shore, marsh, swamp, dock and lake rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/marsh-dusk-025a5488.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/lantern-dock-02798b8e.jpg"],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-cave": {
+      "exactSubject": "cave, grotto and underground travel",
+      "canonicalTraits": ["rock enclosure", "strong entrance or passage", "legible depth"],
+      "habitat": "caves, caverns, grottoes, tunnels, crypts and sewers",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/sea-cave-038edbd8.jpg",
+      "approvedVariants": [],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-mountain": {
+      "exactSubject": "high mountain traversal and cliff architecture",
+      "canonicalTraits": ["steep elevation", "exposed stone", "distant peaks or drop"],
+      "habitat": "mountains, ridges, summits, cliffs and ascents",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/cliff-monastery-0183963f.jpg"],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-desert": {
+      "exactSubject": "arid overland travel",
+      "canonicalTraits": ["dry exposed route", "sand or weathered stone", "long horizon"],
+      "habitat": "deserts, dunes, wastes and badlands",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/desert-canyon-0322415e.jpg",
+      "approvedVariants": [],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "generic-town": {
+      "exactSubject": "settled street, market and road space",
+      "canonicalTraits": ["walkable public space", "medieval-fantasy construction", "strong visual depth"],
+      "habitat": "default for streets, buildings and uncategorized settled rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/night-market-04c61394.jpg",
+      "approvedVariants": [],
+      "rejects": ["all non-Grok room renders"],
+      "regenerationNeeded": false
+    },
+    "leth-deriel-tree-town": {
+      "exactSubject": "forest settlement built into living trees",
+      "canonicalTraits": ["large living trees", "elevated timber paths", "lantern-lit dwellings"],
+      "habitat": "Leth Deriel and explicit canopy or treehouse settlements",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/tree-city-04b6c4bd.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic forest without settlement", "all non-Grok room renders"],
+      "regenerationNeeded": false
+    }
+  }
+}
+

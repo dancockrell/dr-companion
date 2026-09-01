@@ -16,6 +16,7 @@ const floor = readFileSync(new URL('../src/components/room/FloorItems.tsx', impo
 const inventory = readFileSync(new URL('../src/components/shared/InventoryPanel.tsx', import.meta.url), 'utf8')
 const taskflows = readFileSync(new URL('../src/components/dashboard/TaskFlowPanel.tsx', import.meta.url), 'utf8')
 const paperdoll = readFileSync(new URL('../src/components/shared/Paperdoll.tsx', import.meta.url), 'utf8')
+const grokScenes = readFileSync(new URL('../src/data/grokRoomScenes.ts', import.meta.url), 'utf8')
 
 check('the battle scene uses a landscape tactical field', /shape="landscape"/.test(battle) && /aspect-\[4\/3\]/.test(scene))
 check('room details and inventory receive the remaining useful height', /min-h-\[13rem\][^"']*flex-1/.test(battle))
@@ -34,6 +35,7 @@ check('the functions pane launches every basic macro variation beside every disc
 check('the radar has persistent grab-scroll enemy and friendly columns', /label="Enemies"/.test(radar) && /label="Friends"/.test(radar) && /Scrollable friendly and enemy radar columns/.test(radar) && /side="left"/.test(radar) && /side="right"/.test(radar) && /useDragScroll/.test(radar))
 check('radar rails are transparent textless overlays on the battle map', /bg-transparent touch-none/.test(radar) && !/Combat radar<\/span>/.test(radar) && !/tone="friendly"/.test(radar) && !/sticky top-0 z-10 py-1 text-center/.test(radar))
 check('room art is the fixed base layer underneath the tactical radar', /aria-label="Room art"/.test(scene) && /absolute inset-0 z-0/.test(scene) && /aria-label="Tactical radar over room art"/.test(scene) && /absolute inset-0 z-10/.test(scene))
+check('generic room art comes only from stable location-aware Grok landscape baskets', /grokRoomScene\(zone, room, title, text\)/.test(readFileSync(new URL('../src/lib/roomText.ts', import.meta.url), 'utf8')) && /HOLD_ROOMS = 3/.test(grokScenes) && /\/grok-art\/room-scenes\//.test(grokScenes) && !/\/rooms\//.test(grokScenes) && !/\/room-scenes\//.test(grokScenes.replaceAll('/grok-art/room-scenes/', '')))
 check('low-resolution room thumbnails can never render as scene filler', /MIN_ROOM_ART_WIDTH = 960/.test(backdrop) && /MIN_ROOM_ART_HEIGHT = 540/.test(backdrop) && /naturalWidth >= MIN_ROOM_ART_WIDTH/.test(backdrop) && /className="absolute inset-0 hidden/.test(backdrop))
 check('room exits are always wired from live compass or mapped movement commands', /stream\.compass\?\.value \?\? here\?\.moves/.test(battle))
 check('large floor piles collapse duplicates and become searchable', /count: number/.test(floor) && /groups\.length > 12/.test(floor) && /Find among/.test(floor))
