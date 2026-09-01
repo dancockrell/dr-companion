@@ -241,6 +241,7 @@ for (const { zone } of parsed) {
 
 index.sort((a, b) => b.rooms - a.rooms)
 writeFileSync(join(OUT, 'index.json'), JSON.stringify(index, null, 1))
+writeFileSync(join(OUT, 'metadata.json'), JSON.stringify({ zones: index.length, rooms }, null, 1))
 
 console.log(`${index.length} zones, ${rooms.toLocaleString()} rooms, ${arcs.toLocaleString()} exits`)
 console.log(`${tagged.toLocaleString()} rooms carry a cartographer's label`)
