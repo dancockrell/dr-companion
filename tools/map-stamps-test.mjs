@@ -87,9 +87,13 @@ const canvas = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')
 const layer = readFileSync('src/components/shared/MapStampLayer.tsx', 'utf8')
 check('stamps paint after paper but before the trail', canvas.indexOf('<MapStampLayer') > canvas.indexOf('fill="url(#map-paper)"') && canvas.indexOf('<MapStampLayer') < canvas.indexOf('segments(trail)'))
 check('stamps can never intercept map interaction', layer.includes('pointer-events-none') && layer.includes('aria-hidden="true"'))
+check('terrain is drawn as pictorial map art, not circular badges', !layer.includes('<circle') && !layer.includes('<text') && layer.includes('function Tree') && layer.includes('function Peak'))
 for (const kind of ['wetland', 'coast', 'arid', 'cultivated', 'frozen', 'burial']) {
   check(`${kind} has its own authored glyph`, layer.includes(`kind === '${kind}'`))
 }
+check('gateway destinations are visibly continued off the sheet', canvas.includes('data-map-gateway-callout="true"') && canvas.includes('shortGatewayLabel') && canvas.includes('hasGatewaysOnLevel'))
+check('duplicate gateways share one destination label', canvas.includes('byDestination') && canvas.includes('candidates.reduce'))
+check('fit shows the whole connected sheet instead of cropping it', canvas.includes("preserveAspectRatio: 'xMidYMid meet'") && !canvas.includes("preserveAspectRatio: 'xMidYMid slice'"))
 
 if (failures) process.exit(1)
 console.log('\nall map stamp checks passed')

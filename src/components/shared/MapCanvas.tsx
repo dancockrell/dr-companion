@@ -47,6 +47,51 @@ const LOCAL_CAP = 2000
  */
 const GRID = 10
 
+type GatewaySide = 'left' | 'right' | 'top' | 'bottom'
+
+interface GatewayCallout {
+  side: GatewaySide
+  label: string
+}
+
+/** One legible continuation per destination, even when a zone has several
+ * doors to the same neighbouring sheet. The room nearest an edge owns the
+ * label so the line reads as leaving this map rather than pointing inward. */
+function gatewayCallouts(rooms: MapZoneRoom[]): Map<number, GatewayCallout> {
+  const positioned = rooms.filter((room) => room.id != null && room.x != null && room.y != null)
+  if (!positioned.length) return new Map()
+  const xs = positioned.map((room) => room.x as number)
+  const ys = positioned.map((room) => room.y as number)
+  const bounds = { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) }
+  const sideAndDistance = (room: MapZoneRoom): { side: GatewaySide; distance: number } => {
+    const options: Array<{ side: GatewaySide; distance: number }> = [
+      { side: 'left', distance: (room.x as number) - bounds.minX },
+      { side: 'right', distance: bounds.maxX - (room.x as number) },
+      { side: 'top', distance: (room.y as number) - bounds.minY },
+      { side: 'bottom', distance: bounds.maxY - (room.y as number) },
+    ]
+    return options.reduce((best, option) => option.distance < best.distance ? option : best)
+  }
+  const byDestination = new Map<string, MapZoneRoom[]>()
+  for (const room of positioned) {
+    if (!room.gateway) continue
+    byDestination.set(room.gateway.zone, [...(byDestination.get(room.gateway.zone) ?? []), room])
+  }
+  const out = new Map<number, GatewayCallout>()
+  for (const candidates of byDestination.values()) {
+    const room = candidates.reduce((best, candidate) =>
+      sideAndDistance(candidate).distance < sideAndDistance(best).distance ? candidate : best
+    )
+    const { side } = sideAndDistance(room)
+    out.set(room.id as number, { side, label: room.gateway?.name ?? 'Next map' })
+  }
+  return out
+}
+
+function shortGatewayLabel(label: string): string {
+  return label.length <= 27 ? label : `${label.slice(0, 25).trimEnd()}…`
+}
+
 const FILL: Record<RoomKind, string> = {
   // Not the app's accent. Gold on vellum is a wash, and this is the one square
   // on the chart that must never be missed.
@@ -123,7 +168,8 @@ export function MapCanvas({
    * between two rooms is drawn rather than implied.
    */
   const box = GRID * 0.62 * scale
-  const pad = GRID * 0.6 * scale
+  const hasGatewaysOnLevel = (zone.rooms ?? []).some((room) => (room.z ?? 0) === level && room.gateway)
+  const pad = GRID * (hasGatewaysOnLevel ? 5.2 : 0.6) * scale
 
   // Only this level. Elanthia is not flat — towers, cellars and bridges share
   // x/y with whatever sits above them, and drawing every z at once makes a
@@ -175,6 +221,7 @@ export function MapCanvas({
   // update, which is the whole reason a window left open to watch a script
   // used to reclassify every room and rebuild this lookup on every tick.
   const index = useMemo(() => new Map(rooms.map((r) => [r.id, r])), [rooms])
+  const gatewayLabels = useMemo(() => gatewayCallouts(rooms), [rooms])
 
   // Same reasoning: `roomKind` runs a couple of regex tests per room, cheap
   // once and wasted work every trail-driven re-render of a 1,000-room zone.
@@ -317,7 +364,7 @@ export function MapCanvas({
   // and cut off at the bottom — which reads as a broken map rather than a
   // small one.
   const sizing = fit
-    ? { width: '100%', height: '100%', preserveAspectRatio: 'xMidYMid slice' }
+    ? { width: '100%', height: '100%', preserveAspectRatio: 'xMidYMid meet' }
     : { width: view.w, height: view.h }
 
   return (
@@ -434,6 +481,19 @@ export function MapCanvas({
         const times = r.id != null ? trail?.visits[r.id] : undefined
         const isHovered = r.id != null && r.id === hoverId
         const isNeighborOfHover = r.id != null && hoverNeighbors?.has(r.id)
+        const gatewayLabel = r.id != null ? gatewayLabels.get(r.id) : undefined
+        const direction = gatewayLabel
+          ? gatewayLabel.side === 'left' ? { x: -1, y: 0 }
+            : gatewayLabel.side === 'right' ? { x: 1, y: 0 }
+              : gatewayLabel.side === 'top' ? { x: 0, y: -1 }
+                : { x: 0, y: 1 }
+          : null
+        const gatewayEnd = GRID * 3.35 * scale
+        const gatewayTip = direction ? { x: px(r) + direction.x * gatewayEnd, y: py(r) + direction.y * gatewayEnd } : null
+        const gatewayBase = direction && gatewayTip
+          ? { x: gatewayTip.x - direction.x * 4.2 * scale, y: gatewayTip.y - direction.y * 4.2 * scale }
+          : null
+        const gatewayPerp = direction ? { x: -direction.y, y: direction.x } : null
         return (
           <g
             key={r.id}
@@ -488,6 +548,38 @@ export function MapCanvas({
               }
             }}
           >
+            {gatewayLabel && direction && gatewayTip && gatewayBase && gatewayPerp && (
+              <g data-map-gateway-callout="true">
+                <path
+                  d={`M ${px(r) + direction.x * box * 0.9} ${py(r) + direction.y * box * 0.9} L ${gatewayTip.x} ${gatewayTip.y}`}
+                  fill="none"
+                  stroke="var(--map-ink)"
+                  strokeWidth={Math.max(0.75, 0.9 * scale)}
+                  strokeDasharray={`${2.2 * scale} ${1.5 * scale}`}
+                  opacity={0.68}
+                />
+                <polygon
+                  points={`${gatewayTip.x},${gatewayTip.y} ${gatewayBase.x + gatewayPerp.x * 2.3 * scale},${gatewayBase.y + gatewayPerp.y * 2.3 * scale} ${gatewayBase.x - gatewayPerp.x * 2.3 * scale},${gatewayBase.y - gatewayPerp.y * 2.3 * scale}`}
+                  fill="var(--map-ink)"
+                  opacity={0.62}
+                />
+                <text
+                  x={gatewayTip.x + direction.x * 3.5 * scale}
+                  y={gatewayTip.y + direction.y * 3.5 * scale + (gatewayLabel.side === 'top' ? -2 * scale : gatewayLabel.side === 'bottom' ? 6 * scale : 2 * scale)}
+                  textAnchor={gatewayLabel.side === 'left' ? 'end' : gatewayLabel.side === 'right' ? 'start' : 'middle'}
+                  fill="var(--map-ink)"
+                  stroke="var(--map-ground)"
+                  strokeWidth={Math.max(1.8, 2.4 * scale)}
+                  paintOrder="stroke"
+                  fontSize={Math.max(5.2, 6.4 * scale)}
+                  fontWeight={650}
+                  letterSpacing={0.32 * scale}
+                  opacity={0.78}
+                >
+                  {`To ${shortGatewayLabel(gatewayLabel.label)}`}
+                </text>
+              </g>
+            )}
             {/* A ring on a room you have stood in.
              *
              * The stroke alone is not enough for a circuit: a training loop
@@ -521,10 +613,9 @@ export function MapCanvas({
               height={GRID * scale}
               fill="transparent"
             />
-            {/* A gate is drawn as a doorway rather than a room, because that
-                is what it is: the edge of the sheet, with somewhere else on
-                the other side. 310 rooms carry one and every single zone was
-                an island until now. */}
+            {/* Every gateway remains a doorway. One representative doorway per
+                destination also owns the labelled continuation above, keeping
+                repeated crossings useful without covering the sheet in text. */}
             {r.gateway && (
               <rect
                 x={px(r) - box * 0.85}

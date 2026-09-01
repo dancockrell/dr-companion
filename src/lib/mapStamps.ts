@@ -106,6 +106,54 @@ function quietPoint(rooms: MapZoneRoom[]): { x: number; y: number } {
   return best
 }
 
+/** Put a terrain drawing in open paper near the rooms that justify it.
+ * Historical pictorial symbols sit beside the route network instead of being
+ * centered directly on top of it. The median keeps the illustration in the
+ * right district; the distance score finds nearby breathing room. */
+function illustrationPoint(matches: MapZoneRoom[], rooms: MapZoneRoom[], seed: string): { x: number; y: number } {
+  const evidenceCenter = {
+    x: middle(matches.map((room) => room.x as number)),
+    y: middle(matches.map((room) => room.y as number)),
+  }
+  const xs = rooms.map((room) => room.x as number)
+  const ys = rooms.map((room) => room.y as number)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  const insetX = Math.min(36, (maxX - minX) / 5)
+  const insetY = Math.min(36, (maxY - minY) / 5)
+  const safeMinX = minX + insetX
+  const safeMaxX = maxX - insetX
+  const safeMinY = minY + insetY
+  const safeMaxY = maxY - insetY
+  const shortSpan = Math.min(maxX - minX || 40, maxY - minY || 40)
+  const center = {
+    x: Math.max(safeMinX, Math.min(safeMaxX, evidenceCenter.x)),
+    y: Math.max(safeMinY, Math.min(safeMaxY, evidenceCenter.y)),
+  }
+  const radius = Math.max(18, Math.min(70, shortSpan / 4))
+  const start = hash(`${seed}:illustration`) % 12
+  const candidates = [center]
+  for (const ring of [0.55, 1]) {
+    for (let step = 0; step < 12; step++) {
+      const angle = ((start + step) * Math.PI) / 6
+      candidates.push({
+        x: Math.max(safeMinX, Math.min(safeMaxX, center.x + Math.cos(angle) * radius * ring)),
+        y: Math.max(safeMinY, Math.min(safeMaxY, center.y + Math.sin(angle) * radius * ring)),
+      })
+    }
+  }
+  const score = (point: { x: number; y: number }) => {
+    const nearestRoom = Math.min(...rooms.map((room) =>
+      (point.x - (room.x as number)) ** 2 + (point.y - (room.y as number)) ** 2
+    ))
+    const fromEvidence = (point.x - evidenceCenter.x) ** 2 + (point.y - evidenceCenter.y) ** 2
+    return nearestRoom - fromEvidence * 0.12
+  }
+  return candidates.reduce((best, point) => score(point) > score(best) ? point : best)
+}
+
 function spreadStamps(stamps: MapStamp[], rooms: MapZoneRoom[], zoneKey: string): MapStamp[] {
   if (stamps.length < 2) return stamps
   const xs = rooms.map((room) => room.x as number)
@@ -114,6 +162,12 @@ function spreadStamps(stamps: MapStamp[], rooms: MapZoneRoom[], zoneKey: string)
   const maxX = Math.max(...xs)
   const minY = Math.min(...ys)
   const maxY = Math.max(...ys)
+  const insetX = Math.min(36, (maxX - minX) / 5)
+  const insetY = Math.min(36, (maxY - minY) / 5)
+  const safeMinX = minX + insetX
+  const safeMaxX = maxX - insetX
+  const safeMinY = minY + insetY
+  const safeMaxY = maxY - insetY
   const shortSpan = Math.min(maxX - minX || 40, maxY - minY || 40)
   const gap = Math.max(24, Math.min(52, shortSpan / 3))
   const placed = [stamps[0]]
@@ -124,8 +178,8 @@ function spreadStamps(stamps: MapStamp[], rooms: MapZoneRoom[], zoneKey: string)
     for (let step = 0; step < 8; step++) {
       const angle = ((start + step) * Math.PI) / 4
       candidates.push({
-        x: Math.max(minX, Math.min(maxX, stamp.x + Math.cos(angle) * gap)),
-        y: Math.max(minY, Math.min(maxY, stamp.y + Math.sin(angle) * gap)),
+        x: Math.max(safeMinX, Math.min(safeMaxX, stamp.x + Math.cos(angle) * gap)),
+        y: Math.max(safeMinY, Math.min(safeMaxY, stamp.y + Math.sin(angle) * gap)),
       })
     }
     const score = (point: { x: number; y: number }) => Math.min(...placed.map((other) =>
@@ -169,12 +223,13 @@ export function deriveMapStamps(
     })
     if (matches.length < threshold) return []
 
+    const point = illustrationPoint(matches, positioned, `${zoneKey}:${rule.kind}`)
     return [{
       stamp: {
         kind: rule.kind,
         label: rule.label,
-        x: middle(matches.map((room) => room.x as number)),
-        y: middle(matches.map((room) => room.y as number)),
+        x: point.x,
+        y: point.y,
         count: matches.length,
         rotation: (hash(`${zoneKey}:${rule.kind}`) % 11) - 5,
         weight: Math.min(1.28, 0.82 + Math.log2(matches.length + 1) / 12),
