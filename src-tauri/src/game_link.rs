@@ -37,7 +37,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
@@ -50,7 +50,20 @@ pub struct GameLine {
     /// text is not one: a MUD repeats itself constantly, and two identical
     /// "Obvious paths: east, south, west." lines are different events.
     pub seq: u64,
+    /// Wall-clock receive time for history and export. Sequence remains the
+    /// ordering authority because clocks can move and several chunks can
+    /// arrive in one millisecond.
+    pub received_at_ms: u64,
     pub text: String,
+}
+
+fn received_at_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+        .try_into()
+        .unwrap_or(u64::MAX)
 }
 
 /// Native recovery budget for the frontend's 20,000-display-line contract.
@@ -383,7 +396,11 @@ pub fn game_attach(
                         // before the pane has subscribed was lost outright -
                         // while the count in game:state kept climbing, so the
                         // header reported lines the pane could not show.
-                        let line = GameLine { seq, text };
+                        let line = GameLine {
+                            seq,
+                            received_at_ms: received_at_ms(),
+                            text,
+                        };
                         {
                             let mut b = backlog.lock().unwrap();
                             b.push(line.clone());
@@ -535,12 +552,17 @@ mod tests {
         for seq in 1..=(BACKLOG_MAX as u64 + 137) {
             backlog.push(GameLine {
                 seq,
+                received_at_ms: 1_700_000_000_000 + seq,
                 text: format!("line {seq}\n"),
             });
         }
         assert_eq!(backlog.lines.len(), BACKLOG_MAX);
         assert_eq!(backlog.dropped, 137);
         assert_eq!(backlog.lines.front().map(|line| line.seq), Some(138));
+        assert_eq!(
+            backlog.lines.front().map(|line| line.received_at_ms),
+            Some(1_700_000_000_138)
+        );
         assert_eq!(
             backlog.lines.back().map(|line| line.seq),
             Some(BACKLOG_MAX as u64 + 137)
