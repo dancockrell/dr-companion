@@ -28,7 +28,7 @@
  * That also means the tabs are evidence: if `thoughts` is absent, the game has
  * not sent one, which is a different thing from the client having lost it.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Info } from 'lucide-react'
 import { type GameLine } from '../../lib/gameLink'
 import { useGameLines, useGameStreams } from '../../lib/useGameLines'
@@ -64,7 +64,7 @@ const logChannel = (t: string) => t.slice(LOG_PREFIX.length) as Channel
  */
 const LABELS = STREAM_LABELS
 
-export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
+export function StreamTabs({ highlights, heading }: { highlights: Highlight[]; heading?: ReactNode }) {
   const offClasses = useOffClasses()
   // Both of these subscribe, and both hand back a fresh identity when the
   // buffer changes - see useGameLines.ts. Reading the raw buffer instead is
@@ -136,6 +136,11 @@ export function StreamTabs({ highlights }: { highlights: Highlight[] }) {
           '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         )}
       >
+        {heading && (
+          <div className="mr-1 flex shrink-0 items-center gap-1.5 border-r border-border pr-2 font-semibold text-ink-muted">
+            {heading}
+          </div>
+        )}
         {/* Whose channels these are, said out loud, but only once there are
           * two sets in the row to tell apart.
           *

@@ -661,21 +661,6 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
         )}
       </div>
 
-      {/* Why the grid is empty, when it is. Never a bare "nothing here": the
-       * causes need different fixes and the note carries each backend's own
-       * words when a task failed to import, or Lich's when its folder is
-       * missing - both, when both are relevant, rather than picking one and
-       * hiding the other's problem. */}
-      {status && nodeSt && tasks.length === 0 && nodeTasks.length === 0 && (
-        <p className="whitespace-pre-wrap rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
-          {[status.note, nodeSt.note].filter(Boolean).join('\n\n') || 'No tasks were listed.'}
-        </p>
-      )}
-      {dirs?.note && (
-        <p className="rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
-          {dirs.note}
-        </p>
-      )}
       {filter && entries.length === 0 && (
         <p className="px-1 text-xs text-ink-faint">
           Nothing matches "{filter}" in {totalCount} tasks and scripts.

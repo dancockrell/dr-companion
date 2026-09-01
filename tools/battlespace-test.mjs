@@ -24,6 +24,8 @@ check('combat controls use the complete grouped macro catalog', /MACROS\.filter/
 check('every combat variation is a directly wired compact icon button', /macro\.variations\.map/.test(actions) && /onClick=\{\(\) => run\(variation\.commands\)\}/.test(actions) && /h-9 w-9/.test(actions))
 check('game and multiple taskflows permanently share the large split workspace', /grid-cols-\[minmax\(0,1\.35fr\)_minmax\(18rem,0\.85fr\)\]/.test(chat) && /Game and automation workspace/.test(chat) && /title="Functions & scripts"/.test(chat) && /<StreamTabs/.test(chat) && /<TaskFlowPanel/.test(chat) && !/paneMode/.test(chat))
 check('the functions title and global catalog controls share one toolbar', /title\?: string/.test(taskflows) && /h-10 shrink-0 items-center/.test(taskflows) && /Filter tasks and scripts/.test(taskflows) && !/A filter across everything/.test(taskflows))
+check('the game title and channel filters share one toolbar', /heading=\{<>/.test(chat) && /heading\?: ReactNode/.test(readFileSync(new URL('../src/components/game/StreamTabs.tsx', import.meta.url), 'utf8')) && !/h-10 shrink-0 items-center.*Game/.test(chat))
+check('inventory title, search, and load share one toolbar', /flex min-w-0 items-center gap-2 text-xs/.test(inventory) && /shrink-0 \$\{pressureColor\}/.test(inventory))
 check('battle controls do not duplicate functions and scripts', !/Scripts and workflows/.test(actions) && !/scriptCatalog/.test(actions))
 check('floor items form their own strip immediately beneath the radar', battle.indexOf('<FloorItems') < battle.indexOf('<BattleActionBar'))
 check('actor hover cards link directly to Elanthipedia', /Search Elanthipedia/.test(radar) && /Special:Search/.test(radar) && /pointer-events-auto/.test(radar))
