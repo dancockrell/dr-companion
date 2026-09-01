@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from '
 import { extname, join, relative, sep } from 'node:path'
 
 const reviews = JSON.parse(readFileSync('data/art/scene-art-reviews.json', 'utf8'))
+const hashReviews = JSON.parse(readFileSync('data/art/dormant-scene-hash-reviews.json', 'utf8'))
 const baskets = JSON.parse(readFileSync('data/art/scene-baskets.json', 'utf8'))
 const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 'utf8'))
 const roomMap = JSON.parse(readFileSync('data/art/room-place-map.json', 'utf8'))
@@ -47,35 +48,40 @@ for (const asset of new Set(overrideSource.match(/\/(?:rooms|room-scenes)\/[^'"\
 }
 
 const rules = (reviews.reviewRules ?? []).map((rule) => ({ ...rule, regex: new RegExp(rule.match) }))
+const hashReviewBySha = new Map((hashReviews.reviews ?? []).map((review) => [review.sha256, review]))
 const records = files.map((file) => {
   const path = webPath(file)
   const bytes = readFileSync(file)
+  const sha256 = createHash('sha256').update(bytes).digest('hex')
   const generated = reviews.generated?.[path]
+  // Hash decisions intentionally apply only to dormant exact-room copies. The same
+  // pixels may be valid when deliberately curated under a semantic master path.
+  const hashReview = path.startsWith('/rooms/') ? hashReviewBySha.get(sha256) : null
   const rule = rules.find((candidate) => candidate.regex.test(path))
   const roomKey = path.startsWith('/rooms/') ? path.slice('/rooms/'.length).replace(/\.[^.]+$/, '') : null
   const placeKey = roomKey ? roomMap.placeOf?.[roomKey] ?? null : null
   const usage = [...(selected.get(path) ?? [])]
   return {
     path,
-    sha256: createHash('sha256').update(bytes).digest('hex'),
+    sha256,
     bytes: statSync(file).size,
     format: extname(file).slice(1).toLowerCase(),
-    audit: generated || rule ? {
-      status: 'visually-reviewed', verdict: generated ? 'approved' : rule.verdict, reviewedAt: reviews.reviewedAt,
-      method: reviews.reviewMethod, notes: generated ? 'Generated replacement passed visual QA against its prompt and intended runtime basket.' : rule.notes,
+    audit: generated || rule || hashReview ? {
+      status: 'visually-reviewed', verdict: generated ? 'approved' : hashReview?.verdict ?? rule.verdict, reviewedAt: hashReview?.reviewedAt ?? reviews.reviewedAt,
+      method: hashReview?.reviewMethod ?? reviews.reviewMethod, notes: generated ? 'Generated replacement passed visual QA against its prompt and intended runtime basket.' : hashReview?.notes ?? rule.notes,
     } : { status: 'indexed', verdict: 'pending-visual-review', reviewedAt: null, method: null, notes: null },
-    semanticTags: generated?.semanticTags ?? rule?.semanticTags ?? [],
+    semanticTags: generated?.semanticTags ?? hashReview?.semanticTags ?? rule?.semanticTags ?? [],
     intendedRegions: generated?.intendedRegions ?? rule?.intendedRegions ?? [],
     environments: generated?.environments ?? rule?.environments ?? [],
-    visualAttributes: generated?.visualAttributes ?? rule?.visualAttributes ?? [],
+    visualAttributes: generated?.visualAttributes ?? hashReview?.visualAttributes ?? rule?.visualAttributes ?? [],
     usage,
     intendedRoom: roomKey ? { roomKey, placeKey } : null,
-    runtimeEligible: usage.length > 0 && rule?.verdict !== 'rejected',
-    provenance: generated ? { ...reviews.generationProvenance, prompt: generated.prompt } : {
+    runtimeEligible: usage.length > 0 && rule?.verdict !== 'rejected' && hashReview?.verdict !== 'rejected',
+    provenance: generated ? { ...reviews.generationProvenance, ...generated.provenance, prompt: generated.prompt } : {
       provider: path.startsWith('/grok-art/') ? 'Grok source pack' : 'legacy repository asset',
       model: null, generatedAt: null, prompt: null,
     },
-    replacementHistory: generated ? [{ action: 'supersedes', assets: generated.supersedes }] : rule?.replacedBy ? [{ action: 'superseded-by', assets: rule.replacedBy }] : [],
+    replacementHistory: generated ? [{ action: 'supersedes', assets: generated.supersedes }] : hashReview?.replacedBy ? [{ action: 'superseded-by', assets: hashReview.replacedBy }] : rule?.replacedBy ? [{ action: 'superseded-by', assets: rule.replacedBy }] : [],
   }
 }).sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))
 
