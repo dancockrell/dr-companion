@@ -14,6 +14,7 @@ import type { RoomCard } from '../../lib/cards'
 import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body'
 import type { Vital } from '../../lib/vitals'
 import { sendGame } from '../../lib/gameLink'
+import { ArmorManager } from './ArmorManager'
 
 /**
  * The room, with everyone in it — a compass filling the whole board edge to
@@ -1264,6 +1265,11 @@ export function CombatRadar({
               }}
             />
           ))}
+
+          {/* The upper-right quadrant used to be empty scenery. This compact
+              rack keeps armor and shield changes in the battlespace without
+              moving either roster lane or covering the player's center card. */}
+          <ArmorManager />
 
           {positioned.map((p) => {
             const pos = fanned.get(p.key) ?? pointOn(centerXPct, centerYPct, p.angleDeg, p.radiusPct)

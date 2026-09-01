@@ -309,6 +309,9 @@ export type IntentName =
    * args: { commands: string[] }
    */
   | 'run_macro'
+  /** Wear, remove, adjust, or swap named armor pieces through the guarded command
+   * queue. args contain an operation and an array of item names. */
+  | 'armor_manage'
   // Map queries. 'map_here'/'map_path'/'map_zone' are read-only: they answer
   // questions about geography and never move the character.
   //

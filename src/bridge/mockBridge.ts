@@ -44,7 +44,7 @@ const MOCK_ALL_INTENTS: string[] = [
   'stop_all', 'pause', 'resume', 'start_combat', 'burgle', 'travel',
   'escape_heal', 'go_healer', 'town_run', 'start_training', 'loot', 'buffs',
   'escape', 'stow_all', 'check_health', 'check_toggles', 'reset_runaway',
-  'read_settings', 'run_macro', 'map_here', 'list_vars',
+  'read_settings', 'run_macro', 'armor_manage', 'map_here', 'list_vars',
   'check_teaching', 'listen_to', 'stop_listening',
   'map_path', 'map_walk', 'map_nearest', 'map_zone', 'install_mapdb', 'list_scripts', 'start_script',
 ]
@@ -207,7 +207,7 @@ const presets: Record<DemoPresetId, DemoPreset> = {
     },
     inventory: {
       containers: [
-        { name: 'backpack', used: 18, capacity: 30, items: ['a steel skinning knife', 'a coil of climbing rope', 'some acanthite crystals'] },
+        { name: 'backpack', used: 18, capacity: 30, items: ['a steel skinning knife', 'a dark steel tower shield', 'a coil of climbing rope', 'some acanthite crystals'] },
         { name: 'belt pouch', used: 4, capacity: 8, items: ['a cambrinth ring', 'a tiny gwethdesuan'] },
         { name: 'thigh bag', used: 2, capacity: 6, items: ['some jadice flowers', 'a pothanit herb'] },
         { name: 'weapon harness', used: 3, capacity: 6, items: ['a kertig throwing axe', 'a short hunting spear'] },
@@ -1315,6 +1315,41 @@ export class MockBridge {
         this.emitStatus()
         this.emit({ type: 'log', line: 'Automation resumed.' })
         break
+
+      case 'armor_manage': {
+        const operation = String(_args?.operation ?? '')
+        const items = Array.isArray(_args?.items)
+          ? _args.items.map(String).map((name) => name.trim()).filter(Boolean).slice(0, 16)
+          : []
+        if (!['wear', 'remove', 'adjust', 'swap'].includes(operation) || items.length === 0) {
+          this.emit({ type: 'intent_ack', intent, ok: false, detail: 'Choose armor and a valid action.' })
+          break
+        }
+
+        const key = (name: string) => name.replace(/^(?:a|an|some|the)\s+/i, '').toLowerCase()
+        const current = this.inventory.worn ?? []
+        if (operation === 'wear') {
+          this.inventory = {
+            ...this.inventory,
+            worn: [...current, ...items.filter((item) => !current.some((worn) => key(worn) === key(item)))],
+          }
+        } else if (operation === 'remove') {
+          const removing = new Set(items.map(key))
+          this.inventory = { ...this.inventory, worn: current.filter((item) => !removing.has(key(item))) }
+        } else if (operation === 'swap') {
+          const [replacement, ...oldPieces] = items
+          const removing = new Set(oldPieces.map(key))
+          const kept = current.filter((item) => !removing.has(key(item)))
+          this.inventory = {
+            ...this.inventory,
+            worn: kept.some((item) => key(item) === key(replacement)) ? kept : [...kept, replacement],
+          }
+        }
+        this.inventory = { ...this.inventory, wornCount: this.inventory.worn?.length ?? 0 }
+        this.emit({ type: 'inventory', payload: this.inventory })
+        this.emit({ type: 'log', line: `${operation === 'adjust' ? 'Adjusted' : operation === 'wear' ? 'Wore' : operation === 'swap' ? 'Swapped' : 'Removed'} ${items.join(', ')} (mock).` })
+        break
+      }
 
       // The bridge has answered this since 0.7.0 with a structured file list
       // and nothing ever asked it to. Mocked so the panel can be seen without

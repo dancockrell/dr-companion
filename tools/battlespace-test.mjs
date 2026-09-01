@@ -21,6 +21,9 @@ const hotbar = readFileSync(new URL('../src/components/layout/QuickSwitchBar.tsx
 const quickSwitch = readFileSync(new URL('../src/lib/quickSwitch.ts', import.meta.url), 'utf8')
 const map = readFileSync(new URL('../src/components/shared/MapPanel.tsx', import.meta.url), 'utf8')
 const grokScenes = readFileSync(new URL('../src/data/grokRoomScenes.ts', import.meta.url), 'utf8')
+const armorManager = readFileSync(new URL('../src/components/shared/ArmorManager.tsx', import.meta.url), 'utf8')
+const armorLoadout = readFileSync(new URL('../src/lib/armorLoadout.ts', import.meta.url), 'utf8')
+const bridge = readFileSync(new URL('../lich-scripts/companion_bridge.lic', import.meta.url), 'utf8')
 
 check('the battle scene uses a landscape tactical field', /shape="landscape"/.test(battle) && /aspect-\[4\/3\]/.test(scene))
 check('room details and inventory receive the remaining useful height', /min-h-\[13rem\][^"']*flex-1/.test(battle))
@@ -65,6 +68,10 @@ check('library commands can be added to and removed from the shared hotbar', /ki
 check('hotbar commands keep their exact icon, color, tooltip, and macro execution path', /actionIcon\(pin\.actionKey\)/.test(hotbar) && /actionAccent\(pin\.actionKey\)/.test(hotbar) && /variation\.commands\.join/.test(hotbar) && /macro\.run\(variation\.commands\)/.test(hotbar))
 check('map title, character, search and controls share one compact header line', /search=\{<PlaceSearch/.test(map) && /<header className="flex min-w-0 items-start gap-2"/.test(map) && !/gives is a place on the map/.test(map))
 check('room title, hands and statuses share the scene header line', /header=\{<PanelBoundary label="Status"><BattleStatus/.test(battle) && /absolute inset-x-0 top-0 z-30 flex/.test(scene))
+check('the unused radar corner is a compact armor and shield manager', /<ArmorManager/.test(radar) && /right-\[72px\] top-9/.test(armorManager) && /Wear all/.test(armorManager) && /Off all/.test(armorManager) && /Wear shield/.test(armorManager) && /Adjust shield/.test(armorManager) && /Remove shield/.test(armorManager))
+check('armor coverage is per-piece, complete, editable, and character-persistent', /ARMOR_COVERAGE/.test(armorManager) && /toggleCoverage/.test(armorManager) && /provenance: 'player'/.test(armorManager) && /drc\.armor-loadouts\.v1/.test(armorLoadout) && /'head'[\s\S]*'eyes'[\s\S]*'neck'[\s\S]*'chest'[\s\S]*'abdomen'[\s\S]*'back'[\s\S]*'arms'[\s\S]*'hands'[\s\S]*'legs'[\s\S]*'feet'[\s\S]*'shield'/.test(armorLoadout))
+check('armor controls and slot swaps reach the guarded real bridge', /requestIntent\('armor_manage'/.test(armorManager) && /conflicting\.length \? 'swap' : 'wear'/.test(armorManager) && /COMMAND_SENDING[^\n]*armor_manage/.test(bridge) && /DRCI\.wear_item\?/.test(bridge) && /DRCI\.remove_item\?/.test(bridge) && /operation == 'swap'/.test(bridge))
+check('armor manager keeps the readable type floor', !/text-\[(?:10|11)px\]/.test(armorManager))
 
 if (failures) process.exit(1)
 console.log('\nall battlespace checks passed')
