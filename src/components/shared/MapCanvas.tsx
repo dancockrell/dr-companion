@@ -20,7 +20,7 @@ import type { PlayerMarker } from '../../lib/playerMarker'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 import { RoomHoverCard } from './RoomHoverCard'
 import { useAppStore } from '../../store/useAppStore'
-import { landmarksFor } from '../../lib/mapLandmarks'
+import { LANDMARK_LEGEND, landmarksFor } from '../../lib/mapLandmarks'
 
 /**
  * How many rooms the map draws at once.
@@ -732,6 +732,25 @@ export function MapCanvas({
             )
           })}
     </svg>
+    {landmarks.size > 0 && (
+      <div className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-1rem)] rounded border border-border/70 bg-surface/90 px-2 py-1.5 text-xs text-ink-muted shadow-lg backdrop-blur-sm">
+        <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+          {LANDMARK_LEGEND.filter((entry) => [...landmarks.values()].flat().some((landmark) => landmark.kind === entry.kind)).map((entry) => {
+            const Icon = PIN_ICON_COMPONENT[entry.icon]
+            const count = [...landmarks.values()].flat().filter((landmark) => landmark.kind === entry.kind).length
+            return (
+              <span key={entry.kind} className="flex items-center gap-1" title={entry.label}>
+                <span className="grid h-4 w-4 place-items-center rounded-full" style={{ background: PIN_COLOR_HEX[entry.color] }}>
+                  <Icon className="h-3 w-3 text-surface" strokeWidth={2.75} />
+                </span>
+                <span>{count}</span>
+              </span>
+            )
+          })}
+        </div>
+        <p className="text-ink-faint">World landmarks · click to walk · right-click any room to pin</p>
+      </div>
+    )}
     {hoverId != null && hoverPos && index.get(hoverId) && (
       <RoomHoverCard
         key={hoverId}
