@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MessageSquareText } from 'lucide-react'
 import { StreamTabs } from '../game/StreamTabs'
 import { GameCommandBar } from '../game/GameCommandBar'
+import { GameConnectionBar } from '../game/GameConnectionBar'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { useHighlights } from '../../lib/useHighlights'
 import { TaskFlowPanel } from '../dashboard/TaskFlowPanel'
@@ -21,6 +22,7 @@ export function GameChatColumn() {
       <section className="flex min-h-0 min-w-0 flex-col gap-2" aria-label="Game workspace">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border border-border bg-surface-raised">
           <PanelBoundary label="Game and channels">
+            <GameConnectionBar />
             <StreamTabs
               highlights={highlights}
               heading={<><MessageSquareText className="h-4 w-4" aria-hidden /><span>Game</span></>}
