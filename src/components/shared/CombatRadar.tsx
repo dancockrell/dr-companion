@@ -5,11 +5,10 @@ import { CreatureArt } from './CreatureArt'
 import { Portrait } from './Portrait'
 import { Paperdoll, type Pose } from './Paperdoll'
 import { Activity, Anchor, Ban, Bug, Droplet, FlaskConical, HeartCrack, HeartPulse, Skull, Zap, type LucideIcon } from 'lucide-react'
-import { playerArtFor, notePlayerArtMissing } from '../../lib/playerArt'
-import { npcRoleGuessFor, npcDefaultFor } from '../../lib/npcDefaults'
+import { playerArtFor, playerDefaultArtFor, notePlayerArtMissing } from '../../lib/playerArt'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { RoomBackdrop } from '../room/RoomBackdrop'
-import { DECK_STYLE, type Deck } from '../../lib/cards'
+import { type Deck } from '../../lib/cards'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body'
@@ -17,7 +16,7 @@ import type { Vital } from '../../lib/vitals'
 
 /**
  * The room, with everyone in it — a compass filling the whole board edge to
- * edge, a narrow scrollable roster strip floating over its right side, and
+ * edge, friendly and enemy overflow columns on its left and right edges, and
  * you near the middle of the compass where the fight actually is.
  *
  * A prior pass here replaced the compass with two bordered halves — a
@@ -26,12 +25,10 @@ import type { Vital } from '../../lib/vitals'
  * real assess range and relation mapped to an angle and a radius so a
  * flanking fight actually reads as one. The roster does not carve its own
  * share of that width out of the compass either — it is a single scrollable
- * field (`RosterStrip`), two cards wide, laid *over* the compass's right
- * edge rather than beside it, so the play area itself still reaches all the
- * way to both edges the way the rest of the room picture does. The
- * compass's own visual center shifts left by half the strip's width to
- * compensate — see `centerXPct` — so `you` and anything positioned near the
- * right edge sit clear of the overlay rather than under it. Everyone not
+ * field split into enemy and friendly lanes, laid *over* the compass's side
+ * edges rather than beside it, so the room art and range field still extend
+ * beneath them. The center stays geometrically honest between both lanes.
+ * Everyone not
  * currently positioned by a real assess reading — dead, or simply nothing
  * on the wire to place them by — falls to that strip instead of vanishing,
  * same as it always has.
@@ -82,13 +79,6 @@ const STALE_AFTER_SECONDS = 60
  * Nothing on this board ever prints an always-visible name, so this is the
  * only responsive threshold left: marker size, not label visibility. */
 const COMPACT_MIN_PX = 160
-
-/** How wide the roster strip is, in cards — "2 cards wide" per spec,
- * plus the gap and padding between them. Fixed in pucks rather than a
- * percentage of the board, so it stays exactly two cards wide whether the
- * board is a phone-sized pane or a full monitor; the compass gets
- * whatever is left. */
-const STRIP_COLS = 2
 
 /**
  * Melee wide, pole and missile progressively tighter. A floor, not the
@@ -225,7 +215,7 @@ const PANE_META: Record<Deck, PaneMeta> = {
   allied: { label: 'NPCs', presence: 'allied', ringClass: 'border-info/70' },
 }
 
-/** The roster strip — one scrollable pane, two cards wide, holding every
+/** The standalone roster strip — one scrollable pane holding every
  * entry the compass didn't get to place: dead or unassessed hostiles,
  * every ally, every person. One list rather than three stacked panes,
  * because the strip is narrow enough that three separate scroll regions
@@ -260,6 +250,32 @@ function RosterStrip({
       aria-label="Roster"
     >
       <div className="flex flex-wrap content-start justify-center gap-1 p-1">{children}</div>
+    </div>
+  )
+}
+
+/**
+ * Embedded overflow keeps two persistent vertical columns. Each card owns
+ * its allegiance colour, while the columns merely guarantee stable places
+ * to grab and scroll even when one side is temporarily empty.
+ */
+function RosterColumn({ label, tone, side, children }: { label: string; tone: 'enemy' | 'friendly'; side: 'left' | 'right'; children: ReactNode }) {
+  const drag = useDragScroll()
+  return (
+    <div
+      ref={drag.ref}
+      onPointerDown={drag.onPointerDown}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      onPointerCancel={drag.onPointerCancel}
+      className={`no-scrollbar absolute bottom-0 top-0 z-20 w-[68px] cursor-grab overflow-x-hidden overflow-y-auto border-border/60 bg-surface/76 backdrop-blur-sm touch-none active:cursor-grabbing ${side === 'left' ? 'left-0 border-r' : 'right-0 border-l'}`}
+      aria-label={`${label} radar cards`}
+      title={label}
+    >
+      <div className={`sticky top-0 z-10 py-1 text-center text-xs font-semibold uppercase tracking-wide bg-surface/90 ${tone === 'enemy' ? 'text-danger' : 'text-info'}`}>
+        {label}
+      </div>
+      <div className="flex flex-col items-center gap-1 p-1">{children}</div>
     </div>
   )
 }
@@ -525,6 +541,7 @@ function InfoCard({
   const lore = card.lore
   const stale =
     combatant?.enrichedAgeSeconds != null && combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS
+  const playerArtwork = card.deck === 'people' ? (playerArtFor(card.name) ?? playerDefaultArtFor(card.name)) : undefined
 
   return (
     <div className="flex flex-col gap-1.5 text-xs">
@@ -538,6 +555,12 @@ function InfoCard({
           {card.status === 'stunned' && <p className="text-warn">stunned</p>}
         </div>
       </div>
+
+      {playerArtwork?.description && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-2 border-t border-border/60 pt-1.5">
+          <Fact label="Artwork" value={playerArtwork.description} />
+        </dl>
+      )}
 
       {combatant ? (
         <div className="border-t border-border/60 pt-1.5">
@@ -674,48 +697,14 @@ function Puck({
     )
   }
 
-  // No submitted picture — before falling all the way to a bare letter, try
-  // a guessed NPC default. This only ever fires for names that turned up in
-  // the wiki-researched shopkeeper/guard/clan lists (npcRoleGuessFor), so a
-  // real player sharing no such name never hits it; a real player who
-  // happens to share a researched NPC's name is the one accepted false
-  // positive here, same tradeoff npc-defaults' whole design already takes.
+  // A player always gets a picture. Exact character-owned art wins; otherwise
+  // the shared profile selects race + guild/class + gender defaults, finally
+  // falling back to a neutral portrait while incomplete metadata is fixed.
   if (card.deck === 'people') {
-    const guess = npcRoleGuessFor(card.name)
-    const npcArt = guess ? npcDefaultFor(guess.role, guess.gender, card.name, guess.race) : undefined
-    if (npcArt) {
-      return (
-        <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}>
-          <NpcPortrait url={npcArt.url} height={height} className={`border ${ringClass} ${frameClass}`} />
-        </div>
-      )
-    }
-  }
-
-  // People without a submitted picture or a guessed NPC default are the one
-  // case with no bestiary answer to fall back to — a person is not a
-  // creature, so CreatureArt's silhouette-by-body-type has nothing to draw.
-  // Framed the same as every other fallback on this board though (same
-  // shape, same shadow, an initial letter the way CreatureArt's own letter
-  // tier reads) rather than a visually distinct dot — a PC and a mob
-  // without art should read as the same *kind* of placeholder, not two
-  // different systems.
-  if (card.deck === 'people') {
-    const style = DECK_STYLE[card.deck]
-    const height = shape === 'rect' ? Math.round(px * PORTRAIT_ASPECT) : px
+    const fallback = playerDefaultArtFor(card.name)
     return (
-      <div
-        className={`flex items-center justify-center border ${ringClass} ${frameClass} ${pulse ? 'animate-pulse' : ''}`}
-        style={{
-          width: px,
-          height,
-          background: `var(--color-${style.band.replace('bg-', '')})`,
-          boxShadow: PUCK_SHADOW,
-        }}
-      >
-        <span className="text-lg font-semibold leading-none text-ink" aria-hidden="true">
-          {card.name.charAt(0).toUpperCase()}
-        </span>
+      <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}>
+        <NpcPortrait url={fallback.url} height={height} className={`border ${ringClass} ${frameClass}`} />
       </div>
     )
   }
@@ -895,7 +884,7 @@ function YouCard({
   // tuned number that happened to be close. The doll's own viewBox is
   // trimmed tight to its body now (Paperdoll.tsx), so there is no leftover
   // dead space at this height to justify picking a different one.
-  const portraitSize = compact ? 72 : 106
+  const portraitSize = compact ? 68 : 88
   const dollHeight = portraitSize
 
   return (
@@ -905,7 +894,7 @@ function YouCard({
     // vitals and status icons beside the doll instead of below it uses
     // that width and buys back the vertical space the second row cost.
     <div
-      className="pointer-events-auto flex max-w-[18rem] items-start gap-1 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
+      className="pointer-events-auto flex max-w-[16rem] items-start gap-1 rounded-lg bg-surface/55 p-1 backdrop-blur-sm"
       style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
     >
       <Portrait character={you.character} race={you.race ?? undefined} size={portraitSize} />
@@ -1035,20 +1024,12 @@ export function CombatRadar({
   // The strip's own cards — smaller than a positioned compass puck, since
   // "2 cards wide" only fits at a size the strip's own measured width
   // actually allows.
-  const stripPx = compact ? 44 : 58
-  const compassPortraitPx = compact ? 40 : 56
+  const stripPx = compact ? 40 : 50
+  const compassPortraitPx = compact ? 40 : 52
 
-  const stripGapPx = 4
-  const stripWidthPx = embedded ? STRIP_COLS * stripPx + (STRIP_COLS + 1) * stripGapPx + 1 : 0
-
-  // The compass now draws edge to edge — the roster floats over its right
-  // side as an overlay (see RosterStrip below) rather than sharing the
-  // board's width, so ring geometry is sized against the *whole* board.
-  // Only the visual center moves: nudged left by half the strip's own
-  // width so You and anything positioned near the right edge still sit in
-  // the clear, rather than under the overlay.
+  // The compass draws edge to edge underneath two balanced side lanes.
   const compassWidth = boardWidth
-  const centerXPct = embedded && boardWidth > 0 ? 50 - ((stripWidthPx / 2) / boardWidth) * 100 : 50
+  const centerXPct = 50
   const centerYPct = 50
 
   const RANGE_RADIUS_PCT = rangeRadiusPct(compassWidth, compassPortraitPx)
@@ -1122,6 +1103,8 @@ export function CombatRadar({
   const [pinned, setPinned] = useState<string[]>([])
   const promote = (key: string) => setPinned((prev) => [key, ...prev.filter((k) => k !== key)])
   const orderedStrip = reorderByPin(stripEntries, (e) => e.key, pinned)
+  const enemyLane = orderedStrip.filter((entry) => entry.card.deck === 'hostile')
+  const friendlyLane = orderedStrip.filter((entry) => entry.card.deck !== 'hostile')
   const rangeCounts = positioned.reduce(
     (counts, entry) => {
       counts[entry.combatant.range!]++
@@ -1277,17 +1260,17 @@ export function CombatRadar({
             </p>
           )}
 
-          {/* The roster — everyone the compass didn't get to place: dead or
-              unassessed hostiles, every ally, every person. Two cards
-              wide, floated over the compass's right edge rather than
-              sharing its width, so the compass itself still reaches all
-              the way across the board underneath it. */}
-          <div className="absolute right-0 top-0 h-full">
-            <RosterStrip width={stripWidthPx}>
-              {orderedStrip.map((entry) => (
+          <div aria-label="Scrollable friendly and enemy radar columns">
+            <RosterColumn label="Friends" tone="friendly" side="left">
+              {friendlyLane.map((entry) => (
                 <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
               ))}
-            </RosterStrip>
+            </RosterColumn>
+            <RosterColumn label="Enemies" tone="enemy" side="right">
+              {enemyLane.map((entry) => (
+                <EntryPuck key={entry.key} card={entry.card} combatant={entry.combatant} px={stripPx} />
+              ))}
+            </RosterColumn>
           </div>
         </>
       ) : (

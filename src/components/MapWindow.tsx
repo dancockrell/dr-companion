@@ -69,6 +69,7 @@ export function MapWindow() {
    */
   const {
     containerRef,
+    contentRef,
     x: panX,
     y: panY,
     zoom: viewZoom,
@@ -454,15 +455,18 @@ export function MapWindow() {
         onPointerDown={handlers.onPointerDown}
         onPointerMove={handlers.onPointerMove}
         onPointerUp={handlers.onPointerUp}
+        onPointerCancel={handlers.onPointerCancel}
         onClickCapture={handlers.onClickCapture}
       >
         {zone?.ok ? (
           <div
+            ref={contentRef}
             className={dragging ? '' : 'transition-transform duration-150 ease-out'}
             style={{
               position: 'absolute',
-              transform: `translate(${panX}px, ${panY}px) scale(${viewZoom})`,
+              transform: `translate3d(${panX}px, ${panY}px, 0) scale(${viewZoom})`,
               transformOrigin: '0 0',
+              willChange: 'transform',
             }}
           >
             <MapCanvas

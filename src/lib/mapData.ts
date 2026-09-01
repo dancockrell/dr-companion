@@ -137,6 +137,7 @@ function toZoneRoom(r: BuiltRoom): MapZoneRoom {
     mapColour: r.color,
     gateway: r.gateway,
     leaves: r.leaves,
+    moves: [...r.exits.map((e) => e.move.trim()).filter(Boolean), ...(r.leaves ?? [])],
     links: r.exits.map((e) => ({ to: e.to, kind: kindOfExit(e.dir) })),
   }
 }

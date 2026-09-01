@@ -90,9 +90,9 @@ console.log('-- and the state the first fix left it in --')
 console.log('\n-- widths that fit are not touched --')
 {
   const f = fit(1600, 300, 420)
-  ok('300 and 420 in a 1600 window stay put', f.map === 300 && f.dash === 420, JSON.stringify(f))
+  ok('experience stays put while Battle receives surplus', f.map > 300 && f.dash === 420, JSON.stringify(f))
   ok('nothing is reported as squeezed', f.squeezed === false)
-  ok('the room column gets the remainder', f.room === 1600 - 300 - 420 - 16, `${f.room}px`)
+  ok('room and Battle split the available surplus', Math.abs(f.room - f.map) <= 160, JSON.stringify(f))
 }
 
 console.log('\n-- a big map is still allowed, because that was the point --')
@@ -185,7 +185,7 @@ console.log('\n-- an empty map yields space rather than holding its stored width
   ok('room grows past its bare floor because of it', idle.room > ROOM_MIN, `${idle.room}px`)
 
   const full = fitEmpty(1600, 495, 315, { mapEmpty: false, dashEmpty: false })
-  ok('with content, the same 495px request is honoured', full.map === 495, `${full.map}px`)
+  ok('with content, Battle grows beyond the same 495px baseline', full.map > 495, `${full.map}px`)
   ok('and room shrinks back to make room for it', full.room < idle.room, `${full.room} vs ${idle.room}`)
 }
 

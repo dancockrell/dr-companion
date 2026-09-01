@@ -124,11 +124,11 @@ export function StatusBoard() {
 
   // Wounded and clotted, not currently bleeding — the state the `bleeding`
   // flag alone reads as identical to "nothing wrong" and #10 exists to fix.
-  const tended = !flags.has('bleeding') && bleedRates.some((r) => /clot/i.test(r))
-
   const spells = character.spells ?? []
   const inRoundtime = (character.roundtime ?? 0) > 0
-  const quiet = shown.length === 0 && unknown.length === 0 && !inRoundtime && !tended
+  const quiet = shown.length === 0 && unknown.length === 0 && !inRoundtime
+
+  if (quiet && spells.length === 0) return null
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -159,18 +159,6 @@ export function StatusBoard() {
           )
         })}
 
-        {tended && (
-          <span
-            title="A wound has been tended and is clotted, not currently bleeding — from the last Check health."
-            className={cn(
-              'rounded border px-1.5 py-0.5 text-xs font-medium',
-              BAND_STYLE.good
-            )}
-          >
-            Tended
-          </span>
-        )}
-
         {unknown.map((f) => (
           <span
             key={f}
@@ -181,7 +169,6 @@ export function StatusBoard() {
           </span>
         ))}
 
-        {quiet && <span className="text-xs text-ink-faint">Nothing on you.</span>}
       </div>
 
       {spells.length > 0 && (

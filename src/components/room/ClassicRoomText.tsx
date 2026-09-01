@@ -53,9 +53,8 @@ export function ClassicRoomText({
    * printed "2, 335, 7" instead of a direction the one time this line
    * pulled from it by mistake. */
   exits?: string[]
-  /** Lich's own room number — what `#goto` takes. On the same line as the
-   * exits themselves now, not a separate paragraph below: both are "where
-   * can I go / where am I", one question, one line. */
+  /** Lich's own room number — what `#goto` takes. Kept beside the title so
+   * it stays visible without competing with a potentially long exit list. */
   room?: number | null
   /** The game's own uid, when known — a different number from Lich's room
    * id, and worth carrying both for the same reason the map tooltip does. */
@@ -75,7 +74,17 @@ export function ClassicRoomText({
       className="no-scrollbar cursor-grab touch-none overflow-y-auto active:cursor-grabbing"
       style={{ maxHeight: MAX_HEIGHT_PX }}
     >
-      {title && <p className="text-xs font-semibold text-warn">[{title}]</p>}
+      {(title || room != null) && (
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
+          {title && <p className="min-w-0 font-semibold text-warn">[{title}]</p>}
+          {room != null && (
+            <span className="shrink-0 text-ink-faint">
+              Lich room {room}
+              {uid != null ? `, game uid ${uid}` : ''}
+            </span>
+          )}
+        </div>
+      )}
 
       {text ? (
         <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
@@ -95,27 +104,11 @@ export function ClassicRoomText({
         <p className="mt-1 text-xs leading-relaxed text-info">Also here: {listFormatter.format(players)}.</p>
       )}
 
-      {((exits && exits.length > 0) || room != null) && (
-        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-relaxed text-ink-faint">
-          {exits && exits.length > 0 && (
-            <>
-              <span>Obvious paths:</span>
-              <ExitButtons exits={exits} />
-            </>
-          )}
-          {/* Lich's own room id, on the same line as the exits rather than
-              a separate paragraph below - both answer "where can I go /
-              where am I", one question. Both ids, for the same reason the
-              map tooltip carries both: Lich's room number is what #goto
-              takes and the game's uid is what a player sees, and they are
-              different numbers. */}
-          {room != null && (
-            <span>
-              Lich room {room}
-              {uid != null ? `, game uid ${uid}` : ''}
-            </span>
-          )}
-        </p>
+      {exits && exits.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/60 pt-2 text-xs leading-relaxed text-ink-faint" aria-label="Room exits">
+          <span className="font-semibold uppercase tracking-wide text-ink-muted">Exits</span>
+          <ExitButtons exits={exits} />
+        </div>
       )}
     </div>
   )

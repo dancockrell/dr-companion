@@ -21,7 +21,7 @@ export function ExitButtons({ exits }: { exits?: string[] }) {
           disabled={!canSend}
           onClick={() => run([dir])}
           title={reason ?? `Go ${dir}`}
-          className="rounded border border-border px-1.5 py-0.5 text-xs text-ink-muted hover:border-ink-faint hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-md border border-info/35 bg-info/5 px-2 py-1 text-xs font-medium text-info hover:border-info hover:bg-info/15 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
         >
           {dir}
         </button>

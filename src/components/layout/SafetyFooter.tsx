@@ -96,24 +96,20 @@ export function SafetyFooter() {
   // predates the field.
   const primaryAvailable = isIntentImplemented(bridgeIntents, primaryIntent)
   const townRunAvailable = isIntentImplemented(bridgeIntents, 'town_run')
-  const NOT_IMPLEMENTED_NOTE = 'Not yet implemented in the connected bridge.'
 
   return (
     <footer className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border bg-surface-raised/90 px-3 py-2">
-      {character && (
+      {character && primaryAvailable && (
         <button
           type="button"
-          disabled={!primaryAvailable}
           className={cn(
-            'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40',
+            'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold',
             lowHealth
               ? 'bg-danger/90 text-white hover:bg-danger'
               : 'bg-accent text-surface hover:bg-accent-soft'
           )}
           title={
-            !primaryAvailable
-              ? NOT_IMPLEMENTED_NOTE
-              : lowHealth
+            lowHealth
                 ? 'Health is low. Walk to a healer.'
                 : inCombat
                   ? 'Help with the fight in progress'
@@ -130,12 +126,11 @@ export function SafetyFooter() {
         </button>
       )}
 
-      {character && (
+      {character && townRunAvailable && (
         <button
           type="button"
-          disabled={!townRunAvailable}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
-          title={townRunAvailable ? 'Bank, repair, restock' : NOT_IMPLEMENTED_NOTE}
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink"
+          title="Bank, repair, restock"
           onClick={() => requestIntent('town_run')}
         >
           <Navigation className="h-4 w-4" />

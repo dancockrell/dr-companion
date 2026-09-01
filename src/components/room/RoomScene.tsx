@@ -34,6 +34,7 @@ export function RoomScene({
   maxHeightVh = 42,
   chips,
   overlay,
+  shape = 'square',
 }: {
   zone: string
   room: number
@@ -52,6 +53,10 @@ export function RoomScene({
    * panels that are not there.
    */
   maxHeightVh?: number
+  /** Battle uses a landscape field: cards and a wide central dashboard fit
+   * naturally around elliptical range bands instead of colliding inside a
+   * square. Other room scenes retain their square composition. */
+  shape?: 'square' | 'landscape'
   /** Who's here, layered on top along the bottom edge. */
   chips?: import('react').ReactNode
   /**
@@ -84,16 +89,24 @@ export function RoomScene({
       className={
         height
           ? 'relative w-full overflow-hidden rounded border border-border'
-          : 'relative mx-auto aspect-square overflow-hidden rounded border border-border'
+          : shape === 'landscape'
+            ? 'relative mx-auto aspect-[4/3] overflow-hidden rounded border border-border'
+            : 'relative mx-auto aspect-square overflow-hidden rounded border border-border'
       }
-      style={height ? { height } : { width: `min(100%, ${maxHeightVh}vh)` }}
+      style={height ? { height } : { width: shape === 'landscape' ? `min(100%, ${maxHeightVh * 4 / 3}vh)` : `min(100%, ${maxHeightVh}vh)` }}
     >
-      <RoomBackdrop zone={zone} room={room} title={title} text={text} />
+      {/* A named, fixed base layer: the combat radar is tactical ink on this
+          picture, never a sibling panel that can replace it with a flat
+          background. Explicit z-order makes that survive future radar CSS
+          changes instead of depending on incidental DOM paint order. */}
+      <div className="absolute inset-0 z-0" aria-label="Room art">
+        <RoomBackdrop zone={zone} room={room} title={title} text={text} />
+      </div>
 
-      {overlay && <div className="absolute inset-0">{overlay}</div>}
+      {overlay && <div className="absolute inset-0 z-10" aria-label="Tactical radar over room art">{overlay}</div>}
 
       {title && (
-        <div className="absolute inset-x-0 top-0 bg-surface/80 px-2 py-1 text-xs text-ink backdrop-blur-sm">
+        <div className="absolute inset-x-0 top-0 z-20 bg-surface/80 px-2 py-1 text-xs text-ink backdrop-blur-sm">
           <span className="truncate">{title}</span>
         </div>
       )}
@@ -101,7 +114,7 @@ export function RoomScene({
       {/* Who's here, on the felt rather than in a list beside it — the
           bottom edge, since the title moved to the top to make room. */}
       {chips && (
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-6">
+        <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-6">
           {chips}
         </div>
       )}

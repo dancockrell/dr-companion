@@ -18,6 +18,8 @@ import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
 import { isWatched, toggleWatched } from '../../lib/watchedRooms'
 import { cachedElanthipedia, fetchElanthipedia, type ElanthipediaPage } from '../../lib/elanthipedia'
 import type { GameInstance } from '../../types'
+import { landmarksFor } from '../../lib/mapLandmarks'
+import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 
 export function RoomHoverCard({
   room,
@@ -38,6 +40,10 @@ export function RoomHoverCard({
   )
   const [page, setPage] = useState<ElanthipediaPage | null>(null)
   const [loading, setLoading] = useState(false)
+  const landmarks = landmarksFor(room)
+  const wikiSearch = room.title
+    ? `https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(room.title)}`
+    : 'https://elanthipedia.play.net/'
 
   // Re-read watched state whenever the hovered room changes - this
   // component is remounted per room (keyed by id in MapCanvas), so this
@@ -91,6 +97,32 @@ export function RoomHoverCard({
             {room.tags.join(', ')}
           </p>
         ) : null}
+
+        {landmarks.length > 0 && (
+          <div className="mt-1.5 border-t border-border pt-1.5">
+            {landmarks.map((landmark) => {
+              const Icon = PIN_ICON_COMPONENT[landmark.icon]
+              return (
+                <p key={landmark.kind} className="flex items-center gap-1.5 text-ink-muted">
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full" style={{ background: PIN_COLOR_HEX[landmark.color] }}>
+                    <Icon className="h-3 w-3 text-surface" />
+                  </span>
+                  <span><strong className="font-medium text-ink">{landmark.kind}</strong> — {landmark.label}</span>
+                </p>
+              )
+            })}
+          </div>
+        )}
+
+        <a
+          href={wikiSearch}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1.5 flex items-center gap-1 border-t border-border pt-1.5 text-accent hover:underline"
+          title={`Search Elanthipedia for ${room.title ?? 'this room'}`}
+        >
+          <ExternalLink className="h-3 w-3" /> Look up this place on Elanthipedia
+        </a>
 
         {pin && (
           <div className="mt-1.5 border-t border-border pt-1.5">

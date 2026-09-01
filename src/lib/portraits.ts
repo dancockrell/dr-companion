@@ -29,6 +29,12 @@ export const slug = (s: string) =>
     .slice(0, 60)
 
 let installed: string[] = []
+const CORE_DEFAULTS = [
+  'dwarf-female', 'dwarf-male', 'elf-female', 'elf-male', 'elothean-female', 'elothean-male',
+  'gnome-female', 'gnome-male', 'gor-tog-female', 'gor-tog-male', 'halfling-female', 'halfling-male',
+  'human-female', 'human-male', 'kaldar-female', 'kaldar-male', 'prydaen-female', 'prydaen-male',
+  'rakash-female', 'rakash-male', 's-kra-mur-female', 's-kra-mur-male',
+]
 
 /**
  * What is on disk. Fetched once, and absent is normal rather than an error:
@@ -60,6 +66,19 @@ export function catalogue(): PortraitMeta[] {
 }
 
 export const portraitUrl = (key: string) => `/portraits/${key}.webp`
+
+/** A stable, visually diverse placeholder when another player's public
+ * demographics are not yet available. It is explicitly not demographic
+ * inference; callers must label it as a generic default. */
+export function genericPortraitFor(seed: string): string {
+  const choices = installed.length > 0 ? installed.map((file) => file.replace(/\.webp$/i, '')) : CORE_DEFAULTS
+  let hash = 2166136261
+  for (const char of seed) {
+    hash ^= char.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
+  }
+  return choices[(hash >>> 0) % choices.length]
+}
 
 /** What this character chose, if anything. Keyed by name so alts differ. */
 export function chosenFor(character: string): string | null {

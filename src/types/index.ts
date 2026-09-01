@@ -440,7 +440,13 @@ export interface LogRow {
 }
 
 export interface InventorySummary {
-  containers: { name: string; used: number; capacity: number }[]
+  containers: {
+    name: string
+    used: number
+    capacity: number
+    /** Present after a deliberate recursive inventory scan. */
+    items?: string[]
+  }[]
   /**
    * What is worn, by name.
    *

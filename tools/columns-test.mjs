@@ -19,8 +19,8 @@
  * rather than a pure leftover when "one column for map, one for battle, one
  * for skills" asked for three peer columns instead of two plus a remainder -
  * every scenario below now passes a `roomWant`, and the fits-case checks that
- * an unclaimed leftover still lands on room by default (see fitColumns' own
- * doc comment on why).
+ * unclaimed width is shared by the two visual surfaces rather than making an
+ * ultrawide Room column while Battle remains cramped.
  *
  *   node tools/columns-test.mjs
  */
@@ -57,13 +57,14 @@ console.log('-- the control: when it all fits, nothing is scaled --')
   const f = fitColumns({
     hostW: 2000, roomWant: 460, mapWant: 500, dashWant: 450, mapDocked: true, splitW: SPLIT,
   })
-  ok('map honoured exactly', f.map === 500, String(f.map))
+  const surplus = 2000 - SPLIT * 2 - 460 - 500 - 450
+  ok('battle receives half the surplus', f.map === 500 + Math.floor(surplus / 2), String(f.map))
   ok('dash honoured exactly', f.dash === 450, String(f.dash))
   ok('not marked squeezed', f.squeezed === false, String(f.squeezed))
   ok(
-    "room gets its own ask plus whatever nobody else asked for",
-    f.room === 2000 - SPLIT * 2 - 500 - 450,
-    `${f.room} === ${2000 - SPLIT * 2 - 500 - 450}`
+    "room receives the other half of the surplus",
+    f.room === 460 + Math.ceil(surplus / 2),
+    `${f.room} === ${460 + Math.ceil(surplus / 2)}`
   )
   ok('room is at least what it asked for', f.room >= 460, `${f.room} >= 460`)
 }
@@ -76,6 +77,17 @@ console.log('\n-- room asked for exactly the leftover: no surplus, no squeeze --
   })
   ok('room honoured exactly, nothing left unclaimed', f.room === forColumns - 500 - 450, String(f.room))
   ok('still not a squeeze', f.squeezed === false, String(f.squeezed))
+}
+
+console.log('\n-- automatic Battle growth stops where a square scene can use it --')
+{
+  const f = fitColumns({
+    hostW: 2400, roomWant: 460, mapWant: 600, dashWant: 168,
+    mapDocked: true, splitW: SPLIT, mapGrowthMax: 880,
+  })
+  ok('Battle grows only to the useful ceiling', f.map === 880, String(f.map))
+  ok('the unused surplus returns to Room', f.room === 2400 - SPLIT * 2 - 880 - 168, String(f.room))
+  ok('the ceiling does not mark a healthy layout squeezed', f.squeezed === false, String(f.squeezed))
 }
 
 console.log('\n-- the regression: a squeeze must not hide the dashboard --')

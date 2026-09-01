@@ -646,7 +646,7 @@ export function TaskFlowPanel({ dense = false }: { dense?: boolean }) {
       <div
         ref={gridRef}
         className={cn(
-          'min-h-0 flex-1 overflow-auto',
+          'no-scrollbar min-h-0 flex-1 overflow-auto touch-none',
           gridDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
         )}
         style={{ touchAction: 'none' }}

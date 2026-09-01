@@ -20,6 +20,7 @@ import type { PlayerMarker } from '../../lib/playerMarker'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 import { RoomHoverCard } from './RoomHoverCard'
 import { useAppStore } from '../../store/useAppStore'
+import { landmarksFor } from '../../lib/mapLandmarks'
 
 /**
  * How many rooms the map draws at once.
@@ -178,6 +179,67 @@ export function MapCanvas({
   const kindById = useMemo(
     () => new Map(rooms.map((r) => [r.id, roomKind(r, zone.here, onRoute)])),
     [rooms, zone.here, onRoute]
+  )
+
+  // Genie/Elanthipedia-derived place metadata is not a tooltip-only detail.
+  // Turn it into a visible landmark layer, below personal pins and the player
+  // crest so authored world information enriches rather than competes with
+  // the player's own map.
+  const landmarks = useMemo(() => {
+    const candidates = rooms.flatMap((room) =>
+      room.id != null && room.x != null && room.y != null
+        ? landmarksFor(room).map((landmark) => ({ room, landmark }))
+        : []
+    )
+
+    // A guild complex can contribute fifty annotated rooms. Fifty identical
+    // guild badges are not fifty useful facts. Keep the strongest named room
+    // in each nearby same-kind cluster; different categories never suppress
+    // one another, so a bank inside a guild still gets its own mark.
+    const radius: Record<(typeof candidates)[number]['landmark']['kind'], number> = {
+      bank: 28,
+      healer: 32,
+      guild: 55,
+      shop: 24,
+      inn: 28,
+      temple: 38,
+      travel: 20,
+      craft: 34,
+      library: 24,
+      hunt: 38,
+      trainer: 34,
+      weapon: 24,
+      armor: 24,
+      alchemy: 28,
+      magic: 28,
+      dock: 22,
+      portal: 24,
+      office: 24,
+      justice: 28,
+      post: 24,
+    }
+    const score = ({ landmark }: (typeof candidates)[number]) => {
+      const label = landmark.label
+      return (/,/.test(label) ? 0 : 8) + (/\b(GL|guild|academy|headquarters|bank|hospital|healer|gate|dock|market|shop|forge|library)\b/i.test(label) ? 6 : 0) - label.length / 100
+    }
+    const kept: typeof candidates = []
+    for (const candidate of [...candidates].sort((a, b) => score(b) - score(a))) {
+      const nearSameKind = kept.some((other) => {
+        if (other.landmark.kind !== candidate.landmark.kind) return false
+        const dx = (other.room.x as number) - (candidate.room.x as number)
+        const dy = (other.room.y as number) - (candidate.room.y as number)
+        return Math.hypot(dx, dy) < radius[candidate.landmark.kind]
+      })
+      if (!nearSameKind) kept.push(candidate)
+    }
+    const byRoom = new Map<number, typeof kept[number]['landmark'][]>()
+    for (const { room, landmark } of kept) {
+      const id = room.id as number
+      byRoom.set(id, [...(byRoom.get(id) ?? []), landmark])
+    }
+    return byRoom
+  },
+    [rooms]
   )
 
   // Who's next to whom, for highlighting a room's connections on hover - a
@@ -526,6 +588,47 @@ export function MapCanvas({
           </g>
         )
       })}
+
+      {/* Automatic world landmarks from the cartographers' labels and live
+          Lich tags. Smaller and quieter than personal pins, but actual icons
+          rather than colored room dust. They remain inside the room's parent
+          click target, so clicking one walks there and right-clicking creates
+          a personal pin. */}
+      {rooms
+        .filter((r) => r.id != null && landmarks.has(r.id))
+        .flatMap((r) => landmarks.get(r.id!)!.map((landmark, landmarkIndex, roomLandmarks) => {
+          const cx = px(r)
+          const cy = py(r)
+          const radius = Math.max(box * 0.82, 2.1 * scale)
+          const angle = roomLandmarks.length > 1 ? (Math.PI * 2 * landmarkIndex) / roomLandmarks.length - Math.PI / 2 : 0
+          const fan = roomLandmarks.length > 1 ? radius * 1.15 : 0
+          const iconX = cx + Math.cos(angle) * fan
+          const iconY = cy + Math.sin(angle) * fan
+          const Icon = PIN_ICON_COMPONENT[landmark.icon]
+          return (
+            <g key={`landmark-${r.id}-${landmark.kind}`} className="pointer-events-none" aria-label={`${landmark.label}: ${landmark.kind}`}>
+              <title>{`${landmark.label}\n${landmark.kind} · click to walk · right-click to pin`}</title>
+              <circle
+                cx={iconX}
+                cy={iconY}
+                r={radius}
+                fill={PIN_COLOR_HEX[landmark.color]}
+                stroke="var(--map-ground)"
+                strokeWidth={Math.max(0.45, 0.45 * scale)}
+                opacity={0.92}
+              />
+              <svg
+                x={iconX - radius * 0.72}
+                y={iconY - radius * 0.72}
+                width={radius * 1.44}
+                height={radius * 1.44}
+                viewBox="0 0 24 24"
+              >
+                <Icon size={24} color="var(--map-ground)" strokeWidth={3} />
+              </svg>
+            </g>
+          )
+        }))}
 
       {/* A saved place, marked on the chart itself rather than only in the
           hotbar below it - so browsing toward one, or noticing you are near

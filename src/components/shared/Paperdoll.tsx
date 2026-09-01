@@ -117,10 +117,10 @@ function radiusFor(part: keyof typeof LAYOUT_STANDING): number {
 }
 
 function tone(wound: Severity) {
-  if (wound >= 3) return { fill: 'var(--color-danger)', opacity: 0.95 }
-  if (wound === 2) return { fill: 'var(--color-danger)', opacity: 0.6 }
-  if (wound === 1) return { fill: 'var(--color-warn)', opacity: 0.55 }
-  return { fill: 'var(--color-surface-overlay)', opacity: 1 }
+  if (wound >= 3) return { fill: 'var(--color-danger)', opacity: 1 }
+  if (wound === 2) return { fill: 'var(--color-danger)', opacity: 0.72 }
+  if (wound === 1) return { fill: 'var(--color-warn)', opacity: 0.7 }
+  return { fill: 'var(--color-ink-muted)', opacity: 0.22 }
 }
 
 /** A scar, stamped rather than drawn as one line across the box — three
@@ -131,7 +131,7 @@ function tone(wound: Severity) {
  * hand reads the same mark as one on the chest. */
 function ScarStamp({ x, y }: { x: number; y: number }) {
   return (
-    <g stroke="var(--color-ink-faint)" strokeWidth={0.45} strokeLinecap="round" opacity={0.9}>
+    <g stroke="var(--color-accent)" strokeWidth={0.55} strokeLinecap="round" opacity={0.95}>
       <line x1={x} y1={y + 1.6} x2={x + 1.6} y2={y} />
       <line x1={x + 0.9} y1={y + 2.5} x2={x + 2.5} y2={y + 0.9} />
       <line x1={x + 1.8} y1={y + 3.4} x2={x + 3.4} y2={y + 1.8} />
@@ -210,11 +210,11 @@ export function Paperdoll({
           above instead, since folded legs are a genuinely different shape,
           not a rotation of a standing one. */}
       <g transform={pose === 'lying' ? 'rotate(90 30 42)' : undefined}>
-      {/* Stage lighting, not a part: a head halo and a torso glow so the
-          sixteen independent shapes below read as one body at a glance. */}
-      <g aria-hidden opacity={0.5}>
-        <circle cx={HEAD.cx} cy={HEAD.cy} r={HEAD.r + 2} fill="var(--color-ink-faint)" opacity={0.08} />
-        <rect x={14} y={16} width={32} height={32} rx={10} fill="var(--color-ink-faint)" opacity={0.06} />
+      {/* A crisp anatomical outline binds the independently coloured injury
+          regions into one body. It carries no state of its own. */}
+      <g aria-hidden fill="none" stroke="var(--color-ink-faint)" strokeWidth={0.65} opacity={0.45}>
+        <circle cx={HEAD.cx} cy={HEAD.cy} r={HEAD.r + 1.5} />
+        <path d="M22 18 Q30 14 38 18 L42 43 Q37 47 36 50 L38 81 M18 43 Q23 47 24 50 L22 81 M18 20 L10 45 M42 20 L46 45" />
       </g>
 
       {/* The head, drawn separately from the rest of LAYOUT because it is a
@@ -228,7 +228,7 @@ export function Paperdoll({
           r={HEAD.r}
           fill={tone(injuryOf('head').wound).fill}
           fillOpacity={tone(injuryOf('head').wound).opacity}
-          stroke="var(--color-border)"
+          stroke="var(--color-ink-faint)"
           strokeWidth={injuryOf('head').wound >= 2 ? 1 : 0.4}
         />
         {injuryOf('head').scar > 0 && <ScarStamp x={HEAD.cx + HEAD.r - 4.5} y={HEAD.cy - HEAD.r + 0.5} />}
@@ -251,7 +251,7 @@ export function Paperdoll({
               r={EYE_R}
               fill={t.fill}
               fillOpacity={t.opacity}
-              stroke="var(--color-surface)"
+              stroke="var(--color-ink)"
               strokeWidth={0.4}
             />
           </g>
@@ -275,7 +275,7 @@ export function Paperdoll({
               rx={rx}
               fill={t.fill}
               fillOpacity={t.opacity}
-              stroke="var(--color-border)"
+              stroke="var(--color-ink-faint)"
               strokeWidth={inj.wound >= 2 ? 1 : 0.4}
             />
             {/* Scars stamp rather than fill: history, not now. Blood stamps

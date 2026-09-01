@@ -16,7 +16,7 @@
  * this file's original design, where a route was previewed and moving stayed
  * a separate decision - see the comment on `goThere` below.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Map as MapIcon,
   RefreshCw,
@@ -164,12 +164,9 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
    * maps - don't feel like two different products once you try to move
    * around either one.
    *
-   * Active whenever `dock.zoom !== 1`, in either direction. At exactly 1 the
-   * whole zone already fits the box by design ("a glance that is always
-   * complete, never clipped" - MapCanvas's own `fit` mode) and there is
-   * nothing to pan; any other zoom - in to read fine detail, or out past fit
-   * to see more margin around the zone - switches to the same natural-size
-   * transform the popped-out window always uses, which is draggable.
+   * Active at every zoom, including fit. Keeping one fitted drawing under one
+   * transform avoids the old discontinuity where crossing 1x swapped between
+   * two differently sized SVGs and made cursor-anchored zoom jump.
    */
   const viewport = useMapViewport({
     zoom: dock.zoom,
@@ -177,9 +174,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     min: ZOOM_MIN,
     max: ZOOM_MAX,
   })
-  const { containerRef, x: panX, y: panY, dragging, handlers, zoomBy, centerOn, resetPan } = viewport
+  const { containerRef, contentRef, x: panX, y: panY, dragging, handlers, zoomBy, resetPan } = viewport
 
-  const here = useAppStore((s) => s.mapHere)
+  // A room update must update the view, not only the red "here" marker in an
+  // off-screen part of a previously panned map. Return the docked map to fit
+  // when live location changes; deliberate browsing keeps its own view.
+  useEffect(() => {
+    if (browsing) return
+    resetPan()
+    setMapDock({ zoom: 1 })
+  }, [browsing, hereId, level, resetPan, zone?.zone])
+
   const character = useAppStore((s) => s.character)
   const addLog = useAppStore((s) => s.addLog)
 
@@ -345,22 +350,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     setPinVersion((v) => v + 1)
     setEditingRoom(null)
   }
-  // Recenter when the character moves, the zone/level changes, or zoom
-  // itself changes - the last one only matters here because the toolbar
-  // zoom buttons are the only way in (no wheel while at fit), so unlike the
-  // popped-out window there is no cursor position for the button to anchor
-  // toward instead.
-  const centeredFor = useRef<string | null>(null)
-  const onHereAt = useCallback(
-    (x: number, y: number) => {
-      const key = `${here?.id}:${zoneStack.join('>')}:${level}:${dock.zoom}`
-      if (centeredFor.current === key) return
-      centeredFor.current = key
-      centerOn(x, y)
-    },
-    [here?.id, zoneStack, level, dock.zoom, centerOn]
-  )
-
   if (!connected) {
     return (
       <Shell plane={plane}>
@@ -614,10 +603,10 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           which for a small zone is a stamp in the corner.
           In plane mode the height comes from the column instead. */}
       <div
-        ref={dock.zoom !== 1 ? containerRef : undefined}
+        ref={containerRef}
         title="Map colours: dark you, red hazard, blue bank/healer/guild/shop"
         className={`relative rounded ${
-          dock.zoom !== 1 ? `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}` : 'overflow-hidden'
+          `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`
         } ${plane ? 'flex-1 min-h-0' : ''}`}
         style={{
           // The page, behind and around the chart. Letterboxing in the app's
@@ -625,17 +614,14 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           // as a sheet that does not fill the box.
           background: 'var(--map-ground)',
           ...(plane ? {} : { height: tall ? 320 : 168 }),
-          ...(dock.zoom !== 1 ? { touchAction: 'none' } : {}),
+          touchAction: 'none',
         }}
-        {...(dock.zoom !== 1
-          ? {
-              onWheel: handlers.onWheel,
-              onPointerDown: handlers.onPointerDown,
-              onPointerMove: handlers.onPointerMove,
-              onPointerUp: handlers.onPointerUp,
-              onClickCapture: handlers.onClickCapture,
-            }
-          : {})}
+        onWheel={handlers.onWheel}
+        onPointerDown={handlers.onPointerDown}
+        onPointerMove={handlers.onPointerMove}
+        onPointerUp={handlers.onPointerUp}
+        onPointerCancel={handlers.onPointerCancel}
+        onClickCapture={handlers.onClickCapture}
       >
         {/* Pinned to this box, not to the zoomed/panned content inside it — a
          * sibling of the scaled div below, not a child, so panning or zooming
@@ -651,64 +637,34 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             Demo map — not your location
           </div>
         )}
-        {dock.zoom !== 1 ? (
-          // Zoomed in or out: natural-size drawing under a translate+scale
-          // transform, panned and zoomed the same way the popped-out window
-          // is (see useMapViewport) - click-and-drag, and the wheel anchored
-          // on the cursor rather than always re-centring on the box.
-          <div
-            className={`${standingIn ? 'grayscale-[60%] opacity-70' : ''} ${
-              dragging ? '' : 'transition-transform duration-150 ease-out'
-            }`}
-            style={{
-              position: 'absolute',
-              transform: `translate(${panX}px, ${panY}px) scale(${dock.zoom})`,
-              transformOrigin: '0 0',
-              ...(demoStandIn ? { filter: 'grayscale(0.85) brightness(0.55)' } : {}),
-            }}
-          >
-            <MapCanvas
-              zone={zone}
-              level={z}
-              onRoute={onRoute}
-              onPick={goThere}
-              onZone={pushZone}
-              trail={trail}
-              onHereAt={onHereAt}
-              pins={pinsByRoom}
-              onPinRoom={pinRoom}
-              onDropPin={dropPin}
-              playerMarker={playerMarker}
-            />
-          </div>
-        ) : (
-          // Fit: the whole zone visible, always - "a glance that is always
-          // complete, never clipped." No pan needed because nothing is cut
-          // off to pan toward.
-          <div
-            className={standingIn ? 'grayscale-[60%] opacity-70' : undefined}
-            style={{
-              width: '100%',
-              height: '100%',
-              ...(demoStandIn ? { filter: 'grayscale(0.85) brightness(0.55)' } : {}),
-            }}
-          >
-            <MapCanvas
-              zone={zone}
-              level={z}
-              onRoute={onRoute}
-              fit
-              onPick={goThere}
-              onZone={pushZone}
-              trail={trail}
-              pins={pinsByRoom}
-              onPinRoom={pinRoom}
-              onDropPin={dropPin}
-              playerMarker={playerMarker}
-            />
-          </div>
-        )}
-
+        <div
+          ref={contentRef}
+          className={`${standingIn ? 'grayscale-[60%] opacity-70' : ''} ${
+            dragging ? '' : 'transition-transform duration-150 ease-out'
+          }`}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            transform: `translate3d(${panX}px, ${panY}px, 0) scale(${dock.zoom})`,
+            transformOrigin: '0 0',
+            willChange: 'transform',
+            ...(demoStandIn ? { filter: 'grayscale(0.85) brightness(0.55)' } : {}),
+          }}
+        >
+          <MapCanvas
+            zone={zone}
+            level={z}
+            onRoute={onRoute}
+            fit
+            onPick={goThere}
+            onZone={pushZone}
+            trail={trail}
+            pins={pinsByRoom}
+            onPinRoom={pinRoom}
+            onDropPin={dropPin}
+            playerMarker={playerMarker}
+          />
+        </div>
         {/* A watermark on the map itself, not just a banner above it. The
          * banner is what explains why; this is what keeps a glance from
          * mistaking demo cartography for the character's real location even

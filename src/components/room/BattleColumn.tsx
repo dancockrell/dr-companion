@@ -5,8 +5,8 @@ import { BattleStatus } from './BattleStatus'
 import { BattleActionBar } from './BattleActionBar'
 import { ClassicRoomText } from './ClassicRoomText'
 import { FloorItems } from './FloorItems'
-import { InventoryPanel } from '../shared/InventoryPanel'
 import { PanelBoundary } from '../shared/PanelBoundary'
+import { InventoryPanel } from '../shared/InventoryPanel'
 import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
 import { useHighlights } from '../../lib/useHighlights'
@@ -117,7 +117,7 @@ export function BattleColumn() {
   // subscribed to it before now — see gameLink.ts's own comment on that
   // function ("the missing wire, not new parsing").
   const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
-  const exits = stream.compass?.value
+  const exits = stream.compass?.value ?? here?.moves
 
   // Same source DashboardLayout's Battle/People boxes used to read — those
   // boxes are gone now that this is where the same cards show, drawn on the
@@ -184,7 +184,7 @@ export function BattleColumn() {
     : undefined
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 overflow-y-auto p-2">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-2">
       <PanelBoundary label="Status">
         <BattleStatus />
       </PanelBoundary>
@@ -196,7 +196,12 @@ export function BattleColumn() {
           picture's own border instead of overlapping the title bar text. */}
       <div
         className={cn(
-          'rounded ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500',
+          // RoomScene is a responsive square. Let its own dimensions define
+          // this wrapper instead of stretching the wrapper to consume every
+          // spare pixel in a tall window; the latter left a large black void
+          // beneath the actual scene. Useful spare height belongs to the
+          // description and inventory below.
+          'shrink-0 overflow-hidden rounded ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500',
           justArrived && 'ring-2'
         )}
       >
@@ -212,7 +217,8 @@ export function BattleColumn() {
             // whatever height they get, so the picture still gets the
             // majority share rather than a ceiling calibrated for neighbours
             // that moved out.
-            maxHeightVh={60}
+            maxHeightVh={52}
+            shape="landscape"
             overlay={
               boardActive ? (
                 <CombatRadar
@@ -227,21 +233,10 @@ export function BattleColumn() {
         </PanelBoundary>
       </div>
 
-      {/* Actions, description and classes share one card now rather than
-          three — same reasoning as the Classes nesting below: a bare
-          unbordered row between two bordered boxes reads as broken chrome,
-          and a fourth full card for eight buttons is more chrome than
-          content. One box, one border, sections inside it divided by a
-          rule where they actually need one. */}
-      <div className="min-h-0 flex-1 overflow-y-auto rounded border border-border bg-surface-raised p-2">
-        <PanelBoundary label="Actions">
+      <div className="shrink-0 rounded border border-border bg-surface-raised p-2">
+        <PanelBoundary label="Combat controls">
           <BattleActionBar />
         </PanelBoundary>
-
-        {/* The floor, pulled off the battle board itself — see FloorItems'
-            own doc comment. Grouped with Actions rather than given its own
-            border: taking something off the floor is an action, the same
-            kind of thing Attack or Tend already are here. */}
         {roomItems && roomItems.length > 0 && (
           <div className="mt-1.5 border-t border-border/60 pt-1.5">
             <PanelBoundary label="Floor">
@@ -249,8 +244,10 @@ export function BattleColumn() {
             </PanelBoundary>
           </div>
         )}
+      </div>
 
-        <div className="mt-1.5 border-t border-border/60 pt-1.5">
+      <div className="grid min-h-[13rem] flex-1 grid-cols-[minmax(0,1.35fr)_minmax(12rem,0.85fr)] gap-2 overflow-hidden">
+        <section className="min-w-0 overflow-y-auto rounded border border-border bg-surface-raised p-2" aria-label="Room description">
           {room === null ? (
             <p className="text-xs text-ink-faint">Not in a room yet.</p>
           ) : (
@@ -266,21 +263,10 @@ export function BattleColumn() {
               offClasses={offClasses}
             />
           )}
-          {/* Inventory, right below the room text rather than Classes (a
-              different room's "what's on offer here" question this pane
-              has no business answering — that's the dashboard's own job).
-              Grouped into this box rather than given its own border: a bare
-              unbordered line here read as broken chrome (floating between
-              two bordered boxes with nothing marking it as one thing), and
-              its own titled panel read as a full window for what is really
-              one list. A divider inside a box that already exists is
-              neither. */}
-          <div className="mt-1.5 border-t border-border/60 pt-1.5">
-            <PanelBoundary label="Inventory">
-              <InventoryPanel />
-            </PanelBoundary>
-          </div>
-        </div>
+        </section>
+        <section className="min-w-0 overflow-y-auto rounded border border-border bg-surface-raised p-2" aria-label="Inventory">
+          <InventoryPanel />
+        </section>
       </div>
     </div>
   )

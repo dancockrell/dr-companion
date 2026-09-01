@@ -43,10 +43,10 @@
  * (`roomWant`), not a leftover: "one column for map, one for battle, one for
  * skills" - three peer requests, not two requests and a remainder.
  *
- * Whatever the three ask for together is honoured exactly when it fits, and
- * any width nobody asked for goes to room rather than sitting unclaimed -
- * room is what benefits most from extra space, and this is what keeps a wide
- * window from growing dead space the moment all three have explicit widths.
+ * Whatever the three ask for together is honoured exactly when it fits. Any
+ * width nobody asked for is shared equally by Room and Battle: both are
+ * visual play surfaces, and handing all ultrawide growth to Room produced a
+ * wall-sized map beside a cramped battle board. Experience stays compact.
  * If the three do not fit, all three are scaled toward their own floor by
  * the same factor, rather than one absorbing the whole shortfall - the same
  * fairness rule this module has used since it was two columns, extended to
@@ -215,6 +215,7 @@ export function fitColumns({
   splitW,
   mapEmpty = false,
   dashEmpty = false,
+  mapGrowthMax,
 }: {
   hostW: number
   /** Room's own stored preference - map + chat/functions, stacked. A real
@@ -228,6 +229,10 @@ export function fitColumns({
   mapEmpty?: boolean
   /** The dashboard has nothing to show right now - see DASH_EMPTY_WANT. */
   dashEmpty?: boolean
+  /** Ceiling for automatic Battle growth only. An explicit request above it
+   * is still honoured; this prevents surplus width creating gutters around
+   * a height-limited square scene. */
+  mapGrowthMax?: number
 }): ColumnFit {
   // Two dividers when the map is docked, one when it is not.
   const splits = mapDocked ? splitW * 2 : splitW
@@ -256,13 +261,19 @@ export function fitColumns({
   const asked = roomAsked + mapAsked + dashAsked
 
   if (asked <= forColumns) {
-    // Nobody asked for the leftover, so it goes to room - the column that
-    // benefits most from extra width, and the one this app opens with a map
-    // and a game pane in, not a blank margin.
+    // Share unclaimed ultrawide space between the two visual play surfaces.
+    // Experience is a vertical watch rail and gains nothing from surplus.
+    const surplus = forColumns - asked
+    // An absent/empty Battle surface has nothing to spend growth on. In that
+    // state Room receives the surplus exactly as before; the split begins as
+    // soon as Battle has content worth enlarging.
+    const desiredBattleSurplus = mapDocked && !mapEmpty ? Math.floor(surplus / 2) : 0
+    const growthRoom = mapGrowthMax == null ? desiredBattleSurplus : Math.max(0, mapGrowthMax - mapAsked)
+    const battleSurplus = Math.min(desiredBattleSurplus, growthRoom)
     return {
-      map: mapAsked,
+      map: mapAsked + battleSurplus,
       dash: dashAsked,
-      room: forColumns - mapAsked - dashAsked,
+      room: roomAsked + surplus - battleSurplus,
       squeezed: false,
     }
   }

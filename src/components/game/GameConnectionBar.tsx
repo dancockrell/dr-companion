@@ -116,7 +116,7 @@ export function GameConnectionBar() {
           >
             <Unlink className="h-3.5 w-3.5" />
           </button>
-        ) : (
+        ) : isTauri() ? (
           <>
             <input
               type="text"
@@ -125,7 +125,6 @@ export function GameConnectionBar() {
               onChange={(e) => setPort(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))}
               className="w-14 rounded border border-border bg-surface px-1 py-0.5 text-center tabular-nums text-ink-muted"
               title="The port Lich opened with --detachable-client. 11024 is what this app uses when it launches Lich itself."
-              disabled={!isTauri()}
             />
             <button
               type="button"
@@ -133,11 +132,15 @@ export function GameConnectionBar() {
               onClick={() => void attachGame(Number(port))}
               title={`Attach to a Lich running with --detachable-client=${port}`}
               aria-label="Attach"
-              disabled={!isTauri() || !validPort(port)}
+              disabled={!validPort(port)}
             >
               <Link2 className="h-3.5 w-3.5" />
             </button>
           </>
+        ) : (
+          <span className="px-1 text-xs text-ink-muted" title="Game attachment is available in the desktop app">
+            Browser preview
+          </span>
         )}
       </span>
     </div>

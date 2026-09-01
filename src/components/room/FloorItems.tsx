@@ -1,7 +1,8 @@
-import { Box, Coins, Gem, Package, ScrollText, Skull, Wand2 } from 'lucide-react'
+import { Anvil, Apple, Backpack, Beer, Bone, BookOpen, BowArrow, Box, Coins, Cookie, FlaskConical, Gem, Hammer, Key, Leaf, Package, Pickaxe, ScrollText, Shield, Shirt, Skull, Sparkles, Sword, Utensils, Wand2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { nounOf } from '../../lib/room'
 import { useRoomItemTake } from '../../lib/useRoomItemTake'
+import { useDragScroll } from '../../lib/useDragScroll'
 
 /**
  * The floor, as its own row — pulled off the battle board itself
@@ -29,14 +30,34 @@ function iconForItem(name: string) {
   if (/\bcoins?\b|\bkronars?\b|\blirums?\b|\bdokoras?\b/.test(n)) return Coins
   if (/\bgems?\b|\bjewels?\b|\bstones?\b/.test(n)) return Gem
   if (/\bbox\b|\bchest\b|\bcrate\b|\bcase\b/.test(n)) return Box
-  if (/\bcorpse\b|\bskull\b|\bbones?\b/.test(n)) return Skull
-  if (/\bscroll\b|\bletter\b|\bnote\b|\bbook\b/.test(n)) return ScrollText
+  if (/\bbackpack\b|\bbag\b|\bpouch\b|\bsack\b|\bpack\b/.test(n)) return Backpack
+  if (/\bcorpse\b|\bcarcass\b|\bskull\b/.test(n)) return Skull
+  if (/\bbones?\b|\btusk\b|\bfang\b|\bclaw\b/.test(n)) return Bone
+  if (/\bbook\b|\btome\b|\bgrimoire\b/.test(n)) return BookOpen
+  if (/\bscroll\b|\bletter\b|\bnote\b|\bparchment\b/.test(n)) return ScrollText
   if (/\bwand\b|\bstaff\b|\borb\b/.test(n)) return Wand2
+  if (/\bbow\b|\bcrossbow\b|\barrows?\b|\bbolts?\b/.test(n)) return BowArrow
+  if (/\bsword\b|\bblade\b|\bdagger\b|\bknife\b|\baxe\b|\bmace\b|\bspear\b/.test(n)) return Sword
+  if (/\bshield\b|\bbuckler\b/.test(n)) return Shield
+  if (/\barmor\b|\barmour\b|\bhauberk\b|\bbrigandine\b|\bhelm\b/.test(n)) return Shirt
+  if (/\bherb\b|\bleaf\b|\broot\b|\bflower\b|\bremedy\b/.test(n)) return Leaf
+  if (/\bskin\b|\bpelt\b|\bhide\b/.test(n)) return Shirt
+  if (/\bingot\b|\bore\b|\bmetal\b/.test(n)) return Anvil
+  if (/\bpickaxe\b|\bmining\b/.test(n)) return Pickaxe
+  if (/\bhammer\b|\btool\b|\bkit\b/.test(n)) return Hammer
+  if (/\bkey\b|\blockpick\b/.test(n)) return Key
+  if (/\bpotion\b|\bphial\b|\bvial\b|\bflask\b/.test(n)) return FlaskConical
+  if (/\bbeer\b|\bale\b|\bwine\b|\bdrink\b/.test(n)) return Beer
+  if (/\bapple\b|\bfruit\b/.test(n)) return Apple
+  if (/\bcookie\b|\bcake\b|\bbread\b/.test(n)) return Cookie
+  if (/\bfood\b|\bmeat\b|\bstew\b/.test(n)) return Utensils
+  if (/\bmagic\b|\bglowing\b|\bshimmering\b|\bcambrinth\b/.test(n)) return Sparkles
   return Package
 }
 
 export function FloorItems({ items }: { items?: string[] }) {
   const { take, canSend, reason } = useRoomItemTake()
+  const drag = useDragScroll()
 
   if (!items || items.length === 0) return null
 
@@ -53,7 +74,14 @@ export function FloorItems({ items }: { items?: string[] }) {
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap gap-1">
+      <div
+        ref={drag.ref}
+        onPointerDown={drag.onPointerDown}
+        onPointerMove={drag.onPointerMove}
+        onPointerUp={drag.onPointerUp}
+        onPointerCancel={drag.onPointerCancel}
+        className={cn('no-scrollbar flex touch-none gap-1 overflow-x-auto', drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
+      >
         {groups.map(({ name, count }) => {
           const Icon = iconForItem(name)
           const label = count > 1 ? `${name} (${count})` : name
@@ -66,7 +94,7 @@ export function FloorItems({ items }: { items?: string[] }) {
               onClick={() => take(name)}
               title={tooltip}
               className={cn(
-                'flex items-center gap-1.5 rounded border border-border px-2 py-1 text-xs',
+                'flex shrink-0 items-center gap-1 rounded border border-border px-1.5 py-1 text-xs',
                 'text-ink-muted hover:border-ink-faint hover:text-ink',
                 'disabled:cursor-not-allowed disabled:opacity-40'
               )}

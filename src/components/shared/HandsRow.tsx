@@ -43,26 +43,15 @@ export function HandsRow({ character }: { character: CharacterStatus | null }) {
   if (!who && !hands) return null
 
   return (
-    <div className="mt-2 space-y-1 border-t border-border pt-2 text-xs">
-      {who && <div className="capitalize text-ink-muted">{who}</div>}
-
-      {/* Shown whenever hands were reported at all, including when both are
-          empty.
-
-          An earlier version hid this unless something was held, which made
-          "you are holding nothing" look identical to "we have not been told" —
-          and empty hands is not a null result, it is the answer to why the
-          attack did nothing. Being disarmed is exactly the moment this has to
-          be readable. */}
+    <div className="flex min-w-0 flex-1 items-center gap-3 text-xs">
+      {who && <span className="shrink-0 capitalize text-ink-muted">{who}</span>}
       {hands && (
-        <div className="grid grid-cols-[1.25rem_1fr] gap-x-1.5 gap-y-0.5">
-          <span className="text-ink-faint">R</span>
-          <span className="min-w-0 truncate text-ink-muted" title={hands.right ?? 'empty'}>
-            {hands.right ?? <span className="text-ink-faint">empty</span>}
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="flex min-w-0 items-center gap-1 text-ink-faint">
+            R <span className="truncate text-ink-muted" title={hands.right ?? 'empty'}>{hands.right ?? 'empty'}</span>
           </span>
-          <span className="text-ink-faint">L</span>
-          <span className="min-w-0 truncate text-ink-muted" title={hands.left ?? 'empty'}>
-            {hands.left ?? <span className="text-ink-faint">empty</span>}
+          <span className="flex min-w-0 items-center gap-1 text-ink-faint">
+            L <span className="truncate text-ink-muted" title={hands.left ?? 'empty'}>{hands.left ?? 'empty'}</span>
           </span>
         </div>
       )}

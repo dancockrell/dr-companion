@@ -174,6 +174,9 @@ export interface MapRoom {
   terrain?: string | null
   tags?: string[]
   exits?: string[]
+  /** Commands that actually leave this room (north, go door, climb ladder).
+   * Distinct from `exits`, which Lich map payloads expose as destination ids. */
+  moves?: string[]
 }
 
 /**
@@ -221,6 +224,8 @@ export interface MapZoneRoom {
   gateway?: { zone: string; name: string }
   /** How you leave the zone from here, as the cartographer wrote the move. */
   leaves?: string[]
+  /** Cartographer-authored movement commands for every visible exit. */
+  moves?: string[]
   /** Lich room ids reachable from here. */
   to?: number[]
 }

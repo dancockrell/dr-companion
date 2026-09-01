@@ -1,10 +1,8 @@
 # Submitting your own character portrait
 
-DR Companion draws a picture for anyone in your room it has art for. Real
-players don't have a default — the game only tells this app a name, nothing
-about who's behind it, and guessing would be worse than showing nothing. So
-the only way another player's own picture ever shows up in someone else's
-game is if that exact character submitted one.
+DR Companion draws a picture for everyone in your room. A character's
+published race and sex select the bundled default portrait; their own
+submitted character art replaces that default.
 
 ## How it works
 
@@ -15,9 +13,25 @@ game is if that exact character submitted one.
 3. Open a pull request. A maintainer reviews it before it merges — nothing
    you submit reaches anyone else's game until that happens.
 4. Once merged, `node tools/build-player-art-manifest.mjs` regenerates the
-   manifest the app actually reads from, and your picture starts showing up
-   in every DR Companion window that has your exact character name in a
-   room, the next time that player's app fetches the updated pack.
+   manifest. Every client checks that repository folder when the game loads,
+   bypassing stale caches, and falls back to its bundled copy when offline.
+
+If a character publishes race and sex but no custom image, add that opt-in
+metadata to `public/player-art/profiles.json`:
+
+```json
+{
+  "Dan the Bold": { "race": "Gor'Tog", "guild": "Barbarian", "sex": "male" }
+}
+```
+
+The client resolves another player's image in this order: their exact custom
+file, their published race/guild/sex default, their race/sex default, then a
+stable, varied generic default portrait if their public profile is incomplete. It never shows
+a letter tile and never guesses demographics from a character name. A future
+in-client publisher should open a reviewed GitHub contribution for these files
+only after the player explicitly opts in; selecting local artwork by itself
+must not silently make it public.
 
 ## What to submit
 

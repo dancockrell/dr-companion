@@ -99,6 +99,7 @@ export function RoomBackdrop({
   text?: string | null
 }) {
   const art = useRoomArt(zone, room, title, text)
+  const artUrl = roomArtUrl(zone, room)
 
   /*
    * Unique per rendered instance, not per room.
@@ -152,9 +153,13 @@ export function RoomBackdrop({
           rather than swapped so there is never a frame of empty box while
           the image loads. */}
       <img
-        src={roomArtUrl(zone, room)}
+        key={artUrl}
+        src={artUrl}
         alt=""
         loading="lazy"
+        onLoad={(e) => {
+          e.currentTarget.style.display = 'block'
+        }}
         onError={(e) => {
           e.currentTarget.style.display = 'none'
         }}

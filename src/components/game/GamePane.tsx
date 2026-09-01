@@ -472,27 +472,34 @@ export function GamePane({
                 * With a fixed button none of those was reachable - the pane
                 * said "nothing yet" and there was no way to tell it where to
                 * look. */}
-              <input
-                type="text"
-                inputMode="numeric"
-                value={port}
-                onChange={(e) =>
-                  setPort(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))
-                }
-                className="w-14 rounded border border-border bg-surface px-1 py-0.5 text-center tabular-nums text-ink-muted"
-                title="The port Lich opened with --detachable-client. 11024 is what this app uses when it launches Lich itself."
-                disabled={!isTauri()}
-              />
-              <button
-                type="button"
-                className="rounded border border-accent/40 bg-accent/10 p-1 text-accent disabled:opacity-40"
-                onClick={() => void attachGame(Number(port))}
-                title={`Attach to a Lich running with --detachable-client=${port}`}
-                aria-label="Attach"
-                disabled={!isTauri() || !validPort(port)}
-              >
-                <Link2 className="h-3.5 w-3.5" />
-              </button>
+              {isTauri() ? (
+                <>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={port}
+                    onChange={(e) =>
+                      setPort(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))
+                    }
+                    className="w-14 rounded border border-border bg-surface px-1 py-0.5 text-center tabular-nums text-ink-muted"
+                    title="The port Lich opened with --detachable-client. 11024 is what this app uses when it launches Lich itself."
+                  />
+                  <button
+                    type="button"
+                    className="rounded border border-accent/40 bg-accent/10 p-1 text-accent disabled:opacity-40"
+                    onClick={() => void attachGame(Number(port))}
+                    title={`Attach to a Lich running with --detachable-client=${port}`}
+                    aria-label="Attach"
+                    disabled={!validPort(port)}
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              ) : (
+                <span className="text-ink-faint" title="Game attachment is available in the DR Companion desktop app">
+                  Browser preview
+                </span>
+              )}
             </>
           )}
         </span>

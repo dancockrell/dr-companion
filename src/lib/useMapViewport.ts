@@ -35,6 +35,24 @@ const DRAG_THRESHOLD_PX = 4
 /** Wheel notch to zoom-factor. One notch is a comfortable, visible step. */
 const WHEEL_ZOOM_FACTOR = 1.12
 
+export function clampMapPan(
+  pan: { x: number; y: number },
+  viewport: { width: number; height: number },
+  content: { width: number; height: number },
+  zoom: number
+): { x: number; y: number } {
+  const axis = (value: number, viewSize: number, contentSize: number) => {
+    if (viewSize <= 0 || contentSize <= 0) return value
+    const scaled = contentSize * zoom
+    if (scaled <= viewSize) return (viewSize - scaled) / 2
+    return Math.min(0, Math.max(viewSize - scaled, value))
+  }
+  return {
+    x: axis(pan.x, viewport.width, content.width),
+    y: axis(pan.y, viewport.height, content.height),
+  }
+}
+
 export interface MapViewportOptions {
   zoom: number
   onZoomChange: (zoom: number) => void
@@ -45,6 +63,10 @@ export interface MapViewportOptions {
 export interface MapViewport {
   /** Attach to the element the pan/zoom gesture happens over. */
   containerRef: React.RefObject<HTMLDivElement | null>
+  /** Attach to the single layer that receives translate/scale. Live drags
+   * update this element directly so a 1,000-room SVG is not reconciled for
+   * every pointer event. */
+  contentRef: React.RefObject<HTMLDivElement | null>
   /** Pan offset, in CSS pixels. Apply as `translate(x, y) scale(zoom)`. */
   x: number
   y: number
@@ -57,6 +79,7 @@ export interface MapViewport {
     onPointerDown: (e: React.PointerEvent) => void
     onPointerMove: (e: React.PointerEvent) => void
     onPointerUp: (e: React.PointerEvent) => void
+    onPointerCancel: (e: React.PointerEvent) => void
     onClickCapture: (e: React.MouseEvent) => void
   }
   zoomBy: (factor: number) => void
@@ -69,6 +92,7 @@ export interface MapViewport {
 
 export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOptions): MapViewport {
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const contentRef = useRef<HTMLDivElement | null>(null)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
 
@@ -81,10 +105,41 @@ export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOpti
   // catch (it can silently disagree with what concurrent rendering commits).
   const panRef = useRef(pan)
   const zoomRef = useRef(zoom)
+  const bounded = useCallback((candidate: { x: number; y: number }, atZoom = zoomRef.current) => {
+    const container = containerRef.current
+    const content = contentRef.current
+    if (!container || !content) return candidate
+    return clampMapPan(
+      candidate,
+      { width: container.clientWidth, height: container.clientHeight },
+      {
+        width: Math.max(content.offsetWidth, content.scrollWidth),
+        height: Math.max(content.offsetHeight, content.scrollHeight),
+      },
+      atZoom
+    )
+  }, [])
+
   useEffect(() => {
-    panRef.current = pan
     zoomRef.current = zoom
-  }, [pan, zoom])
+    const next = bounded(pan, zoom)
+    panRef.current = next
+    if (contentRef.current) {
+      contentRef.current.style.transform = `translate3d(${next.x}px, ${next.y}px, 0) scale(${zoom})`
+    }
+    if (next.x !== pan.x || next.y !== pan.y) setPan(next)
+  }, [bounded, pan, zoom])
+
+  useEffect(() => {
+    const container = containerRef.current
+    const content = contentRef.current
+    if (!container || !content || typeof ResizeObserver === 'undefined') return
+    const keepInBounds = () => setPan((current) => bounded(current))
+    const observer = new ResizeObserver(keepInBounds)
+    observer.observe(container)
+    observer.observe(content)
+    return () => observer.disconnect()
+  }, [bounded])
 
   const drag = useRef<{ startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(
     null
@@ -125,14 +180,14 @@ export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOpti
         const cx = clientX - rect.left
         const cy = clientY - rect.top
         const ratio = next / current
-        setPan((p) => ({
+        setPan((p) => bounded({
           x: cx - (cx - p.x) * ratio,
           y: cy - (cy - p.y) * ratio,
-        }))
+        }, next))
       }
       onZoomChange(next)
     },
-    [clampZoom, onZoomChange]
+    [bounded, clampZoom, onZoomChange]
   )
 
   const onWheel = useCallback(
@@ -164,8 +219,14 @@ export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOpti
       d.moved = true
       setDragging(true)
     }
-    if (d.moved) setPan({ x: d.originX + dx, y: d.originY + dy })
-  }, [])
+    if (d.moved) {
+      const next = bounded({ x: d.originX + dx, y: d.originY + dy })
+      panRef.current = next
+      if (contentRef.current) {
+        contentRef.current.style.transform = `translate3d(${next.x}px, ${next.y}px, 0) scale(${zoomRef.current})`
+      }
+    }
+  }, [bounded])
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     const d = drag.current
@@ -173,11 +234,23 @@ export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOpti
     if (d?.moved) {
       suppressNextClick.current = true
       setDragging(false)
+      setPan(panRef.current)
     }
     try {
       e.currentTarget.releasePointerCapture(e.pointerId)
     } catch {
       // Already released, or capture was never set (a non-primary button).
+    }
+  }, [])
+
+  const onPointerCancel = useCallback((e: React.PointerEvent) => {
+    drag.current = null
+    setDragging(false)
+    setPan(panRef.current)
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      // Capture may already have been released by the browser.
     }
   }, [])
 
@@ -204,21 +277,22 @@ export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOpti
   const centerOn = useCallback((px: number, py: number) => {
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
-    setPan({
+    setPan(bounded({
       x: rect.width / 2 - px * zoomRef.current,
       y: rect.height / 2 - py * zoomRef.current,
-    })
-  }, [])
+    }))
+  }, [bounded])
 
-  const resetPan = useCallback(() => setPan({ x: 0, y: 0 }), [])
+  const resetPan = useCallback(() => setPan(bounded({ x: 0, y: 0 })), [bounded])
 
   return {
     containerRef,
+    contentRef,
     x: pan.x,
     y: pan.y,
     zoom,
     dragging,
-    handlers: { onWheel, onPointerDown, onPointerMove, onPointerUp, onClickCapture },
+    handlers: { onWheel, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClickCapture },
     zoomBy,
     centerOn,
     resetPan,

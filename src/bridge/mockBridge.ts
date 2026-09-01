@@ -207,10 +207,18 @@ const presets: Record<DemoPresetId, DemoPreset> = {
     },
     inventory: {
       containers: [
-        { name: 'backpack', used: 18, capacity: 30 },
-        { name: 'belt pouch', used: 4, capacity: 8 },
-        { name: 'thigh bag', used: 2, capacity: 6 },
+        { name: 'backpack', used: 18, capacity: 30, items: ['a steel skinning knife', 'a coil of climbing rope', 'some acanthite crystals'] },
+        { name: 'belt pouch', used: 4, capacity: 8, items: ['a cambrinth ring', 'a tiny gwethdesuan'] },
+        { name: 'thigh bag', used: 2, capacity: 6, items: ['some jadice flowers', 'a pothanit herb'] },
+        { name: 'weapon harness', used: 3, capacity: 6, items: ['a kertig throwing axe', 'a short hunting spear'] },
+        { name: 'crafting satchel', used: 9, capacity: 20, items: ['a balanced forging hammer', 'a book of blacksmithing instructions'] },
+        { name: 'gem pouch', used: 14, capacity: 50, items: ['an uncut sapphire', 'a smoky quartz'] },
+        { name: 'travel pack', used: 7, capacity: 20, items: ['a Crossing travel guide', 'a silver ferry ticket'] },
+        { name: 'herb case', used: 6, capacity: 12, items: ['some nemoih root', 'some hulnik grass'] },
+        { name: 'scroll case', used: 5, capacity: 10, items: ['a scroll of Ease Burden', 'a sealed parchment'] },
+        { name: 'coin purse', used: 1, capacity: 8, items: ['some copper Kronars'] },
       ],
+      worn: ['a steel-plated great helm', 'some etched plate armor', 'a darkened leather cloak'],
       wornCount: 12,
       looseCount: 0,
       pressure: 'ok',
@@ -563,12 +571,14 @@ for (const p of Object.values(presets)) {
   p.character.circle = p.character.circle ?? Math.max(1, Math.round(level / 3))
   p.character.roomPlayers = ['Kestrel', 'Vessa', 'Thendish', 'Orlathe', 'Brannick']
   p.character.encumbrance = level > 100 ? 'Somewhat Burdened' : 'Light'
-  // Enough creatures to push the deck through its tiers rather than only ever
-  // showing the roomy case. Names are real DragonRealms creatures at roughly
-  // the right level, so the bestiary lookup has something to find.
-  p.character.roomCreatures = demoCreatures(level)
-  p.character.roomCombatants = demoCombatants(level)
-  p.character.roomDeadCreatures = level > 30 ? ['a kobold which appears dead'] : []
+  // The default room description contains people and floor items, not a
+  // fight. Do not inject stress-test creatures into every preset: they read
+  // as live enemies on the radar even though no game line ever announced
+  // them. Combat fixtures belong in an explicit combat demo, never ambient
+  // state presented as truth.
+  p.character.roomCreatures = []
+  p.character.roomCombatants = []
+  p.character.roomDeadCreatures = []
   p.character.injuries = demoInjuries(level)
   p.character.bleeding = demoBleeding(level)
   // A race, so the portrait has something to match. Every demo preset is a
@@ -590,7 +600,7 @@ for (const p of Object.values(presets)) {
  * with a multiplier is a behaviour worth seeing in the demo, because four
  * separate cards is a wall rather than information.
  */
-function demoCreatures(_level: number): string[] {
+export function demoCombatCreatures(_level: number): string[] {
   return [
     'a wild boar',
     'a wild boar',
@@ -618,7 +628,7 @@ function demoCreatures(_level: number): string[] {
  * one stale, several never assessed at all (absent from this list entirely,
  * which is the honest "unassessed" case RoomChips renders as its own group).
  */
-function demoCombatants(level: number): RoomCombatant[] {
+export function demoCombatAssessments(level: number): RoomCombatant[] {
   if (level < 20) return []
   const now = () => Math.round(Math.random() * 3)
   return [
@@ -1111,6 +1121,7 @@ export class MockBridge {
               location: zone?.name ?? DEMO_ZONE.name ?? null,
               tags: here?.tags ?? [],
               exits: (here?.to ?? []).map(String),
+              moves: here?.moves ?? [],
             },
           })
         })

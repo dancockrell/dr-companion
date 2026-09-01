@@ -22,7 +22,13 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 
 export function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+  // Some browser/dev shims declare the property with an undefined value.
+  // Presence alone made the web preview render native-only controls whose
+  // backend could never exist, producing buttons that appeared to do nothing.
+  return (
+    typeof window !== 'undefined' &&
+    Boolean((window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__)
+  )
 }
 
 /**

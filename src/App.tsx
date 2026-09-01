@@ -48,7 +48,7 @@ function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app
  * column alongside Battle and Experience. See columns.ts's own doc comment
  * on why an unclaimed leftover still goes here by default. */
 const ROOM_KEY = 'drc.room-width.v1'
-const BATTLE_KEY = 'drc.battle-width.v1'
+const BATTLE_KEY = 'drc.battle-width.v2'
 /** Was `drc.dash-width.v1` - the same stored preference, same fitColumns
  * slot, now spent on the Experience strip instead of the middle dashboard
  * that no longer exists. Renamed rather than reused under its old name so a
@@ -57,7 +57,8 @@ const BATTLE_KEY = 'drc.battle-width.v1'
  * were sized for a two-column panel grid, not a single scrolling board; see
  * the width picked below. */
 const EXPERIENCE_KEY = 'drc.experience-width.v1'
-const MAP_HEIGHT_KEY = 'drc.map-height.v1'
+const MAP_HEIGHT_KEY = 'drc.map-height.v2'
+const LEGACY_MAP_HEIGHT_KEY = 'drc.map-height.v1'
 
 /** The divider itself, which sits between the columns and has to be counted. */
 const SPLIT_W = 8
@@ -80,6 +81,8 @@ const MIN_PX = 80
  * the input row without feeling cramped.
  */
 const MIN_GAME_CHAT_H = 240
+/** The map is watched continuously; game/chat remains open below it. */
+const DEFAULT_MAP_SHARE = 0.58
 
 export default function App() {
   const setupComplete = useAppStore((s) => s.setupComplete)
@@ -146,7 +149,7 @@ export default function App() {
 
   const [battleW, setBattleWState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(BATTLE_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 600
+    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 760
   })
 
   const setBattleW = (px: number) => {
@@ -168,7 +171,7 @@ export default function App() {
    * so it never eats into that measurement. */
   const [experienceW, setExperienceWState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(EXPERIENCE_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 120
+    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 168
   })
 
   const setExperienceW = (px: number) => {
@@ -188,7 +191,12 @@ export default function App() {
   const MIN_MAP_H = 120
   const [mapH, setMapHState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(MAP_HEIGHT_KEY))
-    return Number.isFinite(saved) && saved >= MIN_MAP_H ? saved : 480
+    if (Number.isFinite(saved) && saved >= MIN_MAP_H) return saved
+    const legacy = Number(localStorage.getItem(LEGACY_MAP_HEIGHT_KEY))
+    // Keep a real v1 customization. Only migrate the old shipped 480px
+    // default, which is far too shallow on tall and ultrawide displays.
+    if (Number.isFinite(legacy) && legacy >= MIN_MAP_H && legacy !== 480) return legacy
+    return Math.max(MIN_MAP_H, Math.round(window.innerHeight * DEFAULT_MAP_SHARE))
   })
   const setMapH = (px: number) => {
     const next = Math.max(MIN_MAP_H, Math.round(px))
@@ -244,6 +252,10 @@ export default function App() {
     mapDocked: true,
     splitW: SPLIT_W,
     dashEmpty: experienceEmpty,
+    // The scene is height-limited and square. Grow Battle automatically only
+    // while that width can become visible scene; explicit divider choices
+    // above this remain untouched inside fitColumns.
+    mapGrowthMax: hostH > 0 ? Math.max(battleW, hostH * 0.62) : undefined,
   })
   const battleWFit = fit.map
   const experienceWFit = fit.dash
@@ -338,7 +350,7 @@ export default function App() {
                   </div>
                   <Splitter
                     orientation="horizontal"
-                    value={hostH > 0 ? mapH / hostH : 480 / 900}
+                    value={hostH > 0 ? mapH / hostH : DEFAULT_MAP_SHARE}
                     onChange={(share) => setMapH(hostH * share)}
                     min={MIN_MAP_H / Math.max(hostH, 1)}
                     max={hostH > 0 ? 1 - (MIN_GAME_CHAT_H + SPLIT_W) / hostH : 0.8}
