@@ -365,8 +365,14 @@ export function HighlightsEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">Import multiple highlights - paste #highlight lines below</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
-              <X className="h-3.5 w-3.5" />
+            <button
+              type="button"
+              onClick={cancelForm}
+              aria-label="Cancel highlight import"
+              title="Cancel highlight import"
+              className="rounded p-1 text-ink-faint hover:text-ink"
+            >
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <textarea
@@ -577,8 +583,14 @@ function HighlightForm({
     <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold text-ink">{isNew ? 'New highlight' : 'Edit highlight'}</span>
-        <button type="button" onClick={onCancel} className="rounded p-1 text-ink-faint hover:text-ink">
-          <X className="h-3.5 w-3.5" />
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label={isNew ? 'Cancel new highlight' : 'Cancel editing highlight'}
+          title={isNew ? 'Cancel new highlight' : 'Cancel editing highlight'}
+          className="rounded p-1 text-ink-faint hover:text-ink"
+        >
+          <X aria-hidden="true" className="h-3.5 w-3.5" />
         </button>
       </div>
 
