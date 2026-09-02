@@ -8,6 +8,66 @@ pieces from which The Crossing can be assembled around the existing room graph.
 This is a city kit, not a set of room pictures. A room is made by combining
 several pieces. Repetition is desirable; sameness is not.
 
+## Non-negotiable: every room description drives an individual recipe
+
+Reusable blocks do **not** mean generic rooms. Every DragonRealms room has an
+authored description, and every room must receive an individual geometry recipe
+derived from that description before it is rendered in 3D.
+
+The kit is merely the vocabulary. The room description decides the sentence.
+
+For each room, make and retain a `RoomAssemblyRecipe`:
+
+```ts
+type RoomAssemblyRecipe = {
+  roomId: number;
+  title: string;
+  lookText: string;                 // authored source; never discarded
+  descriptionHash: string;
+  exits: Array<{
+    move: string; direction: string; targetRoomId: number;
+    anchor: string;                 // e.g. cobble-north, hedge-breach-nw
+  }>;
+  requiredFacts: string[];          // visible things the prose actually says
+  prohibitedAssumptions: string[];  // tempting but unsupported additions
+  spatialRead: {
+    surface: string; boundaries: string[]; landmarks: string[];
+    routeShape: string; light?: string; weather?: string;
+  };
+  blockPlacements: Array<{
+    assetId: string; variant: string; x: number; z: number; yawDeg: number;
+    role: 'ground' | 'route' | 'boundary' | 'building' | 'landmark' | 'prop';
+  }>;
+  confidence: 'reviewed' | 'description-derived' | 'needs-review';
+};
+```
+
+The recipe must name the exact description facts transferred to geometry and
+the exact block instances used. It must also state what remains unknown. A
+room without a usable description remains a neutral unresolved cell; it is
+never silently filled with a plausible-looking city scene.
+
+### Example: Town Green North is a room, not a generic lawn
+
+The prose calls for bent grass leading to a narrow cobblestone strip between
+the grass and a privet hedge before the Weaponsmith, with the facing greensward
+remaining tranquil. Therefore its recipe contains a grass/packed-path
+transition, narrow north-edge cobbles, a privet hedge run, restrained
+weaponsmith frontage, and an open green. It does **not** inherit a bower,
+armory breach, performance stools, ancient oak, or grand civic building merely
+because those belong in other Town Green rooms.
+
+The neighbouring rooms use shared blocks but different recipes:
+
+- **Town Green Southeast:** modwyn-vine bower, limestone bench, stump seats.
+- **Town Green Northeast:** larger open green, ancient oak, gathering space.
+- **Town Green Southwest:** dense hedge and lunat-tree living boundary.
+- **Town Green Northwest:** armory hedge breach, planks, unpainted exterior,
+  exterior work samples.
+
+Only their actual links, edges, and shared boundary blocks cause those rooms to
+form one coherent Green.
+
 ---
 
 ## 1. Visual contract
