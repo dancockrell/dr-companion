@@ -640,6 +640,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
             type="button"
             onClick={() => void invokeTauri('reveal_file', { path: dirs.pythonDir })}
             title={`Open your Python folder\n${dirs.pythonDir}`}
+            aria-label="Open your Python tasks folder"
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
           >
             <FolderOpen className="h-3 w-3" />
@@ -651,6 +652,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
             type="button"
             onClick={() => void stop()}
             title="Stop"
+            aria-label={`Stop ${running}`}
             className="shrink-0 rounded border border-danger/40 bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger hover:bg-danger/25"
           >
             <Square className="h-3 w-3" />
@@ -783,6 +785,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                           setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
                         }}
                         title={`${entry.tooltip}${isCommand ? '' : `\n\n(right-click to choose an icon${isReorderable ? ', drag to rearrange' : ''})`}`}
+                        aria-label={`${active ? 'Running ' : 'Run '}${entry.title}`}
                         data-action={entry.actionKey}
                         data-entry-id={entry.id}
                         className={cn(
@@ -835,6 +838,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                             setEditing(entry.editTarget!)
                           }}
                           title={`Edit ${entry.editTarget.name}`}
+                          aria-label={`Edit ${entry.title}`}
                           className="absolute -right-1 -top-1 rounded border border-border bg-surface p-0.5 text-ink-faint opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
                         >
                           <Pencil className="h-2.5 w-2.5" />

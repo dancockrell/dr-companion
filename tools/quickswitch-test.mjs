@@ -184,11 +184,14 @@ console.log('\n-- UI routes both click and keyboard launches through the pin lan
   const panel = readFileSync('src/components/dashboard/TaskFlowPanel.tsx', 'utf8')
   const bar = readFileSync('src/components/layout/QuickSwitchBar.tsx', 'utf8')
   const app = readFileSync('src/App.tsx', 'utf8')
+  const library = readFileSync('src/components/shared/ScriptLibraryPanel.tsx', 'utf8')
   ok('task panel stores TypeScript pins with a bare id and language', panel.includes("{ kind: 'task', id: entry.id.slice('ts.'.length), lang: 'typescript' }"), true)
   ok('hotbar launches a task with its selected language', bar.includes('requestStartFlow(pin.id, lang)'), true)
   ok('hotbar resolves TypeScript details from the Node catalog', bar.includes("lang === 'typescript' ? nodeTasks : pythonTasks"), true)
   ok('number keys launch a task with its selected language', app.includes('requestStartFlow(pin.id, taskPinLanguage(pin))'), true)
   ok('number keys compare the normalized active identity', app.includes('taskPinActiveId(pin) === activeFlow'), true)
+  ok('task launch and edit controls have concise accessible names', panel.includes("aria-label={`${active ? 'Running ' : 'Run '}${entry.title}`}") && panel.includes('aria-label={`Edit ${entry.title}`}'), true)
+  ok('script hotbar pins name the script and destination', library.includes("aria-label={`${pinned ? 'Remove' : 'Add'} ${name}"), true)
 }
 
 console.log('\n-- and the check can fail: a validator that accepts anything --')
