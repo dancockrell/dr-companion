@@ -17,6 +17,17 @@ import { scrollableRegionProps } from '../../lib/scrollableRegion'
  * already uses for duplicate creatures — three piles of "some copper
  * kronars" read as one pill worth three rather than three indistinguishable
  * coin pills in a row.
+ *
+ * Used to render a second way too - a compact "glance" strip laid over the
+ * bottom of the room art itself, alongside this full browser elsewhere in
+ * the same column. They shared one selection value by prop, but only the
+ * browser ever rendered the action panel that selecting an item opens - so
+ * clicking a pill in the glance strip silently changed state with no
+ * visible effect there, while the actual result appeared in the other copy,
+ * wherever that happened to be scrolled to. One working implementation,
+ * not two, one of them decorative. See `RoomScene`'s and `CombatRadar`'s own
+ * history for what the glance strip's reserved layout space (`--radar-loot-
+ * height`) was for, now removed with it.
  */
 
 /**
@@ -58,16 +69,12 @@ function iconForItem(name: string) {
   return Package
 }
 
-export type FloorItemsMode = 'glance' | 'browser'
-
 export function FloorItems({
   items,
-  mode = 'browser',
   selectedItem,
   onSelectedItemChange,
 }: {
   items?: string[]
-  mode?: FloorItemsMode
   selectedItem?: string | null
   onSelectedItemChange?: (name: string | null) => void
 }) {
@@ -99,29 +106,23 @@ export function FloorItems({
 
   return (
     <div
-      className={cn('flex min-h-0 flex-col', mode === 'browser' && 'h-full')}
+      className="flex h-full min-h-0 flex-col"
       style={{
         gap: 'calc(0.25rem * var(--radar-scale, 1))',
         fontSize: 'max(0.75rem, calc(0.75rem * var(--radar-scale, 1)))',
       }}
       aria-label={`Items on the ground: ${groups.length} kinds, ${items.length} total`}
     >
-      <div className={cn('flex min-h-0 items-center gap-1', mode === 'browser' && 'flex-1 items-stretch')}>
-        {mode === 'glance' && (
-          <span className="shrink-0 rounded border border-accent/35 bg-surface-overlay/80 px-1.5 py-1 text-xs font-medium tabular-nums text-accent" title={`${items.length} items in ${groups.length} distinct piles`}>
-            {items.length} · {groups.length} kinds
-          </span>
-        )}
+      <div className="flex min-h-0 flex-1 items-stretch gap-1">
         <div
-          {...scrollableRegionProps('Items on the ground', mode === 'glance' ? 'horizontal' : 'vertical')}
+          {...scrollableRegionProps('Items on the ground', 'vertical')}
           ref={drag.ref}
           onPointerDown={drag.onPointerDown}
           onPointerMove={drag.onPointerMove}
           onPointerUp={drag.onPointerUp}
           onPointerCancel={drag.onPointerCancel}
           className={cn(
-            'flex min-h-0 min-w-0 flex-1 gap-1',
-            mode === 'glance' ? 'overflow-x-auto' : 'flex-wrap content-start overflow-y-auto pr-1',
+            'flex min-h-0 min-w-0 flex-1 flex-wrap content-start gap-1 overflow-y-auto pr-1',
             drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
           )}
         >
@@ -137,8 +138,7 @@ export function FloorItems({
                 aria-pressed={selected === name}
                 title={tooltip}
                 className={cn(
-                  'flex shrink-0 items-center rounded border border-border shadow-sm backdrop-blur-sm',
-                  mode === 'glance' ? 'bg-surface/72' : 'bg-surface-raised',
+                  'flex shrink-0 items-center rounded border border-border bg-surface-raised shadow-sm backdrop-blur-sm',
                   'text-ink-muted hover:border-ink-faint hover:text-ink',
                   selected === name && 'border-accent bg-accent/10 text-ink'
                 )}
@@ -163,7 +163,7 @@ export function FloorItems({
           })}
         </div>
       </div>
-      {mode === 'browser' && selected && (() => {
+      {selected && (() => {
         const target = targetOf(selected)
         const wikiUrl = `https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(target)}`
         return (
@@ -178,8 +178,8 @@ export function FloorItems({
           </div>
         )
       })()}
-      {mode === 'browser' && reason && <p className="text-xs text-warn leading-snug">{reason}</p>}
-      {mode === 'browser' && groups.length > 12 && (
+      {reason && <p className="text-xs text-warn leading-snug">{reason}</p>}
+      {groups.length > 12 && (
         <label className="flex h-7 shrink-0 items-center gap-1 rounded border border-border bg-surface px-1.5 text-xs">
           <Search className="h-3.5 w-3.5 shrink-0 text-ink-faint" aria-hidden />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Find among ${groups.length} kinds / ${items.length} items…`} className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-ink-faint" />

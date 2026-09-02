@@ -4,7 +4,6 @@ import { CombatRadar } from '../shared/CombatRadar'
 import { BattleStatus } from './BattleStatus'
 import { BattleActionBar } from './BattleActionBar'
 import { ClassicRoomText } from './ClassicRoomText'
-import { FloorItems } from './FloorItems'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { InventoryPanel } from '../shared/InventoryPanel'
 import { cachedRoomText, resolveRoomPresentation, roomTextFor, type RoomText } from '../../lib/roomText'
@@ -262,7 +261,6 @@ export function BattleColumn() {
                 />
               ) : undefined
             }
-            footer={roomItems && roomItems.length > 0 ? <PanelBoundary label="Items on the ground"><FloorItems items={roomItems} mode="glance" selectedItem={floorSelection} onSelectedItemChange={setFloorSelection} /></PanelBoundary> : undefined}
           />
         </PanelBoundary>
       </div>

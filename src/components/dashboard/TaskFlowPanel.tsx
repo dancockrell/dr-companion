@@ -104,9 +104,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 import { readJSON, writeJSON } from '../../lib/storage'
 import { isPinned, type QuickSwitchPin } from '../../lib/quickSwitch'
-import { MACROS, type Macro } from '../../data/macros'
-import { useMacroRunner } from '../../lib/useMacroRunner'
-import { accentForIndex, actionAccent, actionIcon } from '../../lib/battleActionVisuals'
+import { accentForIndex } from '../../lib/battleActionVisuals'
 import { LazySurface } from '../shared/LazySurface'
 
 const ScriptEditor = lazy(() => import('./ScriptEditor').then((module) => ({ default: module.ScriptEditor })))
@@ -127,29 +125,6 @@ const RUBY_CATEGORY = 'Lich scripts'
  * what it is, rather than guessing a category that would just be wrong.
  */
 const TS_CATEGORY = 'TypeScript tasks'
-
-/** Basic game functions live in the same launcher as scripts. The battle rail
- * is the fast subset; this is the complete, searchable catalog generated from
- * the single macro source of truth rather than a second hand-maintained list. */
-const COMMAND_CATEGORY: Record<Macro['group'], string> = {
-  combat: 'Combat commands',
-  health: 'Health commands',
-  hunt: 'Hunt commands',
-  goods: 'Goods commands',
-  magic: 'Magic commands',
-  travel: 'Travel commands',
-  info: 'Information commands',
-}
-
-const COMMAND_ICON: Record<Macro['group'], ScriptIconKey> = {
-  combat: 'swords',
-  health: 'heart-pulse',
-  hunt: 'eye-off',
-  goods: 'shopping-bag',
-  magic: 'wand',
-  travel: 'compass',
-  info: 'eye',
-}
 
 /**
  * Where a player's own tile arrangement lives.
@@ -233,8 +208,6 @@ type Entry = {
    * without a player's override - carried alongside the resolved icon so
    * the picker's "reset to guess" can compare against it. */
   baseIcon: ScriptIconKey
-  /** Basic commands share their exact semantic identity with the battle rail. */
-  actionKey?: string
   tooltip: string
   category: string
   /** Shown as a small badge only while running; never printed on the tile
@@ -254,7 +227,6 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   const startScript = useAppStore((s) => s.startScript)
   const quickSwitchPins = useAppStore((s) => s.quickSwitchPins)
   const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
-  const { run: runMacro, canSend: canSendMacro, reason: macroReason } = useMacroRunner()
 
   const catalogs = useTaskCatalogs()
   const status = catalogs.python.value
@@ -486,37 +458,31 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   )
 
   /**
-   * One combined list: every basic game function, every Python task, every
-   * TypeScript task, then every Ruby script, filtered by name/summary. Tasks
-   * already arrive sorted by `runner.py`'s `CATEGORY_ORDER`; appending
-   * TypeScript and then Ruby after them - rather than interleaving - is what
-   * keeps "Lich scripts" last once grouped, which is the right place for
-   * "the whole dr-scripts suite plus whatever else is installed," not only
-   * what a player wrote here.
+   * One combined list: every Python task, every TypeScript task, then every
+   * Ruby script, filtered by name/summary. Tasks already arrive sorted by
+   * `runner.py`'s `CATEGORY_ORDER`; appending TypeScript and then Ruby after
+   * them - rather than interleaving - is what keeps "Lich scripts" last once
+   * grouped, which is the right place for "the whole dr-scripts suite plus
+   * whatever else is installed," not only what a player wrote here.
+   *
+   * Basic game commands (attack, tend, stow, and the rest of `data/
+   * macros.ts`) used to be folded in here too, as a searchable catalog
+   * alongside the battle rail's own fast subset - the same fifteen macros,
+   * shown as buttons in two different panels on screen at once, sharing
+   * nothing but a name (`BattleActionBar`'s `Fight`/`Heal`/`Hunt`/… tabs
+   * next to this panel's `Combat commands`/`Health commands`/… categories).
+   * `BattleActionBar` already has every variation as its own button with
+   * hover detail; this panel's copy added a second click target for the
+   * same command and no capability the rail didn't have except pinning to
+   * the hotbar, which moved onto the rail's own buttons instead (right-click
+   * to pin, same `QuickSwitchPin` this panel already builds for tasks and
+   * scripts). This panel's job is what nothing else does: scripts and
+   * tasks.
    */
   const entries: Entry[] = useMemo(() => {
     const q = filter.trim().toLowerCase()
     const matches = (title: string, summary: string) =>
       !q || title.toLowerCase().includes(q) || summary.toLowerCase().includes(q)
-
-    const fromCommands: Entry[] = MACROS.flatMap((macro) =>
-      macro.variations
-        .filter((variation) => matches(variation.label, `${macro.label} ${variation.note ?? ''} ${variation.commands.join(' ')}`))
-        .map((variation) => ({
-          id: `command.${macro.id}.${variation.id}`,
-          title: variation.label,
-          baseIcon: COMMAND_ICON[macro.group],
-          actionKey: `${macro.id}:${variation.id}`,
-          tooltip:
-            `${variation.label}\n${variation.note ?? macro.label}\n\n` +
-            `${variation.commands.join(' ; ')}\n\nBasic game function — sends directly through the macro safety gate.` +
-            (macroReason ? `\n\n${macroReason}` : ''),
-          category: COMMAND_CATEGORY[macro.group],
-          readOnly: false,
-          disabled: !canSendMacro,
-          run: () => runMacro(variation.commands),
-        }))
-    )
 
     const fromTasks: Entry[] = orderedTasks
       .filter((t) => matches(t.title, t.summary))
@@ -578,16 +544,15 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
         editTarget: { name: s.name, lang: 'ruby' as ScriptLang },
       }))
 
-    return [...fromCommands, ...fromTasks, ...fromNode, ...fromRuby]
-  }, [orderedTasks, nodeTasks, rubyScripts, filter, startPython, startNode, startScript, addLog, runMacro, canSendMacro, macroReason])
+    return [...fromTasks, ...fromNode, ...fromRuby]
+  }, [orderedTasks, nodeTasks, rubyScripts, filter, startPython, startNode, startScript, addLog])
 
   const groups = useMemo(() => groupTasksByCategory(entries), [entries])
   const entryVisualIndex = useMemo(
     () => new Map(entries.map((entry, index) => [entry.id, index])),
     [entries]
   )
-  const commandCount = MACROS.reduce((count, macro) => count + macro.variations.length, 0)
-  const totalCount = commandCount + tasks.length + nodeTasks.length + rubyScripts.length
+  const totalCount = tasks.length + nodeTasks.length + rubyScripts.length
 
   const openNew = useCallback((lang: ScriptLang) => {
     setEditing({ name: '', lang })
@@ -613,7 +578,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   return (
     <div className="flex h-full min-h-0 flex-col gap-1.5">
       {/* One hierarchy, one line: title, live state, global search/count, and
-       * catalog controls are peers in the Functions & Scripts toolbar. */}
+       * catalog controls are peers in the Scripts & Tasks toolbar. */}
       <div className="flex h-10 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-2">
         {title && (
           <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-ink-muted">
@@ -691,7 +656,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
       )}
 
       <div
-        {...scrollableRegionProps('Functions and scripts', 'both')}
+        {...scrollableRegionProps('Scripts and tasks', 'both')}
         ref={gridRef}
         className={cn(
           'min-h-0 flex-1 overflow-auto',
@@ -711,13 +676,10 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
               </p>
               <div className="grid grid-cols-[repeat(auto-fill,2rem)] gap-1">
                 {group.items.map((entry) => {
-                  const isCommand = entry.id.startsWith('command.')
-                  const overrideKey = isCommand ? null : iconOverrideFor(entry.id)
+                  const overrideKey = iconOverrideFor(entry.id)
                   const iconKey = overrideKey ?? entry.baseIcon
-                  const Icon = entry.actionKey ? actionIcon(entry.actionKey) : SCRIPT_ICON_COMPONENT[iconKey]
-                  const tileStyle = entry.actionKey
-                    ? actionAccent(entry.actionKey)
-                    : accentForIndex(entryVisualIndex.get(entry.id) ?? 0)
+                  const Icon = SCRIPT_ICON_COMPONENT[iconKey]
+                  const tileStyle = accentForIndex(entryVisualIndex.get(entry.id) ?? 0)
                   const active = running === entry.id
                   const isDragging = draggingId === entry.id
                   const isDropTarget =
@@ -726,9 +688,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                   // the synthetic `ruby.${name}` id this panel groups them
                   // under - see quickSwitch.ts's own header on why a pin is a
                   // tagged union rather than a bare id.
-                  const quickSwitchPin: QuickSwitchPin = isCommand
-                    ? { kind: 'command', actionKey: entry.actionKey! }
-                    : entry.id.startsWith('ruby.')
+                  const quickSwitchPin: QuickSwitchPin = entry.id.startsWith('ruby.')
                     ? { kind: 'script', name: entry.id.slice('ruby.'.length) }
                     : { kind: 'task', id: entry.id }
                   const pinned = isPinned(quickSwitchPins, quickSwitchPin)
@@ -747,7 +707,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                       // button) so the reorder gesture and the pointer-based
                       // grid-scroll gesture above don't fight over the same
                       // element's events.
-                      draggable={!isCommand}
+                      draggable
                       onDragStart={(e) => {
                         e.dataTransfer.effectAllowed = 'move'
                         e.dataTransfer.setData('text/plain', entry.id)
@@ -774,12 +734,11 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                         type="button"
                         disabled={entry.disabled}
                         onClick={entry.run}
-                        onContextMenu={isCommand ? undefined : (e) => {
+                        onContextMenu={(e) => {
                           e.preventDefault()
                           setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
                         }}
-                        title={`${entry.tooltip}${isCommand ? '' : '\n\n(right-click to choose an icon, drag to rearrange)'}`}
-                        data-action={entry.actionKey}
+                        title={`${entry.tooltip}\n\n(right-click to choose an icon, drag to rearrange)`}
                         data-entry-id={entry.id}
                         className={cn(
                           'flex h-8 w-8 items-center justify-center overflow-hidden rounded border transition duration-150 hover:-translate-y-px hover:brightness-125 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0',

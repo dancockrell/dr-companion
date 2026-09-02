@@ -119,7 +119,7 @@ export function ClassicRoomText({
       </div>
       {items && items.length > 0 && (
         <div className="mt-1 min-h-0 flex-1 border-t border-border/40 pt-1.5" aria-label="Clickable room items">
-          <FloorItems items={items} mode="browser" selectedItem={selectedItem} onSelectedItemChange={onSelectedItemChange} />
+          <FloorItems items={items} selectedItem={selectedItem} onSelectedItemChange={onSelectedItemChange} />
         </div>
       )}
     </div>

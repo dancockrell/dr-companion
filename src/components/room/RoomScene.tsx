@@ -35,7 +35,6 @@ export function RoomScene({
   maxHeightVh = 42,
   chips,
   overlay,
-  footer,
   shape = 'square',
   framed = true,
   locationReady = true,
@@ -73,8 +72,6 @@ export function RoomScene({
    * disagree the moment either one changed independently of the other.
    */
   overlay?: import('react').ReactNode
-  /** Interactive scene content anchored over the bottom of the art. */
-  footer?: import('react').ReactNode
   /** False when a parent owns the shared battle frame and header. */
   framed?: boolean
   /** False while room and zone have not yet arrived as one coherent pair. */
@@ -107,12 +104,11 @@ export function RoomScene({
   const sceneScale = sceneSize.width > 0 && sceneSize.height > 0
     ? Math.max(0.65, Math.min(1.25, Math.min(sceneSize.width / 900, sceneSize.height / 650)))
     : 1
-  const sceneStyle: CSSProperties & { '--radar-scale': number; '--radar-loot-height': string } = {
+  const sceneStyle: CSSProperties & { '--radar-scale': number } = {
     ...(height
       ? { height }
       : { width: shape === 'landscape' ? `min(100%, ${maxHeightVh * 8 / 5}vh)` : `min(100%, ${maxHeightVh}vh)` }),
     '--radar-scale': sceneScale,
-    '--radar-loot-height': footer ? '2.25rem' : '0px',
   }
 
   return (
@@ -159,15 +155,9 @@ export function RoomScene({
 
       {overlay && <div className="absolute inset-0 z-10" aria-label="Tactical radar over room art">{overlay}</div>}
 
-      {footer && (
-        <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 h-9 overflow-hidden border-t border-border/70 bg-surface/82 px-1.5 py-1 backdrop-blur-md">
-          {footer}
-        </div>
-      )}
-
       {/* Who's here, on the felt rather than in a list beside it — the
           bottom edge, since the title moved to the top to make room. */}
-      {chips && !footer && (
+      {chips && (
         <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-6">
           {chips}
         </div>
