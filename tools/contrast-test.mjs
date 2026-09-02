@@ -55,12 +55,14 @@ check(
   /button\s*\{[^}]*transition-property:[^}]*background-color[^}]*transform[^}]*transition-duration:\s*150ms/s.test(css),
   'raw buttons must not snap while the shared Button component eases'
 )
-const palette = Object.fromEntries(
-  [...css.matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [
+const themeBlock = css.match(/@theme\s*\{([\s\S]*?)\n\}/)?.[1] ?? ''
+const parsePalette = (source) => Object.fromEntries(
+  [...source.matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [
     m[1],
     m[2],
   ])
 )
+const palette = parsePalette(themeBlock)
 
 console.log('-- palette contrast against the surfaces text sits on --')
 
@@ -80,6 +82,19 @@ for (const ink of inks) {
       ratio >= AA,
       `${ratio.toFixed(2)}:1${ratio >= AA ? '' : ` (needs ${AA})`}`
     )
+  }
+}
+
+for (const match of css.matchAll(/html\[data-skin="([^"]+)"\]\s*\{([\s\S]*?)\}/g)) {
+  const skin = match[1]
+  const colors = { ...palette, ...parsePalette(match[2]) }
+  for (const ink of inks) {
+    if (!colors[ink]) continue
+    for (const bg of surfaces) {
+      if (!colors[bg]) continue
+      const ratio = contrast(colors[ink], colors[bg])
+      check(`${skin}: ${ink} on ${bg}`, ratio >= AA, `${ratio.toFixed(2)}:1${ratio >= AA ? '' : ` (needs ${AA})`}`)
+    }
   }
 }
 
@@ -108,6 +123,12 @@ check(
   css.includes('scrollbar-color: var(--color-scrollbar-thumb) transparent') &&
     css.includes('background: var(--color-scrollbar-thumb)')
 )
+console.log('-- interface skins share one persisted semantic-token contract --')
+const skinSource = readFileSync('src/lib/skin.ts', 'utf8')
+check('skin choice is applied before the first render', readFileSync('src/main.tsx', 'utf8').includes('initSkin()'))
+check('skin changes persist through the shared storage boundary', skinSource.includes("writeText(KEY, current)"))
+check('skin changes synchronize between app windows',
+  skinSource.includes("addEventListener('storage'") && skinSource.includes('event.key !== KEY'))
 console.log('-- global chrome follows motion preferences --')
 const reducedMotion = css.match(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]+)\}\s*$/)?.[1] ?? ''
 check('reduced-motion policy exists', Boolean(reducedMotion))

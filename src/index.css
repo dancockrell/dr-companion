@@ -155,6 +155,47 @@ button:focus-visible {
   outline-offset: -2px;
 }
 
+/* Skins only replace semantic tokens. Components describe meaning—surface,
+ * ink, accent, danger—not a particular hex value, so switching skins never
+ * changes layout, hierarchy or behavior. The default is repeated explicitly
+ * to make the persisted contract inspectable in the DOM. */
+html[data-skin="elanthian-bronze"] {
+  --color-surface: #0d0c0a;
+  --color-surface-raised: #16140f;
+  --color-surface-overlay: #211d16;
+  --color-border: #2e2a20;
+  --color-ink: #ece7db;
+  --color-ink-muted: #a89f8c;
+  --color-ink-faint: #8d8574;
+  --color-accent: #d4a84b;
+  --color-accent-soft: #b8923f;
+}
+
+html[data-skin="moonlit-iron"] {
+  --color-surface: #090d12;
+  --color-surface-raised: #101720;
+  --color-surface-overlay: #17212b;
+  --color-border: #34424d;
+  --color-ink: #edf1ee;
+  --color-ink-muted: #adb8b4;
+  --color-ink-faint: #8d9b99;
+  --color-accent: #9eb9c9;
+  --color-accent-soft: #7f9eaf;
+  --color-danger: #dc746b;
+}
+
+html[data-skin="ember-court"] {
+  --color-surface: #100a09;
+  --color-surface-raised: #1a100e;
+  --color-surface-overlay: #271613;
+  --color-border: #493029;
+  --color-ink: #f0e8dc;
+  --color-ink-muted: #b7a395;
+  --color-ink-faint: #9b887b;
+  --color-accent: #d49a4a;
+  --color-accent-soft: #b77d39;
+}
+
 /* Nothing in this window blinks.
  *
  * There was a two-second opacity pulse on the busy indicator and on low

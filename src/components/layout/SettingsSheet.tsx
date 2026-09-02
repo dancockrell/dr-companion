@@ -20,11 +20,14 @@ import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
 import { loadPrefs } from '../../lib/persistence'
 import { useModalDialog } from '../../lib/useModalDialog'
+import { SKINS, setSkin, useSkin } from '../../lib/skin'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
   // button always matches what is actually rendering.
   const [scale, setScale] = useState(() => initTypeScale())
+  const skin = useSkin()
+  const [skinSaveError, setSkinSaveError] = useState(false)
   const alwaysOnTop = useAppStore((s) => s.alwaysOnTop)
   const setAlwaysOnTopState = useAppStore((s) => s.setAlwaysOnTop)
   const bridgeMode = useAppStore((s) => s.bridgeMode)
@@ -186,6 +189,52 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             {!isTauri() && (
               <p className="text-xs text-ink-faint">
                 Pin works fully inside the Tauri desktop app.
+              </p>
+            )}
+          </section>
+
+          <section className="space-y-2">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
+                Interface skin
+              </h3>
+              <p className="mt-1 text-xs leading-snug text-ink-faint">
+                Changes the whole client, including popped-out windows. Your layout and game settings stay untouched.
+              </p>
+            </div>
+            <div className="grid gap-2" role="radiogroup" aria-label="Interface skin">
+              {SKINS.map((option) => {
+                const selected = skin === option.id
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors duration-150 ${
+                      selected
+                        ? 'border-accent bg-accent/10 text-ink'
+                        : 'border-border bg-surface-overlay text-ink-muted'
+                    }`}
+                    onClick={() => setSkinSaveError(!setSkin(option.id).ok)}
+                  >
+                    <span className="flex shrink-0 overflow-hidden rounded-full border border-white/10 shadow-inner" aria-hidden="true">
+                      {option.swatches.map((color) => (
+                        <span key={color} className="h-6 w-3" style={{ backgroundColor: color }} />
+                      ))}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold text-ink">{option.name}</span>
+                      <span className="block text-xs leading-snug text-ink-faint">{option.description}</span>
+                    </span>
+                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full border ${selected ? 'border-accent bg-accent shadow-[0_0_8px_rgba(212,168,75,0.45)]' : 'border-ink-faint'}`} aria-hidden="true" />
+                  </button>
+                )
+              })}
+            </div>
+            {skinSaveError && (
+              <p className="text-xs leading-snug text-warn" role="status">
+                Skin applied for this session, but persistent storage is unavailable.
               </p>
             )}
           </section>
