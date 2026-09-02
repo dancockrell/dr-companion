@@ -63,12 +63,12 @@ import {
   FilePlus2,
   FolderOpen,
   Gem,
+  Bookmark,
   Pencil,
   Play,
   RefreshCw,
   Search,
   Square,
-  Star,
   Workflow,
 } from 'lucide-react'
 import {
@@ -827,7 +827,11 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                             pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
                           )}
                         >
-                          <Star className="h-2.5 w-2.5" fill={pinned ? 'currentColor' : 'none'} />
+                          <Bookmark
+                            className="h-3 w-3"
+                            fill={pinned ? 'currentColor' : 'none'}
+                            aria-hidden
+                          />
                         </button>
                       )}
                       {entry.editTarget && !dense && (
