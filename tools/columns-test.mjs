@@ -38,6 +38,9 @@ import {
   DEFAULT_ROOM_W,
   DEFAULT_MAP_W,
   DEFAULT_DASH_W,
+  pixelsForSizeShare,
+  sizeShareForPixels,
+  storedSizeShare,
 } from '../src/lib/columns.ts'
 
 let pass = 0
@@ -51,6 +54,29 @@ function ok(label, cond, detail) {
     fail += 1
     console.log(`FAIL ${label.padEnd(52)} ${detail ?? ''}`)
   }
+}
+
+console.log('-- proportional persistence remains proportional during live resize --')
+{
+  const saved = storedSizeShare('0.25', 1440, DEFAULT_ROOM_W)
+  ok('a stored share remains a share', saved === 0.25, String(saved))
+  ok('the share resolves at laptop width', pixelsForSizeShare(saved, 1440) === 360, String(pixelsForSizeShare(saved, 1440)))
+  ok('the same live state resolves again at ultrawide width', pixelsForSizeShare(saved, 2880) === 720, String(pixelsForSizeShare(saved, 2880)))
+  ok('a dragged width becomes a share', sizeShareForPixels(720, 2880) === 0.25, String(sizeShareForPixels(720, 2880)))
+  ok('invalid stored data falls back to the requested pixel default', storedSizeShare('460', 1440, DEFAULT_ROOM_W) === DEFAULT_ROOM_W / 1440)
+
+  const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  ok(
+    'App keeps every adjustable dimension as live share state',
+    ['roomShare', 'battleShare', 'experienceShare', 'mapHShare'].every((name) =>
+      appSource.includes(`const [${name}, set`),
+    ),
+  )
+  ok(
+    'App resolves live shares against the current host dimensions',
+    appSource.includes('pixelsForSizeShare(roomShare, widthReference') &&
+      appSource.includes('pixelsForSizeShare(mapHShare, heightReference'),
+  )
 }
 
 const SPLIT = 8
@@ -224,16 +250,42 @@ console.log('\n-- a window too narrow for anything still returns sane numbers --
   ok('dash never negative', f.dash >= 0, String(f.dash))
 }
 
-console.log('\n-- pickReset: issue #63 exact scenario - only the offender resets --')
+console.log('\n-- pickReset: issue #63 exact scenario - cascades to the second-biggest overshoot --')
 {
   // Dan's own live measurement: 1518px window, stored map 1728.8px, stored
-  // dash 510px, room at its own default. Room + dash comfortably fit their
-  // own asks; only the map does not.
+  // dash 510px, room at its own default.
+  //
+  // Used to need only one reset: DEFAULT_MAP_W was 300 then, and
+  // 300 + DEFAULT_ROOM_W + 510 fit inside 1518px on its own. DEFAULT_MAP_W
+  // is now 620 (see its own doc comment - the old 300/420 pair had drifted
+  // from what a fresh install actually opened with), and 620 no longer
+  // leaves room for a stored 510px dash alongside it at this exact window
+  // width. Dash was never "the offender" - map's 1728.8px overshoot is
+  // still the only stored width that didn't fit its own ask - but with the
+  // bigger default, resetting map alone isn't enough to fit anymore, so the
+  // cascade (biggest overshoot, then the next, per this function's own doc
+  // comment) correctly reaches for dash too. Room, which asked for exactly
+  // its own default and never overshot anything, is still left alone -
+  // that half of the original regression this test protects still holds.
   const plan = pickReset({
     hostW: 1518, mapDocked: true, roomWant: DEFAULT_ROOM_W, mapWant: 1728.8, dashWant: 510, splitW: SPLIT,
   })
   ok('map resets to default', plan.map === DEFAULT_MAP_W, String(plan.map))
-  ok("dash is left alone - it wasn't the offender", plan.dash === null, String(plan.dash))
+  ok('dash also resets - one reset alone no longer fits at the bigger default', plan.dash === DEFAULT_DASH_W, String(plan.dash))
+  ok("room is left alone - it never overshot anything", plan.room === null, String(plan.room))
+}
+
+console.log('\n-- pickReset: only the offender resets, at a window wide enough that one reset is still enough --')
+{
+  // Same shape as the historical case above, on a window wide enough that
+  // resetting just the offender (map) is enough to fit - demonstrating the
+  // "only the offender resets" principle still holds, now calibrated to the
+  // current defaults rather than the old ones that case was pinned to.
+  const plan = pickReset({
+    hostW: 2200, mapDocked: true, roomWant: DEFAULT_ROOM_W, mapWant: 1728.8, dashWant: 510, splitW: SPLIT,
+  })
+  ok('map resets to default', plan.map === DEFAULT_MAP_W, String(plan.map))
+  ok("dash is left alone - it wasn't the offender, and one reset already fits", plan.dash === null, String(plan.dash))
   ok("room is left alone - it wasn't the offender", plan.room === null, String(plan.room))
 }
 
