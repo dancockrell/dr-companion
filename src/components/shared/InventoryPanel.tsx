@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { BookOpen, ChevronDown, ChevronRight, Package, Search, Sparkles } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, Package, Scale, Search, Sparkles } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { capabilitiesForCharacter } from '../../lib/accountCapabilities'
 import { requestGameAction } from '../../lib/gameActions'
@@ -30,9 +30,9 @@ function ItemRow({ name, count = 1, onWiki }: { name: string; count?: number; on
         {name}{count > 1 ? ` (${count})` : ''}
       </button>
       <div className="flex shrink-0 items-center opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <button type="button" className="rounded px-1 py-0.5 text-xs text-ink-faint hover:bg-surface-overlay hover:text-ink" onClick={() => requestGameAction(`appraise ${target} quick`, `Appraise ${name}`)} title="Quick appraisal">A</button>
-        <button type="button" className="rounded px-1 py-0.5 text-xs text-ink-faint hover:bg-surface-overlay hover:text-ink" onClick={() => requestGameAction(`analyze ${target}`, `Analyze ${name}`)} title="Analyze crafting and special properties"><Sparkles className="h-3 w-3" /></button>
-        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-info" onClick={() => onWiki(name)} title={`Look up ${name} on Elanthipedia`} aria-label={`Elanthipedia information for ${name}`}><BookOpen className="h-3 w-3" /></button>
+        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" onClick={() => requestGameAction(`appraise ${target} quick`, `Appraise ${name}`)} title="Quick appraisal" aria-label={`Quick-appraise ${name}`}><Scale className="h-3.5 w-3.5" /></button>
+        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" onClick={() => requestGameAction(`analyze ${target}`, `Analyze ${name}`)} title="Analyze crafting and special properties" aria-label={`Analyze ${name}`}><Sparkles className="h-3.5 w-3.5" /></button>
+        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" onClick={() => onWiki(name)} title={`Look up ${name} on Elanthipedia`} aria-label={`Elanthipedia information for ${name}`}><BookOpen className="h-3.5 w-3.5" /></button>
       </div>
     </div>
   )
