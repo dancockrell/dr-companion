@@ -5,10 +5,14 @@ import ts from 'typescript'
 
 const dir = join('node_modules', '.drc-test')
 mkdirSync(dir, { recursive: true })
+const colorsOut = join(dir, 'mapPlaceColors.mjs')
+writeFileSync(colorsOut, ts.transpileModule(readFileSync('src/lib/mapPlaceColors.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText)
 const landmarksOut = join(dir, 'mapLandmarks.mjs')
 writeFileSync(landmarksOut, ts.transpileModule(readFileSync('src/lib/mapLandmarks.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText)
+}).outputText.replace("'./mapPlaceColors'", "'./mapPlaceColors.mjs'"))
 const out = join(dir, 'mapStamps.mjs')
 writeFileSync(out, ts.transpileModule(readFileSync('src/lib/mapStamps.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
