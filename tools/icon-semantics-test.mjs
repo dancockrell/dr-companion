@@ -17,6 +17,7 @@ let passed = 0
 function check(condition, message) {
   if (!condition) throw new Error(message)
   passed += 1
+  console.log(`OK   ${message}`)
 }
 
 check(taskFlow.includes('Bookmark') && !taskFlow.includes('<Star'), 'task tiles must use Bookmark for the hotbar')
