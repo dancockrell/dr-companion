@@ -822,7 +822,7 @@ export function SoundControls() {
                           title={`Remove ${f.name} from favorites`}
                           aria-label={`Remove ${f.name} from favorites`}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 aria-hidden="true" className="h-3 w-3" />
                         </button>
                       </div>
                     )
@@ -908,7 +908,7 @@ export function SoundControls() {
                             title={`Delete "${p.name}"`}
                             aria-label={`Delete ${p.name}`}
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 aria-hidden="true" className="h-3 w-3" />
                           </button>
                         </div>
                         {expanded && (
@@ -937,7 +937,7 @@ export function SoundControls() {
                                       title={`Remove "${t.title}" from ${p.name}`}
                                       aria-label={`Remove ${t.title} from ${p.name}`}
                                     >
-                                      <Trash2 className="h-3 w-3" />
+                                      <Trash2 aria-hidden="true" className="h-3 w-3" />
                                     </button>
                                   </div>
                                 )
