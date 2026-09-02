@@ -1716,7 +1716,11 @@ module Companion
     # another one; everything in ALWAYS - and every read-only query - never
     # touches the lock, so it is never stuck behind a long-running macro.
     def handle(intent, args, server)
-      if intent == 'run_macro' && !claim_macro_flight
+      # A latched Stop owns the refusal message: run_macro must be allowed to
+      # reach its existing Stop check so the player is told to press Resume,
+      # rather than seeing the less useful cooldown message. Resume resets the
+      # claim below, so the first deliberate macro after it can start at once.
+      if intent == 'run_macro' && !stop_requested? && !claim_macro_flight
         server.log('Macro refused: another app window just launched one.', 'warn')
         return [false, 'a macro is still running']
       end
@@ -2581,6 +2585,7 @@ module Companion
       # above: resuming is the human decision that means "continue", not the
       # next run_macro/stow_all that happens to arrive.
       clear_stop!
+      reset_macro_flight!
       resumed = []
       me = State.safe(nil) { Script.current.name }
       State.safe([]) { Script.running }.each do |s|

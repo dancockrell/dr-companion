@@ -861,12 +861,10 @@ begin
   c.read_until('intent_ack')
 
   puts ''
-  puts '-- two command-sending intents queue instead of interleaving --'
-  # The mutex this guards: without it, per-message threading (added for the
-  # test above) would let two run_macro calls both reach fput at once, and
-  # DragonRealms would see interleaved commands from what the player experiences
-  # as two sequential requests. This has to actually race them, not just call
-  # the methods back to back, or a bug here would pass by construction.
+  puts '-- simultaneous app windows produce one macro dispatch --'
+  # Every Tauri window has its own JavaScript runtime, but each one reaches
+  # this shared bridge process. Race two real clients here so the regression
+  # proves the dispatch boundary, not merely the gate helper in isolation.
   $fput_log = []
   $fput_delay = 0.15
   a_client = Client.new(PORT)
@@ -878,16 +876,23 @@ begin
   sleep 0.05 # give a_client's macro the lock first, deterministically
   b_client.send_json(type: 'intent', intent: 'run_macro', args: { commands: %w[b1 b2 b3] })
 
-  # Generous: 6 commands at 0.15s each under mutual exclusion, plus overhead.
-  sleep 1.5
+  a_ack = a_client.read_until('intent_ack')
+  b_ack = b_client.read_until('intent_ack')
 
-  groups = $fput_log.chunk { |cmd| cmd[0] }.map(&:first)
+  winners = [a_ack, b_ack].count { |ack| ack && ack['ok'] == true }
+  refusals = [a_ack, b_ack].count do |ack|
+    ack && ack['ok'] == false && ack['detail'].to_s.include?('macro is still running')
+  end
   check(
-    'commands ran as two clean blocks, not interleaved',
-    groups == %w[a b] || groups == %w[b a],
+    'exactly one app window owns the shared macro flight',
+    winners == 1 && refusals == 1,
+    [a_ack, b_ack].inspect
+  )
+  check(
+    'only the winning window reaches the game command boundary',
+    $fput_log == %w[a1 a2 a3] || $fput_log == %w[b1 b2 b3],
     $fput_log.inspect
   )
-  check('all six commands ran', $fput_log.size == 6, $fput_log.inspect)
   $fput_delay = 0
   a_client.close
   b_client.close
