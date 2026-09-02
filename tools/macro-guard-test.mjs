@@ -14,6 +14,9 @@
  * paid for once.
  */
 import { canSendMacro } from '../src/lib/canSendMacro.ts'
+import { createMacroFlightGate } from '../src/lib/macroFlightGate.ts'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 
 let failed = 0
 let checked = 0
@@ -52,6 +55,55 @@ console.log('\n-- one macro at a time --')
   const s = canSendMacro({ stopLatched: false, inFlight: true, connected: true })
   ok('a second macro cannot queue behind the first', s.canSend === false)
   ok('and it says something is already running', /running/i.test(s.reason ?? ''), s.reason)
+}
+
+console.log('\n-- every launcher shares one atomic flight gate --')
+{
+  let now = 1000
+  const scheduled = []
+  const gate = createMacroFlightGate({
+    now: () => now,
+    schedule: (callback, delayMs) => {
+      scheduled.push({ callback, delayMs })
+      return scheduled.length
+    },
+    cancel: () => {},
+  })
+  let changes = 0
+  gate.subscribe(() => { changes += 1 })
+  ok('the first launcher claims the shared slot', gate.claim() === true)
+  ok('a second launcher loses the same atomic claim', gate.claim() === false)
+  ok('every observer sees the flight', gate.isInFlight() === true)
+  ok('the shared duration is 900ms', scheduled[0]?.delayMs === 900, String(scheduled[0]?.delayMs))
+  now += 900
+  scheduled[0]?.callback()
+  ok('expiry re-enables every launcher', gate.isInFlight() === false)
+  ok('claim and expiry both notify mounted launchers', changes === 2, String(changes))
+}
+
+console.log('\n-- run_macro has one dispatch owner --')
+{
+  const sourceFiles = []
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name)
+      if (statSync(path).isDirectory()) walk(path)
+      else if (/\.tsx?$/.test(name)) sourceFiles.push(path)
+    }
+  }
+  walk('src')
+  const owners = sourceFiles.filter((path) => readFileSync(path, 'utf8').includes("requestIntent('run_macro'"))
+  ok('one module owns every direct run_macro dispatch',
+    JSON.stringify(owners.map((path) => path.replaceAll('\\', '/'))) === '["src/lib/macroFlight.ts"]',
+    owners.join(', '))
+  const app = readFileSync('src/App.tsx', 'utf8')
+  const runner = readFileSync('src/lib/useMacroRunner.ts', 'utf8')
+  const take = readFileSync('src/lib/useRoomItemTake.ts', 'utf8')
+  const training = readFileSync('src/components/shared/TrainingPanel.tsx', 'utf8')
+  ok('keyboard Quick Switch uses the shared request', app.includes('requestMacro(variation.commands)') && !app.includes('inFlight: false'))
+  ok('macro hooks subscribe to the shared flight state', runner.includes('useSyncExternalStore(subscribeMacroFlight'))
+  ok('floor-item macros reuse the same runner', take.includes('useMacroRunner()'))
+  ok('activity training reuses the same runner', training.includes('useMacroRunner()'))
 }
 
 console.log('\n-- both at once, which is reachable: press a macro, then Stop --')

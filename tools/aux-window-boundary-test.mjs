@@ -42,10 +42,16 @@ for (const label of ['Inventory panel window', 'Map window']) {
 
 const app = readFileSync('src/App.tsx', 'utf8')
 const panelBoundary = readFileSync('src/components/shared/PanelBoundary.tsx', 'utf8')
+const capability = JSON.parse(readFileSync('src-tauri/capabilities/default.json', 'utf8'))
+const tauriWindowFactory = readFileSync('src-tauri/src/lib.rs', 'utf8')
 ok('the popped-out panel root uses the auxiliary boundary', /AuxiliaryWindowBoundary[\s\S]*PanelWindow/.test(app))
 ok('the popped-out map root uses the auxiliary boundary', /AuxiliaryWindowBoundary[\s\S]*MapWindow/.test(app))
 ok('docked surfaces retain their local retry boundary', panelBoundary.includes('this.setState({ error: null })'))
-ok('enough recovery behavior was checked', checked >= 13)
+ok('native auxiliary windows use the panel- label namespace', /format!\("panel-\{id\}"\)/.test(tauriWindowFactory))
+ok('the main window receives core permissions', capability.windows.includes('main'))
+ok('every panel window receives core permissions', capability.windows.includes('panel-*'))
+ok('the capability does not broaden access to every window', !capability.windows.includes('*'))
+ok('enough recovery and capability behavior was checked', checked >= 17)
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

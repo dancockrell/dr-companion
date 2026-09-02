@@ -30,6 +30,15 @@ const skip = (name, why) => {
   console.log(`SKIP ${name.padEnd(50)}${why}`)
 }
 
+console.log('-- buffered history is fenced before alert playback --')
+{
+  const signals = readFileSync('src/components/shared/GameSignals.tsx', 'utf8')
+  const historyFence = signals.indexOf('This effect must stay before the playback effect')
+  const playback = signals.indexOf('const fresh = lines.filter')
+  ok('the highlight-load history fence exists', historyFence >= 0)
+  ok('the history fence is declared before playback', historyFence < playback)
+}
+
 console.log('-- the parser reads the format, and says what it could not --')
 {
   const { entries, skipped } = parseHighlights(`

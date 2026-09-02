@@ -19,6 +19,24 @@ import type { RoomCard } from './cards.ts'
  * minute old is shown softened rather than at full confidence. */
 export const STALE_AFTER_SECONDS = 60
 
+type RadarPlacement = Pick<RoomCombatant, 'range' | 'relation' | 'enrichedAgeSeconds'> & {
+  range: NonNullable<RoomCombatant['range']>
+  relation: string
+  enrichedAgeSeconds: number
+}
+
+/**
+ * Assess is a pull in DragonRealms, not a live position feed. A range-ring
+ * position is therefore only honest while the enrichment is complete and no
+ * older than the board's existing stale-data threshold.
+ */
+export function hasFreshRadarPlacement(
+  combatant: Pick<RoomCombatant, 'range' | 'relation' | 'enrichedAgeSeconds'>,
+): combatant is RadarPlacement {
+  const age = combatant.enrichedAgeSeconds
+  return Boolean(combatant.range && combatant.relation && age != null && age >= 0 && age <= STALE_AFTER_SECONDS)
+}
+
 /**
  * Melee wide, pole and missile progressively tighter. A floor, not the
  * final answer — see `rangeRadiusPct` below, which widens the melee ring

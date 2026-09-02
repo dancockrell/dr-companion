@@ -106,7 +106,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
          * see DashboardLayout), so this is the only accessible name the
          * panel has. A visually-identical span with no heading role reads
          * as unlabelled content to a screen reader. */}
-        <h2 className="font-medium text-ink-faint uppercase tracking-wider">
+        <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
           Inventory
         </h2>
         <div className="flex min-w-0 flex-1 items-center gap-1 rounded border border-border bg-surface px-1.5 py-1">

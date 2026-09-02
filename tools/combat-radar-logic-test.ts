@@ -8,6 +8,8 @@ import {
   vitalColor,
   alwaysTone,
   nsysColor,
+  hasFreshRadarPlacement,
+  STALE_AFTER_SECONDS,
 } from '../src/lib/combatRadarLogic.ts'
 import type { RoomCard } from '../src/lib/cards.ts'
 import type { RoomCombatant } from '../src/types/index.ts'
@@ -18,6 +20,21 @@ const ok = (label: string, cond: boolean, detail = '') => {
   checked++
   if (!cond) fails++
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${label.padEnd(58)}${detail}`)
+}
+
+// -- hasFreshRadarPlacement ----------------------------------------------
+console.log('-- hasFreshRadarPlacement --')
+{
+  const placement = (age: number | null, range: 'melee' | null = 'melee', relation: string | null = 'in front of you') =>
+    hasFreshRadarPlacement({ range, relation, enrichedAgeSeconds: age })
+
+  ok('a just-assessed hostile may occupy its range ring', placement(0))
+  ok('the freshness boundary remains usable', placement(STALE_AFTER_SECONDS))
+  ok('an older assess cannot masquerade as current geometry', !placement(STALE_AFTER_SECONDS + 1))
+  ok('a never-assessed hostile stays in the roster', !placement(null))
+  ok('a range without a relation cannot produce a position', !placement(2, 'melee', null))
+  ok('a relation without a range cannot produce a position', !placement(2, null))
+  ok('a bad future-clock age is rejected instead of treated as fresh', !placement(-1))
 }
 
 // -- rangeRadiusPct --------------------------------------------------------

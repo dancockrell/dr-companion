@@ -493,14 +493,23 @@ pub fn game_backlog(link: State<'_, GameLink>, since: u64) -> Backlog {
     }
 }
 
-/// Send a command, exactly as typed.
+fn validate_game_command(command: &str) -> Result<(), String> {
+    if command.chars().any(char::is_control) {
+        return Err("A game command must be one line and contain no control characters.".into());
+    }
+    Ok(())
+}
+
+/// Send one command, exactly as typed.
 ///
 /// No interpretation here. Aliases, macros and scripting are the frontend's
 /// job and Lich has its own ideas about lines beginning with a semicolon; a
 /// transport that rewrote what the player typed would make both impossible to
-/// reason about.
+/// reason about. The one invariant enforced here is framing: a request cannot
+/// contain a second line or any other control character.
 #[tauri::command]
 pub fn game_send(link: State<'_, GameLink>, command: String) -> Result<(), String> {
+    validate_game_command(&command)?;
     let mut guard = link.inner.lock().unwrap();
     let h = guard.as_mut().ok_or("Not attached to a game.")?;
     if !h.running.load(Ordering::Relaxed) {
@@ -545,6 +554,34 @@ mod tests {
     use super::*;
     use std::io::Read;
     use std::net::TcpListener;
+
+    #[test]
+    fn command_transport_accepts_one_line_and_rejects_framing_controls() {
+        for command in [
+            "look",
+            "ask guard about ferry",
+            ";status",
+            "appraise sword;health",
+        ] {
+            assert!(
+                validate_game_command(command).is_ok(),
+                "ordinary input survives: {command:?}"
+            );
+        }
+        for command in [
+            "look\n;danger",
+            "look\rhealth",
+            "look\0health",
+            "look\thealth",
+            "look\u{7f}health",
+            "look\u{85}health",
+        ] {
+            assert!(
+                validate_game_command(command).is_err(),
+                "control rejected: {command:?}"
+            );
+        }
+    }
 
     #[test]
     fn recovery_backlog_matches_the_frontend_scrollback_contract() {
