@@ -169,6 +169,22 @@ check(
   retiredOnAccent.length ? `${retiredOnAccent.length} files still hardcode #1a1408` : ''
 )
 
+const componentSources = walk('src/components').map((file) => ({
+  file,
+  text: readFileSync(file, 'utf8'),
+}))
+const modalScrims = componentSources.filter(({ text }) =>
+  text.includes('fixed inset-0 z-50') && text.includes('bg-scrim')
+)
+const retiredBlackScrims = componentSources.filter(({ text }) =>
+  /fixed inset-0 z-50[^"']*bg-black\//.test(text)
+)
+check(
+  'modal backdrops use one semantic scrim token',
+  css.includes('--color-scrim: rgb(0 0 0 / 0.5)') && modalScrims.length === 9 && retiredBlackScrims.length === 0,
+  `${modalScrims.length} semantic modal scrims; ${retiredBlackScrims.length} raw black scrims`
+)
+
 // --- the type floor ---------------------------------------------------------
 
 console.log('')

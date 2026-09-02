@@ -359,7 +359,7 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[12vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-scrim pt-[12vh]"
       data-gameplay-shortcuts="suspend"
       onClick={() => setOpen(false)}
     >

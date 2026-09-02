@@ -109,7 +109,7 @@ export function Portrait({
       </button>
 
       {picking && options.length > 0 && createPortal(
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" role="presentation" data-gameplay-shortcuts="suspend">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-scrim p-4" role="presentation" data-gameplay-shortcuts="suspend">
           <button
             type="button"
             className="absolute inset-0 cursor-default"

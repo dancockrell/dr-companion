@@ -14,6 +14,9 @@
   --color-surface: #0d0c0a;
   --color-surface-raised: #16140f;
   --color-surface-overlay: #211d16;
+  /* One depth cue for every modal. Keeping the alpha in the token prevents
+     dialogs from independently darkening the same game scene. */
+  --color-scrim: rgb(0 0 0 / 0.5);
 
   /* Vellum.
    *
