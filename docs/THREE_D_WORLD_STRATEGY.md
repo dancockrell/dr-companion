@@ -195,15 +195,44 @@ Every module needs three records: its evidence category, materials/scale, and
 where it may be used. A `crossing:town-wall` module must not quietly migrate to
 Ratha just because it is convenient.
 
-### 6.2 Avoid the single-mesh trap
+### 6.2 The Town Green image-to-3D experiment: reject as a city asset
 
-The first Asset Maker GLB is useful as a **scene anchor**: it fixes composition,
-palette, materials, and the desired feel. It is not the full city solution.
+The first Asset Maker Town Green GLB is a useful **art-direction experiment**:
+it establishes a desired material and tabletop-composition language. It is
+rejected for the runtime city library because image-to-3D has fused the scene
+into a single source-angle sculpture. That shape cannot reliably represent
+real exits, support multiple camera angles, host interiors, accept dynamic
+actors, or let the map graph change the scene.
 
-Before city assembly, split the production library into independently usable
-terrain, façade, foliage, prop, and landmark assets. A monolithic town mesh
-cannot accommodate actual exits, dynamic entities, room changes, or battle
-positions reliably.
+Keep the experiment in the raw Asset Maker project with its generation record;
+do not ship it, name it a canonical reconstruction, or convert it into a
+runtime fallback. It answered the important question: whole-scene
+image-to-3D is the wrong production lane for this client.
+
+### 6.3 Corrected Asset Maker lane: reusable pieces, not room pictures
+
+Asset Maker is appropriate for isolated assets with a stable silhouette and
+clear reuse value. We produce a kit of roughly 20--35 pieces for a district,
+not 20--35 rooms:
+
+| Family | First Crossing components | Asset Maker target |
+|---|---|---|
+| Terrain | cobble strip, packed path, grass edge, hedge base, curb, drainage | tileable material/mesh or simple authored plane |
+| Vegetation | privet hedge straight/corner/breach, lunat tree, ancient oak, modwyn bower | isolated object, neutral background, complete silhouette |
+| Architecture | unpainted armory facade, restrained weaponsmith frontage, low street facade, alley backface, town wall/gate segment | facade module with known width, depth, ground contact, and blank signage |
+| Props | plank run, exterior hook rack, weapon/armor samples, limestone bench, stump stools, market table | isolated prop, real pivot, no baked scene shadow |
+| Landmark parts | cedar arbor, fish fountain, wrought-iron gate, office desk/chair, infirmary cot/exam table | isolated hero object, only after evidence review |
+
+Each Asset Maker request must use an **asset contract**: one subject, an
+orthogonal or controlled three-quarter view, neutral background, full ground
+contact, known intended footprint, no surrounding scenery, no people, no text,
+and no unrequested duplicates. The resulting 3D file is inspected in a
+turntable and admitted only if it works from more than its source angle.
+
+The city itself is then assembled by the client from these modules and the
+manifest. That assembly owns exit anchors, collision, streaming, material
+variation, entity slots, and camera behavior. Asset Maker supplies carefully
+curated pieces; it does not secretly become the level designer.
 
 ---
 
@@ -344,6 +373,7 @@ Fifty items on a floor must not create fifty full-size meshes.
 | 3D is an optional layer over real text/map/combat data. | **Accepted** | No duplicated game simulation. |
 | Build cities from reusable modules, not one image or mesh per room. | **Accepted** | Asset work begins with regional kits and cells. |
 | First visual anchor: The Crossing Town Green. | **Accepted** | Existing Asset Maker scene is reference-only until curated. |
+| Whole-scene image-to-3D conversion as a runtime city asset. | **Rejected** | Preserve the Town Green GLB as an experiment; use isolated modular assets for city assembly. |
 | The 3D tactical layer reacts to incoming hit/miss events. | **Accepted** | Requires a typed event adapter and slot system. |
 | Exact engine/runtime for client-side 3D. | **Unresolved** | Decide after browser/Tauri budget and input-accessibility spike. |
 | Canonical visual treatment for every major Crossing landmark. | **Unresolved** | Requires room dossier review, not generic generation. |
