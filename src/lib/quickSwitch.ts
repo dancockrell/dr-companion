@@ -94,10 +94,11 @@ function normalizePin(x: unknown): QuickSwitchPin | null {
     if (typeof o.id !== 'string' || o.id.length === 0) return null
     if (o.lang !== undefined && o.lang !== 'python' && o.lang !== 'typescript') return null
     const wasPrefixedTypeScript = o.id.startsWith('ts.') && o.id.length > 3
-    const lang: TaskLanguage = o.lang === 'typescript' || (o.lang === undefined && wasPrefixedTypeScript)
+    const migrateLegacyTypeScript = o.lang === undefined && wasPrefixedTypeScript
+    const lang: TaskLanguage = o.lang === 'typescript' || migrateLegacyTypeScript
       ? 'typescript'
       : 'python'
-    const id = lang === 'typescript' && wasPrefixedTypeScript ? o.id.slice(3) : o.id
+    const id = migrateLegacyTypeScript ? o.id.slice(3) : o.id
     return lang === 'python' && o.lang === undefined
       ? { kind: 'task', id }
       : { kind: 'task', id, lang }

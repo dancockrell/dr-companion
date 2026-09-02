@@ -175,7 +175,7 @@ console.log('\n-- loadPins upgrades the broken early TypeScript pin shape in pla
   const loaded = m.loadPins()
   ok('legacy ts-prefixed id becomes a bare TypeScript task', loaded[0], { kind: 'task', id: 'task.watch', lang: 'typescript' })
   ok('legacy bare task remains a Python-compatible pin', loaded[1], { kind: 'task', id: 'task.python' })
-  ok('explicit TypeScript pin is defensively stripped too', loaded[2], { kind: 'task', id: 'explicit', lang: 'typescript' })
+  ok('an explicit TypeScript id may legitimately begin with ts.', loaded[2], { kind: 'task', id: 'ts.explicit', lang: 'typescript' })
   ok('the upgraded shape is persisted for the next launch', JSON.parse(store['drc.quickswitch.v3'])[0], loaded[0])
 }
 
