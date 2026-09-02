@@ -14,7 +14,7 @@
  * both were asked to stay. So the control moves; only the log itself goes.
  */
 import { useState } from 'react'
-import { Plug, PlugZap, Info, Eraser, Link2, Unlink } from 'lucide-react'
+import { Plug, PlugZap, Info, Trash2, Link2, Unlink } from 'lucide-react'
 import {
   attachGame,
   clearGame,
@@ -103,7 +103,7 @@ export function GameConnectionBar() {
           title="Clear the scrollback. The connection is untouched."
           aria-label="Clear the scrollback"
         >
-          <Eraser className="h-3.5 w-3.5" />
+          <Trash2 className="h-3.5 w-3.5" aria-hidden />
         </button>
         {link.connected ? (
           <button

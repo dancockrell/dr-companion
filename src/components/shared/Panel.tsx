@@ -14,7 +14,7 @@ import {
   ChevronUp,
   ChevronDown,
   GripVertical,
-  ExternalLink,
+  AppWindow,
 } from 'lucide-react'
 
 export function Panel({
@@ -145,7 +145,7 @@ export function Panel({
               title="Open in its own window" aria-label="Open in its own window"
               onClick={onPopOut}
             >
-              <ExternalLink className="w-3.5 h-3.5" />
+              <AppWindow className="w-3.5 h-3.5" aria-hidden />
             </button>
           )}
           {/* Only the grip is draggable, not the whole panel, so selecting text

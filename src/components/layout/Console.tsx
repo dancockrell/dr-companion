@@ -250,7 +250,7 @@ export function Console() {
               onClick={clearLog}
               title="Clear" aria-label="Clear"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
             </button>
           </>
         )}

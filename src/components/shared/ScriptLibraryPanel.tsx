@@ -25,7 +25,7 @@
  * "Uncategorized" fallback below for a name `categoryOf` doesn't recognise.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ListTree, Star } from 'lucide-react'
+import { Bookmark, Search, ListTree } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { Button } from './Button'
 import { cn } from '../../lib/cn'
@@ -175,7 +175,7 @@ export function ScriptLibraryPanel({
                         )}
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
-                        {/* Same star, same meaning, as TaskFlowPanel's — pin
+                        {/* Same bookmark, same meaning, as TaskFlowPanel's — pin
                             to the Quick Switch bar so this specific script
                             is a keypress away without a scroll through the
                             library to find it again. */}
@@ -193,7 +193,7 @@ export function ScriptLibraryPanel({
                             pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
                           )}
                         >
-                          <Star className="h-3 w-3" fill={pinned ? 'currentColor' : 'none'} aria-hidden />
+                          <Bookmark className="h-3 w-3" fill={pinned ? 'currentColor' : 'none'} aria-hidden />
                         </button>
                         <Button
                           size="sm"

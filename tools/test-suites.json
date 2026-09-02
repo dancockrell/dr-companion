@@ -6,6 +6,7 @@
   "test:gear",
   "test:skills-empty",
   "test:mounted",
+  "test:icon-semantics",
   "test:macroguard",
   "test:gamelines",
   "test:escapes",

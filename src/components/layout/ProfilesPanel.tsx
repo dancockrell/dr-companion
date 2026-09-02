@@ -8,7 +8,7 @@
  *
  * See docs/DOMAIN.md section 18.
  */
-import { Users, Copy, Trash2 } from 'lucide-react'
+import { Users, CopyPlus, Trash2 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { profilesByRecency, profileKey } from '../../lib/profiles'
 import { cityLabel, type HealCityId } from '../../data/healers'
@@ -96,7 +96,7 @@ export function ProfilesPanel() {
                     onClick={() => copySettingsFrom(key)}
                     title="Copy this character's settings onto the one you are playing"
                   >
-                    <Copy className="w-3 h-3" />
+                    <CopyPlus className="w-3 h-3" aria-hidden />
                     Copy settings to current
                   </button>
                   <button

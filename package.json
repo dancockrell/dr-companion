@@ -96,6 +96,7 @@
     "test:game-connection-owner": "node tools/game-connection-owner-test.mjs",
     "test:battlespace": "node tools/battlespace-test.mjs && npm run test:battle-action-visuals",
     "test:battle-action-visuals": "node --experimental-strip-types tools/battle-action-visuals-test.ts",
+    "test:icon-semantics": "node tools/icon-semantics-test.mjs",
     "test:combat-radar-layout": "node --experimental-strip-types tools/combat-radar-layout-test.ts",
     "test:combat-radar-logic": "node --experimental-strip-types tools/combat-radar-logic-test.ts",
     "test:map-landmarks": "node tools/map-landmarks-test.mjs",
