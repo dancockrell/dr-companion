@@ -25,7 +25,7 @@ const GROUP_TONE: Partial<Record<Macro['group'], string>> = {
   goods: 'border-accent/40',
   magic: 'border-purple-400/40',
   travel: 'border-info/40',
-  info: 'border-slate-400/40',
+  info: 'border-info/40',
 }
 
 
