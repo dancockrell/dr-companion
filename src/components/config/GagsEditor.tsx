@@ -193,8 +193,8 @@ export function GagsEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">Import multiple gags - paste #gag lines below</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel gag import">
-              <X className="h-3.5 w-3.5" />
+            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel gag import" title="Cancel gag import">
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <textarea
@@ -244,8 +244,8 @@ export function GagsEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">{adding ? 'New gag' : 'Edit gag'}</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel gag editing">
-              <X className="h-3.5 w-3.5" />
+            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label={adding ? 'Cancel new gag' : 'Cancel editing gag'} title={adding ? 'Cancel new gag' : 'Cancel editing gag'}>
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <label className="flex flex-col gap-1 text-xs">

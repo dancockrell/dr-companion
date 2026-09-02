@@ -287,8 +287,8 @@ export function AliasesEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">Import multiple aliases - paste #alias lines below</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel alias import">
-              <X className="h-3.5 w-3.5" />
+            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel alias import" title="Cancel alias import">
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <textarea
@@ -338,8 +338,8 @@ export function AliasesEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">{adding ? 'New alias' : 'Edit alias'}</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel alias editing">
-              <X className="h-3.5 w-3.5" />
+            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label={adding ? 'Cancel new alias' : 'Cancel editing alias'} title={adding ? 'Cancel new alias' : 'Cancel editing alias'}>
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <div className="flex flex-col gap-2 text-xs">
