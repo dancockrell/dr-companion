@@ -1,5 +1,4 @@
 import { grokRoomScene } from '../data/grokRoomScenes.ts'
-import { roomArtOverride } from '../data/roomArtOverrides.ts'
 import { roomScenePattern } from '../data/roomScenePatterns.ts'
 import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom.ts'
 
@@ -79,25 +78,26 @@ export function cachedRoomText(zone: string, room: number): RoomText | null {
 /**
  * Where the rendered scene lives, if it has been rendered.
  *
- * Selection follows the production art contract: exact reviewed corrections
- * first, then generated regional/semantic families, then the conservative
- * live-text selector. Each layer may decline to answer; the backdrop's neutral
- * fingerprint is the final honest fallback. The order matters: bypassing the
- * first two layers reduced 1,874 reviewed assignments and seven regional town
- * families to the shallow global Grok pool.
+ * Selection follows the current production art contract: every literal scene
+ * must come from the reviewed Grok pack. Location-aware place families go
+ * first, then the conservative live-text selector. Either layer may decline
+ * to answer; the backdrop's neutral fingerprint is the final honest fallback.
+ *
+ * The old per-room and local archetype renders are intentionally absent here.
+ * Keeping them as "temporary" filler made them effectively permanent and put
+ * visibly soft 336x192 images back into the full battle canvas. A missing
+ * scene is now represented honestly instead of by art we already rejected.
  */
-export type RoomArtLayer = 'curated' | 'regional-or-semantic' | 'text-fallback' | 'fingerprint'
+export type RoomArtLayer = 'grok-place-pattern' | 'grok-text' | 'fingerprint'
 
 export function roomArtSelection(zone: string, room: number, title?: string | null, text?: string | null): {
   url: string | null
   layer: RoomArtLayer
 } {
-  const curated = roomArtOverride(zone, room)
-  if (curated) return { url: curated, layer: 'curated' }
   const patterned = roomScenePattern(zone, room)
-  if (patterned) return { url: patterned, layer: 'regional-or-semantic' }
+  if (patterned) return { url: patterned, layer: 'grok-place-pattern' }
   const textFallback = grokRoomScene(zone, room, title, text)
-  if (textFallback) return { url: textFallback, layer: 'text-fallback' }
+  if (textFallback) return { url: textFallback, layer: 'grok-text' }
   return { url: null, layer: 'fingerprint' }
 }
 

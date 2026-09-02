@@ -56,7 +56,7 @@
     "test:layout": "node tools/layout-test.mjs",
     "test:splitter-range": "node tools/splitter-range-test.mjs",
     "test:columns": "node tools/columns-test.mjs",
-    "test:room": "node tools/room-test.mjs && npm run test:room-art-selection",
+    "test:room": "node tools/room-test.mjs && npm run test:room-art-selection && npm run test:grok-room-scenes",
     "test:room-art-selection": "node --experimental-strip-types tools/room-art-selection-test.ts",
     "test:bestiary": "node tools/bestiary-test.mjs",
     "test:creature-art": "node tools/creature-art-test.mjs",
