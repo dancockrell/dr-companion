@@ -277,7 +277,10 @@ class Layer {
   }
 
   resume() {
-    if (this.el) void this.el.play().catch(() => {})
+    // Resume through the same observable attempt path as initial playback
+    // and Retry. A rejected play() must surface in the transport instead of
+    // leaving the UI claiming that a paused element is playing.
+    if (this.el) this.attempt(this.el)
   }
 
   /**
@@ -975,10 +978,16 @@ function fadeMusicVolume(target: number, ms = FADE_MS) {
 let preMuteMusicGain: number | null = null
 let pauseTimer: ReturnType<typeof setTimeout> | null = null
 export function pauseMusic() {
-  if (musicGain <= 0) return
-  preMuteMusicGain = musicGain
+  // Ignore repeated Pause actions during the same transition. Otherwise a
+  // second click would remember the already-faded intermediate gain and
+  // Resume would come back quieter than the player left it.
+  if (pauseTimer || preMuteMusicGain !== null) return
+  preMuteMusicGain = musicGain > 0 ? musicGain : 0.45
+  if (musicGain <= 0) {
+    music.pause()
+    return
+  }
   fadeMusicVolume(0)
-  if (pauseTimer) clearTimeout(pauseTimer)
   pauseTimer = setTimeout(() => {
     pauseTimer = null
     music.pause()
@@ -996,6 +1005,11 @@ export function resumeMusic() {
 
 /** For a hard reset - leaving a character, or a settings reload. */
 export function stopMusic() {
+  if (pauseTimer) clearTimeout(pauseTimer)
+  pauseTimer = null
+  if (fadeTimer) clearInterval(fadeTimer)
+  fadeTimer = null
+  preMuteMusicGain = null
   music.stop()
   currentZone = null
   customStreamUrl = null
