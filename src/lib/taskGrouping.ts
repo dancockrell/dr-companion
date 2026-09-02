@@ -47,12 +47,7 @@ export function moveTaskWithinCategory<T extends { id: string; category: string 
   id: string,
   overId: string
 ): string[] | null {
-  if (id === overId) return null
-  const byId = new Map(ordered.map((item) => [item.id, item]))
-  const fromTask = byId.get(id)
-  const overTask = byId.get(overId)
-  if (!fromTask || !overTask || fromTask.category !== overTask.category) return null
-
+  if (!canMoveTaskWithinCategory(ordered, id, overId)) return null
   const next = ordered.map((item) => item.id)
   const from = next.indexOf(id)
   next.splice(from, 1)
@@ -60,4 +55,17 @@ export function moveTaskWithinCategory<T extends { id: string; category: string 
   if (to === -1) return null
   next.splice(to, 0, id)
   return next
+}
+
+/** The single eligibility rule used by drag feedback and persisted moves. */
+export function canMoveTaskWithinCategory<T extends { id: string; category: string }>(
+  ordered: T[],
+  id: string,
+  overId: string
+): boolean {
+  if (id === overId) return false
+  const byId = new Map(ordered.map((item) => [item.id, item]))
+  const fromTask = byId.get(id)
+  const overTask = byId.get(overId)
+  return fromTask !== undefined && overTask !== undefined && fromTask.category === overTask.category
 }

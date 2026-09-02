@@ -86,7 +86,11 @@ import {
   stopNodeTask,
   nodeTaskState,
 } from '../../lib/nodeTasks'
-import { groupTasksByCategory, moveTaskWithinCategory } from '../../lib/taskGrouping'
+import {
+  canMoveTaskWithinCategory,
+  groupTasksByCategory,
+  moveTaskWithinCategory,
+} from '../../lib/taskGrouping'
 import {
   type ScriptLang,
 } from '../../lib/scriptFiles'
@@ -461,10 +465,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
     catalogs.dirs.error ? `Folders: ${catalogs.dirs.error}` : null,
   ].filter((item): item is string => item !== null)
   const orderedTasks = useMemo(() => orderTasks(tasks, tileOrder), [tasks, tileOrder])
-  const reorderableTaskById = useMemo(
-    () => new Map(orderedTasks.map((task) => [task.id, task])),
-    [orderedTasks]
-  )
+  const reorderableTaskIds = useMemo(() => new Set(orderedTasks.map((task) => task.id)), [orderedTasks])
 
   // Drop `id` where `overId` currently sits, everything between the two
   // sliding over by one - the ordinary "pick it up, put it down here" a
@@ -722,14 +723,10 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                   // `moveTile`) - TypeScript and Ruby entries can be picked
                   // up but can never actually be dropped anywhere, so don't
                   // offer the gesture for them at all.
-                  const isReorderable = reorderableTaskById.has(entry.id)
-                  const draggedTask = draggingId ? reorderableTaskById.get(draggingId) : undefined
-                  const targetTask = reorderableTaskById.get(entry.id)
+                  const isReorderable = reorderableTaskIds.has(entry.id)
                   const acceptsDraggedTile =
-                    draggedTask !== undefined &&
-                    targetTask !== undefined &&
-                    draggedTask.id !== targetTask.id &&
-                    draggedTask.category === targetTask.category
+                    draggingId !== null &&
+                    canMoveTaskWithinCategory(orderedTasks, draggingId, entry.id)
                   const overrideKey = isCommand ? null : iconOverrideFor(entry.id)
                   const iconKey = overrideKey ?? entry.baseIcon
                   const Icon = entry.actionKey ? actionIcon(entry.actionKey) : SCRIPT_ICON_COMPONENT[iconKey]
