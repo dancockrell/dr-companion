@@ -7,7 +7,7 @@ on:
     # Churn is about one page an hour per the comment above, but the wiki
     # doesn't need catching within the hour it changes -- every 4h still
     # catches same-day edits and cuts run volume (and the notification
-    # noise that comes with it) to a sixth of hourly for no real loss.
+    # noise that comes with it) by 75% for no real loss.
     - cron: '17 */4 * * *'
   workflow_dispatch:
 
