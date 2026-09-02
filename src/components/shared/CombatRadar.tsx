@@ -369,7 +369,7 @@ function HoverCard({ children, content }: { children: ReactNode; content: ReactN
           role="tooltip"
           onMouseEnter={show}
           onMouseLeave={hide}
-          className={`pointer-events-auto fixed z-50 w-64 -translate-x-1/2 rounded border border-border bg-surface-overlay p-2 shadow-xl ${pos.flip ? '' : '-translate-y-full'}`}
+          className={`pointer-events-auto fixed z-40 w-64 -translate-x-1/2 rounded border border-border bg-surface-overlay p-2 shadow-xl ${pos.flip ? '' : '-translate-y-full'}`}
           style={{ top: pos.top, left: Math.min(Math.max(pos.left, 132), window.innerWidth - 132) }}
         >
           {content}

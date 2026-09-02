@@ -128,6 +128,9 @@ check(
 const battleActions = readFileSync('src/components/room/BattleActionBar.tsx', 'utf8')
 const taskFlow = readFileSync('src/components/dashboard/TaskFlowPanel.tsx', 'utf8')
 const panel = readFileSync('src/components/shared/Panel.tsx', 'utf8')
+const combatRadar = readFileSync('src/components/shared/CombatRadar.tsx', 'utf8')
+const soundControls = readFileSync('src/components/game/SoundControls.tsx', 'utf8')
+const portrait = readFileSync('src/components/shared/Portrait.tsx', 'utf8')
 check(
   'frequent action decks use the shared subtle press depth',
   [battleActions, taskFlow].every((source) => source.includes('active:scale-[0.98]')) &&
@@ -138,6 +141,17 @@ check(
   battleActions.includes('focus-visible:outline-offset-2') &&
     panel.includes('uppercase tracking-wide') &&
     !panel.includes('uppercase tracking-wider')
+)
+check(
+  'transient sound and radar popovers stay below modal dialogs',
+  combatRadar.includes('pointer-events-auto fixed z-40') &&
+    !combatRadar.includes('pointer-events-auto fixed z-50') &&
+    soundControls.includes('absolute bottom-full right-0 z-40') &&
+    !soundControls.includes('absolute bottom-full right-0 z-50')
+)
+check(
+  'the portrait chooser uses the shared modal tier',
+  portrait.includes('fixed inset-0 z-50') && !portrait.includes('z-[100]')
 )
 
 const retiredOnAccent = walk('src').filter((file) =>
