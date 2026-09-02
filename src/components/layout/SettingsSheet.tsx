@@ -31,6 +31,10 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const setBridgeMode = useAppStore((s) => s.setBridgeMode)
   const connectBridge = useAppStore((s) => s.connectBridge)
   const clearLog = useAppStore((s) => s.clearLog)
+  const demoLowHealth = useAppStore((s) => s.demoLowHealth)
+  const demoCombat = useAppStore((s) => s.demoCombat)
+  const demoSafe = useAppStore((s) => s.demoSafe)
+  const demoBrokenPattern = useAppStore((s) => s.demoBrokenPattern)
   const openSetup = useAppStore((s) => s.openSetup)
   const trainFocus = useAppStore((s) => s.trainFocus)
   const toggleTrainFocus = useAppStore((s) => s.toggleTrainFocus)
@@ -444,6 +448,47 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             >
               Clear activity log
             </button>
+
+            {/* Mock-only: index.ts's bridge facade already no-ops these
+                against a live connection (there's nothing to "simulate" once
+                a real character exists), so this only needs to hide, not
+                disable. simulateBrokenPattern's own comment says it "needs
+                to be reachable in demo mode so the report flow can be
+                exercised before anyone is in game" - it wasn't reachable
+                anywhere. Same for the other three: simulateCombat's comment
+                cites the StatusBoard chips it exists to exercise. */}
+            {bridgeMode === 'mock' && (
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted hover:text-ink"
+                  onClick={() => demoLowHealth()}
+                >
+                  Demo: low health
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted hover:text-ink"
+                  onClick={() => demoCombat()}
+                >
+                  Demo: combat
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted hover:text-ink"
+                  onClick={() => demoSafe()}
+                >
+                  Demo: safe
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted hover:text-ink"
+                  onClick={() => demoBrokenPattern()}
+                >
+                  Demo: broken pattern
+                </button>
+              </div>
+            )}
           </section>
 
           {/* Version numbers. Not a lecture: players know the rules of their
