@@ -49,6 +49,7 @@ function Line({ text }: { text: string }) {
       </code>
       <button
         type="button"
+        aria-label={copied ? 'Command copied' : 'Copy connection command'}
         className="shrink-0 text-xs flex items-center gap-1 rounded-md border border-border px-1.5 py-1 text-ink-faint hover:text-ink"
         onClick={async () => {
           try {

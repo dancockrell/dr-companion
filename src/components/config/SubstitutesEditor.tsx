@@ -209,7 +209,7 @@ export function SubstitutesEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">Import multiple substitutes - paste #substitute lines below</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
+            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel substitute import">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -260,7 +260,7 @@ export function SubstitutesEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">{adding ? 'New substitute' : 'Edit substitute'}</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
+            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel substitute editing">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>

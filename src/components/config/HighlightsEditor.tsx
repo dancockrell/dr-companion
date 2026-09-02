@@ -365,7 +365,7 @@ export function HighlightsEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">Import multiple highlights - paste #highlight lines below</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
+            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel highlight import">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -577,7 +577,7 @@ function HighlightForm({
     <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold text-ink">{isNew ? 'New highlight' : 'Edit highlight'}</span>
-        <button type="button" onClick={onCancel} className="rounded p-1 text-ink-faint hover:text-ink">
+        <button type="button" onClick={onCancel} className="rounded p-1 text-ink-faint hover:text-ink" aria-label="Cancel highlight editing">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
