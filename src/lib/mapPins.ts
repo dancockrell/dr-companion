@@ -29,7 +29,7 @@ export type PinColor = (typeof PIN_COLORS)[number]
 
 export const PIN_COLOR_HEX: Record<PinColor, string> = {
   blue: '#4f8fe0',
-  gold: '#d4a83a',
+  gold: '#d4a84b',
   green: '#4caf6e',
   red: '#e0554f',
   purple: '#a476dd',

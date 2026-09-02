@@ -61,6 +61,7 @@
   "test:script-icons",
   "test:framing",
   "test:room",
+  "test:room-scene-images",
   "test:look",
   "test:place",
   "test:trail",

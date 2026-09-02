@@ -11,10 +11,10 @@
       "canonicalTraits": ["mature trees", "traversable ground", "filtered natural light"],
       "habitat": "forest, grove, wood, thicket and tangle rooms",
       "currentImage": null,
-      "approvedPrimary": "/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg",
-      "approvedVariants": ["/grok-art/room-scenes/forest-clearing-06aeb546.jpg"],
-      "rejects": ["all non-Grok room renders"],
-      "regenerationNeeded": false
+      "approvedPrimary": "/grok-art/room-scenes/young-woodland-2d872f5f.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg", "/grok-art/room-scenes/ancient-forest-36342832.jpg"],
+      "rejects": ["all non-Grok room renders", "forest-sunlit-0261ab7e.jpg and forest-clearing-06aeb546.jpg: visible reconstruction seams and blank lower bands"],
+      "regenerationNeeded": true
     },
     "generic-water": {
       "exactSubject": "unnamed waterside and wetland travel",
@@ -31,30 +31,30 @@
       "canonicalTraits": ["rock enclosure", "strong entrance or passage", "legible depth"],
       "habitat": "caves, caverns, grottoes, tunnels, crypts and sewers",
       "currentImage": null,
-      "approvedPrimary": "/grok-art/room-scenes/sea-cave-038edbd8.jpg",
+      "approvedPrimary": "/grok-art/room-scenes/catacomb-vault-86126f69.jpg",
       "approvedVariants": [],
-      "rejects": ["all non-Grok room renders"],
-      "regenerationNeeded": false
+      "rejects": ["all non-Grok room renders", "sea-cave-038edbd8.jpg: reconstruction seam, severe color corruption and blank lower band"],
+      "regenerationNeeded": true
     },
     "generic-mountain": {
       "exactSubject": "high mountain traversal and cliff architecture",
       "canonicalTraits": ["steep elevation", "exposed stone", "distant peaks or drop"],
       "habitat": "mountains, ridges, summits, cliffs and ascents",
       "currentImage": null,
-      "approvedPrimary": "/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg",
-      "approvedVariants": ["/grok-art/room-scenes/cliff-monastery-0183963f.jpg"],
-      "rejects": ["all non-Grok room renders"],
-      "regenerationNeeded": false
+      "approvedPrimary": "/grok-art/room-scenes/mountain-meadow-84245eb6.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],
+      "rejects": ["all non-Grok room renders", "mountain-bridge-05a1ad18.jpg and cliff-monastery-0183963f.jpg: reconstruction seams and blank lower bands"],
+      "regenerationNeeded": true
     },
     "generic-desert": {
       "exactSubject": "arid overland travel",
       "canonicalTraits": ["dry exposed route", "sand or weathered stone", "long horizon"],
       "habitat": "deserts, dunes, wastes and badlands",
       "currentImage": null,
-      "approvedPrimary": "/grok-art/room-scenes/desert-canyon-0322415e.jpg",
+      "approvedPrimary": null,
       "approvedVariants": [],
-      "rejects": ["all non-Grok room renders"],
-      "regenerationNeeded": false
+      "rejects": ["all non-Grok room renders", "desert-canyon-0322415e.jpg: reconstruction seam and blank lower quarter"],
+      "regenerationNeeded": true
     },
     "generic-ocean": {
       "exactSubject": "open sea and exposed coast",
@@ -261,20 +261,20 @@
       "canonicalTraits": ["walkable public space", "medieval-fantasy construction", "strong visual depth"],
       "habitat": "default for streets, buildings and uncategorized settled rooms",
       "currentImage": null,
-      "approvedPrimary": "/grok-art/room-scenes/night-market-04c61394.jpg",
-      "approvedVariants": ["/grok-art/room-scenes/town-square-2650911f.jpg"],
-      "rejects": ["all non-Grok room renders"],
-      "regenerationNeeded": false
+      "approvedPrimary": "/grok-art/room-scenes/town-square-2650911f.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/rainy-city-alley-72b7a786.jpg"],
+      "rejects": ["all non-Grok room renders", "night-market-04c61394.jpg: reconstruction seam and blank lower band"],
+      "regenerationNeeded": true
     },
     "leth-deriel-tree-town": {
       "exactSubject": "forest settlement built into living trees",
       "canonicalTraits": ["large living trees", "elevated timber paths", "lantern-lit dwellings"],
       "habitat": "Leth Deriel and explicit canopy or treehouse settlements",
       "currentImage": null,
-      "approvedPrimary": "/grok-art/room-scenes/tree-city-04b6c4bd.jpg",
+      "approvedPrimary": null,
       "approvedVariants": [],
-      "rejects": ["generic forest without settlement", "all non-Grok room renders"],
-      "regenerationNeeded": false
+      "rejects": ["generic forest without settlement", "all non-Grok room renders", "tree-city-04b6c4bd.jpg: reconstruction seam and blank lower band"],
+      "regenerationNeeded": true
     }
   }
 }
