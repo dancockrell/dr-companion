@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Anvil, Apple, Backpack, Beer, Bone, BookOpen, BowArrow, Box, Coins, Cookie, ExternalLink, FlaskConical, Gem, Hammer, Key, Leaf, Package, Pickaxe, ScrollText, Search, Shield, Shirt, Skull, Sparkles, Sword, Utensils, Wand2, X } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { nounOf } from '../../lib/room'
@@ -89,11 +89,18 @@ export function FloorItems({
   const drag = useDragScroll()
   const [query, setQuery] = useState('')
   const [internalSelected, setInternalSelected] = useState<string | null>(null)
-  const selected = selectedItem === undefined ? internalSelected : selectedItem
+  const storedSelection = selectedItem === undefined ? internalSelected : selectedItem
   const setSelected = (name: string | null) => {
     if (onSelectedItemChange) onSelectedItemChange(name)
     else setInternalSelected(name)
   }
+
+  // A mounted floor strip survives room changes. Never leave actions open for
+  // an item that disappeared with the previous room or a live floor update.
+  const selected = storedSelection && items?.includes(storedSelection) ? storedSelection : null
+  useEffect(() => {
+    if (storedSelection && !items?.includes(storedSelection)) setSelected(null)
+  }, [items, storedSelection])
 
   if (!items || items.length === 0) return null
 
