@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { sendGame } from './gameLink'
+import { validateGameActionCommand } from './gameCommand'
 
 export interface GameActionFailure {
   id: number
@@ -43,7 +44,7 @@ function publishFailure(command: string, label: string, error: unknown): GameAct
  */
 export async function sendGameAction(command: string, label = command): Promise<void> {
   try {
-    await sendGame(command)
+    await sendGame(validateGameActionCommand(command))
   } catch (error) {
     publishFailure(command, label, error)
     throw error

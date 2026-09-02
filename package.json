@@ -81,7 +81,7 @@
     "test:command-history": "node tools/command-history-test.mjs",
     "test:quickswitch": "node tools/quickswitch-test.mjs",
     "test:keybindings": "node tools/keybindings-test.mjs",
-    "test:gateway": "node tools/gateway-test.mjs",
+    "test:gateway": "node tools/gateway-test.mjs && node --experimental-strip-types tools/game-command-test.ts",
     "test:eval": "node tools/eval-test.mjs",
     "art": "node tools/art-daemon.mjs",
     "test:gear": "node tools/gear-test.mjs",
