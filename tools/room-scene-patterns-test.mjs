@@ -23,7 +23,7 @@ if (match) {
   if (last >= first + 2) check(roomScenePattern(zone, first + 2) === firstArt, 'scene holds across three adjacent rooms')
   check(roomScenePattern(zone, first) === roomScenePattern(zone, first), 'selection is stable across repeated calls')
 }
-check(roomScenePattern('1', 129) !== roomScenePattern('1', 132), 'a reviewed multi-image range advances after its three-room hold')
+check(roomScenePattern('69', 474) !== roomScenePattern('69', 477), 'a reviewed multi-image range advances after its three-room hold')
 
 const baskets = JSON.parse(readFileSync('data/art/scene-baskets.json', 'utf8'))
 for (const family of [...Object.values(baskets.generic), ...Object.values(baskets.regionalCity)]) for (const art of family) check(existsSync(`public${art}`), `basket asset exists: ${art}`)

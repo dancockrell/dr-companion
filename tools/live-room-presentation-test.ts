@@ -25,7 +25,11 @@ check('a missing live title does not discard the live description', () => assert
   title: 'Map title', text: 'Live prose',
 }))
 check('absence stays absence', () => assert.deepEqual(resolveRoomPresentation(null, null, null), { title: null, text: null }))
-check('a calm meadow cannot select the only storm scene', () => assert.equal(grokRoomScene('1', 1, 'Meadow', 'A calm green meadow.'), null))
+check('a calm meadow selects neutral meadow art instead of the storm scene', () => {
+  const art = grokRoomScene('1', 1, 'Meadow', 'A calm green meadow.')
+  assert.match(art ?? '', /mountain-meadow/)
+  assert.doesNotMatch(art ?? '', /storm/)
+})
 check('live storm text permits storm art', () => assert.match(grokRoomScene('1', 1, 'Meadow', 'Rain and lightning lash the meadow.') ?? '', /storm-grassland/))
 check('daytime text cannot select night art', () => assert.doesNotMatch(grokRoomScene('1', 2, 'Market Square', 'Merchants trade beneath the noon sun.') ?? '', /night-market/))
 

@@ -1,29 +1,55 @@
 /**
  * Report or remove shipped room art that the runtime cannot request.
  *
- * Reachable art is either a numeric {zone}-{room} file for a room in the
- * current map, or a file named explicitly by runtime source (normally a
- * curated override). Raw renders in data/art/out are deliberately untouched.
+ * Reachable art is a file named by the frontend's actual runtime import graph.
+ * Abandoned modules and map room numbers do not make an asset reachable.
+ * Raw renders in data/art/out are deliberately untouched.
  *
- *   node tools/prune-room-art.mjs          # report only
- *   node tools/prune-room-art.mjs --write  # prune and rebuild manifest
+ *   node tools/prune-room-art.mjs            # summary report only
+ *   node tools/prune-room-art.mjs --verbose  # include every unused path
+ *   node tools/prune-room-art.mjs --write    # prune and rebuild manifests
  */
 import { existsSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { dirname, extname, join, normalize, resolve } from 'node:path'
 
 const PUBLIC = 'public'
 const ART_DIRS = ['rooms', 'room-scenes']
 
-function walk(dir) {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
-    entry.isDirectory() ? walk(join(dir, entry.name)) : [join(dir, entry.name)]
-  )
+/**
+ * Follow the frontend import graph instead of treating every abandoned source
+ * file as live. The old pruner granted reachability to every numeric room key
+ * in the map and to references in unimported modules, which protected 12,703
+ * files the runtime had no code path to request.
+ */
+const runtimeSource = new Set()
+const pendingSource = [resolve('src/main.tsx')]
+const candidatesFor = (from, specifier) => {
+  if (!specifier.startsWith('.')) return []
+  const base = resolve(dirname(from), specifier)
+  if (extname(base)) return [base]
+  return [
+    `${base}.ts`, `${base}.tsx`, `${base}.js`, `${base}.jsx`, `${base}.json`,
+    join(base, 'index.ts'), join(base, 'index.tsx'), join(base, 'index.js'),
+  ]
 }
 
-const sourceText = [...walk('src'), ...walk('tools')]
-  .filter((file) => /\.(?:ts|tsx|mjs|json)$/.test(file))
-  .map((file) => readFileSync(file, 'utf8'))
-  .join('\n')
+while (pendingSource.length) {
+  const file = normalize(pendingSource.pop())
+  if (runtimeSource.has(file) || !existsSync(file)) continue
+  runtimeSource.add(file)
+  if (!/\.(?:ts|tsx|js|jsx)$/.test(file)) continue
+  const text = readFileSync(file, 'utf8')
+  const imports = [
+    ...text.matchAll(/(?:from\s*|import\s*\()\s*['"]([^'"]+)['"]/g),
+    ...text.matchAll(/import\s*['"]([^'"]+)['"]/g),
+  ]
+  for (const match of imports) {
+    const hit = candidatesFor(file, match[1]).find(existsSync)
+    if (hit) pendingSource.push(hit)
+  }
+}
+
+const sourceText = [...runtimeSource].map((file) => readFileSync(file, 'utf8')).join('\n')
 const directReferences = new Set(
   [...sourceText.matchAll(/\/(rooms|room-scenes)\/([^'"\s)]+\.webp)/g)].map(
     (match) => `${match[1]}/${match[2]}`
@@ -34,27 +60,14 @@ if (missingDirectReferences.length) {
   throw new Error(`runtime references missing room art:\n${missingDirectReferences.join('\n')}`)
 }
 
-const mapRoomKeys = new Set()
-for (const file of readdirSync('src/data/map').filter(
-  (name) => name.endsWith('.json') && name !== 'index.json'
-)) {
-  const zone = basename(file, '.json')
-  const map = JSON.parse(readFileSync(join('src/data/map', file), 'utf8'))
-  const rooms = Array.isArray(map) ? map : (map.rooms ?? [])
-  for (const room of rooms) {
-    if (room?.id !== undefined) mapRoomKeys.add(`${zone}-${room.id}`)
-  }
-}
-
 const unused = []
 let reachableCount = 0
 let reachableBytes = 0
 for (const dir of ART_DIRS) {
   for (const name of readdirSync(join(PUBLIC, dir)).filter((file) => file.endsWith('.webp'))) {
     const rel = `${dir}/${name}`
-    const key = name.slice(0, -5)
     const bytes = statSync(join(PUBLIC, rel)).size
-    const reachable = directReferences.has(rel) || (dir === 'rooms' && mapRoomKeys.has(key))
+    const reachable = directReferences.has(rel)
     if (reachable) {
       reachableCount++
       reachableBytes += bytes
@@ -71,17 +84,21 @@ console.log(
 console.log(
   `${unused.length} unreachable room-art files (${(unusedBytes / 1024 / 1024).toFixed(1)} MiB logical)`
 )
-for (const entry of unused) console.log(`unused ${entry.rel}`)
+if (process.argv.includes('--verbose')) {
+  for (const entry of unused) console.log(`unused ${entry.rel}`)
+}
 
 if (!process.argv.includes('--write')) process.exit(0)
 
 for (const entry of unused) unlinkSync(join(PUBLIC, entry.rel))
 
-const roomManifest = readdirSync(join(PUBLIC, 'rooms'))
-  .filter((name) => name.endsWith('.webp'))
-  .sort()
-writeFileSync(
-  join(PUBLIC, 'rooms', 'manifest.json'),
-  `${JSON.stringify(roomManifest, null, 1)}\n`
-)
-console.log(`pruned ${unused.length} files and rebuilt public/rooms/manifest.json`)
+for (const dir of ART_DIRS) {
+  const manifest = readdirSync(join(PUBLIC, dir))
+    .filter((name) => name.endsWith('.webp'))
+    .sort()
+  writeFileSync(
+    join(PUBLIC, dir, 'manifest.json'),
+    `${JSON.stringify(manifest, null, 1)}\n`
+  )
+}
+console.log(`pruned ${unused.length} files and rebuilt ${ART_DIRS.length} manifests`)
