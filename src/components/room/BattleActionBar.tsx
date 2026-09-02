@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { Star } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { MACROS, type Macro } from '../../data/macros'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { useDragScroll } from '../../lib/useDragScroll'
 import { actionAccent, actionIcon } from '../../lib/battleActionVisuals'
 import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { useAppStore } from '../../store/useAppStore'
+import { isPinned, type QuickSwitchPin } from '../../lib/quickSwitch'
 
 const GROUPS: Macro['group'][] = ['combat', 'health', 'hunt', 'goods', 'magic', 'travel', 'info']
 
@@ -34,10 +37,18 @@ const GROUP_TONE: Partial<Record<Macro['group'], string>> = {
  * Every variation remains a one-click button, while search and the shared
  * detail panel make an unfamiliar command discoverable without memorising the
  * icon set or waiting for a browser tooltip.
+ *
+ * The hotbar star on hover is the same affordance `TaskFlowPanel` uses for
+ * scripts and tasks, on the same `QuickSwitchPin` - a command pinned from
+ * either place is the same pin. `TaskFlowPanel` no longer lists basic
+ * commands at all (see its own doc comment) - this is their one home now,
+ * so this is also where pinning them lives.
  */
 export function BattleActionBar() {
   const { run, canSend, reason, character } = useMacroRunner()
   const macroDrag = useDragScroll()
+  const quickSwitchPins = useAppStore((s) => s.quickSwitchPins)
+  const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
   const [query, setQuery] = useState('')
   const [explained, setExplained] = useState<{
     actionKey: string
@@ -93,9 +104,11 @@ export function BattleActionBar() {
                 return macro.variations.map((variation) => {
                   const actionKey = `${macro.id}:${variation.id}`
                   const Icon = actionIcon(actionKey)
+                  const quickSwitchPin: QuickSwitchPin = { kind: 'command', actionKey }
+                  const pinned = isPinned(quickSwitchPins, quickSwitchPin)
                   return (
+                  <div key={actionKey} className="group relative">
                   <button
-                    key={actionKey}
                     type="button"
                     disabled={!canSend}
                     onClick={() => run(variation.commands)}
@@ -115,6 +128,23 @@ export function BattleActionBar() {
                       <span className="absolute bottom-0.5 right-0.5 h-1 w-1 rotate-45 rounded-[1px] bg-current opacity-65" aria-hidden />
                     )}
                   </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleQuickSwitchPin(quickSwitchPin)
+                    }}
+                    title={pinned ? 'Remove from the hotbar' : 'Add to the hotbar — one click or a number key from anywhere in the app'}
+                    aria-label={`${pinned ? 'Remove' : 'Add'} ${variation.label} ${pinned ? 'from' : 'to'} the hotbar`}
+                    className={cn(
+                      'absolute -left-1 -top-1 rounded-full bg-surface p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
+                      pinned && 'opacity-100',
+                      pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
+                    )}
+                  >
+                    <Star className="h-2.5 w-2.5" fill={pinned ? 'currentColor' : 'none'} />
+                  </button>
+                  </div>
                   )
                 })
               })}

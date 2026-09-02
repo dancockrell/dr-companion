@@ -110,7 +110,7 @@ export function QuickSwitchBar() {
         title: task?.title ?? pin.id,
         summary:
           task?.summary ?? (catalogs.python.error
-            ? `Task lookup failed: ${catalogs.python.error}. Open Functions & Scripts to retry.`
+            ? `Task lookup failed: ${catalogs.python.error}. Open Scripts & Tasks to retry.`
             : catalogs.python.state === 'loading'
               ? 'Task details are loading — press to try it anyway.'
               : 'This task is no longer in the Python catalog.'),
@@ -144,8 +144,9 @@ export function QuickSwitchBar() {
     return (
       <div className="flex shrink-0 items-center gap-1.5 border-t border-border bg-surface px-3 py-1 text-xs text-ink-faint">
         <span>
-          Hotbar is empty — use the star on any command, task, or script in
-          Functions &amp; scripts. Click here or use number keys 1–9 once pinned.
+          Hotbar is empty — use the star on any battle command, or on any
+          task or script in Scripts &amp; Tasks. Click here or use number keys
+          1–9 once pinned.
         </span>
       </div>
     )

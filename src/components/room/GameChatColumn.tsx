@@ -33,8 +33,8 @@ export function GameChatColumn() {
         <GameCommandBar query={query} setQuery={setQuery} />
       </section>
 
-      <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded border border-border bg-surface-raised" aria-label="Functions and scripts workspace">
-        <div className="min-h-0 flex-1 overflow-hidden"><TaskFlowPanel title="Functions & scripts" /></div>
+      <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded border border-border bg-surface-raised" aria-label="Scripts and tasks workspace">
+        <div className="min-h-0 flex-1 overflow-hidden"><TaskFlowPanel title="Scripts & tasks" /></div>
       </section>
     </div>
   )
