@@ -86,7 +86,7 @@
     "art": "node tools/art-daemon.mjs",
     "test:gear": "node tools/gear-test.mjs",
     "test:skills-empty": "node tools/skills-empty-test.mjs",
-    "test:mounted": "node tools/mounted-test.mjs",
+    "test:mounted": "node tools/mounted-test.mjs && npm run test:aux-window-boundary",
     "test:aux-window-boundary": "node tools/aux-window-boundary-test.mjs",
     "test:dead-produced-values": "node tools/dead-produced-values-test.mjs",
     "test:panel-window-lifecycle": "node tools/panel-window-lifecycle-test.mjs",
