@@ -5,7 +5,8 @@
   "landmarkPlaces": ["4a::Behind the Goal Line", "13::Narrow Trace", "47::Workroom", "65::Beneath the Ice", "92::Underwater", "98::Underwater"],
   "auditRegions": {"Crossing":["1","1a","1j","1l","1m","1n","2a","2d","4","6","8","8a"]},
   "reviewedPlaceAssignments": {
-    "1::Traders' Market":{"category":"regional-city","reason":"named Crossing market; existing Crossing street family already depicts market-town frontage and awnings"}
+    "1::Traders' Market":{"category":"regional-city","reason":"named Crossing market; existing Crossing street family already depicts market-town frontage and awnings"},
+    "6::Brambles":{"category":"deep-forest","reason":"exact reviewed Magnific route family depicts this place's dense thorn barricade, forced opening, claw-grooved tree and drying sap","arts":["/magnific-art/room-scenes/brambles-route-0083ms.jpg","/magnific-art/room-scenes/brambles-route-1500ms.jpg","/magnific-art/room-scenes/brambles-route-3250ms.jpg","/magnific-art/room-scenes/brambles-route-5000ms.jpg"]}
   },
   "basketCuration": {
     "deep-forest": {"exactSubject":"generic old-growth forest travel","canonicalTraits":["dense mature trees","narrow traversable floor","cool filtered daylight"],"habitat":"forested wilderness without a named landmark","currentImage":"/room-scenes/master-deep-forest.webp","approvedPrimary":"/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg","approvedVariants":["/grok-art/room-scenes/ancient-forest-36342832.jpg"],"rejects":["all non-Grok forest renders","night scenes without night evidence"],"regenerationNeeded":false},

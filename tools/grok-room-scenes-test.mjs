@@ -35,6 +35,21 @@ const runtimeArt = new Set(
 )
 for (const art of runtimeArt) check(`runtime art exists: ${art}`, existsSync(`public${art}`))
 
+const magnificRuntimeArt = new Set(
+  [...runtimeSources.matchAll(/\/magnific-art\/room-scenes\/[^'"\s]+\.jpg/g)].map((match) => match[0])
+)
+const magnificRegistry = JSON.parse(readFileSync('data/art/magnific-scene-reels.json', 'utf8'))
+const approvedMagnificArt = new Set(
+  Object.values(magnificRegistry.reels)
+    .flatMap((reel) => reel.frames)
+    .filter((frame) => frame.auditStatus === 'approved')
+    .map((frame) => frame.runtimeAsset)
+)
+for (const art of magnificRuntimeArt) check(`Magnific runtime art exists: ${art}`, existsSync(`public${art}`))
+check('every runtime Magnific scene is explicitly approved', [...magnificRuntimeArt].every((art) => approvedMagnificArt.has(art)))
+check('every approved Magnific scene exists', [...approvedMagnificArt].every((art) => existsSync(`public${art}`)))
+check('Magnific reels retain generation, semantic, room-assignment, audit and replacement metadata', Object.values(magnificRegistry.reels).every((reel) => reel.source?.provider === 'Magnific' && reel.source?.sourceVideoSha256 && reel.source?.prompt && reel.roomEvidence?.placeKey && reel.frames.every((frame) => frame.auditStatus && Array.isArray(frame.replacementHistory))))
+
 const curationFiles = [
   'data/art/grok-room-curation.json',
   'data/art/grok-room-landscape-expansion.json',

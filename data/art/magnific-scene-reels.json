@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Durable generation, review, assignment and replacement history for Magnific video-derived room scenes.",
+  "reels": {
+    "thorn-forest-route-20260902": {
+      "auditStatus": "approved-partial",
+      "semanticTags": ["forest", "brambles", "thorn barricade", "forced opening", "scarred tree", "amber sap", "wilderness route"],
+      "intendedRegions": ["Zoluren", "Crossing North Gate"],
+      "intendedEnvironments": ["6::Brambles"],
+      "visualAttributes": {
+        "style": "painterly medieval fantasy landscape",
+        "palette": "muted shadowed temperate forest",
+        "lighting": "diffuse overcast woodland light",
+        "camera": "slow forward walk at adult eye height",
+        "aspectRatio": "16:9",
+        "resolution": "1284x716"
+      },
+      "source": {
+        "provider": "Magnific",
+        "creationIdentifier": "YMoTDHJWeC",
+        "tool": "video-generator",
+        "model": "Kling mode 21",
+        "createdAt": "2026-09-02T04:02:32Z",
+        "durationSeconds": 5,
+        "fps": 24,
+        "credits": 275,
+        "sourceVideo": "data/art/source-videos/magnific/thorn-forest-route-YMoTDHJWeC.mp4",
+        "sourceVideoSha256": "304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c",
+        "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Wide painterly medieval fantasy landscape. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve the exact tree, thorn barricade, forest geography, lighting, palette, and painterly texture throughout. Stable topology, sharp shutter-safe movement, every frame usable as a 16:9 RPG room background. No morphing, no new paths, no new structures, no people, no creatures, no text, no letters, no signature, no watermark, no audio."
+      },
+      "harvest": {
+        "tool": "video-frame-harvester",
+        "fps": 12,
+        "sampledCandidates": 61,
+        "deduplicatedCandidates": 16,
+        "perceptualHashDistance": 10,
+        "contactSheet": "data/art/harvests/magnific-thorn-forest-route/contact-sheet.jpg",
+        "reviewedAt": "2026-09-02"
+      },
+      "roomEvidence": {
+        "placeKey": "6::Brambles",
+        "representativeRoom": 275,
+        "roomCount": 64,
+        "title": "Brambles",
+        "descriptionEvidence": "A huge hole in the brambles shows where something large crashed through; a large tree is scarred by deep grooves and streaked with drying sap.",
+        "decision": "The reel directly depicts the named place's defining geography. Admit four spaced traversal views only; do not reuse it as generic forest art."
+      },
+      "frames": [
+        {"timestampSeconds":0.083,"sourceFrame":"frame-0001-t0000.083.png","auditStatus":"approved","runtimeAsset":"/magnific-art/room-scenes/brambles-route-0083ms.jpg","runtimeSha256":"b33b29f04fdcf21fdc0b15429186e21b63adeb09a870b23ca0520ba51e6481a5","visualAttributes":["widest establishing view","opening and scarred tree visible"],"replacementHistory":[]},
+        {"timestampSeconds":0.667,"sourceFrame":"frame-0002-t0000.667.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":1.000,"sourceFrame":"frame-0003-t0001.000.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":1.500,"sourceFrame":"frame-0004-t0001.500.png","auditStatus":"approved","runtimeAsset":"/magnific-art/room-scenes/brambles-route-1500ms.jpg","runtimeSha256":"7fde02eb17081ec37cc262fab5db57caf0e004ead054a263a296d81e6670505a","visualAttributes":["early approach","thorn tunnel dominates"],"replacementHistory":[]},
+        {"timestampSeconds":1.750,"sourceFrame":"frame-0005-t0001.750.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":2.083,"sourceFrame":"frame-0006-t0002.083.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":2.500,"sourceFrame":"frame-0007-t0002.500.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":2.667,"sourceFrame":"frame-0008-t0002.667.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":2.917,"sourceFrame":"frame-0009-t0002.917.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":3.250,"sourceFrame":"frame-0010-t0003.250.png","auditStatus":"approved","runtimeAsset":"/magnific-art/room-scenes/brambles-route-3250ms.jpg","runtimeSha256":"78f7ce73b75b2b62325a02405d7247a51508e25b4c4b36c3396c7660d085cd94","visualAttributes":["mid approach","broken opening enlarged"],"replacementHistory":[]},
+        {"timestampSeconds":3.667,"sourceFrame":"frame-0011-t0003.667.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":3.917,"sourceFrame":"frame-0012-t0003.917.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":4.167,"sourceFrame":"frame-0013-t0004.167.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":4.333,"sourceFrame":"frame-0014-t0004.333.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":4.667,"sourceFrame":"frame-0015-t0004.667.png","auditStatus":"rejected-near-duplicate","replacementHistory":[]},
+        {"timestampSeconds":5.000,"sourceFrame":"frame-0016-t0005.000.png","auditStatus":"approved","runtimeAsset":"/magnific-art/room-scenes/brambles-route-5000ms.jpg","runtimeSha256":"f9664575bd431c3697f134d0e219013d691c7484e4ddf3d90efd07b214c283f9","visualAttributes":["closest approach","sharpest terminal view"],"replacementHistory":[]}
+      ]
+    }
+  }
+}

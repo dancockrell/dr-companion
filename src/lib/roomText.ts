@@ -79,23 +79,24 @@ export function cachedRoomText(zone: string, room: number): RoomText | null {
  * Where the rendered scene lives, if it has been rendered.
  *
  * Selection follows the current production art contract: every literal scene
- * must come from the reviewed Grok pack. Location-aware place families go
- * first, then the conservative live-text selector. Either layer may decline
- * to answer; the backdrop's neutral fingerprint is the final honest fallback.
+ * must come from an explicitly reviewed source ledger. Location-aware place
+ * families (including approved Magnific reel frames) go first, then the
+ * conservative Grok live-text selector. Either layer may decline to answer;
+ * the backdrop's neutral fingerprint is the final honest fallback.
  *
  * The old per-room and local archetype renders are intentionally absent here.
  * Keeping them as "temporary" filler made them effectively permanent and put
  * visibly soft 336x192 images back into the full battle canvas. A missing
  * scene is now represented honestly instead of by art we already rejected.
  */
-export type RoomArtLayer = 'grok-place-pattern' | 'grok-text' | 'fingerprint'
+export type RoomArtLayer = 'curated-place-pattern' | 'grok-text' | 'fingerprint'
 
 export function roomArtSelection(zone: string, room: number, title?: string | null, text?: string | null): {
   url: string | null
   layer: RoomArtLayer
 } {
   const patterned = roomScenePattern(zone, room)
-  if (patterned) return { url: patterned, layer: 'grok-place-pattern' }
+  if (patterned) return { url: patterned, layer: 'curated-place-pattern' }
   const textFallback = grokRoomScene(zone, room, title, text)
   if (textFallback) return { url: textFallback, layer: 'grok-text' }
   return { url: null, layer: 'fingerprint' }
