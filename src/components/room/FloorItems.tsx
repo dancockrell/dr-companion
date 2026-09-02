@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Anvil, Apple, Backpack, Beer, Bone, BookOpen, BowArrow, Box, Coins, Cookie, ExternalLink, FlaskConical, Gem, Hammer, Key, Leaf, Package, Pickaxe, ScrollText, Search, Shield, Shirt, Skull, Sparkles, Sword, Utensils, Wand2, X } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { nounOf } from '../../lib/room'
@@ -17,6 +17,20 @@ import { scrollableRegionProps } from '../../lib/scrollableRegion'
  * already uses for duplicate creatures — three piles of "some copper
  * kronars" read as one pill worth three rather than three indistinguishable
  * coin pills in a row.
+ *
+ * Two independent mounts, on purpose: a compact `glance` strip over the
+ * bottom of the room art (`BattleColumn`) and a full `browser` inside the
+ * room description (`ClassicRoomText`) — different contexts, both required,
+ * neither a substitute for the other (the browser handles a long list with
+ * search; the glance strip stays visible while looking at the picture).
+ * They used to share one lifted selection value, and only the browser ever
+ * rendered the action panel that selecting an item opens — so clicking a
+ * pill in the glance strip changed shared state with no visible result
+ * there, while the actual panel opened in the other copy whenever it
+ * scrolled into view. Each mount now owns its own selection (`selectedItem`
+ * is never passed in by either caller, so both fall through to this
+ * component's own local state) and its own action panel, opened as a
+ * popover in `glance` mode so it doesn't fight the strip's fixed height.
  */
 
 /**
@@ -75,11 +89,18 @@ export function FloorItems({
   const drag = useDragScroll()
   const [query, setQuery] = useState('')
   const [internalSelected, setInternalSelected] = useState<string | null>(null)
-  const selected = selectedItem === undefined ? internalSelected : selectedItem
+  const storedSelection = selectedItem === undefined ? internalSelected : selectedItem
   const setSelected = (name: string | null) => {
     if (onSelectedItemChange) onSelectedItemChange(name)
     else setInternalSelected(name)
   }
+
+  // A mounted floor strip survives room changes. Never leave actions open for
+  // an item that disappeared with the previous room or a live floor update.
+  const selected = storedSelection && items?.includes(storedSelection) ? storedSelection : null
+  useEffect(() => {
+    if (storedSelection && !items?.includes(storedSelection)) setSelected(null)
+  }, [items, storedSelection])
 
   if (!items || items.length === 0) return null
 
@@ -99,7 +120,7 @@ export function FloorItems({
 
   return (
     <div
-      className={cn('flex min-h-0 flex-col', mode === 'browser' && 'h-full')}
+      className={cn('relative flex min-h-0 flex-col', mode === 'browser' && 'h-full')}
       style={{
         gap: 'calc(0.25rem * var(--radar-scale, 1))',
         fontSize: 'max(0.75rem, calc(0.75rem * var(--radar-scale, 1)))',
@@ -163,11 +184,22 @@ export function FloorItems({
           })}
         </div>
       </div>
-      {mode === 'browser' && selected && (() => {
+      {selected && (() => {
         const target = targetOf(selected)
         const wikiUrl = `https://elanthipedia.play.net/Special:Search?search=${encodeURIComponent(target)}`
         return (
-          <div className="flex flex-wrap items-center gap-1 rounded border border-accent/45 bg-surface-overlay/90 p-1.5 text-xs shadow-lg backdrop-blur" aria-label={`Actions for ${selected}`}>
+          <div
+            className={cn(
+              'flex flex-wrap items-center gap-1 rounded border border-accent/45 bg-surface-overlay/90 p-1.5 text-xs shadow-lg backdrop-blur',
+              // The glance strip is a fixed-height bar over the room art —
+              // growing the panel inline would either clip it or push the
+              // strip taller than the art allows, so it opens as a popover
+              // instead, anchored above the row it came from rather than
+              // sharing layout space with it.
+              mode === 'glance' && 'absolute inset-x-0 bottom-full z-10 mb-1 w-max max-w-full'
+            )}
+            aria-label={`Actions for ${selected}`}
+          >
             <strong className="mr-1 min-w-0 flex-1 truncate text-ink" title={selected}>{selected}</strong>
             <button type="button" onClick={() => requestGameAction(`look ${target}`, `Look at ${selected}`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Look at ${selected}`}>Look</button>
             <button type="button" disabled={!canSend} onClick={() => take(selected)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-accent disabled:opacity-40" title={reason ?? `get ${nounOf(selected)}`}>Get</button>

@@ -187,12 +187,13 @@ export function ScriptLibraryPanel({
                               ? 'Unpin from the Quick Switch bar'
                               : 'Pin to the Quick Switch bar — one click or a number key from anywhere in the app'
                           }
+                          aria-label={`${pinned ? 'Remove' : 'Add'} ${name} ${pinned ? 'from' : 'to'} the Quick Switch bar`}
                           className={cn(
                             'rounded p-1',
                             pinned ? 'text-accent' : 'text-ink-faint hover:text-ink-muted'
                           )}
                         >
-                          <Star className="h-3 w-3" fill={pinned ? 'currentColor' : 'none'} />
+                          <Star className="h-3 w-3" fill={pinned ? 'currentColor' : 'none'} aria-hidden />
                         </button>
                         <Button
                           size="sm"

@@ -353,7 +353,7 @@ export function ArmorManager() {
                       const active = piece.coverage.includes(part)
                       const meta = COVERAGE_META[part]
                       return (
-                        <button key={part} type="button" onClick={() => toggleCoverage(piece.id, part)} className={`rounded border px-1 py-0.5 text-xs leading-none ${active ? 'border-info/55 bg-info/15 text-info' : 'border-border/70 text-ink-faint hover:text-ink'}`} title={`${active ? 'Remove' : 'Add'} ${meta.label.toLowerCase()} coverage`}>{meta.short}</button>
+                        <button key={part} type="button" onClick={() => toggleCoverage(piece.id, part)} className={`rounded border px-1 py-0.5 text-xs leading-none ${active ? 'border-info/55 bg-info/15 text-info' : 'border-border/70 text-ink-faint hover:text-ink'}`} title={`${active ? 'Remove' : 'Add'} ${meta.label.toLowerCase()} coverage`} aria-label={`${active ? 'Remove' : 'Add'} ${meta.label.toLowerCase()} coverage for ${piece.name}`} aria-pressed={active}>{meta.short}</button>
                       )
                     })}
                   </div>
