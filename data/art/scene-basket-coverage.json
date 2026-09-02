@@ -1,8 +1,8 @@
 {
-  "ruleCount": 176,
-  "roomCount": 1874,
-  "assignmentCount": 176,
-  "unresolvedCount": 587,
+  "ruleCount": 171,
+  "roomCount": 1799,
+  "assignmentCount": 171,
+  "unresolvedCount": 592,
   "coverage": {
     "deep-forest": 229,
     "regional-city": 346,
@@ -11,7 +11,6 @@
     "riverside": 163,
     "grassland": 181,
     "mountain-pass": 114,
-    "desert": 75,
     "swamp": 100,
     "garden": 90
   },

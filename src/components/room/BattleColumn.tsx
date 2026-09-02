@@ -1,5 +1,18 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { RoomScene } from './RoomScene'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { RoomScene, sceneMaxWidthVh } from './RoomScene'
+
+/**
+ * The scene's own height ceiling, in vh — exported so the outer column
+ * allocator (`App.tsx`) can ask this file what its scene actually needs
+ * rather than carrying a second, independently-guessed number. Kept as a
+ * named export next to the `<RoomScene>` call that uses it, the same value,
+ * so the two cannot drift apart the way the old duplicate did.
+ */
+export const BATTLE_SCENE_MAX_HEIGHT_VH = 52
+
+/** What `BATTLE_SCENE_MAX_HEIGHT_VH` actually costs in scene width, at the
+ * landscape shape this column always uses. */
+export const BATTLE_SCENE_MAX_WIDTH_VH = sceneMaxWidthVh(BATTLE_SCENE_MAX_HEIGHT_VH, 'landscape')!
 import { CombatRadar } from '../shared/CombatRadar'
 import { BattleStatus } from './BattleStatus'
 import { BattleActionBar } from './BattleActionBar'
@@ -17,6 +30,8 @@ import { situationFor } from '../../lib/situation'
 import { bridge } from '../../bridge'
 import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
 import { cn } from '../../lib/cn'
+import { useDragScroll } from '../../lib/useDragScroll'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
  * The battle system, in a pane of its own: where you are, and what is in the
@@ -137,11 +152,32 @@ export function BattleColumn() {
   const cards = fromRoom(character)
   const roomItems = character?.roomItems
   const roomDescriptionRef = useRef<HTMLElement | null>(null)
+  const battleScroll = useDragScroll()
   useEffect(() => {
     // A new room is new reading material. Same-room live updates retain the
     // player's place, but movement always begins at the title and exits.
     roomDescriptionRef.current?.scrollTo({ top: 0 })
   }, [zone, room])
+
+  useLayoutEffect(() => {
+    const el = battleScroll.ref.current
+    if (!el) return
+
+    // `overflow: hidden` still creates a programmatically scrollable box.
+    // Chromium therefore used to preserve a focused floor item's position
+    // when the window became shorter, silently shifting this entire column
+    // upward even though the player had no scrollbar with which to recover
+    // the title and armor controls. This workspace is deliberately
+    // scrollable now, and every actual resize begins from its useful anchor:
+    // the current room. The full description and inventory remain reachable
+    // below it by wheel, keyboard, touch, or grab-and-drag.
+    const resetToRoom = () => el.scrollTo({ top: 0, left: 0 })
+    resetToRoom()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(resetToRoom)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [battleScroll.ref, zone, room])
 
   // The board draws itself for nothing rather than an empty compass over
   // every peaceful room — exactly the kind of chrome this app's
@@ -209,7 +245,18 @@ export function BattleColumn() {
     : undefined
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-2">
+    <div
+      {...scrollableRegionProps('Battle workspace')}
+      ref={battleScroll.ref}
+      className={cn(
+        'no-scrollbar flex h-full min-h-0 touch-none flex-col gap-2 overflow-y-auto overscroll-contain p-2',
+        battleScroll.dragging && 'cursor-grabbing select-none'
+      )}
+      onPointerDown={battleScroll.onPointerDown}
+      onPointerMove={battleScroll.onPointerMove}
+      onPointerUp={battleScroll.onPointerUp}
+      onPointerCancel={battleScroll.onPointerCancel}
+    >
       {/* The pulse lives on this wrapper, not inside RoomScene — RoomScene
           is shared with the legacy composed column and a caller that only
           wants a picture should not have to know about room-transition
@@ -246,7 +293,7 @@ export function BattleColumn() {
             // whatever height they get, so the picture still gets the
             // majority share rather than a ceiling calibrated for neighbours
             // that moved out.
-            maxHeightVh={52}
+            maxHeightVh={BATTLE_SCENE_MAX_HEIGHT_VH}
             shape="landscape"
             framed={false}
             overlay={
