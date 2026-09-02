@@ -16,6 +16,8 @@
 import { readJSON, writeJSON } from './storage'
 import { profileKey } from './profiles'
 import type { GameInstance } from '../types'
+import { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors'
+export { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors'
 
 /**
  * A small fixed palette rather than a colour picker. Six is enough to tell
@@ -483,14 +485,14 @@ export interface MapPin {
 export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = [
   // Home base and banking
   { label: 'Home', icon: 'home', color: 'blue' },
-  { label: 'Bank', icon: 'landmark', color: 'gold' },
+  { label: 'Bank', icon: 'landmark', color: COMMON_PLACE_PIN_COLORS.bank },
   { label: 'Vault', icon: 'coins', color: 'gold' },
   { label: 'Locker', icon: 'package', color: 'blue' },
 
   // Services and training
-  { label: 'Healer', icon: 'heart-pulse', color: 'green' },
+  { label: 'Healer', icon: 'heart-pulse', color: COMMON_PLACE_PIN_COLORS.healer },
   { label: 'Hospital', icon: 'hospital', color: 'green' },
-  { label: 'Guild', icon: 'shield', color: 'purple' },
+  { label: 'Guild', icon: 'shield', color: COMMON_PLACE_PIN_COLORS.guild },
   { label: 'Trainer', icon: 'swords', color: 'gold' },
   { label: 'Training Hall', icon: 'graduation-cap', color: 'gold' },
   { label: 'Empath', icon: 'sparkles', color: 'green' },
@@ -504,7 +506,7 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
   { label: 'Post Office', icon: 'scroll', color: 'blue' },
 
   // Shops
-  { label: 'Shop', icon: 'shopping-bag', color: 'blue' },
+  { label: 'Shop', icon: 'shopping-bag', color: COMMON_PLACE_PIN_COLORS.shop },
   { label: 'General Store', icon: 'backpack', color: 'blue' },
   { label: 'Armor Shop', icon: 'shield', color: 'blue' },
   { label: 'Weapon Shop', icon: 'sword', color: 'blue' },

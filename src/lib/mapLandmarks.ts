@@ -1,5 +1,6 @@
 import type { MapZoneRoom } from '../bridge/types'
 import type { PinColor, PinIcon } from './mapPins'
+import { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors'
 
 export type LandmarkKind =
   | 'bank'
@@ -58,11 +59,11 @@ const RULES: Array<{
   pattern: RegExp
   excludePattern?: RegExp
 }> = [
-  { kind: 'healer', label: 'Healer', icon: 'hospital', color: 'green', pattern: /\b(healer|empath|hospital|triage|infirmary|herbal remed)/i },
+  { kind: 'healer', label: 'Healer', icon: 'hospital', color: COMMON_PLACE_PIN_COLORS.healer, pattern: /\b(healer|empath|hospital|triage|infirmary|herbal remed)/i },
   { kind: 'justice', label: 'Court, jail, or constabulary', icon: 'scale', color: 'red', pattern: /\b(court|courthouse|justice|constab\w*|magistrate|jail|gaol|prison|guard office)\b/i, excludePattern: /\bfood\s+court\b/i },
   { kind: 'post', label: 'Post, records, or registry', icon: 'scroll-text', color: 'blue', pattern: /\b(post office|registry|registrar|records office|clerk'?s office|licensing)/i },
   { kind: 'office', label: 'Public office', icon: 'building', color: 'slate', pattern: /\b(office|bureau|administration|administrative|reception|secretary)/i },
-  { kind: 'bank', label: 'Bank or vault', icon: 'landmark', color: 'blue', pattern: /\b(bank|teller|vault|exchange|depository|carousel)\b/i },
+  { kind: 'bank', label: 'Bank or vault', icon: 'landmark', color: COMMON_PLACE_PIN_COLORS.bank, pattern: /\b(bank|teller|vault|exchange|depository|carousel)\b/i },
   { kind: 'trainer', label: 'Trainer', icon: 'dumbbell', color: 'gold', pattern: /\b(trainer|training (room|yard|field)|practice (room|yard)|recruitment office)\b/i },
   { kind: 'weapon', label: 'Weapons', icon: 'bow-arrow', color: 'red', pattern: /\b(weapons?|swords?|blades?|bowyer|fletcher|archery|arms dealer)\b/i },
   { kind: 'armor', label: 'Armor', icon: 'shield', color: 'blue', pattern: /\b(armor|armour|armory|shield|chainmail|plate)\b/i },
@@ -70,13 +71,13 @@ const RULES: Array<{
   { kind: 'magic', label: 'Magic', icon: 'wand-sparkles', color: 'purple', pattern: /\b(mages?|magic|magical|enchant|arcane|spell|talisman|wand|grimoire)\b/i },
   { kind: 'portal', label: 'Portal', icon: 'orbit', color: 'purple', pattern: /\b(portal|teleport|moongate|rift)\b/i },
   { kind: 'dock', label: 'Boat travel', icon: 'anchor', color: 'blue', pattern: /\b(dock|pier|ferry|barge|gondola|harbor|harbour|shipyard|wharf)\b/i },
-  { kind: 'guild', label: 'Guild or trainer', icon: 'graduation-cap', color: 'purple', pattern: /\b(guild|trainer|training (room|yard|field)|academy|headquarters|recruitment office)\b/i },
+  { kind: 'guild', label: 'Guild or trainer', icon: 'graduation-cap', color: COMMON_PLACE_PIN_COLORS.guild, pattern: /\b(guild|trainer|training (room|yard|field)|academy|headquarters|recruitment office)\b/i },
   { kind: 'travel', label: 'Travel connection', icon: 'route', color: 'blue', pattern: /\b(gate|dock|pier|ferry|barge|portal|tram|gondola|caravan|travel start|waystation|bridge)\b/i },
   { kind: 'temple', label: 'Temple or shrine', icon: 'church', color: 'purple', pattern: /\b(temple|shrine|altar|chapel|depart)\b/i },
   { kind: 'craft', label: 'Crafting', icon: 'hammer', color: 'gold', pattern: /\b(forge|smithy|workshop|workroom|crafting|alchemy|enchanting|engineering|outfitting|weaving|tannery|repair tools?)\b/i },
   { kind: 'library', label: 'Library or study', icon: 'book-open', color: 'slate', pattern: /\b(library|reading room|archive|scholarship|grimoire)\b/i },
   { kind: 'inn', label: 'Inn or tavern', icon: 'beer', color: 'gold', pattern: /\b(inn|tavern|taproom|pub|bar|alehouse|rest)\b/i },
-  { kind: 'shop', label: 'Shop or market', icon: 'shopping-basket', color: 'gold', pattern: /\b(shop|store|market|emporium|armory|weapons?|armor|outfitter|supplies|boutique|wares|cobblery)\b/i },
+  { kind: 'shop', label: 'Shop or market', icon: 'shopping-basket', color: COMMON_PLACE_PIN_COLORS.shop, pattern: /\b(shop|store|market|emporium|armory|weapons?|armor|outfitter|supplies|boutique|wares|cobblery)\b/i },
   { kind: 'hunt', label: 'Hunting or danger', icon: 'crosshair', color: 'red', pattern: /\b(hunting|target range|goblins?|boars?|rats?|ogres?|wyverns?|vipers?|zombies?|undead|spirits?|bloodvines?|moths?|gryphons?|deer|cougars?|wolves|vermin)\b/i },
 ]
 
