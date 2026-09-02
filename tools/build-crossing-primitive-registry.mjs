@@ -55,7 +55,8 @@ const assets = catalogue.map((asset) => {
       status: admission.status,
       runtimePath: admission.runtimePath ?? null,
       candidateCreationId: admission.creationId ?? null,
-      sourceImageCreationId: admission.sourceImageCreationId ?? null,
+      sourceImageCreationId: admission.sourceImageCreationId ?? ledger.sourceReferences?.[asset.id]?.creationId ?? null,
+      sourceReference: ledger.sourceReferences?.[asset.id] ?? null,
       reviewRequired: admission.reviewRequired ?? [],
     },
   }

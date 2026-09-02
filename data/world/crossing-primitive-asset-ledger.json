@@ -1,7 +1,41 @@
 {
   "schemaVersion": 1,
   "purpose": "Admission ledger for the Crossing geometric 3D kit. A model is never a runtime asset until its status is approved and its packaged path is recorded.",
+  "sourceReferences": {
+    "G01": {
+      "creationId": "jU4Wp6jLD0",
+      "tool": "Magnific text-to-image",
+      "purpose": "Isolated source reference for the 5m open lawn tile; awaiting a conversion decision."
+    },
+    "P01": {
+      "creationId": "rgynM6Cxtc",
+      "tool": "Magnific text-to-image",
+      "purpose": "Isolated source reference for the centered 5m packed-earth route tile."
+    },
+    "H01": {
+      "creationId": "yizBvVWPW9",
+      "tool": "Magnific text-to-image",
+      "purpose": "Isolated source reference for the 5m straight privet hedge run; awaiting a conversion decision."
+    }
+  },
   "assets": {
+    "P01": {
+      "status": "candidate",
+      "creationId": "TdmKs4fVNR",
+      "sourceImageCreationId": "rgynM6Cxtc",
+      "tool": "Magnific image-to-3D",
+      "model": "tripo-p1",
+      "faceLimit": 450,
+      "textureQuality": "none",
+      "purpose": "Connector-geometry conversion experiment for the 5m straight packed-earth path.",
+      "reviewRequired": [
+        "Verify a centered, unobstructed 2m north/south corridor at 5m tabletop scale.",
+        "Verify both route connectors match in position, width, and y=0 elevation.",
+        "Verify the grass/path edge does not include unsupported stones, roots, signs, or scenery.",
+        "Create the required low-detail LOD before approval."
+      ],
+      "runtimePath": null
+    },
     "T01": {
       "status": "candidate",
       "creationId": "lJ6TMVtgv9",
