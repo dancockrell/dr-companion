@@ -55,6 +55,15 @@ jobs:
           ruby-version: '3.4'
           bundler-cache: false
 
+      # test:video-frame-harvest shells out to ffmpeg for a real end-to-end
+      # check (it builds a tiny video and cuts it into frames, not just
+      # parses source text). ubuntu-latest does not carry ffmpeg by default -
+      # without it the suite correctly reports itself SKIPPED rather than
+      # lying about having checked anything, and the runner then (correctly)
+      # fails the build for a suite that ran zero checks. Same reasoning as
+      # the Ruby step just above, for a different missing binary.
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
