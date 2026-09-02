@@ -38,10 +38,12 @@ import {
   setMusicVolume,
   setRadioStation,
   setCustomStream,
+  setPlaylist,
   initMediaSession,
   setCrossfadeStyle,
 } from '../../lib/ambientSound'
-import { loadPrefs } from '../../lib/persistence'
+import { loadPrefs, savePrefs } from '../../lib/persistence'
+import { getPlaylist } from '../../lib/playlists'
 import { setMasterMuted } from '../../lib/audioMaster'
 import { useAppStore } from '../../store/useAppStore'
 
@@ -66,10 +68,18 @@ export function GameSignals() {
     setSpeechVolume(prefs.speechVolume ?? 0)
     setMusicVolume(prefs.musicVolume ?? 0)
     setCrossfadeStyle(prefs.crossfadeStyle ?? 'standard')
-    if (prefs.customStreamUrl) {
+    const rememberedPlaylist = prefs.activePlaylistId
+      ? getPlaylist(prefs.activePlaylistId)
+      : undefined
+    if (rememberedPlaylist) {
+      setPlaylist(rememberedPlaylist.id, rememberedPlaylist.trackIds)
+    } else if (prefs.customStreamUrl) {
       setCustomStream(prefs.customStreamUrl)
     } else if (prefs.radioStation) {
       setRadioStation(prefs.radioStation)
+    }
+    if (prefs.activePlaylistId && !rememberedPlaylist) {
+      savePrefs({ activePlaylistId: null })
     }
   }, [])
 
