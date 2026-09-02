@@ -22,6 +22,9 @@ export function validateGameActionCommand(command: string): string {
   if (!command.trim()) {
     throw new Error('The generated game action is empty.')
   }
+  if (command.length > 160) {
+    throw new Error('A generated game action is too long.')
+  }
   if (command.includes(';')) {
     throw new Error('A generated game action cannot contain a command separator.')
   }
