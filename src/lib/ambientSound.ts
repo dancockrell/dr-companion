@@ -983,7 +983,9 @@ export function pauseMusic() {
   // second click would remember the already-faded intermediate gain and
   // Resume would come back quieter than the player left it.
   if (pauseTimer || preMuteMusicGain !== null) return
-  preMuteMusicGain = musicGain > 0 ? musicGain : 0.45
+  // Zero is a real user-selected gain, not a missing preference. Preserve it
+  // exactly so Pause/Resume never doubles as an implicit unmute.
+  preMuteMusicGain = musicGain
   if (musicGain <= 0) {
     music.pause()
     return
@@ -995,12 +997,15 @@ export function pauseMusic() {
   }, FADE_MS)
 }
 export function resumeMusic() {
+  const restoreGain = preMuteMusicGain
   if (pauseTimer) {
     clearTimeout(pauseTimer)
     pauseTimer = null
   }
   music.resume()
-  fadeMusicVolume(preMuteMusicGain ?? 0.45)
+  // Media-session Play can arrive without a preceding Pause. In that case
+  // resume the element without inventing a new channel volume.
+  if (restoreGain !== null) fadeMusicVolume(restoreGain)
   preMuteMusicGain = null
 }
 
