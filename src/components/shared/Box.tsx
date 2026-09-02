@@ -34,13 +34,13 @@ export function Box({
   return (
     <section
       className={cn(
-        'flex min-h-0 flex-col rounded border bg-surface-raised',
+        'fantasy-frame flex min-h-0 flex-col rounded-lg border bg-surface-raised',
         tone === 'danger' ? 'border-danger/40' : 'border-border',
         className
       )}
     >
       {(title || count !== undefined || action) && (
-      <header className="flex shrink-0 items-baseline gap-2 px-1.5 pt-1">
+      <header className="flex shrink-0 items-baseline gap-2 border-b border-border/50 bg-surface-overlay/20 px-2 py-1">
         {/* A heading with no text is worse to a screen reader than no
          * heading at all - "heading level 2, blank" is a landmark that
          * promises content and delivers nothing. `title` being omitted is
@@ -50,7 +50,7 @@ export function Box({
         {title && (
         <h2
           className={cn(
-            'text-xs font-medium uppercase tracking-wide',
+            'text-xs font-semibold uppercase tracking-wider',
             tone === 'danger' ? 'text-danger' : 'text-ink-faint'
           )}
         >
@@ -64,7 +64,7 @@ export function Box({
       </header>
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto p-1.5 pt-1">{children}</div>
+      <div className="min-h-0 flex-1 overflow-auto p-2">{children}</div>
     </section>
   )
 }

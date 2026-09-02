@@ -101,7 +101,7 @@ export function Panel({
 
   return (
     <section
-      className={`relative rounded-xl border bg-surface-raised transition-opacity ${
+      className={`fantasy-frame relative rounded-xl border bg-surface-raised transition-opacity ${
         dragging ? 'opacity-40 border-accent' : 'border-border'
       }`}
       onDragOver={(e) => {
@@ -120,10 +120,10 @@ export function Panel({
       {dropBefore && <Insertion position="top" />}
       {dropAfter && <Insertion position="bottom" />}
 
-      <header className="flex items-center justify-between gap-2 px-2 py-0.5">
+      <header className="flex items-center justify-between gap-2 border-b border-border/50 bg-surface-overlay/20 px-2.5 py-1">
         <button
           type="button"
-          className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider min-w-0 hover:text-ink"
+          className="flex min-w-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-faint transition-colors duration-150 hover:text-ink"
           onClick={onToggle}
           title={closed ? 'Open' : 'Collapse'}
         >
@@ -141,7 +141,7 @@ export function Panel({
           {onPopOut && (
             <button
               type="button"
-              className="p-0.5 rounded text-ink-faint hover:text-ink"
+              className="fantasy-icon-button p-1 text-ink-faint hover:text-ink"
               title="Open in its own window" aria-label="Open in its own window"
               onClick={onPopOut}
             >
@@ -159,7 +159,7 @@ export function Panel({
               onDragStart()
             }}
             onDragEnd={onDragEnd}
-            className="p-0.5 rounded text-ink-faint hover:text-ink cursor-grab active:cursor-grabbing"
+            className="fantasy-icon-button cursor-grab p-1 text-ink-faint hover:text-ink active:cursor-grabbing"
             title="Drag to reorder"
           >
             <GripVertical className="w-3.5 h-3.5" />

@@ -50,12 +50,14 @@ check(
   /button:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--color-accent\)[^}]*outline-offset:\s*2px/s.test(css),
   'src/index.css must protect buttons that do not use the shared Button component'
 )
-const palette = Object.fromEntries(
-  [...css.matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [
+const themeBlock = css.match(/@theme\s*\{([\s\S]*?)\n\}/)?.[1] ?? ''
+const parsePalette = (source) => Object.fromEntries(
+  [...source.matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [
     m[1],
     m[2],
   ])
 )
+const palette = parsePalette(themeBlock)
 
 console.log('-- palette contrast against the surfaces text sits on --')
 
@@ -75,6 +77,19 @@ for (const ink of inks) {
       ratio >= AA,
       `${ratio.toFixed(2)}:1${ratio >= AA ? '' : ` (needs ${AA})`}`
     )
+  }
+}
+
+for (const match of css.matchAll(/html\[data-skin="([^"]+)"\]\s*\{([\s\S]*?)\}/g)) {
+  const skin = match[1]
+  const colors = { ...palette, ...parsePalette(match[2]) }
+  for (const ink of inks) {
+    if (!colors[ink]) continue
+    for (const bg of surfaces) {
+      if (!colors[bg]) continue
+      const ratio = contrast(colors[ink], colors[bg])
+      check(`${skin}: ${ink} on ${bg}`, ratio >= AA, `${ratio.toFixed(2)}:1${ratio >= AA ? '' : ` (needs ${AA})`}`)
+    }
   }
 }
 
@@ -103,6 +118,21 @@ check(
   css.includes('scrollbar-color: var(--color-scrollbar-thumb) transparent') &&
     css.includes('background: var(--color-scrollbar-thumb)')
 )
+console.log('-- shared controls use one material and one interaction contract --')
+const buttonSource = readFileSync('src/components/shared/Button.tsx', 'utf8')
+check('Button owns the shared fantasy material', buttonSource.includes('fantasy-button'))
+check('Button exposes its semantic variant to styling', buttonSource.includes('data-variant={variant}'))
+check('shared frames use a restrained material layer', css.includes('.fantasy-frame'))
+check('button hover, press, selected and disabled states are explicit',
+  css.includes('.fantasy-button:hover:not(:disabled)') &&
+  css.includes('.fantasy-button:active:not(:disabled)') &&
+  css.includes('[aria-pressed="true"]') &&
+  css.includes('.fantasy-button:disabled'))
+const skinSource = readFileSync('src/lib/skin.ts', 'utf8')
+check('skin choice is applied before the first render', readFileSync('src/main.tsx', 'utf8').includes('initSkin()'))
+check('skin changes persist through the shared storage boundary', skinSource.includes("writeText(KEY, current)"))
+check('skin changes synchronize between app windows',
+  skinSource.includes("addEventListener('storage'") && skinSource.includes('event.key !== KEY'))
 console.log('-- global chrome follows motion preferences --')
 const reducedMotion = css.match(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]+)\}\s*$/)?.[1] ?? ''
 check('reduced-motion policy exists', Boolean(reducedMotion))

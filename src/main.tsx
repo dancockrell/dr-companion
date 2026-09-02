@@ -7,9 +7,12 @@ import { loadPlayerArtManifest } from './lib/playerArt'
 import { loadNpcDefaultManifest, loadBulkNpcManifest } from './lib/npcDefaults'
 import { loadPortraitManifest } from './lib/portraits'
 import App from './App.tsx'
+import { initSkin } from './lib/skin'
 
 // Before the first render, so a scaled interface does not visibly reflow.
 initTypeScale()
+// Same rule for appearance: never flash the default skin before the saved one.
+initSkin()
 
 // Not awaited. Cards draw silhouettes until this lands, and until the art pack
 // is installed it never lands, which is the ordinary case rather than a fault.
