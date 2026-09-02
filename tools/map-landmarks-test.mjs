@@ -5,10 +5,14 @@ import ts from 'typescript'
 
 const dir = join('node_modules', '.drc-test')
 mkdirSync(dir, { recursive: true })
+const colorsOut = join(dir, 'mapPlaceColors.mjs')
+writeFileSync(colorsOut, ts.transpileModule(readFileSync('src/lib/mapPlaceColors.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText)
 const out = join(dir, 'mapLandmarks.mjs')
 writeFileSync(out, ts.transpileModule(readFileSync('src/lib/mapLandmarks.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText)
+}).outputText.replace("'./mapPlaceColors'", "'./mapPlaceColors.mjs'"))
 const { landmarkFor, landmarksFor } = await import(pathToFileURL(out).href)
 
 let failures = 0
@@ -18,7 +22,8 @@ const check = (label, value) => {
 }
 const room = (title, tags = []) => ({ id: 1, uid: null, title, tags, x: 0, y: 0, z: 0 })
 
-check('a bank becomes a bank landmark', landmarkFor(room('Teller', ['Bank']))?.kind === 'bank')
+const bank = landmarkFor(room('Teller', ['Bank']))
+check('a bank becomes a gold bank landmark', bank?.kind === 'bank' && bank.color === 'gold')
 check('a hospital outranks its shop wording', landmarkFor(room('Herbal Remedies Shop', ['Hospital']))?.kind === 'healer')
 check('a guild room becomes a guild landmark', landmarkFor(room("Bards' Guild"))?.kind === 'guild')
 check('a dock gets its own boat-travel landmark', landmarkFor(room('Uaro Dock'))?.kind === 'dock')
@@ -35,6 +40,8 @@ check('Ratha Bank Street is a street, not a bank', landmarkFor(room('Ratha, Bank
 check('Market Road is a road, not a shop', landmarkFor(room('Outer Hibarnhvidar, Market Road')) === null)
 check('Temple Hill Lane is a lane, not a temple', landmarkFor(room('Temple Hill, Temple Hill Lane')) === null)
 check('a real bank before the comma remains a bank', landmarkFor(room('First Provincial Bank, Lobby'))?.kind === 'bank')
+const shop = landmarkFor(room('General Store', ['shop']))
+check('a shop becomes a blue shop landmark', shop?.kind === 'shop' && shop.color === 'blue')
 check('a real guild before the comma remains a guild', landmarkFor(room("Paladins' Guild, Sentinel's Way"))?.kind === 'guild')
 check('an office has a distinct public-office symbol', landmarkFor(room('Estate Holder Office'))?.kind === 'office')
 check('a courthouse has a distinct justice symbol', landmarkFor(room('Provincial Courthouse'))?.kind === 'justice')
