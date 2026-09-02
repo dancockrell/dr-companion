@@ -55,6 +55,30 @@ const check = (name, condition, detail = '') => {
 }
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
 
+const {
+  alertPlaybackFailureNote,
+  alertPlaybackFailures,
+  clearAlertPlaybackFailure,
+  onAlertPlaybackFailuresChange,
+  recordAlertPlaybackFailure,
+  resetAlertPlaybackFailures,
+} = await import('../src/lib/alertPlaybackStatus.ts')
+
+console.log('-- alert failures are visible without leaking media details --')
+let notifications = 0
+const unsubscribe = onAlertPlaybackFailuresChange(() => notifications++)
+const blocked = new Error('https://user:secret@example.invalid/private?token=hidden')
+blocked.name = 'NotAllowedError'
+recordAlertPlaybackFailure('Growl.wav', blocked)
+check('a blocked alert becomes an inspectable failure', alertPlaybackFailures().has('Growl.wav'))
+check('the blocked-play note tells the player how to recover', alertPlaybackFailureNote(blocked).includes('channel preview'))
+check('alert diagnostics never echo a source or error message', !alertPlaybackFailures().get('Growl.wav')?.includes('secret'))
+clearAlertPlaybackFailure('Growl.wav')
+check('a later successful play clears the prior failure', !alertPlaybackFailures().has('Growl.wav'))
+check('failure changes notify the open Sound panel', notifications === 2)
+unsubscribe()
+resetAlertPlaybackFailures()
+
 console.log('-- playback state follows the media element --')
 MockAudio.behavior = 'reject'
 setCustomStream('https://user:secret@example.invalid/private-radio?token=hidden')
@@ -93,6 +117,16 @@ const transport = await import('node:fs').then(({ readFileSync }) =>
   readFileSync('src/components/game/MusicTransport.tsx', 'utf8')
 )
 check('the shared transport renders a visible Retry action', transport.includes('failed &&') && />\s*Retry\s*</.test(transport))
+check('both state-changing music icon buttons have explicit names', (transport.match(/aria-label=\{failed \? 'Retry music'/g) ?? []).length === 2)
+
+const alertSource = await import('node:fs').then(({ readFileSync }) =>
+  readFileSync('src/lib/alertSound.ts', 'utf8')
+)
+const soundPanel = await import('node:fs').then(({ readFileSync }) =>
+  readFileSync('src/components/game/SoundControls.tsx', 'utf8')
+)
+check('a rejected alert play records a visible failure', /catch\(\(error\) => recordAlertPlaybackFailure\(name, error\)\)/.test(alertSource))
+check('channel previews explicitly bypass live-alert throttles', (soundPanel.match(/\{ preview: true \}/g) ?? []).length === 3)
 
 stopMusic()
 console.warn = originalWarn
