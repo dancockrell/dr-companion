@@ -12,6 +12,7 @@ import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import {
   suggestTraining,
   nextTrainingTarget,
+  emptySkillsReason,
 } from '../../data/skills'
 import { activityTrainingFor } from '../../data/activityTraining'
 import { PLAY_SONGS, PLAY_MOODS, moodDifficulty, buildPlayCommand } from '../../data/performance'
@@ -176,22 +177,10 @@ export function TrainingPanel({ dense: _dense = false }: { dense?: boolean }) {
   if (!character) return null
 
   if (skills.length === 0) {
-    /*
-     * Two reasons for an empty list, and they need different words.
-     *
-     * `skillsReady` is false only while DRInfomon's post-login startup is
-     * still filling skills in - about a second. The bridge has sent that flag
-     * since it was written (companion_bridge.lic:636) and the type has carried
-     * it with a comment saying exactly what it is for. Nothing read it, so
-     * this panel blamed the bridge either way, and during that window the
-     * message below was not merely vague but wrong: the bridge is current, it
-     * does report ranks and mindstate, and the data is a second out.
-     *
-     * Undefined means a bridge or mock predating the field, which the type's
-     * own comment says to treat as the old always-ready behaviour rather than
-     * as a third state. So only an explicit `false` is the waiting case.
-     */
-    const waiting = character.skillsReady === false
+    // Which of the two empty cases this is - see emptySkillsReason in
+    // data/skills.ts, where the rule and its reasoning live, and
+    // tools/skills-empty-test.mjs, which holds it in place.
+    const waiting = emptySkillsReason(character.skillsReady) === 'waiting'
     return (
       <section className="pb-1.5 shrink-0">
         <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5">
