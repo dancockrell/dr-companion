@@ -25,6 +25,16 @@ export interface PinBrush {
 
 const GROUP_STARTS = new Set(['Healer', 'Shop', 'Smithy', 'Landmark', 'Hunting Spot', 'Hangout'])
 
+function presetShape(index: number) {
+  if (index < 4) return 'home'
+  if (index < 18) return 'services'
+  if (index < 30) return 'shops'
+  if (index < 38) return 'craft'
+  if (index < 51) return 'landmark'
+  if (index < 60) return 'danger'
+  return 'social'
+}
+
 export function PinPalette({ selected, onSelect }: { selected?: PinBrush | null; onSelect?: (preset: PinBrush | null) => void }) {
   return (
     <>
@@ -49,9 +59,11 @@ export function PinPalette({ selected, onSelect }: { selected?: PinBrush | null;
             }}
             title={`${preset.label} — click, then click a room; or drag directly onto a room`}
             aria-label={preset.label}
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded border bg-surface-raised hover:border-accent/60 ${startsGroup ? 'ml-1.5' : ''} ${selected?.label === preset.label ? 'border-accent bg-accent/20 ring-1 ring-accent' : 'border-border'}`}
+            data-game-shape={presetShape(i)}
+            className={`game-icon-button flex h-9 w-9 shrink-0 items-center justify-center ${startsGroup ? 'ml-1.5' : ''} ${selected?.label === preset.label ? 'border-accent ring-2 ring-accent' : 'border-border'}`}
+            style={{ color: PIN_COLOR_HEX[preset.color] }}
           >
-            <PinIconGlyph icon={preset.icon} className="h-4 w-4 object-contain" style={{ color: PIN_COLOR_HEX[preset.color] }} />
+            <PinIconGlyph icon={preset.icon} className="relative z-10 h-5 w-5 object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]" />
           </button>
         )
       })}

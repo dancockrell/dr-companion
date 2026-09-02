@@ -79,9 +79,11 @@ export function QuickTravel({
           }}
           title={`Nearest ${label} (drag onto a room on the map to pin it there directly)`}
           aria-label={`Nearest ${label}`}
-          className={`grid h-8 w-8 shrink-0 place-items-center rounded border bg-surface-raised ${
-            activeTag === tag ? 'border-accent' : 'border-border hover:border-accent/60'
+          data-game-shape="travel"
+          className={`game-icon-button grid h-9 w-9 shrink-0 place-items-center ${
+            activeTag === tag ? 'border-accent ring-2 ring-accent' : 'border-border'
           }`}
+          style={{ color: PIN_COLOR_HEX[color] }}
         >
           {/* Tinted with the same colour this button pins with, at rest -
             * not only once active. Four icon-only buttons with no colour cue
@@ -90,7 +92,7 @@ export function QuickTravel({
             * the icon shape alone is too small to tell apart quickly. The
             * colour is also a preview of what the pin will look like on the
             * map once dropped, so it is not a cue invented just for this row. */}
-          <Icon className="h-4 w-4" style={{ color: PIN_COLOR_HEX[color] }} />
+          <Icon className="relative z-10 h-5 w-5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]" />
         </button>
       ))}
       {answered &&

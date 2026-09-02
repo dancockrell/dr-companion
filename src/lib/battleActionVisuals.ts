@@ -110,9 +110,10 @@ function paletteAccent(tone: PinColor, variant: number) {
   const lit = lightness + (variant % 3) * 2
   return {
     color: `hsl(${hue} ${saturation}% ${lit}%)`,
-    borderColor: `hsl(${hue} ${saturation}% 44% / 0.62)`,
-    background: `linear-gradient(145deg, hsl(${hue} ${saturation}% 45% / 0.22), hsl(${hue} 45% 18% / 0.06) 58%, transparent)`,
-    boxShadow: `inset 0 1px 0 hsl(${hue} ${saturation}% 84% / 0.12), inset 0 -2px 6px rgba(0,0,0,0.28)`,
+    borderColor: `hsl(${hue} ${saturation}% 46% / 0.78)`,
+    backgroundColor: 'var(--color-surface-raised)',
+    backgroundImage: `radial-gradient(circle at 50% 18%, hsl(${hue} ${saturation}% 58% / 0.34), transparent 48%), linear-gradient(145deg, hsl(${hue} ${saturation}% 34% / 0.28), hsl(${hue} 36% 9% / 0.42) 72%)`,
+    boxShadow: `inset 0 1px 0 hsl(${hue} ${saturation}% 88% / 0.2), inset 0 -3px 0 rgba(0,0,0,0.34), 0 2px 3px rgba(0,0,0,0.38)`,
   }
 }
 

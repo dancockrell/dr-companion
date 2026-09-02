@@ -108,9 +108,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 import { readJSON, writeJSON } from '../../lib/storage'
 import { isPinned, taskActiveId, type QuickSwitchPin } from '../../lib/quickSwitch'
-import { MACROS, type Macro } from '../../data/macros'
-import { useMacroRunner } from '../../lib/useMacroRunner'
-import { accentForIndex, actionAccent, actionIcon } from '../../lib/battleActionVisuals'
+import { accentForIndex } from '../../lib/battleActionVisuals'
 import { LazySurface } from '../shared/LazySurface'
 
 const ScriptEditor = lazy(() => import('./ScriptEditor').then((module) => ({ default: module.ScriptEditor })))
@@ -131,29 +129,6 @@ const RUBY_CATEGORY = 'Lich scripts'
  * what it is, rather than guessing a category that would just be wrong.
  */
 const TS_CATEGORY = 'TypeScript tasks'
-
-/** Basic game functions live in the same launcher as scripts. The battle rail
- * is the fast subset; this is the complete, searchable catalog generated from
- * the single macro source of truth rather than a second hand-maintained list. */
-const COMMAND_CATEGORY: Record<Macro['group'], string> = {
-  combat: 'Combat commands',
-  health: 'Health commands',
-  hunt: 'Hunt commands',
-  goods: 'Goods commands',
-  magic: 'Magic commands',
-  travel: 'Travel commands',
-  info: 'Information commands',
-}
-
-const COMMAND_ICON: Record<Macro['group'], ScriptIconKey> = {
-  combat: 'swords',
-  health: 'heart-pulse',
-  hunt: 'eye-off',
-  goods: 'shopping-bag',
-  magic: 'wand',
-  travel: 'compass',
-  info: 'eye',
-}
 
 /**
  * Where a player's own tile arrangement lives.
@@ -237,15 +212,11 @@ type Entry = {
    * without a player's override - carried alongside the resolved icon so
    * the picker's "reset to guess" can compare against it. */
   baseIcon: ScriptIconKey
-  /** Basic commands share their exact semantic identity with the battle rail. */
-  actionKey?: string
   tooltip: string
   category: string
   /** Shown as a small badge only while running; never printed on the tile
    * otherwise - see the module comment on why text lives in the tooltip. */
   readOnly: boolean
-  /** An unavailable game connection is a disabled command, not a dead click. */
-  disabled?: boolean
   run: () => void
   /** Present only for something backed by a real file - see the module
    * comment on why built-ins get no pencil. */
@@ -258,8 +229,6 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   const startScript = useAppStore((s) => s.startScript)
   const quickSwitchPins = useAppStore((s) => s.quickSwitchPins)
   const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
-  const { run: runMacro, canSend: canSendMacro, reason: macroReason } = useMacroRunner()
-
   const catalogs = useTaskCatalogs()
   const status = catalogs.python.value
   const nodeSt = catalogs.node.value
@@ -479,8 +448,13 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   )
 
   /**
-   * One combined list: every basic game function, every Python task, every
-   * TypeScript task, then every Ruby script, filtered by name/summary. Tasks
+   * One combined list: every Python task, every TypeScript task, then every
+   * Ruby script, filtered by name/summary. Basic game actions deliberately
+   * live only in BattleActionBar: duplicating all 47 here gave identical
+   * commands two homes with different behavior and consumed the script
+   * library's scarce working area.
+   *
+   * Tasks
    * already arrive sorted by `runner.py`'s `CATEGORY_ORDER`; appending
    * TypeScript and then Ruby after them - rather than interleaving - is what
    * keeps "Lich scripts" last once grouped, which is the right place for
@@ -491,25 +465,6 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
     const q = filter.trim().toLowerCase()
     const matches = (title: string, summary: string) =>
       !q || title.toLowerCase().includes(q) || summary.toLowerCase().includes(q)
-
-    const fromCommands: Entry[] = MACROS.flatMap((macro) =>
-      macro.variations
-        .filter((variation) => matches(variation.label, `${macro.label} ${variation.note ?? ''} ${variation.commands.join(' ')}`))
-        .map((variation) => ({
-          id: `command.${macro.id}.${variation.id}`,
-          title: variation.label,
-          baseIcon: COMMAND_ICON[macro.group],
-          actionKey: `${macro.id}:${variation.id}`,
-          tooltip:
-            `${variation.label}\n${variation.note ?? macro.label}\n\n` +
-            `${variation.commands.join(' ; ')}\n\nBasic game function — sends directly through the macro safety gate.` +
-            (macroReason ? `\n\n${macroReason}` : ''),
-          category: COMMAND_CATEGORY[macro.group],
-          readOnly: false,
-          disabled: !canSendMacro,
-          run: () => runMacro(variation.commands),
-        }))
-    )
 
     const fromTasks: Entry[] = orderedTasks
       .filter((t) => matches(t.title, t.summary))
@@ -571,16 +526,15 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
         editTarget: { name: s.name, lang: 'ruby' as ScriptLang },
       }))
 
-    return [...fromCommands, ...fromTasks, ...fromNode, ...fromRuby]
-  }, [orderedTasks, nodeTasks, rubyScripts, filter, startPython, startNode, startScript, addLog, runMacro, canSendMacro, macroReason])
+    return [...fromTasks, ...fromNode, ...fromRuby]
+  }, [orderedTasks, nodeTasks, rubyScripts, filter, startPython, startNode, startScript, addLog])
 
   const groups = useMemo(() => groupTasksByCategory(entries), [entries])
   const entryVisualIndex = useMemo(
     () => new Map(entries.map((entry, index) => [entry.id, index])),
     [entries]
   )
-  const commandCount = MACROS.reduce((count, macro) => count + macro.variations.length, 0)
-  const totalCount = commandCount + tasks.length + nodeTasks.length + rubyScripts.length
+  const totalCount = tasks.length + nodeTasks.length + rubyScripts.length
 
   const openNew = useCallback((lang: ScriptLang) => {
     setEditing({ name: '', lang })
@@ -706,7 +660,6 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
               </p>
               <div className="grid grid-cols-[repeat(auto-fill,2rem)] gap-1">
                 {group.items.map((entry) => {
-                  const isCommand = entry.id.startsWith('command.')
                   // Only Python task ids ever appear in `tileOrder` (see
                   // `moveTile`) - TypeScript and Ruby entries can be picked
                   // up but can never actually be dropped anywhere, so don't
@@ -715,12 +668,10 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                   const acceptsDraggedTile =
                     draggingId !== null &&
                     canMoveTaskWithinCategory(orderedTasks, draggingId, entry.id)
-                  const overrideKey = isCommand ? null : iconOverrideFor(entry.id)
+                  const overrideKey = iconOverrideFor(entry.id)
                   const iconKey = overrideKey ?? entry.baseIcon
-                  const Icon = entry.actionKey ? actionIcon(entry.actionKey) : SCRIPT_ICON_COMPONENT[iconKey]
-                  const tileStyle = entry.actionKey
-                    ? actionAccent(entry.actionKey)
-                    : accentForIndex(entryVisualIndex.get(entry.id) ?? 0)
+                  const Icon = SCRIPT_ICON_COMPONENT[iconKey]
+                  const tileStyle = accentForIndex(entryVisualIndex.get(entry.id) ?? 0)
                   const active = running === entry.id
                   const isDragging = draggingId === entry.id
                   const isDropTarget = dropTargetId === entry.id && acceptsDraggedTile
@@ -728,9 +679,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                   // the synthetic `ruby.${name}` id this panel groups them
                   // under - see quickSwitch.ts's own header on why a pin is a
                   // tagged union rather than a bare id.
-                  const quickSwitchPin: QuickSwitchPin = isCommand
-                    ? { kind: 'command', actionKey: entry.actionKey! }
-                    : entry.id.startsWith('ruby.')
+                  const quickSwitchPin: QuickSwitchPin = entry.id.startsWith('ruby.')
                     ? { kind: 'script', name: entry.id.slice('ruby.'.length) }
                     : entry.id.startsWith('ts.')
                     ? { kind: 'task', id: entry.id.slice('ts.'.length), lang: 'typescript' }
@@ -778,15 +727,13 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                     >
                       <button
                         type="button"
-                        disabled={entry.disabled}
                         onClick={entry.run}
-                        onContextMenu={isCommand ? undefined : (e) => {
+                        onContextMenu={(e) => {
                           e.preventDefault()
                           setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
                         }}
-                        title={`${entry.tooltip}${isCommand ? '' : `\n\n(right-click to choose an icon${isReorderable ? ', drag to rearrange' : ''})`}`}
+                        title={`${entry.tooltip}\n\n(right-click to choose an icon${isReorderable ? ', drag to rearrange' : ''})`}
                         aria-label={`${active ? 'Running ' : 'Run '}${entry.title}`}
-                        data-action={entry.actionKey}
                         data-entry-id={entry.id}
                         className={cn(
                           'flex h-8 w-8 items-center justify-center overflow-hidden rounded border transition duration-150 hover:-translate-y-px hover:brightness-125 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0',
