@@ -16,6 +16,7 @@
 import { invokeTauri, isTauri } from './tauri'
 import { alertGate, GLOBAL_MS, type AlertChannel } from './alertGate'
 import { effectiveAudioGain, masterMuted } from './audioMaster.ts'
+import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults.ts'
 import {
   clearAlertPlaybackFailure,
   recordAlertPlaybackFailure,
@@ -63,7 +64,11 @@ let lastAny = 0
  * these three defaults, all 0, for the same "a first run should start
  * silent" reason.
  */
-const volumes: Record<AlertChannel, number> = { system: 0, danger: 0, speech: 0 }
+const volumes: Record<AlertChannel, number> = {
+  system: DEFAULT_AUDIO_VOLUMES.system,
+  danger: DEFAULT_AUDIO_VOLUMES.danger,
+  speech: DEFAULT_AUDIO_VOLUMES.speech,
+}
 
 export function setChannelVolume(channel: AlertChannel, v: number) {
   volumes[channel] = Math.max(0, Math.min(1.5, v))

@@ -68,6 +68,7 @@
   "test:quickswitch",
   "test:keybindings",
   "test:gateway",
+  "test:map-leaves",
   "test:bestiary",
   "test:creature-art",
   "test:scrub",

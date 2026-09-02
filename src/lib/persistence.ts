@@ -5,6 +5,7 @@
 
 import type { UiMode } from '../types'
 import { readJSON, writeJSON } from './storage'
+import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults'
 
 const KEY = 'dr-companion-prefs-v1'
 
@@ -173,17 +174,10 @@ const defaults: PersistedPrefs = {
   houseEntryMaxSearches: 3,
   houseEntryHide: true,
   setupComplete: false,
-  // Kept identical to alertSound.ts's and ambientSound.ts's own defaults, by
-  // hand - there is no single source of truth between them, and letting them
-  // drift is exactly what happened here once already (this stood at 0.8
-  // after the module's own default had already been lowered to 0.45, and
-  // nothing caught it - see SoundControls.tsx's header for the read-order
-  // bug that made the drift actually reach the screen). Muted by default -
-  // see this field's own doc comment above for why.
-  alertsVolume: 0,
-  dangerVolume: 0,
-  speechVolume: 0,
-  musicVolume: 0,
+  alertsVolume: DEFAULT_AUDIO_VOLUMES.system,
+  dangerVolume: DEFAULT_AUDIO_VOLUMES.danger,
+  speechVolume: DEFAULT_AUDIO_VOLUMES.speech,
+  musicVolume: DEFAULT_AUDIO_VOLUMES.music,
   masterMuted: false,
   favoriteStations: [],
   playlists: [],

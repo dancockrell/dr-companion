@@ -1,6 +1,7 @@
 import { useAppStore } from '../../store/useAppStore'
 import { StatusBoard } from '../shared/StatusBoard'
 import { HandsRow } from '../shared/HandsRow'
+import { GearNotice } from '../shared/GearNotice'
 
 /**
  * You, above the fight rather than a column away from it — the two things
@@ -26,7 +27,8 @@ export function BattleStatus() {
     // header strip, not a fifth card: PanelBoundary already gives it a
     // label if something inside throws, and the picture below is the thing
     // that should look like a card here, not this.
-    <div className="flex min-w-0 items-center justify-end gap-2">
+    <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 items-center justify-end gap-2">
       {/* HandsRow supplies its own top border and spacing, built for
           stacking under exactly this — see its doc comment: "in a fight
           this is the question." */}
@@ -35,6 +37,8 @@ export function BattleStatus() {
           proves it visually. Suppress only that duplicate here; every other
           injury, action-blocking, stealth, spell and roundtime state remains. */}
       <StatusBoard hideInCombat />
+      </div>
+      <GearNotice />
     </div>
   )
 }

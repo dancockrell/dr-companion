@@ -28,6 +28,8 @@ const alerts = readFileSync('src/lib/alertSound.ts', 'utf8')
 const ambient = readFileSync('src/lib/ambientSound.ts', 'utf8')
 const signals = readFileSync('src/components/shared/GameSignals.tsx', 'utf8')
 const transport = readFileSync('src/components/game/MusicTransport.tsx', 'utf8')
+check('persisted and live channel gains share one first-run default owner',
+  [persistence, alerts, ambient].every((source) => source.includes('DEFAULT_AUDIO_VOLUMES')))
 check('mute state is persisted separately from channel gains', persistence.includes('masterMuted?: boolean') && persistence.includes('masterMuted: false'))
 check('quick mute writes only the master gate', controls.includes('savePrefs({ masterMuted: next })') && !controls.includes('applyAll({ alerts: 0'))
 check('alert output consumes the master gate', alerts.includes('effectiveAudioGain(volumes[channel])') && alerts.includes('masterMuted()'))
