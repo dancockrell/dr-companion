@@ -1,9 +1,10 @@
 # DR Companion 3D World Strategy
 
-Status: **proposed production contract; no implementation implied**
-Scope: a scalable optional 3D city/world presentation and tactical layer for
-DragonRealms room, map, and combat data. This is a production strategy, not an
-assertion that a three-dimensional world is already playable.
+Status: **approved replacement direction; primitive-first implementation pending**
+Scope: a scalable primary 3D city/world and tactical presentation for
+DragonRealms room, route, and combat data. This is the contract for replacing
+the current map/radar/battle presentation, not an assertion that a
+three-dimensional world is already playable.
 
 ---
 
@@ -11,11 +12,12 @@ assertion that a three-dimensional world is already playable.
 
 The companion should make a familiar place feel like a place.
 
-A player can open a city or region as a coherent, navigable tabletop world,
-see their current room in context, and watch a battle resolve spatially without
-losing the game's text-first precision. The 3D view is an optional
-presentation of the same world state; it never invents a route, declares a
-combat outcome, or replaces the game's prose.
+A player opens one coherent, navigable tabletop world: zoomed far out it is a
+city or region, zoomed closer it becomes a route through that world, and zoomed
+all the way in it becomes the current room and its battle space. There is no
+separate player-facing 2D map to keep in sync. The 3D view is the primary
+presentation of the same authoritative world state; it never invents a route,
+declares a combat outcome, or replaces the game's prose.
 
 The promise has four non-negotiable parts:
 
@@ -31,6 +33,30 @@ The promise has four non-negotiable parts:
 4. **Uncertainty stays visible.**  A generic but region-appropriate segment
    may be shown for an unreviewed room. It must never be named or framed as a
    bespoke canonical reconstruction.
+
+### 1.1 One camera, three distances
+
+The camera, not a mode switch, is the navigation interface:
+
+| Distance | Player sees | Player can do |
+|---|---|---|
+| **World** | a whole district/city assembled from chunky colored blocks, roofs, water, bridges, major landmarks, and a current-position beacon | pan, orbit, zoom, select a known destination or route |
+| **Route** | the connected streets, paths, bridges, docks, thresholds, and named destination silhouettes between nearby rooms | follow the legal route, preview the next exit, inspect known services |
+| **Room / tactical** | the active room cell with inhabitants, ground items, exits, range bands, and battle events | use real commands, inspect entities/items, follow live combat |
+
+Every view is the same scene graph at a different level of detail. The route
+graph is still present beneath it, but it is an implementation truth—not a
+second visual product for players to learn.
+
+### 1.2 Primitive-first production rule
+
+The first playable city uses deliberately basic colored 3D primitives: clear
+footprints, roof wedges, wall blocks, arches, water ribbons, bridges, doors,
+trees, and miniature stand-ins. Those models are the editable substrate. Only
+after traversal, sight lines, scale, exits, battle placement, and reuse have
+been validated do we paint them with materials, decals, selected hero props,
+and expressive character/creature treatments. A pretty generated scene is not
+allowed to lock the world into an unusable topology.
 
 ---
 
@@ -53,7 +79,7 @@ Authoritative DragonRealms data
     modular terrain + buildings + props + actors + camera + VFX
                              |
                              v
-            text/map/battle UI remains independently usable
+            text and accessible command UI remain independently usable
 ```
 
 ### 2.1 Three kinds of cell
@@ -82,7 +108,7 @@ This gives the city continuity without requiring 1,000 bespoke scenes.
 
 | Fact or behavior | Owner | 3D layer may do | 3D layer must not do |
 |---|---|---|---|
-| Current room and available exits | game bridge + map graph | highlight exit anchors and animate the player reaching one | add an exit or turn a blocked exit into an open path |
+| Current room and available exits | game bridge + room graph | highlight exit anchors and animate the player reaching one | add an exit or turn a blocked exit into an open path |
 | LOOK description and named landmark | room data | select a reviewed recipe and place supported set dressing | make unsupported architecture canonical |
 | Encounter list, allegiance, range, engagement | combat state | position tokens, orient actors, show range/readiness | decide hostility or range from screen geometry |
 | Attack result / hit / miss / wound | parsed game event | play an event after receipt | predict success or make damage authoritative |
@@ -90,8 +116,10 @@ This gives the city continuity without requiring 1,000 bespoke scenes.
 | Weather and time cues | game text/state when available | alter approved material/lighting parameters | pretend a weather condition was reported when it was not |
 | Camera, quality, animation preference | local client preference | persist and recover visual settings | affect the game command stream |
 
-The existing 2D map and the text battle layout are always complete fallback
-interfaces. Switching off 3D changes presentation, never capability.
+Textual exits, entity lists, ground items, and command controls remain complete
+accessible fallbacks. The legacy 2D map is retained only as a migration,
+diagnostic, and data-validation tool; it is not the player-facing navigation
+product of this rebuild.
 
 ---
 
@@ -165,8 +193,38 @@ The same assembly data is rendered at three different scales.
 | **Tactical table** | Combat or a focused local encounter. | One measured encounter floor, cover/obstacle language only where supported, player/enemy miniatures, event effects. | inspect range/allegiance, follow real events, retain the normal command UI. |
 
 No level owns a different version of the world. A Town Green exit on the local
-cell points to the same target room as its district-table pin and the same map
-edge in the established 2D graph.
+cell points to the same target room as the distant route ribbon and the same
+edge in the authoritative room graph.
+
+### 5.1 Tactical language: miniature theatre, not collision simulation
+
+Combat figures do not need to make physical contact. Trying to force
+text-derived distance and attack events into literal hitboxes creates false
+precision, expensive animation work, and awkward misses. The tactical table is
+instead a readable, D&D-like miniature theatre: opponents hold positions and
+facing, while the game-reported event supplies the spectacle.
+
+| Authoritative event | Presentation response |
+|---|---|
+| attack begins | weapon-ready pose, directional arc or projectile trail |
+| hit | target flinch, colored impact burst, damage/status bubble, brief camera emphasis |
+| miss / evade / parry / block | trail breaks, sidestep or guarded pose, matching readable bubble/effect |
+| spell | clear school-colored cast glyph, travel effect, target response after the bridge result |
+| advance / retreat / enter / leave | miniature slides along its legal range lane; no inferred collision |
+| death / item drop | simple state change, fallen/token treatment, then a clickable pile or item marker |
+
+The layer may use deliberately cartoon-like bubbles, starbursts, floating
+icons, shock rings, and particles because they make event meaning immediate at
+the zoomed-out tabletop scale. They are communication, not claims of a
+physics simulation. Every effect starts only after its matching bridge event
+arrives.
+
+**Recommended runtime boundary:** use Godot for the 3D scene graph, camera,
+miniature animation, material palette, UI-adjacent effects, and deterministic
+event playback. Keep parsing, commands, room truth, entity truth, and combat
+truth in the existing client/bridge boundary. Godot receives a small ordered
+presentation-event stream and can always recover from a snapshot if it falls
+behind.
 
 ---
 
