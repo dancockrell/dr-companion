@@ -7,6 +7,17 @@ type StampPresentation = {
 }
 
 /**
+ * Assets kept on disk for provenance but explicitly barred from selection.
+ * Both were cropped from a larger contact sheet and include the top of the
+ * neighbouring cell along their lower edge. A PNG having alpha is not an art
+ * approval; this ledger makes the human pixel review durable.
+ */
+export const REJECTED_STAMP_ART = [
+  { href: '/map-stamps/atlas/13.png', reason: 'Market crop includes an adjacent roof fragment at the lower edge.' },
+  { href: '/map-stamps/atlas/21.png', reason: 'Mountain crop includes a second cut-off ridge at the lower edge.' },
+] as const
+
+/**
  * Generated engravings, deployed as transparent raster art rather than
  * browser-drawn symbols. `aspect` describes the trimmed production asset;
  * keeping it here makes every impression retain the illustrator's shape.
@@ -14,9 +25,9 @@ type StampPresentation = {
 const STAMP_ART: Record<MapStamp['kind'], StampPresentation> = {
   water: { images: [{ href: '/map-stamps/water.png', aspect: 512 / 104 }, { href: '/map-stamps/atlas/25.png', aspect: 136 / 120 }], scale: 1.35, opacity: 0.6 },
   woodland: { images: [{ href: '/map-stamps/woodland.png', aspect: 512 / 452 }, { href: '/map-stamps/atlas/22.png', aspect: 147 / 189 }], scale: 1.08, opacity: 0.57 },
-  highland: { images: [{ href: '/map-stamps/highland.png', aspect: 512 / 218 }, { href: '/map-stamps/atlas/21.png', aspect: 149 / 189 }], scale: 1.18, opacity: 0.55 },
+  highland: { images: [{ href: '/map-stamps/highland.png', aspect: 512 / 218 }, { href: '/map-stamps/highland-v2.png', aspect: 768 / 512 }], scale: 1.18, opacity: 0.55 },
   underground: { images: [{ href: '/map-stamps/underground.png', aspect: 300 / 170 }, { href: '/map-stamps/atlas/20.png', aspect: 143 / 189 }], scale: 0.94, opacity: 0.65 },
-  settlement: { images: [{ href: '/map-stamps/settlement.png', aspect: 512 / 145 }, { href: '/map-stamps/atlas/13.png', aspect: 135 / 188 }, { href: '/map-stamps/atlas/30.png', aspect: 126 / 114 }], scale: 1.2, opacity: 0.62 },
+  settlement: { images: [{ href: '/map-stamps/settlement.png', aspect: 512 / 145 }, { href: '/map-stamps/atlas/30.png', aspect: 126 / 114 }], scale: 1.2, opacity: 0.62 },
   ruins: { images: [{ href: '/map-stamps/ruins.png', aspect: 512 / 398 }, { href: '/map-stamps/atlas/18.png', aspect: 133 / 147 }], scale: 0.9, opacity: 0.66 },
   wetland: { images: [{ href: '/map-stamps/wetland.png', aspect: 512 / 197 }, { href: '/map-stamps/atlas/24.png', aspect: 132 / 189 }], scale: 1.2, opacity: 0.58 },
   coast: { images: [{ href: '/map-stamps/coast.png', aspect: 506 / 512 }, { href: '/map-stamps/atlas/26.png', aspect: 139 / 120 }], scale: 1.05, opacity: 0.57 },
@@ -28,7 +39,7 @@ const STAMP_ART: Record<MapStamp['kind'], StampPresentation> = {
   fortification: { images: [{ href: '/map-stamps/fortification.png', aspect: 512 / 467 }, { href: '/map-stamps/atlas/17.png', aspect: 135 / 151 }, { href: '/map-stamps/atlas/29.png', aspect: 98 / 110 }], scale: 0.88, opacity: 0.67 },
   bridge: { images: [{ href: '/map-stamps/bridge.png', aspect: 411 / 512 }, { href: '/map-stamps/atlas/14.png', aspect: 140 / 97 }], scale: 0.86, opacity: 0.67 },
   harbor: { images: [{ href: '/map-stamps/harbor.png', aspect: 483 / 512 }, { href: '/map-stamps/atlas/15.png', aspect: 137 / 145 }], scale: 0.88, opacity: 0.66 },
-  market: { images: [{ href: '/map-stamps/market.png', aspect: 512 / 486 }, { href: '/map-stamps/atlas/13.png', aspect: 135 / 188 }], scale: 0.86, opacity: 0.65 },
+  market: { images: [{ href: '/map-stamps/market.png', aspect: 512 / 486 }, { href: '/map-stamps/market-v2.png', aspect: 1 }], scale: 0.86, opacity: 0.65 },
   'service-bank': { images: [{ href: '/map-stamps/service-bank.png', aspect: 714 / 625 }, { href: '/map-stamps/atlas/01.png', aspect: 133 / 137 }], scale: 1, opacity: 0.68 },
   'service-healer': { images: [{ href: '/map-stamps/service-healer.png', aspect: 595 / 660 }, { href: '/map-stamps/atlas/02.png', aspect: 120 / 151 }, { href: '/map-stamps/atlas/11.png', aspect: 120 / 140 }], scale: 1, opacity: 0.68 },
   'service-guild': { images: [{ href: '/map-stamps/service-guild.png', aspect: 762 / 508 }, { href: '/map-stamps/atlas/03.png', aspect: 121 / 159 }], scale: 1, opacity: 0.68 },

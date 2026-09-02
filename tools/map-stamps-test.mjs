@@ -167,6 +167,13 @@ check('layout never searches blank paper or globally spreads stamps', !derivatio
 check('map art uses generated raster engravings', layer.includes('<image') && layer.includes('STAMP_ART') && layer.includes('href={image.href}'))
 check('the primitive path renderer has been removed', !layer.includes('<path') && !layer.includes('<circle') && !layer.includes('<text') && !layer.includes('function Tree') && !layer.includes('function Peak') && !layer.includes('MapDrawing'))
 check('engraved ink is integrated into parchment', layer.includes("mixBlendMode: 'multiply'") && layer.includes('preserveAspectRatio="xMidYMid meet"'))
+check('pixel-rejected atlas crops are recorded with reasons', layer.includes('REJECTED_STAMP_ART') && layer.includes('adjacent roof fragment') && layer.includes('second cut-off ridge'))
+const runtimeCatalog = layer.slice(layer.indexOf('const STAMP_ART'), layer.indexOf('/**\n * Pictorial cartography'))
+check('rejected atlas crops cannot be selected at runtime', !runtimeCatalog.includes("atlas/13.png") && !runtimeCatalog.includes("atlas/21.png"))
+for (const assetPath of ['public/map-stamps/market-v2.png', 'public/map-stamps/highland-v2.png']) {
+  const asset = existsSync(assetPath) ? readFileSync(assetPath) : Buffer.alloc(0)
+  check(`${assetPath.split('/').pop()} is a reviewed transparent replacement`, asset.length > 100_000 && asset[25] === 6 && layer.includes(`/${assetPath.replace('public/', '')}`), `${asset.length} bytes`)
+}
 const stampKinds = ['water', 'woodland', 'highland', 'underground', 'settlement', 'ruins', 'wetland', 'coast', 'arid', 'cultivated', 'frozen', 'burial', 'worship', 'fortification', 'bridge', 'harbor', 'market', 'service-bank', 'service-healer', 'service-guild', 'service-inn', 'service-forge', 'service-library', 'service-training', 'service-gate', 'service-arcane', 'service-civic']
 for (const kind of stampKinds) {
   const assetPath = `public/map-stamps/${kind}.png`
@@ -179,7 +186,12 @@ for (let index = 1; index <= 30; index++) {
   const name = String(index).padStart(2, '0')
   const assetPath = `public/map-stamps/atlas/${name}.png`
   const asset = existsSync(assetPath) ? readFileSync(assetPath) : Buffer.alloc(0)
-  check(`Magnific atlas cell ${name} is a transparent runtime asset`, layer.includes(`/map-stamps/atlas/${name}.png`) && asset.length > 10_000 && asset[25] === 6, `${asset.length} bytes`)
+  const isRejected = index === 13 || index === 21
+  check(
+    `Magnific atlas cell ${name} is a transparent ${isRejected ? 'retained source asset' : 'runtime asset'}`,
+    asset.length > 10_000 && asset[25] === 6 && (isRejected || runtimeCatalog.includes(`/map-stamps/atlas/${name}.png`)),
+    `${asset.length} bytes`
+  )
 }
 check('gateway destinations are visibly continued off the sheet', canvas.includes('data-map-gateway-callout="true"') && canvas.includes('shortGatewayLabel') && canvas.includes('hasGatewaysOnLevel'))
 check('duplicate gateways share one destination label', canvas.includes('byDestination') && canvas.includes('candidates.reduce'))

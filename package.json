@@ -126,6 +126,7 @@
     "test:map-data": "node tools/map-data-test.mjs",
     "test:map-loading": "node --experimental-strip-types tools/map-loading-test.mjs",
     "test:map-stamps": "node tools/map-stamps-test.mjs",
+    "test:map-stamp-curation": "node tools/map-stamp-curation-test.mjs",
     "test:gamelines": "node tools/gamelines-test.mjs",
     "test:stream-consumers": "node tools/stream-consumers-test.mjs",
     "test:room-occupants": "node tools/room-occupants-test.mjs",
