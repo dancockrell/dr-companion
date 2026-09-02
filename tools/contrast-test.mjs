@@ -83,6 +83,12 @@ for (const ink of inks) {
   }
 }
 
+const battleActionBarSource = readFileSync('src/components/room/BattleActionBar.tsx', 'utf8')
+check(
+  'magic actions use the semantic magic token rather than a raw framework purple',
+  battleActionBarSource.includes("magic: 'border-magic/40'") && !battleActionBarSource.includes('border-purple-')
+)
+
 console.log('')
 console.log('-- scrollbars belong to the warm interface on every engine --')
 const scrollbarTokens = ['scrollbar-thumb', 'scrollbar-hover', 'scrollbar-active']

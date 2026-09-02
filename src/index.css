@@ -73,6 +73,9 @@
   --color-warn: #d99a3c;
   --color-danger: #d2635a;
   --color-info: #7ba3c4;
+  /* Arcane actions need a named family rather than a raw framework palette
+     color. Keep this aligned with the purple map-pin identity. */
+  --color-magic: #a476dd;
 
   /* Scrollbar hardware, in the same aged-metal family as panel borders and
      controls. These remain visible against both ink surfaces and the pale
