@@ -84,6 +84,17 @@ export function GameSignals() {
    * comment on why `soundedUpTo` is a ref and why `[lines]` is the correct
    * (and previously three-times-wrong) dependency. Reproduced verbatim. */
   const soundedUpTo = useRef(0)
+
+  // This effect must stay before the playback effect. React runs effects in
+  // declaration order after a commit; when a config first loads or reloads,
+  // mark the current buffer as history before playback can inspect it.
+  useEffect(() => {
+    if (highlights.length && lines.length) {
+      soundedUpTo.current = Math.max(soundedUpTo.current, lines[lines.length - 1].seq)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlights])
+
   useEffect(() => {
     if (!highlights.length || !lines.length) return
     const newest = lines[lines.length - 1].seq
@@ -102,15 +113,6 @@ export function GameSignals() {
       }
     }
   }, [lines, highlights, offClasses])
-
-  // Anything already in the buffer when the config loads is history, not
-  // news - deliberately keyed on the config alone, same as the original.
-  useEffect(() => {
-    if (highlights.length && lines.length) {
-      soundedUpTo.current = Math.max(soundedUpTo.current, lines[lines.length - 1].seq)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlights])
 
   // Silences an otherwise-unused-variable warning on `hlNote` - not
   // rendered here (there is no header row to show it in any more), kept
