@@ -105,6 +105,14 @@ body {
   scrollbar-width: thin;
 }
 
+/* Raw controls are common in the compact game surfaces. Give every native
+ * button a visible keyboard affordance by default; component-specific rings
+ * may still override this when their geometry needs a tighter treatment. */
+button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 /* Warm, tokenized scrollbar for WebView2 / Chromium. */
 ::-webkit-scrollbar {
   width: 8px;
