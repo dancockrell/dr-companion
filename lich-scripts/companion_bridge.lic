@@ -1665,19 +1665,22 @@ module Companion
     # commands merely because one waited for the other to finish.
     MACRO_FLIGHT_SECONDS = 0.9
     MACRO_FLIGHT_LOCK = Mutex.new
-    @last_macro_claimed_at = -Float::INFINITY
+    @macro_claims = {}
 
-    def claim_macro_flight(now = Process.clock_gettime(Process::CLOCK_MONOTONIC))
+    def claim_macro_flight(args, now = Process.clock_gettime(Process::CLOCK_MONOTONIC))
+      commands = args.is_a?(Hash) && args['commands'].is_a?(Array) ? args['commands'].map(&:to_s) : []
+      fingerprint = JSON.generate(commands)
       MACRO_FLIGHT_LOCK.synchronize do
-        return false if now - @last_macro_claimed_at < MACRO_FLIGHT_SECONDS
+        @macro_claims.delete_if { |_key, claimed_at| now - claimed_at >= MACRO_FLIGHT_SECONDS }
+        return false if @macro_claims.key?(fingerprint)
 
-        @last_macro_claimed_at = now
+        @macro_claims[fingerprint] = now
         true
       end
     end
 
     def reset_macro_flight!
-      MACRO_FLIGHT_LOCK.synchronize { @last_macro_claimed_at = -Float::INFINITY }
+      MACRO_FLIGHT_LOCK.synchronize { @macro_claims = {} }
     end
 
     # Set by stop_all, checked between iterations by anything in
@@ -1720,7 +1723,7 @@ module Companion
       # reach its existing Stop check so the player is told to press Resume,
       # rather than seeing the less useful cooldown message. Resume resets the
       # claim below, so the first deliberate macro after it can start at once.
-      if intent == 'run_macro' && !stop_requested? && !claim_macro_flight
+      if intent == 'run_macro' && !stop_requested? && !claim_macro_flight(args)
         server.log('Macro refused: another app window just launched one.', 'warn')
         return [false, 'a macro is still running']
       end

@@ -874,7 +874,7 @@ begin
 
   a_client.send_json(type: 'intent', intent: 'run_macro', args: { commands: %w[a1 a2 a3] })
   sleep 0.05 # give a_client's macro the lock first, deterministically
-  b_client.send_json(type: 'intent', intent: 'run_macro', args: { commands: %w[b1 b2 b3] })
+  b_client.send_json(type: 'intent', intent: 'run_macro', args: { commands: %w[a1 a2 a3] })
 
   a_ack = a_client.read_until('intent_ack')
   b_ack = b_client.read_until('intent_ack')
@@ -890,7 +890,7 @@ begin
   )
   check(
     'only the winning window reaches the game command boundary',
-    $fput_log == %w[a1 a2 a3] || $fput_log == %w[b1 b2 b3],
+    $fput_log == %w[a1 a2 a3],
     $fput_log.inspect
   )
   $fput_delay = 0

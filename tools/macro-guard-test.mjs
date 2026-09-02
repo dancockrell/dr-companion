@@ -88,6 +88,7 @@ ok('the bridge process owns a cross-window atomic macro flight',
   bridgeSource.includes('MACRO_FLIGHT_LOCK = Mutex.new') &&
   bridgeSource.includes("intent == 'run_macro'") &&
   bridgeSource.includes('!claim_macro_flight') &&
+  bridgeSource.includes('fingerprint = JSON.generate(commands)') &&
   bridgeSource.includes('Process.clock_gettime(Process::CLOCK_MONOTONIC)') &&
   bridgeSource.includes('reset_macro_flight!'))
 {
