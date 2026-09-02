@@ -138,8 +138,11 @@ const combatRadar = readFileSync('src/components/shared/CombatRadar.tsx', 'utf8'
 const soundControls = readFileSync('src/components/game/SoundControls.tsx', 'utf8')
 const portrait = readFileSync('src/components/shared/Portrait.tsx', 'utf8')
 check(
-  'frequent action decks use the shared subtle press depth',
-  [battleActions, taskFlow].every((source) => source.includes('active:scale-[0.98]')) &&
+  'frequent action decks use subtle, motion-safe press depth',
+  battleActions.includes('game-icon-button') &&
+    taskFlow.includes('active:scale-[0.98]') &&
+    /\.game-icon-button:active:not\(:disabled\)\s*\{[^}]*scale\(0\.97\)/s.test(css) &&
+    reducedMotion.includes('.game-icon-button:active') &&
     ![battleActions, taskFlow].some((source) => source.includes('active:scale-95'))
 )
 check(

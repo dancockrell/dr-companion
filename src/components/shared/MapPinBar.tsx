@@ -68,7 +68,7 @@ export function MapPinBar({
   return (
     <>
       {pins.length > 0 && (
-        <div className="relative h-8 w-8 shrink-0" ref={boxRef} data-gameplay-shortcuts={open ? 'suspend' : undefined}>
+        <div className="relative h-9 w-9 shrink-0" ref={boxRef} data-gameplay-shortcuts={open ? 'suspend' : undefined}>
           <button
             ref={triggerRef}
             type="button"
@@ -77,11 +77,12 @@ export function MapPinBar({
             aria-label={savedPinCountLabel}
             aria-expanded={open}
             aria-controls="saved-pins-list"
-            className={`relative grid h-8 w-8 place-items-center rounded border bg-surface-raised ${
+            data-game-shape="utility"
+            className={`game-icon-button relative grid h-9 w-9 place-items-center ${
               open ? 'border-accent text-accent' : 'border-border text-ink-muted hover:text-ink'
             }`}
           >
-            <MapPinIcon className="h-4 w-4" />
+            <MapPinIcon className="relative z-10 h-5 w-5" />
             <span className="absolute -right-1.5 -top-1.5 min-w-4 rounded-full bg-accent px-0.5 text-center text-xs font-bold leading-4 text-surface" aria-hidden>{pins.length}</span>
           </button>
           {open && (
@@ -138,9 +139,10 @@ export function MapPinBar({
           title="Pin the room you are standing in"
           aria-label="Pin the room you are standing in"
           onClick={onAddHere}
-          className="relative grid h-8 w-8 shrink-0 place-items-center rounded border border-dashed border-border bg-surface-raised text-ink-faint hover:border-accent/60 hover:text-accent"
+          data-game-shape="utility"
+          className="game-icon-button relative grid h-9 w-9 shrink-0 place-items-center border-dashed border-border text-ink-faint hover:text-accent"
         >
-          <MapPinIcon className="h-4 w-4" />
+          <MapPinIcon className="relative z-10 h-5 w-5" />
           <Plus className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-surface" strokeWidth={3} />
         </button>
       )}

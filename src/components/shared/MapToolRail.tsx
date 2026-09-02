@@ -73,13 +73,15 @@ export function MapToolRail({
           onClick={onCustomizeMarker}
           title="Customize your mark on the map"
           aria-label="Customize your mark on the map"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border bg-surface-raised hover:border-accent/60"
+          data-game-shape="home"
+          className="game-icon-button flex h-9 w-9 shrink-0 items-center justify-center border-border"
+          style={{ color: marker.color }}
         >
           <span
-            className="flex h-5 w-5 items-center justify-center rounded-full"
+            className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full ring-1 ring-current/40"
             style={{ background: marker.color }}
           >
-            <PinIconGlyph icon={marker.icon} className="h-3 w-3 object-contain" />
+            <PinIconGlyph icon={marker.icon} className="h-3.5 w-3.5 object-contain text-surface" />
           </span>
         </button>
       )}
