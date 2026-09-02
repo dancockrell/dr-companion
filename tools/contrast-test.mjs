@@ -44,6 +44,12 @@ function contrast(a, b) {
 // --- the palette, read from source rather than duplicated -------------------
 
 const css = readFileSync('src/index.css', 'utf8')
+
+check(
+  'raw buttons receive a visible keyboard-focus fallback',
+  /button:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--color-accent\)[^}]*outline-offset:\s*2px/s.test(css),
+  'src/index.css must protect buttons that do not use the shared Button component'
+)
 const palette = Object.fromEntries(
   [...css.matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [
     m[1],
