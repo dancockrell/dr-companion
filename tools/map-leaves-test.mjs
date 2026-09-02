@@ -47,7 +47,11 @@ for (const f of files) {
 // field itself silently stopped being populated by the build pipeline.
 ok(`a real number of rooms carry unresolved exits: ${roomsWithLeaves}`, roomsWithLeaves > 300, String(roomsWithLeaves))
 ok(`a real number of unresolved exits exist in total: ${totalLeaves}`, totalLeaves > 600, String(totalLeaves))
-ok('some rooms are both a gateway and carry leftover unresolved exits (the overlap this mark deliberately skips)', roomsWithLeavesAndGateway >= 0)
+ok(
+  'some rooms are both a gateway and carry leftover unresolved exits (the overlap this mark deliberately skips)',
+  roomsWithLeavesAndGateway > 0,
+  String(roomsWithLeavesAndGateway),
+)
 
 console.log('\n-- MapCanvas.tsx still draws the mark, gated the way it is meant to be --')
 const src = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')
