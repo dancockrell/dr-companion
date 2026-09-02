@@ -106,8 +106,15 @@ body {
 }
 
 /* Raw controls are common in the compact game surfaces. Give every native
- * button a visible keyboard affordance by default; component-specific rings
- * may still override this when their geometry needs a tighter treatment. */
+ * button the same short state continuity and visible keyboard affordance as
+ * the shared Button component. Component-specific transition utilities and
+ * focus rings remain more specific and may still override these defaults. */
+button {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform, filter;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 button:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
