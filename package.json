@@ -84,6 +84,7 @@
     "test:quickswitch": "node tools/quickswitch-test.mjs",
     "test:keybindings": "node tools/keybindings-test.mjs",
     "test:gateway": "node tools/gateway-test.mjs",
+    "test:map-leaves": "node tools/map-leaves-test.mjs",
     "test:eval": "node tools/eval-test.mjs",
     "art": "C:\\Users\\Admin\\dev\\quartermaster\\target\\release\\qm.exe art-daemon",
     "test:gear": "node tools/gear-test.mjs",

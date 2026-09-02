@@ -717,6 +717,31 @@ export function MapCanvas({
               height={GRID * scale}
               fill="transparent"
             />
+            {/* An exit the cartographer never resolved to a room - a
+                wilderness path trailing off, a door nobody walked through
+                and mapped the far side of. 797 of these exist across the
+                shipped cartography (381 rooms), Mistwood Forest alone
+                carrying seven off one room, and until now none of them had
+                any mark on the chart itself - only the room's own tooltip
+                said so, which nobody reads without already suspecting
+                something is there. A gateway already means "this leads
+                somewhere" and gets its own doorway box below; marking a
+                gateway again here would say the same thing twice, so this
+                is deliberately the un-gatewayed case only. Circular where
+                a gateway is rectangular, and a finer dash, so the two read
+                as different facts rather than one weaker than the other. */}
+            {!r.gateway && r.leaves?.length ? (
+              <circle
+                cx={px(r)}
+                cy={py(r)}
+                r={box * 0.95}
+                fill="none"
+                stroke="var(--map-ink)"
+                strokeWidth={Math.max(0.6, 0.7 * scale)}
+                strokeDasharray={`${0.9 * scale} ${1.4 * scale}`}
+                opacity={0.5}
+              />
+            ) : null}
             {/* Every gateway remains a doorway. One representative doorway per
                 destination also owns the labelled continuation above, keeping
                 repeated crossings useful without covering the sheet in text. */}
