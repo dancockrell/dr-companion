@@ -10,21 +10,9 @@
  * would flip back and forth on a one-pixel resize, which is exactly the
  * jitter this model exists to remove.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
-import ts from 'typescript'
+import { readFileSync } from 'node:fs'
 
-const dir = mkdtempSync(join(tmpdir(), 'dock-'))
-const out = join(dir, 'dock.js')
-writeFileSync(
-  out,
-  ts.transpileModule(readFileSync('src/lib/dock.ts', 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText
-)
-const m = await import(pathToFileURL(out).href)
+const m = await import('../src/lib/dock.ts')
 
 let fails = 0
 const ok = (label, cond, detail = '') => {

@@ -6,21 +6,9 @@
  * the crowded case, because a resolver that cannot converge would hang a drag
  * handler rather than merely misplace a box.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
-import ts from 'typescript'
+import { readFileSync } from 'node:fs'
 
-const dir = mkdtempSync(join(tmpdir(), 'free-'))
-const out = join(dir, 'freeLayout.js')
-writeFileSync(
-  out,
-  ts.transpileModule(readFileSync('src/lib/freeLayout.ts', 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText
-)
-const m = await import(pathToFileURL(out).href)
+const m = await import('../src/lib/freeLayout.ts')
 
 let fails = 0
 const check = (label, got, want) => {
