@@ -27,6 +27,7 @@ import { requestStartFlow, requestStopAll } from './lib/flowStop'
 import { MACROS } from './data/macros'
 import { requestMacro } from './lib/macroFlight'
 import { writeText } from './lib/storage'
+import { taskPinActiveId, taskPinLanguage } from './lib/quickSwitch'
 import { StorageWarning } from './components/shared/StorageWarning'
 import { LazySurface } from './components/shared/LazySurface'
 
@@ -133,8 +134,8 @@ export default function App() {
           startScript(pin.name)
           return
         }
-        if (pin.id === activeFlow) requestStopAll()
-        else requestStartFlow(pin.id)
+        if (taskPinActiveId(pin) === activeFlow) requestStopAll()
+        else requestStartFlow(pin.id, taskPinLanguage(pin))
       },
     })
   }, [setupComplete, requestIntent])
