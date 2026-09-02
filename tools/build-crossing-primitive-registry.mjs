@@ -49,6 +49,12 @@ const assets = catalogue.map((asset) => {
   if (admission.status === 'approved' && !admission.runtimePath) {
     throw new Error(`${asset.id} is approved without a packaged runtimePath`)
   }
+  if (admission.status === 'approved' && !admission.origin) {
+    throw new Error(`${asset.id} is approved without license/provenance origin data`)
+  }
+  if (admission.origin?.kind === 'licensed-store' && (!admission.origin.provider || !admission.origin.licenseReference)) {
+    throw new Error(`${asset.id} is a store asset without provider and licenseReference`)
+  }
   return {
     ...asset,
     admission: {
@@ -57,6 +63,7 @@ const assets = catalogue.map((asset) => {
       candidateCreationId: admission.creationId ?? null,
       sourceImageCreationId: admission.sourceImageCreationId ?? ledger.sourceReferences?.[asset.id]?.creationId ?? null,
       sourceReference: ledger.sourceReferences?.[asset.id] ?? null,
+      origin: admission.origin ?? null,
       reviewRequired: admission.reviewRequired ?? [],
     },
   }

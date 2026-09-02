@@ -21,4 +21,6 @@ else {
   else fail('the first route candidate is missing or incorrectly admitted')
   if (registry.assets.filter((asset) => asset.admission.status === 'approved').every((asset) => asset.admission.runtimePath)) pass('every approved asset has a packaged runtime path')
   else fail('an approved asset lacks a packaged runtime path')
+  if ([tree, path].every((asset) => asset?.admission.origin?.kind === 'owned-generation' && asset.admission.origin.provider === 'Magnific')) pass('generated candidates retain provider and license provenance')
+  else fail('a generated candidate lacks provenance')
 }

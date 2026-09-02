@@ -24,6 +24,12 @@
       "creationId": "TdmKs4fVNR",
       "sourceImageCreationId": "rgynM6Cxtc",
       "tool": "Magnific image-to-3D",
+      "origin": {
+        "kind": "owned-generation",
+        "provider": "Magnific",
+        "licenseReference": "Account-generated asset; retain creation IDs and applicable platform terms.",
+        "attribution": null
+      },
       "model": "tripo-p1",
       "faceLimit": 450,
       "textureQuality": "none",
@@ -41,6 +47,12 @@
       "creationId": "lJ6TMVtgv9",
       "sourceImageCreationId": "8aHSUocIrU",
       "tool": "Magnific image-to-3D",
+      "origin": {
+        "kind": "owned-generation",
+        "provider": "Magnific",
+        "licenseReference": "Account-generated asset; retain creation IDs and applicable platform terms.",
+        "attribution": null
+      },
       "model": "tripo-p1",
       "faceLimit": 450,
       "textureQuality": "none",
