@@ -192,8 +192,19 @@ export default function App() {
   /**
    * How tall the map gets at the top of its shared column, in pixels -
    * player-set, the same way the other columns are.
+   *
+   * This used to be 120, which is smaller than the map panel's own chrome:
+   * measured live, the header is 27px and the pin-palette tool rail is 78px,
+   * plus padding and gaps of about 28px more - 133px of always-there content
+   * before a single pixel of the actual chart can be drawn. At 120 the chart
+   * got 0px and rendered nothing, silently: no error, no "too short" notice,
+   * just an empty box, on an entirely ordinary window size. Floored at 300
+   * instead, so the worst case is a small but real map rather than an
+   * invisible one - and `mapCanShareHeight` below (which gates the "map
+   * hidden while the window is this short" message on this same constant)
+   * now actually fires before the chart disappears, instead of after.
    */
-  const MIN_MAP_H = 120
+  const MIN_MAP_H = 300
   const [mapH, setMapHState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(MAP_HEIGHT_KEY))
     if (Number.isFinite(saved) && saved >= MIN_MAP_H) return saved
