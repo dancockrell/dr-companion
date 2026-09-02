@@ -36,3 +36,15 @@ export function groupTasksByCategory<T extends { category: string }>(
   }
   return groups
 }
+
+/** Whether the task catalog can honestly present `overId` as a drop target. */
+export function canReorderTask<T extends { id: string; category: string }>(
+  items: T[],
+  id: string,
+  overId: string
+): boolean {
+  if (id === overId) return false
+  const from = items.find((item) => item.id === id)
+  const over = items.find((item) => item.id === overId)
+  return from !== undefined && over !== undefined && from.category === over.category
+}

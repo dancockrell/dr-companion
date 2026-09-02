@@ -3,7 +3,7 @@
  * grouping. Its only import is `import type { TaskInfo }`, fully erased at
  * compile time, so Node's native TS type-stripping can import it directly.
  */
-import { groupTasksByCategory } from '../src/lib/taskGrouping.ts'
+import { canReorderTask, groupTasksByCategory } from '../src/lib/taskGrouping.ts'
 
 let failed = 0
 let checked = 0
@@ -65,7 +65,20 @@ groupTasksByCategory(original)
 ok('unchanged after grouping', JSON.stringify(original) === copy)
 
 console.log('')
-ok('enough was checked for a pass to mean something', checked >= 8, `${checked} assertions`)
+console.log('-- drag targets only advertise moves the catalog can perform --')
+const reorderable = [
+  task('flow.hunt', 'Combat'),
+  task('flow.ambush', 'Combat'),
+  task('flow.recover', 'Recovery'),
+]
+ok('same-category Python task is a valid target', canReorderTask(reorderable, 'flow.hunt', 'flow.ambush'))
+ok('cross-category Python task is not a valid target', !canReorderTask(reorderable, 'flow.hunt', 'flow.recover'))
+ok('TypeScript entry absent from the Python catalog is not a valid target', !canReorderTask(reorderable, 'flow.hunt', 'ts.watch'))
+ok('Ruby entry absent from the Python catalog is not a valid target', !canReorderTask(reorderable, 'flow.hunt', 'ruby.watch'))
+ok('a tile is not its own drop target', !canReorderTask(reorderable, 'flow.hunt', 'flow.hunt'))
+
+console.log('')
+ok('enough was checked for a pass to mean something', checked >= 13, `${checked} assertions`)
 
 console.log('')
 console.log(failed === 0 ? 'all passed' : `${failed} failed`)
