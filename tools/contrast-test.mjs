@@ -279,5 +279,24 @@ if (headerRow) {
 }
 
 console.log('')
+console.log('-- loading motion is consistent and policy-safe --')
+const configEditors = [
+  'AliasesEditor.tsx',
+  'GagsEditor.tsx',
+  'HighlightsEditor.tsx',
+  'MacrosEditor.tsx',
+  'PresetsEditor.tsx',
+  'SubstitutesEditor.tsx',
+]
+for (const file of configEditors) {
+  const source = readFileSync(join('src', 'components', 'config', file), 'utf8')
+  check(`${file} shows the shared loading spinner`,
+    source.includes('<Loader2 aria-hidden="true" className="h-4 w-4 animate-spin"'))
+}
+const radar = readFileSync('src/components/shared/CombatRadar.tsx', 'utf8')
+check('CombatRadar has no dormant looping attention pulse',
+  !radar.includes('animate-pulse') && !radar.includes('pulse?: boolean'))
+
+console.log('')
 console.log(fails === 0 ? 'all passed' : `${fails} FAILED`)
 process.exit(fails === 0 ? 0 : 1)

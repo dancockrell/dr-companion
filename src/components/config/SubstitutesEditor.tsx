@@ -8,7 +8,7 @@
  * header.
  */
 import { useMemo, useState } from 'react'
-import { Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste } from 'lucide-react'
+import { Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste, Loader2 } from 'lucide-react'
 import { parseSubstitutes, type Substitute } from '../../lib/substitutes'
 import { reloadSubstitutes } from '../../lib/useSubstitutes'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
@@ -198,7 +198,7 @@ export function SubstitutesEditor() {
         </button>
       </div>
 
-      {editor.loading && <div className="py-6 text-center text-sm text-ink-faint">Loading…</div>}
+      {editor.loading && <div className="flex items-center justify-center gap-2 py-6 text-sm text-ink-faint"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Loading…</div>}
       {editor.error && !editor.loading && editor.entries.length === 0 && (
         <div className="rounded border border-border bg-surface-raised p-3 text-sm text-ink-muted">
           {editor.error}

@@ -9,7 +9,7 @@
  * edit or delete touches only its own line. See that file's header for why.
  */
 import { useMemo, useState } from 'react'
-import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, Volume2, VolumeX, ClipboardPaste } from 'lucide-react'
+import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, Volume2, VolumeX, ClipboardPaste, Loader2 } from 'lucide-react'
 import { parseHighlights, paint, segments, type Highlight, type HighlightType } from '../../lib/highlights'
 import { reloadHighlights } from '../../lib/useHighlights'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
@@ -354,7 +354,7 @@ export function HighlightsEditor() {
         </button>
       </div>
 
-      {editor.loading && <div className="py-6 text-center text-sm text-ink-faint">Loading…</div>}
+      {editor.loading && <div className="flex items-center justify-center gap-2 py-6 text-sm text-ink-faint"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Loading…</div>}
       {editor.error && !editor.loading && editor.entries.length === 0 && (
         <div className="rounded border border-border bg-surface-raised p-3 text-sm text-ink-muted">
           {editor.error}
