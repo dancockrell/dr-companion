@@ -174,6 +174,32 @@ check(
   offenders.length ? `${offenders.length} found, e.g. ${offenders[0]}` : ''
 )
 
+// These values are exact aliases of Tailwind's spacing scale, not bespoke
+// measurements. Keeping the named form makes the shared design language
+// visible in source and prevents equivalent one-off spellings from spreading.
+const canonicalSizeAliases = new Map([
+  ['max-w-[14rem]', 'max-w-56'],
+  ['max-w-[11rem]', 'max-w-44'],
+  ['max-w-[15rem]', 'max-w-60'],
+  ['min-w-[10rem]', 'min-w-40'],
+  ['min-w-[13rem]', 'min-w-52'],
+  ['min-h-[13rem]', 'min-h-52'],
+  ['max-w-[12rem]', 'max-w-48'],
+  ['min-h-[2.75rem]', 'min-h-11'],
+])
+const nonCanonicalSizes = []
+for (const file of walk('src')) {
+  const text = readFileSync(file, 'utf8')
+  for (const [arbitrary, canonical] of canonicalSizeAliases) {
+    if (text.includes(arbitrary)) nonCanonicalSizes.push(`${file}: ${arbitrary} -> ${canonical}`)
+  }
+}
+check(
+  'exact spacing-scale aliases use their canonical Tailwind classes',
+  nonCanonicalSizes.length === 0,
+  nonCanonicalSizes.length ? `${nonCanonicalSizes.length} found, e.g. ${nonCanonicalSizes[0]}` : ''
+)
+
 // --- the same inks, at the opacities the app actually renders them ----------
 
 /*

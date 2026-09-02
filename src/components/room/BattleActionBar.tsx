@@ -127,7 +127,7 @@ export function BattleActionBar() {
         `${variation.label} ${variation.note ?? ''} ${variation.commands.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase()))) && (
         <p className="mt-1 text-xs text-ink-muted">No action matches “{query.trim()}”.</p>
       )}
-      <div className="mt-1 min-h-[2.75rem] rounded border border-border/70 bg-surface px-2 py-1 text-xs" aria-live="polite">
+      <div className="mt-1 min-h-11 rounded border border-border/70 bg-surface px-2 py-1 text-xs" aria-live="polite">
         {explained ? <>
           <p className="font-semibold text-ink">{explained.label} <span className="font-normal text-ink-faint">· {GROUP_LABEL[explained.group]}</span></p>
           {explained.note && <p className="text-ink-muted">{explained.note}</p>}

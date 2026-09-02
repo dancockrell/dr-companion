@@ -321,13 +321,13 @@ export function SafetyFooter() {
          * "Looting (2 of 4), pass 3" says what is happening and how far in,
          * where the game's activity says at most that something is. */}
         {activeFlow && (
-          <span className="max-w-[14rem] shrink truncate text-accent" title={activeFlow}>
+          <span className="max-w-56 shrink truncate text-accent" title={activeFlow}>
             {activeFlow}
           </span>
         )}
 
         {activity && (
-          <span className="max-w-[11rem] shrink truncate text-ink-muted" title={activity}>
+          <span className="max-w-44 shrink truncate text-ink-muted" title={activity}>
             {activity}
           </span>
         )}
