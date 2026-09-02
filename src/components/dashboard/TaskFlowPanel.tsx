@@ -466,10 +466,26 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   // sliding over by one - the ordinary "pick it up, put it down here" a
   // dragged tile is expected to do, rather than swapping the two positions
   // and leaving a hole where the tile you dropped onto used to be.
+  //
+  // `tileOrder`/`orderTasks` only knows the Python task catalog - TypeScript
+  // (`ts.*`) and Ruby (`ruby.*`) entries never appear in `tasks`, so `next`
+  // can never contain them. Callers must not offer this for those ids (see
+  // `draggable` below); this still guards it explicitly rather than failing
+  // silently. Also refuses a move that would land a task in a different
+  // category from `overId`'s: `groupTasksByCategory` merges only consecutive
+  // same-category items, and `orderTasks` has no category awareness of its
+  // own, so a cross-category splice here would fragment that category into
+  // two separate group headers the next time it renders.
   const moveTile = useCallback(
     (id: string, overId: string) => {
       if (id === overId) return
-      const next = orderTasks(tasks, tileOrder).map((t) => t.id)
+      const ordered = orderTasks(tasks, tileOrder)
+      const byId = new Map(ordered.map((t) => [t.id, t]))
+      const fromTask = byId.get(id)
+      const overTask = byId.get(overId)
+      if (!fromTask || !overTask) return
+      if (fromTask.category !== overTask.category) return
+      const next = ordered.map((t) => t.id)
       const from = next.indexOf(id)
       if (from === -1) return
       next.splice(from, 1)
@@ -712,6 +728,11 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
               <div className="grid grid-cols-[repeat(auto-fill,2rem)] gap-1">
                 {group.items.map((entry) => {
                   const isCommand = entry.id.startsWith('command.')
+                  // Only Python task ids ever appear in `tileOrder` (see
+                  // `moveTile`) - TypeScript and Ruby entries can be picked
+                  // up but can never actually be dropped anywhere, so don't
+                  // offer the gesture for them at all.
+                  const isReorderable = !isCommand && !entry.id.startsWith('ts.') && !entry.id.startsWith('ruby.')
                   const overrideKey = isCommand ? null : iconOverrideFor(entry.id)
                   const iconKey = overrideKey ?? entry.baseIcon
                   const Icon = entry.actionKey ? actionIcon(entry.actionKey) : SCRIPT_ICON_COMPONENT[iconKey]
@@ -747,7 +768,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                       // button) so the reorder gesture and the pointer-based
                       // grid-scroll gesture above don't fight over the same
                       // element's events.
-                      draggable={!isCommand}
+                      draggable={isReorderable}
                       onDragStart={(e) => {
                         e.dataTransfer.effectAllowed = 'move'
                         e.dataTransfer.setData('text/plain', entry.id)
@@ -778,7 +799,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                           e.preventDefault()
                           setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
                         }}
-                        title={`${entry.tooltip}${isCommand ? '' : '\n\n(right-click to choose an icon, drag to rearrange)'}`}
+                        title={`${entry.tooltip}${isCommand ? '' : `\n\n(right-click to choose an icon${isReorderable ? ', drag to rearrange' : ''})`}`}
                         data-action={entry.actionKey}
                         data-entry-id={entry.id}
                         className={cn(

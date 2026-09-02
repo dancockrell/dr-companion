@@ -163,6 +163,11 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   })
   const { containerRef, contentRef, x: panX, y: panY, dragging, handlers, zoomBy, fitView } = viewport
 
+  // The zone's own drawn proportions, reported by MapCanvas. Null until the
+  // first zone has rooms to measure, which is also the state where the box
+  // should behave exactly as it always did - see the container's style.
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null)
+
   // A room update must update the view, not only the red "here" marker in an
   // off-screen part of a previously panned map. Return the docked map to fit
   // when live location changes; deliberate browsing keeps its own view.
@@ -556,18 +561,35 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           is given, and a max-height box collapses to the content's own size —
           which for a small zone is a stamp in the corner.
           In plane mode the height comes from the column instead. */}
+      <div className={plane ? 'flex min-h-0 flex-1 gap-2' : 'contents'}>
       <div
         ref={containerRef}
         title="Map colours: dark you, red hazard, blue bank/healer/guild/shop"
         className={`relative rounded ${
           `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`
-        } ${plane ? 'flex-1 min-h-0' : ''}`}
+        } ${plane ? (naturalSize ? 'h-full min-h-0' : 'flex-1 min-h-0') : ''}`}
         style={{
           // The page, behind and around the chart. Letterboxing in the app's
           // dark surface would read as the map having been cut off rather than
           // as a sheet that does not fill the box.
           background: 'var(--map-ground)',
           ...(plane ? {} : { height: tall ? 320 : 168 }),
+          // Take the width the chart actually occupies, not the whole column.
+          //
+          // `fit` preserves the zone's aspect, so a portrait zone (Crossing is
+          // 995x1148) in a landscape column drew at 54% of the width and left
+          // 351px painted as bare page - it read as a half-empty sheet rather
+          // than as space. Giving the box the zone's own aspect ratio makes
+          // the browser derive the width from the height, so the page ends
+          // where the chart does and the remainder becomes a real slot beside
+          // it. CSS derives it rather than a measured pixel width, which keeps
+          // it correct through column drags and window resizes without a
+          // second size observer. `maxWidth` matters for the opposite case: a
+          // landscape zone would otherwise demand more width than the column
+          // has, and is letterboxed vertically instead, exactly as before.
+          ...(plane && naturalSize
+            ? { aspectRatio: `${naturalSize.w} / ${naturalSize.h}`, maxWidth: '100%', flex: '0 1 auto' }
+            : {}),
           touchAction: 'none',
         }}
         onWheel={handlers.onWheel}
@@ -610,6 +632,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             level={z}
             onRoute={onRoute}
             fit
+            onNaturalSize={setNaturalSize}
             onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
             onZone={pushZone}
             trail={trail}
@@ -634,6 +657,16 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             </span>
           </div>
         )}
+      </div>
+      {/* The width the chart does not need, kept as a real slot rather than
+          spent on bare page. Deliberately empty until something earns it: an
+          empty bordered box would be chrome, and this app's own standard is
+          to draw nothing rather than draw a placeholder. It reserves the
+          space in the layout so a priority panel can land here without
+          another column negotiation. */}
+      {plane && naturalSize && (
+        <aside className="min-h-0 min-w-0 flex-1" aria-label="Reserved for a priority panel" />
+      )}
       </div>
 
       {/* The way back.

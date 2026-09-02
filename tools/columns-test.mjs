@@ -24,6 +24,7 @@
  *
  *   node tools/columns-test.mjs
  */
+import { readFileSync } from 'node:fs'
 import {
   combatBattleWant,
   combatRoomWant,
@@ -309,8 +310,32 @@ console.log('\n-- pickReset: window too narrow even for all three defaults - sti
 // The denominator, printed whether or not anything failed: a suite that
 // asserted nothing would otherwise read exactly like a clean run.
 console.log(`\n${pass} checks passed, ${fail} failed`)
-if (pass < 20) {
-  console.log(`FAIL only ${pass} checks ran; this suite should assert at least 20`)
+
+/*
+ * And the floor, derived rather than typed.
+ *
+ * This was `if (pass < 20)`, written when the suite had 22 checks. It has 63
+ * now, so two thirds of it could have been deleted and the run would still
+ * have reported clean - a guard against an empty run that had quietly stopped
+ * guarding against most of one. A hand-written floor only tracks the suite on
+ * the day it is written, and nothing makes anyone revisit it.
+ *
+ * So count the assertions in this file and require that every one of them
+ * actually ran. That number cannot go stale, because adding a check raises the
+ * bar in the same edit. It also catches more than a truncated file: an early
+ * return, a `throw` halfway down, or a scenario block that exits before its
+ * assertions all leave `pass + fail` short of the source count, and all three
+ * otherwise look exactly like a clean pass.
+ */
+const source = readFileSync(new URL(import.meta.url), 'utf8')
+const declared = [...source.matchAll(/^\s+ok\(/gm)].length
+const ran = pass + fail
+if (ran !== declared) {
+  console.log(
+    `FAIL ${ran} of ${declared} assertions in this file ran - the rest never ` +
+      `executed, which is not a pass`
+  )
   process.exit(1)
 }
+console.log(`   all ${declared} assertions in the file ran`)
 process.exit(fail === 0 ? 0 : 1)

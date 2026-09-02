@@ -99,7 +99,7 @@ end
 
 # Load the module under test. Slice rather than require: the file's tail starts
 # a real server on a real port.
-src = File.read(SRC)
+src = File.read(SRC, encoding: 'UTF-8')
 body = src[/module Companion.*?\n^end\b/m] or abort 'could not find the Companion module'
 eval(body, TOPLEVEL_BINDING, SRC)
 

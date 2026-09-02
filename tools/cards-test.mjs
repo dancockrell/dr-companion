@@ -5,21 +5,7 @@
  * attacking you and an empty panel is the single unforgivable outcome, so the
  * floor is asserted explicitly at absurd widths.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
-import ts from 'typescript'
-
-const dir = mkdtempSync(join(tmpdir(), 'cards-'))
-const out = join(dir, 'cards.mjs')
-writeFileSync(
-  out,
-  ts.transpileModule(readFileSync('src/lib/cards.ts', 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText
-)
-const m = await import(pathToFileURL(out).href)
+const m = await import('../src/lib/cards.ts')
 
 let fails = 0
 const check = (label, got, want) => {

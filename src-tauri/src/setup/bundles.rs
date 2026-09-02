@@ -80,6 +80,21 @@ fn git_blob_sha(bytes: &[u8]) -> String {
     hex(hasher.finalize())
 }
 
+/// Whether `name` is safe to join onto an install directory: a single path
+/// component with no separator and no `.`/`..`.
+///
+/// `BundleFile` reaches `install_bundle` as a `#[tauri::command]` argument,
+/// deserialized from whatever the caller sends - `list_repo_files` only ever
+/// produces a bare filename from a GitHub directory listing, but the command
+/// boundary itself makes no such guarantee. Without this check a `name` of
+/// `"../../../../some/other/app/evil.lic"` would resolve `dir.join(&file.name)`
+/// outside `target` entirely, while the SHA check above still legitimately
+/// verifies the *bytes* written there - content-verified is not the same
+/// claim as location-confined.
+fn is_safe_bundle_file_name(name: &str) -> bool {
+    !name.is_empty() && name != "." && name != ".." && !name.contains('/') && !name.contains('\\')
+}
+
 /// Fetch repository files into `target`, verifying each blob before writing.
 pub async fn install_bundle_inner(
     files: &[BundleFile],
@@ -97,6 +112,9 @@ pub async fn install_bundle_inner(
     let mut written = 0;
 
     for file in files {
+        if !is_safe_bundle_file_name(&file.name) {
+            return Err(format!("refusing an unsafe file name: {}", file.name));
+        }
         if !file
             .url
             .starts_with("https://raw.githubusercontent.com/GenieClient/")
@@ -134,6 +152,36 @@ pub async fn install_bundle_inner(
     Ok(format!(
         "{written} files verified and installed to {target}"
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ordinary_filenames_are_safe() {
+        assert!(is_safe_bundle_file_name("go2.lic"));
+        assert!(is_safe_bundle_file_name("Fill It Up.xml"));
+    }
+
+    /// The sabotage: every shape of name that would let `dir.join(name)`
+    /// escape `target` must be refused, not just the textbook `../` case.
+    #[test]
+    fn path_traversal_shapes_are_rejected() {
+        for name in [
+            "../evil.lic",
+            "../../evil.lic",
+            "sub/evil.lic",
+            "sub\\evil.lic",
+            "..",
+            "",
+        ] {
+            assert!(
+                !is_safe_bundle_file_name(name),
+                "{name:?} should have been rejected"
+            );
+        }
+    }
 }
 
 #[tauri::command]

@@ -15,7 +15,7 @@ def respond(m) = warn("[lich] #{m}")
 
 require 'tmpdir'
 
-src = File.read(ARGV[0])
+src = File.read(ARGV[0], encoding: 'UTF-8')
 body = src[/module Companion.*?\n  # -+ commands --/m] or abort 'could not slice Yaml'
 eval(body.sub(/\n  # -+ commands --\z/, "\nend\n"), TOPLEVEL_BINDING, ARGV[0])
 

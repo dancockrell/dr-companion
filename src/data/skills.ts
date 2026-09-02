@@ -290,3 +290,30 @@ export function combatRanks(skills: SkillState[]): number {
   // Armor matters but does not carry a hunt on its own.
   return Math.round(best * 0.75 + armor * 0.25)
 }
+
+/**
+ * Why the skills list is empty, which is not one question but two.
+ *
+ * `skillsReady` is false only while DRInfomon's post-login startup is still
+ * filling skills in - about a second. Empty during that window means "not
+ * asked yet"; empty outside it means the payload does not carry skills at
+ * all, which is the mock bridge and anything predating the field.
+ *
+ * Those need different words, and getting it wrong is not a vague message but
+ * a false one: a panel that blames the bridge during startup tells a player
+ * their setup is too old to do something it is in the middle of doing.
+ *
+ * `undefined` is deliberately NOT a third state. The flag exists to catch one
+ * specific race, and a bridge that never sends it is the old always-ready
+ * behaviour - see the comment on `CharacterStatus.skillsReady`. So only an
+ * explicit `false` means waiting.
+ *
+ * A function rather than a conditional inside the panel, so it can be tested
+ * without a JSX loader - the same reasoning that moved `pickReset` out of
+ * App.tsx and `vitals`/`situation` out of their components.
+ */
+export type EmptySkillsReason = 'waiting' | 'unsupported'
+
+export function emptySkillsReason(skillsReady: boolean | undefined): EmptySkillsReason {
+  return skillsReady === false ? 'waiting' : 'unsupported'
+}
