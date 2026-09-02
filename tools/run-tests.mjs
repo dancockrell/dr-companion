@@ -63,27 +63,17 @@ const SUITE_FLOOR = 20
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
 
 /**
- * The suites, taken from the existing `test` chain rather than a second list.
- *
- * Deriving them means this cannot silently disagree with `npm test` about what
- * the suite *is* - a second hand-maintained list would drift, and the drift
- * would be invisible until something stopped being run.
+ * The suite manifest is data, not an executable `&&` chain. `npm test` invokes
+ * this controller, so the default command cannot silently revert to stopping
+ * at the first failure. The controller test validates every manifest entry.
  */
 function suiteNames() {
-  const chain = pkg.scripts?.test
-  // Returns empty rather than throwing, so the single refusal path below owns
-  // every "nothing to run" case. It used to throw here, which was safe but
-  // wrong in a way sabotage-testing caught: the uncaught error exited 1, and 1
-  // is the code for "tests ran and failed". Anything reading the exit status
-  // would conclude the suite had executed and found problems, which is the
-  // opposite of what happened. A refusal has to be distinguishable from a
-  // failure, and it also made the `names.length === 0` guard below
-  // unreachable for the emptiest input there is.
-  if (!chain) return []
-  return chain
-    .split('&&')
-    .map((s) => s.trim().replace(/^npm run /, ''))
-    .filter(Boolean)
+  try {
+    const suites = JSON.parse(readFileSync('tools/test-suites.json', 'utf8'))
+    return Array.isArray(suites) ? suites.filter((name) => typeof name === 'string' && name) : []
+  } catch {
+    return []
+  }
 }
 
 /**
@@ -176,7 +166,7 @@ if (process.argv.includes('--list')) {
 // An empty suite list must abort rather than sail through to "all passed" on
 // a total of zero. This is the degenerate case the whole file is about.
 if (names.length === 0) {
-  console.error('REFUSING TO RUN: derived an empty suite list from package.json `test`.')
+  console.error('REFUSING TO RUN: tools/test-suites.json did not provide any suites.')
   console.error('Nothing would have been checked, and a run of nothing must never report success.')
   process.exit(2)
 }
