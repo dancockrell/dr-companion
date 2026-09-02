@@ -227,6 +227,10 @@ export function FreeCanvas({
           reflow
         </button>
       )}
+      {/* Keep panel-local z values inside one layer. Persisted panel order is
+          intentionally unbounded, and the active panel uses 9999, but neither
+          should ever cover canvas chrome such as the reflow escape hatch. */}
+      <div className="absolute inset-0 z-10">
       {items.map((item) => {
         const live = drag?.id === item.id
           ? drag.rect
@@ -372,6 +376,7 @@ export function FreeCanvas({
           </div>
         )
       })}
+      </div>
       <div className="sr-only" role="status" aria-live="polite">{announcement}</div>
     </div>
   )

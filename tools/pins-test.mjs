@@ -30,6 +30,7 @@ const compile = (src, name) => {
 }
 compile('src/lib/storage.ts', 'storage.js')
 compile('src/lib/profiles.ts', 'profiles.js')
+compile('src/lib/mapPlaceColors.ts', 'mapPlaceColors.js')
 const pinsPath = compile('src/lib/mapPins.ts', 'mapPins.js')
 
 const store = new Map()
@@ -51,6 +52,7 @@ const {
   PIN_COLOR_HEX,
   PIN_ICONS,
   PIN_PRESETS,
+  COMMON_PLACE_PIN_COLORS,
 } = await import(pathToFileURL(pinsPath).href)
 
 let failed = 0
@@ -138,6 +140,7 @@ ok('map-pin (the plain default) is one of them', PIN_ICONS.includes('map-pin'))
 
 console.log('')
 console.log('-- starter presets: many, and covering the categories Dan asked for --')
+ok('banks and shops have one shared color language', COMMON_PLACE_PIN_COLORS.bank === 'gold' && COMMON_PLACE_PIN_COLORS.shop === 'blue')
 ok('a generous list, not one-per-category minimum', PIN_PRESETS.length >= 10)
 for (const want of ['Home', 'Bank', 'Healer', 'Guild', 'Hunting Spot', 'Return Point']) {
   ok(`covers "${want}"`, PIN_PRESETS.some((p) => p.label === want))

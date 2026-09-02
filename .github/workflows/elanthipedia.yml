@@ -4,8 +4,11 @@ name: elanthipedia
 
 on:
   schedule:
-    # Churn is about one page an hour, so this is a few requests or none.
-    - cron: '17 * * * *'
+    # Churn is about one page an hour per the comment above, but the wiki
+    # doesn't need catching within the hour it changes -- every 4h still
+    # catches same-day edits and cuts run volume (and the notification
+    # noise that comes with it) by 75% for no real loss.
+    - cron: '17 */4 * * *'
   workflow_dispatch:
 
 # One refresh at a time.
@@ -39,8 +42,14 @@ jobs:
 
       - name: Publish if anything changed
         run: |
-          git config user.name  'dr-companion bot'
-          git config user.email '173971169+dancockrell@users.noreply.github.com'
+          # The standard Actions bot identity, not Dan's own noreply address.
+          # This used to commit as 173971169+dancockrell@users.noreply.github.com
+          # -- the exact address every human commit in this repo also uses --
+          # so an automated hourly commit was indistinguishable from Dan
+          # pushing to his own repo, both in git history and in whatever
+          # notifications that push triggered.
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/elanthipedia
 
           # state.json is a cursor and moves every run. Commit only when the
