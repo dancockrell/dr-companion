@@ -115,6 +115,16 @@ await wait(650)
 check('Resume continues the same media element', MockAudio.instances.at(-1) === failedElement && failedElement.paused === false)
 check('Resume restores the exact pre-pause gain', Math.abs(musicVolume() - 0.6) < 0.001, String(musicVolume()))
 
+setMusicVolume(0)
+pauseMusic()
+check('Pause reaches an already-muted media element', failedElement.paused === true)
+resumeMusic()
+await settle()
+check('Resume does not turn an intentional zero gain into an implicit unmute',
+  failedElement.paused === false && musicVolume() === 0,
+  String(musicVolume()))
+setMusicVolume(0.6)
+
 pauseMusic()
 resumeMusic()
 await wait(650)
