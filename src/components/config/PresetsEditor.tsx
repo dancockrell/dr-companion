@@ -229,7 +229,7 @@ export function PresetsEditor() {
                     type="button"
                     onClick={() => void submitForm(p)}
                     disabled={busy}
-                    className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+                    className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
                   >
                     {busy ? 'Saving…' : 'Save'}
                   </button>

@@ -140,6 +140,15 @@ check(
     !panel.includes('uppercase tracking-wider')
 )
 
+const retiredOnAccent = walk('src').filter((file) =>
+  readFileSync(file, 'utf8').includes('text-[#1a1408]')
+)
+check(
+  'accent surfaces use the semantic on-accent text token',
+  retiredOnAccent.length === 0,
+  retiredOnAccent.length ? `${retiredOnAccent.length} files still hardcode #1a1408` : ''
+)
+
 // --- the type floor ---------------------------------------------------------
 
 console.log('')
