@@ -90,7 +90,7 @@ end
 # module - Intents, MapInfo, State and friends are all nested inside it, so
 # map_walk's own unqualified `State`/`MapInfo` references resolve correctly
 # without needing to be faked themselves.
-src = File.read(SRC)
+src = File.read(SRC, encoding: 'UTF-8')
 body = src[/module Companion.*?\n^end\b/m] or abort 'could not find the Companion module'
 eval(body, TOPLEVEL_BINDING, SRC)
 

@@ -24,7 +24,7 @@ module Room
   def self.current = FakeRoom.new($room)
 end
 
-src = File.read(ARGV[0])
+src = File.read(ARGV[0], encoding: 'UTF-8')
 body = src[/module Companion.*?\n  # -+ commands --/m] or abort 'could not slice Runaway'
 eval(body.sub(/\n  # -+ commands --\z/, "\nend\n"), TOPLEVEL_BINDING, ARGV[0])
 

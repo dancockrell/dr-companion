@@ -354,7 +354,7 @@ end
 
 # Load everything except the trailing command-line section, which would start a
 # server on the default port and then sleep forever.
-src = File.read(SRC)
+src = File.read(SRC, encoding: 'UTF-8')
 body = src[/module Companion.*?\n^end\b/m] or abort 'could not find the Companion module'
 eval(body, TOPLEVEL_BINDING, SRC)
 
