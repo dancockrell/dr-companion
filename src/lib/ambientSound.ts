@@ -1,4 +1,5 @@
 import { effectiveAudioGain, onMasterMuteChange } from './audioMaster.ts'
+import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults.ts'
 
 /**
  * Music: per-zone playlists and an optional radio override. No ambient
@@ -886,7 +887,7 @@ export function skipTrack(dir: 1 | -1) {
  * gate is separate; see `Layer`'s header. Default 0 (28 Aug 2026, Dan) - a first run
  * starts silent; kept in sync by hand with persistence.ts's own default.
  */
-let musicGain = 0
+let musicGain: number = DEFAULT_AUDIO_VOLUMES.music
 const musicVolumeListeners = new Set<(v: number) => void>()
 export function setMusicVolume(v: number) {
   musicGain = Math.max(0, Math.min(1.5, v))

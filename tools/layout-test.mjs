@@ -34,6 +34,7 @@ const layoutPath = compile('src/lib/layout.ts', 'layout.js')
 
 // A tiny localStorage, because layout.ts persists through it.
 const store = new Map()
+globalThis.window = new EventTarget()
 globalThis.localStorage = {
   getItem: (k) => (store.has(k) ? store.get(k) : null),
   setItem: (k, v) => store.set(k, String(v)),
@@ -67,6 +68,21 @@ check('other decks untouched', l.decks.people, 'auto')
 console.log('\n-- a pin survives a save and load --')
 m.saveLayout('power', m.setDeckPref(base, 'hostile', 'fan'))
 check('reloaded', m.loadLayout('power').decks.hostile, 'fan')
+
+console.log('\n-- layout notifications cross both hook and window boundaries --')
+let notifications = 0
+const unsubscribe = m.onLayoutChange(() => notifications++)
+m.saveLayout('power', base)
+check('same-window save publishes', notifications, 1)
+const crossWindow = new Event('storage')
+Object.defineProperty(crossWindow, 'key', { value: 'drc.layout.v1.power' })
+window.dispatchEvent(crossWindow)
+check('matching cross-window storage publishes', notifications, 2)
+const unrelated = new Event('storage')
+Object.defineProperty(unrelated, 'key', { value: 'drc.prefs.v2' })
+window.dispatchEvent(unrelated)
+check('unrelated storage remains isolated', notifications, 2)
+unsubscribe()
 
 console.log('\n-- a layout saved before decks existed still loads --')
 store.set(
