@@ -2,6 +2,8 @@ import type { MapStamp } from '../../lib/mapStamps'
 
 type StampPresentation = {
   images: Array<{ href: string; aspect: number }>
+  /** Full-size alternatives suitable for illustrations and hero landmarks. */
+  featured?: Array<{ href: string; aspect: number }>
   scale: number
   opacity: number
 }
@@ -39,7 +41,12 @@ const STAMP_ART: Record<MapStamp['kind'], StampPresentation> = {
   fortification: { images: [{ href: '/map-stamps/fortification.png', aspect: 512 / 467 }, { href: '/map-stamps/atlas/17.png', aspect: 135 / 151 }, { href: '/map-stamps/atlas/29.png', aspect: 98 / 110 }], scale: 0.88, opacity: 0.67 },
   bridge: { images: [{ href: '/map-stamps/bridge.png', aspect: 411 / 512 }, { href: '/map-stamps/atlas/14.png', aspect: 140 / 97 }], scale: 0.86, opacity: 0.67 },
   harbor: { images: [{ href: '/map-stamps/harbor.png', aspect: 483 / 512 }, { href: '/map-stamps/atlas/15.png', aspect: 137 / 145 }], scale: 0.88, opacity: 0.66 },
-  market: { images: [{ href: '/map-stamps/market.png', aspect: 512 / 486 }, { href: '/map-stamps/market-v2.png', aspect: 1 }], scale: 0.86, opacity: 0.65 },
+  market: {
+    images: [{ href: '/map-stamps/market.png', aspect: 512 / 486 }, { href: '/map-stamps/market-v2.png', aspect: 1 }],
+    featured: [{ href: '/map-stamps/market.png', aspect: 512 / 486 }, { href: '/map-stamps/market-v2.png', aspect: 1 }],
+    scale: 0.86,
+    opacity: 0.65,
+  },
   'service-bank': { images: [{ href: '/map-stamps/service-bank.png', aspect: 714 / 625 }, { href: '/map-stamps/atlas/01.png', aspect: 133 / 137 }], scale: 1, opacity: 0.68 },
   'service-healer': { images: [{ href: '/map-stamps/service-healer.png', aspect: 595 / 660 }, { href: '/map-stamps/atlas/02.png', aspect: 120 / 151 }, { href: '/map-stamps/atlas/11.png', aspect: 120 / 140 }], scale: 1, opacity: 0.68 },
   'service-guild': { images: [{ href: '/map-stamps/service-guild.png', aspect: 762 / 508 }, { href: '/map-stamps/atlas/03.png', aspect: 121 / 159 }], scale: 1, opacity: 0.68 },
@@ -75,9 +82,10 @@ export function MapStampLayer({
       {stamps.map((stamp) => {
         const art = STAMP_ART[stamp.kind]
         const backgroundVariants = art.images.slice(1)
+        const featuredVariants = art.featured ?? [art.images[0]]
         const image = stamp.role === 'background' && backgroundVariants.length
           ? backgroundVariants[stamp.variant % backgroundVariants.length]
-          : art.images[0]
+          : featuredVariants[stamp.variant % featuredVariants.length]
         // Faint repeating fabric sits behind readable illustrations. Major
         // services deliberately break scale like cathedrals on historical maps.
         const baseDimension = stamp.role === 'hero' ? 72 : stamp.role === 'background' ? 24 : 56
