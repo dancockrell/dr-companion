@@ -11,7 +11,7 @@
  */
 import { readJSON, writeJSON } from './storage'
 import { profileKey } from './profiles'
-import { PIN_ICONS, type PinIcon } from './mapPins'
+import { PIN_COLOR_HEX, PIN_ICONS, type PinIcon } from './mapPins'
 import type { GameInstance } from '../types'
 
 export interface PlayerMarker {
@@ -20,7 +20,7 @@ export interface PlayerMarker {
   color: string
 }
 
-export const DEFAULT_MARKER: PlayerMarker = { icon: 'shield', color: '#e0554f' }
+export const DEFAULT_MARKER: PlayerMarker = { icon: 'shield', color: PIN_COLOR_HEX.red }
 
 const STORAGE_KEY = 'drc.player-marker.v1'
 export const PLAYER_MARKER_STORAGE_KEY = STORAGE_KEY

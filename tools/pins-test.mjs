@@ -117,6 +117,12 @@ ok(
   'every palette colour has a hex value to draw with',
   PIN_COLORS.every((c) => typeof PIN_COLOR_HEX[c] === 'string' && PIN_COLOR_HEX[c].startsWith('#'))
 )
+ok('gold pins use the canonical accent token value', PIN_COLOR_HEX.gold === '#d4a84b')
+const markerSource = readFileSync('src/lib/playerMarker.ts', 'utf8')
+ok(
+  'the default player marker reuses the canonical pin red',
+  markerSource.includes('color: PIN_COLOR_HEX.red') && !markerSource.includes("color: '#e0554f'")
+)
 
 console.log('')
 console.log('-- icons: optional, additive, do not touch anything else --')
