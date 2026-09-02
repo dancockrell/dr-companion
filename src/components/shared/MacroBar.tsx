@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import * as Icons from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { useScrollEdges } from '../../lib/useScrollEdges'
 import { MACROS, type Macro } from '../../data/macros'
 
 /**
@@ -40,38 +41,11 @@ export function MacroBar({
 }) {
   const [open, setOpen] = useState<string | null>(null)
 
-  /* Which edges actually have something past them.
-   *
-   * The fade was one span, on the right, rendered unconditionally. That is a
-   * sign that is always lit: it said "there is more" when the row was scrolled
-   * to its end and when there was no overflow at all, so it carried no
-   * information in either direction, and there was nothing on the left at all.
-   * Since the scrollbar is deliberately hidden here, that left twelve macros
-   * with five off-view and no indication of it - measured on the real app,
-   * 990px of buttons shown through 418px.
-   *
-   * Measured rather than assumed: scrollLeft against scrollWidth, re-checked
-   * on scroll and on resize, because the row's width changes with the column. */
+  /* Which edges actually have something past them. See useScrollEdges - the
+   * measurement lives there now because MapToolRail needs the same answer and
+   * a second copy is a second thing to get wrong. */
   const scroller = useRef<HTMLDivElement>(null)
-  const [edges, setEdges] = useState({ start: false, end: false })
-
-  const measure = useCallback(() => {
-    const el = scroller.current
-    if (!el) return
-    const max = el.scrollWidth - el.clientWidth
-    // A pixel of slack: fractional layout leaves scrollLeft a hair under max,
-    // which would otherwise light the right fade forever at the far end.
-    setEdges({ start: el.scrollLeft > 1, end: el.scrollLeft < max - 1 })
-  }, [])
-
-  useEffect(() => {
-    const el = scroller.current
-    if (!el) return
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [measure])
+  const { edges, onScroll } = useScrollEdges(scroller)
 
   const variationOf = (m: Macro) =>
     m.variations.find((v) => v.id === choice[m.id]) ?? m.variations[0]
@@ -80,7 +54,7 @@ export function MacroBar({
     <div className="relative min-w-0">
       <div
         ref={scroller}
-        onScroll={measure}
+        onScroll={onScroll}
         className={cn(
           'flex gap-1 overflow-x-auto pb-0.5',
           // No scrollbar. The row is shorter than a scrollbar would be.
