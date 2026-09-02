@@ -260,12 +260,16 @@ class SightPicture:
         if self._collecting is not None or now - self._last_sent < self.interval:
             return
         # Half the cap, not all of it. `_rate.sent` is the same 60-second
-        # window `do()` itself enforces; reading it without recording into it
-        # is why this check can happen every tick with no side effect of its
-        # own. A real action always sees at least half the cap free, however
-        # aggressively this rotates.
+        # window `do()` itself enforces, but only `_Rate.record()` prunes it -
+        # reading the list here does not, so if `do()` hasn't run in a while
+        # (a long `until`-wait, say) stale entries never age out on their
+        # own. Prune the same window here before counting so a rotation that
+        # went quiet for a few minutes doesn't stay stuck refusing to refresh
+        # long after the real budget has freed up. Reading (not recording)
+        # into `_rate.sent` is still why this check can happen every tick
+        # with no side effect of its own beyond the prune.
         with task._send_lock:
-            recent = len(task._rate.sent)
+            recent = len([t for t in task._rate.sent if now - t < 60.0])
         if recent >= MAX_COMMANDS_PER_MINUTE // 2:
             return
 
