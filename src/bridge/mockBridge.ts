@@ -29,6 +29,7 @@ import { DEMO_INVASION_ROOM } from '../data/demoInvasionRoom'
 import { loadZone, DEFAULT_ZONE } from '../lib/mapData'
 import { loadPrefs, savePrefs } from '../lib/persistence'
 import { EXPECTED_BRIDGE_VERSION } from '../lib/versions'
+import { registerPlayerProfiles, type PlayerArtProfile } from '../lib/playerArt'
 
 type Listener = (msg: BridgeServerMessage) => void
 
@@ -166,6 +167,35 @@ const DEMO_INVASION_PLAYERS = [
   'Darragh', 'Mirelle', 'Sarkranis', 'Kaelie', 'Vaerek', 'Navesi',
   'Aislynn', 'Rhadyn', 'Talur', 'Xionara', 'Miskton', 'Leayne',
 ]
+
+/**
+ * Fictional development-only profile facts for the crowded-room portrait
+ * rail. Production obtains these from public/player-art/profiles.json; putting
+ * invented values there would falsely describe real characters with matching
+ * names. Registering them only when MockBridge is constructed makes the demo
+ * exercise race + guild/class + gender selection while keeping the live game
+ * honest when those facts are not known.
+ */
+const DEMO_INVASION_PLAYER_PROFILES: Record<string, PlayerArtProfile> = {
+  Kestrel: { race: 'Human', sex: 'male', guild: 'Ranger' },
+  Vessa: { race: 'S' + String.fromCharCode(39) + 'Kra Mur', sex: 'female', guild: 'Warrior Mage' },
+  Thendish: { race: 'Gor' + String.fromCharCode(39) + 'Tog', sex: 'male', guild: 'Barbarian' },
+  Orlathe: { race: 'Elothean', sex: 'female', guild: 'Moon Mage' },
+  Brannick: { race: 'Dwarf', sex: 'male', guild: 'Paladin' },
+  Ysabeau: { race: 'Elf', sex: 'female', guild: 'Bard' },
+  Darragh: { race: 'Kaldar', sex: 'male', guild: 'Cleric' },
+  Mirelle: { race: 'Halfling', sex: 'female', guild: 'Trader' },
+  Sarkranis: { race: 'S' + String.fromCharCode(39) + 'Kra Mur', sex: 'male', guild: 'Thief' },
+  Kaelie: { race: 'Prydaen', sex: 'female', guild: 'Ranger' },
+  Vaerek: { race: 'Rakash', sex: 'male', guild: 'Barbarian' },
+  Navesi: { race: 'Gnome', sex: 'female', guild: 'Empath' },
+  Aislynn: { race: 'Human', sex: 'female', guild: 'Necromancer' },
+  Rhadyn: { race: 'Gor' + String.fromCharCode(39) + 'Tog', sex: 'male', guild: 'Paladin' },
+  Talur: { race: 'Elothean', sex: 'male', guild: 'Moon Mage' },
+  Xionara: { race: 'Elf', sex: 'female', guild: 'Warrior Mage' },
+  Miskton: { race: 'Dwarf', sex: 'male', guild: 'Trader' },
+  Leayne: { race: 'Kaldar', sex: 'female', guild: 'Bard' },
+}
 
 /** Sixty loose objects, deliberately mixing duplicates with many distinct
  * kinds. The floor overlay must collapse repeats, expose search, and remain
@@ -831,6 +861,10 @@ export const DEMO_PRESET_LIST = Object.values(presets).map((p) => ({
 
 export class MockBridge {
   private listeners = new Set<Listener>()
+
+  constructor() {
+    registerPlayerProfiles(DEMO_INVASION_PLAYER_PROFILES)
+  }
   /**
    * Whoever was chosen last, not always the barbarian.
    *

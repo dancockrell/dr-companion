@@ -11,7 +11,7 @@
  * multi-seed renders, applied to people instead of monsters.
  */
 
-import roleGuessData from '../data/npcRoleGuess.json'
+import roleGuessData from '../data/npcRoleGuess.json' with { type: 'json' }
 
 const BASE = '/npc-defaults/'
 /** The bulk GPU-rendered pool (tools/art-npcs.mjs) — 3,320 files across
@@ -159,6 +159,26 @@ function bulkNpcDefaultFor(role: NpcRole, race: NpcRace, gender: 'male' | 'femal
   if (variants.length === 0) return undefined
   const file = pick(variants, seed)
   return { key: `bulk-${bulkRole}-${race}-${gender}`, url: `${BULK_BASE}${file}` }
+}
+
+/**
+ * A default for a real player whose public profile supplies all three facts.
+ *
+ * NPC defaults deliberately prefer the smaller hand-curated role/gender pool,
+ * because a researched NPC's specific appearance can be curated separately.
+ * That ordering is wrong for a player profile: dropping a known race merely
+ * because a prettier role/gender picture exists would make the tooltip claim
+ * "Gor'Tog Barbarian male" while showing a Human. The complete bulk pool is
+ * therefore first here; the curated pool remains an honest fallback when a
+ * particular generated combination is not installed.
+ */
+export function profiledPlayerDefaultFor(
+  role: NpcRole,
+  race: NpcRace,
+  gender: 'male' | 'female',
+  seed: string,
+): NpcDefaultSource | undefined {
+  return bulkNpcDefaultFor(role, race, gender, seed) ?? npcDefaultFor(role, gender, seed, race)
 }
 
 /**
