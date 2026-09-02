@@ -1,5 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { RoomScene } from './RoomScene'
+import { RoomScene, sceneMaxWidthVh } from './RoomScene'
+
+/**
+ * The scene's own height ceiling, in vh — exported so the outer column
+ * allocator (`App.tsx`) can ask this file what its scene actually needs
+ * rather than carrying a second, independently-guessed number. Kept as a
+ * named export next to the `<RoomScene>` call that uses it, the same value,
+ * so the two cannot drift apart the way the old duplicate did.
+ */
+export const BATTLE_SCENE_MAX_HEIGHT_VH = 52
+
+/** What `BATTLE_SCENE_MAX_HEIGHT_VH` actually costs in scene width, at the
+ * landscape shape this column always uses. */
+export const BATTLE_SCENE_MAX_WIDTH_VH = sceneMaxWidthVh(BATTLE_SCENE_MAX_HEIGHT_VH, 'landscape')!
 import { CombatRadar } from '../shared/CombatRadar'
 import { BattleStatus } from './BattleStatus'
 import { BattleActionBar } from './BattleActionBar'
@@ -280,7 +293,7 @@ export function BattleColumn() {
             // whatever height they get, so the picture still gets the
             // majority share rather than a ceiling calibrated for neighbours
             // that moved out.
-            maxHeightVh={52}
+            maxHeightVh={BATTLE_SCENE_MAX_HEIGHT_VH}
             shape="landscape"
             framed={false}
             overlay={
