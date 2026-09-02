@@ -379,7 +379,11 @@ export function MusicTransport({
               min={0}
               max={150}
               value={Math.round(vol * 100)}
-              onChange={(e) => setMusicVolume(Number(e.currentTarget.value) / 100)}
+              onChange={(e) => {
+                const next = Number(e.currentTarget.value) / 100
+                setMusicVolume(next)
+                savePrefs({ musicVolume: next })
+              }}
               className="w-12 min-w-9 shrink accent-accent sm:w-16"
               title={`Music volume: ${Math.round(vol * 100)}%`}
               aria-label="Music volume (quick)"
