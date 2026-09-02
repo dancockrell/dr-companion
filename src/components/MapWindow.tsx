@@ -43,6 +43,7 @@ export function MapWindow() {
     zone,
     browsing,
     zoneStack,
+    arrivalIds,
     zoneLoading,
     zoneLoadError,
     retryZone,
@@ -88,6 +89,7 @@ export function MapWindow() {
     handlers,
     zoomBy,
     centerOn,
+    fitView,
     resetPan,
   } = useMapViewport({
     zoom,
@@ -238,6 +240,17 @@ export function MapWindow() {
   }
 
   const z = level ?? levels[0] ?? 0
+
+  // A newly followed cross-map link belongs to a different coordinate
+  // system, so fit that sheet once. Live movement continues to fit; manual
+  // pan while browsing remains untouched after the destination is shown.
+  const fittedZoneRef = useRef<string | null>(null)
+  useEffect(() => {
+    const zoneId = zone?.zone ?? null
+    const zoneChanged = fittedZoneRef.current !== zoneId
+    fittedZoneRef.current = zoneId
+    if (zoneChanged || !browsing) fitView()
+  }, [browsing, fitView, hereId, z, zone?.zone])
 
   /**
    * Recenter on "here" when the character moves or the level changes - not
@@ -462,6 +475,7 @@ export function MapWindow() {
               labels={labels}
               onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
               onZone={pushZone}
+              arrivalIds={arrivalIds}
               trail={trail}
               onHereAt={onHereAt}
               pins={pinsByRoom}

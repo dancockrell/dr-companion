@@ -15,7 +15,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MapPin as MapPinIcon, Pencil, Plus } from 'lucide-react'
 import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
-import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
+import { PinIconGlyph } from './PinIconGlyph'
 
 export function MapPinBar({
   pins,
@@ -91,13 +91,16 @@ export function MapPinBar({
               className="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded border border-border bg-surface-raised shadow-lg"
             >
               {pins.map((pin) => {
-                const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : MapPinIcon
                 return (
                   <div
                     key={pin.id}
                     className="group flex items-center gap-1.5 border-b border-border/50 px-2 py-1 last:border-b-0 hover:bg-surface-overlay focus-within:bg-surface-overlay"
                   >
-                    <Icon className="h-3 w-3 shrink-0" style={{ color: PIN_COLOR_HEX[pin.color] }} />
+                    {pin.icon ? (
+                      <PinIconGlyph icon={pin.icon} className="h-3 w-3 shrink-0 object-contain" style={{ color: PIN_COLOR_HEX[pin.color] }} />
+                    ) : (
+                      <MapPinIcon className="h-3 w-3 shrink-0" style={{ color: PIN_COLOR_HEX[pin.color] }} />
+                    )}
                     <button
                       type="button"
                       disabled={disabled}

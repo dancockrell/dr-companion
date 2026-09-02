@@ -34,6 +34,7 @@ function zoneName(id: string) {
 
 export function useZoneBrowsing(liveZone: MapZone | null) {
   const [builtZone, setBuiltZone] = useState<MapZone | null>(null)
+  const [arrivalIds, setArrivalIds] = useState<Set<number>>(new Set())
   const requestGate = useRef(createLatestRequestGate())
   const retryLoad = useRef<PendingZoneLoad | null>(null)
   const [zoneLoading, setZoneLoading] = useState<ZoneLoadStatus | null>(null)
@@ -150,17 +151,19 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
    * teleport, event entry, or special command and therefore have no ordinary
    * gateway in the cartographer graph.
    */
-  function browseZone(id: string) {
+  function browseZone(id: string, arrivals: number[] = []) {
     if (!id || id === zone?.zone) return
 
     if (id === liveZone?.zone) {
       cancelPendingLoad()
+      setArrivalIds(new Set(arrivals))
       setZoneStack([])
       return
     }
 
     beginZoneLoad(id, 'browse', (z) => {
       setBuiltZone(z)
+      setArrivalIds(new Set(arrivals.filter((roomId) => z.rooms?.some((room) => room.id === roomId))))
       setZoneStack((st) => [...st, id])
     })
   }
@@ -174,6 +177,7 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
 
     beginZoneLoad(target, 'back', (z) => {
       setBuiltZone(z)
+      setArrivalIds(new Set())
       setZoneStack((st) => st.slice(0, -1))
     })
   }
@@ -181,12 +185,14 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
   function resetZone() {
     if (liveZone?.ok) {
       cancelPendingLoad()
+      setArrivalIds(new Set())
       setZoneStack([])
       return
     }
 
     beginZoneLoad(DEFAULT_ZONE, 'reset', (z) => {
       setBuiltZone(z)
+      setArrivalIds(new Set())
       setZoneStack([])
     })
   }
@@ -234,6 +240,7 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
     zone,
     browsing,
     zoneStack,
+    arrivalIds,
     zoneLoading: liveZone?.ok && !browsing ? null : zoneLoading,
     zoneLoadError: liveZone?.ok && !browsing ? null : zoneLoadError,
     retryZone,

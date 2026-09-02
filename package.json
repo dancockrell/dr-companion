@@ -35,6 +35,7 @@
     "test:map-walk": "node tools/ruby-test.mjs lich-scripts/test/map_walk_test.rb lich-scripts/companion_bridge.lic",
     "test:map-nearest": "node tools/ruby-test.mjs lich-scripts/test/map_nearest_test.rb lich-scripts/companion_bridge.lic",
     "test:pins": "node tools/pins-test.mjs",
+    "test:pin-art": "node tools/pin-art-test.mjs",
     "test:pins-file": "node tools/pins-file-test.mjs",
     "test:map-state-sync": "node tools/map-state-sync-test.mjs",
     "test:pin-nudge": "node tools/pin-nudge-test.mjs",

@@ -212,6 +212,10 @@ const byFile = new Map(parsed.map(({ file, zone }) => [fileKey(file), zone]))
 let gateways = 0
 let unresolved = 0
 
+// Resolve every destination first. Arrival rooms are a property of the whole
+// graph, so computing them while files are still being visited makes the
+// result depend on directory order (the far zone may not have its own gates
+// attached yet).
 for (const { zone } of parsed) {
   for (const r of zone.rooms) {
     const first = (r.note ?? '').split('|')[0].trim()
@@ -231,7 +235,25 @@ for (const { zone } of parsed) {
     r.gateway = { zone: target.id, name: target.name }
     gateways++
   }
+}
 
+// Genie's cross-file note identifies the destination sheet, not one exact
+// node on that sheet. Do not invent precision. Record every reciprocal room
+// which explicitly leads back to the source zone; the UI can then show the
+// honest arrival area instead of opening a new map with no context at all.
+for (const { zone } of parsed) {
+  for (const room of zone.rooms) {
+    if (!room.gateway) continue
+    const target = parsed.find(({ zone: candidate }) => candidate.id === room.gateway.zone)?.zone
+    const arrivals = (target?.rooms ?? [])
+      .filter((candidate) => candidate.gateway?.zone === zone.id)
+      .map((candidate) => candidate.id)
+      .filter((id) => id !== undefined)
+    if (arrivals.length) room.gateway.arrivals = [...new Set(arrivals)].sort((a, b) => a - b)
+  }
+}
+
+for (const { zone } of parsed) {
   writeFileSync(join(OUT, `${zone.id}.json`), JSON.stringify(zone))
   rooms += zone.rooms.length
   arcs += zone.rooms.reduce((n, r) => n + r.exits.length, 0)

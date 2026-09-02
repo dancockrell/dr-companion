@@ -55,7 +55,7 @@ export const PIN_COLOR_HEX: Record<PinColor, string> = {
  * in a newer lucide release renders nothing and fails silently, which is a
  * worse bug than an icon list that is merely short.
  */
-export const PIN_ICONS = [
+const LUCIDE_PIN_ICONS = [
   'alert-triangle',
   'amphora',
   'anchor',
@@ -429,7 +429,24 @@ export const PIN_ICONS = [
   'worm',
   'wrench',
 ] as const
+
+export const CUSTOM_PIN_ICONS = ['fantasy-dragon'] as const
+export const PIN_ICONS = [...LUCIDE_PIN_ICONS, ...CUSTOM_PIN_ICONS] as const
+export type LucidePinIcon = (typeof LUCIDE_PIN_ICONS)[number]
+export type CustomPinIcon = (typeof CUSTOM_PIN_ICONS)[number]
 export type PinIcon = (typeof PIN_ICONS)[number]
+
+export function isCustomPinIcon(icon: PinIcon): icon is CustomPinIcon {
+  return (CUSTOM_PIN_ICONS as readonly string[]).includes(icon)
+}
+
+export function isLucidePinIcon(icon: PinIcon): icon is LucidePinIcon {
+  return !isCustomPinIcon(icon)
+}
+
+export function customPinIconHref(icon: CustomPinIcon): string {
+  return `/pin-icons/${icon}.png`
+}
 
 export interface MapPin {
   id: string
@@ -539,9 +556,14 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
   { label: 'Shrine', icon: 'cross', color: 'purple' },
   { label: 'Crossing', icon: 'waves', color: 'slate' },
   { label: 'Overlook', icon: 'sun', color: 'slate' },
-  { label: 'Camp', icon: 'moon', color: 'slate' },
+  { label: 'Camp', icon: 'tent-tree', color: 'slate' },
+  { label: 'Observatory', icon: 'telescope', color: 'purple' },
+  { label: 'Music Hall', icon: 'music', color: 'purple' },
+  { label: 'Cemetery', icon: 'ghost', color: 'slate' },
 
   // Combat and hazard
+  { label: 'Dragon', icon: 'fantasy-dragon', color: 'red' },
+  { label: 'Dragon Lair', icon: 'fantasy-dragon', color: 'red' },
   { label: 'Hunting Spot', icon: 'swords', color: 'red' },
   { label: 'Danger', icon: 'skull', color: 'red' },
   { label: 'Ambush Spot', icon: 'flame', color: 'red' },

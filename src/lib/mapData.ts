@@ -28,7 +28,7 @@ interface BuiltRoom {
    * regex that guessed venues from room titles and found 31.
    */
   label?: string
-  gateway?: { zone: string; name: string }
+  gateway?: { zone: string; name: string; arrivals?: number[] }
   leaves?: string[]
   /** Other names the same place goes by, for search rather than drawing. */
   aliases?: string[]
@@ -107,7 +107,7 @@ function kindOfExit(dir: string): 'walk' | 'enter' | 'climb' | 'vertical' {
  * would have had to exist and get looked at for anyone to notice by eye.
  */
 const HAZARD = /water|swim|drown|underwater|obstacle|climb|roundtime|\brt\b/i
-const SERVICE = /bank|teller|exchange|healer|empath|guild|shop|repair|depart|altar|shrine|temple|gate|bridge|park/i
+const SERVICE = /bank|teller|exchange|healer|empath|guild|shop|repair|depart|altar|shrine|temple|gate|bridge|park|locksmith|jewel|tailor|bakery|restaurant|stable|theatre|theater|bathhouse|auction|warehouse|locker/i
 
 export type RoomKind = 'here' | 'route' | 'hazard' | 'service' | 'plain'
 

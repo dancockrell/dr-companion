@@ -16,7 +16,7 @@
  * this file's original design, where a route was previewed and moving stayed
  * a separate decision - see the comment on `goThere` below.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Map as MapIcon,
   RefreshCw,
@@ -65,6 +65,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     zone,
     browsing,
     zoneStack,
+    arrivalIds,
     zoneLoading,
     zoneLoadError,
     retryZone,
@@ -167,13 +168,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   // first zone has rooms to measure, which is also the state where the box
   // should behave exactly as it always did - see the container's style.
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null)
+  const fittedZoneRef = useRef<string | null>(null)
 
   // A room update must update the view, not only the red "here" marker in an
-  // off-screen part of a previously panned map. Return the docked map to fit
-  // when live location changes; deliberate browsing keeps its own view.
+  // off-screen part of a previously panned map. A newly followed cross-map
+  // link must also fit its destination once; later deliberate browsing pan is
+  // preserved.
   useEffect(() => {
-    if (browsing) return
-    fitView()
+    const zoneId = zone?.zone ?? null
+    const zoneChanged = fittedZoneRef.current !== zoneId
+    fittedZoneRef.current = zoneId
+    if (zoneChanged || !browsing) fitView()
   }, [browsing, fitView, hereId, level, zone?.zone])
 
   const character = useAppStore((s) => s.character)
@@ -635,6 +640,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             onNaturalSize={setNaturalSize}
             onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
             onZone={pushZone}
+            arrivalIds={arrivalIds}
             trail={trail}
             pins={pinsByRoom}
             onPinRoom={pinRoom}
