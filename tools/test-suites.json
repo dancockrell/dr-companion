@@ -68,6 +68,7 @@
   "test:keybindings",
   "test:gateway",
   "test:map-leaves",
+  "test:video-frame-harvest",
   "test:bestiary",
   "test:creature-art",
   "test:scrub",
