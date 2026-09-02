@@ -109,7 +109,23 @@ console.log('\n-- isPinned: matches by kind and identity, not just by name/id co
   const pins = [{ kind: 'task', id: 'train' }, { kind: 'command', actionKey: 'train:train' }]
   ok('a task pin is not confused with a script of the same name', m.isPinned(pins, { kind: 'script', name: 'train' }), false)
   ok('but the real task pin is recognised', m.isPinned(pins, { kind: 'task', id: 'train' }), true)
+  ok('an explicit Python pin matches the legacy no-language shape', m.isPinned(pins, { kind: 'task', id: 'train', lang: 'python' }), true)
+  ok('a TypeScript task with the same bare id remains a distinct pin', m.isPinned(pins, { kind: 'task', id: 'train', lang: 'typescript' }), false)
   ok('and command identity stays separate from both', m.isPinned(pins, { kind: 'command', actionKey: 'train:train' }), true)
+}
+
+console.log('\n-- task identity: backend language survives pins, launches, and active state --')
+{
+  const m = await load()
+  const py = { kind: 'task', id: 'task.watch', lang: 'python' }
+  const ts = { kind: 'task', id: 'task.watch', lang: 'typescript' }
+  const afterPython = m.togglePin([], py)
+  const afterBoth = m.togglePin(afterPython.pins, ts)
+  ok('Python and TypeScript tasks sharing an id can both be pinned', afterBoth.pins.length, 2)
+  ok('Python task active identity stays bare', m.taskPinActiveId(py), 'task.watch')
+  ok('TypeScript task active identity is namespaced', m.taskPinActiveId(ts), 'ts.task.watch')
+  ok('TypeScript language is returned for dispatch', m.taskPinLanguage(ts), 'typescript')
+  ok('legacy task pins still dispatch to Python', m.taskPinLanguage({ kind: 'task', id: 'task.watch' }), 'python')
 }
 
 console.log('\n-- loadPins trusts both kinds - neither is validated against a known list --')
@@ -138,6 +154,7 @@ console.log('\n-- loadPins rejects malformed entries rather than crashing on the
     { kind: 'task' }, // no id
     { kind: 'script' }, // no name
     { kind: 'command' }, // no actionKey
+    { kind: 'task', id: 'unknown-language', lang: 'ruby' },
     { kind: 'nonsense', id: 'x' },
     null,
   ]) }
@@ -145,6 +162,33 @@ console.log('\n-- loadPins rejects malformed entries rather than crashing on the
   const loaded = m.loadPins()
   ok('only the one well-formed pin survives the junk around it', loaded.length, 1)
   ok('  and it is the right one', loaded[0]?.id, 'flow.hunt')
+}
+
+console.log('\n-- loadPins upgrades the broken early TypeScript pin shape in place --')
+{
+  store = { 'drc.quickswitch.v3': JSON.stringify([
+    { kind: 'task', id: 'ts.task.watch' },
+    { kind: 'task', id: 'task.python' },
+    { kind: 'task', id: 'ts.explicit', lang: 'typescript' },
+  ]) }
+  const m = await load()
+  const loaded = m.loadPins()
+  ok('legacy ts-prefixed id becomes a bare TypeScript task', loaded[0], { kind: 'task', id: 'task.watch', lang: 'typescript' })
+  ok('legacy bare task remains a Python-compatible pin', loaded[1], { kind: 'task', id: 'task.python' })
+  ok('explicit TypeScript pin is defensively stripped too', loaded[2], { kind: 'task', id: 'explicit', lang: 'typescript' })
+  ok('the upgraded shape is persisted for the next launch', JSON.parse(store['drc.quickswitch.v3'])[0], loaded[0])
+}
+
+console.log('\n-- UI routes both click and keyboard launches through the pin language --')
+{
+  const panel = readFileSync('src/components/dashboard/TaskFlowPanel.tsx', 'utf8')
+  const bar = readFileSync('src/components/layout/QuickSwitchBar.tsx', 'utf8')
+  const app = readFileSync('src/App.tsx', 'utf8')
+  ok('task panel stores TypeScript pins with a bare id and language', panel.includes("{ kind: 'task', id: entry.id.slice('ts.'.length), lang: 'typescript' }"), true)
+  ok('hotbar launches a task with its selected language', bar.includes('requestStartFlow(pin.id, lang)'), true)
+  ok('hotbar resolves TypeScript details from the Node catalog', bar.includes("lang === 'typescript' ? nodeTasks : pythonTasks"), true)
+  ok('number keys launch a task with its selected language', app.includes('requestStartFlow(pin.id, taskPinLanguage(pin))'), true)
+  ok('number keys compare the normalized active identity', app.includes('taskPinActiveId(pin) === activeFlow'), true)
 }
 
 console.log('\n-- and the check can fail: a validator that accepts anything --')
@@ -162,7 +206,7 @@ console.log('\n-- and the check can fail: a validator that accepts anything --')
 }
 
 const ran = checked
-ok('enough was checked for a pass to mean something', ran >= 15, true, `${ran} assertions`)
+ok('enough was checked for a pass to mean something', ran >= 30, true, `${ran} assertions`)
 
 console.log(fails ? `\n${fails} failed` : '\nall passed')
 process.exit(fails ? 1 : 0)

@@ -107,7 +107,7 @@ import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 import { readJSON, writeJSON } from '../../lib/storage'
-import { isPinned, type QuickSwitchPin } from '../../lib/quickSwitch'
+import { isPinned, taskActiveId, type QuickSwitchPin } from '../../lib/quickSwitch'
 import { MACROS, type Macro } from '../../data/macros'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { accentForIndex, actionAccent, actionIcon } from '../../lib/battleActionVisuals'
@@ -315,7 +315,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
       setActiveFlow(pyState.task)
     } else if (nodeState?.running) {
       setRunning(`ts.${nodeState.task}`)
-      setActiveFlow(nodeState.task)
+      setActiveFlow(taskActiveId(nodeState.task, 'typescript'))
     } else {
       setRunning('')
       setActiveFlow(null)
@@ -349,7 +349,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
       onNodeTaskState((st) => {
         setRunning(st.running ? `ts.${st.task}` : '')
         setNote(st.note)
-        setActiveFlow(st.running ? st.task : null)
+        setActiveFlow(st.running ? taskActiveId(st.task, 'typescript') : null)
         if (st.note) addLog(st.note, 'info')
       }),
     [addLog, setActiveFlow]
@@ -407,7 +407,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
         await stopTask()
         const st = await startNodeTask(id)
         setRunning(st.running ? `ts.${st.task}` : '')
-        setActiveFlow(st.running ? st.task : null)
+        setActiveFlow(st.running ? taskActiveId(st.task, 'typescript') : null)
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e)
         setNote(message)
@@ -730,7 +730,9 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                     ? { kind: 'command', actionKey: entry.actionKey! }
                     : entry.id.startsWith('ruby.')
                     ? { kind: 'script', name: entry.id.slice('ruby.'.length) }
-                    : { kind: 'task', id: entry.id }
+                    : entry.id.startsWith('ts.')
+                    ? { kind: 'task', id: entry.id.slice('ts.'.length), lang: 'typescript' }
+                    : { kind: 'task', id: entry.id, lang: 'python' }
                   const pinned = isPinned(quickSwitchPins, quickSwitchPin)
                   return (
                     <div

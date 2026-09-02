@@ -3,9 +3,11 @@
  *
  * Started as Task Flows only, back when a flow was TypeScript composed
  * client-side. The flow engine is gone now (see `pythonTasks.ts`'s header) —
- * a pinned "task" here is a Python task id, started and stopped the same way
- * a flow used to be, through the same `requestStartFlow`/`requestStopAll`
- * signals in `flowStop.ts`, which kept their names across that rewrite.
+ * a pinned "task" here is a Python or TypeScript task id, started and stopped
+ * through the same `requestStartFlow`/`requestStopAll` signals in
+ * `flowStop.ts`, which kept their names across that rewrite. The language is
+ * part of task identity because both catalogs may legitimately contain the
+ * same bare id.
  *
  * Extended to pin raw scripts too — "add gui buttons to do common script and
  * macro actions really easy for the player... build a good deal of them."
@@ -27,7 +29,7 @@
  * scrolls, same as a second and third action bar would.
  *
  * Deliberately just references, not copies. A pinned task's own title and
- * summary are looked up live from the Python catalog (`pythonStatus()`),
+ * summary are looked up live from its Python or TypeScript catalog,
  * same as a pinned script's catalog entry is looked up live from
  * `scriptCatalog.ts` — never copied in here. Neither can be validated
  * against a known-id set at store init any more: both catalogs are read
@@ -42,8 +44,10 @@ import { readJSON, writeJSON } from './storage'
 
 export type QuickSwitchPin =
   | { kind: 'command'; actionKey: string }
-  | { kind: 'task'; id: string }
+  | { kind: 'task'; id: string; lang?: TaskLanguage }
   | { kind: 'script'; name: string }
+
+export type TaskLanguage = 'python' | 'typescript'
 
 const KEY = 'drc.quickswitch.v3'
 export const MAX_SLOTS = 50
@@ -52,21 +56,64 @@ export const KEYBOARD_SLOTS = 9
 
 function keyOf(pin: QuickSwitchPin): string {
   if (pin.kind === 'command') return `command:${pin.actionKey}`
-  return pin.kind === 'task' ? `task:${pin.id}` : `script:${pin.name}`
+  return pin.kind === 'task'
+    ? `task:${taskPinLanguage(pin)}:${pin.id}`
+    : `script:${pin.name}`
 }
 
-function isPin(x: unknown): x is QuickSwitchPin {
-  if (typeof x !== 'object' || x === null) return false
+/** Old pins omitted the language and therefore mean Python. */
+export function taskPinLanguage(pin: Extract<QuickSwitchPin, { kind: 'task' }>): TaskLanguage {
+  return pin.lang ?? 'python'
+}
+
+/** Store state uses the same namespaced identity as TaskFlowPanel's tiles. */
+export function taskActiveId(id: string, lang: TaskLanguage = 'python'): string {
+  return lang === 'typescript' ? `ts.${id}` : id
+}
+
+export function taskPinActiveId(pin: Extract<QuickSwitchPin, { kind: 'task' }>): string {
+  return taskActiveId(pin.id, taskPinLanguage(pin))
+}
+
+/**
+ * Shape-check and upgrade one persisted pin.
+ *
+ * An early TypeScript implementation stored the panel-only `ts.` prefix in
+ * the task id and no language. Those pins looked valid but were sent to the
+ * Python backend. Strip that prefix and make the intended backend explicit.
+ */
+function normalizePin(x: unknown): QuickSwitchPin | null {
+  if (typeof x !== 'object' || x === null) return null
   const o = x as Record<string, unknown>
-  if (o.kind === 'command') return typeof o.actionKey === 'string' && o.actionKey.length > 0
-  if (o.kind === 'task') return typeof o.id === 'string' && o.id.length > 0
-  if (o.kind === 'script') return typeof o.name === 'string' && o.name.length > 0
-  return false
+  if (o.kind === 'command') {
+    return typeof o.actionKey === 'string' && o.actionKey.length > 0
+      ? { kind: 'command', actionKey: o.actionKey }
+      : null
+  }
+  if (o.kind === 'task') {
+    if (typeof o.id !== 'string' || o.id.length === 0) return null
+    if (o.lang !== undefined && o.lang !== 'python' && o.lang !== 'typescript') return null
+    const wasPrefixedTypeScript = o.id.startsWith('ts.') && o.id.length > 3
+    const lang: TaskLanguage = o.lang === 'typescript' || (o.lang === undefined && wasPrefixedTypeScript)
+      ? 'typescript'
+      : 'python'
+    const id = lang === 'typescript' && wasPrefixedTypeScript ? o.id.slice(3) : o.id
+    return lang === 'python' && o.lang === undefined
+      ? { kind: 'task', id }
+      : { kind: 'task', id, lang }
+  }
+  if (o.kind === 'script') {
+    return typeof o.name === 'string' && o.name.length > 0
+      ? { kind: 'script', name: o.name }
+      : null
+  }
+  return null
 }
 
 function readRaw(): QuickSwitchPin[] {
   const parsed = readJSON<unknown>(KEY, [])
-  return Array.isArray(parsed) ? parsed.filter(isPin) : []
+  if (!Array.isArray(parsed)) return []
+  return parsed.map(normalizePin).filter((pin): pin is QuickSwitchPin => pin !== null)
 }
 
 function writeRaw(pins: QuickSwitchPin[]): void {
@@ -82,7 +129,12 @@ function writeRaw(pins: QuickSwitchPin[]): void {
  * when pressed rather than being silently dropped.
  */
 export function loadPins(): QuickSwitchPin[] {
-  return readRaw()
+  const pins = readRaw()
+  // Persist the normalized shape so a broken legacy `ts.*` pin is repaired
+  // once rather than rediscovered on every launch. This also removes malformed
+  // entries that were already being ignored in memory.
+  writeRaw(pins)
+  return pins
 }
 
 export function isPinned(pins: QuickSwitchPin[], pin: QuickSwitchPin): boolean {

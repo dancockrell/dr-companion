@@ -1,12 +1,12 @@
 /**
- * Fast switching between activities — pinned Python tasks and raw scripts,
+ * Fast switching between activities — pinned Python or TypeScript tasks and raw scripts,
  * one keypress or click away, in the fixed window chrome rather than a
  * scrolling panel.
  *
  * Started as Task Flows only, back when a flow was TypeScript composed
  * client-side and driven by a timer. That engine is gone (see
- * `pythonTasks.ts`'s header) — a pinned task here is a Python task id,
- * started and stopped through the same `requestStartFlow`/`requestStopAll`
+ * `pythonTasks.ts`'s header) — a pinned task here carries its backend language
+ * and bare id, then starts and stops through the same `requestStartFlow`/`requestStopAll`
  * signals a flow used to use, which kept their names across that rewrite.
  *
  * Extended to pin raw scripts too, so a player's actual handful of
@@ -36,7 +36,7 @@ import { Play, Terminal, X, type LucideIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { useTaskCatalogs } from '../../lib/taskCatalogStatus'
 import { requestStartFlow, requestStopAll } from '../../lib/flowStop'
-import { KEYBOARD_SLOTS } from '../../lib/quickSwitch'
+import { KEYBOARD_SLOTS, taskPinActiveId, taskPinLanguage } from '../../lib/quickSwitch'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
 import { cn } from '../../lib/cn'
 import { MACROS } from '../../data/macros'
@@ -72,7 +72,8 @@ export function QuickSwitchBar() {
   // A task pinned before the catalog resolves still renders — see the
   // fallback below — so there is nothing here that has to race the fetch.
   const catalogs = useTaskCatalogs()
-  const tasks = catalogs.python.value?.tasks ?? []
+  const pythonTasks = catalogs.python.value?.tasks ?? []
+  const nodeTasks = catalogs.node.value?.tasks ?? []
 
   const runningScripts = new Set(
     scriptStates
@@ -101,21 +102,26 @@ export function QuickSwitchBar() {
       }
     }
     if (pin.kind === 'task') {
+      const lang = taskPinLanguage(pin)
+      const catalog = lang === 'typescript' ? catalogs.node : catalogs.python
+      const tasks = lang === 'typescript' ? nodeTasks : pythonTasks
       const task = tasks.find((t) => t.id === pin.id)
-      const active = activeFlow === pin.id
+      const activeId = taskPinActiveId(pin)
+      const active = activeFlow === activeId
+      const languageLabel = lang === 'typescript' ? 'TypeScript' : 'Python'
       return {
-        key: `task:${pin.id}`,
+        key: `task:${lang}:${pin.id}`,
         pin,
         Icon: Play,
         title: task?.title ?? pin.id,
         summary:
-          task?.summary ?? (catalogs.python.error
-            ? `Task lookup failed: ${catalogs.python.error}. Open Functions & Scripts to retry.`
-            : catalogs.python.state === 'loading'
+          task?.summary ?? (catalog.error
+            ? `${languageLabel} task lookup failed: ${catalog.error}. Open Functions & Scripts to retry.`
+            : catalog.state === 'loading'
               ? 'Task details are loading — press to try it anyway.'
-              : 'This task is no longer in the Python catalog.'),
+              : `This task is no longer in the ${languageLabel} catalog.`),
         active,
-        onClick: () => (active ? requestStopAll() : requestStartFlow(pin.id)),
+        onClick: () => (active ? requestStopAll() : requestStartFlow(pin.id, lang)),
         footer: (keyed, i) =>
           active ? 'Running — click to stop' : keyed ? `Key ${i + 1}, or click` : 'Click to start',
       }
