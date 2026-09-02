@@ -15,6 +15,7 @@
  * indistinguishable from a check that passed.
  */
 import { gearConflicts, conflictSubjects, GEAR_CONFLICTS } from '../src/data/gearConflicts.ts'
+import { nextArmorInRotation } from '../src/lib/armorRotation.ts'
 
 let failed = 0
 const ok = (name, got, want) => {
@@ -31,6 +32,18 @@ const SWORD = 'a serrated broadsword'
 const HAUBERK = 'a sleek cinnabar brigandine hauberk riveted with rose gold studs'
 
 const n = (c) => c.length
+
+console.log('-- armor-slot rotation is deterministic --')
+{
+  const helms = [
+    { id: 'light-helm', name: 'a light helm', coverage: ['head'], provenance: 'player' },
+    { id: 'heavy-helm', name: 'a heavy helm', coverage: ['head'], provenance: 'player' },
+  ]
+  ok('empty slot starts with the first configured piece', nextArmorInRotation(helms, undefined)?.id, 'light-helm')
+  ok('rotation advances to the next configured piece', nextArmorInRotation(helms, helms[0])?.id, 'heavy-helm')
+  ok('rotation wraps at the end', nextArmorInRotation(helms, helms[1])?.id, 'light-helm')
+  ok('an empty rack has no rotation target', nextArmorInRotation([], undefined), undefined)
+}
 
 console.log('-- the rules are there to be tested at all --')
 {
