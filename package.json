@@ -69,6 +69,8 @@
     "test:geometric-briefs": "node tools/geometric-room-briefs-test.mjs",
     "world:primitive": "node tools/build-primitive-world-manifest.mjs",
     "test:primitive-world": "node tools/primitive-world-manifest-test.mjs",
+    "world:node-projection": "node tools/build-node-tethered-world-projection.mjs",
+    "test:node-projection": "node tools/node-tethered-world-projection-test.mjs",
     "test:geometric-kit": "node tools/crossing-geometric-kit-test.mjs",
     "world:primitive-registry": "node tools/build-crossing-primitive-registry.mjs",
     "test:primitive-registry": "node tools/crossing-primitive-registry-test.mjs",

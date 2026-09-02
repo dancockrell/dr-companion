@@ -34,6 +34,15 @@ migration. A compact location strip, collapsible inspector, bottom
 command/hotbar/status tray, and accessible text/list equivalents are allowed
 over the one viewer.
 
+The world is a node-tethered MUD projection. Each room is one stable world
+node; live entities and floor items remain tethered to their authoritative
+`roomId`. A legal movement command can animate a route or miniature departure,
+but only a confirmed snapshot changes the tether to the destination node. Do
+not pathfind, simulate collision, derive combat distance, or let an actor
+cross a room boundary because a mesh happens to be adjacent. Use the generated
+`npm run world:node-projection` artifact as the renderer-neutral expression of
+this rule.
+
 ## Your ownership
 
 ### 1. Godot viewer foundation
