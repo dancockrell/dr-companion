@@ -115,6 +115,8 @@ export function MapCanvas({
   labels = false,
   /** Scale the whole zone to fill the container instead of drawing at size. */
   fit = false,
+  /** The zone's drawn proportions, once known - see the effect below. */
+  onNaturalSize,
   /** Where you have been. Drawn as a stroke over the chart. */
   trail,
   /** The "here" room's position, in this draw's own pixel space, once known -
@@ -151,6 +153,7 @@ export function MapCanvas({
   scale?: number
   labels?: boolean
   fit?: boolean
+  onNaturalSize?: (size: { w: number; h: number }) => void
   trail?: Trail
   onHereAt?: (x: number, y: number) => void
   pins?: Map<number, MapPin>
@@ -217,6 +220,24 @@ export function MapCanvas({
       h: Math.max(...ys) - minY + pad * 2,
     }
   }, [rooms, scale, pad])
+
+  // The zone's own drawn proportions, reported upward so a caller can size
+  // the box it hands us instead of guessing.
+  //
+  // `fit` preserves aspect ratio, so the zone is drawn at whatever the
+  // tighter axis allows and the rest of the box is left over. Crossing is
+  // portrait (995x1148) while the map column is landscape, which measured
+  // as the chart using 54% of the width and 351px of the box painted as
+  // bare page. A caller that knows the aspect can shrink the box to what
+  // the chart actually occupies and spend the remainder on something else -
+  // see MapPanel's `plane` layout. Reported rather than recomputed there
+  // because `view` already owns this arithmetic (room bounds, scale and
+  // padding), and a second copy would drift the first time any of the three
+  // changed.
+  useEffect(() => {
+    if (!view || !onNaturalSize) return
+    onNaturalSize({ w: view.w, h: view.h })
+  }, [view, onNaturalSize])
 
   // Rebuilt only when the room set actually changes - not on every trail
   // update, which is the whole reason a window left open to watch a script
