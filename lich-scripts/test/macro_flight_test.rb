@@ -5,6 +5,8 @@
 # here, while a later deliberate request and every non-macro intent remain
 # available.
 
+require 'json'
+
 src = File.read(ARGV[0], encoding: 'UTF-8')
 body = src[/  module Intents\n.*?\n    # One entry per real intent/m] or abort 'could not slice Intents flight gate'
 body = body.sub(/\n    # One entry per real intent.*\z/m, "\n  end\n")
