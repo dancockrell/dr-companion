@@ -37,6 +37,7 @@ for (const [name, command] of [
 
 console.log('\n-- generated actions cannot smuggle a command separator --')
 ok('an ordinary generated look survives', validateGameActionCommand('look kobold') === 'look kobold')
+ok('an empty generated action is rejected', rejects(() => validateGameActionCommand('   ')))
 ok('a semicolon in game-derived text is rejected',
   rejects(() => validateGameActionCommand('look kobold;#script abort all')))
 ok('generated actions also inherit the one-line boundary',
@@ -55,7 +56,7 @@ console.log('\n-- both application and native boundaries own the invariant --')
     native.indexOf('validate_game_command(&command)?;') < native.indexOf('let mut guard = link.inner.lock().unwrap();'))
 }
 
-ok('enough was checked for a pass to mean something', checked >= 17, `${checked} assertions`)
+ok('enough was checked for a pass to mean something', checked >= 18, `${checked} assertions`)
 
 console.log(failed ? `\n${failed} failed` : '\nall game-command boundary checks passed')
 process.exit(failed ? 1 : 0)
