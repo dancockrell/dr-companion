@@ -22,13 +22,17 @@ a copy of another game's visual system.
 
 ## 2. Ownership split
 
-### Claude — systems, data, bridge, packaging, testable contracts
+### Claude — viewer shell, systems, bridge, packaging, and testable contracts
 
 Claude should own the work that makes the renderer safe, repeatable, and easy
 to feed:
 
 - Extend the world compilers from room/map/description data into versioned,
   deterministic manifest files; never place hand-authored topology in a scene.
+- Build the initial Godot viewer shell: one `WorldRoot` viewport, manifest
+  loader, camera director, bridge client, event player, intent sender, and a
+  checked-in mock mode. It must be a deliberately small, well-tested viewer
+  foundation for content work—not a final art pass.
 - Build a small local presentation bridge from the existing Tauri/Rust client
   to Godot. Publish full snapshots and ordered deltas; receive click intents,
   validate them against the authoritative room state, then send the existing
@@ -48,29 +52,60 @@ to feed:
   intent for a non-exit, stale session token, unordered sequence number, or a
   manifest whose room graph does not match source map data.
 
-### Codex — player-facing Godot world, interaction, and visual language
+### Codex — 3D content integration, scene composition, and visual language
 
-Codex should own the front end inside Godot:
+Codex should own what makes the viewer feel like DragonRealms rather than a
+generic technical demo. Codex works *inside Claude's stable viewer contracts*
+and should not fork a competing camera, bridge, or interaction runtime:
 
-- World/route/room camera behavior, smooth focus transitions, current-room
-  beacon, route affordances, and zoom-level LOD.
-- Primitive scene assembly from the manifest: colored ground, roads, water,
-  bridges, facades, cutaway interiors, landmarks, miniatures, and effects.
-- Clickable room exits, entity cards/tooltips, ground-item piles, inventory
-  affordances, and accessible non-3D companion controls.
-- Tactical theatre: stances and positional tokens, then confirmed event
-  effects—arc trails, block flashes, comic impact bubbles, spell glyphs,
-  status rings, reaction poses, departure/arrival and item-drop states.
+- Own the approved primitive kit, content manifest entries, material palette,
+  reusable prop families, miniatures, and provenance for every admitted GLB.
+- Turn verified room descriptions and world cells into composition recipes:
+  colored ground, roads, water, bridges, facades, cutaway interiors,
+  landmarks, guilds, shops, props, and LOD tiers.
+- Build the contextual visual layer supplied to the viewer shell: readable exit
+  anchors, entity/item visual metadata, compact tooltips/inspect cards, and
+  accessible non-3D companion controls.
+- Author the tactical theatre content and effects library: stance tokens,
+  range lanes, arc trails, block flashes, comic impact bubbles, spell glyphs,
+  status rings, reaction poses, departure/arrival and item-drop states. These
+  respond only to the confirmed events that Claude's bridge provides.
 - The visual quality bar: no repeated generic building where a guild/shop/room
   dossier has stronger evidence; no clutter that hides a route, miniature,
   item, or command result.
+
+### Shared boundary
+
+Claude supplies stable scene slots, schemas, a content-registration API, and
+test fixtures. Codex supplies the registered content and composition data.
+Claude does not hand-place or invent town content; Codex does not change
+authoritative topology, parse game output, or add a second viewer runtime.
 
 ## 3. Runtime and port plan: Godot without porting the client
 
 **Do not rewrite DR Companion in Godot.** Keep React/Tauri, the Lich bridge,
 the parser, persistence, command scheduling, maps, and accessibility controls.
-Godot is a local dedicated 3D presentation process/window, not the owner of
-gameplay or credentials.
+Godot is a local dedicated 3D presentation process, not the owner of gameplay
+or credentials.
+
+### One viewer is a product requirement
+
+The migrated default experience has **one visible spatial viewer**. It replaces
+the player-facing MapWindow, MapCanvas/Radar, and battle spatial pane; it is
+not a fourth map appended to them. The viewer is allowed transparent contextual
+overlays, but they cannot become competing spatial views:
+
+- an unobtrusive location/travel/status strip;
+- one collapsible inspector for the selected room, exit, entity, or item;
+- a bottom command/hotbar/status tray; and
+- accessible text/list equivalents for every clickable 3D affordance.
+
+The bridge/process implementation may use an embedded Godot surface or a
+dedicated Godot window, whichever Claude can prove works reliably on Windows.
+The user-facing acceptance rule is the same: never present independent map,
+radar, battle, and 3D windows at once. If native embedding is not reliable,
+the Godot surface is the single world viewer and the host controls are compact
+overlays/drawers rather than a second spatial application window.
 
 ```text
 existing game + Lich/Ruby bridge
@@ -213,12 +248,12 @@ description-backed shops.
 
 | Slice | Claude delivers | Codex delivers | Exit gate |
 |---|---|---|---|
-| 0. Contract | schema, fixture, bridge stub, launcher contract | Godot mock scene loading a fixture | no live game required; snapshot/event recovery passes |
-| 1. Crossing ground | deterministic Crossing primitive manifest with all exits | pan/orbit/zoom world and current-room focus | 1,060 cells and 2,389 local routes remain exact |
-| 2. Town Green + portals | intent validation and room snapshot updates | Green route, exterior/interior portal transition, clickable exit | invalid exit never sends game command; valid exit follows confirmed snapshot |
-| 3. Tactical table | parsed event publisher and sequence/recovery tests | actor tokens, range lanes, hit/miss/block/cast bubbles | effects never claim a result before confirmed event |
-| 4. Civic depth | guild/shop index and asset-manifest pipeline | first full guild and first generic/specific shop interiors | source review proves each special presentation |
-| 5. Packaging | Windows bundled Godot export, lifecycle/reconnect | settings/accessibility UX and renderer-failure fallback | client remains usable if Godot is absent/crashed |
+| 0. Viewer contract | schema, fixture, bridge stub, single-viewer shell, launcher contract | approved primitive registry and first composition recipe | no live game required; snapshot/event recovery passes |
+| 1. Crossing ground | deterministic Crossing primitive manifest with all exits | Crossing terrain/path/water/bridge/facade kit and cell recipes | 1,060 cells and 2,389 local routes remain exact |
+| 2. Town Green + portals | intent validation and room snapshot updates | Green route, exterior/interior content set, readable exit anchors | invalid exit never sends game command; valid exit follows confirmed snapshot |
+| 3. Tactical table | parsed event publisher and sequence/recovery tests | actor token library, range lanes, hit/miss/block/cast bubbles | effects never claim a result before confirmed event |
+| 4. Civic depth | guild/shop index and asset-manifest pipeline | first full guild plus generic/specific shop content and interiors | source review proves each special presentation |
+| 5. Product migration | Windows bundled Godot export, lifecycle/reconnect, removal feature flag | compact overlay language, accessibility equivalents, legacy-content migration | no duplicate spatial panes; client remains usable if Godot is absent/crashed |
 
 ## 9. Definition of done for the first front-end slice
 
