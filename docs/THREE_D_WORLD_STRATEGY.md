@@ -175,6 +175,56 @@ edge in the established 2D graph.
 We start with components that make many rooms more truthful, not glamorous
 hero buildings that only work once.
 
+### 6.0 Art direction: designed geometry, not synthetic realism
+
+The 3D world deliberately does **not** try to reproduce photography, realistic
+foliage, or a simulation-grade medieval town. That direction makes generated
+materials look dated and artificial while adding cost without improving play.
+
+The target is an original, contemporary **block-built tabletop world**:
+
+- clear, chunky silhouettes and deliberately simple construction;
+- a restrained palette with strong district color blocking;
+- faceted trees, shaped hedges, modular roofs, arches, cobbles, and props;
+- readable scale, modular joins, and playful physical detail;
+- warm, expressive player and creature miniatures that carry personality;
+- lighting and small material accents that add charm without pretending to be
+  photoreal.
+
+This takes inspiration from the legibility and toy-like confidence common to
+popular block-built games, but must remain an original DragonRealms world: no
+copied branded figures, textures, logos, or named visual systems.
+
+**Explicitly rejected:** AI-grown realism, simulated leaf clutter, detailed
+photographic stone, generic half-timber beauty shots, and a city whose visual
+language depends on generated noise rather than constructed geometry.
+
+All new asset briefs must specify a simple silhouette, intended grid/footprint,
+palette role, and visual read at the tactical camera distance before adding
+surface detail.
+
+### 6.0.1 Tool ownership: geometry first, personality second
+
+The city/world layer is built directly from deterministic geometry in the
+client's world assembler. It owns the ground grid, roads, exit openings,
+building footprints, walls, roofs, foliage volumes, collision, level of detail,
+and palette. Those facts must be editable and repeatable; they are not
+outsourced to an image-to-3D reconstruction service.
+
+Magnific is used where its strengths add value without owning topology:
+
+| Use Magnific for | Do not use Magnific for |
+|---|---|
+| Cute expressive character/creature concepts and miniature variants | The underlying city layout or room connectivity |
+| Portrait, emblem, cloth-pattern, and prop-detail ideation | Full-scene image-to-3D city conversions |
+| Carefully isolated hero-prop experiments that pass turntable review | Roads, walls, buildings, hedges, or trees whose footprint must be exact |
+| Stylized material/decal references applied to authored geometry | Simulated photoreal foliage/stone/timber as the world style |
+
+The intended result is a readable, charming geometric world populated by
+expressive miniatures. Character is added through silhouette, palette,
+animation, sound, interaction, and a small number of authored details—not
+through uncontrolled scene realism.
+
 ### 6.1 The Crossing kit, first release
 
 1. **Terrain and streets:** grass, packed earth, granite/cobble variants,
