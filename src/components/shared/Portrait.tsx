@@ -47,7 +47,10 @@ export function Portrait({
   const [ready, setReady] = useState(false)
   const [picking, setPicking] = useState(false)
   const [chosen, setChosen] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
+  // Remember the source that failed, rather than poisoning this mounted
+  // portrait forever. Radar rows can be reused for another character and a
+  // player can replace a bad custom image without remounting the component.
+  const [failedSource, setFailedSource] = useState<string | null>(null)
   const [customUrl, setCustomUrl] = useState<string | null>(null)
   const [editingCustom, setEditingCustom] = useState(false)
   const [customError, setCustomError] = useState('')
@@ -65,8 +68,12 @@ export function Portrait({
   const suggested = ready ? portraitFor({ character, instance, look, race, sex }) : genericPortraitFor(character)
   const key = chosen ?? suggested ?? genericPortraitFor(character)
   const emergencyKey = key === 'human-male' ? 'human-female' : 'human-male'
-  const displayKey = failed ? emergencyKey : key
-  const displayDescription = customUrl && !failed
+  const preferredUrl = customUrl ?? portraitUrl(key)
+  const preferredFailed = failedSource === preferredUrl
+  const usingCustomPortrait = Boolean(customUrl) && !preferredFailed
+  const displayKey = preferredFailed ? emergencyKey : key
+  const displayUrl = usingCustomPortrait ? preferredUrl : portraitUrl(displayKey)
+  const displayDescription = usingCustomPortrait
     ? `${character}, local custom portrait`
     : `${character}, ${sex ? displayKey.replace(/-/g, ' ') : `${race ?? 'generic'} portrait, gender unknown`}`
   // catalogue() has a shipped-core baseline. The chooser must work on the
@@ -84,21 +91,20 @@ export function Portrait({
         onClick={() => setPicking((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={picking}
-        title={`${customUrl && !failed ? 'Local custom portrait' : sex ? displayKey.replace(/-/g, ' ') : `${race ?? 'Generic'} default · gender not yet known`} — click to change`}
+        title={`${usingCustomPortrait ? 'Local custom portrait' : sex ? displayKey.replace(/-/g, ' ') : `${race ?? 'Generic'} default · gender not yet known`} — click to change`}
         className={`block overflow-hidden border border-border ${shape === 'oval' ? 'rounded-full ring-1 ring-info/30' : 'rounded-sm'}`}
         style={{ width, height }}
       >
         <img
-          src={customUrl && !failed ? customUrl : portraitUrl(displayKey)}
+          src={displayUrl}
           alt={displayDescription}
-          onError={() => {
-            if (!failed) setFailed(true)
-          }}
+          decoding="async"
+          onError={() => setFailedSource(preferredUrl)}
           // `object-position` alone cannot make a full-body race default read
           // as a face inside the radar's small oval. Zoom the source around
           // its upper centre for that one use; card portraits and the chooser
           // still show the complete authored image.
-          className={`h-full w-full object-cover ${focus === 'face' && !customUrl ? 'object-[center_18%] origin-[50%_18%] scale-[1.72]' : ''}`}
+          className={`h-full w-full object-cover ${focus === 'face' && !usingCustomPortrait ? 'object-[center_18%] origin-[50%_18%] scale-[1.72]' : ''}`}
         />
       </button>
 
@@ -125,11 +131,11 @@ export function Portrait({
               </div>
               <button type="button" onClick={() => setPicking(false)} className="rounded border border-border px-2 py-1 text-xs text-ink-muted hover:border-accent hover:text-ink">Close</button>
             </header>
-            {editingCustom ? <CustomPortraitEditor character={character} instance={instance} initialUrl={customUrl} onCancel={() => setEditingCustom(false)} onSaved={(url) => { setCustomUrl(url); setFailed(false); setEditingCustom(false); setPicking(false) }} /> : <>
+            {editingCustom ? <CustomPortraitEditor character={character} instance={instance} initialUrl={customUrl} onCancel={() => setEditingCustom(false)} onSaved={(url) => { setCustomUrl(url); setFailedSource(null); setEditingCustom(false); setPicking(false) }} /> : <>
             <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
               <button type="button" onClick={() => setEditingCustom(true)} className="rounded border border-info/50 px-2 py-1 text-xs text-info hover:bg-info/10">{customUrl ? 'Replace or re-crop your image' : 'Choose your own image'}</button>
-              {customUrl && <button type="button" onClick={() => void removeCustomPortrait(character, instance).then(() => { setCustomUrl(null); setFailed(false) }).catch((error) => setCustomError(String(error)))} className="rounded border border-danger/40 px-2 py-1 text-xs text-danger">Remove local image</button>}
-              <button type="button" onClick={() => void removeCustomPortrait(character, instance).then(() => { resetChoice(character, instance); setCustomUrl(null); setChosen(null); setFailed(false) }).catch((error) => setCustomError(String(error)))} className="rounded border border-border px-2 py-1 text-xs text-ink-muted">Reset to automatic default</button>
+              {customUrl && <button type="button" onClick={() => void removeCustomPortrait(character, instance).then(() => { setCustomUrl(null); setFailedSource(null) }).catch((error) => setCustomError(String(error)))} className="rounded border border-danger/40 px-2 py-1 text-xs text-danger">Remove local image</button>}
+              <button type="button" onClick={() => void removeCustomPortrait(character, instance).then(() => { resetChoice(character, instance); setCustomUrl(null); setChosen(null); setFailedSource(null) }).catch((error) => setCustomError(String(error)))} className="rounded border border-border px-2 py-1 text-xs text-ink-muted">Reset to automatic default</button>
             </div>
             {customError && <p role="alert" className="mx-3 mt-2 text-xs text-danger">{customError}</p>}
             <p className="px-3 pt-2 text-xs text-ink-muted">Local images stay private on this machine. Public community portraits still require a separate reviewed GitHub submission.</p>
@@ -141,7 +147,7 @@ export function Portrait({
                   onClick={() => {
                     choose(character, instance, o.key)
                     setChosen(o.key)
-                    setFailed(false)
+                    setFailedSource(null)
                     setPicking(false)
                   }}
                   title={`Use ${o.race} ${o.sex}`}
@@ -154,6 +160,8 @@ export function Portrait({
                   <img
                     src={portraitUrl(o.key)}
                     alt={`${o.race} ${o.sex}`}
+                    loading="lazy"
+                    decoding="async"
                     className="aspect-[3/4] w-full rounded object-cover object-top"
                   />
                   <span className="mt-1 block truncate text-xs capitalize text-ink-muted">{o.race}</span>
