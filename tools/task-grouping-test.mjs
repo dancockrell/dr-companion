@@ -3,7 +3,11 @@
  * grouping. Its only import is `import type { TaskInfo }`, fully erased at
  * compile time, so Node's native TS type-stripping can import it directly.
  */
-import { groupTasksByCategory } from '../src/lib/taskGrouping.ts'
+import {
+  canMoveTaskWithinCategory,
+  groupTasksByCategory,
+  moveTaskWithinCategory,
+} from '../src/lib/taskGrouping.ts'
 
 let failed = 0
 let checked = 0
@@ -63,6 +67,38 @@ const original = [task('flow.hunt', 'Combat')]
 const copy = JSON.stringify(original)
 groupTasksByCategory(original)
 ok('unchanged after grouping', JSON.stringify(original) === copy)
+
+console.log('')
+console.log('-- tile moves accept only catalog peers in the same category --')
+const ordered = [
+  task('flow.hunt', 'Combat'),
+  task('flow.ambush', 'Combat'),
+  task('flow.recover', 'Recovery'),
+]
+ok(
+  'same-category target returns a concrete order',
+  moveTaskWithinCategory(ordered, 'flow.ambush', 'flow.hunt')?.join(',') ===
+    'flow.ambush,flow.hunt,flow.recover'
+)
+ok(
+  'the shared eligibility rule accepts that same-category target',
+  canMoveTaskWithinCategory(ordered, 'flow.ambush', 'flow.hunt')
+)
+ok(
+  'cross-category target is not advertised as a valid move',
+  !canMoveTaskWithinCategory(ordered, 'flow.hunt', 'flow.recover') &&
+    moveTaskWithinCategory(ordered, 'flow.hunt', 'flow.recover') === null
+)
+ok(
+  'non-catalog source is not advertised as a valid move',
+  !canMoveTaskWithinCategory(ordered, 'ruby.unknown', 'flow.hunt') &&
+    moveTaskWithinCategory(ordered, 'ruby.unknown', 'flow.hunt') === null
+)
+ok(
+  'non-catalog target is not advertised as a valid move',
+  !canMoveTaskWithinCategory(ordered, 'flow.hunt', 'ts.unknown') &&
+    moveTaskWithinCategory(ordered, 'flow.hunt', 'ts.unknown') === null
+)
 
 console.log('')
 ok('enough was checked for a pass to mean something', checked >= 8, `${checked} assertions`)

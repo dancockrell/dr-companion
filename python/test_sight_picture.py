@@ -125,8 +125,10 @@ sp3b = SightPicture(interval=0.0)
 sp3b.maybe_refresh(t3b)
 ok(
     "refreshes once old traffic has aged out of the real 60s window",
-    len(c3b.sent) == 1,
-    repr(c3b.sent),
+    len(c3b.sent) == 1
+    and len(t3b._rate.sent) == 1
+    and all(time.time() - sent_at < 60.0 for sent_at in t3b._rate.sent),
+    f"sent={c3b.sent!r}, rate={t3b._rate.sent!r}",
 )
 c3c = FakeCompanion()
 t3c = Task(c3c)

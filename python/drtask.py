@@ -269,7 +269,8 @@ class SightPicture:
         # into `_rate.sent` is still why this check can happen every tick
         # with no side effect of its own beyond the prune.
         with task._send_lock:
-            recent = len([t for t in task._rate.sent if now - t < 60.0])
+            task._rate.sent = [t for t in task._rate.sent if now - t < 60.0]
+            recent = len(task._rate.sent)
         if recent >= MAX_COMMANDS_PER_MINUTE // 2:
             return
 
