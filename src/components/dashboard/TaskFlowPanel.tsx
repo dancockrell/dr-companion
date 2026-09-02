@@ -107,7 +107,7 @@ import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
 import { readJSON, writeJSON } from '../../lib/storage'
-import { isPinned, type QuickSwitchPin } from '../../lib/quickSwitch'
+import { isPinned, taskActiveId, type QuickSwitchPin } from '../../lib/quickSwitch'
 import { MACROS, type Macro } from '../../data/macros'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { accentForIndex, actionAccent, actionIcon } from '../../lib/battleActionVisuals'
@@ -315,7 +315,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
       setActiveFlow(pyState.task)
     } else if (nodeState?.running) {
       setRunning(`ts.${nodeState.task}`)
-      setActiveFlow(nodeState.task)
+      setActiveFlow(taskActiveId(nodeState.task, 'typescript'))
     } else {
       setRunning('')
       setActiveFlow(null)
@@ -349,7 +349,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
       onNodeTaskState((st) => {
         setRunning(st.running ? `ts.${st.task}` : '')
         setNote(st.note)
-        setActiveFlow(st.running ? st.task : null)
+        setActiveFlow(st.running ? taskActiveId(st.task, 'typescript') : null)
         if (st.note) addLog(st.note, 'info')
       }),
     [addLog, setActiveFlow]
@@ -407,7 +407,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
         await stopTask()
         const st = await startNodeTask(id)
         setRunning(st.running ? `ts.${st.task}` : '')
-        setActiveFlow(st.running ? st.task : null)
+        setActiveFlow(st.running ? taskActiveId(st.task, 'typescript') : null)
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e)
         setNote(message)
@@ -640,6 +640,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
             type="button"
             onClick={() => void invokeTauri('reveal_file', { path: dirs.pythonDir })}
             title={`Open your Python folder\n${dirs.pythonDir}`}
+            aria-label="Open your Python tasks folder"
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
           >
             <FolderOpen className="h-3 w-3" />
@@ -651,6 +652,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
             type="button"
             onClick={() => void stop()}
             title="Stop"
+            aria-label={`Stop ${running}`}
             className="shrink-0 rounded border border-danger/40 bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger hover:bg-danger/25"
           >
             <Square className="h-3 w-3" />
@@ -730,7 +732,9 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                     ? { kind: 'command', actionKey: entry.actionKey! }
                     : entry.id.startsWith('ruby.')
                     ? { kind: 'script', name: entry.id.slice('ruby.'.length) }
-                    : { kind: 'task', id: entry.id }
+                    : entry.id.startsWith('ts.')
+                    ? { kind: 'task', id: entry.id.slice('ts.'.length), lang: 'typescript' }
+                    : { kind: 'task', id: entry.id, lang: 'python' }
                   const pinned = isPinned(quickSwitchPins, quickSwitchPin)
                   return (
                     <div
@@ -781,6 +785,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                           setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
                         }}
                         title={`${entry.tooltip}${isCommand ? '' : `\n\n(right-click to choose an icon${isReorderable ? ', drag to rearrange' : ''})`}`}
+                        aria-label={`${active ? 'Running ' : 'Run '}${entry.title}`}
                         data-action={entry.actionKey}
                         data-entry-id={entry.id}
                         className={cn(
@@ -833,6 +838,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                             setEditing(entry.editTarget!)
                           }}
                           title={`Edit ${entry.editTarget.name}`}
+                          aria-label={`Edit ${entry.title}`}
                           className="absolute -right-1 -top-1 rounded border border-border bg-surface p-0.5 text-ink-faint opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
                         >
                           <Pencil className="h-2.5 w-2.5" />

@@ -23,7 +23,7 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
+  AppWindow,
   PanelRightClose,
   ZoomIn,
   ZoomOut,
@@ -838,7 +838,7 @@ function Shell({
               title="Open the map in its own window" aria-label="Open the map in its own window"
               onClick={onPopOut}
             >
-              <ExternalLink className="w-3.5 h-3.5" />
+              <AppWindow aria-hidden="true" className="w-3.5 h-3.5" />
             </button>
           )}
           {onRefresh && (

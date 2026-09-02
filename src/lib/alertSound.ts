@@ -16,6 +16,11 @@
 import { invokeTauri, isTauri } from './tauri'
 import { alertGate, GLOBAL_MS, type AlertChannel } from './alertGate'
 import { effectiveAudioGain, masterMuted } from './audioMaster.ts'
+import {
+  clearAlertPlaybackFailure,
+  recordAlertPlaybackFailure,
+  resetAlertPlaybackFailures,
+} from './alertPlaybackStatus'
 
 export type { AlertChannel } from './alertGate'
 
@@ -157,17 +162,19 @@ async function load(name: string): Promise<HTMLAudioElement | null> {
  * called from the render path of a text pane, and a sound failing is not a
  * reason for a line of game text not to appear.
  */
-export function playAlert(name: string, cls?: string) {
+export function playAlert(name: string, cls?: string, options: { preview?: boolean } = {}) {
   const { channel, throttleMs, throttleKey } = alertGate(name, cls)
   const vol = effectiveAudioGain(volumes[channel])
   if (vol <= 0 || !name) return
 
   const now = Date.now()
-  if (now - lastAny < GLOBAL_MS) return
-  if (now - (lastPlayed.get(throttleKey) ?? 0) < throttleMs) return
+  if (!options.preview && now - lastAny < GLOBAL_MS) return
+  if (!options.preview && now - (lastPlayed.get(throttleKey) ?? 0) < throttleMs) return
 
-  lastAny = now
-  lastPlayed.set(throttleKey, now)
+  if (!options.preview) {
+    lastAny = now
+    lastPlayed.set(throttleKey, now)
+  }
 
   void load(name).then((audio) => {
     if (!audio || masterMuted()) return
@@ -188,11 +195,11 @@ export function playAlert(name: string, cls?: string) {
         // this to 100%, which is a real ceiling, not a bug.
         audio.volume = Math.min(1, vol)
       }
-      void audio.play().catch(() => {
-        /* Autoplay policy, or no audio device. Not worth interrupting play. */
-      })
-    } catch {
-      /* Same. */
+      void audio.play()
+        .then(() => clearAlertPlaybackFailure(name))
+        .catch((error) => recordAlertPlaybackFailure(name, error))
+    } catch (error) {
+      recordAlertPlaybackFailure(name, error)
     }
   })
 }
@@ -203,5 +210,6 @@ export function resetAlerts() {
   gains.clear()
   lastPlayed.clear()
   missing.clear()
+  resetAlertPlaybackFailures()
   lastAny = 0
 }

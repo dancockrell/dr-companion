@@ -199,7 +199,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
                     type="button"
                     onClick={() => move(item.id, -1)}
                     disabled={i === 0}
-                    className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-30"
+                    className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-40"
                     title="Move earlier" aria-label="Move earlier"
                   >
                     <ArrowUp className="h-3 w-3" />
@@ -208,7 +208,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
                     type="button"
                     onClick={() => move(item.id, 1)}
                     disabled={i === queue.length - 1}
-                    className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-30"
+                    className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-40"
                     title="Move later" aria-label="Move later"
                   >
                     <ArrowDown className="h-3 w-3" />
