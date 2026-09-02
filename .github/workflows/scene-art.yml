@@ -6,6 +6,7 @@ on:
       - 'data/art/**'
       - 'public/room-scenes/**'
       - 'public/grok-art/room-scenes/**'
+      - 'public/magnific-art/room-scenes/**'
       - 'src/data/grokRoomScenes.ts'
       - 'tools/grok-room-scenes-test.mjs'
       - 'python/test_room_scene_images.py'
@@ -21,6 +22,7 @@ on:
       - 'data/art/**'
       - 'public/room-scenes/**'
       - 'public/grok-art/room-scenes/**'
+      - 'public/magnific-art/room-scenes/**'
       - 'src/data/grokRoomScenes.ts'
       - 'tools/grok-room-scenes-test.mjs'
       - 'python/test_room_scene_images.py'
@@ -57,7 +59,7 @@ jobs:
         run: npm run art:scene-patterns
       - name: Test scene semantics and basket integrity
         run: npm run test:room-scene-patterns
-      - name: Test admitted Grok room-scene pixels
+      - name: Test every admitted room-scene pixel payload
         run: npm run test:room-scene-images
       - name: Capture generated scene data
         uses: actions/upload-artifact@v7

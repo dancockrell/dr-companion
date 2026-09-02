@@ -2,10 +2,11 @@
 
 Dimension and JPEG decoder checks did not catch four generated images whose
 lower halves were replaced by gray or black data. This gate samples sixteen
-horizontal bands in every shipped Grok room scene and rejects four or more
+horizontal bands in every shipped room scene and rejects four or more
 consecutive near-uniform bands. It is deliberately a corruption check, not an
 automated aesthetic score; native-resolution human review still decides what
-art is admitted.
+art is admitted. New provider libraries belong here automatically rather than
+quietly bypassing the gate that protects the battle canvas.
 """
 
 from __future__ import annotations
@@ -16,7 +17,11 @@ from pathlib import Path
 from PIL import Image, ImageStat
 
 
-ROOT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("public/grok-art/room-scenes")
+ROOTS = (
+    [Path(sys.argv[1])]
+    if len(sys.argv) > 1
+    else [Path("public/grok-art/room-scenes"), Path("public/magnific-art/room-scenes")]
+)
 BAND_COUNT = 16
 MAX_FLAT_RUN = 3
 FLAT_STDDEV = 1.0
@@ -40,20 +45,24 @@ def longest_flat_run(values: list[float]) -> int:
     return longest
 
 
-files = sorted(ROOT.glob("*.jpg"))
-check("the Grok room-scene library is present", bool(files), str(ROOT))
+files: list[Path] = []
+for root in ROOTS:
+    library_files = sorted(root.glob("*.jpg"))
+    check(f"the {root.parent.name} room-scene library is present", bool(library_files), str(root))
+    files.extend(library_files)
 
 for path in files:
+    label = path.as_posix()
     try:
         with Image.open(path) as source:
             source.load()
             width, height = source.size
             image = source.convert("L")
     except Exception as exc:  # Pillow provides the actionable decoder detail.
-        check(f"{path.name} decodes completely", False, str(exc))
+        check(f"{label} decodes completely", False, str(exc))
         continue
 
-    check(f"{path.name} has landscape production dimensions", width >= 1024 and height >= 576, f"{width}x{height}")
+    check(f"{label} has landscape production dimensions", width >= 1024 and height >= 576, f"{width}x{height}")
 
     # Downsampling preserves a truly flat payload band while keeping the gate
     # fast enough to run over the complete shipped library on every PR.
@@ -68,13 +77,13 @@ for path in files:
 
     flat_run = longest_flat_run(deviations)
     check(
-        f"{path.name} has no large flat corruption band",
+        f"{label} has no large flat corruption band",
         flat_run <= MAX_FLAT_RUN,
         f"longest near-uniform run {flat_run}/{BAND_COUNT}; band deviations "
         + ", ".join(f"{value:.2f}" for value in deviations),
     )
     check(
-        f"{path.name} has a rendered bottom edge",
+        f"{label} has a rendered bottom edge",
         deviations[-1] >= FLAT_STDDEV,
         f"bottom-band deviation {deviations[-1]:.2f}",
     )
