@@ -57,8 +57,8 @@ function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app
  * rather than whatever fitColumns had left over, so it is a genuine third
  * column alongside Battle and Experience. See columns.ts's own doc comment
  * on why an unclaimed leftover still goes here by default. */
-const ROOM_KEY = 'drc.room-width.v1'
-const BATTLE_KEY = 'drc.battle-width.v2'
+const ROOM_KEY = 'drc.room-width.v2'
+const BATTLE_KEY = 'drc.battle-width.v3'
 /** Was `drc.dash-width.v1` - the same stored preference, same fitColumns
  * slot, now spent on the Experience strip instead of the middle dashboard
  * that no longer exists. Renamed rather than reused under its old name so a
@@ -66,9 +66,45 @@ const BATTLE_KEY = 'drc.battle-width.v2'
  * what it now is - and because DEFAULT_DASH_W/DASH_EMPTY_WANT in columns.ts
  * were sized for a two-column panel grid, not a single scrolling board; see
  * the width picked below. */
-const EXPERIENCE_KEY = 'drc.experience-width.v1'
-const MAP_HEIGHT_KEY = 'drc.map-height.v2'
+const EXPERIENCE_KEY = 'drc.experience-width.v2'
+const MAP_HEIGHT_KEY = 'drc.map-height.v3'
 const LEGACY_MAP_HEIGHT_KEY = 'drc.map-height.v1'
+
+/**
+ * Stored as a share of the window (0 to 1), not a pixel count.
+ *
+ * A width chosen at 1920px is a sliver of a 5120px ultrawide and swallows a
+ * 1280px laptop whole - a fixed pixel preference is only ever right on the
+ * screen it was set on, which is why fitColumns carries an entire "not
+ * enough width" rescue path (squeeze-toward-floor, a banner, a Reset
+ * widths button) for the moment that preference stops fitting. Storing the
+ * *share* instead means the preference is resolution-independent by
+ * construction: the same layout comes back on any screen, not a pixel
+ * count that happened to fit one. `Splitter.tsx`'s dividers already work
+ * this way; this brings the outer three columns and the map's height in
+ * line with it instead of carrying two different storage strategies for
+ * the same kind of control.
+ *
+ * Every key bumped its version alongside this change - a share and a pixel
+ * count are both just numbers, and reading an old 460 (px) as 460 (a share,
+ * i.e. 46000%) would be silent, wrong, and exactly the "old data under a
+ * new meaning" trap. A bumped key simply falls back to the default once,
+ * the same way `EXPERIENCE_KEY`'s own rename above already handled a prior
+ * meaning-change to this exact family of settings.
+ *
+ * The rescue path in fitColumns still matters and is untouched: a share
+ * remains a *request*, and a squeezed/very small window still needs the
+ * same floors, ceilings and "Reset widths" banner it always did. This only
+ * changes what "the player's request" means from a fixed pixel count to a
+ * fraction of whatever window they set it on.
+ */
+function readShare(key: string, reference: number, fallbackPx: number): number {
+  const share = Number(localStorage.getItem(key))
+  return Number.isFinite(share) && share > 0 && share < 1 ? share * reference : fallbackPx
+}
+function writeShare(key: string, px: number, reference: number) {
+  if (reference > 0) writeText(key, String(px / reference))
+}
 
 /** The divider itself, which sits between the columns and has to be counted. */
 const SPLIT_W = 8
@@ -142,32 +178,34 @@ export default function App() {
   }, [setupComplete, requestIntent])
 
   /**
-   * The columns are fixed widths in pixels, not shares of the window - see
-   * columns.ts for why. Three real preferences now (Room, Battle,
-   * Experience) - any width nobody asked for still goes to Room by default
-   * (see fitColumns), so a wide window opens filled rather than with a
-   * blank margin, but Room is no longer *only* ever a leftover.
+   * The columns are shares of the window, not fixed pixel widths - see
+   * `readShare`/`writeShare` above for why. Three real preferences now
+   * (Room, Battle, Experience) - any width nobody asked for still goes to
+   * Room by default (see fitColumns), so a wide window opens filled rather
+   * than with a blank margin, but Room is no longer *only* ever a leftover.
+   *
+   * `window.innerWidth` stands in for `hostW` only until the real
+   * measurement below lands on the next layout pass - close enough for one
+   * frame, and self-correcting the moment `hostW` is real.
    */
-  const [roomW, setRoomWState] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(ROOM_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : DEFAULT_ROOM_W
-  })
+  const [roomW, setRoomWState] = useState<number>(() =>
+    Math.max(MIN_PX, Math.round(readShare(ROOM_KEY, window.innerWidth, DEFAULT_ROOM_W)))
+  )
 
   const setRoomW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setRoomWState(next)
-    writeText(ROOM_KEY, String(next))
+    writeShare(ROOM_KEY, next, hostW || window.innerWidth)
   }
 
-  const [battleW, setBattleWState] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(BATTLE_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 760
-  })
+  const [battleW, setBattleWState] = useState<number>(() =>
+    Math.max(MIN_PX, Math.round(readShare(BATTLE_KEY, window.innerWidth, 760)))
+  )
 
   const setBattleW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setBattleWState(next)
-    writeText(BATTLE_KEY, String(next))
+    writeShare(BATTLE_KEY, next, hostW || window.innerWidth)
   }
 
   /** Experience, all the way to the right - see ExperienceStrip.tsx. A
@@ -177,36 +215,36 @@ export default function App() {
    * two-digit mindstate number, the longest real combination) rather than
    * guessed, with the scrollbar hidden (ExperienceStrip's own `no-scrollbar`)
    * so it never eats into that measurement. */
-  const [experienceW, setExperienceWState] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(EXPERIENCE_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 168
-  })
+  const [experienceW, setExperienceWState] = useState<number>(() =>
+    Math.max(MIN_PX, Math.round(readShare(EXPERIENCE_KEY, window.innerWidth, 168)))
+  )
 
   const setExperienceW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setExperienceWState(next)
-    writeText(EXPERIENCE_KEY, String(next))
+    writeShare(EXPERIENCE_KEY, next, hostW || window.innerWidth)
   }
 
   /**
-   * How tall the map gets at the top of its shared column, in pixels -
-   * player-set, the same way the other columns are.
+   * How tall the map gets at the top of its shared column, as a share of the
+   * window - player-set, the same way the other columns are.
    *
-   * This used to be 120, which is smaller than the map panel's own chrome:
-   * measured live, the header is 27px and the pin-palette tool rail is 78px,
-   * plus padding and gaps of about 28px more - 133px of always-there content
-   * before a single pixel of the actual chart can be drawn. At 120 the chart
-   * got 0px and rendered nothing, silently: no error, no "too short" notice,
-   * just an empty box, on an entirely ordinary window size. Floored at 300
-   * instead, so the worst case is a small but real map rather than an
-   * invisible one - and `mapCanShareHeight` below (which gates the "map
-   * hidden while the window is this short" message on this same constant)
-   * now actually fires before the chart disappears, instead of after.
+   * This used to be a fixed 120px, which is smaller than the map panel's own
+   * chrome: measured live, the header is 27px and the pin-palette tool rail
+   * is 78px, plus padding and gaps of about 28px more - 133px of always-there
+   * content before a single pixel of the actual chart can be drawn. At 120
+   * the chart got 0px and rendered nothing, silently: no error, no "too
+   * short" notice, just an empty box, on an entirely ordinary window size.
+   * Floored at 300 instead, so the worst case is a small but real map rather
+   * than an invisible one - and `mapCanShareHeight` below (which gates the
+   * "map hidden while the window is this short" message on this same
+   * constant) now actually fires before the chart disappears, instead of
+   * after.
    */
   const MIN_MAP_H = 300
   const [mapH, setMapHState] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(MAP_HEIGHT_KEY))
-    if (Number.isFinite(saved) && saved >= MIN_MAP_H) return saved
+    const shared = readShare(MAP_HEIGHT_KEY, window.innerHeight, 0)
+    if (shared >= MIN_MAP_H) return Math.round(shared)
     const legacy = Number(localStorage.getItem(LEGACY_MAP_HEIGHT_KEY))
     // Keep a real v1 customization. Only migrate the old shipped 480px
     // default, which is far too shallow on tall and ultrawide displays.
@@ -216,7 +254,7 @@ export default function App() {
   const setMapH = (px: number) => {
     const next = Math.max(MIN_MAP_H, Math.round(px))
     setMapHState(next)
-    writeText(MAP_HEIGHT_KEY, String(next))
+    writeShare(MAP_HEIGHT_KEY, next, hostH || window.innerHeight)
   }
 
   const dock = useMapDock()
