@@ -49,7 +49,7 @@ export function GearNotice() {
   if (!conflicts.length || !hands || !worn) return null
 
   return (
-    <div className="mt-1.5 space-y-1">
+    <div role="status" aria-live="polite" aria-label="Equipment conflicts" className="space-y-1">
       {conflicts.map((c) => {
         const { held, worn: wornItem } = conflictSubjects(c, hands, worn)
         return (
@@ -60,7 +60,7 @@ export function GearNotice() {
             // against what they saw rather than against our paraphrase of it.
             title={`${c.evidence}\n\nSeen ${c.seen}.`}
           >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" />
+            <AlertTriangle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" />
             <div className="min-w-0 text-xs leading-snug">
               {/* Names, not categories. "Something on your head is slowing your
                   playing" is a worse sentence than naming both items, and both

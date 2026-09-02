@@ -129,10 +129,6 @@ const ALLOWED = new Map([
       "it' — see its own doc comment) — dead with the dashboard, no other caller",
   ],
   [
-    'src/components/shared/GearNotice.tsx',
-    'part of the middle column\'s content (3e95ae7d: "...status board, hands, gear...") — dead with it',
-  ],
-  [
     'src/components/shared/QuickQueuePanel.tsx',
     '3e95ae7d: "Risk, Quick Queue, Training, Inventory and Script Library have no home ' +
       'anywhere in the app now" — this is the Quick Queue panel named there',
