@@ -84,6 +84,7 @@
     "test:quickswitch": "node tools/quickswitch-test.mjs",
     "test:keybindings": "node tools/keybindings-test.mjs",
     "test:gateway": "node tools/gateway-test.mjs",
+    "test:map-leaves": "node --experimental-strip-types tools/map-leaves-test.mjs",
     "test:eval": "node tools/eval-test.mjs",
     "art": "node C:\\Users\\Admin\\dev\\quartermaster\\tools\\frame-factory-requests.js",
     "test:gear": "node tools/gear-test.mjs",

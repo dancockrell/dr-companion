@@ -717,6 +717,39 @@ export function MapCanvas({
               height={GRID * scale}
               fill="transparent"
             />
+            {/* An exit the cartographer recorded but never resolved to a
+                destination. The full dashed circle marks an ordinary room;
+                on a gateway room a compact offset dot preserves both facts
+                without drawing two competing room outlines or pretending
+                the unresolved command has a reliable compass direction. */}
+            {r.leaves?.length ? (
+              r.gateway ? (
+                <circle
+                  data-map-unresolved-exits={r.leaves.length}
+                  data-unresolved-exit-kind="gateway-badge"
+                  cx={px(r) + box * 0.9}
+                  cy={py(r) - box * 0.9}
+                  r={Math.max(1.3, box * 0.3)}
+                  fill="var(--map-ink)"
+                  stroke="var(--map-ground)"
+                  strokeWidth={Math.max(0.6, 0.75 * scale)}
+                  opacity={0.78}
+                />
+              ) : (
+                <circle
+                  data-map-unresolved-exits={r.leaves.length}
+                  data-unresolved-exit-kind="room-ring"
+                  cx={px(r)}
+                  cy={py(r)}
+                  r={box * 0.95}
+                  fill="none"
+                  stroke="var(--map-ink)"
+                  strokeWidth={Math.max(0.6, 0.7 * scale)}
+                  strokeDasharray={`${0.9 * scale} ${1.4 * scale}`}
+                  opacity={0.5}
+                />
+              )
+            ) : null}
             {/* Every gateway remains a doorway. One representative doorway per
                 destination also owns the labelled continuation above, keeping
                 repeated crossings useful without covering the sheet in text. */}
