@@ -49,6 +49,8 @@ function Line({ text }: { text: string }) {
       </code>
       <button
         type="button"
+        aria-label={copied ? 'Command copied' : 'Copy command'}
+        title={copied ? 'Command copied' : 'Copy command'}
         className="shrink-0 text-xs flex items-center gap-1 rounded-md border border-border px-1.5 py-1 text-ink-faint hover:text-ink"
         onClick={async () => {
           try {
@@ -60,7 +62,7 @@ function Line({ text }: { text: string }) {
           }
         }}
       >
-        {copied ? <Check className="w-3 h-3 text-good" /> : <Copy className="w-3 h-3" />}
+        {copied ? <Check aria-hidden="true" className="w-3 h-3 text-good" /> : <Copy aria-hidden="true" className="w-3 h-3" />}
       </button>
     </div>
   )

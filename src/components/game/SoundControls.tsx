@@ -35,7 +35,7 @@
  * output gate and never rewrites any of these four configured values.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio, Search, Siren, Skull, MessageCircle, Music2, Star, X, ListMusic, Plus, Check, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
+import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio, Search, Siren, Skull, MessageCircle, Music2, Star, X, Trash2, ListMusic, Plus, Check, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
 import {
   playAlert,
   setAlertsVolume,
@@ -822,7 +822,7 @@ export function SoundControls() {
                           title={`Remove ${f.name} from favorites`}
                           aria-label={`Remove ${f.name} from favorites`}
                         >
-                          <X className="h-3 w-3" />
+                          <Trash2 aria-hidden="true" className="h-3 w-3" />
                         </button>
                       </div>
                     )
@@ -908,7 +908,7 @@ export function SoundControls() {
                             title={`Delete "${p.name}"`}
                             aria-label={`Delete ${p.name}`}
                           >
-                            <X className="h-3 w-3" />
+                            <Trash2 aria-hidden="true" className="h-3 w-3" />
                           </button>
                         </div>
                         {expanded && (
@@ -935,8 +935,9 @@ export function SoundControls() {
                                       className="shrink-0 text-ink-faint hover:text-warn"
                                       onClick={() => removeTrackFromPlaylist(p.id, id)}
                                       title={`Remove "${t.title}" from ${p.name}`}
+                                      aria-label={`Remove ${t.title} from ${p.name}`}
                                     >
-                                      <X className="h-3 w-3" />
+                                      <Trash2 aria-hidden="true" className="h-3 w-3" />
                                     </button>
                                   </div>
                                 )
