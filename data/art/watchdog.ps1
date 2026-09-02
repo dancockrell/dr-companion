@@ -1,16 +1,33 @@
 $ErrorActionPreference = 'Stop'
 $art = 'C:\Users\Admin\dev\dr-companion\data\art'
-$comfyDir = 'C:\Users\Admin\AppData\Local\Comfy-Desktop\ComfyUI-Installs\ComfyUI\ComfyUI'
-$comfyPy = 'C:\Users\Admin\dev\dr-companion\data\art\comfy-venv\Scripts\python.exe'
 $nodeExe = 'C:\Program Files\nodejs\node.exe'
-# tools/art-daemon.mjs was ported to quartermaster (src/art/), verified
-# with a real parity gate against this exact JS on the real corpus/manifest
-# before the switch -- see quartermaster's commit history for
-# src/art/safety.rs, eval.rs, daemon.rs, render.rs. `qm art-daemon` is a
-# drop-in replacement for `node tools/art-daemon.mjs` with no arguments.
-$qmExe = 'C:\Users\Admin\dev\quartermaster\target\release\qm.exe'
+# Local generation (ComfyUI, any local checkpoint -- FLUX/schnell, DreamShaper,
+# whatever else) is retired from this watchdog on purpose, not an oversight:
+# generation goes through Magnific exclusively now. Start-Comfy and the old
+# Start-Daemon (which drove tools/art-daemon.mjs, then briefly its
+# quartermaster port) are gone. What this watchdog supervises instead is
+# tools/frame-factory-requests.js -- the one piece of the Magnific pipeline
+# that involves no generation at all, so it is safe to run unattended: it
+# only reads open GitHub issues for a magnific-frame-factory block and
+# compiles it into a job file under var/frame-factory-queue. Everything past
+# that -- a signed-in Magnific browser actually generating something,
+# harvesting frames, curating -- is still an agent/human driving
+# frame-factory-job.js and frame-factory-harvest.js by hand, per this
+# repo's own README: there is no token and no browser-automation agent for
+# that step yet, and claiming otherwise is exactly the "job file exists, so
+# it must have worked" gap this whole pipeline exists to close.
+$requestsScript = 'C:\Users\Admin\dev\quartermaster\tools\frame-factory-requests.js'
+$requestsCwd = 'C:\Users\Admin\dev\quartermaster'
 
 
+# Currently unused by this file -- frame-factory-requests.js runs to
+# completion every poll rather than staying up as a supervised process, so
+# nothing here needs a hidden long-lived child right now. Left in place: the
+# moment a browser-automation agent for a signed-in Magnific session exists,
+# it will need exactly this (a long-lived hidden process this watchdog
+# restarts if it dies), and the bug below cost real time to find once
+# already.
+#
 # issue #50: `Start-Process -WindowStyle Hidden` does nothing here, and it
 # never did. .NET's ProcessStartInfo only honours WindowStyle when
 # UseShellExecute is true, and Start-Process silently forces
@@ -81,49 +98,20 @@ function Start-Hidden($FilePath, [string[]]$Arguments, $WorkingDirectory, $StdOu
   return $p
 }
 
-function Start-Comfy {
-  # --gpu-only added 28 Aug 2026 switching to DreamShaper (SD1.5, 859M params):
-  # every render log line showed the model being re-staged from CPU, dynamic
-  # VRAM offload tuned for FLUX's much bigger footprint. SD1.5 fits 12GB VRAM
-  # with room to spare, so there's no reason to be paging it in and out.
-  # Not named $args: that is PowerShell's own automatic variable for a
-  # function's unbound positional parameters, and shadowing it here would
-  # still work by accident but reads as a bug waiting to bite the next edit.
-  $comfyArgs = @(
-    'main.py',
-    '--extra-model-paths-config', "$art\comfy-extra-model-paths.yaml",
-    '--output-directory', "$art\out",
-    '--input-directory', 'C:\Users\Admin\AppData\Local\Comfy-Desktop\ComfyUI-Shared\input',
-    '--gpu-only'
-  )
-  $p = Start-Hidden $comfyPy $comfyArgs $comfyDir "$art\comfy-manual.log" "$art\comfy-manual-err.log"
-  $p.Id | Out-File "$art\comfy-manual.pid"
-  return $p
+function Run-RequestsWatcher {
+  # Not started-and-supervised like the old Comfy/daemon processes: this
+  # exits on its own every run (it is a poll, not a loop), so it is simply
+  # invoked on an interval rather than watched for staying alive.
+  & $nodeExe $requestsScript *>> "$art\frame-factory-requests.log"
 }
 
-function Start-Daemon {
-  Remove-Item "$art\daemon.lock" -ErrorAction SilentlyContinue
-  $p = Start-Hidden $qmExe @('art-daemon') 'C:\Users\Admin\dev\dr-companion' "$art\daemon-manual.log" "$art\daemon-manual-err.log"
-  $p.Id | Out-File "$art\daemon-manual.pid"
-  return $p
-}
-
-Add-Content "$art\watchdog.log" "$(Get-Date -Format o) watchdog starting"
-
-$comfy = Start-Comfy
-$daemon = Start-Daemon
+Add-Content "$art\watchdog.log" "$(Get-Date -Format o) watchdog starting (frame-factory-requests polling only -- no local generation)"
 
 while ($true) {
-  Start-Sleep -Seconds 30
-  $comfyAlive = Get-Process -Id $comfy.Id -ErrorAction SilentlyContinue
-  $daemonAlive = Get-Process -Id $daemon.Id -ErrorAction SilentlyContinue
-  if (-not $comfyAlive) {
-    Add-Content "$art\watchdog.log" "$(Get-Date -Format o) comfy (pid $($comfy.Id)) died, restarting"
-    $comfy = Start-Comfy
-    Start-Sleep -Seconds 20
-  }
-  if (-not $daemonAlive) {
-    Add-Content "$art\watchdog.log" "$(Get-Date -Format o) daemon (pid $($daemon.Id)) died, restarting"
-    $daemon = Start-Daemon
-  }
+  Add-Content "$art\watchdog.log" "$(Get-Date -Format o) polling frame-factory-requests"
+  Push-Location $requestsCwd
+  try { Run-RequestsWatcher }
+  catch { Add-Content "$art\watchdog.log" "$(Get-Date -Format o) frame-factory-requests failed: $_" }
+  finally { Pop-Location }
+  Start-Sleep -Seconds 300
 }

@@ -84,7 +84,7 @@
     "test:keybindings": "node tools/keybindings-test.mjs",
     "test:gateway": "node tools/gateway-test.mjs",
     "test:eval": "node tools/eval-test.mjs",
-    "art": "C:\\Users\\Admin\\dev\\quartermaster\\target\\release\\qm.exe art-daemon",
+    "art": "node C:\\Users\\Admin\\dev\\quartermaster\\tools\\frame-factory-requests.js",
     "test:gear": "node tools/gear-test.mjs",
     "test:skills-empty": "node tools/skills-empty-test.mjs",
     "test:mounted": "node tools/mounted-test.mjs && npm run test:aux-window-boundary",

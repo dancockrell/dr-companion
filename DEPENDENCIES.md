@@ -12,7 +12,7 @@ Generated from the shared memory database. Edit there, not here:
 ### ComfyUI
 
 - Location: `http://127.0.0.1:8188`
-- Why: The whole art pipeline talks to it over HTTP. Its scheduling/scoring loop was ported from tools/art-daemon.mjs into quartermaster (src/art/), verified with a real parity gate against the JS on the real corpus/manifest before the switch on 2026-09-02; run via 'qm art-daemon' now, not node. It waits for ComfyUI rather than exiting, so a missing ComfyUI looks like a daemon that is running and producing nothing. Needs the ImageScale and SaveImage nodes, which it uses to emit a thumbnail it scores itself on.
+- Why: RETIRED 2026-09-02: local generation (ComfyUI, any local checkpoint) is no longer the art pipeline -- generation goes through Magnific exclusively now (tools/magnific-client.js, tools/frame-factory-*.js in quartermaster). watchdog.ps1 and package.json's 'art' script no longer launch ComfyUI or any local-render daemon. tools/art-daemon.mjs, art-eval.mjs, art-safety.mjs and their brief quartermaster port (src/art/) are left on disk but are not wired into any automation -- kept only as reference, not to be run. This row is left registered in case ComfyUI is still installed and someone wonders why; it is not required for anything live.
 - Verify: `curl -s -m 3 http://127.0.0.1:8188/system_stats`
 
 ### FLUX.1-schnell fp8 checkpoint
