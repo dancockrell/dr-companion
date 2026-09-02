@@ -7,8 +7,6 @@
  */
 const GROK_SCENES = {
   forest: [
-    '/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg',
-    '/grok-art/room-scenes/forest-clearing-06aeb546.jpg',
     '/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg',
     '/grok-art/room-scenes/ancient-forest-36342832.jpg',
     '/grok-art/room-scenes/young-woodland-2d872f5f.jpg',
@@ -22,11 +20,9 @@ const GROK_SCENES = {
     '/grok-art/room-scenes/wetland-pier-dawn-2f9d3487.jpg',
   ],
   ocean: ['/grok-art/room-scenes/storm-ocean-10d4c18a.jpg', '/grok-art/room-scenes/lighthouse-coast-0ee0be16.jpg'],
-  cave: ['/grok-art/room-scenes/sea-cave-038edbd8.jpg', '/grok-art/room-scenes/catacomb-vault-86126f69.jpg'],
+  cave: ['/grok-art/room-scenes/catacomb-vault-86126f69.jpg'],
   mine: ['/grok-art/room-scenes/crystal-mine-3638b938.jpg'],
   mountain: [
-    '/grok-art/room-scenes/cliff-monastery-0183963f.jpg',
-    '/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg',
     '/grok-art/room-scenes/mountain-meadow-84245eb6.jpg',
     '/grok-art/room-scenes/cliff-valley-e8aa1349.jpg',
   ],
@@ -36,7 +32,6 @@ const GROK_SCENES = {
     '/grok-art/room-scenes/windswept-snowfield-93cbec8e.jpg',
     '/grok-art/room-scenes/frozen-city-8ac67c07.jpg',
   ],
-  desert: ['/grok-art/room-scenes/desert-canyon-0322415e.jpg'],
   temple: ['/grok-art/room-scenes/shrine-interior-0f2de22b.jpg'],
   apothecary: ['/grok-art/room-scenes/herbalist-ab006279.jpg', '/grok-art/room-scenes/apothecary-09cdec8e.jpg'],
   jeweler: ['/grok-art/room-scenes/jeweler-35a7845f.jpg'],
@@ -44,14 +39,10 @@ const GROK_SCENES = {
   archive: ['/grok-art/room-scenes/archive-494b55cb.jpg'],
   theater: ['/grok-art/room-scenes/theater-4013bf56.jpg'],
   training: ['/grok-art/room-scenes/training-hall-650f2679.jpg'],
-  officialOffice: ['/grok-art/room-scenes/official-office-b2888959.jpg'],
   guildHall: ['/grok-art/room-scenes/guild-hall-441c3d78.jpg'],
   healerWard: ['/grok-art/room-scenes/healer-ward-f3a8421c.jpg'],
   armory: ['/grok-art/room-scenes/armory-7142832a.jpg'],
   locksmith: ['/grok-art/room-scenes/locksmith-ee33bafb.jpg'],
-  tannery: ['/grok-art/room-scenes/tannery-4299577b.jpg'],
-  carpetShop: ['/grok-art/room-scenes/carpet-shop-37558278.jpg'],
-  gloveShop: ['/grok-art/room-scenes/glove-shop-94e50c0a.jpg'],
   forge: ['/grok-art/room-scenes/forge-11c9cd64.jpg'],
   outfitter: ['/grok-art/room-scenes/leather-workshop-1390477d.jpg'],
   tailor: ['/grok-art/room-scenes/textile-shop-1eed98c2.jpg'],
@@ -71,7 +62,6 @@ const GROK_SCENES = {
     '/grok-art/room-scenes/standing-stone-glade-8d15e0af.jpg',
   ],
   town: [
-    '/grok-art/room-scenes/night-market-04c61394.jpg',
     '/grok-art/room-scenes/town-square-2650911f.jpg',
     '/grok-art/room-scenes/rainy-city-alley-72b7a786.jpg',
   ],
@@ -82,13 +72,12 @@ const GROK_SCENES = {
   vineyard: ['/grok-art/room-scenes/vineyard-lantern-road-3734f583.jpg'],
   islandVillage: ['/grok-art/room-scenes/tropical-island-village-d6fb2276.jpg'],
   forestHut: ['/grok-art/room-scenes/forest-hut-6bc5be5d.jpg'],
-  treeTown: ['/grok-art/room-scenes/tree-city-04b6c4bd.jpg'],
 } as const
 
 type SceneFamily = keyof typeof GROK_SCENES
 
 export function familyFor(description: string): SceneFamily | null {
-  if (/\b(treehouse|treetop|canopy|wood elf|leth deriel)\b/i.test(description)) return 'treeTown'
+  if (/\b(treehouse|treetop|canopy|wood elf|leth deriel)\b/i.test(description)) return 'forest'
   if (/\b(tropical village|island village|island settlement|palm village)\b/i.test(description)) return 'islandVillage'
   if (/\b(forest hut|woodland hut|ranger hut|hunter's hut|hunters' hut)\b/i.test(description)) return 'forestHut'
   // A named street remains a street even when its name contains a service.
@@ -96,13 +85,13 @@ export function familyFor(description: string): SceneFamily | null {
   // interior because specialist words intentionally outrank generic town art.
   if (/\b(bank street|bank road|bank avenue|bank boulevard|bank lane|bank alley)\b/i.test(description)) return 'town'
   if (/\b((river|stream|creek|brook|canal|waterway|lakeshore|marsh) bank|(east|west|north|south|far|near|opposite) bank)\b/i.test(description)) return 'water'
-  if (/\b(guildleader|guildmaster|society master's office|master's office|official office|records office|public office|registry|bank|teller)\b/i.test(description)) return 'officialOffice'
+  if (/\b(guildleader|guildmaster|society master's office|master's office|official office|records office|public office|registry|bank|teller)\b/i.test(description)) return 'guildHall'
   if (/\b(hospital|infirmary|healing ward|healer's ward|treatment room|sickroom|clinic)\b/i.test(description)) return 'healerWard'
   if (/\b(armory|armoury|arms room|weapon storehouse|weapon racks?)\b/i.test(description)) return 'armory'
   if (/\b(locksmith|lock shop|lockpick shop|lockpicking workshop)\b/i.test(description)) return 'locksmith'
-  if (/\b(tannery|tanner's shop|tanning room|tanning workshop)\b/i.test(description)) return 'tannery'
-  if (/\b(carpet shop|carpet merchant|rug shop|rug merchant)\b/i.test(description)) return 'carpetShop'
-  if (/\b(glove shop|glover's shop|glove merchant)\b/i.test(description)) return 'gloveShop'
+  if (/\b(tannery|tanner's shop|tanning room|tanning workshop)\b/i.test(description)) return 'outfitter'
+  if (/\b(carpet shop|carpet merchant|rug shop|rug merchant)\b/i.test(description)) return 'tailor'
+  if (/\b(glove shop|glover's shop|glove merchant)\b/i.test(description)) return 'tailor'
   if (/\b(apothecary|alchemy|alchemist|potion|herb shop|herbalist)\b/i.test(description)) return 'apothecary'
   if (/\b(magic shop|enchanter|enchanting|artificer|arcane shop|crystal shop|magical supplies)\b/i.test(description)) return 'magicShop'
   if (/\b(jeweler|jeweller|gem shop|gemcutter|goldsmith|silversmith)\b/i.test(description)) return 'jeweler'
@@ -119,7 +108,6 @@ export function familyFor(description: string): SceneFamily | null {
   if (/\b(ruin|ruined|ancient columns|fallen temple|crumbling shrine)\b/i.test(description)) return 'ruins'
   if (/\b(temple|shrine|altar|chapel|sanctum|holy place)\b/i.test(description)) return 'temple'
   if (/\b(cave|cavern|grotto|tunnel|underground|crypt|tomb|sewer)\b/i.test(description)) return 'cave'
-  if (/\b(desert|sand|dune|arid|badland|waste)\b/i.test(description)) return 'desert'
   if (/\b(snow|ice|frozen|frost|glacier|wintry|blizzard)\b/i.test(description)) return 'snow'
   if (/\b(mountain|cliff|ridge|summit|peak|highland|ascent|outcrop)\b/i.test(description)) return 'mountain'
   if (/\b(ocean|open sea|stormy sea|lighthouse|sea cliff)\b/i.test(description)) return 'ocean'
@@ -140,13 +128,12 @@ export function familyFor(description: string): SceneFamily | null {
  * private office into a workshop, forge, or archive.
  */
 function familyForProse(description: string): SceneFamily | null {
-  if (/\b(treehouse|treetop settlement|canopy settlement|leth deriel)\b/i.test(description)) return 'treeTown'
+  if (/\b(treehouse|treetop settlement|canopy settlement|leth deriel)\b/i.test(description)) return 'forest'
   if (/\b(tropical village|island village|island settlement|palm village)\b/i.test(description)) return 'islandVillage'
   if (/\b(forest hut|woodland hut|ranger hut|hunter's hut|hunters' hut)\b/i.test(description)) return 'forestHut'
   if (/\b(vineyard|grapevine|grape vines|wine road)\b/i.test(description)) return 'vineyard'
   if (/\b(ruins?|ruined temple|ancient columns|crumbling shrine)\b/i.test(description)) return 'ruins'
   if (/\b(cave|cavern|grotto|underground tunnel|crypt|catacomb|tomb|sewer)\b/i.test(description)) return 'cave'
-  if (/\b(desert|sand dunes?|arid badlands?|wasteland)\b/i.test(description)) return 'desert'
   if (/\b(snowfield|snow-covered|ice field|frozen lake|glacier|blizzard)\b/i.test(description)) return 'snow'
   if (/\b(mountain|cliff|ridge|summit|highland|mountain pass)\b/i.test(description)) return 'mountain'
   if (/\b(ocean|open sea|stormy sea|lighthouse|sea cliff)\b/i.test(description)) return 'ocean'

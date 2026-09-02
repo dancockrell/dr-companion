@@ -141,12 +141,13 @@
       "canonicalTraits": ["substantial dark-wood desk", "books and ledgers", "organized record boxes", "brass balance for official work"],
       "habitat": "titles explicitly naming a guildleader, guildmaster, registry, bank, teller, public office or records office; never a street named after a bank",
       "currentImage": "/grok-art/room-scenes/guild-hall-441c3d78.jpg",
-      "approvedPrimary": "/grok-art/room-scenes/official-office-b2888959.jpg",
+      "approvedPrimary": null,
       "approvedVariants": [],
       "rejects": ["monumental marble guild hall for a private office", "leather workshop inferred from incidental furniture", "generic street named Bank Street"],
-      "regenerationNeeded": false,
+      "regenerationNeeded": true,
       "sourceFile": "b2888959-d3fe-4eea-bcf8-4702eafbf291.jpg",
-      "sha256": "d9113137f91aeb22f927d974b80abc4074c76c0bf031a6a7c1289d6c4e5b882b"
+      "sha256": "d9113137f91aeb22f927d974b80abc4074c76c0bf031a6a7c1289d6c4e5b882b",
+      "rejectionReason": "Rejected after native-resolution review: the lower half is a flat gray incomplete payload."
     },
     "healer-ward": {
       "exactSubject": "bright communal healer ward and infirmary",
@@ -188,37 +189,40 @@
       "exactSubject": "working tannery with stretched hides and treatment vats",
       "canonicalTraits": ["hides on frames", "treatment barrels", "cutting bench", "industrial masonry interior"],
       "habitat": "titles explicitly naming a tannery, tanner's shop, tanning room or tanning workshop",
-      "currentImage": null,
-      "approvedPrimary": "/grok-art/room-scenes/tannery-4299577b.jpg",
+      "currentImage": "/grok-art/room-scenes/leather-workshop-1390477d.jpg",
+      "approvedPrimary": null,
       "approvedVariants": [],
       "rejects": ["finished-leather retail shops", "incidental leather furniture", "generic outfitter rooms without tanning"],
-      "regenerationNeeded": false,
+      "regenerationNeeded": true,
       "sourceFile": "4299577b-b6a8-4fb0-80d6-cae4edf4952d.jpg",
-      "sha256": "28e02f69c1f48b67696f3a4d7f2b153124d0d4204687a7ac897d21182dc6a61c"
+      "sha256": "28e02f69c1f48b67696f3a4d7f2b153124d0d4204687a7ac897d21182dc6a61c",
+      "rejectionReason": "Rejected after native-resolution review: the lower half is a flat gray incomplete payload."
     },
     "carpet-merchant": {
       "exactSubject": "carpet and rug merchant's storeroom",
       "canonicalTraits": ["rolled patterned rugs", "hanging carpets", "warm daylight", "dense merchant inventory"],
       "habitat": "titles explicitly naming a carpet shop, carpet merchant, rug shop or rug merchant",
-      "currentImage": null,
-      "approvedPrimary": "/grok-art/room-scenes/carpet-shop-37558278.jpg",
+      "currentImage": "/grok-art/room-scenes/textile-shop-1eed98c2.jpg",
+      "approvedPrimary": null,
       "approvedVariants": [],
       "rejects": ["generic textile workrooms", "unrelated market exteriors", "incidental floor rugs"],
-      "regenerationNeeded": false,
+      "regenerationNeeded": true,
       "sourceFile": "37558278-e8c4-4b86-b1bb-1e7c88bf6991.jpg",
-      "sha256": "296742aa6a1c18ef07d17d94726e8eb9892398b5eaa78538d634fdadb8fde975"
+      "sha256": "296742aa6a1c18ef07d17d94726e8eb9892398b5eaa78538d634fdadb8fde975",
+      "rejectionReason": "Rejected after native-resolution review: a hard reconstruction seam is followed by a black lower band."
     },
     "glove-merchant": {
       "exactSubject": "glove merchant and glover's fitted-goods shop",
       "canonicalTraits": ["displayed gloves", "dark-wood shelving", "fitting mirror", "merchant writing desk"],
       "habitat": "titles explicitly naming a glove shop, glover's shop or glove merchant",
-      "currentImage": null,
-      "approvedPrimary": "/grok-art/room-scenes/glove-shop-94e50c0a.jpg",
+      "currentImage": "/grok-art/room-scenes/textile-shop-1eed98c2.jpg",
+      "approvedPrimary": null,
       "approvedVariants": [],
       "rejects": ["generic clothing stores", "offices without glove inventory", "incidental gloves in room prose"],
-      "regenerationNeeded": false,
+      "regenerationNeeded": true,
       "sourceFile": "94e50c0a-fb85-4df6-80fe-4b327cacd13f.jpg",
-      "sha256": "25b44d22d9d9662766c1bf7557bf1cfe6c6f283cc7e33bd58fb14938ba4364ac"
+      "sha256": "25b44d22d9d9662766c1bf7557bf1cfe6c6f283cc7e33bd58fb14938ba4364ac",
+      "rejectionReason": "Rejected after native-resolution review: the lower half is a flat gray incomplete payload."
     }
   }
 }
