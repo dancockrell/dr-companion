@@ -209,8 +209,14 @@ export function SubstitutesEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">Import multiple substitutes - paste #substitute lines below</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
-              <X className="h-3.5 w-3.5" />
+            <button
+              type="button"
+              onClick={cancelForm}
+              aria-label="Cancel substitute import"
+              title="Cancel substitute import"
+              className="rounded p-1 text-ink-faint hover:text-ink"
+            >
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <textarea
@@ -260,8 +266,14 @@ export function SubstitutesEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">{adding ? 'New substitute' : 'Edit substitute'}</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
-              <X className="h-3.5 w-3.5" />
+            <button
+              type="button"
+              onClick={cancelForm}
+              aria-label={adding ? 'Cancel new substitute' : 'Cancel editing substitute'}
+              title={adding ? 'Cancel new substitute' : 'Cancel editing substitute'}
+              className="rounded p-1 text-ink-faint hover:text-ink"
+            >
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <div className="flex flex-col gap-2 text-xs">

@@ -9,7 +9,13 @@ export interface RadarPoint {
   y: number
 }
 
-/** Convert the radar's compass convention (0 degrees is up, clockwise) to a point. */
+/** A point on the unit circle around a given center, in this board's own
+ * convention: 0° is straight up ("front"), clockwise. The center is a
+ * parameter rather than a fixed 50/50 because the compass now spans the
+ * whole board edge to edge (the roster floats over it as an overlay,
+ * rather than sharing the board's width) — the *visual* center still
+ * needs to sit clear of that overlay, so the caller nudges it left by
+ * however much of the right edge the strip actually covers. */
 export function pointOnRadar(cx: number, cy: number, angleDeg: number, radiusPct: number): RadarPoint {
   const rad = ((angleDeg - 90) * Math.PI) / 180
   return { x: cx + radiusPct * Math.cos(rad), y: cy + radiusPct * Math.sin(rad) }
