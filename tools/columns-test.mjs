@@ -38,6 +38,9 @@ import {
   DEFAULT_ROOM_W,
   DEFAULT_MAP_W,
   DEFAULT_DASH_W,
+  pixelsForSizeShare,
+  sizeShareForPixels,
+  storedSizeShare,
 } from '../src/lib/columns.ts'
 
 let pass = 0
@@ -51,6 +54,29 @@ function ok(label, cond, detail) {
     fail += 1
     console.log(`FAIL ${label.padEnd(52)} ${detail ?? ''}`)
   }
+}
+
+console.log('-- proportional persistence remains proportional during live resize --')
+{
+  const saved = storedSizeShare('0.25', 1440, DEFAULT_ROOM_W)
+  ok('a stored share remains a share', saved === 0.25, String(saved))
+  ok('the share resolves at laptop width', pixelsForSizeShare(saved, 1440) === 360, String(pixelsForSizeShare(saved, 1440)))
+  ok('the same live state resolves again at ultrawide width', pixelsForSizeShare(saved, 2880) === 720, String(pixelsForSizeShare(saved, 2880)))
+  ok('a dragged width becomes a share', sizeShareForPixels(720, 2880) === 0.25, String(sizeShareForPixels(720, 2880)))
+  ok('invalid stored data falls back to the requested pixel default', storedSizeShare('460', 1440, DEFAULT_ROOM_W) === DEFAULT_ROOM_W / 1440)
+
+  const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  ok(
+    'App keeps every adjustable dimension as live share state',
+    ['roomShare', 'battleShare', 'experienceShare', 'mapHShare'].every((name) =>
+      appSource.includes(`const [${name}, set`),
+    ),
+  )
+  ok(
+    'App resolves live shares against the current host dimensions',
+    appSource.includes('pixelsForSizeShare(roomShare, widthReference') &&
+      appSource.includes('pixelsForSizeShare(mapHShare, heightReference'),
+  )
 }
 
 const SPLIT = 8

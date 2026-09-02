@@ -16,5 +16,5 @@ public/rooms/manifest.json:generic-api-key:5179
 # Another localStorage key constant, same shape as persistence.ts's above.
 # Line numbers moved when the share-based storage helpers were added above
 # these declarations - was :45/:53, now :61/:69.
-src/App.tsx:generic-api-key:61
-src/App.tsx:generic-api-key:69
+src/App.tsx:generic-api-key:71
+src/App.tsx:generic-api-key:72

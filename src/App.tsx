@@ -18,7 +18,18 @@ import { PanelBoundary } from './components/shared/PanelBoundary'
 import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
-import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W, DEFAULT_MAP_W, DEFAULT_DASH_W } from './lib/columns'
+import {
+  combatBattleWant,
+  combatRoomWant,
+  fitColumns,
+  pickReset,
+  DEFAULT_ROOM_W,
+  DEFAULT_MAP_W,
+  DEFAULT_DASH_W,
+  pixelsForSizeShare,
+  sizeShareForPixels,
+  storedSizeShare,
+} from './lib/columns'
 import { BATTLE_SCENE_MAX_WIDTH_VH } from './components/room/BattleColumn'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
@@ -99,11 +110,10 @@ const LEGACY_MAP_HEIGHT_KEY = 'drc.map-height.v1'
  * fraction of whatever window they set it on.
  */
 function readShare(key: string, reference: number, fallbackPx: number): number {
-  const share = Number(localStorage.getItem(key))
-  return Number.isFinite(share) && share > 0 && share < 1 ? share * reference : fallbackPx
+  return storedSizeShare(localStorage.getItem(key), reference, fallbackPx)
 }
-function writeShare(key: string, px: number, reference: number) {
-  if (reference > 0) writeText(key, String(px / reference))
+function writeShare(key: string, share: number) {
+  if (share > 0 && share < 1) writeText(key, String(share))
 }
 
 /** The divider itself, which sits between the columns and has to be counted. */
@@ -188,25 +198,13 @@ export default function App() {
    * measurement below lands on the next layout pass - close enough for one
    * frame, and self-correcting the moment `hostW` is real.
    */
-  const [roomW, setRoomWState] = useState<number>(() =>
-    Math.max(MIN_PX, Math.round(readShare(ROOM_KEY, window.innerWidth, DEFAULT_ROOM_W)))
+  const [roomShare, setRoomShare] = useState<number>(() =>
+    readShare(ROOM_KEY, window.innerWidth, DEFAULT_ROOM_W)
   )
 
-  const setRoomW = (px: number) => {
-    const next = Math.max(MIN_PX, Math.round(px))
-    setRoomWState(next)
-    writeShare(ROOM_KEY, next, hostW || window.innerWidth)
-  }
-
-  const [battleW, setBattleWState] = useState<number>(() =>
-    Math.max(MIN_PX, Math.round(readShare(BATTLE_KEY, window.innerWidth, DEFAULT_MAP_W)))
+  const [battleShare, setBattleShare] = useState<number>(() =>
+    readShare(BATTLE_KEY, window.innerWidth, DEFAULT_MAP_W)
   )
-
-  const setBattleW = (px: number) => {
-    const next = Math.max(MIN_PX, Math.round(px))
-    setBattleWState(next)
-    writeShare(BATTLE_KEY, next, hostW || window.innerWidth)
-  }
 
   /** Experience, all the way to the right - see ExperienceStrip.tsx. A
    * single fixed column (MindstateBoard no longer reflows into two or three)
@@ -215,15 +213,9 @@ export default function App() {
    * two-digit mindstate number, the longest real combination) rather than
    * guessed, with the scrollbar hidden (ExperienceStrip's own `no-scrollbar`)
    * so it never eats into that measurement. */
-  const [experienceW, setExperienceWState] = useState<number>(() =>
-    Math.max(MIN_PX, Math.round(readShare(EXPERIENCE_KEY, window.innerWidth, DEFAULT_DASH_W)))
+  const [experienceShare, setExperienceShare] = useState<number>(() =>
+    readShare(EXPERIENCE_KEY, window.innerWidth, DEFAULT_DASH_W)
   )
-
-  const setExperienceW = (px: number) => {
-    const next = Math.max(MIN_PX, Math.round(px))
-    setExperienceWState(next)
-    writeShare(EXPERIENCE_KEY, next, hostW || window.innerWidth)
-  }
 
   /**
    * How tall the map gets at the top of its shared column, as a share of the
@@ -242,20 +234,17 @@ export default function App() {
    * after.
    */
   const MIN_MAP_H = 300
-  const [mapH, setMapHState] = useState<number>(() => {
-    const shared = readShare(MAP_HEIGHT_KEY, window.innerHeight, 0)
-    if (shared >= MIN_MAP_H) return Math.round(shared)
+  const [mapHShare, setMapHShare] = useState<number>(() => {
+    const shared = Number(localStorage.getItem(MAP_HEIGHT_KEY))
+    if (Number.isFinite(shared) && shared > 0 && shared < 1) return shared
     const legacy = Number(localStorage.getItem(LEGACY_MAP_HEIGHT_KEY))
     // Keep a real v1 customization. Only migrate the old shipped 480px
     // default, which is far too shallow on tall and ultrawide displays.
-    if (Number.isFinite(legacy) && legacy >= MIN_MAP_H && legacy !== 480) return legacy
-    return Math.max(MIN_MAP_H, Math.round(window.innerHeight * DEFAULT_MAP_SHARE))
+    if (Number.isFinite(legacy) && legacy >= MIN_MAP_H && legacy !== 480) {
+      return sizeShareForPixels(legacy, window.innerHeight)
+    }
+    return DEFAULT_MAP_SHARE
   })
-  const setMapH = (px: number) => {
-    const next = Math.max(MIN_MAP_H, Math.round(px))
-    setMapHState(next)
-    writeShare(MAP_HEIGHT_KEY, next, hostH || window.innerHeight)
-  }
 
   const dock = useMapDock()
 
@@ -277,6 +266,37 @@ export default function App() {
     ro.observe(el)
     return () => ro.disconnect()
   }, [setupComplete])
+
+  // Shares are the live source of truth, not merely a startup encoding.
+  // Re-resolving them against the measured host on every render means a
+  // running window keeps the player's proportions while it is resized.
+  const widthReference = hostW || window.innerWidth
+  const heightReference = hostH || window.innerHeight
+  const roomW = pixelsForSizeShare(roomShare, widthReference, MIN_PX)
+  const battleW = pixelsForSizeShare(battleShare, widthReference, MIN_PX)
+  const experienceW = pixelsForSizeShare(experienceShare, widthReference, MIN_PX)
+  const mapH = pixelsForSizeShare(mapHShare, heightReference, MIN_MAP_H)
+
+  const setRoomW = (px: number) => {
+    const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
+    setRoomShare(share)
+    writeShare(ROOM_KEY, share)
+  }
+  const setBattleW = (px: number) => {
+    const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
+    setBattleShare(share)
+    writeShare(BATTLE_KEY, share)
+  }
+  const setExperienceW = (px: number) => {
+    const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
+    setExperienceShare(share)
+    writeShare(EXPERIENCE_KEY, share)
+  }
+  const setMapH = (px: number) => {
+    const share = sizeShareForPixels(Math.max(MIN_MAP_H, Math.round(px)), heightReference)
+    setMapHShare(share)
+    writeShare(MAP_HEIGHT_KEY, share)
+  }
 
   const character = useAppStore((s) => s.character)
   const experienceEmpty = !character

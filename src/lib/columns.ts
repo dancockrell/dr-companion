@@ -136,6 +136,23 @@ export const DEFAULT_DASH_W = 150
  * actually asked for in practice before room had a stored width of its own. */
 export const DEFAULT_ROOM_W = 460
 
+/** Resolve persisted proportional preferences without mixing shares and pixels. */
+export function storedSizeShare(raw: string | null, reference: number, fallbackPx: number): number {
+  const share = Number(raw)
+  if (Number.isFinite(share) && share > 0 && share < 1) return share
+  return reference > 0 ? fallbackPx / reference : 0
+}
+
+/** Turn a live share into the pixel request consumed by fitColumns. */
+export function pixelsForSizeShare(share: number, reference: number, floor = 0): number {
+  return Math.max(floor, Math.round(Math.max(0, share) * Math.max(0, reference)))
+}
+
+/** Turn a dragged pixel request back into the live, resolution-independent state. */
+export function sizeShareForPixels(px: number, reference: number): number {
+  return reference > 0 ? Math.max(0, px) / reference : 0
+}
+
 /**
  * The left workspace (map plus game/functions) is important, but in combat it
  * must not be allowed to spend most of the window while the actual room,
