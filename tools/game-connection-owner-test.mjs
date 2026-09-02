@@ -10,6 +10,12 @@ const check = (name, pass) => {
 }
 
 check('the connection bar is mounted in the live game workspace', /<GameConnectionBar/.test(chat))
+check(
+  'clearing connection output uses the same destructive icon as other buffer clears',
+  /import \{[^}]*Trash2[^}]*\} from 'lucide-react'/.test(bar) &&
+    /aria-label="Clear the scrollback"[\s\S]*?<Trash2 aria-hidden="true"/.test(bar) &&
+    !/\bEraser\b/.test(bar),
+)
 check('the obsolete duplicate GamePane implementation is gone', !existsSync('src/components/game/GamePane.tsx'))
 check('the live owner retains attach, detach, clear, status and port controls',
   /attachGame/.test(bar) && /detachGame/.test(bar) && /clearGame/.test(bar) && /gameState/.test(bar) && /validPort/.test(bar))
