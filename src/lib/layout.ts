@@ -216,6 +216,14 @@ export function setMapSplit(layout: Layout, split: number): Layout {
  */
 const listeners = new Set<() => void>()
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key?.startsWith(`${KEY}.`)) {
+      for (const fn of listeners) fn()
+    }
+  })
+}
+
 export function onLayoutChange(fn: () => void): () => void {
   listeners.add(fn)
   return () => {
