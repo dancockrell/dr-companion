@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { sendGame } from './gameLink'
+import { validateGameActionCommand } from './gameCommand'
 
 export interface GameActionFailure {
   id: number
@@ -37,13 +38,14 @@ function publishFailure(command: string, label: string, error: unknown): GameAct
 }
 
 /**
- * Send one player-requested raw command and publish a shared, accessible
- * failure notice if native transport rejects it. Callers that need
- * transactional behavior (notably Quick Queue) still receive the rejection.
+ * Send one UI-generated game action and publish a shared, accessible failure
+ * notice if its game-derived target is unsafe or native transport rejects it.
+ * Raw player input uses `sendGame` directly so intentional Genie/Lich command
+ * separators remain available there.
  */
 export async function sendGameAction(command: string, label = command): Promise<void> {
   try {
-    await sendGame(command)
+    await sendGame(validateGameActionCommand(command))
   } catch (error) {
     publishFailure(command, label, error)
     throw error
