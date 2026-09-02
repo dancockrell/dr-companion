@@ -23,7 +23,8 @@
  * reach only the flows this app shipped, and now they hold every automated
  * command, including scripts this app never started.
  */
-import { setPaused } from './pythonTasks'
+import { setPaused, stopTask } from './pythonTasks'
+import { stopNodeTask } from './nodeTasks'
 
 type Listener<T> = (payload: T) => void
 
@@ -54,7 +55,13 @@ const resumeAll = createSignal()
 const startFlow = createSignal<{ id: string; lang?: 'python' | 'typescript' }>()
 
 export const onStopAll = stopAll.on
-export const requestStopAll = () => stopAll.request()
+export const requestStopAll = () => {
+  // Process ownership lives for the app's lifetime, not the Tasks panel's.
+  // Invoke both backends before notifying optional UI subscribers so hiding
+  // or unmounting any panel can never turn the safety control into a no-op.
+  void Promise.allSettled([stopTask(), stopNodeTask()])
+  stopAll.request()
+}
 
 export const onPauseAll = pauseAll.on
 

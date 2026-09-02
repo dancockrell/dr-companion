@@ -76,7 +76,7 @@
     "test:place": "node tools/place-test.mjs",
     "test:trail": "node tools/trail-test.mjs",
     "test:safety": "node tools/safety-test.mjs",
-    "test:queue-driver": "node tools/queue-driver-test.mjs",
+    "test:queue-driver": "node tools/queue-driver-test.mjs && node tools/stop-all-lifetime-test.mjs",
     "test:editor-safety": "node tools/editor-safety-test.mjs",
     "test:command-history": "node tools/command-history-test.mjs",
     "test:quickswitch": "node tools/quickswitch-test.mjs",

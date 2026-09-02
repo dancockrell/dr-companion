@@ -251,7 +251,12 @@ export function SafetyFooter() {
           use for a wider box, so it keeps only `shrink` (it can still give
           up width at a narrow window) and drops `grow` - every leftover
           pixel now goes to the transport wrapper instead of being split. */}
-      <div className="flex min-w-0 shrink basis-40 items-center justify-end gap-2 text-xs">
+      <div
+        className="flex min-w-0 shrink basis-40 items-center justify-end gap-2 text-xs"
+        role="status"
+        aria-live="polite"
+        aria-atomic="false"
+      >
         {/* First, because a bar full of controls that cannot reach Lich is the
             one state where pressing Stop achieves nothing at all. */}
         {!bridgeConnected && (

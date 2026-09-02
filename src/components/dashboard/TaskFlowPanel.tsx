@@ -98,7 +98,7 @@ import { useDragScroll } from '../../lib/useDragScroll'
 import type { EditorTarget } from './ScriptEditor'
 import { scrollableRegionProps } from '../../lib/scrollableRegion'
 import { ScriptIconPicker } from './ScriptIconPicker'
-import { onStopAll, onStartFlow } from '../../lib/flowStop'
+import { onStartFlow } from '../../lib/flowStop'
 import { invokeTauri } from '../../lib/tauri'
 import { useAppStore } from '../../store/useAppStore'
 import { cn } from '../../lib/cn'
@@ -423,20 +423,6 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
     setNote(pySt.note || nodeSt2.note || 'Stopped.')
     setActiveFlow(null)
   }, [setActiveFlow])
-
-  // SafetyFooter's Stop holds no reference to this panel. Pause and Resume are
-  // deliberately not wired here any more: they are enforced in Rust at the
-  // script-API dispatch point, so they hold every automated command including
-  // scripts this app did not start. That is a widening, not an omission — the
-  // old Pause only ever paused the seven flows this app shipped.
-  useEffect(
-    () =>
-      onStopAll(() => {
-        void stopTask()
-        void stopNodeTask()
-      }),
-    []
-  )
 
   // The Command Palette starts a task by id with no reference to this panel.
   // `f.lang` names which catalog it came from - the palette's own list is
