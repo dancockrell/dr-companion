@@ -129,6 +129,10 @@ ok('keyboard resizing obeys minimum and bounds', keyboardClamped.w === m.MIN_W &
 const canvasSource = readFileSync('src/components/dashboard/FreeCanvas.tsx', 'utf8')
 ok('keyboard mode has explicit save and cancel paths', /e\.key === 'Enter'/.test(canvasSource) && /e\.key === 'Escape'/.test(canvasSource) && /changes cancelled/.test(canvasSource))
 ok('keyboard mode announces geometry without moving focus', /role="status"/.test(canvasSource) && /aria-live="polite"/.test(canvasSource) && /aria-pressed/.test(canvasSource))
+ok('canvas chrome sits above a contained panel stacking context',
+  /className="absolute right-1 top-1 z-30/.test(canvasSource) &&
+  /className="absolute inset-0 z-10"/.test(canvasSource) &&
+  /zIndex: dragging \? 9999 : 10 \+/.test(canvasSource))
 
 console.log(fails ? `\n${fails} failed` : '\nall passed')
 process.exit(fails ? 1 : 0)
