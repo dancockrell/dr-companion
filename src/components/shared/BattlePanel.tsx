@@ -61,7 +61,7 @@ export function BattlePanel({
             doc comment for why this replaced the card fan here specifically:
             the fan is a fine "what and how many" view, but it cannot show
             where anything is, which is the question a fight actually asks. */}
-        <div className="min-w-[13rem] flex-1">
+        <div className="min-w-52 flex-1">
           {hostile.length > 0 ? (
             <CombatRadar cards={hostile} combatants={character?.roomCombatants ?? []} />
           ) : (

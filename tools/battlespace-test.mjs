@@ -46,7 +46,7 @@ const invasionCreatures = mockBridge.match(/export function demoCombatCreatures[
 const stringLiterals = (source) => source.match(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g) ?? []
 
 check('the battle scene uses a compact 16:10 tactical field', /shape="landscape"/.test(battle) && /aspect-\[8\/5\]/.test(scene))
-check('room details and inventory receive the remaining useful height', /min-h-\[13rem\][^"']*flex-1/.test(battle))
+check('room details and inventory receive the remaining useful height', /min-h-52[^"']*flex-1/.test(battle))
 check('the full room description is permanently below the battle', /aria-label="Room description"/.test(battle) && /<ClassicRoomText/.test(battle))
 check('long room descriptions scroll independently and reset on movement', /roomDescriptionRef/.test(battle) && /overflow-y-auto/.test(battle) && /overscroll-contain/.test(battle) && /scrollTo\(\{ top: 0 \}\)/.test(battle))
 check('crowded rooms summarize people without replacing the clickable floor rail', /FULL_SUMMARY_LIMIT = 8/.test(classicRoom) && /inspect the portrait rail/.test(classicRoom) && /slice\(0, 3\)/.test(classicRoom) && /<FloorItems items=\{items\}/.test(classicRoom))
@@ -81,7 +81,7 @@ check('carried duplicates collapse into stable counted rows', /function groupedI
 check('late wiki replies cannot replace the currently selected item', /wikiRequest/.test(inventory) && /request === wikiRequest\.current/.test(inventory))
 check('inventory search reveals matching bags and contents', /container\.items.*\.some/.test(inventory) && /revealedBySearch/.test(inventory) && /Nothing carried matches/.test(inventory))
 check('containers expose their own Elanthipedia action', /Elanthipedia information for \$\{c\.name\}/.test(inventory) && /showWiki\(c\.name\)/.test(inventory))
-check('the central player dashboard is a compact oval', /rounded-full bg-surface\/70/.test(radar) && /max-w-\[15rem\]/.test(radar))
+check('the central player dashboard is a compact oval', /rounded-full bg-surface\/70/.test(radar) && /max-w-60/.test(radar))
 check('the paperdoll uses the live bleed report instead of guessing from wound severity', /bleeding\?: Array/.test(paperdoll) && /isActiveBleed/.test(paperdoll) && !/inj\.wound >= 2 && <BloodStamp/.test(paperdoll))
 check('the radar exposes every combat-critical and tactical status feed', /bags_full/.test(radar) && /roundtime/.test(radar) && /hidden/.test(radar) && /invisible/.test(radar) && /joined/.test(radar) && /character\?\.roundtime/.test(battle))
 check('every battle action has a unique explicit icon contract', /const ACTION_ICONS/.test(actionVisuals) && /missingVisuals/.test(actionVisuals) && /duplicateIcons/.test(actionVisuals) && /throw new Error/.test(actionVisuals))

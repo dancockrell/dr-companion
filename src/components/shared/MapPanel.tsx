@@ -828,7 +828,7 @@ function Shell({
             </>
           )}
         </h3>
-        {search && <div className="min-w-[10rem] flex-1">{search}</div>}
+        {search && <div className="min-w-40 flex-1">{search}</div>}
         <div className="flex shrink-0 items-center gap-2 pt-0.5">
           {right}
           {onPopOut && (

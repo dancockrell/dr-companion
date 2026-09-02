@@ -763,7 +763,7 @@ function YouCard({
     // vitals and status icons beside the doll instead of below it uses
     // that width and buys back the vertical space the second row cost.
     <div
-      className="pointer-events-auto flex max-w-[15rem] items-center gap-1.5 rounded-full bg-surface/70 py-1 pl-1 pr-3 ring-1 ring-border/35 backdrop-blur-sm"
+      className="pointer-events-auto flex max-w-60 items-center gap-1.5 rounded-full bg-surface/70 py-1 pl-1 pr-3 ring-1 ring-border/35 backdrop-blur-sm"
       style={{ boxShadow: '0 3px 14px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.05)' }}
     >
       <Portrait character={you.character} instance={you.instance} race={you.race ?? undefined} sex={you.sex} size={portraitSize} shape="oval" focus="face" />

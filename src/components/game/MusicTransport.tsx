@@ -275,7 +275,7 @@ export function MusicTransport({
         >
           <SkipForward className="h-3.5 w-3.5" />
         </button>
-        {/* min-w-16, max-w-[12rem], no flex-grow - deliberately not `flex-1`
+        {/* min-w-16, max-w-48, no flex-grow - deliberately not `flex-1`
           * (29 Aug 2026, still true after the scrubber moved to its own row
           * 30 Aug 2026). `flex-1` gives an element `flex-basis: 0%`, so it
           * grows to fill whatever space nothing else claims *regardless of
@@ -293,7 +293,7 @@ export function MusicTransport({
           (onTitleClick ? (
             <button
               type="button"
-              className="min-w-16 max-w-[12rem] truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
+              className="min-w-16 max-w-48 truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
               title={
                 (now ? `${nowLabel}${now.composer ? ` — ${now.composer}` : ''}${now.error ? ` — ${now.error}` : ''}` : 'Silent') +
                 ' — open Sound'
@@ -304,7 +304,7 @@ export function MusicTransport({
             </button>
           ) : (
             <span
-              className="min-w-16 max-w-[12rem] truncate text-xs text-ink-muted"
+              className="min-w-16 max-w-48 truncate text-xs text-ink-muted"
               title={now ? `${nowLabel}${now.composer ? ` — ${now.composer}` : ''}${now.error ? ` — ${now.error}` : ''}` : 'Silent'}
               role={failed ? 'alert' : undefined}
             >

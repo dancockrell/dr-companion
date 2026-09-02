@@ -270,7 +270,7 @@ export function BattleColumn() {
         </PanelBoundary>
       </div>
 
-      <div className="grid min-h-[13rem] flex-1 grid-cols-[minmax(0,0.9fr)_minmax(12rem,1.1fr)] gap-2 overflow-hidden">
+      <div className="grid min-h-52 flex-1 grid-cols-[minmax(0,0.9fr)_minmax(12rem,1.1fr)] gap-2 overflow-hidden">
         <section
           ref={roomDescriptionRef}
           tabIndex={0}
