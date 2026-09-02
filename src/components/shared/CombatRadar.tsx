@@ -16,6 +16,7 @@ import type { Vital } from '../../lib/vitals'
 import { requestGameAction } from '../../lib/gameActions'
 import { ArmorManager } from './ArmorManager'
 import { fanRadarSlots, pointOnRadar } from '../../lib/combatRadarLayout'
+import { hasFreshRadarPlacement } from '../../lib/combatRadarFreshness'
 import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
@@ -1149,7 +1150,7 @@ export function CombatRadar({
     // Standalone (`BattlePanel`) has no compass to place anything on — see
     // that branch's own comment — so every live hostile stays in the flat
     // list there regardless of what assess knew about it.
-    if (embedded && combatant?.range && combatant.relation) {
+    if (embedded && combatant && hasFreshRadarPlacement(combatant)) {
       positioned.push({
         key: card.id,
         card,
