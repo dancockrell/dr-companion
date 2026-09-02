@@ -123,7 +123,7 @@ export function Panel({
       <header className="flex items-center justify-between gap-2 px-2 py-0.5">
         <button
           type="button"
-          className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider min-w-0 hover:text-ink"
+          className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wide min-w-0 hover:text-ink"
           onClick={onToggle}
           title={closed ? 'Open' : 'Collapse'}
         >

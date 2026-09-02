@@ -127,10 +127,17 @@ check(
 )
 const battleActions = readFileSync('src/components/room/BattleActionBar.tsx', 'utf8')
 const taskFlow = readFileSync('src/components/dashboard/TaskFlowPanel.tsx', 'utf8')
+const panel = readFileSync('src/components/shared/Panel.tsx', 'utf8')
 check(
   'frequent action decks use the shared subtle press depth',
   [battleActions, taskFlow].every((source) => source.includes('active:scale-[0.98]')) &&
     ![battleActions, taskFlow].some((source) => source.includes('active:scale-95'))
+)
+check(
+  'battle actions and panel headers retain shared focus and typography conventions',
+  battleActions.includes('focus-visible:outline-offset-2') &&
+    panel.includes('uppercase tracking-wide') &&
+    !panel.includes('uppercase tracking-wider')
 )
 
 // --- the type floor ---------------------------------------------------------

@@ -106,7 +106,7 @@ export function BattleActionBar() {
                     title={`${variation.label}${variation.note ? ` — ${variation.note}` : ''}\nRuns: ${variation.commands.join(' ; ')}`}
                     aria-label={`${variation.label}: ${variation.commands.join('; ')}`}
                     data-action={actionKey}
-                    className="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded border transition duration-150 hover:-translate-y-px hover:brightness-125 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-accent active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0"
+                    className="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded border transition duration-150 hover:-translate-y-px hover:brightness-125 focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0"
                     style={actionAccent(actionKey)}
                   >
                     <span className="absolute inset-x-1 top-0 h-px bg-current opacity-45" aria-hidden />
