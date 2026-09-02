@@ -61,6 +61,7 @@ export function MapPinBar({
   }, [open])
 
   if (pins.length === 0 && !onAddHere) return null
+  const savedPinCountLabel = `${pins.length} saved ${pins.length === 1 ? 'pin' : 'pins'}`
 
   // A fragment, not a rail of its own: MapPanel makes saved pins and pin-here
   // peers of every other fixed-square control in its shared two-row grid.
@@ -72,8 +73,8 @@ export function MapPinBar({
             ref={triggerRef}
             type="button"
             onClick={() => setOpen((o) => !o)}
-            title={`${pins.length} saved ${pins.length === 1 ? 'pin' : 'pins'} - click to browse`}
-            aria-label={`${pins.length} saved pins`}
+            title={`${savedPinCountLabel} - click to browse`}
+            aria-label={savedPinCountLabel}
             aria-expanded={open}
             aria-controls="saved-pins-list"
             className={`relative grid h-8 w-8 place-items-center rounded border bg-surface-raised ${

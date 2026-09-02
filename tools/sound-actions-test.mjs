@@ -15,6 +15,7 @@ check('favorite and station icon actions have explicit names', /aria-label=\{`Re
 check('playlist deletion requires an explicit named confirmation', /confirm\(`Delete playlist/.test(sound))
 check('saved-pin edit is always visible and focus-ringed', !/opacity-0/.test(pinBar) && /Edit \$\{pin\.label\}/.test(pinBar) && /focus-visible:ring-2/.test(pinBar))
 check('saved pins use disclosure semantics and Escape returns focus', !/role="menu"/.test(pinBar) && /aria-controls="saved-pins-list"/.test(pinBar) && /triggerRef\.current\?\.focus/.test(pinBar))
+check('saved-pin count is grammatical in both its title and accessible name', /savedPinCountLabel/.test(pinBar) && /pins\.length === 1 \? 'pin' : 'pins'/.test(pinBar) && /aria-label=\{savedPinCountLabel\}/.test(pinBar))
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)
