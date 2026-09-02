@@ -160,7 +160,7 @@ export function RoomScene({
       {overlay && <div className="absolute inset-0 z-10" aria-label="Tactical radar over room art">{overlay}</div>}
 
       {footer && (
-        <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 h-9 overflow-hidden border-t border-border/70 bg-surface/82 px-1.5 py-1 backdrop-blur-md">
+        <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 h-9 overflow-visible border-t border-border/70 bg-surface/82 px-1.5 py-1 backdrop-blur-md">
           {footer}
         </div>
       )}
