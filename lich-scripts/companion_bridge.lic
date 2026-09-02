@@ -1657,6 +1657,32 @@ module Companion
     COMMAND_SENDING = %w[check_toggles check_health stow_all escape run_macro armor_manage].freeze
     CMD_LOCK = Mutex.new
 
+    # Every app window has its own JavaScript runtime, so the frontend's
+    # macroFlight gate cannot arbitrate a click in the dashboard against one
+    # in a popped-out panel. The bridge process is the first owner shared by
+    # every authenticated window. Claim the short flight here, before the
+    # longer command lock, so simultaneous requests cannot both become game
+    # commands merely because one waited for the other to finish.
+    MACRO_FLIGHT_SECONDS = 0.9
+    MACRO_FLIGHT_LOCK = Mutex.new
+    @macro_claims = {}
+
+    def claim_macro_flight(args, now = Process.clock_gettime(Process::CLOCK_MONOTONIC))
+      commands = args.is_a?(Hash) && args['commands'].is_a?(Array) ? args['commands'].map(&:to_s) : []
+      fingerprint = JSON.generate(commands)
+      MACRO_FLIGHT_LOCK.synchronize do
+        @macro_claims.delete_if { |_key, claimed_at| now - claimed_at >= MACRO_FLIGHT_SECONDS }
+        return false if @macro_claims.key?(fingerprint)
+
+        @macro_claims[fingerprint] = now
+        true
+      end
+    end
+
+    def reset_macro_flight!
+      MACRO_FLIGHT_LOCK.synchronize { @macro_claims = {} }
+    end
+
     # Set by stop_all, checked between iterations by anything in
     # COMMAND_SENDING that loops (stow_all, run_macro). See the threading
     # note on serve() for why this only works now and not before: stop_all
@@ -1693,6 +1719,15 @@ module Companion
     # another one; everything in ALWAYS - and every read-only query - never
     # touches the lock, so it is never stuck behind a long-running macro.
     def handle(intent, args, server)
+      # A latched Stop owns the refusal message: run_macro must be allowed to
+      # reach its existing Stop check so the player is told to press Resume,
+      # rather than seeing the less useful cooldown message. Resume resets the
+      # claim below, so the first deliberate macro after it can start at once.
+      if intent == 'run_macro' && !stop_requested? && !claim_macro_flight(args)
+        server.log('Macro refused: another app window just launched one.', 'warn')
+        return [false, 'a macro is still running']
+      end
+
       if COMMAND_SENDING.include?(intent)
         CMD_LOCK.synchronize { dispatch(intent, args, server) }
       else
@@ -2553,6 +2588,7 @@ module Companion
       # above: resuming is the human decision that means "continue", not the
       # next run_macro/stow_all that happens to arrive.
       clear_stop!
+      reset_macro_flight!
       resumed = []
       me = State.safe(nil) { Script.current.name }
       State.safe([]) { Script.running }.each do |s|
