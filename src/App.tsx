@@ -25,7 +25,7 @@ import { installKeybindings } from './lib/keybindings'
 import { requestGameAction } from './lib/gameActions'
 import { requestStartFlow, requestStopAll } from './lib/flowStop'
 import { MACROS } from './data/macros'
-import { canSendMacro } from './lib/canSendMacro'
+import { requestMacro } from './lib/macroFlight'
 import { writeText } from './lib/storage'
 import { StorageWarning } from './components/shared/StorageWarning'
 import { LazySurface } from './components/shared/LazySurface'
@@ -126,10 +126,7 @@ export default function App() {
         if (pin.kind === 'command') {
           const [macroId, variationId] = pin.actionKey.split(':')
           const variation = MACROS.find((macro) => macro.id === macroId)?.variations.find((item) => item.id === variationId)
-          const state = useAppStore.getState()
-          if (variation && canSendMacro({ stopLatched: state.character?.stopLatched, inFlight: false, connected: !!state.character }).canSend) {
-            state.requestIntent('run_macro', { commands: variation.commands })
-          }
+          if (variation) requestMacro(variation.commands)
           return
         }
         if (pin.kind === 'script') {

@@ -16,6 +16,7 @@ import {
 } from '../../data/skills'
 import { activityTrainingFor } from '../../data/activityTraining'
 import { PLAY_SONGS, PLAY_MOODS, moodDifficulty, buildPlayCommand } from '../../data/performance'
+import { useMacroRunner } from '../../lib/useMacroRunner'
 
 /**
  * The PLAY picker (issue #12).
@@ -27,12 +28,12 @@ import { PLAY_SONGS, PLAY_MOODS, moodDifficulty, buildPlayCommand } from '../../
  * Nothing is sent until Practice is pressed; this only builds the command.
  */
 function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
-  const requestIntent = useAppStore((s) => s.requestIntent)
   const addLog = useAppStore((s) => s.addLog)
   const bridgeIntents = useAppStore((s) => s.bridgeIntents)
   const [song, setSong] = useState(PLAY_SONGS[0].id)
   const [mood, setMood] = useState('')
   const [instrument, setInstrument] = useState(instrumentGuess)
+  const macro = useMacroRunner()
 
   const difficulty = mood ? moodDifficulty(mood) : 'neutral'
   // run_macro has no handler in companion_bridge.lic as of this writing (see
@@ -94,12 +95,12 @@ function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
         </span>
         <button
           type="button"
-          disabled={!instrument.trim() || !macroAvailable}
-          title={macroAvailable ? undefined : 'Not yet implemented in the connected bridge.'}
+          disabled={!instrument.trim() || !macroAvailable || !macro.canSend}
+          title={macroAvailable ? (macro.reason ?? undefined) : 'Not yet implemented in the connected bridge.'}
           onClick={() => {
             const cmd = buildPlayCommand(song, mood, instrument)
             addLog(`Practicing: ${cmd}`)
-            requestIntent('run_macro', { commands: [cmd] })
+            macro.run([cmd])
           }}
           className="shrink-0 rounded border border-accent/40 bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -111,6 +112,9 @@ function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
           The connected bridge doesn't run commands yet (run_macro isn't implemented) — this builds the
           right command but can't send it until that lands.
         </p>
+      )}
+      {macroAvailable && macro.reason && (
+        <p className="text-xs text-warn leading-snug">{macro.reason}</p>
       )}
     </div>
   )
