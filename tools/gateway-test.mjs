@@ -132,6 +132,16 @@ console.log('\n-- gates lead somewhere you can come back from --')
   })
   ok('most gates have a way back', reciprocal.length > gates.length * 0.5,
     `${reciprocal.length} of ${gates.length}`)
+
+  const withArrivals = gates.filter(({ r }) => r.gateway.arrivals?.length)
+  ok('reciprocal gates carry arrival context', withArrivals.length === reciprocal.length,
+    `${withArrivals.length} gateways with reciprocal arrival rooms`)
+  const badArrivals = gates.filter(({ z, r }) => (r.gateway.arrivals ?? []).some((id) => {
+    const target = zones.get(r.gateway.zone)
+    const arrival = target?.rooms.find((candidate) => candidate.id === id)
+    return !arrival || arrival.gateway?.zone !== z.id
+  }))
+  noneOf('every arrival room exists and explicitly leads back', badArrivals.length, withArrivals.length, 200)
 }
 
 console.log('\n-- every zone is reachable through the map UI --')

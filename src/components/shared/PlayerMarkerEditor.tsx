@@ -11,7 +11,7 @@
  */
 import { useRef, useState } from 'react'
 import { PIN_ICONS } from '../../lib/mapPins'
-import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
+import { PinIconGlyph } from './PinIconGlyph'
 import type { PlayerMarker } from '../../lib/playerMarker'
 import { useModalDialog } from '../../lib/useModalDialog'
 
@@ -55,8 +55,6 @@ export function PlayerMarkerEditor({
     iconDragRef.current = null
   }
 
-  const SelectedIcon = PIN_ICON_COMPONENT[icon]
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4" data-gameplay-shortcuts="suspend" onClick={onClose}>
       <div
@@ -78,7 +76,7 @@ export function PlayerMarkerEditor({
             className="flex h-14 w-14 items-center justify-center rounded-full border-2"
             style={{ background: color, borderColor: 'var(--map-ground)' }}
           >
-            <SelectedIcon className="h-7 w-7" color="var(--map-ground)" strokeWidth={2.5} />
+            <PinIconGlyph icon={icon} className="h-7 w-7 object-contain" />
           </span>
         </div>
 
@@ -93,7 +91,6 @@ export function PlayerMarkerEditor({
           className="mt-1 flex cursor-grab gap-1.5 overflow-x-auto active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {PIN_ICONS.map((key) => {
-            const Icon = PIN_ICON_COMPONENT[key]
             return (
               <button
                 key={key}
@@ -106,7 +103,7 @@ export function PlayerMarkerEditor({
                   icon === key ? 'border-accent text-accent' : 'border-border text-ink-faint'
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <PinIconGlyph icon={key} className="h-4 w-4 object-contain" />
               </button>
             )
           })}

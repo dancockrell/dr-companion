@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "market-plaza-01",
+  "status": "ready-template",
+  "objective": "Prove one video-as-frame-factory reel can yield a coherent family of independently shippable market and plaza stamp variants.",
+  "consumer": "DR Companion parchment map background and hero market impressions",
+  "runtime": {
+    "format": "transparent PNG",
+    "targetBox": "512x512",
+    "safeMarginPercent": 8,
+    "selection": "stable seeded variant",
+    "family": "market"
+  },
+  "anchor": {
+    "path": "public/map-stamps/market-v2.png",
+    "review": "approved full-size and over parchment",
+    "sha256": "4497abf3faf147a1b7eeb8df0dfba527774d27789b7c53ab9462a4455daca442"
+  },
+  "magnific": {
+    "model": "bytedance-seedance-mini-2.0",
+    "durationSeconds": 10,
+    "resolution": "720p",
+    "aspectRatio": "16:9",
+    "audio": "none",
+    "motionPattern": "controlled 70-degree orbit around the fixed plaza center",
+    "expectedExtractionFps": 12,
+    "expectedCandidateFrames": 120,
+    "targetApprovedFrames": "12-24"
+  },
+  "prompt": "One complete medieval market plaza drawn as an antique copperplate cartographic illustration in stable sepia ink on plain warm parchment, circular cobbled square, central stone fountain, five complete canvas stalls, baskets, barrels and crates, all architecture and props fixed in place, entire plaza and every stall inside generous frame margins. Slow 70-degree orbit around the fixed plaza center at a moderately raised three-quarter map-view angle, steady speed, no cuts. Only minute canvas movement and restrained paper texture; all buildings, stalls, fountain, paving and paths remain identical throughout. Consistent sepia palette, warm parchment, archival copperplate hatching, sharp line work, shutter-safe motion, every frame composed as a complete standalone map-stamp source. No people, animals, new structures, changing stall count, morphing, dissolving paving, clipped roofs, foreground occluders, adjacent compositions, grids, borders, readable text, letters, numbers, logos, signatures or watermarks. Ten seconds, 16:9, 720p, silent, no loop requirement.",
+  "paths": {
+    "rawVideo": "data/art/map-stamps/raw/market-plaza-01/source.mp4",
+    "harvestedCandidates": "data/art/map-stamps/candidates/market-plaza-01",
+    "approvedSources": "data/art/map-stamps/approved/market-plaza-01",
+    "runtime": "public/map-stamps/market-reel-*.png"
+  },
+  "harvest": {
+    "command": "python harvest_frames.py source.mp4 candidates/market-plaza-01 --fps 12 --max-frames 180 --hash-distance 10 --source-creation CREATION --source-model bytedance-seedance-mini-2.0",
+    "requires": ["python", "Pillow", "NumPy", "ffmpeg", "ffprobe"]
+  },
+  "admission": {
+    "rejectWholeReelWhen": [
+      "topology or stall count drifts",
+      "more than one third of useful candidates have motion or transition damage",
+      "text, signatures or watermarks appear",
+      "the fixed plaza ceases to be the same place"
+    ],
+    "rejectFrameWhen": [
+      "motion smear",
+      "warped stall, fountain or paving",
+      "partial crop or unsafe margin",
+      "duplicate composition",
+      "semantic mismatch",
+      "background removal halo"
+    ]
+  }
+}

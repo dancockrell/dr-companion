@@ -390,9 +390,9 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
-import type { PinIcon } from './mapPins'
+import type { LucidePinIcon } from './mapPins'
 
-export const PIN_ICON_COMPONENT: Record<PinIcon, LucideIcon> = {
+export const PIN_ICON_COMPONENT: Record<LucidePinIcon, LucideIcon> = {
   'alert-triangle': AlertTriangle,
   amphora: Amphora,
   anchor: Anchor,

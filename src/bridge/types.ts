@@ -221,7 +221,7 @@ export interface MapZoneRoom {
    * destination's map filename, resolved to a zone id at build time. 310 rooms
    * carry one.
    */
-  gateway?: { zone: string; name: string }
+  gateway?: { zone: string; name: string; arrivals?: number[] }
   /** How you leave the zone from here, as the cartographer wrote the move. */
   leaves?: string[]
   /** Cartographer-authored movement commands for every visible exit. */

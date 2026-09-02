@@ -15,7 +15,7 @@
  * instead of creating a second rail with different behavior.
  */
 import { PIN_PRESETS, PIN_COLOR_HEX, PIN_DRAG_TYPE } from '../../lib/mapPins'
-import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
+import { PinIconGlyph } from './PinIconGlyph'
 
 export interface PinBrush {
   label: string
@@ -29,7 +29,6 @@ export function PinPalette({ selected, onSelect }: { selected?: PinBrush | null;
   return (
     <>
       {PIN_PRESETS.map((preset, i) => {
-        const Icon = PIN_ICON_COMPONENT[preset.icon]
         // Quiet dividers preserve the compact icon-only row while making
         // its vocabulary scannable: home/banking, services, shops,
         // gathering, places, danger, and social/logistics.
@@ -52,7 +51,7 @@ export function PinPalette({ selected, onSelect }: { selected?: PinBrush | null;
             aria-label={preset.label}
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded border bg-surface-raised hover:border-accent/60 ${startsGroup ? 'ml-1.5' : ''} ${selected?.label === preset.label ? 'border-accent bg-accent/20 ring-1 ring-accent' : 'border-border'}`}
           >
-            <Icon className="h-4 w-4" style={{ color: PIN_COLOR_HEX[preset.color] }} />
+            <PinIconGlyph icon={preset.icon} className="h-4 w-4 object-contain" style={{ color: PIN_COLOR_HEX[preset.color] }} />
           </button>
         )
       })}
