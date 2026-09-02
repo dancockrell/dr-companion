@@ -16,8 +16,18 @@ import type { Vital } from '../../lib/vitals'
 import { requestGameAction } from '../../lib/gameActions'
 import { ArmorManager } from './ArmorManager'
 import { fanRadarSlots, pointOnRadar } from '../../lib/combatRadarLayout'
-import { hasFreshRadarPlacement } from '../../lib/combatRadarFreshness'
 import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import {
+  STALE_AFTER_SECONDS,
+  rangeRadiusPct,
+  angleFor,
+  reorderByPin,
+  detailFor,
+  vitalColor,
+  alwaysTone,
+  nsysColor,
+  hasFreshRadarPlacement,
+} from '../../lib/combatRadarLogic'
 
 /**
  * The room, with everyone in it — a compass filling the whole board edge to
@@ -75,105 +85,12 @@ import { scrollableRegionProps } from '../../lib/scrollableRegion'
  * app has to "wounds" for something that is not you.
  */
 
-/** Same threshold as this board has always used — assess data past a
- * minute old is shown softened rather than at full confidence. */
-const STALE_AFTER_SECONDS = 60
-
 /** Below this measured width, pucks shrink too, so a marker never claims
  * more of a tiny board than the gap between two of them can afford.
  * Nothing on this board ever prints an always-visible name, so this is the
  * only responsive bands left: marker and gutter size, not label visibility. */
 const STANDARD_MIN_PX = 680
 const WIDE_MIN_PX = 900
-
-/**
- * Melee wide, pole and missile progressively tighter. A floor, not the
- * final answer — see `rangeRadiusPct` below, which widens the melee ring
- * far enough that four cardinal-position pucks never overlap regardless of
- * how big pucks get.
- */
-const RANGE_RADIUS_FLOOR_PCT: Record<'melee' | 'pole' | 'missile', number> = {
-  melee: 20,
-  pole: 27,
-  missile: 34,
-}
-
-/** How much further out pole and missile sit than melee, once melee's own
- * radius is computed — a fixed gap rather than its own floor, so a melee
- * ring forced wider to fit its pucks still reads as "the same three rings,
- * further apart" instead of three radii drifting independently. */
-const RANGE_DELTA_PCT: Record<'pole' | 'missile', number> = { pole: 6, missile: 12 }
-
-/**
- * The actual radius to draw each range ring at, as a percentage of the
- * *compass's own box* (not the whole board — the compass has its own
- * measured width now that the roster lives in a separate strip). Widened
- * just enough that four pucks at the compass's four cardinal positions
- * (0/90/180/270, the only angles `angleFor` ever returns) can sit on the
- * melee ring at once without their circles overlapping — solved from the
- * real chord distance between two points 90° apart on the ring
- * (`R = diameter · breathing room / (2·sin(π/N))`), not the arc between
- * them, then compared against the floor and the larger one wins.
- */
-function rangeRadiusPct(compassWidth: number, portraitPx: number): Record<'melee' | 'pole' | 'missile', number> {
-  if (compassWidth <= 0) return { ...RANGE_RADIUS_FLOOR_PCT }
-  const CARDINAL_SLOTS = 4
-  const BREATHING_ROOM = 1.5
-  const neededRadiusPx = (portraitPx * BREATHING_ROOM) / (2 * Math.sin(Math.PI / CARDINAL_SLOTS))
-  const neededRadiusPct = (neededRadiusPx / compassWidth) * 100
-  const melee = Math.max(RANGE_RADIUS_FLOOR_PCT.melee, neededRadiusPct)
-  return {
-    melee,
-    pole: Math.max(RANGE_RADIUS_FLOOR_PCT.pole, melee + RANGE_DELTA_PCT.pole),
-    missile: Math.max(RANGE_RADIUS_FLOOR_PCT.missile, melee + RANGE_DELTA_PCT.pole + RANGE_DELTA_PCT.missile),
-  }
-}
-
-/**
- * assess's own relation phrases, mapped to a compass angle (0 = in front of
- * you, clockwise). DR does not disambiguate which side "beside"/"flanking"/
- * "next to" put someone on, so those alternate deterministically by id
- * rather than always defaulting to the same side — real assess output would
- * show them scattered too, this just cannot know which side without asking.
- */
-function angleFor(relation: string, id: string): number {
-  const r = relation.toLowerCase()
-  if (r.includes('behind')) return 180
-  if (r.includes('left')) return 270
-  if (r.includes('right')) return 90
-  if (r.includes('front') || r.includes('facing') || r.includes('advancing')) return 0
-  const hash = Array.from(id).reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0)
-  return hash % 2 === 0 ? 90 : 270
-}
-
-/** A point on the unit circle around a given center, in this board's own
- * convention: 0° is straight up ("front"), clockwise. The center is a
- * parameter rather than a fixed 50/50 because the compass now spans the
- * whole board edge to edge (the roster floats over it as an overlay,
- * rather than sharing the board's width) — the *visual* center still
- * needs to sit clear of that overlay, so the caller nudges it left by
- * however much of the right edge the strip actually covers. */
-/**
- * Pinned keys move to the front, in the order they were pinned — the most
- * recently promoted lands first, same as bringing a card to the top of a
- * hand. Everything else keeps the order it already had. A room with six
- * hundred mobs in a scrolling pane is unusable if the one you actually care
- * about can only be found by scrolling to wherever the game happened to
- * list it; this is the whole reason a corner is clickable at all.
- */
-function reorderByPin<T>(entries: T[], keyOf: (t: T) => string, pins: string[]): T[] {
-  if (pins.length === 0) return entries
-  const byKey = new Map(entries.map((e) => [keyOf(e), e] as const))
-  const front: T[] = []
-  for (const k of pins) {
-    const e = byKey.get(k)
-    if (e) {
-      front.push(e)
-      byKey.delete(k)
-    }
-  }
-  return [...front, ...entries.filter((e) => byKey.has(keyOf(e)))]
-}
 
 /** Everyone the compass has no fixed position for, as a puck-worthy entry
  * for the roster strip instead — a hostile with no real assess reading to
@@ -374,67 +291,6 @@ function NpcPortrait({ url, height, className }: { url: string; height: number; 
       />
     </div>
   )
-}
-
-/**
- * Everything this app currently knows about one entry, in one sentence —
- * the tooltip's whole content. `assess`'s own combat detail first (the
- * closest thing to "wounds" this app has for anything that is not you:
- * stunned, off balance, cursed, hidden are the afflictions the game
- * actually reports on someone else), then the bestiary's static facts
- * (level, HP range, size, attack range, whether it casts or hides, what it
- * carries) for whatever has a lore entry at all. Nothing here is invented:
- * a field that is null or absent just does not appear, rather than being
- * guessed at or padded with a placeholder.
- */
-function detailFor(card: RoomCard, combatant: RoomCombatant | undefined, presence: string): string {
-  const bits: string[] = []
-
-  if (card.status === 'dead') bits.push('dead')
-  if (card.status === 'stunned') bits.push('stunned')
-
-  if (combatant) {
-    if (combatant.relation) bits.push(combatant.relation)
-    if (combatant.range) bits.push(`${RANGE_WORD[combatant.range]} range`)
-    if (combatant.target) bits.push(`targeting ${combatant.target}`)
-    if (combatant.offBalance) bits.push('off balance')
-    else if (combatant.balance) bits.push(`balance: ${combatant.balance}`)
-    if (combatant.conditions.length) bits.push(combatant.conditions.join(', '))
-    if (combatant.statuses.length) bits.push(combatant.statuses.join(', '))
-    if (combatant.enrichedAgeSeconds != null && combatant.enrichedAgeSeconds > STALE_AFTER_SECONDS) {
-      bits.push(`assessed ${combatant.enrichedAgeSeconds}s ago`)
-    }
-  } else if (presence && card.status !== 'dead') {
-    // "Unassessed" answers "is anyone tracking this fight" — a question a
-    // corpse has already answered by being dead. Saying both is not wrong,
-    // just redundant every single time, since a dead card never has a
-    // combatant to report either way.
-    bits.push(presence)
-  }
-
-  if (card.lore) {
-    const l = card.lore
-    if (l.level != null) bits.push(`level ${l.level}`)
-    if (l.minCap != null || l.maxCap != null) {
-      bits.push(
-        l.minCap != null && l.maxCap != null
-          ? `${l.minCap}-${l.maxCap} HP`
-          : `up to ${l.minCap ?? l.maxCap} HP`
-      )
-    }
-    const shape = [l.bodySize, l.bodyType].filter(Boolean).join(' ').toLowerCase()
-    if (shape) bits.push(shape)
-    if (l.attackRange) bits.push(`attacks at ${l.attackRange}`)
-    if (l.castsSpells) bits.push('casts spells')
-    if (l.stealthy) bits.push('stealthy')
-    const loot = [l.hasCoins && 'coins', l.hasGems && 'gems', l.hasBoxes && 'boxes', l.skinnable && 'skinnable']
-      .filter(Boolean)
-      .join(', ')
-    if (loot) bits.push(loot)
-    if (card.loreApproximate) bits.push('bestiary match approximate')
-  }
-
-  return bits.join(' — ')
 }
 
 /**
@@ -815,47 +671,6 @@ function Puck({
 }
 
 /**
- * Green at full, quite yellow by 80%, orange by 60%, solidly red by 40% and
- * below — four calibration points rather than one straight ramp, because a
- * ramp that only reaches yellow around the halfway mark reads as "basically
- * fine" for exactly the stretch where a player actually wants a warning. A
- * hundred whole-percent steps each get their own point on this curve —
- * hue between the calibration points, and below the red point, a darkening
- * lightness instead (hue has nowhere further red to go) — so 39% and 5%
- * still read as visibly different urgency rather than collapsing into one
- * flat "red" the moment the number crosses 40.
- */
-const VITAL_COLOR_STOPS: Array<{ pct: number; hue: number }> = [
-  { pct: 100, hue: 120 }, // green
-  { pct: 80, hue: 55 }, // quite yellow
-  { pct: 60, hue: 30 }, // orange
-  { pct: 40, hue: 0 }, // red
-]
-
-function vitalColor(share: number): string {
-  const pct = Math.max(0, Math.min(1, share)) * 100
-
-  if (pct <= 40) {
-    // Below the red point, hue is pinned — the remaining 40 steps read
-    // through lightness instead, darkening toward empty rather than
-    // sitting at one unchanging red the whole way down.
-    const lightness = 35 + (pct / 40) * 15
-    return `hsl(0, 90%, ${lightness}%)`
-  }
-
-  for (let i = 0; i < VITAL_COLOR_STOPS.length - 1; i++) {
-    const hi = VITAL_COLOR_STOPS[i]
-    const lo = VITAL_COLOR_STOPS[i + 1]
-    if (pct <= hi.pct && pct >= lo.pct) {
-      const t = (pct - lo.pct) / (hi.pct - lo.pct)
-      const hue = lo.hue + t * (hi.hue - lo.hue)
-      return `hsl(${hue}, 90%, 50%)`
-    }
-  }
-  return `hsl(${VITAL_COLOR_STOPS[0].hue}, 90%, 50%)`
-}
-
-/**
  * The status flags worth a glance mid-fight, as an icon rather than a text
  * chip — the full word-for-word list (with roundtime, spells, and the
  * "good" band like hidden/invisible/joined) already renders above the
@@ -879,36 +694,6 @@ const STATUS_ICON: Partial<Record<string, { Icon: LucideIcon; label: string; ton
   hidden: { Icon: EyeOff, label: 'Hidden', tone: 'text-good' },
   invisible: { Icon: Ghost, label: 'Invisible', tone: 'text-good' },
   joined: { Icon: Users, label: 'Joined to a group', tone: 'text-good' },
-}
-
-/** Nerves, poisoned and stunned all get a permanent slot in the row instead
- * of only appearing once true, the same "present always, plain when
- * unhurt, coloured when it isn't" rule the doll's own parts use — these
- * three are the ones worth knowing are *fine* as much as knowing they
- * aren't, since all three can end a fight on their own (can't act, can't
- * fight back the disease/poison eating your health) and a player
- * shouldn't have to infer "fine" from an icon's absence. Everything else
- * in STATUS_ICON above stays conditional: rarer, more dramatic events
- * that don't need a permanently-dim placeholder. */
-function alwaysTone(active: boolean, warnOnly = false): string {
-  if (!active) return 'text-ink-faint'
-  return warnOnly ? 'text-warn' : 'text-danger'
-}
-
-/** Nerve damage, told through colour across all four severities rather
- * than the old three-step jump (faint/warn/danger, which read "minor" and
- * "unhurt" as the same colour) — a fourth stop between them for "minor" so
- * the doll's own severity words (unhurt/minor/serious/severe) each get a
- * visibly distinct colour, the same calibration style as CombatRadar's own
- * vital-number gradient. Inline colour, not a text-* class: "minor"'s
- * yellow has no existing utility token, and matching the other three
- * exactly (rather than approximating with what Tailwind ships) is the
- * whole point of grading four steps instead of three. */
-function nsysColor(wound: number): string {
-  if (wound >= 3) return 'var(--color-danger)'
-  if (wound === 2) return 'var(--color-warn)'
-  if (wound === 1) return 'hsl(50, 85%, 55%)'
-  return 'var(--color-ink-faint)'
 }
 
 /** Progressively more alarming shape, not just colour — a calm pulse while
