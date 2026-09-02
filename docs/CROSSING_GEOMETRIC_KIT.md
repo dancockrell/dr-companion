@@ -1,9 +1,19 @@
 # The Crossing Geometric World Kit
 
-Status: **production brief**
+Status: **supporting prop-and-grammar brief**
 Style: original, cute, block-built tabletop fantasy; **not photorealism**
-Purpose: give an environment artist or Asset Maker a repeatable catalogue of
-pieces from which The Crossing can be assembled around the existing room graph.
+Purpose: give an environment artist, asset store curator, or Asset Maker a
+repeatable prop vocabulary for scene plates assembled around the existing room
+graph.
+
+> **Production reset (2026-09-03):** the main visual unit is no longer an
+> isolated 5m object generated one at a time. It is a high-quality 20–30m
+> **tabletop scene plate**: a coherent DragonRealms area on a cloth/painted
+> game under-mat, with broad environment masses and loose scatter props. This
+> kit remains valuable as the vocabulary for props, connectors, replacement
+> pieces, and store acquisitions, but a city should not look like every card
+> below was tiled by a machine. See `CROSSING_TTRPG_SCENE_PROMPTS.md` for the
+> primary Magnific production route.
 
 This is a city kit, not a set of room pictures. A room is made by combining
 several pieces. Repetition is desirable; sameness is not.
@@ -108,14 +118,13 @@ game's branded models. Characters and monsters may be glossier/more saturated
 plastic miniatures; the city remains calm, matte, constructed geometry.
 
 **Library scale and delivery count.** This Crossing starter library contains
-**104 base primitive assets** plus **10 reviewed special-building sets**. Every
-base asset is delivered as one isolated GLB with its pivot, collision shape,
-connectors, and one low-detail companion. A family with an explicit clean,
-rough, or transition sibling uses those named IDs rather than secretly making
-dozens of undocumented variants. After the first city assembly review, only
-the visibly repetitive families receive two additional controlled variants;
-the target is **about 150–180 runtime pieces**, not unbounded generated
-clutter.
+**104 base primitive briefs** plus **10 reviewed special-building sets**. It is
+not a command to generate 114 isolated models. A card can be satisfied by a
+reviewed store asset, a simple hand-authored mesh, or a component harvested
+from an approved scene plate. Only a reusable piece that survives review is
+delivered as an isolated GLB with its pivot, collision shape, connectors, and
+low-detail companion. The target is a small controlled library of genuinely
+useful scatter/connector pieces, not unbounded generated clutter.
 
 **Complexity budget.** The primitive pass uses 1–3 flat or lightly graduated
 materials per asset, no texture atlas requirement, no text, and no baked

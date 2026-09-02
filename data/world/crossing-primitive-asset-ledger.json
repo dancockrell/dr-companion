@@ -1,6 +1,21 @@
 {
   "schemaVersion": 1,
   "purpose": "Admission ledger for the Crossing geometric 3D kit. A model is never a runtime asset until its status is approved and its packaged path is recorded.",
+  "scenePlates": {
+    "crossing-town-green-north-east-v1": {
+      "status": "candidate",
+      "creationId": "Doar3Jipcl",
+      "tool": "Magnific text-to-image",
+      "promptSource": "docs/CROSSING_TTRPG_SCENE_PROMPTS.md#A-town-green-northeast-gathering-ground",
+      "role": "25m tabletop environment plate for Town Green North/East; benchmark for the scene-plate production route.",
+      "reviewRequired": [
+        "Inspect at the Godot world/room camera crop, not only at full image size.",
+        "Verify the open green, north cobble/privet relationship, blank restrained frontage, and clear ancient-oak gathering ring.",
+        "Reject invented routes, named signage, crowds, inventory, or unsupported scenery.",
+        "Decide whether it remains a plate, yields reusable scatter references, or needs one controlled variation."
+      ]
+    }
+  },
   "sourceReferences": {
     "G01": {
       "creationId": "jU4Wp6jLD0",

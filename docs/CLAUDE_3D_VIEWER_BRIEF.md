@@ -1,4 +1,11 @@
-# Claude Brief — DR Companion Single 3D Viewer
+# Historical Claude Handoff — DR Companion Single 3D Viewer
+
+> **Ownership update (2026-09-03):** PR #267 delivered the slice-0 Godot
+> foundation described below. Codex now owns the Godot viewer, the Tauri/Godot
+> integration, the content-registration work, and 3D asset acquisition for
+> this same DR Companion project. Retain this document as the implementation
+> contract and contribution record; do not read its original ownership language
+> as a current separate-product boundary.
 
 ## Mission
 

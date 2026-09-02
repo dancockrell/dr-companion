@@ -1,9 +1,11 @@
 # DR Companion — 3D World Viewer (Slice 0: Foundation)
 
-Implements the Claude-owned half of `docs/CLAUDE_3D_VIEWER_BRIEF.md` and
-`docs/THREE_D_REBUILD_HANDOFF.md`'s slice 0 ("Viewer contract"). This is the
-foundation only — a deliberately small, well-tested shell for Codex's content
-to register into, not a final art pass. No generated art, no live
+Implements slice 0 ("Viewer contract") of `docs/THREE_D_REBUILD_HANDOFF.md`.
+The foundation was contributed through PR #267 and is now maintained by Codex
+as part of the same DR Companion game: Godot viewer, 3D content registration,
+and asset acquisition all have one current owner. This is the foundation only
+— a deliberately small, well-tested shell for the real world content to
+register into, not a final art pass. No generated art, no live
 DragonRealms connection, and no packaging exist yet; none of those are
 required for this slice's acceptance gate.
 
