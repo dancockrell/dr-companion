@@ -18,7 +18,7 @@ import { PanelBoundary } from './components/shared/PanelBoundary'
 import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
-import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
+import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W, DEFAULT_MAP_W, DEFAULT_DASH_W } from './lib/columns'
 import { BATTLE_SCENE_MAX_WIDTH_VH } from './components/room/BattleColumn'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
@@ -199,7 +199,7 @@ export default function App() {
   }
 
   const [battleW, setBattleWState] = useState<number>(() =>
-    Math.max(MIN_PX, Math.round(readShare(BATTLE_KEY, window.innerWidth, 760)))
+    Math.max(MIN_PX, Math.round(readShare(BATTLE_KEY, window.innerWidth, DEFAULT_MAP_W)))
   )
 
   const setBattleW = (px: number) => {
@@ -216,7 +216,7 @@ export default function App() {
    * guessed, with the scrollbar hidden (ExperienceStrip's own `no-scrollbar`)
    * so it never eats into that measurement. */
   const [experienceW, setExperienceWState] = useState<number>(() =>
-    Math.max(MIN_PX, Math.round(readShare(EXPERIENCE_KEY, window.innerWidth, 168)))
+    Math.max(MIN_PX, Math.round(readShare(EXPERIENCE_KEY, window.innerWidth, DEFAULT_DASH_W)))
   )
 
   const setExperienceW = (px: number) => {

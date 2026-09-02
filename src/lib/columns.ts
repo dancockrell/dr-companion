@@ -105,9 +105,32 @@ export const MAP_EMPTY_WANT = 220
 /** Same reasoning, for the dashboard's "waiting for a character" state. */
 export const DASH_EMPTY_WANT = 300
 
-/** The widths the app ships with. The map's matches `DEFAULT` in mapDock.ts. */
-export const DEFAULT_MAP_W = 300
-export const DEFAULT_DASH_W = 420
+/**
+ * The widths the app ships with, for both a fresh install (App.tsx's
+ * `useState` fallback) and the "Reset widths" button (`pickReset` below) -
+ * one pair of numbers for both, not two that can drift apart.
+ *
+ * They used to be exactly that kind of drift: App.tsx's own fresh-install
+ * fallbacks (760 for Battle, 168 for Experience) were hand-picked separately
+ * from these `pickReset` targets (300, 420) years apart, for a two-column
+ * dashboard grid this app no longer has - so "Reset widths" and "what a new
+ * install actually opens with" quietly stopped being the same layout. Worse,
+ * the *old* pair (460+760+168+16 = 1404px) didn't even fit 1366px, the single
+ * most common laptop width, so the very first thing a new install on an
+ * ordinary laptop saw was the squeeze banner. These three are chosen to fit
+ * comfortably (460+620+150+16 = 1246px, well under 1366px) with real margin
+ * left for `fitColumns`' surplus-sharing to spend on Room and Battle.
+ *
+ * `DEFAULT_MAP_W`'s name is `fitColumns`' own "map" slot, which this app's
+ * call site spends on Battle (see the doc comment on `fitColumns` in
+ * `App.tsx`) - unrelated to `mapDock.ts`'s own `DEFAULT.width`, the *real*
+ * Map panel's docked width inside Room. The two constants sharing the same
+ * name and, before this comment, the same numeric value was a coincidence
+ * left over from before that rename, not a live relationship - don't change
+ * one expecting it to affect the other.
+ */
+export const DEFAULT_MAP_W = 620
+export const DEFAULT_DASH_W = 150
 /** Room's own default - enough over `ROOM_MIN` to not look like a floor the
  * moment the app opens, matched to what the map + chat/functions stack
  * actually asked for in practice before room had a stored width of its own. */
