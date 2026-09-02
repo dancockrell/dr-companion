@@ -16,6 +16,7 @@ import type { Vital } from '../../lib/vitals'
 import { requestGameAction } from '../../lib/gameActions'
 import { ArmorManager } from './ArmorManager'
 import { fanRadarSlots, pointOnRadar } from '../../lib/combatRadarLayout'
+import { hasFreshRadarPlacement } from '../../lib/combatRadarFreshness'
 import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
@@ -598,21 +599,32 @@ function InfoCard({
       )}
 
       {combatant ? (
-        <div className="border-t border-border/60 pt-1.5">
-          <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-            Right now{stale ? ` (${combatant.enrichedAgeSeconds}s ago)` : ''}
-          </p>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5">
-            {combatant.relation && <Fact label="Position" value={combatant.relation} />}
-            {combatant.range && <Fact label="Range" value={RANGE_WORD[combatant.range]} />}
-            {combatant.target && <Fact label="Targeting" value={combatant.target} />}
-            {(combatant.balance || combatant.offBalance) && (
-              <Fact label="Balance" value={combatant.offBalance ? 'off balance' : combatant.balance} />
-            )}
-            {combatant.conditions.length > 0 && <Fact label="Conditions" value={combatant.conditions.join(', ')} />}
-            {combatant.statuses.length > 0 && <Fact label="Status" value={combatant.statuses.join(', ')} />}
-          </dl>
-        </div>
+        <>
+          {combatant.statuses.length > 0 && (
+            <div className="border-t border-border/60 pt-1.5">
+              <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Live status</p>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5">
+                <Fact label="Status" value={combatant.statuses.join(', ')} />
+              </dl>
+            </div>
+          )}
+          {combatant.enrichedAgeSeconds != null && (
+            <div className="border-t border-border/60 pt-1.5">
+              <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                {stale ? `Last assessed (${combatant.enrichedAgeSeconds}s ago)` : 'Current assessment'}
+              </p>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5">
+                {combatant.relation && <Fact label="Position" value={combatant.relation} />}
+                {combatant.range && <Fact label="Range" value={RANGE_WORD[combatant.range]} />}
+                {combatant.target && <Fact label="Targeting" value={combatant.target} />}
+                {(combatant.balance || combatant.offBalance) && (
+                  <Fact label="Balance" value={combatant.offBalance ? 'off balance' : combatant.balance} />
+                )}
+                {combatant.conditions.length > 0 && <Fact label="Conditions" value={combatant.conditions.join(', ')} />}
+              </dl>
+            </div>
+          )}
+        </>
       ) : (
         presence &&
         card.status !== 'dead' && <p className="border-t border-border/60 pt-1.5 text-ink-faint">{presence}</p>
@@ -1149,7 +1161,7 @@ export function CombatRadar({
     // Standalone (`BattlePanel`) has no compass to place anything on — see
     // that branch's own comment — so every live hostile stays in the flat
     // list there regardless of what assess knew about it.
-    if (embedded && combatant?.range && combatant.relation) {
+    if (embedded && combatant && hasFreshRadarPlacement(combatant)) {
       positioned.push({
         key: card.id,
         card,
