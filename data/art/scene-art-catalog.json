@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "generatedAt": "2026-09-01",
   "summary": {
-    "totalAssets": 12824,
+    "totalAssets": 12832,
     "indexedOnly": 10400,
-    "visuallyReviewed": 2424,
-    "approved": 493,
+    "visuallyReviewed": 2432,
+    "approved": 501,
     "rejected": 1931,
-    "runtimeEligible": 68,
-    "runtimeUsageRecords": 267
+    "runtimeEligible": 75,
+    "runtimeUsageRecords": 274
   },
   "assets": [
     {
@@ -3081,6 +3081,654 @@
       ]
     },
     {
+      "path": "/room-scenes/brambles-walk-01.webp",
+      "sha256": "9c4f2ee8504c7c5593cc4b4959e87951d5b8cff46370f1c305ada30e28933e47",
+      "bytes": 143700,
+      "format": "webp",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "forest",
+        "brambles",
+        "hostile-thicket",
+        "route-sequence",
+        "battle-signs"
+      ],
+      "intendedRegions": [
+        "Zoluren"
+      ],
+      "environments": [
+        "woodland",
+        "dense-thicket"
+      ],
+      "visualAttributes": [
+        "shadowed-daylight",
+        "thorn-barricade",
+        "smashed-passage",
+        "claw-scarred-tree",
+        "forward-dolly",
+        "painterly"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Kling 2.1 720p",
+        "creditsPerAsset": 34.375,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "creationReference": "YMoTDHJWeC",
+        "sourceVideoSha256": "304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c",
+        "sourceAnchorCreationReference": "jUP5IZWLD0",
+        "frameTimestampSeconds": 0.667,
+        "extraction": {
+          "sampleFps": 12,
+          "candidateCount": 61,
+          "perceptualHashDistance": 20,
+          "admittedCount": 8,
+          "runtimeFormat": "webp",
+          "runtimeQuality": 90
+        },
+        "frameMetrics": {
+          "sharpness": 159.339,
+          "exposure": 0.401,
+          "perceptualHash": "7df0bdf0bff1bff9b3fd1bd8078800ac0028000800080f803fe07fb003800000"
+        },
+        "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve exact geography, lighting, palette, and painterly texture; no morphing, new paths, structures, people, creatures, text, signature, watermark, or audio."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/rooms/6-26.webp",
+            "/room-scenes/curated-hostile-brambles.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/room-scenes/brambles-walk-02.webp",
+      "sha256": "ab5f81b113344795e48e3195a347fbb29c51b238a9d09010477945e094b6491e",
+      "bytes": 154552,
+      "format": "webp",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "forest",
+        "brambles",
+        "hostile-thicket",
+        "route-sequence",
+        "battle-signs"
+      ],
+      "intendedRegions": [
+        "Zoluren"
+      ],
+      "environments": [
+        "woodland",
+        "dense-thicket"
+      ],
+      "visualAttributes": [
+        "shadowed-daylight",
+        "thorn-barricade",
+        "smashed-passage",
+        "claw-scarred-tree",
+        "forward-dolly",
+        "painterly"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Kling 2.1 720p",
+        "creditsPerAsset": 34.375,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "creationReference": "YMoTDHJWeC",
+        "sourceVideoSha256": "304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c",
+        "sourceAnchorCreationReference": "jUP5IZWLD0",
+        "frameTimestampSeconds": 1.333,
+        "extraction": {
+          "sampleFps": 12,
+          "candidateCount": 61,
+          "perceptualHashDistance": 20,
+          "admittedCount": 8,
+          "runtimeFormat": "webp",
+          "runtimeQuality": 90
+        },
+        "frameMetrics": {
+          "sharpness": 190.117,
+          "exposure": 0.398,
+          "perceptualHash": "7df03df0bff8bffcb3fc1bcc058c00ac002c000c00080b803fe0fff05f100380"
+        },
+        "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve exact geography, lighting, palette, and painterly texture; no morphing, new paths, structures, people, creatures, text, signature, watermark, or audio."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/rooms/6-26.webp",
+            "/room-scenes/curated-hostile-brambles.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/room-scenes/brambles-walk-03.webp",
+      "sha256": "5da387203d2bd625ff24c8b0257d9b41e3d82fb19d88591c5c4c9b11b25e5783",
+      "bytes": 155510,
+      "format": "webp",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "forest",
+        "brambles",
+        "hostile-thicket",
+        "route-sequence",
+        "battle-signs"
+      ],
+      "intendedRegions": [
+        "Zoluren"
+      ],
+      "environments": [
+        "woodland",
+        "dense-thicket"
+      ],
+      "visualAttributes": [
+        "shadowed-daylight",
+        "thorn-barricade",
+        "smashed-passage",
+        "claw-scarred-tree",
+        "forward-dolly",
+        "painterly"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Kling 2.1 720p",
+        "creditsPerAsset": 34.375,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "creationReference": "YMoTDHJWeC",
+        "sourceVideoSha256": "304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c",
+        "sourceAnchorCreationReference": "jUP5IZWLD0",
+        "frameTimestampSeconds": 1.917,
+        "extraction": {
+          "sampleFps": 12,
+          "candidateCount": 61,
+          "perceptualHashDistance": 20,
+          "admittedCount": 8,
+          "runtimeFormat": "webp",
+          "runtimeQuality": 90
+        },
+        "frameMetrics": {
+          "sharpness": 211.807,
+          "exposure": 0.4,
+          "perceptualHash": "7df03df8bff8fffc33fc1bcc158c00a400240004000001007fe07ff0fbb01700"
+        },
+        "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve exact geography, lighting, palette, and painterly texture; no morphing, new paths, structures, people, creatures, text, signature, watermark, or audio."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/rooms/6-26.webp",
+            "/room-scenes/curated-hostile-brambles.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/room-scenes/brambles-walk-04.webp",
+      "sha256": "5cf684c0bc0556f908cc91b64ae8b9d849ec929a86c3f1e60ac46f5202196a79",
+      "bytes": 159428,
+      "format": "webp",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "forest",
+        "brambles",
+        "hostile-thicket",
+        "route-sequence",
+        "battle-signs"
+      ],
+      "intendedRegions": [
+        "Zoluren"
+      ],
+      "environments": [
+        "woodland",
+        "dense-thicket"
+      ],
+      "visualAttributes": [
+        "shadowed-daylight",
+        "thorn-barricade",
+        "smashed-passage",
+        "claw-scarred-tree",
+        "forward-dolly",
+        "painterly"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Kling 2.1 720p",
+        "creditsPerAsset": 34.375,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "creationReference": "YMoTDHJWeC",
+        "sourceVideoSha256": "304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c",
+        "sourceAnchorCreationReference": "jUP5IZWLD0",
+        "frameTimestampSeconds": 2.5,
+        "extraction": {
+          "sampleFps": 12,
+          "candidateCount": 61,
+          "perceptualHashDistance": 20,
+          "admittedCount": 8,
+          "runtimeFormat": "webp",
+          "runtimeQuality": 90
+        },
+        "frameMetrics": {
+          "sharpness": 230.572,
+          "exposure": 0.405,
+          "perceptualHash": "7df83df87ffcfffe31fc1bcc048400a400340004000400041fe07fe07bf09f10"
+        },
+        "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve exact geography, lighting, palette, and painterly texture; no morphing, new paths, structures, people, creatures, text, signature, watermark, or audio."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/rooms/6-26.webp",
+            "/room-scenes/curated-hostile-brambles.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/room-scenes/brambles-walk-05.webp",
+      "sha256": "5b7e7316d4acc840b042edeb1267b2dbf1f1e3eaa33e66760512800b72ab9766",
+      "bytes": 159692,
+      "format": "webp",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "forest",
+        "brambles",
+        "hostile-thicket",
+        "route-sequence",
+        "battle-signs"
+      ],
+      "intendedRegions": [
+        "Zoluren"
+      ],
+      "environments": [
+        "woodland",
+        "dense-thicket"
+      ],
+      "visualAttributes": [
+        "shadowed-daylight",
+        "thorn-barricade",
+        "smashed-passage",
+        "claw-scarred-tree",
+        "forward-dolly",
+        "painterly"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Kling 2.1 720p",
+        "creditsPerAsset": 34.375,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "creationReference": "YMoTDHJWeC",
+        "sourceVideoSha256": "304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c",
+        "sourceAnchorCreationReference": "jUP5IZWLD0",
+        "frameTimestampSeconds": 2.917,
+        "extraction": {
+          "sampleFps": 12,
+          "candidateCount": 61,
+          "perceptualHashDistance": 20,
+          "admittedCount": 8,
+          "runtimeFormat": "webp",
+          "runtimeQuality": 90
+        },
+        "frameMetrics": {
+          "sharpness": 248.713,
+          "exposure": 0.41,
+          "perceptualHash": "7df83df87ffe7bfe31f609c4048400a600360004000000001fe07fe0fff0f9b8"
+        },
+        "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve exact geography, lighting, palette, and painterly texture; no morphing, new paths, structures, people, creatures, text, signature, watermark, or audio."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/rooms/6-26.webp",
+            "/room-scenes/curated-hostile-brambles.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/room-scenes/brambles-walk-06.webp",
+      "sha256": "224a43b55b24e5a8578c38adf6926d166e6268f07dda77b6fa69f51889d92e6f",
+      "bytes": 157192,
+      "format": "webp",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "forest",
+        "brambles",
+        "hostile-thicket",
+        "route-sequence",
+        "battle-signs"
+      ],
+      "intendedRegions": [
+        "Zoluren"
+      ],
+      "environments": [
+        "woodland",
+        "dense-thicket"
+      ],
+      "visualAttributes": [
+        "shadowed-daylight",
+        "thorn-barricade",
+        "smashed-passage",
+        "claw-scarred-tree",
+        "forward-dolly",
+        "painterly"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Kling 2.1 720p",
+        "creditsPerAsset": 34.375,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "creationReference": "YMoTDHJWeC",
+        "sourceVideoSha256": "304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c",
+        "sourceAnchorCreationReference": "jUP5IZWLD0",
+        "frameTimestampSeconds": 3.667,
+        "extraction": {
+          "sampleFps": 12,
+          "candidateCount": 61,
+          "perceptualHashDistance": 20,
+          "admittedCount": 8,
+          "runtimeFormat": "webp",
+          "runtimeQuality": 90
+        },
+        "frameMetrics": {
+          "sharpness": 270.004,
+          "exposure": 0.418,
+          "perceptualHash": "7dfc79fc7ffe7bfe31d601c60086002200360006000200023fa09fe0fff0f7d0"
+        },
+        "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve exact geography, lighting, palette, and painterly texture; no morphing, new paths, structures, people, creatures, text, signature, watermark, or audio."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/rooms/6-26.webp",
+            "/room-scenes/curated-hostile-brambles.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/room-scenes/brambles-walk-07.webp",
+      "sha256": "f4437bb80d9b4877de7e2b688f29882cf68ea0f7dec20c3ab179e9ba3ad40d67",
+      "bytes": 157476,
+      "format": "webp",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "forest",
+        "brambles",
+        "hostile-thicket",
+        "route-sequence",
+        "battle-signs"
+      ],
+      "intendedRegions": [
+        "Zoluren"
+      ],
+      "environments": [
+        "woodland",
+        "dense-thicket"
+      ],
+      "visualAttributes": [
+        "shadowed-daylight",
+        "thorn-barricade",
+        "smashed-passage",
+        "claw-scarred-tree",
+        "forward-dolly",
+        "painterly"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Kling 2.1 720p",
+        "creditsPerAsset": 34.375,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "creationReference": "YMoTDHJWeC",
+        "sourceVideoSha256": "304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c",
+        "sourceAnchorCreationReference": "jUP5IZWLD0",
+        "frameTimestampSeconds": 4.167,
+        "extraction": {
+          "sampleFps": 12,
+          "candidateCount": 61,
+          "perceptualHashDistance": 20,
+          "admittedCount": 8,
+          "runtimeFormat": "webp",
+          "runtimeQuality": 90
+        },
+        "frameMetrics": {
+          "sharpness": 279.385,
+          "exposure": 0.423,
+          "perceptualHash": "7dfc79fe7fff7bff31d601c200830003003300020000000003803fe0ff60ffd8"
+        },
+        "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve exact geography, lighting, palette, and painterly texture; no morphing, new paths, structures, people, creatures, text, signature, watermark, or audio."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/rooms/6-26.webp",
+            "/room-scenes/curated-hostile-brambles.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/room-scenes/brambles-walk-08.webp",
+      "sha256": "0a873ca1c2466ce41a9b40134b46a94fed1e64d545f11137ce3a4f7434ec1372",
+      "bytes": 158766,
+      "format": "webp",
+      "audit": {
+        "status": "visually-reviewed",
+        "verdict": "approved",
+        "reviewedAt": "2026-09-01",
+        "method": "visual contact-sheet review against scene-basket semantics and regional lore",
+        "notes": "Generated replacement passed visual QA against its prompt and intended runtime basket."
+      },
+      "semanticTags": [
+        "forest",
+        "brambles",
+        "hostile-thicket",
+        "route-sequence",
+        "battle-signs"
+      ],
+      "intendedRegions": [
+        "Zoluren"
+      ],
+      "environments": [
+        "woodland",
+        "dense-thicket"
+      ],
+      "visualAttributes": [
+        "shadowed-daylight",
+        "thorn-barricade",
+        "smashed-passage",
+        "claw-scarred-tree",
+        "forward-dolly",
+        "painterly"
+      ],
+      "usage": [
+        {
+          "selectionTier": "curated-override",
+          "placeKey": null,
+          "category": "explicit-room-range",
+          "region": null,
+          "roomCount": null
+        }
+      ],
+      "intendedRoom": null,
+      "runtimeEligible": true,
+      "provenance": {
+        "provider": "Magnific",
+        "model": "Kling 2.1 720p",
+        "creditsPerAsset": 34.375,
+        "generatedAt": "2026-09-01",
+        "aspectRatio": "16:9",
+        "workflow": "text-to-image, visual QA, WebP quality 88",
+        "creationReference": "YMoTDHJWeC",
+        "sourceVideoSha256": "304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c",
+        "sourceAnchorCreationReference": "jUP5IZWLD0",
+        "frameTimestampSeconds": 4.667,
+        "extraction": {
+          "sampleFps": 12,
+          "candidateCount": 61,
+          "perceptualHashDistance": 20,
+          "admittedCount": 8,
+          "runtimeFormat": "webp",
+          "runtimeQuality": 90
+        },
+        "frameMetrics": {
+          "sharpness": 296.489,
+          "exposure": 0.426,
+          "perceptualHash": "7dfc79ff7bff7bff31d301c300830013001300030001000100113fa0bf70ff68"
+        },
+        "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve exact geography, lighting, palette, and painterly texture; no morphing, new paths, structures, people, creatures, text, signature, watermark, or audio."
+      },
+      "replacementHistory": [
+        {
+          "action": "supersedes",
+          "assets": [
+            "/rooms/6-26.webp",
+            "/room-scenes/curated-hostile-brambles.jpg"
+          ]
+        }
+      ]
+    },
+    {
       "path": "/room-scenes/curated-crossing-sewer.webp",
       "sha256": "a9488c03fae373bc3a76054485bc15c925b21f673066dbf55a47867b668b95fb",
       "bytes": 19608,
@@ -3210,17 +3858,9 @@
         "claw-scarred-tree",
         "painterly"
       ],
-      "usage": [
-        {
-          "selectionTier": "curated-override",
-          "placeKey": null,
-          "category": "explicit-room-range",
-          "region": null,
-          "roomCount": null
-        }
-      ],
+      "usage": [],
       "intendedRoom": null,
-      "runtimeEligible": true,
+      "runtimeEligible": false,
       "provenance": {
         "provider": "Magnific",
         "model": "Google Nano Banana 2 Lite",
@@ -55969,7 +56609,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56014,7 +56661,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56059,7 +56713,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56104,7 +56765,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56149,7 +56817,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56194,7 +56869,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56239,7 +56921,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56284,7 +56973,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56329,7 +57025,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56374,7 +57077,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56419,7 +57129,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56464,7 +57181,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56509,7 +57233,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56554,7 +57285,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56599,7 +57337,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56644,7 +57389,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56689,7 +57441,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56734,7 +57493,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56779,7 +57545,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56824,7 +57597,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56869,7 +57649,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56914,7 +57701,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -56959,7 +57753,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57004,7 +57805,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57049,7 +57857,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57094,7 +57909,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57139,7 +57961,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57184,7 +58013,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57229,7 +58065,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57274,7 +58117,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57319,7 +58169,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57364,7 +58221,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57409,7 +58273,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57454,7 +58325,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57499,7 +58377,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57544,7 +58429,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57589,7 +58481,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -57634,7 +58533,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61547,7 +62453,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61592,7 +62505,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61637,7 +62557,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61682,7 +62609,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61727,7 +62661,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61772,7 +62713,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61817,7 +62765,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61862,7 +62817,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61907,7 +62869,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61952,7 +62921,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -61997,7 +62973,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62042,7 +63025,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62087,7 +63077,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62132,7 +63129,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62177,7 +63181,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62222,7 +63233,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62267,7 +63285,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62312,7 +63337,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62357,7 +63389,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62402,7 +63441,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62447,7 +63493,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62492,7 +63545,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62537,7 +63597,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62582,7 +63649,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]
@@ -62627,7 +63701,14 @@
         {
           "action": "superseded-by",
           "assets": [
-            "/room-scenes/curated-hostile-brambles.jpg"
+            "/room-scenes/brambles-walk-01.webp",
+            "/room-scenes/brambles-walk-02.webp",
+            "/room-scenes/brambles-walk-03.webp",
+            "/room-scenes/brambles-walk-04.webp",
+            "/room-scenes/brambles-walk-05.webp",
+            "/room-scenes/brambles-walk-06.webp",
+            "/room-scenes/brambles-walk-07.webp",
+            "/room-scenes/brambles-walk-08.webp"
           ]
         }
       ]

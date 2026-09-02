@@ -4,6 +4,7 @@ import { extname, join, relative, sep } from 'node:path'
 
 const reviews = JSON.parse(readFileSync('data/art/scene-art-reviews.json', 'utf8'))
 const hashReviews = JSON.parse(readFileSync('data/art/dormant-scene-hash-reviews.json', 'utf8'))
+const sceneReels = JSON.parse(readFileSync('data/art/scene-reels.json', 'utf8'))
 const baskets = JSON.parse(readFileSync('data/art/scene-baskets.json', 'utf8'))
 const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 'utf8'))
 const roomMap = JSON.parse(readFileSync('data/art/room-place-map.json', 'utf8'))
@@ -49,11 +50,29 @@ for (const asset of new Set(overrideSource.match(/\/(?:rooms|room-scenes)\/[^'"\
 
 const rules = (reviews.reviewRules ?? []).map((rule) => ({ ...rule, regex: new RegExp(rule.match) }))
 const hashReviewBySha = new Map((hashReviews.reviews ?? []).map((review) => [review.sha256, review]))
+const reelFrameByPath = new Map()
+for (const reel of sceneReels.reels ?? []) {
+  for (const frame of reel.frames ?? []) reelFrameByPath.set(frame.path, {
+    semanticTags: reel.semanticTags, environments: reel.environments,
+    intendedRegions: reel.intendedRegions, visualAttributes: reel.visualAttributes,
+    prompt: reel.prompt, supersedes: reel.supersedes,
+    provenance: {
+      model: `${reel.sourceVideo.model} ${reel.sourceVideo.resolution}`,
+      creationReference: reel.sourceVideo.creationReference,
+      creditsPerAsset: reel.sourceVideo.credits / reel.frames.length,
+      sourceVideoSha256: reel.sourceVideo.sha256,
+      sourceAnchorCreationReference: reel.sourceAnchor.creationReference,
+      frameTimestampSeconds: frame.timestampSeconds,
+      extraction: reel.extraction,
+      frameMetrics: { sharpness: frame.sharpness, exposure: frame.exposure, perceptualHash: frame.perceptualHash },
+    },
+  })
+}
 const records = files.map((file) => {
   const path = webPath(file)
   const bytes = readFileSync(file)
   const sha256 = createHash('sha256').update(bytes).digest('hex')
-  const generated = reviews.generated?.[path]
+  const generated = reviews.generated?.[path] ?? reelFrameByPath.get(path)
   // Hash decisions intentionally apply only to dormant exact-room copies. The same
   // pixels may be valid when deliberately curated under a semantic master path.
   const hashReview = path.startsWith('/rooms/') ? hashReviewBySha.get(sha256) : null

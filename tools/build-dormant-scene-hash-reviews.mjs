@@ -47,7 +47,7 @@ const decisions = {
   ]),
 }
 const replacements = new Map([
-  ['/rooms/6-26.webp', ['/room-scenes/curated-hostile-brambles.jpg']],
+  ['/rooms/6-26.webp', ['/room-scenes/brambles-walk-01.webp', '/room-scenes/brambles-walk-02.webp', '/room-scenes/brambles-walk-03.webp', '/room-scenes/brambles-walk-04.webp', '/room-scenes/brambles-walk-05.webp', '/room-scenes/brambles-walk-06.webp', '/room-scenes/brambles-walk-07.webp', '/room-scenes/brambles-walk-08.webp']],
   ['/rooms/127-164.webp', ['/room-scenes/curated-paasvadh-understory.jpg']],
 ])
 
