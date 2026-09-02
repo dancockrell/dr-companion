@@ -53,8 +53,15 @@ for (const file of sizes.slice(0, 10)) {
 }
 console.log(`total JavaScript: ${(total / 1024).toFixed(1)} KiB raw`)
 check('a startup entry chunk was identified', Boolean(main))
-check('startup entry stays below the measured 1.70 MB raw budget', Boolean(main && main.bytes <= 1_700_000), main ? `${main.bytes} bytes` : 'missing')
-check('startup entry stays below the measured 420 kB gzip budget', Boolean(main && main.gzip <= 420_000), main ? `${main.gzip} bytes` : 'missing')
+// Budgets bumped 2026-09-02 alongside lucide-react 0.511.0 -> 1.37.0 (this
+// PR) - re-measured at 1,784,679 / 437,359 bytes with every icon this app
+// actually imports unchanged, confirmed by isolating lucide-react alone
+// (install just that bump on top of the prior lockfile: same numbers).
+// The increase is lucide-react's own per-icon asset weight in the new
+// major version, not a regression in this app's code. Same tight-headroom
+// convention as the numbers they replace.
+check('startup entry stays below the measured 1.8 MB raw budget', Boolean(main && main.bytes <= 1_800_000), main ? `${main.bytes} bytes` : 'missing')
+check('startup entry stays below the measured 445 kB gzip budget', Boolean(main && main.gzip <= 445_000), main ? `${main.gzip} bytes` : 'missing')
 for (const surface of ['SetupWizard', 'SettingsSheet', 'ConfigManagerSheet', 'ReportDialog', 'ScriptEditor', 'SoundControls']) {
   check(`${surface} remains an asynchronous chunk`, sizes.some(({ file }) => file.startsWith(`${surface}-`)))
 }
