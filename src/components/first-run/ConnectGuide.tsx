@@ -50,6 +50,8 @@ function Line({ text }: { text: string }) {
       <button
         type="button"
         className="shrink-0 text-xs flex items-center gap-1 rounded-md border border-border px-1.5 py-1 text-ink-faint hover:text-ink"
+        title={copied ? 'Copied' : 'Copy to clipboard'}
+        aria-label={copied ? 'Copied' : 'Copy to clipboard'}
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(text)
