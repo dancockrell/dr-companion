@@ -935,6 +935,7 @@ export function SoundControls() {
                                       className="shrink-0 text-ink-faint hover:text-warn"
                                       onClick={() => removeTrackFromPlaylist(p.id, id)}
                                       title={`Remove "${t.title}" from ${p.name}`}
+                                      aria-label={`Remove ${t.title} from ${p.name}`}
                                     >
                                       <Trash2 className="h-3 w-3" />
                                     </button>
