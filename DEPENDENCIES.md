@@ -12,14 +12,14 @@ Generated from the shared memory database. Edit there, not here:
 ### ComfyUI
 
 - Location: `http://127.0.0.1:8188`
-- Why: The whole art pipeline talks to it over HTTP. Its scheduling/scoring loop was ported from tools/art-daemon.mjs into quartermaster (src/art/), verified with a real parity gate against the JS on the real corpus/manifest before the switch on 2026-09-02; run via 'qm art-daemon' now, not node. It waits for ComfyUI rather than exiting, so a missing ComfyUI looks like a daemon that is running and producing nothing. Needs the ImageScale and SaveImage nodes, which it uses to emit a thumbnail it scores itself on.
-- Verify: `curl -s -m 3 http://127.0.0.1:8188/system_stats`
+- Source: https://github.com/comfyanonymous/ComfyUI
+- Why: The whole art pipeline talks to it over HTTP. tools/art-daemon.mjs waits for it rather than exiting, so a missing ComfyUI looks like a daemon that is running and producing nothing. Needs the ImageScale and SaveImage nodes, which the daemon uses to emit a thumbnail it scores itself on.
 
 ### FLUX.1-schnell fp8 checkpoint
 
 - Location: `C:\Users\Admin\AppData\Local\Comfy-Desktop\ComfyUI-Shared\models\checkpoints`
-- Why: schnell is Apache 2.0 and puts no conditions on its output, which is the entire reason it and not dev: the art pack can be shipped commercially and given to Simutronics. FLUX.1-dev is the trap: better-known, what most guides reach for, and NON-COMMERCIAL -- one image rendered with it would make the whole pack legally unusable. It was on this machine and was deleted 26 Aug 2026. The checkpoint is pinned as a literal string (with this same explanation carried in a comment) in tools/art-run.mjs and in quartermaster's src/art/daemon.rs, which is what tools/art-daemon.mjs's own pinning was ported into on 2026-09-02.
-- Verify: `Test-Path 'C:\Users\Admin\AppData\Local\Comfy-Desktop\ComfyUI-Shared\models\checkpoints\flux1-schnell-fp8.safetensors'`
+- Source: https://huggingface.co/black-forest-labs/FLUX.1-schnell
+- Why: schnell is Apache 2.0 and puts no conditions on its output, which is the entire reason it and not dev: the art pack can be shipped commercially and given to Simutronics. FLUX.1-dev is the trap. It is the better-known model and what most guides reach for, and it is NON-COMMERCIAL: one image rendered with it would make the whole pack legally unusable. It was on this machine and was deleted 26 Aug 2026, so there is nothing to swap in by accident today. The checkpoint is pinned in tools/art-daemon.mjs and tools/art-run.mjs to guard against it being downloaded again, which is now the likely way this goes wrong.
 
 ### Genie 4 map XML
 
@@ -45,12 +45,6 @@ Generated from the shared memory database. Edit there, not here:
 - Source: https://github.com/elanthia-online/lich-5/releases
 - Why: Lich runs on Ruby; dr-companion automates Lich. Captured in no manifest.
 - Verify: `ls "C:/Ruby4Lich5/4.0.6/bin/ruby.exe" && echo PRESENT`
-
-### ws (npm)
-
-- Location: `C:/Users/Admin/dev/dr-companion/node_modules/ws`
-- Why: tools/mock-lich-server.mjs imports it and it is NOT in package.json - unlisted optional dep named only in that file's header. Absent as of 27 Aug 2026: npm run mock-lich dies on ERR_MODULE_NOT_FOUND before executing a line.
-- Verify: `cd C:/Users/Admin/dev/dr-companion && node -e "require.resolve('ws');console.log('present')"`
 
 ## Optional
 
