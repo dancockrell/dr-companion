@@ -12,16 +12,19 @@ import {
   PanelTop,
   PersonStanding,
   Plus,
+  Repeat,
   RotateCw,
   Shield,
   ShieldCheck,
   ShieldOff,
   Shirt,
+  Swords,
   Trash2,
 } from 'lucide-react'
 import { isIntentImplemented, useAppStore } from '../../store/useAppStore'
 import { useDragScroll } from '../../lib/useDragScroll'
 import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { requestGameAction } from '../../lib/gameActions'
 import {
   ARMOR_COVERAGE,
   armorCandidates,
@@ -87,6 +90,11 @@ export function ArmorManager() {
   const candidates = useMemo(() => armorCandidates(inventory), [inventory])
   const available = isIntentImplemented(bridgeIntents, 'armor_manage')
   const canSend = Boolean(character?.connected && available && !character.stopLatched)
+  // Weapon-skill swap is a raw command (`swap my <weapon>`), not routed
+  // through the armor_manage intent - it should not go dark on a bridge that
+  // has not shipped armor_manage yet, the same way CombatRadar's look/assess
+  // buttons and FloorItems' Look/Get never gate on it either.
+  const canSendRaw = Boolean(character?.connected && !character.stopLatched)
 
   const updatePieces = (next: ArmorLoadoutPiece[] | ((current: ArmorLoadoutPiece[]) => ArmorLoadoutPiece[])) => {
     setLoadouts((current) => {
@@ -128,6 +136,48 @@ export function ArmorManager() {
   const wearAll = pieces.filter((piece) => !wornNow(piece.name, worn)).map((piece) => piece.name)
   const removeAll = pieces.filter((piece) => wornNow(piece.name, worn)).map((piece) => piece.name).reverse()
   const shieldPiece = pieces.find((piece) => piece.coverage.includes('shield'))
+
+  // Head and hands get their own row rather than living only in the scrolling
+  // list below, because rotating them is a routine, not a rare edit — real
+  // players keep a spare helm or pair of gloves in a lighter or heavier
+  // weight class than their main suit specifically to rotate onto it while
+  // it is safe to (an empty room, no combat), which trains TDPs in that
+  // armor category the same way a fighter trains an off-skill weapon. Doffing
+  // just these two for a manual-dexterity task (locksmithing, first aid,
+  // forging) is common enough on its own to deserve a single click rather
+  // than hunting the specific rows in the list.
+  const headPieces = pieces.filter((piece) => piece.coverage.includes('head'))
+  const handsPieces = pieces.filter((piece) => piece.coverage.includes('hands'))
+  const headWorn = headPieces.find((piece) => wornNow(piece.name, worn))
+  const handsWorn = handsPieces.find((piece) => wornNow(piece.name, worn))
+  const nextInRotation = (candidatesInSlot: ArmorLoadoutPiece[], current: ArmorLoadoutPiece | undefined) => {
+    if (candidatesInSlot.length === 0) return undefined
+    if (!current) return candidatesInSlot[0]
+    const index = candidatesInSlot.findIndex((piece) => piece.id === current.id)
+    return candidatesInSlot[(index + 1) % candidatesInSlot.length]
+  }
+  const rotateSlot = (candidatesInSlot: ArmorLoadoutPiece[], current: ArmorLoadoutPiece | undefined) => {
+    const next = nextInRotation(candidatesInSlot, current)
+    if (!next) return
+    if (current && current.id !== next.id) run('swap', [next.name, current.name])
+    else if (!current) run('wear', [next.name])
+  }
+  const bareTargets = [headWorn, handsWorn].filter((piece): piece is ArmorLoadoutPiece => Boolean(piece)).map((piece) => piece.name)
+
+  // What each hand is actually holding, for the weapon-skill swap below.
+  // `swap my <weapon>` cycles that weapon to its *next* trained skill mode
+  // (light edged -> medium edged -> ...) rather than jumping straight to one
+  // named skill — DR's own `swap` verb takes no target, confirmed against
+  // Lich5's equipmanager.rb, which sends the exact same bare command in a
+  // loop and reads the result to know where it landed. A button that claims
+  // to jump to a chosen skill directly would be promising something this
+  // command cannot do without a lot more machinery (a bridge intent that
+  // repeats the command and pattern-matches the reply, the way armor_manage
+  // already does for wear/remove) - not yet built, so this stays an honest
+  // single-step cycle instead of a fake direct-select.
+  const heldWeapons = Array.from(
+    new Set([character?.hands?.left, character?.hands?.right].filter((name): name is string => Boolean(name)))
+  )
   const coverageCount = new Map<ArmorCoverage, number>()
   for (const piece of pieces) {
     for (const part of piece.coverage) coverageCount.set(part, (coverageCount.get(part) ?? 0) + 1)
@@ -222,6 +272,89 @@ export function ArmorManager() {
               <button type="button" disabled={!canSend || wornNow(shieldPiece.name, worn)} onClick={() => run('wear', [shieldPiece.name])} className="rounded border border-border px-1 py-0.5 text-xs text-ink-muted hover:text-good disabled:opacity-35" title={`Wear ${shieldPiece.name}`}>Wear shield</button>
               <button type="button" disabled={!canSend} onClick={() => run('adjust', [shieldPiece.name])} className="rounded border border-border px-1 py-0.5 text-xs text-ink-muted hover:text-info disabled:opacity-35" title={`Adjust ${shieldPiece.name}`}>Adjust shield</button>
               <button type="button" disabled={!canSend || !wornNow(shieldPiece.name, worn)} onClick={() => run('remove', [shieldPiece.name])} className="rounded border border-border px-1 py-0.5 text-xs text-ink-muted hover:text-danger disabled:opacity-35" title={`Remove ${shieldPiece.name}`}>Remove shield</button>
+            </div>
+          )}
+
+          {/* Rotating a spare-weight helm or gloves onto yourself while it is
+              safe to — an empty room, no fight — is how a player earns TDPs
+              in an armor category outside their main suit. One click here
+              instead of finding the specific rows below, and honest about
+              what "Rotate" means: a second piece must already be in the rack
+              before it does anything but wear the one piece that's there. */}
+          {(headPieces.length > 0 || handsPieces.length > 0) && (
+            <div className="grid grid-cols-2 gap-1" aria-label="Helm and glove controls">
+              {headPieces.length > 0 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => headWorn ? run('remove', [headWorn.name]) : rotateSlot(headPieces, headWorn)}
+                  className="flex items-center justify-center gap-1 rounded border border-border px-1 py-1 text-xs text-ink-muted hover:text-ink disabled:opacity-35"
+                  title={headWorn ? `Remove ${armorCommandTarget(headWorn.name)}` : `Wear ${armorCommandTarget(headPieces[0].name)}`}
+                >
+                  <HardHat className="h-3.5 w-3.5" />{headWorn ? 'Helm off' : 'Helm on'}
+                </button>
+              )}
+              {handsPieces.length > 0 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => handsWorn ? run('remove', [handsWorn.name]) : rotateSlot(handsPieces, handsWorn)}
+                  className="flex items-center justify-center gap-1 rounded border border-border px-1 py-1 text-xs text-ink-muted hover:text-ink disabled:opacity-35"
+                  title={handsWorn ? `Remove ${armorCommandTarget(handsWorn.name)}` : `Wear ${armorCommandTarget(handsPieces[0].name)}`}
+                >
+                  <Hand className="h-3.5 w-3.5" />{handsWorn ? 'Gloves off' : 'Gloves on'}
+                </button>
+              )}
+              {headPieces.length > 1 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => rotateSlot(headPieces, headWorn)}
+                  className="flex items-center justify-center gap-1 rounded border border-info/40 px-1 py-0.5 text-xs text-info hover:bg-info/10 disabled:opacity-35"
+                  title={`Rotate to the next of ${headPieces.length} helms in the rack — trains TDPs in that armor category`}
+                >
+                  <Repeat className="h-3 w-3" />Rotate helm
+                </button>
+              )}
+              {handsPieces.length > 1 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => rotateSlot(handsPieces, handsWorn)}
+                  className="flex items-center justify-center gap-1 rounded border border-info/40 px-1 py-0.5 text-xs text-info hover:bg-info/10 disabled:opacity-35"
+                  title={`Rotate to the next of ${handsPieces.length} gloves in the rack — trains TDPs in that armor category`}
+                >
+                  <Repeat className="h-3 w-3" />Rotate gloves
+                </button>
+              )}
+              {bareTargets.length > 0 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => run('remove', bareTargets)}
+                  className="col-span-2 flex items-center justify-center gap-1 rounded border border-warn/40 px-1 py-0.5 text-xs text-warn hover:bg-warn/10 disabled:opacity-35"
+                  title="Remove helm and gloves — locksmithing, first aid, forging and most manual-dexterity tasks want bare hands"
+                >
+                  Bare head &amp; hands
+                </button>
+              )}
+            </div>
+          )}
+
+          {heldWeapons.length > 0 && (
+            <div className={heldWeapons.length > 1 ? 'grid grid-cols-2 gap-1' : ''} aria-label="Weapon skill swap">
+              {heldWeapons.map((weapon) => (
+                <button
+                  key={weapon}
+                  type="button"
+                  disabled={!canSendRaw}
+                  onClick={() => requestGameAction(`swap my ${armorCommandTarget(weapon)}`, `Swap ${weapon}`)}
+                  className="flex w-full items-center justify-center gap-1 rounded border border-border px-1 py-1 text-xs text-ink-muted hover:text-ink disabled:opacity-35"
+                  title={`Cycle ${weapon} to its next trained weapon skill — DR's swap has no direct target, so this steps one skill at a time; repeat to reach the one you want`}
+                >
+                  <Swords className="h-3.5 w-3.5" />Swap {armorCommandTarget(weapon)}
+                </button>
+              ))}
             </div>
           )}
 
