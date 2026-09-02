@@ -93,7 +93,7 @@ export async function scriptTemplate(lang: ScriptLang, name: string): Promise<st
 }
 
 /**
- * The task id a saved Python script gets.
+ * The task id a saved Python or TypeScript script gets.
  *
  * Derived in one place so the editor and the task list cannot disagree about
  * what a script is called once it is saved.

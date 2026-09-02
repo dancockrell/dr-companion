@@ -103,11 +103,11 @@ export function ProfilesPanel() {
                     type="button"
                     className="text-xs flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-ink-faint hover:text-danger"
                     onClick={() => {
-                      if (confirm(`Forget ${p.name}? This drops their saved settings — heal city, train focus, hunt favourites — for good.`)) {
+                      if (confirm(`Delete ${p.name}? This drops their saved settings — heal city, train focus, hunt favourites — for good.`)) {
                         deleteProfileByKey(key)
                       }
                     }}
-                    title="Forget this character" aria-label="Forget this character"
+                    title="Delete this character" aria-label="Delete this character"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>

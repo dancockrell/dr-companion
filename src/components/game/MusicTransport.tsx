@@ -256,6 +256,7 @@ export function MusicTransport({
           className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
           onClick={() => (failed ? retryMusic() : playing ? pauseMusic() : resumeMusic())}
           title={failed ? 'Retry music' : playing ? 'Pause music' : 'Play music'}
+          aria-label={failed ? 'Retry music' : playing ? 'Pause music' : 'Play music'}
         >
           {failed ? (
             <RefreshCw className="h-3.5 w-3.5 text-warn" />
@@ -365,6 +366,7 @@ export function MusicTransport({
               className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
               onClick={() => (failed ? retryMusic() : playing ? pauseMusic() : resumeMusic())}
               title={failed ? 'Retry music' : playing ? 'Mute music' : 'Unmute music'}
+              aria-label={failed ? 'Retry music' : playing ? 'Mute music' : 'Unmute music'}
             >
               {vol <= 0 ? (
                 <VolumeX className="h-3.5 w-3.5" />
