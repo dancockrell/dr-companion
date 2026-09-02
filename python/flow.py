@@ -1,14 +1,11 @@
-"""Task flows in Python, where the scripting language is.
+"""Python-native task-flow primitives used by the shipped flows and routines.
 
-Flows currently live in `src/data/taskFlows.ts` as seven hardcoded entries,
-driven by `src/lib/flowDriver.ts` and `src/lib/flowRunner.ts`, with conditions
-written as strings (`health<50`, `!bleeding`) and parsed by a purpose-built
-grammar in `src/lib/flowConditions.ts`. That is a scripting language, hand-rolled
-in TypeScript, inside an app that already decided Python is its scripting
-language.
+`python/tasks/flows.py`, `python/tasks/routine.py`, and player tasks compose the
+`Flow` and `Step` types in this module. The desktop app discovers and launches
+those tasks through the Python runner; there is no client-side FlowDriver.
 
-This is that same capability where it belongs. It is not a translation: moving
-it buys three things the TypeScript version cannot have.
+Keeping this capability in Python buys three things a client-side flow engine
+cannot have.
 
 # 1. Conditions are expressions, so the grammar disappears
 
