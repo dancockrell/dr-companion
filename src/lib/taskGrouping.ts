@@ -36,3 +36,28 @@ export function groupTasksByCategory<T extends { category: string }>(
   }
   return groups
 }
+
+/**
+ * Return the new flat id order for a drop the task catalog can represent.
+ * Non-catalog entries and cross-category targets are rejected together so
+ * drag sources, target highlighting, and the persisted move share one rule.
+ */
+export function moveTaskWithinCategory<T extends { id: string; category: string }>(
+  ordered: T[],
+  id: string,
+  overId: string
+): string[] | null {
+  if (id === overId) return null
+  const byId = new Map(ordered.map((item) => [item.id, item]))
+  const fromTask = byId.get(id)
+  const overTask = byId.get(overId)
+  if (!fromTask || !overTask || fromTask.category !== overTask.category) return null
+
+  const next = ordered.map((item) => item.id)
+  const from = next.indexOf(id)
+  next.splice(from, 1)
+  const to = next.indexOf(overId)
+  if (to === -1) return null
+  next.splice(to, 0, id)
+  return next
+}

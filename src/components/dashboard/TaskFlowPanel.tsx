@@ -86,7 +86,7 @@ import {
   stopNodeTask,
   nodeTaskState,
 } from '../../lib/nodeTasks'
-import { groupTasksByCategory } from '../../lib/taskGrouping'
+import { groupTasksByCategory, moveTaskWithinCategory } from '../../lib/taskGrouping'
 import {
   type ScriptLang,
 } from '../../lib/scriptFiles'
@@ -461,6 +461,10 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
     catalogs.dirs.error ? `Folders: ${catalogs.dirs.error}` : null,
   ].filter((item): item is string => item !== null)
   const orderedTasks = useMemo(() => orderTasks(tasks, tileOrder), [tasks, tileOrder])
+  const reorderableTaskById = useMemo(
+    () => new Map(orderedTasks.map((task) => [task.id, task])),
+    [orderedTasks]
+  )
 
   // Drop `id` where `overId` currently sits, everything between the two
   // sliding over by one - the ordinary "pick it up, put it down here" a
@@ -478,23 +482,9 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   // two separate group headers the next time it renders.
   const moveTile = useCallback(
     (id: string, overId: string) => {
-      if (id === overId) return
       const ordered = orderTasks(tasks, tileOrder)
-      const byId = new Map(ordered.map((t) => [t.id, t]))
-      const fromTask = byId.get(id)
-      const overTask = byId.get(overId)
-      if (!fromTask || !overTask) return
-      if (fromTask.category !== overTask.category) return
-      const next = ordered.map((t) => t.id)
-      const from = next.indexOf(id)
-      if (from === -1) return
-      next.splice(from, 1)
-      // Re-found after removal: taking id out shifts every later index down
-      // by one, so overId's position before the splice is not where it
-      // lands after it.
-      const to = next.indexOf(overId)
-      if (to === -1) return
-      next.splice(to, 0, id)
+      const next = moveTaskWithinCategory(ordered, id, overId)
+      if (!next) return
       setTileOrder(next)
       writeJSON(TILE_ORDER_KEY, next)
     },
@@ -732,7 +722,14 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                   // `moveTile`) - TypeScript and Ruby entries can be picked
                   // up but can never actually be dropped anywhere, so don't
                   // offer the gesture for them at all.
-                  const isReorderable = !isCommand && !entry.id.startsWith('ts.') && !entry.id.startsWith('ruby.')
+                  const isReorderable = reorderableTaskById.has(entry.id)
+                  const draggedTask = draggingId ? reorderableTaskById.get(draggingId) : undefined
+                  const targetTask = reorderableTaskById.get(entry.id)
+                  const acceptsDraggedTile =
+                    draggedTask !== undefined &&
+                    targetTask !== undefined &&
+                    draggedTask.id !== targetTask.id &&
+                    draggedTask.category === targetTask.category
                   const overrideKey = isCommand ? null : iconOverrideFor(entry.id)
                   const iconKey = overrideKey ?? entry.baseIcon
                   const Icon = entry.actionKey ? actionIcon(entry.actionKey) : SCRIPT_ICON_COMPONENT[iconKey]
@@ -741,8 +738,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                     : accentForIndex(entryVisualIndex.get(entry.id) ?? 0)
                   const active = running === entry.id
                   const isDragging = draggingId === entry.id
-                  const isDropTarget =
-                    dropTargetId === entry.id && draggingId !== null && draggingId !== entry.id
+                  const isDropTarget = dropTargetId === entry.id && acceptsDraggedTile
                   // Ruby scripts are identified to the bridge by name, not by
                   // the synthetic `ruby.${name}` id this panel groups them
                   // under - see quickSwitch.ts's own header on why a pin is a
@@ -779,14 +775,16 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                         setDropTargetId(null)
                       }}
                       onDragOver={(e) => {
-                        if (!draggingId || draggingId === entry.id) return
+                        if (!acceptsDraggedTile) return
                         e.preventDefault()
                         e.dataTransfer.dropEffect = 'move'
                         setDropTargetId(entry.id)
                       }}
                       onDrop={(e) => {
-                        e.preventDefault()
-                        if (draggingId) moveTile(draggingId, entry.id)
+                        if (acceptsDraggedTile) {
+                          e.preventDefault()
+                          if (draggingId) moveTile(draggingId, entry.id)
+                        }
                         setDraggingId(null)
                         setDropTargetId(null)
                       }}
