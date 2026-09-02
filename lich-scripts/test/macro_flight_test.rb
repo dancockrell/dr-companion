@@ -27,7 +27,7 @@ workers = 12.times.map do
   Thread.new do
     ready << true
     release.pop
-    results << gate.claim_macro_flight(100.0)
+    results << gate.claim_macro_flight({ 'commands' => %w[stance attack] }, 100.0)
   end
 end
 12.times { ready.pop }
@@ -38,8 +38,12 @@ fails += 1 unless check('exactly one simultaneous request wins', winners == 1)
 
 puts ''
 puts '-- the flight expires without blocking unrelated work --'
-fails += 1 unless check('a duplicate inside 900ms is refused', !gate.claim_macro_flight(100.899))
-fails += 1 unless check('a later deliberate macro is accepted', gate.claim_macro_flight(100.9))
+fails += 1 unless check('an equivalent duplicate inside 900ms is refused',
+                        !gate.claim_macro_flight({ 'commands' => %w[stance attack] }, 100.899))
+fails += 1 unless check('a different macro remains immediately available',
+                        gate.claim_macro_flight({ 'commands' => ['retreat'] }, 100.1))
+fails += 1 unless check('the equivalent macro is accepted after expiry',
+                        gate.claim_macro_flight({ 'commands' => %w[stance attack] }, 100.9))
 fails += 1 unless check('command serialization still includes run_macro', gate::COMMAND_SENDING.include?('run_macro'))
 
 exit(fails.zero? ? 0 : 1)
