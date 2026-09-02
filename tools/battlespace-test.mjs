@@ -105,6 +105,7 @@ check('radar motion respects reduced-motion and every actor has a visible keyboa
 check('radar rails stop above the shared floor glance', /bottom: 'var\(--radar-loot-height, 0px\)'/.test(radar))
 check('floor glance and floor browser each own a fully local selection, not a shared one', !/floorSelection/.test(battle) && /mode="glance"[^>]*\/>/.test(battle) && /selectedItem === undefined \? internalSelected/.test(floor))
 check('every floor selection opens its own action panel, glance included - not gated to browser only', /\{selected && \(\(\) => \{/.test(floor) && !/mode === 'browser' && selected/.test(floor))
+check('the glance action popover can escape its fixed-height footer', /bottom-full/.test(floor) && /h-9 overflow-visible/.test(scene) && !/h-9 overflow-hidden/.test(scene))
 check('floor actions close when the selected item leaves the live room list', /items\?\.includes\(storedSelection\)/.test(floor) && /setSelected\(null\)/.test(floor))
 check('battle commands occupy a grab-scrollable two-row deck', /grid-flow-col grid-rows-2/.test(actions) && /overflow-x-auto/.test(actions) && /useDragScroll/.test(actions))
 check('the lower tactical table gives inventory the larger working share', /grid-cols-\[minmax\(0,0\.9fr\)_minmax\(12rem,1\.1fr\)\]/.test(battle))
