@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { writeText, type StorageWriteResult } from './storage'
+import { writeText, type StorageWriteResult } from './storage.ts'
 
 export type SkinId = 'elanthian-bronze' | 'moonlit-iron' | 'ember-court'
 
