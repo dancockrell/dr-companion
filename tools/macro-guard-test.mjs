@@ -82,6 +82,12 @@ console.log('\n-- every launcher shares one atomic flight gate --')
 }
 
 console.log('\n-- run_macro has one dispatch owner --')
+
+const bridgeSource = readFileSync('lich-scripts/companion_bridge.lic', 'utf8')
+ok('the bridge process owns a cross-window atomic macro flight',
+  bridgeSource.includes('MACRO_FLIGHT_LOCK = Mutex.new') &&
+  bridgeSource.includes("intent == 'run_macro' && !claim_macro_flight") &&
+  bridgeSource.includes('Process.clock_gettime(Process::CLOCK_MONOTONIC)'))
 {
   const sourceFiles = []
   const walk = (dir) => {

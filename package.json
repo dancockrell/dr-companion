@@ -130,7 +130,7 @@
     "test:game-time": "node --experimental-strip-types tools/game-time-test.mjs",
     "test:scrollable-region": "node --experimental-strip-types tools/scrollable-region-test.mjs",
     "test:cdp-timeout": "node tools/cdp-timeout-test.mjs",
-    "test:macroguard": "node tools/macro-guard-test.mjs",
+    "test:macroguard": "node tools/macro-guard-test.mjs && node tools/ruby-test.mjs lich-scripts/test/macro_flight_test.rb lich-scripts/companion_bridge.lic",
     "test:streamstate": "node tools/stream-state-test.mjs",
     "test:live-room-presentation": "node --experimental-strip-types tools/live-room-presentation-test.ts",
     "test:framing": "python python/test_framing.py",
