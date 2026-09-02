@@ -11,7 +11,10 @@ const reviewPath = join(outputDir, `${zone}-primitive-world-review.md`)
 // Keep the world artifact deterministic: it is an editable, Godot-friendly
 // arrangement of primitives, not an imported scene reconstruction.
 execFileSync(process.execPath, ['tools/build-geometric-room-briefs.mjs'], { stdio: 'inherit' })
+execFileSync(process.execPath, ['tools/build-crossing-primitive-registry.mjs'], { stdio: 'inherit' })
 const catalogue = JSON.parse(readFileSync(briefsPath, 'utf8'))
+const primitiveRegistry = JSON.parse(readFileSync(join(outputDir, 'crossing-primitive-registry.json'), 'utf8'))
+const primitiveIds = new Set(primitiveRegistry.assets.map((asset) => asset.id))
 const cellsForZone = catalogue.roomBriefs
   .filter((brief) => brief.zone === zone && brief.map)
   .sort((a, b) => a.roomId - b.roomId)
@@ -25,18 +28,38 @@ const maxY = Math.max(...cellsForZone.map((cell) => cell.map.y))
 const localIds = new Set(cellsForZone.map((cell) => cell.id))
 const mapUnitToMetres = 0.25
 
+const candidatesFor = (kind) => ({
+  'terrain-cell-5m': ['G01', 'G02', 'G03', 'G14'],
+  'interior-floor-5m': ['S05', 'S06'],
+  'cutaway-wall-kit': ['S05', 'S06'],
+  'rough-edge-boundary-kit': ['G16', 'H01', 'H02', 'H03'],
+  'water-ribbon-5m': ['G11', 'G12'],
+  'bridge-span-5m': ['B22', 'E07'],
+  'special-landmark-silhouette': ['B12', 'B23', 'R06'],
+  'guild-threshold-kit': ['E02', 'B12'],
+  'sacred-threshold-kit': ['E03', 'E10'],
+  'market-canopy-kit': ['R08', 'R09', 'B11'],
+  'civic-vault-threshold-kit': ['B12', 'E02'],
+})[kind] ?? []
+
+const primitive = (kind, role) => {
+  const assetCandidates = candidatesFor(kind)
+  if (!assetCandidates.every((id) => primitiveIds.has(id))) throw new Error(`Unknown primitive candidate for ${kind}`)
+  return { kind, role, assetCandidates }
+}
+
 const primitiveRecipe = (cell) => {
   const tags = cell.classification.tags
-  const items = [{ kind: cell.classification.spatialMode === 'interior-cutaway' ? 'interior-floor-5m' : 'terrain-cell-5m', role: 'base' }]
-  if (cell.classification.spatialMode === 'interior-cutaway') items.push({ kind: 'cutaway-wall-kit', role: 'shell' })
-  else items.push({ kind: 'rough-edge-boundary-kit', role: 'boundary' })
-  if (tags.includes('water')) items.push({ kind: 'water-ribbon-5m', role: 'landform' })
-  if (tags.includes('bridge')) items.push({ kind: 'bridge-span-5m', role: 'landform' })
-  if (cell.classification.tier === 'special') items.push({ kind: 'special-landmark-silhouette', role: 'landmark' })
-  if (tags.includes('guild')) items.push({ kind: 'guild-threshold-kit', role: 'landmark' })
-  if (tags.includes('sacred')) items.push({ kind: 'sacred-threshold-kit', role: 'landmark' })
-  if (tags.includes('market')) items.push({ kind: 'market-canopy-kit', role: 'landmark' })
-  if (tags.includes('banking')) items.push({ kind: 'civic-vault-threshold-kit', role: 'landmark' })
+  const items = [primitive(cell.classification.spatialMode === 'interior-cutaway' ? 'interior-floor-5m' : 'terrain-cell-5m', 'base')]
+  if (cell.classification.spatialMode === 'interior-cutaway') items.push(primitive('cutaway-wall-kit', 'shell'))
+  else items.push(primitive('rough-edge-boundary-kit', 'boundary'))
+  if (tags.includes('water')) items.push(primitive('water-ribbon-5m', 'landform'))
+  if (tags.includes('bridge')) items.push(primitive('bridge-span-5m', 'landform'))
+  if (cell.classification.tier === 'special') items.push(primitive('special-landmark-silhouette', 'landmark'))
+  if (tags.includes('guild')) items.push(primitive('guild-threshold-kit', 'landmark'))
+  if (tags.includes('sacred')) items.push(primitive('sacred-threshold-kit', 'landmark'))
+  if (tags.includes('market')) items.push(primitive('market-canopy-kit', 'landmark'))
+  if (tags.includes('banking')) items.push(primitive('civic-vault-threshold-kit', 'landmark'))
   return items
 }
 
@@ -93,6 +116,12 @@ const output = {
     zone,
     mapUnitToMetres,
     coordinateConvention: 'DragonRealms map x becomes Godot x; inverted map y becomes Godot z; map level becomes 5m y steps.',
+  },
+  primitiveRegistry: {
+    path: 'data/world/out/crossing-primitive-registry.json',
+    schemaVersion: primitiveRegistry.schemaVersion,
+    approvedAssetCount: primitiveRegistry.counts.approved,
+    candidateAssetCount: primitiveRegistry.counts.candidate,
   },
   bounds: {
     source: { minX, minY, maxX, maxY },

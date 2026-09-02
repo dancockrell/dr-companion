@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Admission ledger for the Crossing geometric 3D kit. A model is never a runtime asset until its status is approved and its packaged path is recorded.",
+  "assets": {
+    "T01": {
+      "status": "candidate",
+      "creationId": "lJ6TMVtgv9",
+      "sourceImageCreationId": "8aHSUocIrU",
+      "tool": "Magnific image-to-3D",
+      "model": "tripo-p1",
+      "faceLimit": 450,
+      "textureQuality": "none",
+      "purpose": "First isolated primitive-conversion experiment for the compact Crossing shade tree.",
+      "reviewRequired": [
+        "Verify silhouette against the T01 brief at tabletop scale.",
+        "Verify a flat y=0 contact plane and a 2.5m footprint after import.",
+        "Verify no baked studio background, text, or unsupported roots/props.",
+        "Create the required low-detail LOD before approval."
+      ],
+      "runtimePath": null
+    }
+  }
+}

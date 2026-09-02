@@ -20,6 +20,8 @@ else {
   else fail('Town Green North lost a legal route')
   if (townGreenNorth?.primitives.some((primitive) => primitive.kind === 'terrain-cell-5m')) pass('ordinary rooms begin as editable primitive terrain')
   else fail('ordinary rooms are not primitive-first')
+  if (townGreenNorth?.primitives.every((primitive) => primitive.assetCandidates?.length && primitive.assetCandidates.every((assetId) => /^[GPHTBERS]\d{2}$/.test(assetId)))) pass('every world primitive resolves to approved-kit candidate IDs')
+  else fail('world primitive candidates do not resolve to the kit registry')
   if (guild?.primitives.some((primitive) => primitive.kind === 'guild-threshold-kit')) pass('guilds are explicitly represented as special primitive sets')
   else fail('guilds have no special primitive treatment')
   if (water?.primitives.some((primitive) => primitive.kind === 'water-ribbon-5m')) pass('water rooms receive water primitives')

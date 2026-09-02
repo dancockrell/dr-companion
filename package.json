@@ -70,6 +70,8 @@
     "world:primitive": "node tools/build-primitive-world-manifest.mjs",
     "test:primitive-world": "node tools/primitive-world-manifest-test.mjs",
     "test:geometric-kit": "node tools/crossing-geometric-kit-test.mjs",
+    "world:primitive-registry": "node tools/build-crossing-primitive-registry.mjs",
+    "test:primitive-registry": "node tools/crossing-primitive-registry-test.mjs",
     "test:room-scene-patterns": "node tools/room-scene-patterns-test.mjs",
     "test:grok-room-scenes": "node --experimental-strip-types tools/grok-room-scenes-test.mjs",
     "test:room-scene-images": "node tools/python-test.mjs python/test_room_scene_images.py",
