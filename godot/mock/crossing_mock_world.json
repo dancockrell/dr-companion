@@ -1,0 +1,1149 @@
+{
+  "schemaVersion": 1,
+  "protocol": 1,
+  "sequence": 1,
+  "worldId": "crossing-mock",
+  "currentRoomId": "1-14",
+  "generatedFrom": {
+    "source": "data/world/out/1-primitive-world.json",
+    "note": "Slice 0 mock fixture: Town Green North plus a depth-2 neighborhood, for the checked-in Godot mock mode. Not the full Crossing manifest."
+  },
+  "cells": [
+    {
+      "id": "1-377",
+      "roomId": 377,
+      "title": "The Crossing Amphitheater, The Back Lawn",
+      "position": {
+        "x": 157.75,
+        "y": 0,
+        "z": -121
+      },
+      "sourceGrid": {
+        "x": 230,
+        "y": -150,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::The Back Lawn",
+      "sourceDescriptionHash": "4941c1e4ab673537",
+      "tier": "special",
+      "tags": [
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "go archway",
+          "direction": "go",
+          "targetRoomId": 378,
+          "targetCellId": null,
+          "external": true
+        },
+        {
+          "move": "go gate",
+          "direction": "go",
+          "targetRoomId": 15,
+          "targetCellId": "1-15"
+        }
+      ]
+    },
+    {
+      "id": "1-40",
+      "roomId": 40,
+      "title": "The Crossing, Lunat Shade Road",
+      "position": {
+        "x": 142.75,
+        "y": 0,
+        "z": -133.5
+      },
+      "sourceGrid": {
+        "x": 170,
+        "y": -100,
+        "z": 0
+      },
+      "status": "missing-description",
+      "sourceDescriptionId": null,
+      "tier": "unresolved",
+      "tags": [
+        "unresolved"
+      ],
+      "spatialMode": "unresolved",
+      "palette": "neutral-unresolved",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 16,
+          "targetCellId": "1-16"
+        },
+        {
+          "move": "east",
+          "direction": "east",
+          "targetRoomId": 41,
+          "targetCellId": null,
+          "external": true
+        },
+        {
+          "move": "south",
+          "direction": "south",
+          "targetRoomId": 39,
+          "targetCellId": null,
+          "external": true
+        },
+        {
+          "move": "go general store",
+          "direction": "go",
+          "targetRoomId": 189,
+          "targetCellId": null,
+          "external": true
+        }
+      ]
+    },
+    {
+      "id": "1-23",
+      "roomId": 23,
+      "title": "The Crossing, Town Green Southwest",
+      "position": {
+        "x": 132.75,
+        "y": 0,
+        "z": -123.5
+      },
+      "sourceGrid": {
+        "x": 130,
+        "y": -140,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Town Green Southwest",
+      "sourceDescriptionHash": "a81dbac1f7408d93",
+      "tier": "special",
+      "tags": [
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 225,
+          "targetCellId": "1-225"
+        },
+        {
+          "move": "northeast",
+          "direction": "northeast",
+          "targetRoomId": 14,
+          "targetCellId": "1-14"
+        },
+        {
+          "move": "east",
+          "direction": "east",
+          "targetRoomId": 16,
+          "targetCellId": "1-16"
+        },
+        {
+          "move": "west",
+          "direction": "west",
+          "targetRoomId": 22,
+          "targetCellId": "1-22"
+        }
+      ]
+    },
+    {
+      "id": "1-225",
+      "roomId": 225,
+      "title": "The Crossing, Town Green Northwest",
+      "position": {
+        "x": 132.75,
+        "y": 0,
+        "z": -113.5
+      },
+      "sourceGrid": {
+        "x": 130,
+        "y": -180,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Town Green Northwest",
+      "sourceDescriptionHash": "4b6facaa5a85d146",
+      "tier": "special",
+      "tags": [
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "east",
+          "direction": "east",
+          "targetRoomId": 14,
+          "targetCellId": "1-14"
+        },
+        {
+          "move": "southeast",
+          "direction": "southeast",
+          "targetRoomId": 16,
+          "targetCellId": "1-16"
+        },
+        {
+          "move": "south",
+          "direction": "south",
+          "targetRoomId": 23,
+          "targetCellId": "1-23"
+        },
+        {
+          "move": "northwest",
+          "direction": "northwest",
+          "targetRoomId": 24,
+          "targetCellId": "1-24"
+        },
+        {
+          "move": "go armory",
+          "direction": "go",
+          "targetRoomId": 192,
+          "targetCellId": "1-192"
+        }
+      ]
+    },
+    {
+      "id": "1-15",
+      "roomId": 15,
+      "title": "The Crossing, Town Green Southeast",
+      "position": {
+        "x": 152.75,
+        "y": 0,
+        "z": -123.5
+      },
+      "sourceGrid": {
+        "x": 210,
+        "y": -140,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Town Green Southeast",
+      "sourceDescriptionHash": "352586dc0dc77d00",
+      "tier": "special",
+      "tags": [
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 17,
+          "targetCellId": "1-17"
+        },
+        {
+          "move": "west",
+          "direction": "west",
+          "targetRoomId": 16,
+          "targetCellId": "1-16"
+        },
+        {
+          "move": "northwest",
+          "direction": "northwest",
+          "targetRoomId": 14,
+          "targetCellId": "1-14"
+        },
+        {
+          "move": "go grass path",
+          "direction": "go",
+          "targetRoomId": 371,
+          "targetCellId": "1-371"
+        },
+        {
+          "move": "go amphitheater gate",
+          "direction": "go",
+          "targetRoomId": 377,
+          "targetCellId": "1-377"
+        }
+      ]
+    },
+    {
+      "id": "1-264",
+      "roomId": 264,
+      "title": "Crossing, Midton Circle",
+      "position": {
+        "x": 157.75,
+        "y": 0,
+        "z": -113.5
+      },
+      "sourceGrid": {
+        "x": 230,
+        "y": -180,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Midton Circle",
+      "sourceDescriptionHash": "17ca36598941a292",
+      "tier": "special",
+      "tags": [
+        "water",
+        "landmark"
+      ],
+      "spatialMode": "waterfront",
+      "palette": "river-blue-green",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "water-ribbon-5m",
+          "role": "landform"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 265,
+          "targetCellId": null,
+          "external": true
+        },
+        {
+          "move": "west",
+          "direction": "west",
+          "targetRoomId": 17,
+          "targetCellId": "1-17"
+        }
+      ]
+    },
+    {
+      "id": "1-17",
+      "roomId": 17,
+      "title": "The Crossing, Town Green Northeast",
+      "position": {
+        "x": 152.75,
+        "y": 0,
+        "z": -113.5
+      },
+      "sourceGrid": {
+        "x": 210,
+        "y": -180,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Town Green Northeast",
+      "sourceDescriptionHash": "bf4bf4c9cfbd91f7",
+      "tier": "special",
+      "tags": [
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "south",
+          "direction": "south",
+          "targetRoomId": 15,
+          "targetCellId": "1-15"
+        },
+        {
+          "move": "southwest",
+          "direction": "southwest",
+          "targetRoomId": 16,
+          "targetCellId": "1-16"
+        },
+        {
+          "move": "west",
+          "direction": "west",
+          "targetRoomId": 14,
+          "targetCellId": "1-14"
+        },
+        {
+          "move": "go cobblestone walkway",
+          "direction": "go",
+          "targetRoomId": 264,
+          "targetCellId": "1-264"
+        },
+        {
+          "move": "go dirt path",
+          "direction": "go",
+          "targetRoomId": 379,
+          "targetCellId": "1-379"
+        },
+        {
+          "move": "go shadowed gap",
+          "direction": "none",
+          "targetRoomId": 853,
+          "targetCellId": "1-853"
+        }
+      ]
+    },
+    {
+      "id": "1-13",
+      "roomId": 13,
+      "title": "The Crossing, Via Iltesh",
+      "position": {
+        "x": 142.75,
+        "y": 0,
+        "z": -103.5
+      },
+      "sourceGrid": {
+        "x": 170,
+        "y": -220,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Via Iltesh",
+      "sourceDescriptionHash": "27e2f01461140dc4",
+      "tier": "special",
+      "tags": [
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 12,
+          "targetCellId": "1-12"
+        },
+        {
+          "move": "south",
+          "direction": "south",
+          "targetRoomId": 14,
+          "targetCellId": "1-14"
+        }
+      ]
+    },
+    {
+      "id": "1-379",
+      "roomId": 379,
+      "title": "The Crossing, Mongers' Bazaar",
+      "position": {
+        "x": 160.25,
+        "y": 0,
+        "z": -101
+      },
+      "sourceGrid": {
+        "x": 240,
+        "y": -230,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Mongers' Bazaar",
+      "sourceDescriptionHash": "d67e61bfe6e92faa",
+      "tier": "special",
+      "tags": [
+        "market",
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        },
+        {
+          "kind": "market-canopy-kit",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 10,
+          "targetCellId": null,
+          "external": true
+        },
+        {
+          "move": "southeast",
+          "direction": "southeast",
+          "targetRoomId": 380,
+          "targetCellId": null,
+          "external": true
+        },
+        {
+          "move": "go collegium",
+          "direction": "go",
+          "targetRoomId": 381,
+          "targetCellId": null,
+          "external": true
+        },
+        {
+          "move": "go path",
+          "direction": "go",
+          "targetRoomId": 17,
+          "targetCellId": "1-17"
+        }
+      ]
+    },
+    {
+      "id": "1-12",
+      "roomId": 12,
+      "title": "The Crossing, Via Iltesh",
+      "position": {
+        "x": 142.75,
+        "y": 0,
+        "z": -93.5
+      },
+      "sourceGrid": {
+        "x": 170,
+        "y": -260,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Via Iltesh",
+      "sourceDescriptionHash": "27e2f01461140dc4",
+      "tier": "special",
+      "tags": [
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 11,
+          "targetCellId": null,
+          "external": true
+        },
+        {
+          "move": "south",
+          "direction": "south",
+          "targetRoomId": 13,
+          "targetCellId": "1-13"
+        }
+      ]
+    },
+    {
+      "id": "1-24",
+      "roomId": 24,
+      "title": "The Crossing, Puddle Path",
+      "position": {
+        "x": 122.75,
+        "y": 0,
+        "z": -103.5
+      },
+      "sourceGrid": {
+        "x": 90,
+        "y": -220,
+        "z": 0
+      },
+      "status": "missing-description",
+      "sourceDescriptionId": null,
+      "tier": "unresolved",
+      "tags": [
+        "unresolved"
+      ],
+      "spatialMode": "unresolved",
+      "palette": "neutral-unresolved",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        }
+      ],
+      "exits": [
+        {
+          "move": "southeast",
+          "direction": "southeast",
+          "targetRoomId": 225,
+          "targetCellId": "1-225"
+        },
+        {
+          "move": "go wooden gate",
+          "direction": "go",
+          "targetRoomId": 607,
+          "targetCellId": null,
+          "external": true
+        }
+      ]
+    },
+    {
+      "id": "1-16",
+      "roomId": 16,
+      "title": "The Crossing, Town Green South",
+      "position": {
+        "x": 142.75,
+        "y": 0,
+        "z": -123.5
+      },
+      "sourceGrid": {
+        "x": 170,
+        "y": -140,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Town Green South",
+      "sourceDescriptionHash": "a0e1b5cd1070402b",
+      "tier": "special",
+      "tags": [
+        "sacred",
+        "banking",
+        "interior",
+        "landmark"
+      ],
+      "spatialMode": "interior-cutaway",
+      "palette": "warm-interior",
+      "primitives": [
+        {
+          "kind": "interior-floor-5m",
+          "role": "base"
+        },
+        {
+          "kind": "cutaway-wall-kit",
+          "role": "shell"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        },
+        {
+          "kind": "sacred-threshold-kit",
+          "role": "landmark"
+        },
+        {
+          "kind": "civic-vault-threshold-kit",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 14,
+          "targetCellId": "1-14"
+        },
+        {
+          "move": "northeast",
+          "direction": "northeast",
+          "targetRoomId": 17,
+          "targetCellId": "1-17"
+        },
+        {
+          "move": "east",
+          "direction": "east",
+          "targetRoomId": 15,
+          "targetCellId": "1-15"
+        },
+        {
+          "move": "south",
+          "direction": "south",
+          "targetRoomId": 40,
+          "targetCellId": "1-40"
+        },
+        {
+          "move": "west",
+          "direction": "west",
+          "targetRoomId": 23,
+          "targetCellId": "1-23"
+        },
+        {
+          "move": "northwest",
+          "direction": "northwest",
+          "targetRoomId": 225,
+          "targetCellId": "1-225"
+        }
+      ]
+    },
+    {
+      "id": "1-22",
+      "roomId": 22,
+      "title": "The Crossing, Manciple Cobble",
+      "position": {
+        "x": 122.75,
+        "y": 0,
+        "z": -123.5
+      },
+      "sourceGrid": {
+        "x": 90,
+        "y": -140,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Manciple Cobble",
+      "sourceDescriptionHash": "ad07acd79b6a9679",
+      "tier": "special",
+      "tags": [
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "east",
+          "direction": "east",
+          "targetRoomId": 23,
+          "targetCellId": "1-23"
+        },
+        {
+          "move": "west",
+          "direction": "west",
+          "targetRoomId": 20,
+          "targetCellId": null,
+          "external": true
+        }
+      ]
+    },
+    {
+      "id": "1-467",
+      "roomId": 467,
+      "title": "The Crossing, Town Green Pond",
+      "position": {
+        "x": 140.25,
+        "y": 0,
+        "z": -118.5
+      },
+      "sourceGrid": {
+        "x": 160,
+        "y": -160,
+        "z": 0
+      },
+      "status": "missing-description",
+      "sourceDescriptionId": null,
+      "tier": "unresolved",
+      "tags": [
+        "unresolved"
+      ],
+      "spatialMode": "unresolved",
+      "palette": "neutral-unresolved",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        }
+      ],
+      "exits": [
+        {
+          "move": "out",
+          "direction": "out",
+          "targetRoomId": 14,
+          "targetCellId": "1-14"
+        }
+      ]
+    },
+    {
+      "id": "1-14",
+      "roomId": 14,
+      "title": "The Crossing, Town Green North",
+      "position": {
+        "x": 142.75,
+        "y": 0,
+        "z": -113.5
+      },
+      "sourceGrid": {
+        "x": 170,
+        "y": -180,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Town Green North",
+      "sourceDescriptionHash": "f73bd5e2ac6e412c",
+      "tier": "special",
+      "tags": [
+        "water",
+        "landmark"
+      ],
+      "spatialMode": "waterfront",
+      "palette": "river-blue-green",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "water-ribbon-5m",
+          "role": "landform"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 13,
+          "targetCellId": "1-13"
+        },
+        {
+          "move": "east",
+          "direction": "east",
+          "targetRoomId": 17,
+          "targetCellId": "1-17"
+        },
+        {
+          "move": "southeast",
+          "direction": "southeast",
+          "targetRoomId": 15,
+          "targetCellId": "1-15"
+        },
+        {
+          "move": "south",
+          "direction": "south",
+          "targetRoomId": 16,
+          "targetCellId": "1-16"
+        },
+        {
+          "move": "southwest",
+          "direction": "southwest",
+          "targetRoomId": 23,
+          "targetCellId": "1-23"
+        },
+        {
+          "move": "west",
+          "direction": "west",
+          "targetRoomId": 225,
+          "targetCellId": "1-225"
+        },
+        {
+          "move": "go weaponsmith's",
+          "direction": "go",
+          "targetRoomId": 191,
+          "targetCellId": "1-191"
+        },
+        {
+          "move": "go green pond",
+          "direction": "go",
+          "targetRoomId": 467,
+          "targetCellId": "1-467"
+        }
+      ]
+    },
+    {
+      "id": "1-192",
+      "roomId": 192,
+      "title": "Tembeg's Armory, Salesroom",
+      "position": {
+        "x": 132.75,
+        "y": 0,
+        "z": -108.5
+      },
+      "sourceGrid": {
+        "x": 130,
+        "y": -200,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Salesroom",
+      "sourceDescriptionHash": "686ebb40a5c30616",
+      "tier": "special",
+      "tags": [
+        "interior",
+        "landmark"
+      ],
+      "spatialMode": "interior-cutaway",
+      "palette": "warm-interior",
+      "primitives": [
+        {
+          "kind": "interior-floor-5m",
+          "role": "base"
+        },
+        {
+          "kind": "cutaway-wall-kit",
+          "role": "shell"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "out",
+          "direction": "out",
+          "targetRoomId": 225,
+          "targetCellId": "1-225"
+        },
+        {
+          "move": "go doorway",
+          "direction": "go",
+          "targetRoomId": 193,
+          "targetCellId": null,
+          "external": true
+        }
+      ]
+    },
+    {
+      "id": "1-191",
+      "roomId": 191,
+      "title": "Milgrym's Weapons, Showroom",
+      "position": {
+        "x": 137.75,
+        "y": 0,
+        "z": -108.5
+      },
+      "sourceGrid": {
+        "x": 150,
+        "y": -200,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Showroom",
+      "sourceDescriptionHash": "9d045d43a0bafff6",
+      "tier": "feature",
+      "tags": [
+        "interior"
+      ],
+      "spatialMode": "interior-cutaway",
+      "palette": "warm-interior",
+      "primitives": [
+        {
+          "kind": "interior-floor-5m",
+          "role": "base"
+        },
+        {
+          "kind": "cutaway-wall-kit",
+          "role": "shell"
+        }
+      ],
+      "exits": [
+        {
+          "move": "out",
+          "direction": "out",
+          "targetRoomId": 14,
+          "targetCellId": "1-14"
+        }
+      ]
+    },
+    {
+      "id": "1-853",
+      "roomId": 853,
+      "title": "Underground Passageway",
+      "position": {
+        "x": 157.75,
+        "y": 5,
+        "z": -108.5
+      },
+      "sourceGrid": {
+        "x": 230,
+        "y": -200,
+        "z": 1
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Underground Passageway",
+      "sourceDescriptionHash": "48afe6c14d28506f",
+      "tier": "ordinary",
+      "tags": [
+        "ordinary"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        }
+      ],
+      "exits": []
+    },
+    {
+      "id": "1-371",
+      "roomId": 371,
+      "title": "Behind the Amphitheater, Supply Stand",
+      "position": {
+        "x": 152.75,
+        "y": 0,
+        "z": -128.5
+      },
+      "sourceGrid": {
+        "x": 210,
+        "y": -120,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Supply Stand",
+      "sourceDescriptionHash": "40ba1666ebd6b149",
+      "tier": "special",
+      "tags": [
+        "landmark"
+      ],
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        }
+      ],
+      "exits": [
+        {
+          "move": "east",
+          "direction": "east",
+          "targetRoomId": 372,
+          "targetCellId": null,
+          "external": true
+        },
+        {
+          "move": "go grass path",
+          "direction": "go",
+          "targetRoomId": 15,
+          "targetCellId": "1-15"
+        }
+      ]
+    }
+  ]
+}
