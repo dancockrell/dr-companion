@@ -4,20 +4,17 @@ $nodeExe = 'C:\Program Files\nodejs\node.exe'
 # Local generation (ComfyUI, any local checkpoint -- FLUX/schnell, DreamShaper,
 # whatever else) is retired from this watchdog on purpose, not an oversight:
 # generation goes through Magnific exclusively now. Start-Comfy and the old
-# Start-Daemon (which drove tools/art-daemon.mjs, then briefly its
-# quartermaster port) are gone. What this watchdog supervises instead is
-# tools/frame-factory-requests.js -- the one piece of the Magnific pipeline
-# that involves no generation at all, so it is safe to run unattended: it
-# only reads open GitHub issues for a magnific-frame-factory block and
-# compiles it into a job file under var/frame-factory-queue. Everything past
-# that -- a signed-in Magnific browser actually generating something,
-# harvesting frames, curating -- is still an agent/human driving
-# frame-factory-job.js and frame-factory-harvest.js by hand, per this
-# repo's own README: there is no token and no browser-automation agent for
-# that step yet, and claiming otherwise is exactly the "job file exists, so
-# it must have worked" gap this whole pipeline exists to close.
-$requestsScript = 'C:\Users\Admin\dev\quartermaster\tools\frame-factory-requests.js'
-$requestsCwd = 'C:\Users\Admin\dev\quartermaster'
+# Start-Daemon (which drove tools/art-daemon.mjs) are gone.
+#
+# What this watchdog polled next -- tools/frame-factory-requests.js -- lived
+# in the quartermaster repo, which was deleted entirely (both locally and on
+# GitHub) on 2 Sep 2026. Nothing here currently drives any part of the
+# Magnific pipeline unattended as a result: this script logs one line and
+# exits rather than looping against a path that no longer exists. Whatever
+# replaces this (a re-hosted requests watcher, a different tool) needs a new
+# $requestsScript/$requestsCwd pointed at wherever it actually lives.
+Add-Content "$art\watchdog.log" "$(Get-Date -Format o) watchdog.ps1: no automated art-pipeline step configured (quartermaster, which hosted frame-factory-requests.js, was deleted 2 Sep 2026) -- exiting"
+exit 0
 
 
 # Currently unused by this file -- frame-factory-requests.js runs to
@@ -98,20 +95,8 @@ function Start-Hidden($FilePath, [string[]]$Arguments, $WorkingDirectory, $StdOu
   return $p
 }
 
-function Run-RequestsWatcher {
-  # Not started-and-supervised like the old Comfy/daemon processes: this
-  # exits on its own every run (it is a poll, not a loop), so it is simply
-  # invoked on an interval rather than watched for staying alive.
-  & $nodeExe $requestsScript *>> "$art\frame-factory-requests.log"
-}
-
-Add-Content "$art\watchdog.log" "$(Get-Date -Format o) watchdog starting (frame-factory-requests polling only -- no local generation)"
-
-while ($true) {
-  Add-Content "$art\watchdog.log" "$(Get-Date -Format o) polling frame-factory-requests"
-  Push-Location $requestsCwd
-  try { Run-RequestsWatcher }
-  catch { Add-Content "$art\watchdog.log" "$(Get-Date -Format o) frame-factory-requests failed: $_" }
-  finally { Pop-Location }
-  Start-Sleep -Seconds 300
-}
+# No Run-RequestsWatcher / polling loop here anymore -- see the exit 0 near
+# the top of this file for why. Start-Hidden above is the reusable part;
+# whatever gets scheduled next (a re-hosted requests watcher, a browser-
+# automation agent for a signed-in Magnific session) calls it the same way
+# Start-Comfy/Start-Daemon used to.
