@@ -9,20 +9,20 @@
   },
   "basketCuration": {
     "deep-forest": {"exactSubject":"generic old-growth forest travel","canonicalTraits":["dense mature trees","narrow traversable floor","cool filtered daylight"],"habitat":"forested wilderness without a named landmark","currentImage":"/room-scenes/master-deep-forest.webp","approvedPrimary":"/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg","approvedVariants":["/grok-art/room-scenes/ancient-forest-36342832.jpg"],"rejects":["all non-Grok forest renders","night scenes without night evidence"],"regenerationNeeded":false},
-    "desert": {"exactSubject":"generic arid overland travel","canonicalTraits":["dry exposed route","sparse scrub and stone","long desert horizon"],"habitat":"unnamed dunes, sands and desert roads","currentImage":"/room-scenes/master-desert-trail.webp","approvedPrimary":"/grok-art/room-scenes/desert-canyon-0322415e.jpg","approvedVariants":[],"rejects":["all non-Grok desert renders","cartoon-orange near-duplicates"],"regenerationNeeded":false},
+    "desert": {"exactSubject":"generic arid overland travel","canonicalTraits":["dry exposed route","sparse scrub and stone","long desert horizon"],"habitat":"unnamed dunes, sands and desert roads","currentImage":null,"approvedPrimary":null,"approvedVariants":[],"rejects":["all non-Grok desert renders","cartoon-orange near-duplicates","desert-canyon-0322415e.jpg: reconstruction seam and blank lower quarter"],"regenerationNeeded":true},
     "swamp": {"exactSubject":"generic wild marsh travel","canonicalTraits":["shallow dark water","reeds and wet trees","no settlement architecture"],"habitat":"unnamed swamps, fens and bogs","currentImage":"/room-scenes/master-wild-swamp.webp","approvedPrimary":"/grok-art/room-scenes/reed-marsh-0fb4267f.jpg","approvedVariants":[],"rejects":["all non-Grok swamp renders","settlement-dominated wetlands"],"regenerationNeeded":false},
-    "mountain-pass": {"exactSubject":"generic high mountain traversal","canonicalTraits":["exposed rocky path","steep elevation","distant peaks"],"habitat":"unnamed ridges, passes and ascents","currentImage":"/room-scenes/master-mountain-pass.webp","approvedPrimary":"/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg","approvedVariants":["/grok-art/room-scenes/mountain-meadow-84245eb6.jpg","/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],"rejects":["all non-Grok mountain renders","town streets without settlement evidence"],"regenerationNeeded":false},
+    "mountain-pass": {"exactSubject":"generic high mountain traversal","canonicalTraits":["exposed rocky path","steep elevation","distant peaks"],"habitat":"unnamed ridges, passes and ascents","currentImage":null,"approvedPrimary":"/grok-art/room-scenes/mountain-meadow-84245eb6.jpg","approvedVariants":["/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],"rejects":["all non-Grok mountain renders","town streets without settlement evidence","mountain-bridge-05a1ad18.jpg: reconstruction seam and blank lower band"],"regenerationNeeded":true},
     "riverside": {"exactSubject":"generic natural riverbank travel","canonicalTraits":["visible flowing channel","natural bank","open route along water"],"habitat":"unnamed riverbanks and shore routes","currentImage":"/room-scenes/master-riverside.webp","approvedPrimary":"/grok-art/room-scenes/autumn-mountain-stream-44d208fc.jpg","approvedVariants":["/grok-art/room-scenes/reed-marsh-0fb4267f.jpg"],"rejects":["all non-Grok riverside renders","underwater and landmark-specific scenes"],"regenerationNeeded":false},
     "grassland": {"exactSubject":"generic open grassland travel","canonicalTraits":["broad grass cover","walkable track","open horizon"],"habitat":"unnamed fields, meadows and prairies","currentImage":"/room-scenes/master-open-grassland.webp","approvedPrimary":"/grok-art/room-scenes/mountain-meadow-84245eb6.jpg","approvedVariants":[],"rejects":["all non-Grok grassland renders","storm scenes without weather evidence"],"regenerationNeeded":false}
   },
   "generic": {
-    "forest-path":["/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg","/grok-art/room-scenes/forest-clearing-06aeb546.jpg","/grok-art/room-scenes/young-woodland-2d872f5f.jpg"],
+    "forest-path":["/grok-art/room-scenes/young-woodland-2d872f5f.jpg","/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg","/grok-art/room-scenes/ancient-forest-36342832.jpg"],
     "deep-forest":["/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg","/grok-art/room-scenes/ancient-forest-36342832.jpg"],
     "mine-tunnel":["/grok-art/room-scenes/crystal-mine-3638b938.jpg"],
-    "sewer":["/grok-art/room-scenes/sea-cave-038edbd8.jpg","/grok-art/room-scenes/catacomb-vault-86126f69.jpg"],
-    "desert":["/grok-art/room-scenes/desert-canyon-0322415e.jpg"],
+    "sewer":["/grok-art/room-scenes/catacomb-vault-86126f69.jpg"],
+    "desert":[],
     "swamp":["/grok-art/room-scenes/reed-marsh-0fb4267f.jpg"],
-    "mountain-pass":["/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg","/grok-art/room-scenes/mountain-meadow-84245eb6.jpg","/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],
+    "mountain-pass":["/grok-art/room-scenes/mountain-meadow-84245eb6.jpg","/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],
     "garden":["/grok-art/room-scenes/apple-orchard-23efadaf.jpg","/grok-art/room-scenes/glasshouse-garden-4d19a989.jpg"],
     "riverside":["/grok-art/room-scenes/autumn-mountain-stream-44d208fc.jpg","/grok-art/room-scenes/reed-marsh-0fb4267f.jpg"],
     "grassland":["/grok-art/room-scenes/mountain-meadow-84245eb6.jpg"]
@@ -81,8 +81,8 @@
     "Ratha":["/grok-art/room-scenes/town-square-2650911f.jpg"],
     "Shard":["/grok-art/room-scenes/town-square-2650911f.jpg","/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],
     "Riverhaven":["/grok-art/room-scenes/riverside-timber-town-5707fe76.jpg","/grok-art/room-scenes/working-river-docks-174a62c2.jpg"],
-    "Muspar'i":["/grok-art/room-scenes/town-square-2650911f.jpg","/grok-art/room-scenes/desert-canyon-0322415e.jpg"],
-    "Hibarnhvidar":["/grok-art/room-scenes/town-square-2650911f.jpg","/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg"],
-    "Leth Deriel":["/grok-art/room-scenes/tree-city-04b6c4bd.jpg","/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg"]
+    "Muspar'i":["/grok-art/room-scenes/town-square-2650911f.jpg"],
+    "Hibarnhvidar":["/grok-art/room-scenes/town-square-2650911f.jpg","/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],
+    "Leth Deriel":["/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg","/grok-art/room-scenes/ancient-forest-36342832.jpg"]
   }
 }
