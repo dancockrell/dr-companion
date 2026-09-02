@@ -267,6 +267,20 @@ class Layer {
   }
 
   /**
+   * True pause/resume of the underlying element - distinct from setGain(0),
+   * which only silences the output while the track keeps advancing (and, for
+   * a non-looping source, can run to its end and fire `ended` while
+   * "paused"). See pauseMusic()/resumeMusic() below for why both exist.
+   */
+  pause() {
+    this.el?.pause()
+  }
+
+  resume() {
+    if (this.el) void this.el.play().catch(() => {})
+  }
+
+  /**
    * Swap to a new source, crossfading out the old and in the new. Same src is
    * a no-op - callers that want the same file to restart (radio advancing to
    * the next track happens to sometimes land on the same file in a small
@@ -948,14 +962,34 @@ function fadeMusicVolume(target: number, ms = FADE_MS) {
  * back to" contract as SoundControls' own per-channel mute buttons. Kept at
  * the module level rather than in a component so it works regardless of
  * which UI, if any, is mounted when the OS sends the action.
+ *
+ * Fades the gain to 0 for the same smooth transition a track-to-track
+ * crossfade gets, then actually pauses the element once the fade finishes -
+ * fading alone (the original implementation) only silenced the output while
+ * the track kept advancing underneath, so "paused" and playing looked
+ * identical from outside the tab and a non-looping track could run to its
+ * end and fire `ended` (advancing the playlist) while the UI still said
+ * Paused. `pauseTimer` is cancelled on a resume that lands mid-fade, so a
+ * quick pause/resume tap doesn't pause the element a moment after resuming it.
  */
 let preMuteMusicGain: number | null = null
+let pauseTimer: ReturnType<typeof setTimeout> | null = null
 export function pauseMusic() {
   if (musicGain <= 0) return
   preMuteMusicGain = musicGain
   fadeMusicVolume(0)
+  if (pauseTimer) clearTimeout(pauseTimer)
+  pauseTimer = setTimeout(() => {
+    pauseTimer = null
+    music.pause()
+  }, FADE_MS)
 }
 export function resumeMusic() {
+  if (pauseTimer) {
+    clearTimeout(pauseTimer)
+    pauseTimer = null
+  }
+  music.resume()
   fadeMusicVolume(preMuteMusicGain ?? 0.45)
   preMuteMusicGain = null
 }
