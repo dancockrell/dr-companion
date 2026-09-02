@@ -579,8 +579,12 @@ function loadStore(): PinStore {
   return typeof parsed === 'object' && parsed !== null ? (parsed as PinStore) : {}
 }
 
+export const MAP_PINS_STORAGE_KEY = STORAGE_KEY
+export const MAP_PINS_CHANGED_EVENT = 'drc:map-pins-changed'
+
 function saveStore(store: PinStore): void {
   writeJSON(STORAGE_KEY, store)
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(MAP_PINS_CHANGED_EVENT))
 }
 
 /** The whole store, every character at once - what pinsFile.ts exports to

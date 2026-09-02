@@ -20,6 +20,8 @@ import type { StreamCharacterState } from '../types/stream'
 
 export interface GameLine {
   seq: number
+  /** Wall-clock time captured by native when this wire chunk arrived. */
+  receivedAtMs: number
   text: string
   /**
    * The channel the game put this in - 'thoughts', 'death', 'talk' - or empty
@@ -145,7 +147,24 @@ function notify() {
  * per newline with an empty stream, which is exactly right and means there is
  * no second code path to keep working.
  */
-const parser = newStreamState()
+let parser = newStreamState()
+
+/**
+ * Drop everything the tag parser has learned so far - vitals, indicators,
+ * compass, room occupants, room title.
+ *
+ * `parser` used to live for the module's whole lifetime, so a detach and a
+ * fresh attach to a different character kept the old one's last-known health,
+ * mana, and posture flags (bleeding/poisoned/etc.) on screen. `vitals.ts` and
+ * `situation.ts` both prefer the stream's answer over the bridge's whenever
+ * the stream has one at all, so the new character's UI would keep reporting
+ * the previous character's state, with full confidence, until the game
+ * happened to resend every one of those tags on its own. Call this anywhere
+ * the underlying connection is known to no longer describe the same session.
+ */
+function resetStream() {
+  parser = newStreamState()
+}
 
 /** Sequence numbers are assigned here now, because one chunk can be many lines. */
 let nextSeq = 0
@@ -181,7 +200,7 @@ function wire() {
 }
 
 /** One chunk as Rust emits it: bytes up to and including a newline. */
-type GameChunk = { seq: number; text: string }
+type GameChunk = { seq: number; receivedAtMs: number; text: string }
 
 /**
  * Whether the backlog has been merged, and what arrived while it had not.
@@ -218,7 +237,12 @@ async function backfill(): Promise<void> {
     const r = reply as { lines?: unknown; dropped?: unknown } | undefined
     if (Array.isArray(r?.lines)) {
       for (const c of r.lines as GameChunk[]) {
-        if (typeof c?.seq === 'number' && typeof c?.text === 'string') applyChunk(c)
+        if (
+          typeof c?.seq === 'number' &&
+          typeof c?.receivedAtMs === 'number' &&
+          Number.isFinite(c.receivedAtMs) &&
+          typeof c?.text === 'string'
+        ) applyChunk(c)
       }
     }
     // Counted, not hidden. A pane that quietly begins mid-session looks
@@ -251,6 +275,7 @@ function applyChunk(chunk: GameChunk) {
     for (const parsed of feed(parser, chunk.text)) {
       buffer.push({
         seq: ++nextSeq,
+        receivedAtMs: chunk.receivedAtMs,
         text: parsed.text,
         stream: parsed.stream,
         bold: parsed.bold,
@@ -413,6 +438,7 @@ export async function attachGame(port: number, host?: string): Promise<LinkState
   backfilled = false
   queued = []
   lastChunkSeq = 0
+  resetStream()
 
   try {
     state = adopt(asLinkState(await invokeTauri('game_attach', { host: host ?? null, port })) ?? state)
@@ -452,6 +478,7 @@ export async function attachGame(port: number, host?: string): Promise<LinkState
 
 export async function detachGame(): Promise<LinkState> {
   state = asLinkState(await invokeTauri('game_detach')) ?? state
+  resetStream()
   notify()
   return state
 }

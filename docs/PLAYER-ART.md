@@ -4,7 +4,22 @@ DR Companion draws a picture for everyone in your room. A character's
 published race and sex select the bundled default portrait; their own
 submitted character art replaces that default.
 
-## How it works
+## Private, local portraits
+
+Click your portrait in the desktop app and choose **Choose your own image**
+to select, drop, or paste a PNG, JPEG, or WebP. Crop and position it with the
+preview controls, then save it. The app converts the crop to a bounded WebP
+and stores it only in this installation's application-data folder, keyed by
+both character name and game instance. It remains available offline and
+survives restarts. You can replace, re-crop, remove, or reset it from the same
+chooser.
+
+This action never uploads, commits, or publishes the source or processed
+image. If its local file is deleted or damaged, the app falls back to the
+bundled automatic portrait. Sharing artwork with other players is the
+separate, reviewed repository process below.
+
+## Publishing community artwork
 
 1. Fork this repo.
 2. Add a `.webp` image at `public/player-art/<your-character-name>.webp`,
@@ -32,21 +47,6 @@ a letter tile and never guesses demographics from a character name. A future
 in-client publisher should open a reviewed GitHub contribution for these files
 only after the player explicitly opts in; selecting local artwork by itself
 must not silently make it public.
-
-If a character publishes race and sex but no custom image, add that opt-in
-metadata to `public/player-art/profiles.json`:
-
-```json
-{
-  "Dan the Bold": { "race": "Gor'Tog", "sex": "male" }
-}
-```
-
-The client resolves another player's image in this order: their exact custom
-file, their published race/sex default, then an initial. It never guesses
-demographics from a character name. A future in-client publisher should open
-a reviewed GitHub contribution for these files only after the player explicitly
-opts in; selecting local artwork by itself must not silently make it public.
 
 ## What to submit
 

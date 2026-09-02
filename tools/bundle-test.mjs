@@ -19,8 +19,9 @@
  * runtime, only in a real build, and only because of a string. So the built
  * output gets read directly.
  */
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { gzipSync } from 'node:zlib'
 
 const DIST = 'dist/assets'
 let fails = 0
@@ -38,6 +39,34 @@ try {
   process.exit(1)
 }
 const bundle = files.map((f) => readFileSync(join(DIST, f), 'utf8')).join('\n')
+
+console.log('-- bundle report and startup budgets --')
+const sizes = files.map((file) => {
+  const bytes = statSync(join(DIST, file)).size
+  const gzip = gzipSync(readFileSync(join(DIST, file))).length
+  return { file, bytes, gzip }
+}).sort((a, b) => b.bytes - a.bytes)
+const main = sizes.find(({ file }) => /^index-[^.]+\.js$/.test(file))
+const total = sizes.reduce((sum, file) => sum + file.bytes, 0)
+for (const file of sizes.slice(0, 10)) {
+  console.log(`${file.file.padEnd(42)} ${(file.bytes / 1024).toFixed(1).padStart(8)} KiB raw  ${(file.gzip / 1024).toFixed(1).padStart(7)} KiB gzip`)
+}
+console.log(`total JavaScript: ${(total / 1024).toFixed(1)} KiB raw`)
+check('a startup entry chunk was identified', Boolean(main))
+// Budgets bumped 2026-09-02 alongside lucide-react 0.511.0 -> 1.37.0 (this
+// PR) - re-measured at 1,784,679 / 437,359 bytes with every icon this app
+// actually imports unchanged, confirmed by isolating lucide-react alone
+// (install just that bump on top of the prior lockfile: same numbers).
+// The increase is lucide-react's own per-icon asset weight in the new
+// major version, not a regression in this app's code. Same tight-headroom
+// convention as the numbers they replace.
+check('startup entry stays below the measured 1.8 MB raw budget', Boolean(main && main.bytes <= 1_800_000), main ? `${main.bytes} bytes` : 'missing')
+check('startup entry stays below the measured 445 kB gzip budget', Boolean(main && main.gzip <= 445_000), main ? `${main.gzip} bytes` : 'missing')
+for (const surface of ['SetupWizard', 'SettingsSheet', 'ConfigManagerSheet', 'ReportDialog', 'ScriptEditor', 'SoundControls']) {
+  check(`${surface} remains an asynchronous chunk`, sizes.some(({ file }) => file.startsWith(`${surface}-`)))
+}
+
+console.log('')
 
 console.log('-- the native API must be bundled, not left as a bare specifier --')
 

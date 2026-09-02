@@ -1,0 +1,69 @@
+name: Scene art validation
+
+on:
+  pull_request:
+    paths:
+      - 'data/art/**'
+      - 'public/room-scenes/**'
+      - 'src/data/roomScenePatterns.ts'
+      - 'tools/art-*.mjs'
+      - 'tools/build-room-scene-patterns.mjs'
+      - 'tools/room-scene-patterns-test.mjs'
+      - 'tools/scene-semantics.mjs'
+      - '.github/workflows/scene-art.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'data/art/**'
+      - 'public/room-scenes/**'
+      - 'src/data/roomScenePatterns.ts'
+      - 'tools/art-*.mjs'
+      - 'tools/build-room-scene-patterns.mjs'
+      - 'tools/room-scene-patterns-test.mjs'
+      - 'tools/scene-semantics.mjs'
+      - '.github/workflows/scene-art.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Pull requests normally check out a detached merge commit. Use the
+          # actual same-repo head branch so generated runtime data can be
+          # synchronized once, then verified in this same run.
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Regenerate scene assignments
+        run: npm run art:scene-patterns
+      - name: Test scene semantics and basket integrity
+        run: npm run test:room-scene-patterns
+      - name: Capture generated scene data
+        uses: actions/upload-artifact@v7
+        with:
+          name: generated-scene-data
+          path: |
+            src/data/roomScenePatterns.ts
+            data/art/scene-basket-coverage.json
+            data/art/out/scene-basket-audit.json
+      - name: Synchronize generated runtime data on same-repo PRs
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        run: |
+          if git diff --quiet -- src/data/roomScenePatterns.ts data/art/scene-basket-coverage.json; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/roomScenePatterns.ts data/art/scene-basket-coverage.json
+          git commit -m "chore: synchronize generated scene data"
+          git push origin HEAD:${{ github.head_ref }}
+      - name: Verify committed runtime map and coverage summary are current
+        run: git diff --exit-code -- src/data/roomScenePatterns.ts data/art/scene-basket-coverage.json

@@ -20,8 +20,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, CornerDownLeft } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
-import { pythonStatus, type TaskInfo } from '../../lib/pythonTasks'
-import { nodeStatus } from '../../lib/nodeTasks'
+import type { TaskInfo } from '../../lib/pythonTasks'
+import { refreshTaskCatalogs, useTaskCatalogs } from '../../lib/taskCatalogStatus'
 import {
   requestStopAll,
   requestPauseAll,
@@ -29,6 +29,7 @@ import {
   requestStartFlow,
 } from '../../lib/flowStop'
 import { KEYBINDING_HELP } from '../../lib/keybindings'
+import { useModalDialog } from '../../lib/useModalDialog'
 import {
   musicVolume,
   pauseMusic,
@@ -257,29 +258,21 @@ const GROUP_ORDER: Command['group'][] = ['Safety', 'Tasks', 'Scripts', 'Sound', 
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
+  const dialogRef = useModalDialog(() => setOpen(false), open)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  const [tasks, setTasks] = useState<MergedTask[]>([])
-
-  // Re-read every time the palette opens rather than once at mount. A task
-  // saved in the editor a minute ago must be findable now, and a list
-  // captured at startup would never contain it.
-  useEffect(() => {
-    if (!open) return
-    void Promise.all([pythonStatus(), nodeStatus()]).then(([py, node]) =>
-      setTasks([
-        ...py.tasks.map((t) => ({ ...t, lang: 'python' as const })),
+  const catalogs = useTaskCatalogs()
+  const tasks = useMemo<MergedTask[]>(() => [
+        ...(catalogs.python.value?.tasks ?? []).map((t) => ({ ...t, lang: 'python' as const })),
         // Node/TypeScript tasks carry no `category` of their own - see
         // TaskFlowPanel.tsx's TS_CATEGORY for the same gap and the same
         // fixed-bucket fix. Unused by this palette's own rendering (the
         // Tasks loop below never reads `task.category`), but `MergedTask`
         // requires the field since it's `TaskInfo & { lang }`.
-        ...node.tasks.map((t) => ({ ...t, lang: 'typescript' as const, category: 'TypeScript tasks' })),
-      ])
-    )
-  }, [open])
+        ...(catalogs.node.value?.tasks ?? []).map((t) => ({ ...t, lang: 'typescript' as const, category: 'TypeScript tasks' })),
+      ], [catalogs.node.value, catalogs.python.value])
 
   const scriptCatalog = useAppStore((s) => s.scriptCatalog)
   const scriptStates = useAppStore((s) => s.scriptStates)
@@ -297,7 +290,6 @@ export function CommandPalette() {
         setOpen((v) => !v)
         return
       }
-      if (e.key === 'Escape') setOpen(false)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -368,9 +360,15 @@ export function CommandPalette() {
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[12vh]"
+      data-gameplay-shortcuts="suspend"
       onClick={() => setOpen(false)}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+        tabIndex={-1}
         className="flex w-full max-w-lg flex-col overflow-hidden rounded-xl border border-border bg-surface-raised shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -402,6 +400,13 @@ export function CommandPalette() {
             esc
           </kbd>
         </div>
+
+        {(catalogs.python.error || catalogs.node.error) && (
+          <div role="alert" className="flex items-center justify-between gap-2 border-b border-warn/40 bg-warn/10 px-3 py-1.5 text-xs text-warn">
+            <span>Some task catalogs failed; healthy commands remain available.</span>
+            <button type="button" className="underline" onClick={() => void refreshTaskCatalogs()}>Retry</button>
+          </div>
+        )}
 
         <div className="max-h-96 overflow-y-auto py-1.5">
           {results.length === 0 ? (

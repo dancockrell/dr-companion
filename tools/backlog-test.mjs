@@ -49,6 +49,7 @@
  * Run: node --experimental-test-module-mocks tools/backlog-test.mjs
  */
 import { mock } from 'node:test'
+import { readFileSync } from 'node:fs'
 
 let checks = 0
 let failures = 0
@@ -98,6 +99,9 @@ const stub = {
       if (backlogThrows) throw new Error('backend unreachable')
       return backlogReply
     }
+    if (cmd === 'game_attach' || cmd === 'game_detach' || cmd === 'game_status') {
+      return { connected: cmd === 'game_attach', host: '', port: 0, lines: 0, note: '' }
+    }
     return undefined
   },
   setAlwaysOnTop: async () => {},
@@ -126,7 +130,7 @@ async function freshLink() {
 }
 
 const NL = String.fromCharCode(10)
-const chunk = (seq, text) => ({ seq, text: text + NL })
+const chunk = (seq, text, receivedAtMs = 1_700_000_000_000 + seq) => ({ seq, receivedAtMs, text: text + NL })
 const settle = () => new Promise((r) => setTimeout(r, 30))
 const texts = (L) => L.gameLines().map((l) => l.text)
 
@@ -164,6 +168,23 @@ console.log('backlog backfill')
   await settle()
   eq(texts(L).length, 2, 'chunks emitted before subscribing are recovered')
   ok(texts(L).includes('a rusty gate.'), 'the recovered text is the real text')
+  eq(L.gameLines()[0].receivedAtMs, 1_700_000_000_001, 'the first recovered line keeps its native receive time')
+  eq(L.gameLines()[1].receivedAtMs, 1_700_000_000_002, 'distinct backfill times remain distinct')
+}
+
+// One native chunk can produce several display lines and stream tags can
+// change classification inside it. Every derived line keeps the one honest
+// receive time; seq remains their identity and order.
+{
+  const at = 1_700_123_456_789
+  backlogReply = { lines: [chunk(1, "<pushStream id='thoughts'/>First thought.\nSecond thought.<popStream/>", at)], dropped: 0 }
+  const L = await freshLink()
+  L.subscribeGame(() => {})
+  await settle()
+  const thoughts = L.gameLines().filter((line) => line.stream === 'thoughts')
+  eq(thoughts.length, 2, 'timestamp capture survives parser channel classification')
+  ok(thoughts.every((line) => line.receivedAtMs === at), 'display lines inherit their native chunk receive time')
+  ok(thoughts[0].seq < thoughts[1].seq, 'sequence remains the display ordering authority')
 }
 
 // ------------------------------------------------------------ no double-apply
@@ -199,6 +220,34 @@ console.log('backlog backfill')
   eq(L.gameDropped(), 87, 'chunks Rust could not retain are counted, not hidden')
 }
 
+// ------------------------------------------- full long-session recovery depth
+// Substantially beyond the old 2,000-chunk native cap. A fresh module is the
+// frontend-reload boundary: nothing from an earlier JS buffer can help it.
+{
+  const count = 12_000
+  backlogReply = {
+    lines: Array.from({ length: count }, (_, i) => chunk(i + 1, `A realistic room line ${i + 1}: the copper lantern throws a long shadow across the cobblestones.`)),
+    dropped: 0,
+  }
+  const payloadBytes = Buffer.byteLength(JSON.stringify(backlogReply))
+  const L = await freshLink()
+  L.subscribeGame(() => {})
+  await settle()
+  eq(texts(L).length, count, 'a fresh frontend recovers substantially more than the old 2,000-chunk cap')
+  eq(L.gameDropped(), 0, 'full retained recovery does not invent dropped history')
+  ok(payloadBytes < 4 * 1024 * 1024, `12,000 realistic recovery chunks serialize below 4 MiB (${(payloadBytes / 1024 / 1024).toFixed(2)} MiB measured)`)
+}
+
+// The two caps are deliberately different units, but the native raw-chunk
+// recovery budget may never be smaller than the display-line promise.
+{
+  const rust = readFileSync('src-tauri/src/game_link.rs', 'utf8')
+  const frontend = readFileSync('src/lib/gameLink.ts', 'utf8')
+  const nativeCap = Number(rust.match(/const BACKLOG_MAX: usize = ([\d_]+);/)?.[1].replaceAll('_', ''))
+  const displayCap = Number(frontend.match(/const MAX_LINES = ([\d_]+)/)?.[1].replaceAll('_', ''))
+  ok(nativeCap >= displayCap, `native recovery budget ${nativeCap} covers display budget ${displayCap}`)
+}
+
 // -------------------------------------------- a failed backlog must not strand
 //
 // The one that matters most. If the request throws and the queue is never
@@ -215,11 +264,66 @@ console.log('backlog backfill')
   backlogThrows = false
 }
 
+// ------------------------------------ stream state must not survive a reattach
+//
+// The bug: `parser` used to live for the whole module's lifetime, so a detach
+// followed by an attach to a DIFFERENT character kept the previous
+// character's last-known vitals and status icons on screen. `vitals.ts` and
+// `situation.ts` both prefer the stream's answer whenever it has one at all,
+// so this was not a blank field, it was someone else's health bar shown with
+// full confidence.
+{
+  backlogReply = { lines: [], dropped: 0 }
+  const L = await freshLink()
+  L.subscribeGame(() => {})
+  deliver(chunk(1, "<progressBar id='health' value='0' text='health 40/100'/>" +
+    "<indicator id='IconPOISONED' visible='y'/>"))
+  await settle()
+  eq(
+    L.streamCharacterState().vitals.value.health?.current,
+    40,
+    'control: a live progressBar is actually reaching the parser'
+  )
+  eq(
+    L.streamCharacterState().indicators.value.poisoned,
+    'on',
+    'control: a live indicator is actually reaching the parser'
+  )
+
+  await L.attachGame(4455)
+  ok(
+    L.streamCharacterState().vitals.value.health === undefined,
+    'a fresh attach must not keep the previous character’s health'
+  )
+  ok(
+    L.streamCharacterState().indicators.value.poisoned === undefined ||
+      L.streamCharacterState().indicators.value.poisoned === 'unknown',
+    'a fresh attach must not keep the previous character’s status icons'
+  )
+}
+
+// detach alone (no reattach yet) must clear it too - the next thing to
+// attach might not send a fresh progressBar/indicator dump for a while.
+{
+  backlogReply = { lines: [], dropped: 0 }
+  const L = await freshLink()
+  L.subscribeGame(() => {})
+  deliver(chunk(1, "<progressBar id='health' value='0' text='health 15/100'/>"))
+  await settle()
+  eq(L.streamCharacterState().vitals.value.health?.current, 15, 'control: health set before detaching')
+
+  await L.detachGame()
+  ok(
+    L.streamCharacterState().vitals.value.health === undefined,
+    'detaching clears the stream-derived vitals immediately, not just on the next attach'
+  )
+}
+
 // ---------------------------------------------------------------- denominator
 //
 // A run that asserted nothing prints the same "no failures" as a run that
 // asserted everything.
-const FLOOR = 10
+const FLOOR = 24
 if (checks < FLOOR) {
   console.log(
     `${NL}FAIL only ${checks} checks ran, expected at least ${FLOOR} - the suite did not execute`

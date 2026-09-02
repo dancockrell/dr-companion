@@ -23,6 +23,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { landmarksFor } from '../../lib/mapLandmarks'
 import { deriveMapStamps } from '../../lib/mapStamps'
 import { MapStampLayer } from './MapStampLayer'
+import { initialMapRoomId, mapRoomAccessibleName, nextMapRoomId, type MapDirection } from '../../lib/mapKeyboard'
 
 /**
  * How many rooms the map draws at once.
@@ -114,6 +115,8 @@ export function MapCanvas({
   labels = false,
   /** Scale the whole zone to fill the container instead of drawing at size. */
   fit = false,
+  /** The zone's drawn proportions, once known - see the effect below. */
+  onNaturalSize,
   /** Where you have been. Drawn as a stroke over the chart. */
   trail,
   /** The "here" room's position, in this draw's own pixel space, once known -
@@ -150,6 +153,7 @@ export function MapCanvas({
   scale?: number
   labels?: boolean
   fit?: boolean
+  onNaturalSize?: (size: { w: number; h: number }) => void
   trail?: Trail
   onHereAt?: (x: number, y: number) => void
   pins?: Map<number, MapPin>
@@ -216,6 +220,24 @@ export function MapCanvas({
       h: Math.max(...ys) - minY + pad * 2,
     }
   }, [rooms, scale, pad])
+
+  // The zone's own drawn proportions, reported upward so a caller can size
+  // the box it hands us instead of guessing.
+  //
+  // `fit` preserves aspect ratio, so the zone is drawn at whatever the
+  // tighter axis allows and the rest of the box is left over. Crossing is
+  // portrait (995x1148) while the map column is landscape, which measured
+  // as the chart using 54% of the width and 351px of the box painted as
+  // bare page. A caller that knows the aspect can shrink the box to what
+  // the chart actually occupies and spend the remainder on something else -
+  // see MapPanel's `plane` layout. Reported rather than recomputed there
+  // because `view` already owns this arithmetic (room bounds, scale and
+  // padding), and a second copy would drift the first time any of the three
+  // changed.
+  useEffect(() => {
+    if (!view || !onNaturalSize) return
+    onNaturalSize({ w: view.w, h: view.h })
+  }, [view, onNaturalSize])
 
   // Rebuilt only when the room set actually changes - not on every trail
   // update, which is the whole reason a window left open to watch a script
@@ -320,6 +342,7 @@ export function MapCanvas({
   }, [rooms])
 
   const [hoverId, setHoverId] = useState<number | null>(null)
+  const [keyboardRoomId, setKeyboardRoomId] = useState<number | null>(null)
   const hoverNeighbors = hoverId != null ? neighbors.get(hoverId) : undefined
 
   // Position for RoomHoverCard, in this component's own positioning
@@ -328,7 +351,39 @@ export function MapCanvas({
   // appear near where the hover started.
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
+  const hoverCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const character = useAppStore((s) => s.character)
+
+  const keepHoverOpen = () => {
+    if (hoverCloseTimer.current != null) {
+      clearTimeout(hoverCloseTimer.current)
+      hoverCloseTimer.current = null
+    }
+  }
+
+  // There is a small physical gap between a room mark and its card. Closing
+  // the card on the room's mouseleave made the link inside it a mirage: the
+  // card disappeared while the pointer crossed that gap. A short grace period
+  // lets the card take ownership of the hover without leaving stale cards
+  // behind when the player simply moves elsewhere on the map.
+  const closeHoverSoon = () => {
+    keepHoverOpen()
+    hoverCloseTimer.current = setTimeout(() => {
+      setHoverId(null)
+      setHoverPos(null)
+      hoverCloseTimer.current = null
+    }, 240)
+  }
+
+  useEffect(() => () => {
+    if (hoverCloseTimer.current != null) clearTimeout(hoverCloseTimer.current)
+  }, [])
+
+  useEffect(() => {
+    setKeyboardRoomId((current) =>
+      current != null && index.has(current) ? current : initialMapRoomId(rooms, zone.here)
+    )
+  }, [rooms, index, zone.here])
 
   // Reports the "here" room's pixel position whenever it is known, so a
   // viewport (useMapViewport) can center on it without re-deriving px/py
@@ -369,7 +424,52 @@ export function MapCanvas({
 
   return (
     <div ref={wrapRef} className="relative h-full w-full">
-    <svg viewBox={`0 0 ${view.w} ${view.h}`} className="block" {...sizing}>
+    <svg
+      viewBox={`0 0 ${view.w} ${view.h}`}
+      className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+      {...sizing}
+      tabIndex={0}
+      role="application"
+      aria-label={`${zone.name ?? zone.zone} map, level ${level}, ${rooms.length} rooms. Use arrow keys to explore, Enter to choose a route, and Shift F10 to pin.`}
+      aria-activedescendant={keyboardRoomId != null ? `map-room-${zone.zone}-${level}-${keyboardRoomId}` : undefined}
+      onFocus={() => {
+        const id = keyboardRoomId ?? initialMapRoomId(rooms, zone.here)
+        setKeyboardRoomId(id)
+        setHoverId(id)
+        const room = id == null ? null : index.get(id)
+        if (room) setHoverPos({ x: px(room), y: py(room) })
+      }}
+      onBlur={() => {
+        setHoverId(null)
+        setHoverPos(null)
+      }}
+      onKeyDown={(event) => {
+        const directions: Partial<Record<string, MapDirection>> = {
+          ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+        }
+        const direction = directions[event.key]
+        if (direction) {
+          event.preventDefault()
+          const id = nextMapRoomId(rooms, keyboardRoomId, direction)
+          setKeyboardRoomId(id)
+          setHoverId(id)
+          const room = id == null ? null : index.get(id)
+          if (room) setHoverPos({ x: px(room), y: py(room) })
+          return
+        }
+        const room = keyboardRoomId == null ? null : index.get(keyboardRoomId)
+        if (!room || room.id == null) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          if (room.gateway && onZone) onZone(room.gateway.zone)
+          else onPick(room.id)
+        } else if ((event.shiftKey && event.key === 'F10') || event.key === 'ContextMenu') {
+          if (!onPinRoom) return
+          event.preventDefault()
+          onPinRoom(room.id)
+        }
+      }}
+    >
       <defs>
         {/* Lit from the middle, falling off at the edges. A flat fill running
             hard into the panel border reads as a background; this reads as a
@@ -497,6 +597,10 @@ export function MapCanvas({
         return (
           <g
             key={r.id}
+            id={r.id != null ? `map-room-${zone.zone}-${level}-${r.id}` : undefined}
+            role="button"
+            aria-label={mapRoomAccessibleName(r, Boolean(onPinRoom))}
+            aria-current={r.id === keyboardRoomId ? 'true' : undefined}
             className="cursor-pointer"
             onClick={() => {
               // A gateway goes through. Routing to a room you are already
@@ -512,14 +616,14 @@ export function MapCanvas({
             }}
             onMouseEnter={(e) => {
               if (r.id == null) return
+              keepHoverOpen()
               setHoverId(r.id)
               const box = wrapRef.current?.getBoundingClientRect()
               if (box) setHoverPos({ x: e.clientX - box.left, y: e.clientY - box.top })
             }}
             onMouseLeave={() => {
               if (r.id == null) return
-              setHoverId((h) => (h === r.id ? null : h))
-              setHoverPos(null)
+              closeHoverSoon()
             }}
             // Drag-and-drop a pin type onto this room. Reuses the same hover
             // lift a mouseenter gives - the room under the drag should read
@@ -850,7 +954,11 @@ export function MapCanvas({
         pin={pins?.get(hoverId)}
         x={hoverPos.x}
         y={hoverPos.y}
+        containerWidth={wrapRef.current?.clientWidth ?? 0}
+        containerHeight={wrapRef.current?.clientHeight ?? 0}
         character={character?.name ? { name: character.name, instance: character.instance } : null}
+        onMouseEnter={keepHoverOpen}
+        onMouseLeave={closeHoverSoon}
       />
     )}
     </div>

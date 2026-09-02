@@ -37,7 +37,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
@@ -50,16 +50,28 @@ pub struct GameLine {
     /// text is not one: a MUD repeats itself constantly, and two identical
     /// "Obvious paths: east, south, west." lines are different events.
     pub seq: u64,
+    /// Wall-clock receive time for history and export. Sequence remains the
+    /// ordering authority because clocks can move and several chunks can
+    /// arrive in one millisecond.
+    pub received_at_ms: u64,
     pub text: String,
 }
 
-/// How many chunks the backlog retains.
-///
-/// One chunk is at most one line, and the pane renders a few hundred at a
-/// time, so this refills a full screen many times over. Bounded because a
-/// session runs for hours: unbounded, a long hunt would grow it without limit
-/// and nothing would ever read the oldest end.
-const BACKLOG_MAX: usize = 2000;
+fn received_at_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+        .try_into()
+        .unwrap_or(u64::MAX)
+}
+
+/// Native recovery budget for the frontend's 20,000-display-line contract.
+/// A chunk is at most one wire line; 25,000 therefore covers the full visible
+/// history plus framing/tag chunks that may not become display lines. The
+/// realistic-corpus measurement in `tools/backlog-test.mjs` keeps this budget
+/// honest about serialized recovery payload size.
+const BACKLOG_MAX: usize = 25_000;
 
 /// Chunks already emitted, kept so a frontend that mounts late can catch up.
 #[derive(Default)]
@@ -68,6 +80,16 @@ struct BacklogBuf {
     /// Read, then aged out. Counted rather than forgotten: a pane that quietly
     /// begins mid-session is indistinguishable from one that lost nothing.
     dropped: u64,
+}
+
+impl BacklogBuf {
+    fn push(&mut self, line: GameLine) {
+        if self.lines.len() >= BACKLOG_MAX {
+            self.lines.pop_front();
+            self.dropped += 1;
+        }
+        self.lines.push_back(line);
+    }
 }
 
 /// What `game_backlog` hands back.
@@ -374,14 +396,14 @@ pub fn game_attach(
                         // before the pane has subscribed was lost outright -
                         // while the count in game:state kept climbing, so the
                         // header reported lines the pane could not show.
-                        let line = GameLine { seq, text };
+                        let line = GameLine {
+                            seq,
+                            received_at_ms: received_at_ms(),
+                            text,
+                        };
                         {
                             let mut b = backlog.lock().unwrap();
-                            if b.lines.len() >= BACKLOG_MAX {
-                                b.lines.pop_front();
-                                b.dropped += 1;
-                            }
-                            b.lines.push_back(line.clone());
+                            b.push(line.clone());
                         }
 
                         let _ = app.emit("game:line", line);
@@ -523,6 +545,35 @@ mod tests {
     use super::*;
     use std::io::Read;
     use std::net::TcpListener;
+
+    #[test]
+    fn recovery_backlog_matches_the_frontend_scrollback_contract() {
+        let mut backlog = BacklogBuf::default();
+        for seq in 1..=(BACKLOG_MAX as u64 + 137) {
+            backlog.push(GameLine {
+                seq,
+                received_at_ms: 1_700_000_000_000 + seq,
+                text: format!("line {seq}\n"),
+            });
+        }
+        assert_eq!(backlog.lines.len(), BACKLOG_MAX);
+        assert_eq!(backlog.dropped, 137);
+        assert_eq!(backlog.lines.front().map(|line| line.seq), Some(138));
+        assert_eq!(
+            backlog.lines.front().map(|line| line.received_at_ms),
+            Some(1_700_000_000_138)
+        );
+        assert_eq!(
+            backlog.lines.back().map(|line| line.seq),
+            Some(BACKLOG_MAX as u64 + 137)
+        );
+        const {
+            assert!(
+                BACKLOG_MAX >= 20_000,
+                "native recovery must cover the frontend's display budget"
+            );
+        }
+    }
 
     /// The transport, end to end, against a socket standing in for Lich.
     ///

@@ -1,95 +1,88 @@
 {
   "holdRooms": 3,
-  "purpose": "Curated, location-aware scene families. Generic travel rooms share only approved art; landmarks keep their exact room art or a hand-curated override.",
-  "landmarkPlaces": [
-    "4a::Behind the Goal Line",
-    "13::Narrow Trace",
-    "47::Workroom",
-    "65::Beneath the Ice",
-    "92::Underwater",
-    "98::Underwater"
-  ],
+  "purpose": "Curated, location-aware scene families drawn only from the reviewed Grok pack. Generic travel rooms share approved Grok art; landmarks without an exact approved Grok scene fall back to the honest room fingerprint.",
+  "approvedProvenance": "Grok Imagine full pack 1938",
+  "landmarkPlaces": ["4a::Behind the Goal Line", "13::Narrow Trace", "47::Workroom", "65::Beneath the Ice", "92::Underwater", "98::Underwater"],
+  "auditRegions": {"Crossing":["1","1a","1j","1l","1m","1n","2a","2d","4","6","8","8a"]},
+  "reviewedPlaceAssignments": {
+    "1::Traders' Market":{"category":"regional-city","reason":"named Crossing market; existing Crossing street family already depicts market-town frontage and awnings"}
+  },
   "basketCuration": {
-    "deep-forest": {
-      "exactSubject": "generic old-growth forest travel",
-      "canonicalTraits": ["dense mature trees", "narrow traversable floor", "cool filtered daylight"],
-      "habitat": "forested wilderness without a named landmark",
-      "currentImage": "/room-scenes/archetype-deep-forest-0.webp",
-      "approvedPrimary": "/room-scenes/master-deep-forest.webp",
-      "approvedVariants": ["/room-scenes/archetype-deep-forest-0.webp", "/room-scenes/archetype-deep-forest-6.webp"],
-      "rejects": ["remaining repetitive deep-forest archetype renders"],
-      "regenerationNeeded": false
-    },
-    "desert": {
-      "exactSubject": "generic arid overland travel",
-      "canonicalTraits": ["dry exposed route", "sparse scrub and stone", "long desert horizon"],
-      "habitat": "unnamed dunes, sands and desert roads",
-      "currentImage": "/room-scenes/archetype-desert-1.webp",
-      "approvedPrimary": "/room-scenes/master-desert-trail.webp",
-      "approvedVariants": ["/room-scenes/archetype-desert-1.webp", "/room-scenes/archetype-desert-6.webp"],
-      "rejects": ["cartoon-orange and near-duplicate desert renders"],
-      "regenerationNeeded": false
-    },
-    "swamp": {
-      "exactSubject": "generic wild marsh travel",
-      "canonicalTraits": ["shallow dark water", "reeds and wet trees", "no settlement architecture"],
-      "habitat": "unnamed swamps, fens and bogs",
-      "currentImage": "/room-scenes/archetype-swamp-0.webp",
-      "approvedPrimary": "/room-scenes/master-wild-swamp.webp",
-      "approvedVariants": [],
-      "rejects": ["swamp renders dominated by cottages or unrelated buildings"],
-      "regenerationNeeded": false
-    },
-    "mountain-pass": {
-      "exactSubject": "generic high mountain traversal",
-      "canonicalTraits": ["exposed rocky path", "steep elevation", "distant peaks"],
-      "habitat": "unnamed ridges, passes and ascents",
-      "currentImage": "/room-scenes/archetype-mountain-pass-0.webp",
-      "approvedPrimary": "/room-scenes/master-mountain-pass.webp",
-      "approvedVariants": ["/room-scenes/curated-rain-grooved-outcrop.webp", "/room-scenes/archetype-cliff-overlook-6.webp"],
-      "rejects": ["mountain-pass renders that depict town streets and buildings"],
-      "regenerationNeeded": false
-    },
-    "riverside": {
-      "exactSubject": "generic natural riverbank travel",
-      "canonicalTraits": ["visible flowing channel", "natural bank", "open route along water"],
-      "habitat": "unnamed riverbanks and shore routes",
-      "currentImage": "/room-scenes/archetype-riverside-3.webp",
-      "approvedPrimary": "/room-scenes/master-riverside.webp",
-      "approvedVariants": ["/rooms/127-140.webp", "/room-scenes/archetype-riverside-3.webp"],
-      "rejects": ["underwater and landmark-specific scenes"],
-      "regenerationNeeded": false
-    },
-    "grassland": {
-      "exactSubject": "generic open grassland travel",
-      "canonicalTraits": ["broad grass cover", "walkable track", "open horizon"],
-      "habitat": "unnamed fields, meadows and prairies",
-      "currentImage": "/room-scenes/archetype-grassland-0.webp",
-      "approvedPrimary": "/room-scenes/master-open-grassland.webp",
-      "approvedVariants": [],
-      "rejects": ["blank generation", "low-quality repetitive grassland renders"],
-      "regenerationNeeded": false
-    }
+    "deep-forest": {"exactSubject":"generic old-growth forest travel","canonicalTraits":["dense mature trees","narrow traversable floor","cool filtered daylight"],"habitat":"forested wilderness without a named landmark","currentImage":"/room-scenes/master-deep-forest.webp","approvedPrimary":"/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg","approvedVariants":["/grok-art/room-scenes/ancient-forest-36342832.jpg"],"rejects":["all non-Grok forest renders","night scenes without night evidence"],"regenerationNeeded":false},
+    "desert": {"exactSubject":"generic arid overland travel","canonicalTraits":["dry exposed route","sparse scrub and stone","long desert horizon"],"habitat":"unnamed dunes, sands and desert roads","currentImage":"/room-scenes/master-desert-trail.webp","approvedPrimary":"/grok-art/room-scenes/desert-canyon-0322415e.jpg","approvedVariants":[],"rejects":["all non-Grok desert renders","cartoon-orange near-duplicates"],"regenerationNeeded":false},
+    "swamp": {"exactSubject":"generic wild marsh travel","canonicalTraits":["shallow dark water","reeds and wet trees","no settlement architecture"],"habitat":"unnamed swamps, fens and bogs","currentImage":"/room-scenes/master-wild-swamp.webp","approvedPrimary":"/grok-art/room-scenes/reed-marsh-0fb4267f.jpg","approvedVariants":[],"rejects":["all non-Grok swamp renders","settlement-dominated wetlands"],"regenerationNeeded":false},
+    "mountain-pass": {"exactSubject":"generic high mountain traversal","canonicalTraits":["exposed rocky path","steep elevation","distant peaks"],"habitat":"unnamed ridges, passes and ascents","currentImage":"/room-scenes/master-mountain-pass.webp","approvedPrimary":"/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg","approvedVariants":["/grok-art/room-scenes/mountain-meadow-84245eb6.jpg","/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],"rejects":["all non-Grok mountain renders","town streets without settlement evidence"],"regenerationNeeded":false},
+    "riverside": {"exactSubject":"generic natural riverbank travel","canonicalTraits":["visible flowing channel","natural bank","open route along water"],"habitat":"unnamed riverbanks and shore routes","currentImage":"/room-scenes/master-riverside.webp","approvedPrimary":"/grok-art/room-scenes/autumn-mountain-stream-44d208fc.jpg","approvedVariants":["/grok-art/room-scenes/reed-marsh-0fb4267f.jpg"],"rejects":["all non-Grok riverside renders","underwater and landmark-specific scenes"],"regenerationNeeded":false},
+    "grassland": {"exactSubject":"generic open grassland travel","canonicalTraits":["broad grass cover","walkable track","open horizon"],"habitat":"unnamed fields, meadows and prairies","currentImage":"/room-scenes/master-open-grassland.webp","approvedPrimary":"/grok-art/room-scenes/mountain-meadow-84245eb6.jpg","approvedVariants":[],"rejects":["all non-Grok grassland renders","storm scenes without weather evidence"],"regenerationNeeded":false}
   },
   "generic": {
-    "forest-path": ["/room-scenes/master-forest-path.webp"],
-    "deep-forest": ["/room-scenes/master-deep-forest.webp"],
-    "mine-tunnel": ["/room-scenes/master-mine-tunnel.webp"],
-    "sewer": ["/room-scenes/curated-crossing-sewer.webp", "/room-scenes/archetype-sewer-0.webp", "/room-scenes/archetype-sewer-5.webp"],
-    "desert": ["/room-scenes/master-desert-trail.webp"],
-    "swamp": ["/room-scenes/master-wild-swamp.webp"],
-    "mountain-pass": ["/room-scenes/master-mountain-pass.webp"],
-    "garden": ["/room-scenes/master-garden.webp"],
-    "riverside": ["/room-scenes/master-riverside.webp", "/rooms/127-140.webp"],
-    "grassland": ["/room-scenes/master-open-grassland.webp"]
+    "forest-path":["/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg","/grok-art/room-scenes/forest-clearing-06aeb546.jpg","/grok-art/room-scenes/young-woodland-2d872f5f.jpg"],
+    "deep-forest":["/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg","/grok-art/room-scenes/ancient-forest-36342832.jpg"],
+    "mine-tunnel":["/grok-art/room-scenes/crystal-mine-3638b938.jpg"],
+    "sewer":["/grok-art/room-scenes/sea-cave-038edbd8.jpg","/grok-art/room-scenes/catacomb-vault-86126f69.jpg"],
+    "desert":["/grok-art/room-scenes/desert-canyon-0322415e.jpg"],
+    "swamp":["/grok-art/room-scenes/reed-marsh-0fb4267f.jpg"],
+    "mountain-pass":["/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg","/grok-art/room-scenes/mountain-meadow-84245eb6.jpg","/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],
+    "garden":["/grok-art/room-scenes/apple-orchard-23efadaf.jpg","/grok-art/room-scenes/glasshouse-garden-4d19a989.jpg"],
+    "riverside":["/grok-art/room-scenes/autumn-mountain-stream-44d208fc.jpg","/grok-art/room-scenes/reed-marsh-0fb4267f.jpg"],
+    "grassland":["/grok-art/room-scenes/mountain-meadow-84245eb6.jpg"]
+  },
+  "regionalIdentity": {
+    "Crossing": {
+      "subject":"large working trade town and player hub",
+      "terrain":"lowland town with riverfront, gates, greens and dense commercial core",
+      "builtForm":"mixed timber and stone construction; practical streets, civic squares, guild compounds, market frontage and working quays",
+      "atmosphere":"busy, old, prosperous in places, rough in others; a town people actually work and live in rather than a pristine fantasy capital",
+      "generationHints":["mixed timber and stone construction","market-town density","practical traveled streets","visible wear, carts, awnings, barrels and trade clutter only where room text supports them","avoid monumental palace-city scale"],
+      "districts": {
+        "town-green-civic": {"subject":"Crossing civic heart and Town Green","places":["Town Green North","Town Green Northeast","Town Green Southeast","Town Green South","Town Green Southwest","Town Green Northwest","S'zella Plaza","Fostra Square","Truffenyi Place"],"visualLanguage":["open civic space","grass or planted public ground where supported","busy surrounding town frontage","fountains, monuments or civic details only when named"]},
+        "market-commercial": {"subject":"dense commercial Crossing","places":["Mercantile Street","Bank Street","Commerce Avenue","Mongers' Bazaar","Mongers' Square","Bazaar Walkway","Traders' Market","Cheopman Lane"],"visualLanguage":["close shopfronts and awnings","pedestrian trade traffic","goods, carts and signs only when supported","more visual clutter than residential streets"]},
+        "river-quays": {"subject":"Crossing riverfront and working quays","places":["Trollferry Quay","Embankment","Gold Barque Quay","Nightrunner's Quay","Water Street","Oxenwaithe Bridge","Dock","Alfren's Ferry","Delivery Pier","Clanthew Boulevard","Riverlace Lane","Seardaz Cove","Construction Yard"],"visualLanguage":["water must read clearly when the room supports it","working timber docks and stone embankments","rope, cargo and boats only where supported","do not reuse inland street compositions"]},
+        "gates-walls": {"subject":"Crossing gates and defensive perimeter","places":["Western Gate","Eastern Gate","Northeast Gate Battlements","East Gate Battlements","East Wall Battlements","North Wall Battlements","South Wall Battlements","West Gate Battlements","West Wall Battlements","Battlement Guardhouse"],"visualLanguage":["fortified town wall rather than giant castle","gate traffic and practical defenses","clear inside/outside orientation when supported"]},
+        "temple-quarter": {"subject":"Crossing religious approaches and temple quarter","places":["Hodierna Way","Immortals' Approach","Esplanade Eluned","Kertigen Road"],"visualLanguage":["quieter ceremonial streets","religious architecture only when room text establishes it","cleaner sightlines than market streets","do not invent glowing magic or cathedral scale"]},
+        "residential-backstreets": {"subject":"Crossing residential lanes, courts and poorer backstreets","places":["Cutpurse Alley","Covered Alleyway","Dodgers' Row","Boar Alley","Scorpion Lane","Swithen's Court","Elmod Close","Damaris Lane","Varlet's Run","Gildleaf Circle","Midton Circle","Smithy Lane","Goldstone Square"],"visualLanguage":["narrower or quieter routes than the commercial core","building wealth and upkeep must follow room text","more enclosed framing","avoid turning every alley into a criminal slum"]},
+        "riverpine-outskirts": {"subject":"greener Crossing outskirts around Riverpine","places":["Riverpine Way","Riverpine Circle","Flatlands","Forest","Outside Gate","Outside Northeast Gate"],"visualLanguage":["settlement thins toward vegetation and open land","roads and trees become more important than shopfronts","Riverpine Circle is a cedar-ringed packed-earth clearing with a firepit, not an urban traffic circle","use wilderness baskets when room semantics clearly leave town"]},
+        "guild-civic-interiors": {"subject":"major Crossing institutions and their compounds","places":["Main Hall","Council Chamber","Public Meeting Room","Library","Auction Hall","Gathering Hall","Chamber of Justice","Holy Warrior's Promenade"],"visualLanguage":["institution-specific interiors or grounds","Crossing materials can unify them but room function dominates","Holy Warrior's Promenade remains a planted Paladin guild approach, not a public city street","never substitute generic city-street art for interiors"]},
+        "amusement-carousel": {"subject":"Crossing amusement and carousel complex","places":["Carousel Square","The Carousel","Carousel Booth","Carousel Chamber","Carousel Desk"],"visualLanguage":["distinct entertainment identity","color and ornament may be stronger than ordinary Crossing","must be generated or curated as a special family rather than generic streets"]}
+      },
+      "approvedGenericPlaces":["Gildleaf Circle","Smithy Lane","Traders' Market"],
+      "priorityLandmarks":["Town Green","Traders' Market","Mongers' Bazaar","Western Gate","Eastern Gate","Oxenwaithe Bridge","Crossing riverfront","major guild compounds","Crossing amusement/carousel complex","Crossing sewer"],
+      "productionQueue":[
+        {"priority":1,"id":"crossing-town-green","kind":"landmark-family","places":["Town Green North","Town Green Northeast","Town Green Southeast","Town Green South","Town Green Southwest","Town Green Northwest"],"reason":"the primary gathering and orientation landmark spans individually named one-room places that automatic multi-room rules cannot cover","prompt":"The Crossing Town Green as a recognizable lowland trade-town civic heart. Broad, well-maintained grass and hedges with modest cobbled edges, lunat trees and practical mixed timber-and-stone shopfronts surrounding the open gathering ground. Busy adventurers and townspeople may appear as small atmospheric figures, but preserve open navigable sightlines. No palace, giant cathedral, glowing magic, or invented monument; individual variants must follow the room text for benches, bowers, paths and nearby businesses."},
+        {"priority":2,"id":"crossing-mongers-market","kind":"landmark-family","places":["Mongers' Bazaar","Mongers' Square","Traders' Market","Bazaar Walkway"],"reason":"a major commercial navigation cluster currently has no approved market image and Traders' Market alone covers four rooms","prompt":"Mongers' Bazaar and Traders' Market in the Crossing: a dense, practical trade quarter organized around canvas stalls, a large open market tent, worn paving and close mixed timber-and-stone frontage. Goods, awnings, handcarts and pedestrian bustle should create commercial clutter without becoming a modern fairground. For Mongers' Square variants, include the bronzed Divyaush fountain only where the room text names it. No generic empty medieval street and no monumental capital-city scale."},
+        {"priority":3,"id":"crossing-gates","kind":"landmark-family","places":["Western Gate","Eastern Gate","Northeast Gate Battlements","East Gate Battlements","East Wall Battlements","North Wall Battlements","South Wall Battlements","West Gate Battlements","West Wall Battlements","Battlement Guardhouse"],"reason":"gates and walls are high-value navigation anchors and require inside/outside and elevation-aware compositions","prompt":"A practical fortified gate and wall system for the Crossing, a busy lowland trade town rather than a grand castle. Weathered masonry, cobbled wall walks, timber guard structures and believable wagon or foot traffic. Keep the direction of town interior versus farms, grassland or river exterior visually legible. Battlement variants must show elevated wall walks only when the room text places the viewer on them; do not force river views or unfinished wall sections into every variant."},
+        {"priority":4,"id":"crossing-riverfront","kind":"regional-family","places":["Clanthew Boulevard","Riverlace Lane","Trollferry Quay","Embankment","Gold Barque Quay","Nightrunner's Quay","Water Street","Seardaz Cove","Construction Yard","Delivery Pier"],"reason":"Crossing's two-river identity is navigationally important, while current inland street art contradicts water, docks, shipbuilding and affluent riverside residences","prompt":"The Crossing riverfront as a working trade-town edge along broad cold rivers. Make water spatially undeniable and keep routes readable. Use stone embankments, timber quays, rope, cargo, modest boats and worn mixed timber-and-stone buildings only where supported. Create separate variants for working docks and shipyard mud, Clanthew's wall-edge boulevard, Seardaz Cove's boulders and current, and Riverlace Lane's narrow affluent manors with private docks; do not collapse them into one generic harbor scene."},
+        {"priority":5,"id":"crossing-oxenwaithe-bridge","kind":"landmark","places":["Oxenwaithe Bridge"],"reason":"the named bridge is a strong route-recognition landmark between river-oriented districts","prompt":"Oxenwaithe Bridge at the Crossing, composed as a navigation landmark with the crossing route and dark moving river both clearly readable. Match the room text's bridge material, approaches, nearby moorings and town-wall relationship; use the Crossing's practical weathered trade-town palette. Avoid an oversized heroic bridge, waterfalls, mountain gorge, or invented towers."},
+        {"priority":6,"id":"crossing-riverpine","kind":"regional-family","places":["Riverpine Way","Riverpine Circle","Flatlands","Outside Gate","Outside Northeast Gate"],"reason":"the green outskirts are currently vulnerable to being shown as dense urban streets; Riverpine Circle covers seven rooms","prompt":"Riverpine on the greener outskirts of the Crossing. Tall cedars, packed dark earth, worn paths and thinning settlement should dominate. The Riverpine Circle variant must center a large soot-blackened firepit in a cedar-ringed clearing and must not look like a paved urban traffic circle. Gate and flatland variants may reveal town walls, carts or open land only where the room text supports them."},
+        {"priority":7,"id":"crossing-guild-compounds","kind":"landmark-family","places":["Holy Warrior's Promenade","Paladins' Guild","Traders' Guild","Clerics' Guild","Bards' Guild","Barbarian Guild","Asemath Academy"],"reason":"frequently visited institutions need function-specific identity; generic exterior streets and generic interiors both erase navigation cues","prompt":"A coordinated set of Crossing guild and academy landmarks sharing only the town's weathered mixed-material palette. Each image must foreground the institution named by the room text: planted and carefully fenced Paladin grounds, mercantile river-facing Traders spaces, devotional Cleric rooms, performance-oriented Bard spaces, martial Barbarian halls, and austere Academy architecture. Do not reuse a single guildhall composition or invent universal banners, symbols, torchlight or magical effects."},
+        {"priority":8,"id":"crossing-carousel","kind":"special-family","places":["Carousel Square","The Carousel","Carousel Booth","Carousel Chamber","Carousel Desk"],"reason":"the amusement complex is distinctive and explicitly unsuitable for ordinary Crossing street art","prompt":"The Crossing amusement and carousel complex as a memorable special destination. Colorful crafted ornament, booths and entertainment architecture may be livelier than the surrounding town, while retaining hand-built materials and the exact spatial function named by each room. Keep square, ride, booth, chamber and desk variants distinct. No modern carnival machinery, electric lighting, generic market stalls or unrelated city street composition."}
+      ],
+      "plannedArtFamilies": {
+        "town-green-civic":{"priority":1,"variants":3,"places":["Town Green","Goldstone Square","S'zella Plaza","Fostra Square"],"prompt":"The civic heart of the Crossing: an old, busy lowland trade town opening around public green or stone square, mixed timber-and-stone frontage visibly worn by daily use, practical paths and gathering space. Preserve grass, fountain, monument, market activity, or civic details only when named by the room; no palace scale, no pristine empty plaza, no invented magical spectacle."},
+        "market-commercial":{"priority":1,"variants":3,"places":["Traders' Market","Mercantile Street","Mongers' Bazaar","Commerce Avenue"],"prompt":"Dense commercial streets of the Crossing, a working lowland trade town: close mixed timber-and-stone shopfronts, canvas awnings, pedestrian traffic and practical wear. Goods, carts, signs and crowd density must vary with the source room; no modern storefronts, no grand capital-city avenue, no universal river or temple details."},
+        "river-quays":{"priority":1,"variants":3,"places":["Trollferry Quay","Gold Barque Quay","Water Street","Oxenwaithe Bridge","Alfren's Ferry"],"prompt":"The Crossing's working river edge where the room text establishes water: Segoltha-facing quays, timber landings or stone embankment, damp wear and a practical trade-town skyline. Boats, rope, cargo, bridge structure and crowds appear only when supported; water must dominate the geography, and the scene must not read as an inland street or ocean harbor."},
+        "gates-walls":{"priority":2,"variants":3,"places":["Western Gate","Eastern Gate","Northeast Gate Battlements","Crossing battlements"],"prompt":"Practical defensive perimeter of the Crossing: fortified town wall and working gate approaches at human town scale, mixed masonry and timber repairs, clear inside/outside orientation. Traffic, guards and surrounding vegetation depend on the room text; no giant castle, mountain citadel, palace gate or invented siege."},
+        "temple-quarter":{"priority":2,"variants":2,"places":["Hodierna Way","Immortals' Approach","Esplanade Eluned","Crossing Temple promenades"],"prompt":"Quieter ceremonial approaches in the Crossing temple quarter, with cleaner sightlines and the town's worn mixed construction. Religious architecture, gardens, water, statuary and artificial light appear only when established by the specific room; no generic cathedral, glowing magic or single-faith iconography imposed across the quarter."},
+        "residential-backstreets":{"priority":3,"variants":2,"places":["Cutpurse Alley","Dodgers' Row","Boar Alley","Swithen's Court","Varlet's Run"],"prompt":"Narrow irregular lanes and lived-in backstreets of the Crossing, enclosed by worn practical timber-and-stone buildings with restrained trade-town clutter. Keep each route readable and vary prosperity according to room text; do not turn every alley into a criminal slum, sewer, night scene or torch-lit menace."},
+        "riverpine-outskirts":{"priority":2,"variants":3,"places":["Riverpine Way","Riverpine Circle","Flatlands","Outside Gate"],"prompt":"The greener edge of the Crossing where dense settlement thins into lowland road, trees and open ground. Let vegetation and route geometry dominate while distant town fabric appears only when supported; no dense market street, no deep untouched wilderness, and no forced river view."},
+        "amusement-carousel":{"priority":1,"variants":3,"places":["Carousel Square","A Carousel","Amusement Pier","Carousel Chamber"],"prompt":"The distinctive amusement and carousel complex of the Crossing, an ornate but weathered public entertainment space with stronger color and crafted decoration than ordinary streets. Carousel machinery, pier water, booths, crowds and interiors must follow the named room; no modern carnival technology, electric lighting or generic market-street substitution."}
+      },
+      "avoid":["one generic medieval street representing the entire town","clean empty streets","palatial capital-city scale","forcing river, temple, market or fortification details into unrelated rooms"]
+    },
+    "Ratha":{"subject":"fortified urban center","terrain":"dense settlement","builtForm":"dark stone, defensive and disciplined architecture","atmosphere":"formal, martial, enclosed","generationHints":["dark stone construction","fortified civic character","disciplined streetscape"]},
+    "Shard":{"subject":"mountain trade city","terrain":"rocky terraces and rising ground","builtForm":"stone buildings fitted to steep terrain","atmosphere":"vertical, mountainous, established","generationHints":["terraced streets","visible rock and elevation","mountain-city construction"]},
+    "Riverhaven":{"subject":"riverside town","terrain":"settlement organized around waterways","builtForm":"docks, bridges and river-facing streets","atmosphere":"water-oriented, mercantile, open","generationHints":["visible river relationship","docks or bridge language where supported","stone-and-timber riverside town"]},
+    "Muspar'i":{"subject":"desert-adjacent city","terrain":"dry settlement edge","builtForm":"sandstone and domed forms","atmosphere":"sunlit, arid, dense","generationHints":["sandstone palette","arid-city materials","domed forms only where the room supports architecture"]},
+    "Hibarnhvidar":{"subject":"mountain stone settlement","terrain":"rocky highland setting","builtForm":"heavy carved stone halls and streets","atmosphere":"massive, durable, cool","generationHints":["carved stone construction","mountain-settlement massing","substantial masonry"]},
+    "Leth Deriel":{"subject":"forest city","terrain":"settlement integrated with mature trees","builtForm":"refined architecture among living woodland","atmosphere":"green, elegant, integrated with nature","generationHints":["mature trees remain visually dominant","refined settlement details","architecture integrated with forest rather than replacing it"]}
   },
   "regionalCity": {
-    "Crossing": ["/room-scenes/town-crossing-master.webp"],
-    "Ratha": ["/room-scenes/town-ratha-master.webp"],
-    "Shard": ["/room-scenes/town-shard-master.webp"],
-    "Riverhaven": ["/room-scenes/town-riverhaven-master.webp"],
-    "Muspar'i": ["/room-scenes/town-muspar-i-city-street-0.webp", "/room-scenes/town-muspar-i-city-street-1.webp", "/room-scenes/town-muspar-i-city-street-2.webp"],
-    "Hibarnhvidar": ["/room-scenes/town-hibarnhvidar-master.webp"],
-    "Leth Deriel": ["/room-scenes/town-leth-deriel-master.webp"]
+    "Crossing":["/grok-art/room-scenes/town-square-2650911f.jpg"],
+    "Ratha":["/grok-art/room-scenes/town-square-2650911f.jpg"],
+    "Shard":["/grok-art/room-scenes/town-square-2650911f.jpg","/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],
+    "Riverhaven":["/grok-art/room-scenes/riverside-timber-town-5707fe76.jpg","/grok-art/room-scenes/working-river-docks-174a62c2.jpg"],
+    "Muspar'i":["/grok-art/room-scenes/town-square-2650911f.jpg","/grok-art/room-scenes/desert-canyon-0322415e.jpg"],
+    "Hibarnhvidar":["/grok-art/room-scenes/town-square-2650911f.jpg","/grok-art/room-scenes/mountain-bridge-05a1ad18.jpg"],
+    "Leth Deriel":["/grok-art/room-scenes/tree-city-04b6c4bd.jpg","/grok-art/room-scenes/forest-sunlit-0261ab7e.jpg"]
   }
 }

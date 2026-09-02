@@ -152,23 +152,25 @@ export function RoomBackdrop({
       {/* The real render, once it exists, on top of the stand-in. Layered
           rather than swapped so there is never a frame of empty box while
           the image loads. */}
-      <img
-        key={artUrl}
-        src={artUrl}
-        alt=""
-        loading="lazy"
-        onLoad={(e) => {
-          // If the browser decoded it, it is usable room art. A previous
-          // 960x540 gate silently rejected the bundled scene for this exact
-          // room and left the radar gray. Fade every successfully decoded
-          // scene over the fingerprint; broken images remain transparent.
-          e.currentTarget.style.opacity = '1'
-        }}
-        onError={(e) => {
-          e.currentTarget.style.opacity = '0'
-        }}
-        className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300"
-      />
+      {artUrl && (
+        <img
+          key={artUrl}
+          src={artUrl}
+          alt=""
+          loading="lazy"
+          onLoad={(e) => {
+            // If the browser decoded it, it is usable room art. A previous
+            // 960x540 gate silently rejected the bundled scene for this exact
+            // room and left the radar gray. Fade every successfully decoded
+            // scene over the fingerprint; broken images remain transparent.
+            e.currentTarget.style.opacity = '1'
+          }}
+          onError={(e) => {
+            e.currentTarget.style.opacity = '0'
+          }}
+          className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300"
+        />
+      )}
     </>
   )
 }

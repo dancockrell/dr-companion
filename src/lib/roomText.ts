@@ -1,7 +1,7 @@
-import { grokRoomScene } from '../data/grokRoomScenes'
-import { roomArtOverride } from '../data/roomArtOverrides'
-import { roomScenePattern } from '../data/roomScenePatterns'
-import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom'
+import { grokRoomScene } from '../data/grokRoomScenes.ts'
+import { reviewedSceneReel } from '../data/reviewedSceneReels.ts'
+import { roomScenePattern } from '../data/roomScenePatterns.ts'
+import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom.ts'
 
 /**
  * The description of the room you are standing in.
@@ -21,6 +21,16 @@ import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasio
 export interface RoomText {
   title: string | null
   text: string | null
+}
+
+/** Live game presentation wins as one coherent source; static text is fallback. */
+export function resolveRoomPresentation(
+  live: RoomText | null | undefined,
+  mappedTitle: string | null | undefined,
+  fallback: RoomText | null | undefined
+): RoomText {
+  if (live) return { title: live.title ?? mappedTitle ?? fallback?.title ?? null, text: live.text }
+  return { title: mappedTitle ?? fallback?.title ?? null, text: fallback?.text ?? null }
 }
 
 const cache = new Map<string, Record<string, RoomText>>()
@@ -69,13 +79,31 @@ export function cachedRoomText(zone: string, room: number): RoomText | null {
 /**
  * Where the rendered scene lives, if it has been rendered.
  *
- * Most rooms resolve directly to /rooms/{zone}-{room}.webp. A small curated
- * override layer sits in front of that for art that has been visually checked
- * and found to be a clear mismatch for its room description. The override
- * deliberately reuses stronger art that already ships in public/ rather than
- * generating a second near-duplicate asset just to repair an assignment.
+ * Selection follows the current production art contract: every literal scene
+ * must come from an explicitly reviewed source. Exact route reels go first,
+ * followed by location-aware Grok place families and the conservative
+ * live-text selector. Any layer may decline to answer; the backdrop's neutral
+ * fingerprint is the final honest fallback.
+ *
+ * The old per-room and local archetype renders are intentionally absent here.
+ * Keeping them as "temporary" filler made them effectively permanent and put
+ * visibly soft 336x192 images back into the full battle canvas. A missing
+ * scene is now represented honestly instead of by art we already rejected.
  */
+export type RoomArtLayer = 'reviewed-reel' | 'grok-place-pattern' | 'grok-text' | 'fingerprint'
+
+export function roomArtSelection(zone: string, room: number, title?: string | null, text?: string | null): {
+  url: string | null
+  layer: RoomArtLayer
+} {
+  const reel = reviewedSceneReel(zone, room)
+  if (reel) return { url: reel.url, layer: 'reviewed-reel' }
+  const patterned = roomScenePattern(zone, room)
+  if (patterned) return { url: patterned, layer: 'grok-place-pattern' }
+  const textFallback = grokRoomScene(zone, room, title, text)
+  if (textFallback) return { url: textFallback, layer: 'grok-text' }
+  return { url: null, layer: 'fingerprint' }
+}
+
 export const roomArtUrl = (zone: string, room: number, title?: string | null, text?: string | null) =>
-  roomArtOverride(zone, room)
-  ?? roomScenePattern(zone, room)
-  ?? grokRoomScene(zone, room, title, text)
+  roomArtSelection(zone, room, title, text).url

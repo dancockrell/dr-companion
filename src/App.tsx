@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { SetupWizard } from './components/first-run/SetupWizard'
+import { lazy, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { WaitingForCharacter } from './components/shared/WaitingForCharacter'
 import { ExperienceStrip } from './components/shared/ExperienceStrip'
 import { GameSignals } from './components/shared/GameSignals'
+import { GameActionNotice } from './components/game/GameActionNotice'
 import { BattleColumn } from './components/room/BattleColumn'
 import { GameChatColumn } from './components/room/GameChatColumn'
 import { MapColumn } from './components/room/MapColumn'
@@ -15,16 +15,22 @@ import { QuickSwitchBar } from './components/layout/QuickSwitchBar'
 import { MapWindow } from './components/MapWindow'
 import { PanelWindow } from './components/PanelWindow'
 import { PanelBoundary } from './components/shared/PanelBoundary'
+import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
 import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
-import { sendGame } from './lib/gameLink'
+import { requestGameAction } from './lib/gameActions'
 import { requestStartFlow, requestStopAll } from './lib/flowStop'
 import { MACROS } from './data/macros'
 import { canSendMacro } from './lib/canSendMacro'
+import { writeText } from './lib/storage'
+import { StorageWarning } from './components/shared/StorageWarning'
+import { LazySurface } from './components/shared/LazySurface'
+
+const SetupWizard = lazy(() => import('./components/first-run/SetupWizard').then((module) => ({ default: module.SetupWizard })))
 
 /**
  * Which window this is.
@@ -108,7 +114,7 @@ export default function App() {
   useEffect(() => {
     if (!setupComplete) return
     return installKeybindings({
-      sendGame: (command) => void sendGame(command),
+      sendGame: (command) => requestGameAction(command, `Keyboard command “${command}”`),
       stopAll: () => {
         requestIntent('stop_all')
         requestStopAll()
@@ -151,11 +157,7 @@ export default function App() {
   const setRoomW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setRoomWState(next)
-    try {
-      localStorage.setItem(ROOM_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(ROOM_KEY, String(next))
   }
 
   const [battleW, setBattleWState] = useState<number>(() => {
@@ -166,11 +168,7 @@ export default function App() {
   const setBattleW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setBattleWState(next)
-    try {
-      localStorage.setItem(BATTLE_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(BATTLE_KEY, String(next))
   }
 
   /** Experience, all the way to the right - see ExperienceStrip.tsx. A
@@ -188,18 +186,25 @@ export default function App() {
   const setExperienceW = (px: number) => {
     const next = Math.max(MIN_PX, Math.round(px))
     setExperienceWState(next)
-    try {
-      localStorage.setItem(EXPERIENCE_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(EXPERIENCE_KEY, String(next))
   }
 
   /**
    * How tall the map gets at the top of its shared column, in pixels -
    * player-set, the same way the other columns are.
+   *
+   * This used to be 120, which is smaller than the map panel's own chrome:
+   * measured live, the header is 27px and the pin-palette tool rail is 78px,
+   * plus padding and gaps of about 28px more - 133px of always-there content
+   * before a single pixel of the actual chart can be drawn. At 120 the chart
+   * got 0px and rendered nothing, silently: no error, no "too short" notice,
+   * just an empty box, on an entirely ordinary window size. Floored at 300
+   * instead, so the worst case is a small but real map rather than an
+   * invisible one - and `mapCanShareHeight` below (which gates the "map
+   * hidden while the window is this short" message on this same constant)
+   * now actually fires before the chart disappears, instead of after.
    */
-  const MIN_MAP_H = 120
+  const MIN_MAP_H = 300
   const [mapH, setMapHState] = useState<number>(() => {
     const saved = Number(localStorage.getItem(MAP_HEIGHT_KEY))
     if (Number.isFinite(saved) && saved >= MIN_MAP_H) return saved
@@ -212,11 +217,7 @@ export default function App() {
   const setMapH = (px: number) => {
     const next = Math.max(MIN_MAP_H, Math.round(px))
     setMapHState(next)
-    try {
-      localStorage.setItem(MAP_HEIGHT_KEY, String(next))
-    } catch {
-      // Private mode. Losing a divider position is not worth an error.
-    }
+    writeText(MAP_HEIGHT_KEY, String(next))
   }
 
   const dock = useMapDock()
@@ -316,12 +317,34 @@ export default function App() {
     setExperienceW(atLeastVisible(hostW * (1 - share)))
 
   const v = view()
-  if (v.kind === 'map') return <MapWindow />
-  if (v.kind === 'panel') return <PanelWindow id={v.id} />
+  if (v.kind === 'map') {
+    return (
+      <AuxiliaryWindowBoundary
+        label="Map window"
+        onError={(error) => useAppStore.getState().addLog(`Map window crashed: ${error.message}`, 'error')}
+      >
+        <StorageWarning />
+        <MapWindow />
+      </AuxiliaryWindowBoundary>
+    )
+  }
+  if (v.kind === 'panel') {
+    const label = `${v.id} panel window`
+    return (
+      <AuxiliaryWindowBoundary
+        label={label}
+        onError={(error) => useAppStore.getState().addLog(`${label} crashed: ${error.message}`, 'error')}
+      >
+        <StorageWarning />
+        <PanelWindow id={v.id} />
+      </AuxiliaryWindowBoundary>
+    )
+  }
 
   return (
     <div className="h-full w-full bg-surface flex flex-col">
       <AppControls />
+      <StorageWarning />
       {setupComplete && <SituationBanner />}
       {/* Runs regardless of what is on screen - see GameSignals.tsx's own
           header on why this cannot live inside a panel that might not
@@ -347,7 +370,9 @@ export default function App() {
       <main ref={hostRef} className="flex min-h-0 flex-1 overflow-hidden">
         {!setupComplete ? (
           <div className="flex-1 overflow-y-auto">
-            <SetupWizard />
+            <LazySurface label="Setup">
+              <SetupWizard />
+            </LazySurface>
           </div>
         ) : !character ? (
           /* Nothing else here has anything real to show without a
@@ -432,6 +457,7 @@ export default function App() {
           </>
         )}
       </main>
+      {setupComplete && <GameActionNotice />}
       {setupComplete && <Console />}
       {setupComplete && <QuickSwitchBar />}
       {setupComplete && <SafetyFooter />}

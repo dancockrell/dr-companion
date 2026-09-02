@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "reviewContract": {
+    "pixelReviewed": "The shipped file was inspected at native card size, not inferred from its filename or prompt.",
+    "cardCrop": "Subject identity and important details remain readable in the rectangular portrait card.",
+    "radarCrop": "Eyes, face, and identity cues remain readable with Portrait focus=face and object-position center 18%.",
+    "decision": "approved, rejected, or pending-review"
+  },
+  "records": {
+    "dwarf-female": {
+      "file": "public/portraits/dwarf-female.webp",
+      "dimensions": [256, 384],
+      "sha256": "63202A92170C08A3AF2D76629EE8394A45C876486F3A1870D2895BC6470C34FA",
+      "pixelReviewed": true,
+      "cardCrop": "pass",
+      "radarCrop": "pass",
+      "loreReferences": [
+        "https://elanthipedia.play.net/Concept%3ADwarves",
+        "https://elanthipedia.play.net/Facial_Hair"
+      ],
+      "reviewer": "Codex technical-art audit",
+      "decision": "approved",
+      "notes": "Clearly female and Dwarven at card size; robust proportions, mountain-citadel setting, master-crafted armor, and a shorter ornamented beard with metal and gem details. Replaces the human-male-reading studio portrait reported in GitHub issue 107."
+    },
+    "s-kra-mur-female": {
+      "file": "public/portraits/s-kra-mur-female.webp",
+      "dimensions": [256, 376],
+      "sha256": "1A2D19D2817868A101DE114A3FE03D89338A3C4D975195381147C9B6C242F05B",
+      "pixelReviewed": true,
+      "cardCrop": "pass",
+      "radarCrop": "pass",
+      "loreReferences": [
+        "https://elanthipedia.play.net/S%27Kra_Mur",
+        "https://elanthipedia.play.net/Category:S%27Kra_Mur"
+      ],
+      "reviewer": "Codex technical-art audit",
+      "decision": "approved",
+      "notes": "Clearly reptilian at native card size and in the face crop: continuous scales, slit pupil, non-mammalian cranial structure, and a visible snout. Feminine costuming does not replace species anatomy. Reviewed beside s-kra-mur-male.webp."
+    },
+    "prydaen-male": {
+      "file": "public/portraits/prydaen-male.webp",
+      "dimensions": [256, 376],
+      "sha256": "873166427C40E837FD899BA1485160C0A104C45DB27624E34F78223E69A3747F",
+      "pixelReviewed": true,
+      "cardCrop": "pass",
+      "radarCrop": "pass",
+      "loreReferences": [
+        "https://elanthipedia.play.net/Prydaen",
+        "https://elanthipedia.play.net/Category:Prydaen"
+      ],
+      "reviewer": "Codex technical-art audit",
+      "decision": "approved",
+      "notes": "Clearly feline at native card size and in the face crop: full facial fur, muzzle, feline nose, slit pupils, mobile ears, and mane remain visible without relying on costume. Reviewed beside prydaen-female.webp."
+    },
+    "gor-tog-female": {
+      "file": "public/portraits/gor-tog-female.webp",
+      "dimensions": [256, 376],
+      "sha256": "432C030C91FA8E042438E1F5957DD6A75A31FEF23146412378BB6688AB8C757C",
+      "pixelReviewed": true,
+      "cardCrop": "pass",
+      "radarCrop": "pass",
+      "loreReferences": [
+        "https://elanthipedia.play.net/Gor%27Tog",
+        "https://elanthipedia.play.net/Category:Gor%27Tog"
+      ],
+      "reviewer": "Codex technical-art audit",
+      "decision": "approved",
+      "notes": "Green skin, heavy facial structure, thick neck, and broad powerful shoulders read as Gor'Tog at both runtime crops. Both visible ears are rounded with no elf-like point. Reviewed beside gor-tog-male.webp."
+    }
+  },
+  "contactSheetReview": {
+    "status": "approved",
+    "scope": "All 22 core race/sex defaults in public/portraits/manifest.json",
+    "reviewer": "Codex technical-art audit",
+    "reviewedAt": "2026-09-02",
+    "pairReviews": {
+      "dwarf": { "assets": ["dwarf-female.webp", "dwarf-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/Concept%3ADwarves", "https://elanthipedia.play.net/Facial_Hair"], "notes": "Both read as compact, robust mountain Dwarves; the female replacement also passed its dedicated card and radar crop review." },
+      "elf": { "assets": ["elf-female.webp", "elf-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/Elf", "https://elanthipedia.play.net/Category:Elves"], "notes": "Both retain the shared long-eared, fine-featured Elven read at card size despite different camera distances." },
+      "elothean": { "assets": ["elothean-female.webp", "elothean-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/Elothean", "https://elanthipedia.play.net/Category:Elotheans"], "notes": "Both share the high-forehead, restrained, scholarly Elothean visual language; neither is confused with a non-human anatomy class." },
+      "gnome": { "assets": ["gnome-female.webp", "gnome-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/Gnome", "https://elanthipedia.play.net/Category:Gnomes"], "notes": "Both read as the same small-statured, large-eyed Gnome population in the runtime crops." },
+      "gor-tog": { "assets": ["gor-tog-female.webp", "gor-tog-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/Gor%27Tog", "https://elanthipedia.play.net/Category:Gor%27Tog"], "notes": "Both show green skin, rounded ears, heavy builds, and body-revealing framing. The female replacement also passed dedicated card and radar crop review." },
+      "halfling": { "assets": ["halfling-female.webp", "halfling-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/Halfling", "https://elanthipedia.play.net/Category:Halflings"], "notes": "Both retain a small-statured Halfling read and coherent pastoral material language." },
+      "human": { "assets": ["human-female.webp", "human-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/Human", "https://elanthipedia.play.net/Category:Humans"], "notes": "Both provide neutral Human defaults without borrowing the defining anatomy of another playable race." },
+      "kaldar": { "assets": ["kaldar-female.webp", "kaldar-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/Kaldar", "https://elanthipedia.play.net/Category:Kaldar"], "notes": "Both carry the tall, martial Kaldaran presentation; lighting and costume vary without changing the underlying people." },
+      "prydaen": { "assets": ["prydaen-female.webp", "prydaen-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/Prydaen", "https://elanthipedia.play.net/Category:Prydaen"], "notes": "Both are unmistakably furred and feline with visible muzzles, feline ears, and mane language. The male replacement passed dedicated card and radar crop review." },
+      "rakash": { "assets": ["rakash-female.webp", "rakash-male.webp"], "decision": "approved-with-form-variation", "loreReferences": ["https://elanthipedia.play.net/Rakash", "https://elanthipedia.play.net/Category:Rakash"], "notes": "The Human-like female and moonskin male are an intentional display of Rakash form variation, not a species-fidelity failure." },
+      "s-kra-mur": { "assets": ["s-kra-mur-female.webp", "s-kra-mur-male.webp"], "decision": "approved", "loreReferences": ["https://elanthipedia.play.net/S%27Kra_Mur", "https://elanthipedia.play.net/Category:S%27Kra_Mur"], "notes": "Both are unmistakably scaled and reptilian with non-mammalian head structures. The female replacement passed dedicated card and radar crop review." }
+    },
+    "notes": "All core defaults were inspected together from the shipped pixels. Pair approval records species identity; changed assets additionally carry immutable hashes and explicit card/radar crop results above."
+  }
+}

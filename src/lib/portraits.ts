@@ -94,14 +94,23 @@ function stableIndex(seed: string, length: number): number {
 }
 
 /** What this character chose, if anything. Keyed by name so alts differ. */
-export function chosenFor(character: string): string | null {
+const identity = (character: string, instance: string) => `${instance.toLowerCase()}\u0000${character.toLowerCase()}`
+
+export function chosenFor(character: string, instance = 'Prime'): string | null {
   const all = readJSON<Record<string, string>>(KEY, {})
-  return all[character] ?? null
+  return all[identity(character, instance)] ?? all[character] ?? null
 }
 
-export function choose(character: string, key: string): void {
+export function choose(character: string, instance: string, key: string): void {
   const all = readJSON<Record<string, string>>(KEY, {})
-  all[character] = key
+  all[identity(character, instance)] = key
+  writeJSON(KEY, all)
+}
+
+export function resetChoice(character: string, instance: string): void {
+  const all = readJSON<Record<string, string>>(KEY, {})
+  delete all[identity(character, instance)]
+  delete all[character]
   writeJSON(KEY, all)
 }
 
@@ -114,11 +123,12 @@ export function choose(character: string, key: string): void {
  */
 export function portraitFor(opts: {
   character: string
+  instance?: string
   look?: string
   race?: string
   sex?: 'male' | 'female'
 }): string | null {
-  const chosen = chosenFor(opts.character)
+  const chosen = chosenFor(opts.character, opts.instance)
   if (chosen) return chosen
 
   const all = catalogue()

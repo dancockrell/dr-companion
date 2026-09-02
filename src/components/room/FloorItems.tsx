@@ -4,7 +4,8 @@ import { cn } from '../../lib/cn'
 import { nounOf } from '../../lib/room'
 import { useRoomItemTake } from '../../lib/useRoomItemTake'
 import { useDragScroll } from '../../lib/useDragScroll'
-import { sendGame } from '../../lib/gameLink'
+import { requestGameAction } from '../../lib/gameActions'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
  * The floor, as its own row — pulled off the battle board itself
@@ -112,13 +113,14 @@ export function FloorItems({
           </span>
         )}
         <div
+          {...scrollableRegionProps('Items on the ground', mode === 'glance' ? 'horizontal' : 'vertical')}
           ref={drag.ref}
           onPointerDown={drag.onPointerDown}
           onPointerMove={drag.onPointerMove}
           onPointerUp={drag.onPointerUp}
           onPointerCancel={drag.onPointerCancel}
           className={cn(
-            'no-scrollbar flex min-h-0 min-w-0 flex-1 touch-none gap-1',
+            'flex min-h-0 min-w-0 flex-1 gap-1',
             mode === 'glance' ? 'overflow-x-auto' : 'flex-wrap content-start overflow-y-auto pr-1',
             drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
           )}
@@ -167,10 +169,10 @@ export function FloorItems({
         return (
           <div className="flex flex-wrap items-center gap-1 rounded border border-accent/45 bg-surface-overlay/90 p-1.5 text-xs shadow-lg backdrop-blur" aria-label={`Actions for ${selected}`}>
             <strong className="mr-1 min-w-0 flex-1 truncate text-ink" title={selected}>{selected}</strong>
-            <button type="button" onClick={() => void sendGame(`look ${target}`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Look at ${selected}`}>Look</button>
+            <button type="button" onClick={() => requestGameAction(`look ${target}`, `Look at ${selected}`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Look at ${selected}`}>Look</button>
             <button type="button" disabled={!canSend} onClick={() => take(selected)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-accent disabled:opacity-40" title={reason ?? `get ${nounOf(selected)}`}>Get</button>
-            <button type="button" onClick={() => void sendGame(`appraise ${target} quick`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Quick-appraise ${selected}`}>Appraise</button>
-            <button type="button" onClick={() => void sendGame(`analyze ${target}`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Analyze ${selected}`}>Analyze</button>
+            <button type="button" onClick={() => requestGameAction(`appraise ${target} quick`, `Appraise ${selected}`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Quick-appraise ${selected}`}>Appraise</button>
+            <button type="button" onClick={() => requestGameAction(`analyze ${target}`, `Analyze ${selected}`)} className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink" title={`Analyze ${selected}`}>Analyze</button>
             <a href={wikiUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-info/40 px-1.5 py-0.5 text-info hover:bg-info/10" title={`Search Elanthipedia for ${selected}`}><BookOpen className="h-3 w-3" /> Elanthipedia <ExternalLink className="h-3 w-3" /></a>
             <button type="button" onClick={() => setSelected(null)} className="rounded p-0.5 text-ink-faint hover:text-ink" title="Close item actions" aria-label="Close item actions"><X className="h-3.5 w-3.5" /></button>
           </div>

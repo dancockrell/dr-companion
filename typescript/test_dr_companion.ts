@@ -14,7 +14,7 @@
  */
 
 import { createServer, type Socket } from 'node:net'
-import { Companion, type Line, type Status } from './dr_companion.ts'
+import { Companion, MAX_MESSAGE_BYTES, type Line, type Status } from './dr_companion.ts'
 
 let failed = 0
 function ok(label: string, cond: boolean, detail = ''): void {
@@ -151,6 +151,69 @@ async function main(): Promise<number> {
 
     c.close()
     fake.close()
+  }
+
+  // -- an app that accepts the socket and then misbehaves --------------------
+  //
+  // Both of these hung before the fix, and neither needs a hostile app: an
+  // app mid-startup, or a half-finished framing change, produces them.
+
+  {
+    console.log('\n-- the app accepts the connection and never sends hello --')
+    // connect() arms socket.setTimeout(connectTimeoutMs) and rejects on
+    // 'timeout', but that rejection belongs to the promise that already
+    // resolved when the socket connected. Before the fix nothing destroyed
+    // the socket and nothing settled the handshake read: measured hanging
+    // past 6s with connectTimeoutMs of 800.
+    const silent = createServer(() => {
+      /* accept, say nothing */
+    })
+    await new Promise<void>((r) => silent.listen(0, '127.0.0.1', () => r()))
+    const addr = silent.address()
+    if (addr === null || typeof addr === 'string') throw new Error('unexpected address')
+
+    const c = new Companion({ host: '127.0.0.1', port: addr.port, token: 'x', connectTimeoutMs: 400 })
+    const started = Date.now()
+    const outcome = await Promise.race([
+      c.connect().then(() => 'resolved', (e) => `rejected: ${String(e)}`),
+      new Promise<string>((r) => setTimeout(() => r('HUNG'), 5000)),
+    ])
+    const took = Date.now() - started
+    ok('a silent app is refused rather than awaited forever', outcome !== 'HUNG', `${took}ms`)
+    ok('and the refusal says the app sent nothing', /sent nothing/.test(outcome), outcome.slice(0, 60))
+    c.close()
+    silent.close()
+  }
+
+  {
+    console.log('\n-- the app sends bytes and never a newline --')
+    // Unbounded before the fix: a server pushing 64 KB chunks put 4,063,232
+    // characters into `buf` and connect() still never settled.
+    let pushed = 0
+    const flood = createServer((s) => {
+      const pump = () => {
+        if (pushed > 3_000_000 || s.destroyed) return
+        s.write('x'.repeat(64 * 1024))
+        pushed += 64 * 1024
+        setImmediate(pump)
+      }
+      pump()
+    })
+    await new Promise<void>((r) => flood.listen(0, '127.0.0.1', () => r()))
+    const addr = flood.address()
+    if (addr === null || typeof addr === 'string') throw new Error('unexpected address')
+
+    const c = new Companion({ host: '127.0.0.1', port: addr.port, token: 'x', connectTimeoutMs: 2000 })
+    const outcome = await Promise.race([
+      c.connect().then(() => 'resolved', (e) => `rejected: ${String(e)}`),
+      new Promise<string>((r) => setTimeout(() => r('HUNG'), 8000)),
+    ])
+    ok('an unframed stream is refused', outcome !== 'HUNG', outcome.slice(0, 50))
+    ok('and the refusal names the missing newline', /newline/.test(outcome), outcome.slice(0, 70))
+    const held = (c as unknown as { buf: string }).buf?.length ?? 0
+    ok('the buffer did not grow without limit', held <= MAX_MESSAGE_BYTES * 2, `${held} chars held`)
+    c.close()
+    flood.close()
   }
 
   if (failed) {

@@ -97,6 +97,21 @@ check('Bank Street does not invent a bank complex', !deriveMapStamps({ zone: 'ba
   room(1, 'Crossing, Bank Street', 0, 0),
   room(2, 'Crossing, Bank Street', 20, 0),
 ]).some((stamp) => stamp.kind === 'service-bank'))
+const themedRooms = deriveMapStamps({ zone: 'showrooms', name: 'Market Plaza' }, [
+  room(1, 'Market Plaza, Water Room', 0, 0, ['Water Room']),
+  room(2, 'Market Plaza, Forest Room', 20, 0, ['Forest Room']),
+  room(3, 'Market Plaza, Ocean Room', 40, 0, ['Ocean Room']),
+  room(4, 'Market Plaza, River Room', 60, 0, ['River Room']),
+  room(5, 'Market Plaza, Armor Room', 80, 0, ['Armor Room']),
+  room(6, 'Market Plaza, Office', 100, 0, ['Office']),
+])
+check('themed indoor rooms do not invent outdoor geography', !themedRooms.some((stamp) => ['water', 'woodland'].includes(stamp.kind)))
+check('an armor display room does not become a giant forge', !themedRooms.some((stamp) => stamp.kind === 'service-forge'))
+check('a generic office does not become a civic monument', !themedRooms.some((stamp) => stamp.kind === 'service-civic'))
+check('a food court does not become a civic monument', !deriveMapStamps({ zone: 'food-court', name: 'Market Plaza' }, [
+  room(1, 'Market Plaza, Food Court', 0, 0, ['Food Court']),
+]).some((stamp) => stamp.kind === 'service-civic'))
+check('the real plaza context still receives settlement ink', themedRooms.some((stamp) => stamp.kind === 'settlement'))
 
 console.log('\n-- specific landscapes stay specific --')
 const repeated = (word) => [room(1, word, 0, 0), room(2, word, 10, 0), room(3, word, 20, 0)]

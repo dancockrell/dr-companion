@@ -24,9 +24,9 @@ import { MINDSTATE_LABELS, MINDSTATE_MAX, SKILL_SETS, type SkillState } from '..
  * Mindstate runs 0-34, and 34 means the pool will not take any more.
  *
  * Was re-derived here as `MINDSTATE_LABELS.length - 1`, the same value
- * `skills.ts` already exports as `MINDSTATE_MAX` and checks via
- * `isMindLocked` - a second implementation of the one number this whole
- * board is organized around, found while settling issue #73.
+ * `skills.ts` already exports as `MINDSTATE_MAX` - a second implementation
+ * of the one number this whole board is organized around, found while
+ * settling issue #73.
  */
 const LOCKED = MINDSTATE_MAX
 

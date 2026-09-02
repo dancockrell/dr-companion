@@ -7,6 +7,11 @@
  *
  *   node tools/off-classes-test.mjs
  */
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import ts from 'typescript'
+
 const store = new Map()
 globalThis.localStorage = {
   getItem: (k) => (store.has(k) ? store.get(k) : null),
@@ -14,7 +19,14 @@ globalThis.localStorage = {
   removeItem: (k) => store.delete(k),
 }
 
-const { offClasses, toggleClass } = await import('../src/lib/offClasses.ts')
+const dir = join('node_modules', '.drc-test')
+mkdirSync(dir, { recursive: true })
+const compilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }
+writeFileSync(join(dir, 'storage.mjs'), ts.transpileModule(readFileSync('src/lib/storage.ts', 'utf8'), { compilerOptions }).outputText)
+const offClassesOut = join(dir, 'offClasses.mjs')
+writeFileSync(offClassesOut, ts.transpileModule(readFileSync('src/lib/offClasses.ts', 'utf8'), { compilerOptions }).outputText.replace('./storage', './storage.mjs'))
+
+const { offClasses, toggleClass } = await import(pathToFileURL(offClassesOut).href)
 const { paint } = await import('../src/lib/highlights.ts')
 
 let failed = 0

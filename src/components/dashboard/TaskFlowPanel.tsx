@@ -58,7 +58,7 @@
  * reporting stopped while a timer kept firing underneath — cannot be written
  * here, because there is no timer to get out of step with.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   FilePlus2,
   FolderOpen,
@@ -74,35 +74,33 @@ import {
 import {
   onTaskLine,
   onTaskState,
-  pythonStatus,
   startTask,
   stopTask,
   taskState,
-  type PythonStatus,
   type TaskInfo,
 } from '../../lib/pythonTasks'
 import {
-  nodeStatus,
   onNodeTaskLine,
   onNodeTaskState,
   startNodeTask,
   stopNodeTask,
   nodeTaskState,
-  type NodeStatus,
 } from '../../lib/nodeTasks'
-import { groupTasksByCategory } from '../../lib/taskGrouping'
 import {
-  listScripts,
-  scriptDirs,
-  type ScriptDirs,
-  type ScriptFile,
+  canMoveTaskWithinCategory,
+  groupTasksByCategory,
+  moveTaskWithinCategory,
+} from '../../lib/taskGrouping'
+import {
   type ScriptLang,
 } from '../../lib/scriptFiles'
+import { refreshTaskCatalogs, useTaskCatalogs } from '../../lib/taskCatalogStatus'
 import { inferScriptIcon, type ScriptIconKey } from '../../lib/scriptIcons'
 import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
 import { iconOverrideFor, setIconOverride, clearIconOverride } from '../../lib/scriptIconOverrides'
 import { useDragScroll } from '../../lib/useDragScroll'
-import { ScriptEditor, type EditorTarget } from './ScriptEditor'
+import type { EditorTarget } from './ScriptEditor'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 import { ScriptIconPicker } from './ScriptIconPicker'
 import { onStopAll, onStartFlow } from '../../lib/flowStop'
 import { invokeTauri } from '../../lib/tauri'
@@ -113,9 +111,13 @@ import { isPinned, type QuickSwitchPin } from '../../lib/quickSwitch'
 import { MACROS, type Macro } from '../../data/macros'
 import { useMacroRunner } from '../../lib/useMacroRunner'
 import { accentForIndex, actionAccent, actionIcon } from '../../lib/battleActionVisuals'
+import { LazySurface } from '../shared/LazySurface'
+
+const ScriptEditor = lazy(() => import('./ScriptEditor').then((module) => ({ default: module.ScriptEditor })))
 
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200
+const EMPTY_SCRIPTS: import('../../lib/scriptFiles').ScriptFile[] = []
 
 /** Ruby scripts are grouped under this, after every task category - see the
  * module comment: the only thing neither catalog can already cover. */
@@ -258,10 +260,11 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   const toggleQuickSwitchPin = useAppStore((s) => s.toggleQuickSwitchPin)
   const { run: runMacro, canSend: canSendMacro, reason: macroReason } = useMacroRunner()
 
-  const [status, setStatus] = useState<PythonStatus | null>(null)
-  const [nodeSt, setNodeSt] = useState<NodeStatus | null>(null)
-  const [scripts, setScripts] = useState<ScriptFile[]>([])
-  const [dirs, setDirs] = useState<ScriptDirs | null>(null)
+  const catalogs = useTaskCatalogs()
+  const status = catalogs.python.value
+  const nodeSt = catalogs.node.value
+  const scripts = catalogs.scripts.value ?? EMPTY_SCRIPTS
+  const dirs = catalogs.dirs.value
   const [editing, setEditing] = useState<EditorTarget | null>(null)
   // A bare entry id is enough here (unlike the two-backend `start`/`stop`
   // logic below) because every Entry already carries a unique one - Python's
@@ -298,27 +301,19 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
-    const [st, nst, files, where] = await Promise.all([
-      pythonStatus(),
-      nodeStatus(),
-      listScripts(),
-      scriptDirs(),
-    ])
-    setStatus(st)
-    setNodeSt(nst)
-    setScripts(files)
-    setDirs(where)
+  const refreshRunning = useCallback(async () => {
     // Asked, never assumed. A task that exited on its own leaves no event for
     // a panel that mounted afterwards, and a remembered "running" that has
     // gone stale is indistinguishable from a live one. Checked in both
     // backends - the invariant is "at most one task, of either language,"
     // not "at most one per language," so either could be the live one.
-    const [pyState, nodeState] = await Promise.all([taskState(), nodeTaskState()])
-    if (pyState.running) {
+    const [pyResult, nodeResult] = await Promise.allSettled([taskState(), nodeTaskState()])
+    const pyState = pyResult.status === 'fulfilled' ? pyResult.value : null
+    const nodeState = nodeResult.status === 'fulfilled' ? nodeResult.value : null
+    if (pyState?.running) {
       setRunning(pyState.task)
       setActiveFlow(pyState.task)
-    } else if (nodeState.running) {
+    } else if (nodeState?.running) {
       setRunning(`ts.${nodeState.task}`)
       setActiveFlow(nodeState.task)
     } else {
@@ -327,9 +322,13 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
     }
   }, [setActiveFlow])
 
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshTaskCatalogs(), refreshRunning()])
+  }, [refreshRunning])
+
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    void refreshRunning()
+  }, [refreshRunning])
 
   useEffect(
     () =>
@@ -459,25 +458,34 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
   const tasks: TaskInfo[] = useMemo(() => status?.tasks ?? [], [status])
   const nodeTasks = useMemo(() => nodeSt?.tasks ?? [], [nodeSt])
   const rubyScripts = useMemo(() => scripts.filter((s) => s.lang === 'ruby'), [scripts])
+  const catalogErrors = [
+    catalogs.python.error ? `Python: ${catalogs.python.error}` : null,
+    catalogs.node.error ? `TypeScript: ${catalogs.node.error}` : null,
+    catalogs.scripts.error ? `Scripts: ${catalogs.scripts.error}` : null,
+    catalogs.dirs.error ? `Folders: ${catalogs.dirs.error}` : null,
+  ].filter((item): item is string => item !== null)
   const orderedTasks = useMemo(() => orderTasks(tasks, tileOrder), [tasks, tileOrder])
+  const reorderableTaskIds = useMemo(() => new Set(orderedTasks.map((task) => task.id)), [orderedTasks])
 
   // Drop `id` where `overId` currently sits, everything between the two
   // sliding over by one - the ordinary "pick it up, put it down here" a
   // dragged tile is expected to do, rather than swapping the two positions
   // and leaving a hole where the tile you dropped onto used to be.
+  //
+  // `tileOrder`/`orderTasks` only knows the Python task catalog - TypeScript
+  // (`ts.*`) and Ruby (`ruby.*`) entries never appear in `tasks`, so `next`
+  // can never contain them. Callers must not offer this for those ids (see
+  // `draggable` below); this still guards it explicitly rather than failing
+  // silently. Also refuses a move that would land a task in a different
+  // category from `overId`'s: `groupTasksByCategory` merges only consecutive
+  // same-category items, and `orderTasks` has no category awareness of its
+  // own, so a cross-category splice here would fragment that category into
+  // two separate group headers the next time it renders.
   const moveTile = useCallback(
     (id: string, overId: string) => {
-      if (id === overId) return
-      const next = orderTasks(tasks, tileOrder).map((t) => t.id)
-      const from = next.indexOf(id)
-      if (from === -1) return
-      next.splice(from, 1)
-      // Re-found after removal: taking id out shifts every later index down
-      // by one, so overId's position before the splice is not where it
-      // lands after it.
-      const to = next.indexOf(overId)
-      if (to === -1) return
-      next.splice(to, 0, id)
+      const ordered = orderTasks(tasks, tileOrder)
+      const next = moveTaskWithinCategory(ordered, id, overId)
+      if (!next) return
       setTileOrder(next)
       writeJSON(TILE_ORDER_KEY, next)
     },
@@ -594,16 +602,18 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
 
   if (editing) {
     return (
-      <ScriptEditor
-        target={editing}
-        dirs={dirs}
-        onClose={() => setEditing(null)}
-        onSaved={() => void refresh()}
-        onRun={(id, lang) => {
-          setEditing(null)
-          void (lang === 'typescript' ? startNode(id) : startPython(id))
-        }}
-      />
+      <LazySurface label="Script editor">
+        <ScriptEditor
+          target={editing}
+          dirs={dirs}
+          onClose={() => setEditing(null)}
+          onSaved={() => void refresh()}
+          onRun={(id, lang) => {
+            setEditing(null)
+            void (lang === 'typescript' ? startNode(id) : startPython(id))
+          }}
+        />
+      </LazySurface>
     )
   }
 
@@ -663,14 +673,23 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
           <button
             type="button"
             onClick={() => void refresh()}
+            disabled={catalogs.refreshing}
             title="Re-read the task catalogs and the scripts folders"
             aria-label="Re-read the task catalogs and the scripts folders"
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-ink-faint hover:text-ink"
           >
-            <RefreshCw className="h-3 w-3" />
+            <RefreshCw className={cn('h-3 w-3', catalogs.refreshing && 'animate-spin')} />
           </button>
         )}
       </div>
+
+      {catalogs.refreshing && <p role="status" className="px-1 text-xs text-ink-faint">Refreshing task and script catalogs…</p>}
+      {catalogErrors.length > 0 && (
+        <div role="alert" className="flex flex-wrap items-center gap-2 rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
+          <span>{catalogErrors.join(' · ')}</span>
+          <button type="button" className="underline" onClick={() => void refresh()}>Retry failed sources</button>
+        </div>
+      )}
 
       {filter && entries.length === 0 && (
         <p className="px-1 text-xs text-ink-faint">
@@ -679,12 +698,12 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
       )}
 
       <div
+        {...scrollableRegionProps('Functions and scripts', 'both')}
         ref={gridRef}
         className={cn(
-          'no-scrollbar min-h-0 flex-1 overflow-auto touch-none',
+          'min-h-0 flex-1 overflow-auto',
           gridDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
         )}
-        style={{ touchAction: 'none' }}
         onPointerDown={gridOnPointerDown}
         onPointerMove={gridOnPointerMove}
         onPointerUp={gridOnPointerUp}
@@ -700,6 +719,14 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
               <div className="grid grid-cols-[repeat(auto-fill,2rem)] gap-1">
                 {group.items.map((entry) => {
                   const isCommand = entry.id.startsWith('command.')
+                  // Only Python task ids ever appear in `tileOrder` (see
+                  // `moveTile`) - TypeScript and Ruby entries can be picked
+                  // up but can never actually be dropped anywhere, so don't
+                  // offer the gesture for them at all.
+                  const isReorderable = reorderableTaskIds.has(entry.id)
+                  const acceptsDraggedTile =
+                    draggingId !== null &&
+                    canMoveTaskWithinCategory(orderedTasks, draggingId, entry.id)
                   const overrideKey = isCommand ? null : iconOverrideFor(entry.id)
                   const iconKey = overrideKey ?? entry.baseIcon
                   const Icon = entry.actionKey ? actionIcon(entry.actionKey) : SCRIPT_ICON_COMPONENT[iconKey]
@@ -708,8 +735,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                     : accentForIndex(entryVisualIndex.get(entry.id) ?? 0)
                   const active = running === entry.id
                   const isDragging = draggingId === entry.id
-                  const isDropTarget =
-                    dropTargetId === entry.id && draggingId !== null && draggingId !== entry.id
+                  const isDropTarget = dropTargetId === entry.id && acceptsDraggedTile
                   // Ruby scripts are identified to the bridge by name, not by
                   // the synthetic `ruby.${name}` id this panel groups them
                   // under - see quickSwitch.ts's own header on why a pin is a
@@ -735,7 +761,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                       // button) so the reorder gesture and the pointer-based
                       // grid-scroll gesture above don't fight over the same
                       // element's events.
-                      draggable={!isCommand}
+                      draggable={isReorderable}
                       onDragStart={(e) => {
                         e.dataTransfer.effectAllowed = 'move'
                         e.dataTransfer.setData('text/plain', entry.id)
@@ -746,14 +772,16 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                         setDropTargetId(null)
                       }}
                       onDragOver={(e) => {
-                        if (!draggingId || draggingId === entry.id) return
+                        if (!acceptsDraggedTile) return
                         e.preventDefault()
                         e.dataTransfer.dropEffect = 'move'
                         setDropTargetId(entry.id)
                       }}
                       onDrop={(e) => {
-                        e.preventDefault()
-                        if (draggingId) moveTile(draggingId, entry.id)
+                        if (acceptsDraggedTile) {
+                          e.preventDefault()
+                          if (draggingId) moveTile(draggingId, entry.id)
+                        }
                         setDraggingId(null)
                         setDropTargetId(null)
                       }}
@@ -766,7 +794,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                           e.preventDefault()
                           setPickingIcon({ id: entry.id, title: entry.title, base: entry.baseIcon })
                         }}
-                        title={`${entry.tooltip}${isCommand ? '' : '\n\n(right-click to choose an icon, drag to rearrange)'}`}
+                        title={`${entry.tooltip}${isCommand ? '' : `\n\n(right-click to choose an icon${isReorderable ? ', drag to rearrange' : ''})`}`}
                         data-action={entry.actionKey}
                         data-entry-id={entry.id}
                         className={cn(

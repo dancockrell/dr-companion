@@ -39,6 +39,17 @@ const ok = (name, cond, detail = '') => {
   if (!cond) failed++
 }
 
+console.log('-- generated map metadata stays synchronized with the index --')
+{
+  const index = JSON.parse(readFileSync('src/data/map/index.json', 'utf8'))
+  const metadata = JSON.parse(readFileSync('src/data/map-metadata.json', 'utf8'))
+  ok('metadata zone count matches the searchable index', metadata.zones === index.length)
+  ok('metadata room count matches the searchable index', metadata.rooms === index.reduce((sum, zone) => sum + zone.rooms, 0))
+  const mapSource = readFileSync('src/lib/mapData.ts', 'utf8')
+  ok('the zone chunk glob excludes the searchable index', mapSource.includes("!../data/map/index.json"))
+  ok('setup metadata lives outside the zone-only directory', !mapSource.includes('map-metadata.json'))
+}
+
 const room = (over = {}) => ({
   id: 1, uid: null, title: 'A Room', x: 0, y: 0, z: 0, tags: [], ...over,
 })

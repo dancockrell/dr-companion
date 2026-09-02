@@ -62,6 +62,17 @@ import { existsSync, readFileSync } from 'node:fs'
 import { createConnection, type Socket } from 'node:net'
 import * as path from 'node:path'
 
+/**
+ * Largest run of bytes buffered while waiting for a newline.
+ *
+ * The protocol is one JSON object per line and the largest thing the app
+ * sends is a chunk of game text, so a megabyte is far above any real message
+ * and far below anything that hurts. Kept identical to
+ * `python/dr_companion.py`'s constant of the same name: two clients reading
+ * one protocol should not disagree about what is too big.
+ */
+export const MAX_MESSAGE_BYTES = 1_048_576
+
 export class ConnectionError extends Error {}
 export class NotConnected extends Error {}
 
@@ -252,6 +263,20 @@ export class Companion extends EventEmitter {
     return new Promise((resolve, reject) => {
       const onData = (chunk: Buffer) => {
         this.buf += chunk.toString('utf8')
+        // Bounded, or a peer that never sends a newline grows this until the
+        // process dies. Measured before the cap: a server pushing 64 KB
+        // chunks with no newline put 4,063,232 characters in here and
+        // connect() never settled.
+        if (this.buf.length > MAX_MESSAGE_BYTES) {
+          cleanup()
+          socket.destroy()
+          return reject(
+            new ConnectionError(
+              `no newline in the first ${this.buf.length} bytes from the app ` +
+                `(cap ${MAX_MESSAGE_BYTES}); the connection is not framed as expected`,
+            ),
+          )
+        }
         const nl = this.buf.indexOf('\n')
         if (nl === -1) return
         const line = this.buf.slice(0, nl)
@@ -268,12 +293,33 @@ export class Companion extends EventEmitter {
         cleanup()
         resolve(null)
       }
+      // connect() arms socket.setTimeout(connectTimeoutMs) and rejects on
+      // 'timeout' - but that rejection belongs to the promise that resolved
+      // the moment the socket connected, so by the handshake it is a no-op on
+      // an already-settled promise. Nothing destroyed the socket and nothing
+      // settled this promise, so an app that accepted the connection and then
+      // said nothing left connect() awaiting forever. Measured: hung past 6s
+      // with connectTimeoutMs set to 800.
+      //
+      // So the deadline has to be owned by whoever is actually waiting.
+      const onTimeout = () => {
+        cleanup()
+        socket.destroy()
+        reject(
+          new ConnectionError(
+            `the app accepted the connection but sent nothing within ${this.connectTimeoutMs}ms. ` +
+              'It may be starting up, or wedged - reconnect, or restart DR Companion.',
+          ),
+        )
+      }
       const cleanup = () => {
         socket.off('data', onData)
         socket.off('close', onClose)
+        socket.off('timeout', onTimeout)
       }
       socket.on('data', onData)
       socket.on('close', onClose)
+      socket.on('timeout', onTimeout)
     })
   }
 
@@ -282,6 +328,20 @@ export class Companion extends EventEmitter {
    * two, same reasoning as `dr_companion.py`'s own `_read_message`. */
   private onData(chunk: Buffer): void {
     this.buf += chunk.toString('utf8')
+    // Same cap as the handshake read, for the same reason: after connect()
+    // this is the only thing between a peer that stops framing and the
+    // process running out of memory. Reported through the error channel
+    // rather than thrown, because there is nobody to catch a throw here.
+    if (this.buf.length > MAX_MESSAGE_BYTES) {
+      const held = this.buf.length
+      this.buf = ''
+      this.emit(
+        'error',
+        `no newline in ${held} bytes from the app (cap ${MAX_MESSAGE_BYTES}); ` +
+          'dropped the buffer rather than growing it without limit',
+      )
+      return
+    }
     let nl: number
     while ((nl = this.buf.indexOf('\n')) !== -1) {
       const raw = this.buf.slice(0, nl)

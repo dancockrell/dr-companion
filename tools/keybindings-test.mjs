@@ -6,7 +6,8 @@
  * a sentence: a movement key firing while the player is composing a command,
  * and Escape being the one key that must reach them anyway.
  */
-import { isTypingTarget, resolveKeybinding, codeToGenieKey } from '../src/lib/keybindings.ts'
+import { installKeybindings, isInteractionTarget, isTypingTarget, resolveKeybinding, codeToGenieKey } from '../src/lib/keybindings.ts'
+import { readFileSync } from 'node:fs'
 
 let failed = 0
 const ok = (name, got, want) => {
@@ -60,10 +61,61 @@ console.log('\n-- A bound key does nothing while the player is typing --')
   ok('an unbound key while typing is still nothing', resolveKeybinding({ key: 'a', code: 'KeyA' }, true), null)
 }
 
-console.log('\n-- Escape is the one exception: it works even while typing --')
+console.log('\n-- Escape stops when gameplay owns the keyboard --')
 {
   ok('Escape while not typing stops', resolveKeybinding({ key: 'Escape', code: 'Escape' }, false), { kind: 'stop' })
-  ok('Escape while typing still stops', resolveKeybinding({ key: 'Escape', code: 'Escape' }, true), { kind: 'stop' })
+}
+
+console.log('\n-- Foreground interaction scopes suspend live-game shortcuts --')
+{
+  ok('bare Escape belongs to the foreground layer', resolveKeybinding({ key: 'Escape', code: 'Escape' }, true), null)
+  ok('NumPad movement is suspended', resolveKeybinding({ key: '8', code: 'Numpad8' }, true), null)
+  ok('Quick Switch is suspended', resolveKeybinding({ key: '1', code: 'Digit1' }, true), null)
+  ok('the distinct emergency chord remains available', resolveKeybinding({ key: 'Escape', code: 'Escape', ctrlKey: true, shiftKey: true }, true), { kind: 'stop' })
+  ok('Ctrl+Escape alone is not the emergency chord', resolveKeybinding({ key: 'Escape', code: 'Escape', ctrlKey: true }, true), null)
+}
+
+console.log('\n-- Interactive controls own gameplay-looking keys --')
+{
+  let selector = ''
+  const target = { closest: (value) => { selector = value; return { tagName: 'BUTTON' } } }
+  ok('a control detected through closest()', isInteractionTarget(target), true)
+  ok('the ownership query covers controls and foreground scopes', selector.includes('button') && selector.includes('data-gameplay-shortcuts'), true)
+  ok('a non-DOM target is not an interaction surface', isInteractionTarget({ tagName: 'DIV' }), false)
+}
+
+console.log('\n-- The installed listener respects the foreground boundary --')
+{
+  let listener
+  let foregroundOpen = true
+  let stopped = 0
+  let sent = 0
+  let switched = 0
+  globalThis.window = {
+    addEventListener: (_type, fn) => { listener = fn },
+    removeEventListener: () => {},
+  }
+  globalThis.document = {
+    querySelector: () => foregroundOpen ? {} : null,
+  }
+  const cleanup = installKeybindings({
+    sendGame: () => { sent++ },
+    stopAll: () => { stopped++ },
+    quickSwitch: () => { switched++ },
+  })
+  const fire = (event) => listener({ preventDefault: () => {}, target: null, ctrlKey: false, shiftKey: false, ...event })
+  fire({ key: 'Escape', code: 'Escape' })
+  fire({ key: '8', code: 'Numpad8' })
+  fire({ key: '1', code: 'Digit1' })
+  ok('one foreground Escape causes zero Stop All calls', stopped, 0)
+  ok('foreground movement sends zero game commands', sent, 0)
+  ok('foreground digits cause zero Quick Switch calls', switched, 0)
+  fire({ key: 'Escape', code: 'Escape', ctrlKey: true, shiftKey: true })
+  ok('the emergency chord invokes Stop All exactly once', stopped, 1)
+  foregroundOpen = false
+  fire({ key: 'Escape', code: 'Escape' })
+  ok('bare Escape resumes after the foreground closes', stopped, 2)
+  cleanup()
 }
 
 console.log('\n-- Digit1..Digit9 switch Quick Switch slots, zero-indexed --')
@@ -92,7 +144,7 @@ console.log('\n-- Digit1..Digit9 switch Quick Switch slots, zero-indexed --')
 // exactly once, cleaned up on unmount — is verified live in a browser
 // against the running app instead, which is the only place "the real
 // window" actually exists. Everything decided by resolveKeybinding and
-// isTypingTarget above it, which is where the actual logic lives, is
+// interaction ownership above it, which is where the actual logic lives, is
 // covered here.
 
 console.log('\n-- codeToGenieKey matches every key name Dan\'s real macros.cfg actually uses --')
@@ -114,6 +166,28 @@ console.log('\n-- codeToGenieKey refuses codes no macro in the corpus binds --')
   ok('ControlLeft is a modifier, not a key', codeToGenieKey('ControlLeft'), null)
   ok('Tab is unmapped (nothing in the file binds it)', codeToGenieKey('Tab'), null)
   ok('F13 does not exist in the observed corpus', codeToGenieKey('F13'), null)
+}
+
+console.log('\n-- Every modal uses the shared accessible focus contract --')
+{
+  const modalHook = readFileSync(new URL('../src/lib/useModalDialog.ts', import.meta.url), 'utf8')
+  for (const contract of ['role="dialog"', 'aria-modal="true"', 'aria-labelledby']) {
+    const files = [
+      'layout/SettingsSheet.tsx', 'layout/ReportDialog.tsx', 'config/ConfigManagerSheet.tsx',
+      'dashboard/ScriptIconPicker.tsx', 'shared/PinEditor.tsx', 'shared/PlayerMarkerEditor.tsx',
+    ]
+    for (const file of files) {
+      const source = readFileSync(new URL(`../src/components/${file}`, import.meta.url), 'utf8')
+      ok(`${file} exposes ${contract}`, source.includes(contract), true)
+      ok(`${file} uses the shared modal hook`, source.includes('useModalDialog'), true)
+    }
+  }
+  ok('focus wraps forward at the last control', /document\.activeElement === last/.test(modalHook), true)
+  ok('focus wraps backward at the first control', /document\.activeElement === first/.test(modalHook), true)
+  ok('the background becomes inert', /sibling\.inert = true/.test(modalHook), true)
+  ok('page scrolling is locked', /document\.body\.style\.overflow = 'hidden'/.test(modalHook), true)
+  ok('only the top modal handles keys', /stack\.at\(-1\)/.test(modalHook), true)
+  ok('focus returns to the opener', /opener\.focus\(\)/.test(modalHook), true)
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')

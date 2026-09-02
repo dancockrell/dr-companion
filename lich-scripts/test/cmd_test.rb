@@ -33,7 +33,7 @@ def dothistimeout(cmd, _timeout, regex)
 end
 
 # Load just the Cmd module out of the bridge.
-src = File.read(ARGV[0])
+src = File.read(ARGV[0], encoding: 'UTF-8')
 body = src[/module Companion.*?\n  # -+ intents --/m] or abort 'could not slice Cmd'
 eval(body.sub(/\n  # -+ intents --\z/, "\nend\n"), TOPLEVEL_BINDING, ARGV[0])
 

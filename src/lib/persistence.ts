@@ -86,6 +86,8 @@ export interface PersistedPrefs {
   /** Speech channel - someone waiting on you personally (whispers/tells). */
   speechVolume?: number
   musicVolume?: number
+  /** Master output gate; never substitutes zero for configured channel gains. */
+  masterMuted?: boolean
   /**
    * A built-in station id (see ambientSound.ts's RADIO_STATIONS) remembered
    * across restarts, so picking a station once doesn't mean re-picking it
@@ -182,6 +184,7 @@ const defaults: PersistedPrefs = {
   dangerVolume: 0,
   speechVolume: 0,
   musicVolume: 0,
+  masterMuted: false,
   favoriteStations: [],
   playlists: [],
   activePlaylistId: null,

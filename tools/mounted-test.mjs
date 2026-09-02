@@ -34,7 +34,7 @@
  * could not see that - found by hand, then reproduced here as the sabotage
  * this file's own test suite carries below, so it cannot come back silently.
  *
- * This version builds the real static-import graph and walks it from
+ * This version builds the real static-and-dynamic-import graph and walks it from
  * `main.tsx`, the app's one true root. Reachable means "on a path from the
  * entry point", not "named somewhere in the tree". ALLOWED files are
  * exempted from having to be reachable, but - this is the part the old
@@ -124,12 +124,6 @@ const ALLOWED = new Map([
       '3e95ae7d: "Freeform mode and the panel pop-out-window machinery go with Dashboard"',
   ],
   [
-    'src/components/game/GamePane.tsx',
-    '3e95ae7d: "the Game pane\'s scrolling text log read as a dead box" — its connection ' +
-      'controls moved to GameConnectionBar, its background effects to GameSignals; only the ' +
-      'visible log itself was cut',
-  ],
-  [
     'src/components/shared/Box.tsx',
     "DashboardLayout's own card frame ('everything on this dashboard that holds cards uses " +
       "it' — see its own doc comment) — dead with the dashboard, no other caller",
@@ -187,7 +181,7 @@ function resolveImport(fromFile, spec) {
   return candidates.find((c) => sources.has(c)) ?? null
 }
 
-const IMPORT_RE = /from\s+'([^']+)'/g
+const IMPORT_RE = /(?:from\s+|import\s*\()\s*['"]([^'"]+)['"]/g
 
 function importsOf(file) {
   const text = sources.get(file) ?? ''
@@ -273,6 +267,23 @@ console.log('\n-- the allowlist is a list of decisions, not a dumping ground --'
     ([, why]) => !why || why.length < 12
   )
   ok('every entry carries a reason', unreasoned.length === 0, unreasoned.map(([f]) => f).join(', '))
+}
+
+console.log('\n-- critical connection controls have one owner --')
+{
+  const owners = [...sources.entries()]
+    .filter(([, text]) =>
+      text.includes("const PORT_KEY = 'drc.attach-port.v2'") &&
+      text.includes('attachGame(Number(port))') &&
+      text.includes('detachGame()')
+    )
+    .map(([file]) => file)
+
+  ok(
+    'one component owns attach, detach, and port selection',
+    owners.length === 1,
+    owners.join(', ') || 'no owner found'
+  )
 }
 
 console.log('\n-- sabotage: a two-file dead chain must still be caught --')

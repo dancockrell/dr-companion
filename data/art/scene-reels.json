@@ -11,18 +11,19 @@
       "visualAttributes": ["shadowed-daylight","thorn-barricade","smashed-passage","claw-scarred-tree","forward-dolly","painterly"],
       "sourceAnchor": {"creationReference":"jUP5IZWLD0","asset":"/room-scenes/curated-hostile-brambles.jpg"},
       "sourceVideo": {"creationReference":"YMoTDHJWeC","sha256":"304802ba7a67f8ca59aa4e37f78d85a0f830192fcaab0414af67b35a1050e55c","model":"Kling 2.1","resolution":"720p","durationSeconds":5,"aspectRatio":"16:9","credits":275},
+      "runtimeSelection": {"zone":"6","roomRanges":[[26,35],[38,38],[40,40],[44,44],[48,49],[58,58],[65,65],[67,79],[85,92],[269,270],[272,272],[274,285],[290,292],[294,294],[296,301]],"roomsPerFrame":3},
       "prompt": "Dense hostile thorn brambles in a shadowed temperate forest, a ragged broken opening ahead, churned earth, and a massive claw-scarred tree with amber sap. Camera moves slowly straight forward at adult walking height through the opening, constant speed, fixed level view, zero pan, zero tilt, zero roll, no cuts. Preserve exact geography, lighting, palette, and painterly texture; no morphing, new paths, structures, people, creatures, text, signature, watermark, or audio.",
       "extraction": {"sampleFps":12,"candidateCount":61,"perceptualHashDistance":20,"admittedCount":8,"runtimeFormat":"webp","runtimeQuality":90},
       "supersedes": ["/rooms/6-26.webp","/room-scenes/curated-hostile-brambles.jpg"],
       "frames": [
-        {"path":"/room-scenes/brambles-walk-01.webp","timestampSeconds":0.667,"sharpness":159.339,"exposure":0.401,"perceptualHash":"7df0bdf0bff1bff9b3fd1bd8078800ac0028000800080f803fe07fb003800000"},
-        {"path":"/room-scenes/brambles-walk-02.webp","timestampSeconds":1.333,"sharpness":190.117,"exposure":0.398,"perceptualHash":"7df03df0bff8bffcb3fc1bcc058c00ac002c000c00080b803fe0fff05f100380"},
-        {"path":"/room-scenes/brambles-walk-03.webp","timestampSeconds":1.917,"sharpness":211.807,"exposure":0.400,"perceptualHash":"7df03df8bff8fffc33fc1bcc158c00a400240004000001007fe07ff0fbb01700"},
-        {"path":"/room-scenes/brambles-walk-04.webp","timestampSeconds":2.500,"sharpness":230.572,"exposure":0.405,"perceptualHash":"7df83df87ffcfffe31fc1bcc048400a400340004000400041fe07fe07bf09f10"},
-        {"path":"/room-scenes/brambles-walk-05.webp","timestampSeconds":2.917,"sharpness":248.713,"exposure":0.410,"perceptualHash":"7df83df87ffe7bfe31f609c4048400a600360004000000001fe07fe0fff0f9b8"},
-        {"path":"/room-scenes/brambles-walk-06.webp","timestampSeconds":3.667,"sharpness":270.004,"exposure":0.418,"perceptualHash":"7dfc79fc7ffe7bfe31d601c60086002200360006000200023fa09fe0fff0f7d0"},
-        {"path":"/room-scenes/brambles-walk-07.webp","timestampSeconds":4.167,"sharpness":279.385,"exposure":0.423,"perceptualHash":"7dfc79fe7fff7bff31d601c200830003003300020000000003803fe0ff60ffd8"},
-        {"path":"/room-scenes/brambles-walk-08.webp","timestampSeconds":4.667,"sharpness":296.489,"exposure":0.426,"perceptualHash":"7dfc79ff7bff7bff31d301c300830013001300030001000100113fa0bf70ff68"}
+        {"path":"/scene-art/reels/brambles/01.webp","timestampSeconds":0.667,"sharpness":159.339,"exposure":0.401,"perceptualHash":"7df0bdf0bff1bff9b3fd1bd8078800ac0028000800080f803fe07fb003800000"},
+        {"path":"/scene-art/reels/brambles/02.webp","timestampSeconds":1.333,"sharpness":190.117,"exposure":0.398,"perceptualHash":"7df03df0bff8bffcb3fc1bcc058c00ac002c000c00080b803fe0fff05f100380"},
+        {"path":"/scene-art/reels/brambles/03.webp","timestampSeconds":1.917,"sharpness":211.807,"exposure":0.400,"perceptualHash":"7df03df8bff8fffc33fc1bcc158c00a400240004000001007fe07ff0fbb01700"},
+        {"path":"/scene-art/reels/brambles/04.webp","timestampSeconds":2.500,"sharpness":230.572,"exposure":0.405,"perceptualHash":"7df83df87ffcfffe31fc1bcc048400a400340004000400041fe07fe07bf09f10"},
+        {"path":"/scene-art/reels/brambles/05.webp","timestampSeconds":2.917,"sharpness":248.713,"exposure":0.410,"perceptualHash":"7df83df87ffe7bfe31f609c4048400a600360004000000001fe07fe0fff0f9b8"},
+        {"path":"/scene-art/reels/brambles/06.webp","timestampSeconds":3.667,"sharpness":270.004,"exposure":0.418,"perceptualHash":"7dfc79fc7ffe7bfe31d601c60086002200360006000200023fa09fe0fff0f7d0"},
+        {"path":"/scene-art/reels/brambles/07.webp","timestampSeconds":4.167,"sharpness":279.385,"exposure":0.423,"perceptualHash":"7dfc79fe7fff7bff31d601c200830003003300020000000003803fe0ff60ffd8"},
+        {"path":"/scene-art/reels/brambles/08.webp","timestampSeconds":4.667,"sharpness":296.489,"exposure":0.426,"perceptualHash":"7dfc79ff7bff7bff31d301c300830013001300030001000100113fa0bf70ff68"}
       ]
     }
   ]

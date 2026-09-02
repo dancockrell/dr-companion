@@ -6,21 +6,9 @@
  * the crowded case, because a resolver that cannot converge would hang a drag
  * handler rather than merely misplace a box.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
-import ts from 'typescript'
+import { readFileSync } from 'node:fs'
 
-const dir = mkdtempSync(join(tmpdir(), 'free-'))
-const out = join(dir, 'freeLayout.js')
-writeFileSync(
-  out,
-  ts.transpileModule(readFileSync('src/lib/freeLayout.ts', 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText
-)
-const m = await import(pathToFileURL(out).href)
+const m = await import('../src/lib/freeLayout.ts')
 
 let fails = 0
 const check = (label, got, want) => {
@@ -126,6 +114,21 @@ ok('and the move still happened', moved.x === 0 && moved.y === 0, JSON.stringify
 // inventing a value here would write one into every saved layout.
 const none = m.clampToBounds({ x: 0, y: 0, w: 200, h: 100 }, BOUNDS)
 ok('a rect with no z does not invent one', none.z === undefined, JSON.stringify(none))
+
+console.log('\n-- keyboard manipulation matches pointer capabilities --')
+const keyboardStart = { x: 100, y: 100, w: 300, h: 200, z: 2 }
+ok('keyboard moves horizontally', m.adjustKeyboardRect(keyboardStart, 'move-right', BOUNDS).x === 110)
+ok('keyboard moves vertically', m.adjustKeyboardRect(keyboardStart, 'move-down', BOUNDS).y === 110)
+ok('keyboard resizes width', m.adjustKeyboardRect(keyboardStart, 'grow-width', BOUNDS).w === 310)
+ok('keyboard resizes height', m.adjustKeyboardRect(keyboardStart, 'grow-height', BOUNDS).h === 210)
+ok('keyboard can bring a panel forward', m.adjustKeyboardRect(keyboardStart, 'bring-forward', BOUNDS).z === 3)
+ok('keyboard can send a panel backward', m.adjustKeyboardRect(keyboardStart, 'send-backward', BOUNDS).z === 1)
+const keyboardClamped = m.adjustKeyboardRect({ x: 0, y: 0, w: m.MIN_W, h: m.MIN_H }, 'shrink-width', BOUNDS)
+ok('keyboard resizing obeys minimum and bounds', keyboardClamped.w === m.MIN_W && keyboardClamped.x === 0, JSON.stringify(keyboardClamped))
+
+const canvasSource = readFileSync('src/components/dashboard/FreeCanvas.tsx', 'utf8')
+ok('keyboard mode has explicit save and cancel paths', /e\.key === 'Enter'/.test(canvasSource) && /e\.key === 'Escape'/.test(canvasSource) && /changes cancelled/.test(canvasSource))
+ok('keyboard mode announces geometry without moving focus', /role="status"/.test(canvasSource) && /aria-live="polite"/.test(canvasSource) && /aria-pressed/.test(canvasSource))
 
 console.log(fails ? `\n${fails} failed` : '\nall passed')
 process.exit(fails ? 1 : 0)

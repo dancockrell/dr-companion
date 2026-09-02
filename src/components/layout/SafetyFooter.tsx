@@ -36,13 +36,25 @@
  * made for living here rather than in a scrollable panel.
  */
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop'
-import { SoundControls } from '../game/SoundControls'
 import { MusicTransport } from '../game/MusicTransport'
 import { isLowHealth } from '../../lib/vitals'
 import { requestOpenSoundPanel } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
+
+const SoundControls = lazy(() => import('../game/SoundControls').then((module) => ({ default: module.SoundControls })))
+
+// Same material language as the shared Button component: a hairline top
+// highlight and bottom shadow so a filled button reads as struck metal
+// rather than a flat colour swatch. These buttons predate that component and
+// carry their own safety-specific behaviour (never disabled, sized to
+// content, etc.), so the classes are copied in rather than routed through it.
+const BUTTON_BEVEL =
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.28)]'
+const FOCUS_RING =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
 export function SafetyFooter() {
   const requestIntent = useAppStore((s) => s.requestIntent)
@@ -103,10 +115,12 @@ export function SafetyFooter() {
         <button
           type="button"
           className={cn(
-            'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold',
+            'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
+            BUTTON_BEVEL,
+            FOCUS_RING,
             lowHealth
-              ? 'bg-danger/90 text-white hover:bg-danger'
-              : 'bg-accent text-surface hover:bg-accent-soft'
+              ? 'bg-danger/90 text-white border border-black/20 hover:bg-danger'
+              : 'bg-accent text-surface border border-accent-soft/60 hover:bg-accent-soft'
           )}
           title={
             lowHealth
@@ -129,7 +143,10 @@ export function SafetyFooter() {
       {character && townRunAvailable && (
         <button
           type="button"
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink"
+          className={cn(
+            'flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted transition-colors hover:border-ink-faint hover:bg-surface-overlay hover:text-ink',
+            FOCUS_RING
+          )}
           title="Bank, repair, restock"
           onClick={() => requestIntent('town_run')}
         >
@@ -140,7 +157,11 @@ export function SafetyFooter() {
 
       <button
         type="button"
-        className="flex min-w-[7.5rem] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-danger/90 px-3 py-2 text-sm font-semibold text-white hover:bg-danger"
+        className={cn(
+          'flex min-w-[7.5rem] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-danger/90 px-3 py-2 text-sm font-semibold text-white transition-colors border border-black/20 hover:bg-danger',
+          BUTTON_BEVEL,
+          FOCUS_RING
+        )}
         title="Stop every script the Companion started (or press Escape, anywhere)"
         onClick={() => {
           requestIntent('stop_all')
@@ -156,7 +177,10 @@ export function SafetyFooter() {
       </button>
       <button
         type="button"
-        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink"
+        className={cn(
+          'flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted transition-colors hover:border-ink-faint hover:bg-surface-overlay hover:text-ink',
+          FOCUS_RING
+        )}
         title="Hold automation where it is"
         onClick={() => {
           requestIntent('pause')
@@ -170,7 +194,10 @@ export function SafetyFooter() {
       </button>
       <button
         type="button"
-        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted hover:bg-surface-overlay hover:text-ink"
+        className={cn(
+          'flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-ink-muted transition-colors hover:border-ink-faint hover:bg-surface-overlay hover:text-ink',
+          FOCUS_RING
+        )}
         title="Carry on from where it paused"
         onClick={() => {
           requestIntent('resume')
@@ -313,7 +340,9 @@ export function SafetyFooter() {
             scrollable panel is a control you lose the moment that panel
             scrolls off, and this bar is the one place that's always part of
             the window. */}
-        <SoundControls />
+        <Suspense fallback={<span className="text-xs text-ink-faint" role="status">Loading sound…</span>}>
+          <SoundControls />
+        </Suspense>
       </div>
     </footer>
   )

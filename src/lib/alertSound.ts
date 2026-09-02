@@ -15,6 +15,7 @@
  */
 import { invokeTauri, isTauri } from './tauri'
 import { alertGate, GLOBAL_MS, type AlertChannel } from './alertGate'
+import { effectiveAudioGain, masterMuted } from './audioMaster.ts'
 
 export type { AlertChannel } from './alertGate'
 
@@ -158,7 +159,7 @@ async function load(name: string): Promise<HTMLAudioElement | null> {
  */
 export function playAlert(name: string, cls?: string) {
   const { channel, throttleMs, throttleKey } = alertGate(name, cls)
-  const vol = volumes[channel]
+  const vol = effectiveAudioGain(volumes[channel])
   if (vol <= 0 || !name) return
 
   const now = Date.now()
@@ -169,7 +170,7 @@ export function playAlert(name: string, cls?: string) {
   lastPlayed.set(throttleKey, now)
 
   void load(name).then((audio) => {
-    if (!audio) return
+    if (!audio || masterMuted()) return
     try {
       // Rewound rather than a fresh element per play. Two alerts a second
       // apart otherwise leave two objects behind, and over an evening that is

@@ -56,9 +56,10 @@ const RULES: Array<{
   icon: PinIcon
   color: PinColor
   pattern: RegExp
+  excludePattern?: RegExp
 }> = [
   { kind: 'healer', label: 'Healer', icon: 'hospital', color: 'green', pattern: /\b(healer|empath|hospital|triage|infirmary|herbal remed)/i },
-  { kind: 'justice', label: 'Court, jail, or constabulary', icon: 'scale', color: 'red', pattern: /\b(court|courthouse|justice|constab\w*|magistrate|jail|gaol|prison|guard office)/i },
+  { kind: 'justice', label: 'Court, jail, or constabulary', icon: 'scale', color: 'red', pattern: /\b(court|courthouse|justice|constab\w*|magistrate|jail|gaol|prison|guard office)\b/i, excludePattern: /\bfood\s+court\b/i },
   { kind: 'post', label: 'Post, records, or registry', icon: 'scroll-text', color: 'blue', pattern: /\b(post office|registry|registrar|records office|clerk'?s office|licensing)/i },
   { kind: 'office', label: 'Public office', icon: 'building', color: 'slate', pattern: /\b(office|bureau|administration|administrative|reception|secretary)/i },
   { kind: 'bank', label: 'Bank or vault', icon: 'landmark', color: 'blue', pattern: /\b(bank|teller|vault|exchange|depository|carousel)\b/i },
@@ -99,9 +100,9 @@ export function landmarksFor(room: MapZoneRoom): MapLandmark[] {
   const hits = RULES.map((rule) => ({
     rule,
     score:
-      (rule.pattern.test(authored) ? (rule.kind === 'shop' || rule.kind === 'craft' ? 2 : 6) : 0) +
-      (rule.pattern.test(subject) ? (rule.kind === 'shop' || rule.kind === 'craft' ? 1 : 3) : 0) +
-      (rule.pattern.test(travel) ? 7 : 0) +
+      (rule.pattern.test(authored) && !rule.excludePattern?.test(authored) ? (rule.kind === 'shop' || rule.kind === 'craft' ? 2 : 6) : 0) +
+      (rule.pattern.test(subject) && !rule.excludePattern?.test(subject) ? (rule.kind === 'shop' || rule.kind === 'craft' ? 1 : 3) : 0) +
+      (rule.pattern.test(travel) && !rule.excludePattern?.test(travel) ? 7 : 0) +
       ((room.gateway && ['travel', 'dock', 'portal'].includes(rule.kind)) ? 2 : 0),
   }))
     .filter(({ score }) => score > 0)

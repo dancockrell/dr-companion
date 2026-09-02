@@ -72,6 +72,49 @@ for (const ink of inks) {
   }
 }
 
+console.log('')
+console.log('-- scrollbars belong to the warm interface on every engine --')
+const scrollbarTokens = ['scrollbar-thumb', 'scrollbar-hover', 'scrollbar-active']
+for (const token of scrollbarTokens) {
+  const color = palette[token]
+  check(`${token} is a named theme color`, Boolean(color))
+  if (!color) continue
+  for (const bg of [...surfaces, 'map-ground']) {
+    const background = bg === 'map-ground'
+      ? css.match(/--map-ground:\s*(#[0-9a-fA-F]{6})/)?.[1]
+      : palette[bg]
+    if (!background) continue
+    const ratio = contrast(color, background)
+    check(`${token} visible on ${bg}`, ratio >= 3, `${ratio.toFixed(2)}:1${ratio >= 3 ? '' : ' (needs 3)'}`)
+  }
+}
+check(
+  'retired blue-grey scrollbar literals are gone',
+  !/#2a3142|#3a4255/i.test(css)
+)
+check(
+  'Firefox and WebView receive the same scrollbar tokens',
+  css.includes('scrollbar-color: var(--color-scrollbar-thumb) transparent') &&
+    css.includes('background: var(--color-scrollbar-thumb)')
+)
+console.log('-- global chrome follows motion preferences --')
+const reducedMotion = css.match(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]+)\}\s*$/)?.[1] ?? ''
+check('reduced-motion policy exists', Boolean(reducedMotion))
+check(
+  'reduced motion stops repeated animation',
+  /animation-iteration-count:\s*1\s*!important/.test(reducedMotion)
+)
+check(
+  'reduced motion removes transition travel time',
+  /transition-duration:\s*0\.01ms\s*!important/.test(reducedMotion)
+)
+check(
+  'reduced motion removes decorative press and hover transforms',
+  reducedMotion.includes('[class*="hover:-translate-y"]') &&
+    reducedMotion.includes('[class*="active:scale-"]') &&
+    /transform:\s*none\s*!important/.test(reducedMotion)
+)
+
 // --- the type floor ---------------------------------------------------------
 
 console.log('')
@@ -173,7 +216,7 @@ for (const { ink, pct, where } of [...used.values()]) {
 // --- the game pane header must stay able to shrink ---------------------------
 
 console.log('')
-console.log('-- the game pane header can shrink, so Attach stays reachable --')
+console.log('-- the game connection header can shrink, so Attach stays reachable --')
 
 // This bug was found twice, independently, within a day: the header's control
 // group - scrollback search, port box, Clear, Attach - left the pane in a
@@ -192,13 +235,13 @@ console.log('-- the game pane header can shrink, so Attach stays reachable --')
 // measurement proves; that was done across 1400/1300/1250/1200/1150/1120/
 // 1100/1050/1000/900 and is clean. What this catches is the one-word edit
 // that quietly reopens it.
-const gamePane = readFileSync('src/components/game/GamePane.tsx', 'utf8')
-const headerRow = gamePane
+const connectionBar = readFileSync('src/components/game/GameConnectionBar.tsx', 'utf8')
+const headerRow = connectionBar
   .split('\n')
   .find((l) => l.includes('border-b border-border') && l.includes('items-center') && l.includes('className'))
 
 check(
-  'GamePane.tsx still has a header row to check',
+  'GameConnectionBar.tsx still has a header row to check',
   Boolean(headerRow),
   headerRow ? '' : 'no line matched - this check has stopped looking at anything'
 )

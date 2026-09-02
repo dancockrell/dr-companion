@@ -10,21 +10,9 @@
  * would flip back and forth on a one-pixel resize, which is exactly the
  * jitter this model exists to remove.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
-import ts from 'typescript'
+import { readFileSync } from 'node:fs'
 
-const dir = mkdtempSync(join(tmpdir(), 'dock-'))
-const out = join(dir, 'dock.js')
-writeFileSync(
-  out,
-  ts.transpileModule(readFileSync('src/lib/dock.ts', 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText
-)
-const m = await import(pathToFileURL(out).href)
+const m = await import('../src/lib/dock.ts')
 
 let fails = 0
 const ok = (label, cond, detail = '') => {
@@ -76,6 +64,13 @@ ok('total unchanged', Math.abs(s1.reduce((a, b) => a + b, 0) - 1200) < 0.01, '')
 console.log('\n-- a boundary drag never forces a fold --')
 const shoved = m.moveBoundary(three, 0, 99999, 1200)
 ok('neighbour keeps the minimum', m.measure(shoved, 1200)[1] >= m.MIN_REGION - 0.01, JSON.stringify(m.measure(shoved, 1200).map(Math.round)))
+
+console.log('\n-- dock boundaries expose the shared keyboard separator contract --')
+const dockView = readFileSync('src/components/dashboard/DockView.tsx', 'utf8')
+ok('boundaries are keyboard-focusable separators', /role="separator"/.test(dockView) && /tabIndex=\{0\}/.test(dockView), '')
+ok('boundaries publish orientation, range, and current value', /aria-orientation/.test(dockView) && /aria-valuemin/.test(dockView) && /aria-valuemax/.test(dockView) && /aria-valuenow/.test(dockView), '')
+ok('arrows and limits use the same clamped moveBoundary path', /'ArrowLeft', 'ArrowRight'/.test(dockView) && /'ArrowUp', 'ArrowDown'/.test(dockView) && /'Home', 'End'/.test(dockView) && /onChange\(moveBoundary/.test(dockView), '')
+ok('vertical pointer boundaries read clientY', /horizontal \? e\.clientX : e\.clientY/.test(dockView), '')
 
 console.log(fails ? `\n${fails} failed` : '\nall passed')
 process.exit(fails ? 1 : 0)

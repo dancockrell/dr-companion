@@ -32,23 +32,27 @@ import {
 } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
-import { isTauri, invokeTauri } from '../../lib/tauri'
+import { isTauri } from '../../lib/tauri'
 import { MapCanvas } from './MapCanvas'
 import { useMapDock, setMapDock, ZOOM_MIN, ZOOM_MAX } from '../../lib/mapDock'
 import { useMapViewport } from '../../lib/useMapViewport'
 import { PlaceSearch } from './PlaceSearch'
 import { useZoneBrowsing } from '../../lib/useZoneBrowsing'
+import { ZoneLoadNotice } from './ZoneLoadNotice'
 import type { PinBrush } from './PinPalette'
 import { MapToolRail } from './MapToolRail'
 import { PinEditor } from './PinEditor'
 import { RoomNudge } from './RoomNudge'
-import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
-import { exportPinsToFile, importPinsFromFile } from '../../lib/pinsFile'
-import { loadPlayerMarker, savePlayerMarker } from '../../lib/playerMarker'
+import { addPin, updatePin, removePin, pinFor, type MapPin } from '../../lib/mapPins'
+import { exportPinsToFile, readPinsImportPreview, type PinImportPreview } from '../../lib/pinsFile'
+import { PinImportDialog } from './PinImportDialog'
+import { savePlayerMarker } from '../../lib/playerMarker'
+import { useMapPins, usePinsByRoom, usePlayerMarker } from '../../lib/useMapState'
 import { PlayerMarkerEditor } from './PlayerMarkerEditor'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../../lib/scriptFiles'
+import { closePanelWindow, openPanelWindow, usePanelWindows } from '../../lib/panelWindows'
 
 /**
  * @param plane Fill the height given rather than a fixed box. Set when the map
@@ -57,8 +61,18 @@ import { listScripts, writeScript } from '../../lib/scriptFiles'
  */
 export function MapPanel({ plane = false }: { plane?: boolean }) {
   const liveZone = useAppStore((s) => s.mapZone)
-  const { zone, browsing, zoneStack, pushZone, popZone, resetZone, goToPlace } =
-    useZoneBrowsing(liveZone)
+  const {
+    zone,
+    browsing,
+    zoneStack,
+    zoneLoading,
+    zoneLoadError,
+    retryZone,
+    pushZone,
+    popZone,
+    resetZone,
+    goToPlace,
+  } = useZoneBrowsing(liveZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
@@ -89,29 +103,11 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const [level, setLevel] = useState<number | null>(null)
   const [tall, setTall] = useState(false)
   const dock = useMapDock()
-  const poppedOut = !dock.docked
-  const setPoppedOut = (v: boolean) => setMapDock({ docked: !v })
+  const windows = usePanelWindows()
+  const poppedOut = windows.open.includes('map')
 
-  // Asked, not remembered. The map window is a separate webview with its own
-  // state, so this panel cannot know from its own memory whether a window it
-  // opened is still there or the user closed it by hand.
-  //
-  // `map_window_open`/`open_map_window`/`close_map_window` (the three
-  // map-specific commands this used to call) stopped existing on the Rust
-  // side days ago (fb381c5, "Any panel can have a window of its own") -
-  // replaced by generic ones keyed on a panel id, already wired up for
-  // every other panel through Dashboard.tsx's own popOut/popBack. This file
-  // never got the memo, so the map's own pop-out button has been silently
-  // failing since: `popOut` below caught the rejected invoke and quietly
-  // stayed docked, which is indistinguishable from "nothing to see here"
-  // instead of a broken feature. `panel_windows()` answers with which ids
-  // are currently out, not a single boolean the way the old command did.
-  useEffect(() => {
-    if (!isTauri()) return
-    void invokeTauri('panel_windows')
-      .then((ids) => setPoppedOut(Array.isArray(ids) && ids.includes('map')))
-      .catch(() => setPoppedOut(false))
-  }, [])
+  // Native lifecycle events reconcile this shared registry after manual close,
+  // while command failures retain the last known state and expose Retry.
 
   useEffect(() => {
     if (connected) bridge.requestIntent('map_zone')
@@ -129,26 +125,18 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     [path]
   )
 
-  async function popOut() {
-    try {
-      await invokeTauri('open_panel_window', { id: 'map', title: 'Map' })
-      setPoppedOut(true)
-    } catch {
-      // Leave the inline map showing rather than hiding it behind a window
-      // that never opened.
-      setPoppedOut(false)
-    }
-  }
-
-  async function popBack() {
-    try {
-      await invokeTauri('close_panel_window', { id: 'map' })
-    } finally {
-      // In the `finally`, so a close that errored still returns the inline map
-      // rather than leaving the panel pointing at a window that is not there.
-      setPoppedOut(false)
-    }
-  }
+  const popOut = () => openPanelWindow('map', 'Map')
+  const popBack = () => closePanelWindow('map')
+  const windowError = windows.errors.map
+  const windowFailure = windowError ? (
+    <button
+      type="button"
+      className="rounded border border-warn/50 bg-warn/10 px-2 py-1 text-left text-xs text-warn"
+      onClick={() => void (poppedOut ? popBack() : popOut())}
+    >
+      {windowError} Retry.
+    </button>
+  ) : null
 
   const refresh = () => bridge.requestIntent('map_zone')
 
@@ -175,6 +163,11 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   })
   const { containerRef, contentRef, x: panX, y: panY, dragging, handlers, zoomBy, fitView } = viewport
 
+  // The zone's own drawn proportions, reported by MapCanvas. Null until the
+  // first zone has rooms to measure, which is also the state where the box
+  // should behave exactly as it always did - see the container's style.
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null)
+
   // A room update must update the view, not only the red "here" marker in an
   // off-screen part of a previously panned map. Return the docked map to fit
   // when live location changes; deliberate browsing keeps its own view.
@@ -187,35 +180,25 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const addLog = useAppStore((s) => s.addLog)
 
   /**
-   * The character's own mark on the map - see playerMarker.ts. Loaded the
-   * same on-demand-from-storage way pins are (not kept only in state),
-   * `markerVersion` forcing a re-read after this component's own save the
-   * same way `pinVersion` does for pins.
+   * The character's own mark on the map - see playerMarker.ts. The shared
+   * subscribed snapshot updates after this webview's saves and after the
+   * popped-out webview writes the same persistent store.
    */
-  const [markerVersion, setMarkerVersion] = useState(0)
   const [editingMarker, setEditingMarker] = useState(false)
-  const playerMarker = useMemo(
-    () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
-    [character, markerVersion]
-  )
+  const [pinImport, setPinImport] = useState<PinImportPreview | null>(null)
+  const playerMarker = usePlayerMarker(character?.name, character?.instance)
 
   /**
    * Saved places, and the hotbar under the map that walks to them.
    *
    * Loaded per character (Home for one is not Home for another - see
-   * mapPins.ts) straight from localStorage during render rather than kept
-   * only in this component's state, so a pin added in the popped-out window
-   * shows up here too the next time either one re-renders - both windows
-   * read the same storage. `pinVersion` exists only to force a re-read after
-   * a write this component made itself, since editing a pin doesn't
-   * otherwise touch anything React tracks as having changed.
+   * mapPins.ts) through a stable external-store snapshot. Local writes notify
+   * this document immediately, while `storage` events synchronize the other
+   * webview without depending on an unrelated render.
    */
-  const [pinVersion, setPinVersion] = useState(0)
   const [pinBrush, setPinBrush] = useState<PinBrush | null>(null)
-  const { pins, pinsByRoom } = useMemo(() => {
-    const list = character ? loadPins(character.name, character.instance) : []
-    return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
-  }, [character, pinVersion])
+  const pins = useMapPins(character?.name, character?.instance)
+  const pinsByRoom = usePinsByRoom(pins)
 
   // Either a fresh pin on this room (no `existing`) or an edit of one already
   // there - one piece of state either way, since PinEditor is the same modal
@@ -273,7 +256,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         note,
       })
     }
-    setPinVersion((v) => v + 1)
     setEditingRoom(null)
   }
 
@@ -300,7 +282,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         icon: preset.icon,
       })
     }
-    setPinVersion((v) => v + 1)
   }
 
   async function doExportPins() {
@@ -314,15 +295,16 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
 
   async function doImportPins() {
     try {
-      const { imported, skipped, note } = await importPinsFromFile()
+      const { preview, note, error } = await readPinsImportPreview()
       if (note) {
         addLog(note, 'warn')
         return
       }
-      addLog(
-        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
-      )
-      setPinVersion((v) => v + 1)
+      if (error) {
+        addLog(error, 'error')
+        return
+      }
+      if (preview) setPinImport(preview)
     } catch (e) {
       addLog(String(e), 'error')
     }
@@ -346,7 +328,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   function deletePin() {
     if (!character || !editingRoom?.existing) return
     removePin(character.name, character.instance, editingRoom.existing.id)
-    setPinVersion((v) => v + 1)
     setEditingRoom(null)
   }
   if (!connected) {
@@ -371,13 +352,15 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           <button
             type="button"
             className="flex items-center gap-1 text-xs rounded border border-border px-2 py-0.5 text-ink-muted hover:text-ink"
-            onClick={popBack}
+            onClick={() => void popBack()}
+            disabled={windows.pending.map === 'closing'}
           >
             <PanelRightClose className="w-3 h-3" />
-            Bring it back
+            {windows.pending.map === 'closing' ? 'Closing…' : 'Bring it back'}
           </button>
         }
       >
+        {windowFailure}
         <p className="text-xs text-ink-faint leading-relaxed">
           Open in its own window, where it is big enough to watch.
         </p>
@@ -389,10 +372,19 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   if (!zone) {
     return (
       <Shell plane={plane} onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
-        <p className="text-xs text-ink-faint leading-relaxed">
-          Nothing asked for yet. Press refresh, or move a room and it will
-          arrive on its own.
-        </p>
+        {windowFailure}
+        <ZoneLoadNotice
+          loading={zoneLoading}
+          error={zoneLoadError}
+          onRetry={retryZone}
+          hasMap={false}
+        />
+        {!zoneLoading && !zoneLoadError && (
+          <p className="text-xs text-ink-faint leading-relaxed">
+            Nothing asked for yet. Press refresh, or move a room and it will
+            arrive on its own.
+          </p>
+        )}
       </Shell>
     )
   }
@@ -400,6 +392,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   if (!zone.ok) {
     return (
       <Shell plane={plane} onRefresh={refresh} onPopOut={isTauri() ? popOut : undefined}>
+        {windowFailure}
         <p className="text-xs text-warn leading-relaxed">
           {zone.reason ?? 'Lich has no map for where you are.'}
         </p>
@@ -510,6 +503,9 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
         </div>
       }
     >
+      {windowFailure}
+      <ZoneLoadNotice loading={zoneLoading} error={zoneLoadError} onRetry={retryZone} />
+
       <MapToolRail
         marker={character ? playerMarker : undefined}
         onCustomizeMarker={character && playerMarker ? () => setEditingMarker(true) : undefined}
@@ -529,7 +525,6 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onPin={() => pinRoom(hereId)}
           onDismiss={() => {
             if (character) dismissNudge(character.name, character.instance, hereId)
-            setPinVersion((v) => v + 1)
           }}
         />
       )}
@@ -566,18 +561,35 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           is given, and a max-height box collapses to the content's own size —
           which for a small zone is a stamp in the corner.
           In plane mode the height comes from the column instead. */}
+      <div className={plane ? 'flex min-h-0 flex-1 gap-2' : 'contents'}>
       <div
         ref={containerRef}
         title="Map colours: dark you, red hazard, blue bank/healer/guild/shop"
         className={`relative rounded ${
           `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`
-        } ${plane ? 'flex-1 min-h-0' : ''}`}
+        } ${plane ? (naturalSize ? 'h-full min-h-0' : 'flex-1 min-h-0') : ''}`}
         style={{
           // The page, behind and around the chart. Letterboxing in the app's
           // dark surface would read as the map having been cut off rather than
           // as a sheet that does not fill the box.
           background: 'var(--map-ground)',
           ...(plane ? {} : { height: tall ? 320 : 168 }),
+          // Take the width the chart actually occupies, not the whole column.
+          //
+          // `fit` preserves the zone's aspect, so a portrait zone (Crossing is
+          // 995x1148) in a landscape column drew at 54% of the width and left
+          // 351px painted as bare page - it read as a half-empty sheet rather
+          // than as space. Giving the box the zone's own aspect ratio makes
+          // the browser derive the width from the height, so the page ends
+          // where the chart does and the remainder becomes a real slot beside
+          // it. CSS derives it rather than a measured pixel width, which keeps
+          // it correct through column drags and window resizes without a
+          // second size observer. `maxWidth` matters for the opposite case: a
+          // landscape zone would otherwise demand more width than the column
+          // has, and is letterboxed vertically instead, exactly as before.
+          ...(plane && naturalSize
+            ? { aspectRatio: `${naturalSize.w} / ${naturalSize.h}`, maxWidth: '100%', flex: '0 1 auto' }
+            : {}),
           touchAction: 'none',
         }}
         onWheel={handlers.onWheel}
@@ -620,6 +632,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             level={z}
             onRoute={onRoute}
             fit
+            onNaturalSize={setNaturalSize}
             onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
             onZone={pushZone}
             trail={trail}
@@ -644,6 +657,16 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             </span>
           </div>
         )}
+      </div>
+      {/* The width the chart does not need, kept as a real slot rather than
+          spent on bare page. Deliberately empty until something earns it: an
+          empty bordered box would be chrome, and this app's own standard is
+          to draw nothing rather than draw a placeholder. It reserves the
+          space in the layout so a priority panel can land here without
+          another column negotiation. */}
+      {plane && naturalSize && (
+        <aside className="min-h-0 min-w-0 flex-1" aria-label="Reserved for a priority panel" />
+      )}
       </div>
 
       {/* The way back.
@@ -702,9 +725,15 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           onClose={() => setEditingMarker(false)}
           onSave={(m) => {
             savePlayerMarker(character.name, character.instance, m)
-            setMarkerVersion((v) => v + 1)
             setEditingMarker(false)
           }}
+        />
+      )}
+      {pinImport && (
+        <PinImportDialog
+          preview={pinImport}
+          onClose={() => setPinImport(null)}
+          onResult={addLog}
         />
       )}
     </>

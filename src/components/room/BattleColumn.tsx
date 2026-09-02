@@ -7,7 +7,7 @@ import { ClassicRoomText } from './ClassicRoomText'
 import { FloorItems } from './FloorItems'
 import { PanelBoundary } from '../shared/PanelBoundary'
 import { InventoryPanel } from '../shared/InventoryPanel'
-import { cachedRoomText, roomTextFor, type RoomText } from '../../lib/roomText'
+import { cachedRoomText, resolveRoomPresentation, roomTextFor, type RoomText } from '../../lib/roomText'
 import { useAppStore } from '../../store/useAppStore'
 import { useHighlights } from '../../lib/useHighlights'
 import { useOffClasses } from '../../lib/offClasses'
@@ -60,16 +60,22 @@ export function BattleColumn() {
   }, [connected])
 
   // The zone id the description files are keyed by. mapHere carries the room
-  // number but not the zone, so the current zone payload supplies it, and
-  // Crossing stands in before the bridge has answered — it is where a
-  // character starts and the demo opens there.
-  const zone = (zoneLive?.ok ? zoneLive.zone : null) ?? '1'
+  // number but not the zone, so a room is not a coherent art/text location
+  // until map_zone has answered too. Never combine an out-of-zone room with
+  // invented Crossing data during attach or reconnect.
+  const zone = zoneLive?.ok && zoneLive.zone ? zoneLive.zone : null
   const room = here?.id ?? null
 
   const [text, setText] = useState<RoomText | null>(null)
 
+  // The tagged game stream is the authoritative room presentation. Its nav
+  // boundary clears stale live text before the next component arrives, so
+  // this can safely fall back to the static room corpus during that gap.
+  const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
+  const liveRoom = stream.roomPresentation?.value
+
   useEffect(() => {
-    if (room === null) return setText(null)
+    if (room === null || zone === null) return setText(null)
     // The cached read first, so walking back into a room you have already been
     // in does not blank the pane for a frame while a fetch resolves.
     const cached = cachedRoomText(zone, room)
@@ -81,7 +87,12 @@ export function BattleColumn() {
     }
   }, [zone, room])
 
-  const title = here?.title ?? text?.title ?? null
+  const presentation = resolveRoomPresentation(
+    liveRoom ? { title: liveRoom.title, text: liveRoom.description } : null,
+    here?.title,
+    text
+  )
+  const { title, text: description } = presentation
 
   // A cue that you moved, not just that the picture changed. Hunting and
   // stalking mean walking through a room every few seconds — `stalk` and a
@@ -116,7 +127,6 @@ export function BattleColumn() {
   // `streamCharacterState()` already parsed this; nothing had ever
   // subscribed to it before now — see gameLink.ts's own comment on that
   // function ("the missing wire, not new parsing").
-  const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
   const exits = stream.compass?.value ?? here?.moves
 
   // Same source DashboardLayout's Battle/People boxes used to read — those
@@ -187,8 +197,9 @@ export function BattleColumn() {
   if ((character?.roundtime ?? 0) > 0 && !statusFlags.includes('roundtime')) statusFlags.push('roundtime')
 
   const you = character
-    ? {
+      ? {
         character: character.name,
+        instance: character.instance,
         race: character.race,
         sex: character.sex,
         injuries: character.injuries ?? {},
@@ -214,7 +225,7 @@ export function BattleColumn() {
           // spare pixel in a tall window; the latter left a large black void
           // beneath the actual scene. Useful spare height belongs to the
           // description and inventory below.
-          'mx-auto shrink-0 overflow-hidden rounded border border-border bg-surface-raised ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500',
+          'mx-auto shrink-0 overflow-hidden rounded border border-border bg-surface-raised ring-0 ring-accent ring-offset-2 ring-offset-surface transition-shadow duration-500 motion-reduce:transition-none',
           justArrived && 'ring-2'
         )}
         style={{ width: 'min(100%, 83.2vh)' }}
@@ -227,10 +238,11 @@ export function BattleColumn() {
             </div>
           </div>
           <RoomScene
-            zone={zone}
+            zone={zone ?? 'unknown'}
             room={room ?? 0}
+            locationReady={zone !== null && room !== null}
             title={title}
-            text={text?.text}
+            text={description}
             // The default 42vh assumes a game pane and chat log sharing the
             // rest of the column, sized to leave THEM room. This pane's other
             // occupants — status, actions, description — are all happy at
@@ -273,7 +285,7 @@ export function BattleColumn() {
           ) : (
             <ClassicRoomText
               title={title}
-              text={text?.text}
+              text={description}
               items={roomItems}
               players={character?.roomPlayers}
               exits={exits}

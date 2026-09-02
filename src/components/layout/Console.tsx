@@ -10,7 +10,7 @@
  * So: every command sent, every reply, every failed match, in one place, with
  * a Copy button because the next thing a tester does is paste it somewhere.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Terminal,
   ChevronDown,
@@ -22,7 +22,9 @@ import {
   Bug,
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
-import { ReportDialog } from './ReportDialog'
+import { LazySurface } from '../shared/LazySurface'
+
+const ReportDialog = lazy(() => import('./ReportDialog').then((module) => ({ default: module.ReportDialog })))
 
 type Filter = 'all' | 'problems' | 'game'
 
@@ -279,7 +281,7 @@ export function Console() {
         </div>
       )}
     </div>
-    {reporting && <ReportDialog onClose={() => setReporting(false)} />}
+    {reporting && <LazySurface label="Report dialog"><ReportDialog onClose={() => setReporting(false)} /></LazySurface>}
     </>
   )
 }

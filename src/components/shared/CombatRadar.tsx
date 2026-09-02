@@ -13,8 +13,10 @@ import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
 import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body'
 import type { Vital } from '../../lib/vitals'
-import { sendGame } from '../../lib/gameLink'
+import { requestGameAction } from '../../lib/gameActions'
 import { ArmorManager } from './ArmorManager'
+import { fanRadarSlots, pointOnRadar } from '../../lib/combatRadarLayout'
+import { scrollableRegionProps } from '../../lib/scrollableRegion'
 
 /**
  * The room, with everyone in it — a compass filling the whole board edge to
@@ -150,11 +152,6 @@ function angleFor(relation: string, id: string): number {
  * rather than sharing the board's width) — the *visual* center still
  * needs to sit clear of that overlay, so the caller nudges it left by
  * however much of the right edge the strip actually covers. */
-function pointOn(cx: number, cy: number, angleDeg: number, radiusPct: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180
-  return { x: cx + radiusPct * Math.cos(rad), y: cy + radiusPct * Math.sin(rad) }
-}
-
 /**
  * Pinned keys move to the front, in the order they were pinned — the most
  * recently promoted lands first, same as bringing a card to the top of a
@@ -243,12 +240,13 @@ function RosterStrip({
   const drag = useDragScroll()
   return (
     <div
+      {...scrollableRegionProps('Combat roster')}
       ref={drag.ref}
       onPointerDown={drag.onPointerDown}
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar h-full shrink-0 cursor-grab overflow-x-hidden overflow-y-auto touch-none active:cursor-grabbing ${bordered ? 'border-l border-border/60 bg-surface/85' : ''}`}
+      className={`h-full shrink-0 cursor-grab overflow-x-hidden overflow-y-auto active:cursor-grabbing ${bordered ? 'border-l border-border/60 bg-surface/85' : ''}`}
       style={{ width }}
       aria-label="Roster"
     >
@@ -266,12 +264,13 @@ function RosterColumn({ label, side, width, children }: { label: string; side: '
   const drag = useDragScroll()
   return (
     <div
+      {...scrollableRegionProps(`${label} radar cards`)}
       ref={drag.ref}
       onPointerDown={drag.onPointerDown}
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`no-scrollbar absolute top-0 z-20 cursor-grab overflow-x-hidden overflow-y-auto bg-transparent touch-none active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
+      className={`absolute top-0 z-20 cursor-grab overflow-x-hidden overflow-y-auto bg-transparent active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
       style={{ width, bottom: 'var(--radar-loot-height, 0px)' }}
       aria-label={`${label} radar cards`}
       title={label}
@@ -656,7 +655,7 @@ function InfoCard({
       <div className="flex flex-wrap gap-1 border-t border-border/60 pt-1.5">
         <button
           type="button"
-          onClick={() => void sendGame(`look ${card.noun || card.name}`)}
+          onClick={() => requestGameAction(`look ${card.noun || card.name}`, `Look at ${card.name}`)}
           className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:border-info/50 hover:text-ink"
           title={`Look at ${card.name}`}
         >
@@ -664,7 +663,7 @@ function InfoCard({
         </button>
         <button
           type="button"
-          onClick={() => void sendGame(`assess ${card.noun || card.name}`)}
+          onClick={() => requestGameAction(`assess ${card.noun || card.name}`, `Assess ${card.name}`)}
           className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:border-warn/50 hover:text-ink"
           title={`Assess ${card.name}`}
         >
@@ -781,7 +780,7 @@ function Puck({
   // here instead of skipping straight past it to a dot.
   return (
     <div
-      className={pulse ? 'animate-pulse' : ''}
+      className={pulse ? 'animate-pulse motion-reduce:animate-none' : ''}
       style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}
     >
       <CreatureArt
@@ -932,6 +931,7 @@ function YouCard({
 }: {
   you: {
     character: string
+    instance: string
     race?: string | null
     sex?: 'male' | 'female'
     injuries: Partial<Record<BodyPart, Injury>>
@@ -969,7 +969,7 @@ function YouCard({
       className="pointer-events-auto flex max-w-[15rem] items-center gap-1.5 rounded-full bg-surface/70 py-1 pl-1 pr-3 ring-1 ring-border/35 backdrop-blur-sm"
       style={{ boxShadow: '0 3px 14px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.05)' }}
     >
-      <Portrait character={you.character} race={you.race ?? undefined} sex={you.sex} size={portraitSize} shape="oval" focus="face" />
+      <Portrait character={you.character} instance={you.instance} race={you.race ?? undefined} sex={you.sex} size={portraitSize} shape="oval" focus="face" />
       <Paperdoll injuries={you.injuries} bleeding={you.bleeding} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
 
       {/* justify-start, not -center: centering a handful of short rows in a
@@ -1063,6 +1063,8 @@ export function CombatRadar({
    */
   you?: {
     character: string
+    /** Character names are only unique within a game instance. */
+    instance: string
     race?: string | null
     sex?: 'male' | 'female'
     injuries: Partial<Record<BodyPart, Injury>>
@@ -1160,29 +1162,11 @@ export function CombatRadar({
     }
   }
 
-  // Same-angle jitter: two combatants sharing one of the four cardinal
-  // angles fan out into a small grid around their shared point rather than
-  // stacking exactly on top of each other.
-  const FAN_COLS = 3
+  // Only combatants in the exact same assessed slot need fanning. Actors at
+  // different ranges in the same direction already have distinct positions
+  // and must remain centered on their real rings.
   const fanGapPct = compassWidth > 0 ? Math.max((compassPortraitPx * 1.3 * 100) / compassWidth, 5) : 8
-  const byAngle = new Map<number, Positioned[]>()
-  for (const p of positioned) {
-    const list = byAngle.get(p.angleDeg)
-    if (list) list.push(p)
-    else byAngle.set(p.angleDeg, [p])
-  }
-  const fanned = new Map<string, { x: number; y: number }>()
-  for (const group of byAngle.values()) {
-    group.forEach((p, i) => {
-      const { x, y } = pointOn(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
-      const cols = Math.min(group.length, FAN_COLS)
-      const col = i % cols
-      const row = Math.floor(i / cols)
-      const offsetX = (col - (cols - 1) / 2) * fanGapPct
-      const offsetY = row * fanGapPct
-      fanned.set(p.key, { x: x + offsetX, y: y + offsetY })
-    })
-  }
+  const fanned = fanRadarSlots(positioned, centerXPct, centerYPct, fanGapPct)
 
   // Click anything and it jumps to the top of the strip — a scrolling pile
   // of hundreds is only useful if the one you're looking for can be pulled
@@ -1232,7 +1216,7 @@ export function CombatRadar({
           disabled={attackable && !canAttack}
           onClick={onClick}
           aria-label={label}
-          className="flex shrink-0 items-center justify-center disabled:cursor-not-allowed"
+          className="flex shrink-0 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-overlay disabled:cursor-not-allowed"
           style={{ width: px, height: Math.round(px * PORTRAIT_ASPECT), opacity: dead ? 0.55 : undefined }}
         >
           <Puck card={card} px={px} ringClass={meta.ringClass} shape="rect" />
@@ -1300,7 +1284,7 @@ export function CombatRadar({
           <ArmorManager />
 
           {positioned.map((p) => {
-            const pos = fanned.get(p.key) ?? pointOn(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
+            const pos = fanned.get(p.key) ?? pointOnRadar(centerXPct, centerYPct, p.angleDeg, p.radiusPct)
             return (
               <div
                 key={p.key}

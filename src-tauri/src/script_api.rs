@@ -67,7 +67,67 @@ const PORT_FILE: &str = "script-api.port";
 /// nothing legitimate waits: the client library sends it as its first write.
 const AUTH_TIMEOUT: Duration = Duration::from_secs(2);
 
+/// A newline-delimited request/auth frame this API needs to parse is a small
+/// JSON object; nothing legitimate approaches this. Capping it means a peer
+/// that never sends `\n` (accidentally or otherwise) gets its connection
+/// dropped once its unterminated line crosses the limit, rather than growing
+/// this process's memory for as long as the socket stays open.
+const MAX_LINE_BYTES: usize = 64 * 1024;
+
 type ClientList = Arc<Mutex<Vec<(u64, TcpStream)>>>;
+
+/// Compares two strings without the short-circuit a plain `==` takes on the
+/// first mismatched byte.
+///
+/// The token this guards is otherwise the whole boundary (see the module
+/// doc's "why a token, on loopback" section) - `presented == token`'s timing
+/// leaks how many leading bytes matched to anything else on the machine that
+/// can open this socket and measure response latency.
+fn constant_time_eq(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (x, y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
+/// `BufRead::read_line`, but refusing to grow `buf` past `MAX_LINE_BYTES`
+/// while waiting for a newline that may never come.
+///
+/// `fill_buf`/`consume` are used instead of `Read::take`, which would need a
+/// fresh `BufReader` per call and could drop bytes the current one has
+/// already buffered past the line we're looking for.
+fn bounded_read_line(reader: &mut impl BufRead, buf: &mut String) -> std::io::Result<usize> {
+    buf.clear();
+    let mut total = 0usize;
+    loop {
+        let available = reader.fill_buf()?;
+        if available.is_empty() {
+            return Ok(total); // EOF
+        }
+        if let Some(pos) = available.iter().position(|&b| b == b'\n') {
+            let taken = pos + 1;
+            total += taken;
+            buf.push_str(&String::from_utf8_lossy(&available[..taken]));
+            reader.consume(taken);
+            return Ok(total);
+        }
+        total += available.len();
+        let taken = available.len();
+        buf.push_str(&String::from_utf8_lossy(available));
+        reader.consume(taken);
+        if total > MAX_LINE_BYTES {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "line exceeded the maximum length without a newline",
+            ));
+        }
+    }
+}
 
 /// 32 random bytes, hex-encoded. Compared only against what this process just
 /// wrote to disk, so no shape-validation is needed on the reading side the
@@ -137,14 +197,14 @@ fn handle_client(
 
     let mut line = String::new();
     let authed = matches!(
-        reader.read_line(&mut line),
+        bounded_read_line(&mut reader, &mut line),
         Ok(n) if n > 0
             && serde_json::from_str::<Value>(line.trim())
                 .ok()
                 .and_then(|v| {
                     let is_auth = v.get("type")?.as_str()? == "auth";
                     let presented = v.get("token")?.as_str()?.to_string();
-                    Some(is_auth && presented == token)
+                    Some(is_auth && constant_time_eq(&presented, token))
                 })
                 .unwrap_or(false)
     );
@@ -164,8 +224,7 @@ fn handle_client(
 
     let mut buf = String::new();
     loop {
-        buf.clear();
-        match reader.read_line(&mut buf) {
+        match bounded_read_line(&mut reader, &mut buf) {
             Ok(0) | Err(_) => break,
             Ok(_) => {
                 let trimmed = buf.trim();
@@ -571,6 +630,52 @@ mod tests {
         assert_eq!(seen.lock().unwrap()[0]["command"], "look");
     }
 
+    /// Sabotage for `bounded_read_line`: a peer that authenticates correctly
+    /// and then sends far more than `MAX_LINE_BYTES` with no newline must have
+    /// its connection dropped rather than have this process keep growing a
+    /// buffer for a line that will never arrive.
+    #[test]
+    fn an_unterminated_line_past_the_limit_closes_the_connection() {
+        let clients: ClientList = Arc::new(Mutex::new(Vec::new()));
+        let next_id = Arc::new(AtomicU64::new(1));
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        std::thread::spawn({
+            let clients = Arc::clone(&clients);
+            let next_id = Arc::clone(&next_id);
+            move || {
+                for stream in listener.incoming().flatten() {
+                    handle_client(stream, Arc::clone(&clients), "tok", &next_id, |_, _| {});
+                }
+            }
+        });
+
+        let (mut s, mut r) = connect(port);
+        let _ = read_json(&mut r); // hello
+        send_json(&mut s, &json!({"type": "auth", "token": "tok"})).unwrap();
+        assert_eq!(read_json(&mut r)["type"], "auth_ok");
+
+        // One byte over the cap, no newline anywhere in it.
+        let oversized = vec![b'a'; MAX_LINE_BYTES + 1];
+        s.write_all(&oversized).unwrap();
+
+        // The handler must give up and close its end rather than block
+        // forever waiting for a `\n` that was never sent.
+        let mut rest = Vec::new();
+        s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        let _ = std::io::Read::read_to_end(&mut s, &mut rest);
+
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while !clients.lock().unwrap().is_empty() && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(
+            clients.lock().unwrap().is_empty(),
+            "an oversized unterminated line must drop the client rather than sit registered forever"
+        );
+    }
+
     #[test]
     fn tokens_are_distinct_and_the_right_shape() {
         let a = generate_token();
@@ -578,5 +683,14 @@ mod tests {
         assert_ne!(a, b, "two tokens must not collide in a small sample");
         assert_eq!(a.len(), 64);
         assert!(a.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn constant_time_eq_agrees_with_ordinary_equality() {
+        assert!(constant_time_eq("abc123", "abc123"));
+        assert!(!constant_time_eq("abc123", "abc124"));
+        assert!(!constant_time_eq("abc123", "abc12"));
+        assert!(!constant_time_eq("abc123", "abc1234"));
+        assert!(constant_time_eq("", ""));
     }
 }

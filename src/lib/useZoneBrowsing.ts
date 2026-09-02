@@ -6,15 +6,38 @@
  * and watched could not follow a gateway or answer a place search at all,
  * while the small docked panel beside it could do both.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { loadZone, DEFAULT_ZONE } from './mapData'
 import type { MapZone } from '../bridge/types'
 import { bridge } from '../bridge'
 import type { PlaceHit } from './placeSearch'
+import { ZONE_INDEX } from './mapZoneIndex'
+import { createLatestRequestGate } from './recoverableLoad'
+
+export interface ZoneLoadStatus {
+  id: string
+  name: string
+  operation: 'open' | 'browse' | 'back' | 'reset'
+}
+
+export interface ZoneLoadError extends ZoneLoadStatus {
+  detail: string
+}
+
+type PendingZoneLoad = ZoneLoadStatus & {
+  apply: (zone: MapZone) => void
+}
+
+function zoneName(id: string) {
+  return ZONE_INDEX.find((zone) => zone.id === id)?.name ?? `Zone ${id}`
+}
 
 export function useZoneBrowsing(liveZone: MapZone | null) {
   const [builtZone, setBuiltZone] = useState<MapZone | null>(null)
-  const browseRequest = useRef(0)
+  const requestGate = useRef(createLatestRequestGate())
+  const retryLoad = useRef<PendingZoneLoad | null>(null)
+  const [zoneLoading, setZoneLoading] = useState<ZoneLoadStatus | null>(null)
+  const [zoneLoadError, setZoneLoadError] = useState<ZoneLoadError | null>(null)
 
   /**
    * A stack rather than a single id, because following gates without a way
@@ -25,6 +48,68 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
   const [zoneStack, setZoneStack] = useState<string[]>([])
   const browsing = zoneStack[zoneStack.length - 1] ?? null
 
+  /**
+   * Every zone transition comes through this gate. The old map remains in
+   * builtZone until the requested chunk has actually arrived, and only the
+   * newest request is allowed to commit. A failure records the exact action
+   * so Retry can repeat Back or Reset rather than merely reloading whatever
+   * happens to be visible.
+   */
+  const beginZoneLoad = useCallback(
+    (id: string, operation: ZoneLoadStatus['operation'], apply: (zone: MapZone) => void) => {
+      const status: ZoneLoadStatus = { id, name: zoneName(id), operation }
+      const request = requestGate.current.next()
+      retryLoad.current = null
+      setZoneLoadError(null)
+      setZoneLoading(status)
+
+      void (async () => {
+        try {
+          const loaded = await loadZone(id)
+          if (!loaded) throw new Error('That map is not included in this build.')
+          if (!requestGate.current.isCurrent(request)) return
+
+          apply(loaded)
+          retryLoad.current = null
+          setZoneLoadError(null)
+          setZoneLoading(null)
+        } catch (error) {
+          if (!requestGate.current.isCurrent(request)) return
+          retryLoad.current = { ...status, apply }
+          setZoneLoading(null)
+          setZoneLoadError({
+            ...status,
+            detail: error instanceof Error ? error.message : 'The map data could not be read.',
+          })
+        }
+      })()
+
+      return request
+    },
+    []
+  )
+
+  const retryZone = useCallback(() => {
+    const failed = retryLoad.current
+    if (failed) beginZoneLoad(failed.id, failed.operation, failed.apply)
+  }, [beginZoneLoad])
+
+  // Explicit Browse/Back/Reset requests are not owned by the fallback-load
+  // effect below, so they need their own unmount invalidation.
+  useEffect(
+    () => () => {
+      requestGate.current.invalidate()
+    },
+    []
+  )
+
+  function cancelPendingLoad() {
+    requestGate.current.invalidate()
+    retryLoad.current = null
+    setZoneLoading(null)
+    setZoneLoadError(null)
+  }
+
   // Lich wins when it is connected: it knows where the character actually is
   // and carries tags the shipped cartography does not. But a map that is blank
   // until you connect is a map nobody can judge, so the built zones stand in.
@@ -32,15 +117,26 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
     // Browsing wins over the live zone. Following a gate is a deliberate act
     // and the map jumping back the moment Lich sends the next room would make
     // the gates unusable.
-    if (liveZone?.ok && !browsing) return
-    let cancelled = false
-    loadZone(browsing ?? DEFAULT_ZONE).then((z) => {
-      if (!cancelled) setBuiltZone(z)
-    })
-    return () => {
-      cancelled = true
+    if (liveZone?.ok && !browsing) {
+      // The live zone is rendered directly, so no state transition is needed
+      // here. Revoke any fallback request and hide its stale retry state in
+      // the returned values below.
+      requestGate.current.invalidate()
+      retryLoad.current = null
+      return
     }
-  }, [liveZone?.ok, browsing])
+
+    const wanted = browsing ?? DEFAULT_ZONE
+    if (builtZone?.ok && builtZone.zone === wanted) return
+
+    const gate = requestGate.current
+    const request = beginZoneLoad(wanted, browsing ? 'browse' : 'open', setBuiltZone)
+    return () => {
+      // Do not cancel a newer explicit browse merely because this older
+      // effect is cleaning up after that browse changed the visible zone.
+      if (gate.isCurrent(request)) gate.invalidate()
+    }
+  }, [beginZoneLoad, browsing, builtZone?.ok, builtZone?.zone, liveZone?.ok])
 
   const zone = browsing ? builtZone : liveZone?.ok ? liveZone : builtZone
 
@@ -58,14 +154,12 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
     if (!id || id === zone?.zone) return
 
     if (id === liveZone?.zone) {
-      browseRequest.current++
+      cancelPendingLoad()
       setZoneStack([])
       return
     }
 
-    const request = ++browseRequest.current
-    void loadZone(id).then((z) => {
-      if (!z || request !== browseRequest.current) return
+    beginZoneLoad(id, 'browse', (z) => {
       setBuiltZone(z)
       setZoneStack((st) => [...st, id])
     })
@@ -78,23 +172,20 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
       return
     }
 
-    const request = ++browseRequest.current
-    void loadZone(target).then((z) => {
-      if (!z || request !== browseRequest.current) return
+    beginZoneLoad(target, 'back', (z) => {
       setBuiltZone(z)
       setZoneStack((st) => st.slice(0, -1))
     })
   }
 
   function resetZone() {
-    const request = ++browseRequest.current
     if (liveZone?.ok) {
+      cancelPendingLoad()
       setZoneStack([])
       return
     }
 
-    void loadZone(DEFAULT_ZONE).then((z) => {
-      if (!z || request !== browseRequest.current) return
+    beginZoneLoad(DEFAULT_ZONE, 'reset', (z) => {
       setBuiltZone(z)
       setZoneStack([])
     })
@@ -143,6 +234,9 @@ export function useZoneBrowsing(liveZone: MapZone | null) {
     zone,
     browsing,
     zoneStack,
+    zoneLoading: liveZone?.ok && !browsing ? null : zoneLoading,
+    zoneLoadError: liveZone?.ok && !browsing ? null : zoneLoadError,
+    retryZone,
     pushZone: browseZone,
     popZone,
     resetZone,

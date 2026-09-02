@@ -32,10 +32,9 @@
  * nothing behind any of them would be furniture nobody reads; the hint text
  * says how to fill one instead.
  */
-import { useEffect, useState } from 'react'
 import { Play, Terminal, X, type LucideIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
-import { pythonStatus, type TaskInfo } from '../../lib/pythonTasks'
+import { useTaskCatalogs } from '../../lib/taskCatalogStatus'
 import { requestStartFlow, requestStopAll } from '../../lib/flowStop'
 import { KEYBOARD_SLOTS } from '../../lib/quickSwitch'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog'
@@ -72,16 +71,8 @@ export function QuickSwitchBar() {
   // of localStorage reads), this is a Tauri invoke into a Python process.
   // A task pinned before the catalog resolves still renders — see the
   // fallback below — so there is nothing here that has to race the fetch.
-  const [tasks, setTasks] = useState<TaskInfo[]>([])
-  useEffect(() => {
-    let cancelled = false
-    void pythonStatus().then((s) => {
-      if (!cancelled) setTasks(s.tasks)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const catalogs = useTaskCatalogs()
+  const tasks = catalogs.python.value?.tasks ?? []
 
   const runningScripts = new Set(
     scriptStates
@@ -118,8 +109,11 @@ export function QuickSwitchBar() {
         Icon: Play,
         title: task?.title ?? pin.id,
         summary:
-          task?.summary ??
-          "This task's details haven't loaded from the bridge yet — press to try it anyway.",
+          task?.summary ?? (catalogs.python.error
+            ? `Task lookup failed: ${catalogs.python.error}. Open Functions & Scripts to retry.`
+            : catalogs.python.state === 'loading'
+              ? 'Task details are loading — press to try it anyway.'
+              : 'This task is no longer in the Python catalog.'),
         active,
         onClick: () => (active ? requestStopAll() : requestStartFlow(pin.id)),
         footer: (keyed, i) =>

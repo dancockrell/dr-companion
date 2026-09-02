@@ -23,10 +23,13 @@ import { PinEditor } from './shared/PinEditor'
 import { RoomNudge } from './shared/RoomNudge'
 import { PlaceSearch } from './shared/PlaceSearch'
 import { useZoneBrowsing } from '../lib/useZoneBrowsing'
-import { loadPins, addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
-import { exportPinsToFile, importPinsFromFile } from '../lib/pinsFile'
-import { loadPlayerMarker, savePlayerMarker } from '../lib/playerMarker'
+import { ZoneLoadNotice } from './shared/ZoneLoadNotice'
+import { addPin, updatePin, removePin, pinFor, type MapPin } from '../lib/mapPins'
+import { exportPinsToFile, readPinsImportPreview, type PinImportPreview } from '../lib/pinsFile'
+import { savePlayerMarker } from '../lib/playerMarker'
+import { useMapPins, usePinsByRoom, usePlayerMarker } from '../lib/useMapState'
 import { PlayerMarkerEditor } from './shared/PlayerMarkerEditor'
+import { PinImportDialog } from './shared/PinImportDialog'
 import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../lib/pinNudge'
 import { uniqueTaskName, pinTaskSource } from '../lib/pinTaskGenerator'
 import { listScripts, writeScript } from '../lib/scriptFiles'
@@ -36,8 +39,18 @@ import { useMapViewport } from '../lib/useMapViewport'
 
 export function MapWindow() {
   const liveZone = useAppStore((s) => s.mapZone)
-  const { zone, browsing, zoneStack, pushZone, popZone, resetZone, goToPlace } =
-    useZoneBrowsing(liveZone)
+  const {
+    zone,
+    browsing,
+    zoneStack,
+    zoneLoading,
+    zoneLoadError,
+    retryZone,
+    pushZone,
+    popZone,
+    resetZone,
+    goToPlace,
+  } = useZoneBrowsing(liveZone)
   const path = useAppStore((s) => s.mapPath)
   const connected = useAppStore((s) => s.bridgeConnected)
   const connectBridge = useAppStore((s) => s.connectBridge)
@@ -104,12 +117,9 @@ export function MapWindow() {
   const hereId = useAppStore((s) => s.mapHere?.id ?? null)
 
   /** The character's own mark on the map - see playerMarker.ts and MapPanel.tsx's matching state. */
-  const [markerVersion, setMarkerVersion] = useState(0)
   const [editingMarker, setEditingMarker] = useState(false)
-  const playerMarker = useMemo(
-    () => (character ? loadPlayerMarker(character.name, character.instance) : undefined),
-    [character, markerVersion]
-  )
+  const [pinImport, setPinImport] = useState<PinImportPreview | null>(null)
+  const playerMarker = usePlayerMarker(character?.name, character?.instance)
 
   const onRoute = useMemo(
     () => new Set((path?.ok ? (path.rooms ?? []) : []).map((r) => r.id)),
@@ -118,15 +128,11 @@ export function MapWindow() {
 
   // Same pin store as the docked panel (see MapPanel.tsx) - a separate
   // webview with its own JavaScript context, but the same localStorage, so a
-  // pin added in either window is there the next time this one re-renders.
-  // Read straight from storage during render; pinVersion exists only to
-  // force a re-read after a write this window made itself.
-  const [pinVersion, setPinVersion] = useState(0)
+  // pin added in either window arrives through the subscribed storage view.
+  // Same-document writes notify directly; the other webview uses `storage`.
   const [pinBrush, setPinBrush] = useState<PinBrush | null>(null)
-  const { pins, pinsByRoom } = useMemo(() => {
-    const list = character ? loadPins(character.name, character.instance) : []
-    return { pins: list, pinsByRoom: new Map(list.map((p) => [p.roomId, p])) }
-  }, [character, pinVersion])
+  const pins = useMapPins(character?.name, character?.instance)
+  const pinsByRoom = usePinsByRoom(pins)
 
   const [editingRoom, setEditingRoom] = useState<{ id: number; title: string; existing?: MapPin } | null>(
     null
@@ -167,7 +173,6 @@ export function MapWindow() {
         note,
       })
     }
-    setPinVersion((v) => v + 1)
     setEditingRoom(null)
   }
 
@@ -186,7 +191,6 @@ export function MapWindow() {
         icon: preset.icon,
       })
     }
-    setPinVersion((v) => v + 1)
   }
 
   /** Save/load pins as a shared file - see pinsFile.ts and MapPanel.tsx's matching pair. */
@@ -200,15 +204,16 @@ export function MapWindow() {
   }
   async function doImportPins() {
     try {
-      const { imported, skipped, note } = await importPinsFromFile()
+      const { preview, note, error } = await readPinsImportPreview()
       if (note) {
         addLog(note, 'warn')
         return
       }
-      addLog(
-        `Imported ${imported} pin${imported === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''} from dr-companion-pins.yaml`
-      )
-      setPinVersion((v) => v + 1)
+      if (error) {
+        addLog(error, 'error')
+        return
+      }
+      if (preview) setPinImport(preview)
     } catch (e) {
       addLog(String(e), 'error')
     }
@@ -229,7 +234,6 @@ export function MapWindow() {
   function deletePin() {
     if (!character || !editingRoom?.existing) return
     removePin(character.name, character.instance, editingRoom.existing.id)
-    setPinVersion((v) => v + 1)
     setEditingRoom(null)
   }
 
@@ -374,6 +378,13 @@ export function MapWindow() {
             capable of the same trip planning. */}
         <PlaceSearch here={zone?.zone} onPick={goToPlace} onZone={pushZone} />
 
+        <ZoneLoadNotice
+          loading={zoneLoading}
+          error={zoneLoadError}
+          onRetry={retryZone}
+          hasMap={!!zone?.ok}
+        />
+
         {browsing && (
           <div className="flex items-center gap-1 text-xs">
             <button
@@ -415,7 +426,6 @@ export function MapWindow() {
             onPin={() => pinRoom(hereId)}
             onDismiss={() => {
               if (character) dismissNudge(character.name, character.instance, hereId)
-              setPinVersion((v) => v + 1)
             }}
           />
         )}
@@ -506,9 +516,15 @@ export function MapWindow() {
           onClose={() => setEditingMarker(false)}
           onSave={(m) => {
             savePlayerMarker(character.name, character.instance, m)
-            setMarkerVersion((v) => v + 1)
             setEditingMarker(false)
           }}
+        />
+      )}
+      {pinImport && (
+        <PinImportDialog
+          preview={pinImport}
+          onClose={() => setPinImport(null)}
+          onResult={addLog}
         />
       )}
     </>

@@ -31,8 +31,8 @@
  * ambientSound.ts's own headers for the same reasoning applied at the
  * engine level. The per-row mute button is a convenience on top of that, not
  * a second source of truth: it just remembers the last level you had before
- * you clicked it, the same way the whole-panel quick-mute button already did
- * for all four channels at once.
+ * you clicked it. Whole-panel mute is deliberately different: it is a master
+ * output gate and never rewrites any of these four configured values.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio, Search, Siren, Skull, MessageCircle, Music2, Star, X, ListMusic, Plus, Check, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
@@ -85,6 +85,7 @@ import { loadPrefs, savePrefs, type FavoriteStation } from '../../lib/persistenc
 import { favoriteStations, onFavoritesChange, toggleFavorite, removeFavorite } from '../../lib/favorites'
 import { onOpenSoundPanelRequest } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
+import { masterMuted, onMasterMuteChange, setMasterMuted } from '../../lib/audioMaster'
 import { MusicTransport } from './MusicTransport'
 
 /** Search results cap - the pool is 178 tracks (29 Aug 2026: down from 217
@@ -185,12 +186,14 @@ function TrackRow({
   onPlay,
   inTarget,
   onToggleTarget,
+  targetName,
 }: {
   t: SearchableTrack
   active: boolean
   onPlay: () => void
   inTarget?: boolean
   onToggleTarget?: () => void
+  targetName?: string
 }) {
   return (
     <div
@@ -203,11 +206,16 @@ function TrackRow({
         <button
           type="button"
           className={cn(
-            'shrink-0 rounded p-0.5',
-            inTarget ? 'text-accent' : 'text-ink-faint opacity-0 hover:text-accent group-hover:opacity-100'
+            'shrink-0 rounded p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-accent',
+            inTarget ? 'text-accent' : 'text-ink-faint hover:text-accent'
           )}
           onClick={onToggleTarget}
           title={inTarget ? `Remove "${t.title}" from this playlist` : `Add "${t.title}" to this playlist`}
+          aria-label={
+            inTarget
+              ? `Remove ${t.title} from ${targetName ?? 'the target playlist'}`
+              : `Add ${t.title} to ${targetName ?? 'the target playlist'}`
+          }
         >
           {inTarget ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
         </button>
@@ -329,6 +337,7 @@ export function SoundControls() {
   // want" instead of a dropdown per row. Defaults to the most recently
   // created playlist once one exists.
   const [addTargetId, setAddTargetId] = useState<string | null>(null)
+  const addTargetName = userPlaylists.find((playlist) => playlist.id === addTargetId)?.name
   const [showAllTracks, setShowAllTracks] = useState(false)
   // Keep the target pointed at a playlist that still exists - falls back to
   // the most recently created one (newest last, same order favorites.ts's
@@ -396,50 +405,18 @@ export function SoundControls() {
   // used it.
   const wrapperRef = useRef<HTMLDivElement | null>(null)
 
-  /**
-   * Levels saved the instant quick-mute is pressed, so pressing it again
-   * restores exactly where things were rather than some remembered default.
-   * `null` means not currently muted-via-this-button; muting every slider
-   * to 0 by hand is a different, equally valid path this button does not
-   * try to detect.
-   */
-  const [preMute, setPreMute] = useState<{
-    alerts: number
-    danger: number
-    speech: number
-    music: number
-  } | null>(null)
-
-  const applyAll = (v: { alerts: number; danger: number; speech: number; music: number }) => {
-    setAlerts(v.alerts)
-    setDanger(v.danger)
-    setSpeech(v.speech)
-    setMusic(v.music)
-    setAlertsVolume(v.alerts)
-    setDangerVolume(v.danger)
-    setSpeechVolume(v.speech)
-    setMusicVolume(v.music)
-    savePrefs({
-      alertsVolume: v.alerts,
-      dangerVolume: v.danger,
-      speechVolume: v.speech,
-      musicVolume: v.music,
-    })
-  }
+  const [quickMuted, setQuickMuted] = useState(() => loadPrefs().masterMuted ?? masterMuted())
+  useEffect(() => onMasterMuteChange(setQuickMuted), [])
 
   const toggleQuickMute = () => {
-    if (preMute) {
-      applyAll(preMute)
-      setPreMute(null)
-    } else {
-      setPreMute({ alerts, danger, speech, music })
-      applyAll({ alerts: 0, danger: 0, speech: 0, music: 0 })
-    }
+    const next = !quickMuted
+    setMasterMuted(next)
+    savePrefs({ masterMuted: next })
   }
 
   // Per-channel mute: remembers the level a channel was at before muting it
   // and restores exactly that on the next click, same contract as the
-  // whole-panel quick-mute button but scoped to one channel. A channel
+  // per-channel control and intentionally separate from the master gate. A channel
   // already at 0% - whether from this button or a slider dragged down by
   // hand - has nothing of its own to restore, so it falls back to a level
   // worth actually hearing rather than un-muting to silence.
@@ -545,7 +522,11 @@ export function SoundControls() {
       setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape' && !(e.ctrlKey && e.shiftKey)) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setOpen(false)
+      }
     }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
@@ -582,16 +563,16 @@ export function SoundControls() {
   const overallPct = Math.round(((alerts + danger + speech + music) / 4) * 100)
 
   return (
-    <div ref={wrapperRef} className="relative flex items-center gap-0.5">
+    <div ref={wrapperRef} className="relative flex items-center gap-0.5" data-gameplay-shortcuts={open ? 'suspend' : undefined}>
       {/* Quick mute: one click, not open-panel-then-drag-two-sliders-to-zero. */}
       <button
         type="button"
-        className={cn('rounded px-1.5 py-0.5', preMute ? 'text-warn' : 'text-ink-faint hover:text-ink')}
+        className={cn('rounded px-1.5 py-0.5', quickMuted ? 'text-warn' : 'text-ink-faint hover:text-ink')}
         onClick={toggleQuickMute}
-        title={preMute ? 'Unmute (restores previous levels)' : 'Mute everything'}
-        aria-label={preMute ? 'Unmute (restores previous levels)' : 'Mute everything'}
+        title={quickMuted ? 'Unmute (configured levels are preserved)' : 'Mute everything'}
+        aria-label={quickMuted ? 'Unmute (configured levels are preserved)' : 'Mute everything'}
       >
-        {preMute ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+        {quickMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
       </button>
 
       <button
@@ -792,6 +773,7 @@ export function SoundControls() {
                       onPlay={() => playSearchTrack(t)}
                       inTarget={addTargetId ? isTrackInPlaylist(addTargetId, t.id) : undefined}
                       onToggleTarget={addTargetId ? () => toggleTrackInPlaylist(addTargetId, t.id) : undefined}
+                      targetName={addTargetName}
                     />
                   ))
                 )}
@@ -835,9 +817,10 @@ export function SoundControls() {
                         </button>
                         <button
                           type="button"
-                          className="shrink-0 rounded p-0.5 text-ink-faint opacity-0 hover:text-warn group-hover:opacity-100"
+                          className="shrink-0 rounded p-0.5 text-ink-faint outline-none hover:text-warn focus-visible:ring-2 focus-visible:ring-accent"
                           onClick={() => removeFavorite(f.kind, f.id)}
                           title={`Remove ${f.name} from favorites`}
+                          aria-label={`Remove ${f.name} from favorites`}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -900,17 +883,19 @@ export function SoundControls() {
                               'shrink-0 rounded p-0.5',
                               addTargetId === p.id
                                 ? 'text-accent'
-                                : 'text-ink-faint opacity-0 hover:text-accent group-hover:opacity-100'
+                                : 'text-ink-faint hover:text-accent'
                             )}
                             onClick={() => setAddTargetId(p.id)}
                             title={addTargetId === p.id ? 'Adding tracks to this playlist' : `Add tracks to "${p.name}"`}
+                            aria-label={addTargetId === p.id ? `${p.name} is the playlist-building target` : `Add tracks to ${p.name}`}
                           >
                             <Pencil className="h-3 w-3" />
                           </button>
                           <button
                             type="button"
-                            className="shrink-0 rounded p-0.5 text-ink-faint opacity-0 hover:text-warn group-hover:opacity-100"
+                            className="shrink-0 rounded p-0.5 text-ink-faint outline-none hover:text-warn focus-visible:ring-2 focus-visible:ring-accent"
                             onClick={() => {
+                              if (!confirm(`Delete playlist “${p.name}” and its ${p.trackIds.length} saved track${p.trackIds.length === 1 ? '' : 's'}?`)) return
                               // Ask the engine directly rather than trusting
                               // `active` (this component's own, possibly
                               // stale, copy) - deleting the playlist that's
@@ -921,6 +906,7 @@ export function SoundControls() {
                               deletePlaylist(p.id)
                             }}
                             title={`Delete "${p.name}"`}
+                            aria-label={`Delete ${p.name}`}
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -1039,8 +1025,9 @@ export function SoundControls() {
                     <button
                       type="button"
                       onClick={() => toggleBuiltinFavorite(s.id, s.name)}
-                      className={cn('shrink-0 p-0.5', favorited ? 'text-accent' : 'text-ink-faint opacity-0 hover:text-accent group-hover:opacity-100')}
+                      className={cn('shrink-0 rounded p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-accent', favorited ? 'text-accent' : 'text-ink-faint hover:text-accent')}
                       title={favorited ? `Remove ${s.name} from favorites` : `Save ${s.name} to favorites`}
+                      aria-label={favorited ? `Remove ${s.name} from favorites` : `Save ${s.name} to favorites`}
                     >
                       <Star className={cn('h-3 w-3', favorited && 'fill-current')} />
                     </button>
@@ -1181,6 +1168,7 @@ export function SoundControls() {
                           onPlay={() => playSearchTrack(t)}
                           inTarget={addTargetId ? isTrackInPlaylist(addTargetId, t.id) : undefined}
                           onToggleTarget={addTargetId ? () => toggleTrackInPlaylist(addTargetId, t.id) : undefined}
+                          targetName={addTargetName}
                         />
                       ))}
                     </div>

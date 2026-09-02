@@ -19,7 +19,7 @@ import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
 import { loadPrefs } from '../../lib/persistence'
-import { useDismiss } from '../../lib/useDismiss'
+import { useModalDialog } from '../../lib/useModalDialog'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -31,6 +31,10 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const setBridgeMode = useAppStore((s) => s.setBridgeMode)
   const connectBridge = useAppStore((s) => s.connectBridge)
   const clearLog = useAppStore((s) => s.clearLog)
+  const demoLowHealth = useAppStore((s) => s.demoLowHealth)
+  const demoCombat = useAppStore((s) => s.demoCombat)
+  const demoSafe = useAppStore((s) => s.demoSafe)
+  const demoBrokenPattern = useAppStore((s) => s.demoBrokenPattern)
   const openSetup = useAppStore((s) => s.openSetup)
   const trainFocus = useAppStore((s) => s.trainFocus)
   const toggleTrainFocus = useAppStore((s) => s.toggleTrainFocus)
@@ -51,19 +55,25 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // it and does not report it back; the select would otherwise sit on its
   // default while the app showed somebody else.
   const [demoPreset, setDemoPreset] = useState(() => loadPrefs().demoPreset ?? 'basic_prime')
-  useDismiss(onClose)
+  const dialogRef = useModalDialog(onClose)
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-3"
+      data-gameplay-shortcuts="suspend"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        tabIndex={-1}
         className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold text-ink">Settings</h2>
+          <h2 id="settings-title" className="text-sm font-semibold text-ink">Settings</h2>
           <button
             type="button"
             className="p-1 rounded-md text-ink-faint hover:text-ink"
@@ -438,6 +448,47 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             >
               Clear activity log
             </button>
+
+            {/* Mock-only: index.ts's bridge facade already no-ops these
+                against a live connection (there's nothing to "simulate" once
+                a real character exists), so this only needs to hide, not
+                disable. simulateBrokenPattern's own comment says it "needs
+                to be reachable in demo mode so the report flow can be
+                exercised before anyone is in game" - it wasn't reachable
+                anywhere. Same for the other three: simulateCombat's comment
+                cites the StatusBoard chips it exists to exercise. */}
+            {bridgeMode === 'mock' && (
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted hover:text-ink"
+                  onClick={() => demoLowHealth()}
+                >
+                  Demo: low health
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted hover:text-ink"
+                  onClick={() => demoCombat()}
+                >
+                  Demo: combat
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted hover:text-ink"
+                  onClick={() => demoSafe()}
+                >
+                  Demo: safe
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-ink-muted hover:text-ink"
+                  onClick={() => demoBrokenPattern()}
+                >
+                  Demo: broken pattern
+                </button>
+              </div>
+            )}
           </section>
 
           {/* Version numbers. Not a lecture: players know the rules of their

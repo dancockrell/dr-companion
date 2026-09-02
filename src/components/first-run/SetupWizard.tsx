@@ -21,7 +21,7 @@
  */
 // Counted from the data rather than typed into a label. The hardcoded figure
 // was wrong within a day of being written.
-import MAP_INDEX from '../../data/map/index.json'
+import MAP_METADATA from '../../data/map-metadata.json'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, FolderOpen } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
@@ -57,9 +57,7 @@ type Phase = 'checking' | 'plan' | 'browser'
  * page communicates less than an honest row of dashes.
  */
 function mapSummary(): string {
-  const zones = MAP_INDEX.length
-  const rooms = MAP_INDEX.reduce((n, z) => n + z.rooms, 0)
-  return `${zones} zones, ${rooms.toLocaleString()} rooms, built in`
+  return `${MAP_METADATA.zones} zones, ${MAP_METADATA.rooms.toLocaleString()} rooms, built in`
 }
 
 const BROWSER_DEPS: Dep[] = [

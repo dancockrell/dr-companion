@@ -28,6 +28,7 @@ reqwest = { version = "0.12", default-features = false, features = [
   "http2",
 ] }
 sha2 = "0.11"
+base64 = "0.23"
 # git blob hashing, to verify files that ship in a repo rather than a release
 sha1 = "0.11"
 # One thing: OS randomness for the script API's connection token

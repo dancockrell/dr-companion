@@ -92,7 +92,7 @@ module Script
 end
 
 # Load the bridge, minus its entry-point block (which reads Script.current.vars).
-src = File.read(ARGV[0])
+src = File.read(ARGV[0], encoding: 'UTF-8')
 src = src.split('# -------------------------------------------------------------------- entry --').first
 eval(src, TOPLEVEL_BINDING, ARGV[0])
 

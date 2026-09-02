@@ -74,11 +74,22 @@
   --color-danger: #d2635a;
   --color-info: #7ba3c4;
 
+  /* Scrollbar hardware, in the same aged-metal family as panel borders and
+     controls. These remain visible against both ink surfaces and the pale
+     cartographer sheet without resurrecting the discarded blue-grey theme. */
+  --color-scrollbar-thumb: #746a55;
+  --color-scrollbar-hover: #796f59;
+  --color-scrollbar-active: #806536;
+
   --font-sans: "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 * {
   box-sizing: border-box;
+  /* Firefox. `.no-scrollbar` below still opts individual grab-scroll regions
+     out, while ordinary reading panes remain visibly scrollable. */
+  scrollbar-color: var(--color-scrollbar-thumb) transparent;
+  scrollbar-width: thin;
 }
 
 html, body, #root {
@@ -90,9 +101,11 @@ body {
   font-family: var(--font-sans);
   background: var(--color-surface);
   color: var(--color-ink);
+  scrollbar-color: var(--color-scrollbar-thumb) transparent;
+  scrollbar-width: thin;
 }
 
-/* Subtle scrollbar for dark UI */
+/* Warm, tokenized scrollbar for WebView2 / Chromium. */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -101,24 +114,30 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a3142;
+  background: var(--color-scrollbar-thumb);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a4255;
+  background: var(--color-scrollbar-hover);
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--color-scrollbar-active);
 }
 
-/* Opt out of the scrollbar above entirely — for the battle board's corner
- * panes (CombatRadar.tsx), which sit directly over a room picture and grab
- * their own scroll by drag instead. A permanently visible scrollbar track
- * there reads as chrome laid over the room; the pane still scrolls by
- * wheel or trackpad exactly as before, just without a visible rail. */
+/* Reserved for compact decorative strips that have an explicit alternate
+ * navigation model. Gameplay reading and command regions must use the shared
+ * scrollable-region contract and keep the themed native scrollbar visible. */
 .no-scrollbar {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* old Edge */
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, new Edge */
+}
+
+[data-scrollable-region]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 /* Nothing in this window blinks.
@@ -132,3 +151,29 @@ body {
  * If something needs attention it changes colour, and if it needs attention
  * when nobody is looking at the window it makes a sound. There is no third
  * case that animation solves. */
+
+/* The normal interface still uses short transitions to preserve spatial
+ * continuity. When the player asks the OS to reduce motion, that preference
+ * owns every CSS animation and transition—including utility classes added in
+ * future components. Static transforms are deliberately preserved: the map,
+ * centered tooltips, and other positioned content use them for layout. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* These utility-driven transforms are purely tactile decoration rather
+   * than layout. Remove the state change itself, not merely its easing. */
+  [class*="hover:-translate-y"]:hover,
+  [class*="active:translate-y"]:active,
+  [class*="active:scale-"]:active {
+    transform: none !important;
+  }
+}
