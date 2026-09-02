@@ -784,7 +784,7 @@ export function TaskFlowPanel({ dense = false, title }: { dense?: boolean; title
                         data-action={entry.actionKey}
                         data-entry-id={entry.id}
                         className={cn(
-                          'flex h-8 w-8 items-center justify-center overflow-hidden rounded border transition duration-150 hover:-translate-y-px hover:brightness-125 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0',
+                          'flex h-8 w-8 items-center justify-center overflow-hidden rounded border transition duration-150 hover:-translate-y-px hover:brightness-125 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35 disabled:saturate-0',
                           active
                             ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface'
                             : entry.readOnly

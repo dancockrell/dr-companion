@@ -50,6 +50,11 @@ check(
   /button:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--color-accent\)[^}]*outline-offset:\s*2px/s.test(css),
   'src/index.css must protect buttons that do not use the shared Button component'
 )
+check(
+  'raw buttons receive the shared 150ms state transition',
+  /button\s*\{[^}]*transition-property:[^}]*background-color[^}]*transform[^}]*transition-duration:\s*150ms/s.test(css),
+  'raw buttons must not snap while the shared Button component eases'
+)
 const palette = Object.fromEntries(
   [...css.matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [
     m[1],
@@ -119,6 +124,13 @@ check(
   reducedMotion.includes('[class*="hover:-translate-y"]') &&
     reducedMotion.includes('[class*="active:scale-"]') &&
     /transform:\s*none\s*!important/.test(reducedMotion)
+)
+const battleActions = readFileSync('src/components/room/BattleActionBar.tsx', 'utf8')
+const taskFlow = readFileSync('src/components/dashboard/TaskFlowPanel.tsx', 'utf8')
+check(
+  'frequent action decks use the shared subtle press depth',
+  [battleActions, taskFlow].every((source) => source.includes('active:scale-[0.98]')) &&
+    ![battleActions, taskFlow].some((source) => source.includes('active:scale-95'))
 )
 
 // --- the type floor ---------------------------------------------------------
