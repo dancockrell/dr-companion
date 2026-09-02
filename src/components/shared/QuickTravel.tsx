@@ -16,12 +16,13 @@ import { Landmark, HeartPulse, Shield, ShoppingBag, MapPin as MapPinIcon, type L
 import { useAppStore } from '../../store/useAppStore'
 import { bridge } from '../../bridge'
 import { PIN_DRAG_TYPE, PIN_COLOR_HEX, type PinIcon, type PinColor } from '../../lib/mapPins'
+import { COMMON_PLACE_PIN_COLORS } from '../../lib/mapPlaceColors'
 
 const PRESETS: { tag: string; label: string; icon: LucideIcon; pinIcon: PinIcon; color: PinColor }[] = [
-  { tag: 'bank', label: 'Bank', icon: Landmark, pinIcon: 'landmark', color: 'gold' },
-  { tag: 'healer', label: 'Healer', icon: HeartPulse, pinIcon: 'heart-pulse', color: 'green' },
-  { tag: 'guild', label: 'Guild', icon: Shield, pinIcon: 'shield', color: 'purple' },
-  { tag: 'shop', label: 'Shop', icon: ShoppingBag, pinIcon: 'shopping-bag', color: 'blue' },
+  { tag: 'bank', label: 'Bank', icon: Landmark, pinIcon: 'landmark', color: COMMON_PLACE_PIN_COLORS.bank },
+  { tag: 'healer', label: 'Healer', icon: HeartPulse, pinIcon: 'heart-pulse', color: COMMON_PLACE_PIN_COLORS.healer },
+  { tag: 'guild', label: 'Guild', icon: Shield, pinIcon: 'shield', color: COMMON_PLACE_PIN_COLORS.guild },
+  { tag: 'shop', label: 'Shop', icon: ShoppingBag, pinIcon: 'shopping-bag', color: COMMON_PLACE_PIN_COLORS.shop },
 ]
 
 export function QuickTravel({
