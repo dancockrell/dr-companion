@@ -424,7 +424,7 @@ export function HighlightsEditor() {
               type="button"
               onClick={() => void submitImport()}
               disabled={busy || !importPreview?.valid.length}
-              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
             >
               {busy ? 'Importing…' : `Import ${importPreview?.valid.length ?? 0}`}
             </button>
@@ -506,7 +506,7 @@ export function HighlightsEditor() {
                     </button>
                   )}
                   {isPlayerAddedLine(editor.text, h.sourceLine) && (
-                    <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-[#1a1408]">
+                    <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-surface">
                       yours
                     </span>
                   )}
@@ -704,7 +704,7 @@ function HighlightForm({
           type="button"
           onClick={onSubmit}
           disabled={busy}
-          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
         >
           {busy ? 'Saving…' : isNew ? 'Add' : 'Save'}
         </button>

@@ -239,7 +239,7 @@ export function GagsEditor() {
               type="button"
               onClick={() => void submitImport()}
               disabled={busy || !importPreview?.valid.length}
-              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
             >
               {busy ? 'Importing…' : `Import ${importPreview?.valid.length ?? 0}`}
             </button>
@@ -280,7 +280,7 @@ export function GagsEditor() {
               type="button"
               onClick={() => void submitForm()}
               disabled={busy}
-              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
             >
               {busy ? 'Saving…' : adding ? 'Add' : 'Save'}
             </button>
@@ -295,7 +295,7 @@ export function GagsEditor() {
               {g.pattern}
             </span>
             {isPlayerAddedLine(editor.text, g.sourceLine) && (
-              <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-[#1a1408]">
+              <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-surface">
                 yours
               </span>
             )}
