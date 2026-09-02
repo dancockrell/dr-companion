@@ -37,6 +37,7 @@ const compile = (src, name) => {
 // preset added there and not here would otherwise go unnoticed.
 writeFileSync(join(dir, 'storage.js'), 'export function readJSON(){return globalThis.__pinsStore ?? {}}\nexport function writeJSON(_k,v){globalThis.__pinsStore=v}\n')
 writeFileSync(join(dir, 'profiles.js'), 'export function profileKey(n,i){return n+":"+i}\n')
+compile('src/lib/mapPlaceColors.ts', 'mapPlaceColors.js')
 const mapPinsPath = compile('src/lib/mapPins.ts', 'mapPins.js')
 const pinsFilePath = compile('src/lib/pinsFile.ts', 'pinsFile.js')
 
