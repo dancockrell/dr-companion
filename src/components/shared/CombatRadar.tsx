@@ -188,7 +188,7 @@ function RosterColumn({ label, side, width, children }: { label: string; side: '
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
-      className={`absolute top-0 z-20 cursor-grab overflow-x-hidden overflow-y-auto bg-transparent active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
+      className={`absolute top-0 z-20 touch-none cursor-grab overflow-x-hidden overflow-y-auto bg-transparent active:cursor-grabbing ${side === 'left' ? 'left-0' : 'right-0'}`}
       style={{ width, bottom: 'var(--radar-loot-height, 0px)' }}
       aria-label={`${label} radar cards`}
       title={label}

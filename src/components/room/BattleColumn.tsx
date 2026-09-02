@@ -136,9 +136,6 @@ export function BattleColumn() {
   const character = useAppStore((s) => s.character)
   const cards = fromRoom(character)
   const roomItems = character?.roomItems
-  const [floorSelectionState, setFloorSelectionState] = useState<{ room: number | null; item: string | null }>({ room, item: null })
-  const floorSelection = floorSelectionState.room === room ? floorSelectionState.item : null
-  const setFloorSelection = (item: string | null) => setFloorSelectionState({ room, item })
   const roomDescriptionRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
     // A new room is new reading material. Same-room live updates retain the
@@ -262,7 +259,7 @@ export function BattleColumn() {
                 />
               ) : undefined
             }
-            footer={roomItems && roomItems.length > 0 ? <PanelBoundary label="Items on the ground"><FloorItems items={roomItems} mode="glance" selectedItem={floorSelection} onSelectedItemChange={setFloorSelection} /></PanelBoundary> : undefined}
+            footer={roomItems && roomItems.length > 0 ? <PanelBoundary label="Items on the ground"><FloorItems items={roomItems} mode="glance" /></PanelBoundary> : undefined}
           />
         </PanelBoundary>
       </div>
@@ -293,8 +290,6 @@ export function BattleColumn() {
               uid={here?.uid}
               highlights={highlights}
               offClasses={offClasses}
-              selectedItem={floorSelection}
-              onSelectedItemChange={setFloorSelection}
             />
           )}
         </section>
