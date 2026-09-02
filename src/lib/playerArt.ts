@@ -18,7 +18,7 @@
 const BASE = '/player-art/'
 const REPOSITORY_BASE =
   'https://raw.githubusercontent.com/dancockrell/dr-companion/main/public/player-art/'
-import { npcDefaultFor, type NpcRace, type NpcRole } from './npcDefaults'
+import { profiledPlayerDefaultFor, type NpcRace, type NpcRole } from './npcDefaults'
 import { genericPortraitFor, portraitUrl, slug as portraitSlug } from './portraits'
 
 const slug = (s: string) =>
@@ -50,7 +50,10 @@ export function registerPlayerArtManifest(names: Iterable<string>, base = BASE):
   }
 }
 
-function registerProfiles(raw: unknown): void {
+/** Register public, character-owned profile facts alongside portrait names.
+ * Exported so the mock bridge can supply explicitly fictional QA profiles
+ * without publishing those facts in production's player-art folder. */
+export function registerPlayerProfiles(raw: unknown): void {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return
   for (const [name, value] of Object.entries(raw)) {
     if (!value || typeof value !== 'object') continue
@@ -74,7 +77,7 @@ async function loadSource(base: string): Promise<number> {
     registerPlayerArtManifest(clean, base)
     try {
       const profileRes = await fetch(`${base}profiles.json${nonce}`, { cache: 'no-store' })
-      if (profileRes.ok) registerProfiles(await profileRes.json())
+      if (profileRes.ok) registerPlayerProfiles(await profileRes.json())
     } catch {
       // A manifest without profile metadata is still useful custom art.
     }
@@ -140,7 +143,7 @@ export function playerDefaultArtFor(name: string): PlayerArtSource {
   const sex = profile?.sex
   const race = asRace(profile?.race)
   const role = profile?.guild ? GUILD_ROLE.find(([pattern]) => pattern.test(profile.guild!))?.[1] : undefined
-  const classDefault = role && race && sex ? npcDefaultFor(role, sex, name, race) : undefined
+  const classDefault = role && race && sex ? profiledPlayerDefaultFor(role, race, sex, name) : undefined
   if (classDefault) {
     return { name, url: classDefault.url, description: `${profile!.race} ${profile!.guild} ${sex} default` }
   }
