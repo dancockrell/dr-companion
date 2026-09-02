@@ -135,6 +135,90 @@
       "approvedVariants": [],
       "rejects": ["generic forest without a dwelling", "dense town neighborhoods"],
       "regenerationNeeded": false
+    },
+    "official-working-office": {
+      "exactSubject": "guildleader, guildmaster, registry, bank or public official's working office",
+      "canonicalTraits": ["substantial dark-wood desk", "books and ledgers", "organized record boxes", "brass balance for official work"],
+      "habitat": "titles explicitly naming a guildleader, guildmaster, registry, bank, teller, public office or records office; never a street named after a bank",
+      "currentImage": "/grok-art/room-scenes/guild-hall-441c3d78.jpg",
+      "approvedPrimary": "/grok-art/room-scenes/official-office-b2888959.jpg",
+      "approvedVariants": [],
+      "rejects": ["monumental marble guild hall for a private office", "leather workshop inferred from incidental furniture", "generic street named Bank Street"],
+      "regenerationNeeded": false,
+      "sourceFile": "b2888959-d3fe-4eea-bcf8-4702eafbf291.jpg",
+      "sha256": "d9113137f91aeb22f927d974b80abc4074c76c0bf031a6a7c1289d6c4e5b882b"
+    },
+    "healer-ward": {
+      "exactSubject": "bright communal healer ward and infirmary",
+      "canonicalTraits": ["rows of clean beds", "herbal treatment table", "bright restorative interior", "clear patient circulation"],
+      "habitat": "titles explicitly naming a hospital, infirmary, healing ward, treatment room, sickroom or clinic",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/healer-ward-f3a8421c.jpg",
+      "approvedVariants": [],
+      "rejects": ["apothecary retail counters", "generic guild halls", "healer NPC references without a ward location"],
+      "regenerationNeeded": false,
+      "sourceFile": "f3a8421c-dc2d-49bb-984b-7122a6c752a2.jpg",
+      "sha256": "0851db658dffe5ee4f35f5f696338c33a2e0c06a7925ca7977915f030d664296"
+    },
+    "armory-service-room": {
+      "exactSubject": "enclosed armory and organized weapon storehouse",
+      "canonicalTraits": ["racked swords and polearms", "shields and helmets", "secure enclosed service counter", "lantern-lit stone and timber"],
+      "habitat": "titles explicitly naming an armory, armoury, arms room, weapon storehouse or weapon racks",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/armory-7142832a.jpg",
+      "approvedVariants": [],
+      "rejects": ["active training halls", "battlefields", "generic weapon mentions in room prose"],
+      "regenerationNeeded": false,
+      "sourceFile": "7142832a-f196-4970-85df-47f7cfe285d7.jpg",
+      "sha256": "865c4f51cbd6c01cd65c4cb2486c34205b4a7a57d5db491aa60b7df4e9c9c35b"
+    },
+    "locksmith-service-room": {
+      "exactSubject": "locksmith and lockpicking workshop",
+      "canonicalTraits": ["wall-mounted locks", "fine lock tools", "dark-wood work counter", "secure specialist interior"],
+      "habitat": "titles explicitly naming a locksmith, lock shop, lockpick shop or lockpicking workshop",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/locksmith-ee33bafb.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic tool shops", "thieves' rooms without locksmith service", "incidental keys or locks in prose"],
+      "regenerationNeeded": false,
+      "sourceFile": "ee33bafb-409f-4bcd-9fbc-422a70b458c4.jpg",
+      "sha256": "8b932ef2b8708f960f0c02f5bd64d532f136adbd0bc8cc48f2828120150d12b3"
+    },
+    "working-tannery": {
+      "exactSubject": "working tannery with stretched hides and treatment vats",
+      "canonicalTraits": ["hides on frames", "treatment barrels", "cutting bench", "industrial masonry interior"],
+      "habitat": "titles explicitly naming a tannery, tanner's shop, tanning room or tanning workshop",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/tannery-4299577b.jpg",
+      "approvedVariants": [],
+      "rejects": ["finished-leather retail shops", "incidental leather furniture", "generic outfitter rooms without tanning"],
+      "regenerationNeeded": false,
+      "sourceFile": "4299577b-b6a8-4fb0-80d6-cae4edf4952d.jpg",
+      "sha256": "28e02f69c1f48b67696f3a4d7f2b153124d0d4204687a7ac897d21182dc6a61c"
+    },
+    "carpet-merchant": {
+      "exactSubject": "carpet and rug merchant's storeroom",
+      "canonicalTraits": ["rolled patterned rugs", "hanging carpets", "warm daylight", "dense merchant inventory"],
+      "habitat": "titles explicitly naming a carpet shop, carpet merchant, rug shop or rug merchant",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/carpet-shop-37558278.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic textile workrooms", "unrelated market exteriors", "incidental floor rugs"],
+      "regenerationNeeded": false,
+      "sourceFile": "37558278-e8c4-4b86-b1bb-1e7c88bf6991.jpg",
+      "sha256": "296742aa6a1c18ef07d17d94726e8eb9892398b5eaa78538d634fdadb8fde975"
+    },
+    "glove-merchant": {
+      "exactSubject": "glove merchant and glover's fitted-goods shop",
+      "canonicalTraits": ["displayed gloves", "dark-wood shelving", "fitting mirror", "merchant writing desk"],
+      "habitat": "titles explicitly naming a glove shop, glover's shop or glove merchant",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/glove-shop-94e50c0a.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic clothing stores", "offices without glove inventory", "incidental gloves in room prose"],
+      "regenerationNeeded": false,
+      "sourceFile": "94e50c0a-fb85-4df6-80fe-4b327cacd13f.jpg",
+      "sha256": "25b44d22d9d9662766c1bf7557bf1cfe6c6f283cc7e33bd58fb14938ba4364ac"
     }
   }
 }

@@ -44,7 +44,14 @@ const GROK_SCENES = {
   archive: ['/grok-art/room-scenes/archive-494b55cb.jpg'],
   theater: ['/grok-art/room-scenes/theater-4013bf56.jpg'],
   training: ['/grok-art/room-scenes/training-hall-650f2679.jpg'],
+  officialOffice: ['/grok-art/room-scenes/official-office-b2888959.jpg'],
   guildHall: ['/grok-art/room-scenes/guild-hall-441c3d78.jpg'],
+  healerWard: ['/grok-art/room-scenes/healer-ward-f3a8421c.jpg'],
+  armory: ['/grok-art/room-scenes/armory-7142832a.jpg'],
+  locksmith: ['/grok-art/room-scenes/locksmith-ee33bafb.jpg'],
+  tannery: ['/grok-art/room-scenes/tannery-4299577b.jpg'],
+  carpetShop: ['/grok-art/room-scenes/carpet-shop-37558278.jpg'],
+  gloveShop: ['/grok-art/room-scenes/glove-shop-94e50c0a.jpg'],
   forge: ['/grok-art/room-scenes/forge-11c9cd64.jpg'],
   outfitter: ['/grok-art/room-scenes/leather-workshop-1390477d.jpg'],
   tailor: ['/grok-art/room-scenes/textile-shop-1eed98c2.jpg'],
@@ -84,13 +91,25 @@ export function familyFor(description: string): SceneFamily | null {
   if (/\b(treehouse|treetop|canopy|wood elf|leth deriel)\b/i.test(description)) return 'treeTown'
   if (/\b(tropical village|island village|island settlement|palm village)\b/i.test(description)) return 'islandVillage'
   if (/\b(forest hut|woodland hut|ranger hut|hunter's hut|hunters' hut)\b/i.test(description)) return 'forestHut'
+  // A named street remains a street even when its name contains a service.
+  // Without this guard, Crossing's Bank Street confidently displayed a bank
+  // interior because specialist words intentionally outrank generic town art.
+  if (/\b(bank street|bank road|bank avenue|bank boulevard|bank lane|bank alley)\b/i.test(description)) return 'town'
+  if (/\b((river|stream|creek|brook|canal|waterway|lakeshore|marsh) bank|(east|west|north|south|far|near|opposite) bank)\b/i.test(description)) return 'water'
+  if (/\b(guildleader|guildmaster|society master's office|master's office|official office|records office|public office|registry|bank|teller)\b/i.test(description)) return 'officialOffice'
+  if (/\b(hospital|infirmary|healing ward|healer's ward|treatment room|sickroom|clinic)\b/i.test(description)) return 'healerWard'
+  if (/\b(armory|armoury|arms room|weapon storehouse|weapon racks?)\b/i.test(description)) return 'armory'
+  if (/\b(locksmith|lock shop|lockpick shop|lockpicking workshop)\b/i.test(description)) return 'locksmith'
+  if (/\b(tannery|tanner's shop|tanning room|tanning workshop)\b/i.test(description)) return 'tannery'
+  if (/\b(carpet shop|carpet merchant|rug shop|rug merchant)\b/i.test(description)) return 'carpetShop'
+  if (/\b(glove shop|glover's shop|glove merchant)\b/i.test(description)) return 'gloveShop'
   if (/\b(apothecary|alchemy|alchemist|potion|herb shop|herbalist)\b/i.test(description)) return 'apothecary'
   if (/\b(magic shop|enchanter|enchanting|artificer|arcane shop|crystal shop|magical supplies)\b/i.test(description)) return 'magicShop'
   if (/\b(jeweler|jeweller|gem shop|gemcutter|goldsmith|silversmith)\b/i.test(description)) return 'jeweler'
   if (/\b(theater|theatre|stage|playhouse|auditorium|performance hall|music hall)\b/i.test(description)) return 'theater'
   if (/\b(training hall|practice hall|sparring room|sparring ring|combat academy|weapon practice)\b/i.test(description)) return 'training'
   if (/\b(library|archive|scriptorium|scribe|scroll room|reading room)\b/i.test(description)) return 'archive'
-  if (/\b(bank|guild|guildhall|guild hall|guildleader|council hall|registry|public office|teller)\b/i.test(description)) return 'guildHall'
+  if (/\b(guild|guildhall|guild hall|council hall)\b/i.test(description)) return 'guildHall'
   if (/\b(mine|mineshaft|mining|ore|quarry|crystal cavern|crystal cave)\b/i.test(description)) return 'mine'
   if (/\b(forge|smithy|blacksmith|anvil|foundry)\b/i.test(description)) return 'forge'
   if (/\b(tailor|seamstress|clothier|weaver|textile|fabric|dye shop)\b/i.test(description)) return 'tailor'
