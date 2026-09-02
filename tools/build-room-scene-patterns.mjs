@@ -79,9 +79,12 @@ for (const [placeKey, place] of Object.entries(places)) {
     continue
   }
 
-  const arts = category === 'regional-city'
+  // An exact reviewed place family outranks an archetype or regional pool.
+  // This is how a paid reel can serve the place it actually depicts without
+  // leaking a distinctive landmark into every generic forest in Elanthia.
+  const arts = reviewed?.arts ?? (category === 'regional-city'
     ? baskets.regionalCity[place.zoneName]
-    : baskets.generic[category]
+    : baskets.generic[category])
   if (!arts?.length) {
     unresolved.push({ placeKey, zone: group.zone, roomCount: group.rooms.length, ...analysis, reason: 'no-approved-basket' })
     continue
