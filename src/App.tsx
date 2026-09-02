@@ -19,6 +19,7 @@ import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoun
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
 import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
+import { BATTLE_SCENE_MAX_WIDTH_VH } from './components/room/BattleColumn'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
@@ -270,10 +271,21 @@ export default function App() {
     mapDocked: true,
     splitW: SPLIT_W,
     dashEmpty: experienceEmpty,
-    // The scene is height-limited and square. Grow Battle automatically only
-    // while that width can become visible scene; explicit divider choices
-    // above this remain untouched inside fitColumns.
-    mapGrowthMax: hostH > 0 ? Math.max(battleW, hostH * 0.62) : undefined,
+    // The scene is height-limited and landscape (8:5), so its own width cap
+    // is a fixed share of `hostH` — `BATTLE_SCENE_MAX_WIDTH_VH`, the same
+    // number `RoomScene`'s `min(100%, …vh)` uses to size the DOM (see
+    // `BattleColumn`'s export of it). Grow Battle automatically only while
+    // that width can become visible scene; explicit divider choices above
+    // this remain untouched inside fitColumns.
+    //
+    // This used to be a second, independently-guessed constant (0.62) that
+    // was tighter than the scene's real ceiling (0.832), so Battle plateaued
+    // well short of the width `RoomScene` would actually have used — on a
+    // wide-but-not-equally-tall window the column stopped growing at ~62% of
+    // the window's height no matter how much wider the window got. Sharing
+    // the one real number instead of carrying a second approximation of it
+    // fixes that class of drift outright rather than re-tuning the guess.
+    mapGrowthMax: hostH > 0 ? Math.max(battleW, hostH * (BATTLE_SCENE_MAX_WIDTH_VH / 100)) : undefined,
     // A single-column skill rail stops gaining information once its labels,
     // numbers and useful bar length fit. In combat, return any width beyond
     // that to the two active play surfaces. This is a display-time ceiling:

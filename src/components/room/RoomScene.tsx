@@ -2,6 +2,20 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { RoomBackdrop } from './RoomBackdrop'
 
 /**
+ * The width, in vh, a scene actually renders at once its own `min(100%, …)`
+ * cap is the binding constraint — the same formula `sceneStyle` below uses
+ * to size the DOM, exported so a caller outside this file (an outer column
+ * allocator deciding how much width is worth handing this scene) can ask
+ * this file what its own limit is, rather than re-deriving a second copy of
+ * `maxHeightVh * 8/5` and risking the two drifting apart. A square scene has
+ * no such cap — its width is bounded by height alone, so no vh-of-width
+ * number applies — hence `null`.
+ */
+export function sceneMaxWidthVh(maxHeightVh: number, shape: 'square' | 'landscape'): number | null {
+  return shape === 'landscape' ? maxHeightVh * (8 / 5) : null
+}
+
+/**
  * The picture of the room, or something that stands in for it.
  *
  * The stand-in matters more than the art does, and will for a while. There are
@@ -110,7 +124,7 @@ export function RoomScene({
   const sceneStyle: CSSProperties & { '--radar-scale': number; '--radar-loot-height': string } = {
     ...(height
       ? { height }
-      : { width: shape === 'landscape' ? `min(100%, ${maxHeightVh * 8 / 5}vh)` : `min(100%, ${maxHeightVh}vh)` }),
+      : { width: `min(100%, ${sceneMaxWidthVh(maxHeightVh, shape) ?? maxHeightVh}vh)` }),
     '--radar-scale': sceneScale,
     '--radar-loot-height': footer ? '2.25rem' : '0px',
   }
