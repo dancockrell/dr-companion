@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "runtimeRoot": "public/map-stamps",
+  "selection": "stable seeded family variant",
+  "approved": [
+    {
+      "path": "public/map-stamps/market-v2.png",
+      "family": "market",
+      "sourceType": "openai-image-generation",
+      "sha256": "4497abf3faf147a1b7eeb8df0dfba527774d27789b7c53ab9462a4455daca442",
+      "status": "approved",
+      "reviews": ["full-resolution", "parchment-composite", "runtime-crop"],
+      "notes": "Standalone overhead market square; no adjacent-cell contamination."
+    },
+    {
+      "path": "public/map-stamps/highland-v2.png",
+      "family": "highland",
+      "sourceType": "openai-image-generation",
+      "sha256": "4299817fb6e8f123ba86bbe7bd83117c9d1ab65f6f8156716590048fb486754e",
+      "status": "approved",
+      "reviews": ["full-resolution", "parchment-composite", "runtime-crop"],
+      "notes": "Standalone mountain range; transparent background and complete silhouette."
+    }
+  ],
+  "rejected": [
+    {
+      "path": "public/map-stamps/atlas/13.png",
+      "family": "market",
+      "status": "rejected-runtime-retained-source",
+      "reason": "Crop includes an adjacent roof fragment at the lower edge."
+    },
+    {
+      "path": "public/map-stamps/atlas/21.png",
+      "family": "highland",
+      "status": "rejected-runtime-retained-source",
+      "reason": "Crop includes a second cut-off ridge at the lower edge."
+    }
+  ]
+}

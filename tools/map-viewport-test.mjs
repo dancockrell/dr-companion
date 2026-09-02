@@ -31,6 +31,8 @@ check('a naturally small map stays centered', clampMapPan({ x: 0, y: 0 }, viewpo
 check('fit is an atomic viewport operation', /const fitView = useCallback/.test(hookSource) && /bounded\(\{ x: 0, y: 0 \}, nextZoom\)/.test(hookSource), true)
 check('the docked fit button uses the atomic viewport operation', /onClick=\{\(\) => fitView\(\)\}/.test(panelSource), true)
 check('room changes have one reset path, not duplicate effects', (panelSource.match(/A room update must update the view/g) || []).length, 1)
+check('the chart owns the full docked viewport', /h-full min-h-0 min-w-0 w-full flex-1/.test(panelSource), true)
+check('no empty priority slot steals the rest of the map width', !/Reserved for a priority panel/.test(panelSource) && !/aspectRatio:/.test(panelSource), true)
 
 if (failures) process.exit(1)
 console.log('\nall map viewport checks passed')

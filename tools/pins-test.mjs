@@ -143,12 +143,13 @@ console.log('')
 console.log('-- the icon set --')
 ok('several icons to choose from, not just one', PIN_ICONS.length >= 8)
 ok('map-pin (the plain default) is one of them', PIN_ICONS.includes('map-pin'))
+ok('the fantasy gap starts with a real dragon glyph', PIN_ICONS.includes('fantasy-dragon'))
 
 console.log('')
 console.log('-- starter presets: many, and covering the categories Dan asked for --')
 ok('banks and shops have one shared color language', COMMON_PLACE_PIN_COLORS.bank === 'gold' && COMMON_PLACE_PIN_COLORS.shop === 'blue')
 ok('a generous list, not one-per-category minimum', PIN_PRESETS.length >= 10)
-for (const want of ['Home', 'Bank', 'Healer', 'Guild', 'Hunting Spot', 'Return Point']) {
+for (const want of ['Home', 'Bank', 'Healer', 'Guild', 'Hunting Spot', 'Return Point', 'Dragon']) {
   ok(`covers "${want}"`, PIN_PRESETS.some((p) => p.label === want))
 }
 ok(

@@ -15,7 +15,7 @@ import type { MapZone, MapZoneRoom } from '../../bridge/types'
 import { inkFor } from '../../lib/mapInk'
 import { recency, segments, type Trail } from '../../lib/trail'
 import { roomKind, type RoomKind } from '../../lib/mapData'
-import { PIN_COLOR_HEX, PIN_DRAG_TYPE, type MapPin, type PinIcon, type PinColor } from '../../lib/mapPins'
+import { customPinIconHref, isCustomPinIcon, isLucidePinIcon, PIN_COLOR_HEX, PIN_DRAG_TYPE, type MapPin, type PinIcon, type PinColor } from '../../lib/mapPins'
 import type { PlayerMarker } from '../../lib/playerMarker'
 import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
 import { RoomHoverCard } from './RoomHoverCard'
@@ -109,6 +109,7 @@ export function MapCanvas({
   onRoute,
   onPick,
   onZone,
+  arrivalIds = new Set(),
   /** Pixels per map unit. The map's own coordinates are ~20 apart per room. */
   scale = 1,
   /** Room titles alongside the boxes. Only readable once there is room for them. */
@@ -149,7 +150,9 @@ export function MapCanvas({
   onRoute: Set<number | null>
   onPick: (id: number) => void
   /** Following a room that leads out of the zone. Without it, gateways are inert. */
-  onZone?: (zone: string) => void
+  onZone?: (zone: string, arrivals?: number[]) => void
+  /** Honest reciprocal endpoints on a sheet just followed through a gate. */
+  arrivalIds?: ReadonlySet<number>
   scale?: number
   labels?: boolean
   fit?: boolean
@@ -204,8 +207,18 @@ export function MapCanvas({
         if (out.length >= LOCAL_CAP) break
       }
     }
-    return out
-  }, [zone, level])
+    // Dense sheets are capped for responsiveness, but functional geography
+    // must never disappear merely because it fell outside the first BFS
+    // window. Keep every reciprocal arrival candidate and as many gateway
+    // rooms as possible by replacing ordinary tail rooms, never by exceeding
+    // the cap.
+    const required = onLevel.filter(
+      (room) => (room.id != null && arrivalIds.has(room.id)) || room.gateway
+    )
+    const requiredIds = new Set(required.map((room) => room.id))
+    const kept = out.filter((room) => !requiredIds.has(room.id))
+    return [...required, ...kept].slice(0, LOCAL_CAP)
+  }, [zone, level, arrivalIds])
 
   const view = useMemo(() => {
     if (!rooms.length) return null
@@ -288,6 +301,15 @@ export function MapCanvas({
       office: 24,
       justice: 28,
       post: 24,
+      locksmith: 24,
+      jeweler: 24,
+      tailor: 24,
+      food: 22,
+      stable: 30,
+      performance: 34,
+      bath: 26,
+      auction: 30,
+      storage: 26,
     }
     const score = ({ landmark }: (typeof candidates)[number]) => {
       const label = landmark.label
@@ -461,7 +483,7 @@ export function MapCanvas({
         if (!room || room.id == null) return
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          if (room.gateway && onZone) onZone(room.gateway.zone)
+          if (room.gateway && onZone) onZone(room.gateway.zone, room.gateway.arrivals ?? [])
           else onPick(room.id)
         } else if ((event.shiftKey && event.key === 'F10') || event.key === 'ContextMenu') {
           if (!onPinRoom) return
@@ -606,7 +628,7 @@ export function MapCanvas({
               // A gateway goes through. Routing to a room you are already
               // looking at is the less useful of the two, and a gate is the
               // one mark on the chart whose whole point is the far side.
-              if (r.gateway && onZone) onZone(r.gateway.zone)
+              if (r.gateway && onZone) onZone(r.gateway.zone, r.gateway.arrivals ?? [])
               else if (r.id) onPick(r.id)
             }}
             onContextMenu={(e) => {
@@ -702,6 +724,19 @@ export function MapCanvas({
                 opacity={0.2 + 0.45 * been}
               />
             )}
+            {r.id != null && arrivalIds.has(r.id) && kind !== 'here' && (
+              <circle
+                data-map-arrival="true"
+                cx={px(r)}
+                cy={py(r)}
+                r={box * 1.08}
+                fill="none"
+                stroke="var(--map-route)"
+                strokeWidth={Math.max(1.1, 1.45 * scale)}
+                strokeDasharray={`${2.4 * scale} ${1.35 * scale}`}
+                opacity={0.9}
+              />
+            )}
             {/* The click target, larger than the room and invisible.
              *
              * A room box has to be smaller than the grid step or the squares
@@ -772,7 +807,9 @@ export function MapCanvas({
                 (r.uid ? `\ngame uid ${r.uid}` : '') +
                 (r.tags?.length ? `\n${r.tags.join(', ')}` : '') +
                 (times ? `\nvisited ${times === 1 ? 'once' : `${times} times`} this session` : '') +
-                (r.gateway ? `\n→ ${r.gateway.name}  (click to follow)` : '') +
+                (r.gateway ? `\n→ ${r.gateway.name}  (click to follow)` +
+                  (r.gateway.arrivals?.length ? `\n${r.gateway.arrivals.length} reciprocal arrival ${r.gateway.arrivals.length === 1 ? 'room' : 'rooms'} identified` : '\narrival room is not identified in the source maps') : '') +
+                (r.id != null && arrivalIds.has(r.id) ? '\nLikely arrival from the map you just left' : '') +
                 (r.leaves?.length ? `\nleaves the zone: ${r.leaves.join(', ')}` : '') +
                 (r.id != null && pins?.has(r.id)
                   ? `\n📍 ${pins.get(r.id)?.label}` +
@@ -852,7 +889,8 @@ export function MapCanvas({
           const fan = roomLandmarks.length > 1 ? radius * 1.15 : 0
           const iconX = cx + Math.cos(angle) * fan
           const iconY = cy + Math.sin(angle) * fan
-          const Icon = PIN_ICON_COMPONENT[landmark.icon]
+          const customIcon = isCustomPinIcon(landmark.icon) ? landmark.icon : null
+          const Icon = isLucidePinIcon(landmark.icon) ? PIN_ICON_COMPONENT[landmark.icon] : null
           return (
             <g key={`landmark-${r.id}-${landmark.kind}`} className="pointer-events-none" aria-label={`${landmark.label}: ${landmark.kind}`}>
               <title>{`${landmark.label}\n${landmark.kind} · click to walk · right-click to pin`}</title>
@@ -872,7 +910,11 @@ export function MapCanvas({
                 height={radius * 1.44}
                 viewBox="0 0 24 24"
               >
-                <Icon size={24} color="var(--map-ground)" strokeWidth={3} />
+                {customIcon ? (
+                  <image href={customPinIconHref(customIcon)} width="24" height="24" preserveAspectRatio="xMidYMid meet" />
+                ) : Icon ? (
+                  <Icon size={24} color="var(--map-ground)" strokeWidth={3} />
+                ) : null}
               </svg>
             </g>
           )
@@ -922,7 +964,8 @@ export function MapCanvas({
             // makes the badge the most prominent single mark on the room
             // rather than the least.
             const radius = Math.max(box * 1.15, 2.4 * scale) * weight
-            const Icon = pin.icon ? PIN_ICON_COMPONENT[pin.icon] : null
+            const customIcon = pin.icon && isCustomPinIcon(pin.icon) ? pin.icon : null
+            const Icon = pin.icon && isLucidePinIcon(pin.icon) ? PIN_ICON_COMPONENT[pin.icon] : null
             return (
               <g key={`pin-${r.id}`} className="pointer-events-none">
                 <circle
@@ -933,7 +976,16 @@ export function MapCanvas({
                   stroke="var(--map-ground)"
                   strokeWidth={Math.max(0.5, 0.5 * scale) * (pin.system ? 1.6 : 1)}
                 />
-                {Icon && (
+                {customIcon ? (
+                  <image
+                    href={customPinIconHref(customIcon)}
+                    x={cx - radius * 0.8}
+                    y={cy - radius * 0.8}
+                    width={radius * 1.6}
+                    height={radius * 1.6}
+                    preserveAspectRatio="xMidYMid meet"
+                  />
+                ) : Icon ? (
                   <svg
                     x={cx - radius * 0.8}
                     y={cy - radius * 0.8}
@@ -943,7 +995,7 @@ export function MapCanvas({
                   >
                     <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
                   </svg>
-                )}
+                ) : null}
               </g>
             )
           })}
@@ -962,7 +1014,8 @@ export function MapCanvas({
             const cx = px(r)
             const cy = py(r)
             const radius = Math.max(box * 1.6, 3.2 * scale)
-            const Icon = PIN_ICON_COMPONENT[playerMarker.icon]
+            const customIcon = isCustomPinIcon(playerMarker.icon) ? playerMarker.icon : null
+            const Icon = isLucidePinIcon(playerMarker.icon) ? PIN_ICON_COMPONENT[playerMarker.icon] : null
             return (
               <g key={`you-${r.id}`} className="pointer-events-none">
                 <circle
@@ -973,9 +1026,20 @@ export function MapCanvas({
                   stroke="var(--map-ground)"
                   strokeWidth={Math.max(0.7, 0.7 * scale)}
                 />
-                <svg x={cx - radius * 0.75} y={cy - radius * 0.75} width={radius * 1.5} height={radius * 1.5} viewBox="0 0 24 24">
-                  <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
-                </svg>
+                {customIcon ? (
+                  <image
+                    href={customPinIconHref(customIcon)}
+                    x={cx - radius * 0.75}
+                    y={cy - radius * 0.75}
+                    width={radius * 1.5}
+                    height={radius * 1.5}
+                    preserveAspectRatio="xMidYMid meet"
+                  />
+                ) : Icon ? (
+                  <svg x={cx - radius * 0.75} y={cy - radius * 0.75} width={radius * 1.5} height={radius * 1.5} viewBox="0 0 24 24">
+                    <Icon size={24} color="var(--map-ground)" strokeWidth={2.75} />
+                  </svg>
+                ) : null}
               </g>
             )
           })}

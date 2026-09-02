@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "runtimeRoot": "public/pin-icons",
+  "approved": [
+    {
+      "key": "fantasy-dragon",
+      "path": "public/pin-icons/fantasy-dragon.png",
+      "sourceType": "openai-image-generation",
+      "sourceIdentifier": "exec-535a1250-9be0-4ef7-932a-5852cbf4ed6a.png",
+      "sourcePrompt": "One heraldic dragon head in clean antique copperplate engraving style, unmistakable horned dragon silhouette, dark sepia ink, centered with generous margin on transparent background; no badge, text, watermark, crop, adjacent art or contact sheet.",
+      "transformation": "High-quality bicubic downscale to 192x192 transparent PNG",
+      "sha256": "114a5c66caa11bbec8e0819a8f2aa43e91107fa3b4f02a98fc128996f4ee282e",
+      "status": "approved",
+      "reviews": ["full-resolution", "192px-runtime", "small-silhouette", "alpha"],
+      "runtimeSurfaces": ["pin-editor", "pin-palette", "saved-pin-list", "map-badge", "room-hover", "player-marker"]
+    }
+  ]
+}

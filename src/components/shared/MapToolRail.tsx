@@ -1,6 +1,6 @@
 import type { PlayerMarker } from '../../lib/playerMarker'
 import type { MapPin } from '../../lib/mapPins'
-import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
+import { PinIconGlyph } from './PinIconGlyph'
 import { useDragScroll } from '../../lib/useDragScroll'
 import { MapPinBar } from './MapPinBar'
 import { QuickTravel } from './QuickTravel'
@@ -79,10 +79,7 @@ export function MapToolRail({
             className="flex h-5 w-5 items-center justify-center rounded-full"
             style={{ background: marker.color }}
           >
-            {(() => {
-              const Icon = PIN_ICON_COMPONENT[marker.icon]
-              return <Icon className="h-3 w-3" color="var(--map-ground)" strokeWidth={3} />
-            })()}
+            <PinIconGlyph icon={marker.icon} className="h-3 w-3 object-contain" />
           </span>
         </button>
       )}
