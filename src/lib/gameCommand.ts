@@ -19,6 +19,9 @@ export function validateGameCommand(command: string): string {
  */
 export function validateGameActionCommand(command: string): string {
   validateGameCommand(command)
+  if (!command.trim()) {
+    throw new Error('The generated game action is empty.')
+  }
   if (command.includes(';')) {
     throw new Error('A generated game action cannot contain a command separator.')
   }
