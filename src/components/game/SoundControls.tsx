@@ -596,7 +596,7 @@ export function SoundControls() {
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 z-50 mb-1 max-h-[80vh] w-96 overflow-y-auto rounded-lg border border-border bg-surface p-3 shadow-2xl">
+        <div className="absolute bottom-full right-0 z-40 mb-1 max-h-[80vh] w-96 overflow-y-auto rounded-lg border border-border bg-surface p-3 shadow-2xl">
           <div className="mb-2 text-xs font-semibold text-ink">Sound</div>
 
           <SectionLabel>Alerts</SectionLabel>
