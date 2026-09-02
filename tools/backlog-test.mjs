@@ -99,6 +99,9 @@ const stub = {
       if (backlogThrows) throw new Error('backend unreachable')
       return backlogReply
     }
+    if (cmd === 'game_attach' || cmd === 'game_detach' || cmd === 'game_status') {
+      return { connected: cmd === 'game_attach', host: '', port: 0, lines: 0, note: '' }
+    }
     return undefined
   },
   setAlwaysOnTop: async () => {},
@@ -261,11 +264,66 @@ console.log('backlog backfill')
   backlogThrows = false
 }
 
+// ------------------------------------ stream state must not survive a reattach
+//
+// The bug: `parser` used to live for the whole module's lifetime, so a detach
+// followed by an attach to a DIFFERENT character kept the previous
+// character's last-known vitals and status icons on screen. `vitals.ts` and
+// `situation.ts` both prefer the stream's answer whenever it has one at all,
+// so this was not a blank field, it was someone else's health bar shown with
+// full confidence.
+{
+  backlogReply = { lines: [], dropped: 0 }
+  const L = await freshLink()
+  L.subscribeGame(() => {})
+  deliver(chunk(1, "<progressBar id='health' value='0' text='health 40/100'/>" +
+    "<indicator id='IconPOISONED' visible='y'/>"))
+  await settle()
+  eq(
+    L.streamCharacterState().vitals.value.health?.current,
+    40,
+    'control: a live progressBar is actually reaching the parser'
+  )
+  eq(
+    L.streamCharacterState().indicators.value.poisoned,
+    'on',
+    'control: a live indicator is actually reaching the parser'
+  )
+
+  await L.attachGame(4455)
+  ok(
+    L.streamCharacterState().vitals.value.health === undefined,
+    'a fresh attach must not keep the previous character’s health'
+  )
+  ok(
+    L.streamCharacterState().indicators.value.poisoned === undefined ||
+      L.streamCharacterState().indicators.value.poisoned === 'unknown',
+    'a fresh attach must not keep the previous character’s status icons'
+  )
+}
+
+// detach alone (no reattach yet) must clear it too - the next thing to
+// attach might not send a fresh progressBar/indicator dump for a while.
+{
+  backlogReply = { lines: [], dropped: 0 }
+  const L = await freshLink()
+  L.subscribeGame(() => {})
+  deliver(chunk(1, "<progressBar id='health' value='0' text='health 15/100'/>"))
+  await settle()
+  eq(L.streamCharacterState().vitals.value.health?.current, 15, 'control: health set before detaching')
+
+  await L.detachGame()
+  ok(
+    L.streamCharacterState().vitals.value.health === undefined,
+    'detaching clears the stream-derived vitals immediately, not just on the next attach'
+  )
+}
+
 // ---------------------------------------------------------------- denominator
 //
 // A run that asserted nothing prints the same "no failures" as a run that
 // asserted everything.
-const FLOOR = 19
+const FLOOR = 24
 if (checks < FLOOR) {
   console.log(
     `${NL}FAIL only ${checks} checks ran, expected at least ${FLOOR} - the suite did not execute`
