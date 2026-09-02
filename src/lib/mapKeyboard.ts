@@ -27,5 +27,8 @@ export function nextMapRoomId(rooms: MapZoneRoom[], currentId: number | null, di
 
 export function mapRoomAccessibleName(room: MapZoneRoom, canPin: boolean): string {
   const action = room.gateway ? `Open ${room.gateway.name}` : 'Choose route'
-  return `${room.title ?? 'Unknown room'}, Lich room ${room.id ?? 'unknown'}; ${action}${canPin ? '; Shift F10 or Context Menu to pin' : ''}`
+  const unresolved = room.leaves?.length
+    ? `; ${room.leaves.length} unresolved ${room.leaves.length === 1 ? 'exit' : 'exits'}`
+    : ''
+  return `${room.title ?? 'Unknown room'}, Lich room ${room.id ?? 'unknown'}; ${action}${unresolved}${canPin ? '; Shift F10 or Context Menu to pin' : ''}`
 }
