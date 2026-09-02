@@ -88,7 +88,7 @@
     "test:map-leaves": "node --experimental-strip-types tools/map-leaves-test.mjs",
     "test:video-frame-harvest": "node tools/video-frame-harvest-test.mjs",
     "test:eval": "node tools/eval-test.mjs",
-    "art": "node C:\\Users\\Admin\\dev\\quartermaster\\tools\\frame-factory-requests.js",
+    "art": "node -e \"console.error('no art pipeline configured: quartermaster, which hosted this, was deleted 2 Sep 2026'); process.exit(1)\"",
     "test:gear": "node tools/gear-test.mjs",
     "test:skills-empty": "node tools/skills-empty-test.mjs",
     "test:mounted": "node tools/mounted-test.mjs && npm run test:aux-window-boundary",
