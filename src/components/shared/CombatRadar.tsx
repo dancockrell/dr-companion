@@ -591,13 +591,11 @@ function Puck({
   card,
   px,
   ringClass,
-  pulse,
   shape = 'circle',
 }: {
   card: RoomCard
   px: number
   ringClass: string
-  pulse?: boolean
   shape?: 'circle' | 'rect'
 }) {
   const height = shape === 'rect' ? Math.round(px * PORTRAIT_ASPECT) : px
@@ -647,10 +645,7 @@ function Puck({
   // art file exists first, is what actually surfaces that fallback chain
   // here instead of skipping straight past it to a dot.
   return (
-    <div
-      className={pulse ? 'animate-pulse motion-reduce:animate-none' : ''}
-      style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}
-    >
+    <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}>
       <CreatureArt
         name={card.name}
         noun={card.noun}

@@ -279,5 +279,28 @@ if (headerRow) {
 }
 
 console.log('')
+console.log('-- loading motion is shared, announced and policy-safe --')
+const loadingNotice = readFileSync('src/components/shared/LoadingNotice.tsx', 'utf8')
+check('the shared loading notice announces asynchronous work',
+  loadingNotice.includes('role="status"') && loadingNotice.includes('aria-live="polite"'))
+check('the shared loading spinner respects reduced motion',
+  loadingNotice.includes('animate-spin motion-reduce:animate-none'))
+const configEditors = [
+  'AliasesEditor.tsx',
+  'GagsEditor.tsx',
+  'HighlightsEditor.tsx',
+  'MacrosEditor.tsx',
+  'PresetsEditor.tsx',
+  'SubstitutesEditor.tsx',
+]
+for (const file of configEditors) {
+  const source = readFileSync(join('src', 'components', 'config', file), 'utf8')
+  check(`${file} uses the shared loading notice`, source.includes('<LoadingNotice />'))
+}
+const radar = readFileSync('src/components/shared/CombatRadar.tsx', 'utf8')
+check('CombatRadar has no dormant looping attention pulse',
+  !radar.includes('animate-pulse') && !radar.includes('pulse?: boolean'))
+
+console.log('')
 console.log(fails === 0 ? 'all passed' : `${fails} FAILED`)
 process.exit(fails === 0 ? 0 : 1)

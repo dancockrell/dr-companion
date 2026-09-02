@@ -8,6 +8,7 @@
 import { useMemo, useState } from 'react'
 import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste } from 'lucide-react'
 import { parseAliases, expandAlias, type Alias } from '../../lib/aliases'
+import { LoadingNotice } from '../shared/LoadingNotice'
 import { reloadAliases } from '../../lib/useAliases'
 import { referencedVariables } from '../../lib/variables'
 import { useVariables } from '../../lib/useVariables'
@@ -276,7 +277,7 @@ export function AliasesEditor() {
         </button>
       </div>
 
-      {editor.loading && <div className="py-6 text-center text-sm text-ink-faint">Loading…</div>}
+      {editor.loading && <LoadingNotice />}
       {editor.error && !editor.loading && editor.entries.length === 0 && (
         <div className="rounded border border-border bg-surface-raised p-3 text-sm text-ink-muted">
           {editor.error}
