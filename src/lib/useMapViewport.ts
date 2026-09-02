@@ -138,11 +138,28 @@ export function useMapViewport({ zoom, onZoomChange, min, max }: MapViewportOpti
     const container = containerRef.current
     const content = contentRef.current
     if (!container || !content || typeof ResizeObserver === 'undefined') return
-    const keepInBounds = () => setPan((current) => bounded(current))
+    // ResizeObserver can report both the outer viewport and the transformed
+    // chart in the same layout turn. Updating React state for each notification
+    // lets the first (now stale) measurement paint between them, which is the
+    // source of the brief blank sheet / snapped drag frame seen during panel
+    // resizing. Coalesce the burst into the next animation frame: it reads the
+    // final measured dimensions once and no callback from an unmounted map can
+    // commit after cleanup.
+    let frame: number | null = null
+    const keepInBounds = () => {
+      if (frame !== null) return
+      frame = requestAnimationFrame(() => {
+        frame = null
+        setPan((current) => bounded(current))
+      })
+    }
     const observer = new ResizeObserver(keepInBounds)
     observer.observe(container)
     observer.observe(content)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (frame !== null) cancelAnimationFrame(frame)
+    }
   }, [bounded])
 
   const drag = useRef<{ startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(
