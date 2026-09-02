@@ -78,7 +78,7 @@ end
 
 # Load the module under test - the whole Companion module, same slice trick
 # as map_test.rb and map_walk_test.rb.
-src = File.read(SRC)
+src = File.read(SRC, encoding: 'UTF-8')
 body = src[/module Companion.*?\n^end\b/m] or abort 'could not find the Companion module'
 eval(body, TOPLEVEL_BINDING, SRC)
 
