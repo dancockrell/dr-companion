@@ -7,10 +7,11 @@
  * hook is that caller: it watches the same store fields `BattleColumn`
  * already reads for the existing 2D battle map (`mapZone`, `mapHere`,
  * `character` - see `BattleColumn.tsx`'s own `useAppStore` calls), and
- * republishes on every change. `shouldPublish`'s own gate (inside
- * `publishWorldSnapshotIfChanged`) is what keeps that cheap - most store
- * updates are vitals/roundtime/etc, not a room change, and those compile to
- * the same `currentRoomId` and get skipped before anything reaches Rust.
+ * republishes on every change. `publishWorldSnapshotIfChanged` keeps that
+ * cheap by comparing only viewer-relevant live facts and zone identity.
+ * Vitals, roundtime, occupants, ground items, and assessed creature state are
+ * viewer facts now, so they must not be discarded merely because the room id
+ * stayed the same; unrelated store updates still deduplicate.
  *
  * Call this once, unconditionally, near the app root - React's own rule
  * (hooks can't be called conditionally) rather than a preference, since
@@ -37,9 +38,8 @@
  * case (nothing to tell Godot), wrong for this one, because entities and
  * ground items could easily have changed during the gap and Godot would
  * have no way to know. `bridgeConnected` flipping false -> true is that
- * signal, tracked here (not inside `shouldPublish`, which stays a pure
- * function of room ids on purpose) and forces the next publish regardless
- * of whether the room itself moved.
+ * signal, tracked here and forces the next publish regardless of whether the
+ * projected facts happen to match the last successful publish.
  */
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '../store/useAppStore'

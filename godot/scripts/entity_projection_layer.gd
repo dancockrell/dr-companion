@@ -9,12 +9,14 @@ extends Node3D
 
 var _tethers: Dictionary = {}
 var _projected_ids: Dictionary = {}
+const CombatPresentation := preload("res://scripts/combat_presentation.gd")
 
 signal inspect_entity_requested(entity_id: String)
 signal inspect_ground_item_requested(item_id: String)
 
 func project_snapshot(snapshot: Dictionary, room_holders: Dictionary) -> void:
 	_clear_projection()
+	_project_player(snapshot, room_holders)
 	for entity_value in snapshot.get("entities", []):
 		if entity_value is Dictionary:
 			_project_entity(entity_value, room_holders)
@@ -60,14 +62,53 @@ func _project_entity(entity: Dictionary, room_holders: Dictionary) -> void:
 	var token := MeshInstance3D.new()
 	token.name = "Entity_%s" % entity_id
 	token.mesh = _entity_mesh(String(entity.get("deck", "")))
-	token.material_override = _token_material(_entity_color(String(entity.get("deck", ""))))
+	token.material_override = _token_material(CombatPresentation.token_color(entity))
 	token.position = _slot_for(entity_id, 0.72)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "entity")
 	token.set_meta("entityName", String(entity.get("name", "")))
+	token.set_meta("assessmentState", CombatPresentation.assessment_state(entity))
+	token.set_meta("tacticalSummary", CombatPresentation.tactical_summary(entity))
+	token.set_meta("tooltip", CombatPresentation.tactical_tooltip(entity))
 	tether.add_child(token)
+	_add_assessment_ring(token, CombatPresentation.assessment_state(entity))
 	_add_inspect_hitbox(token, "entity", entity_id)
 	_projected_ids[entity_id] = token
+
+func _project_player(snapshot: Dictionary, room_holders: Dictionary) -> void:
+	var player_value = snapshot.get("player")
+	var room_id := str(snapshot.get("currentRoomId", ""))
+	if not player_value is Dictionary or room_id.is_empty():
+		return
+	var tether := _tether_for(room_id, room_holders)
+	if tether == null:
+		return
+	var token := MeshInstance3D.new()
+	token.name = "PlayerSelf"
+	var pawn := CapsuleMesh.new()
+	pawn.radius = 0.28
+	pawn.height = 0.94
+	token.mesh = pawn
+	token.material_override = _token_material(CombatPresentation.player_color(player_value))
+	token.position = Vector3(0.0, 0.52, 0.0)
+	var view := CombatPresentation.player_view(player_value)
+	token.set_meta("roomId", room_id)
+	token.set_meta("snapshotKind", "player")
+	token.set_meta("combatState", view.get("state", "PLAYER STATE UNKNOWN"))
+	token.set_meta("healthPercent", view.get("healthPercent", 0.0))
+	tether.add_child(token)
+	_projected_ids["player:self"] = token
+
+func _add_assessment_ring(token: MeshInstance3D, state: String) -> void:
+	var ring := MeshInstance3D.new()
+	ring.name = "AssessmentRing"
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.39
+	torus.outer_radius = 0.46
+	ring.mesh = torus
+	ring.material_override = _token_material(CombatPresentation.assessment_color(state))
+	ring.position.y = -0.39
+	token.add_child(ring)
 
 func _project_ground_item(item: Dictionary, room_holders: Dictionary) -> void:
 	var item_id := String(item.get("id", ""))
@@ -136,13 +177,6 @@ func _entity_mesh(deck: String) -> PrimitiveMesh:
 	pawn.bottom_radius = 0.38
 	pawn.height = 0.8
 	return pawn
-
-func _entity_color(deck: String) -> Color:
-	match deck:
-		"hostile": return Color(0.88, 0.25, 0.22)
-		"allied": return Color(0.20, 0.72, 0.42)
-		"people": return Color(0.30, 0.58, 0.92)
-		_: return Color(0.58, 0.58, 0.65)
 
 func _token_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()

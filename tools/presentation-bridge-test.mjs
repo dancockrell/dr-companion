@@ -12,7 +12,7 @@
  *
  *   node --experimental-strip-types tools/presentation-bridge-test.mjs
  */
-import { cannotAct, compileWorldSnapshot, justReconnected, shouldPublish } from '../src/lib/presentationBridge.ts'
+import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, shouldPublish } from '../src/lib/presentationBridge.ts'
 
 let pass = 0
 let fail = 0
@@ -144,15 +144,51 @@ console.log('\n-- compileWorldSnapshot: world position uses the same scale as th
   ok('map level (z) becomes 5m world height steps', here?.position.y === 0, String(here?.position.y))
 }
 
-console.log('\n-- shouldPublish: the gate between "state updated" and "Godot gets a new snapshot" --')
+console.log('\n-- shouldPublish: every projected fact stays live without duplicate snapshots --')
 {
-  ok('the same room, not forced: does not publish (this is the whole point of the gate)',
-    shouldPublish('1-14', '1-14', false) === false)
-  ok('a different room, not forced: publishes', shouldPublish('1-13', '1-14', false) === true)
-  ok('the same room, forced (a reconnect): publishes anyway',
-    shouldPublish('1-14', '1-14', true) === true)
-  ok('no prior room at all (first publish this session): publishes',
-    shouldPublish('1-14', null, false) === true)
+  const base = compileWorldSnapshot({ zone: ZONE, here: HERE, character: CHARACTER, sequence: 1 })
+  const same = compileWorldSnapshot({ zone: ZONE, here: HERE, character: { ...CHARACTER }, sequence: 99 })
+  const hurt = compileWorldSnapshot({
+    zone: ZONE,
+    here: HERE,
+    sequence: 2,
+    character: {
+      ...CHARACTER,
+      situation: ['in_combat', 'stunned'],
+      roundtime: 4,
+      vitals: { health: 40, healthMax: 100, spirit: 10, spiritMax: 10, fatigue: 10, fatigueMax: 10 },
+    },
+  })
+  const assessed = compileWorldSnapshot({
+    zone: ZONE,
+    here: HERE,
+    sequence: 3,
+    character: {
+      ...CHARACTER,
+      roomCombatants: [{
+        id: 'boar-1', name: 'a wild boar', noun: 'boar', dead: false, hostile: true,
+        disengaged: false, range: 'melee', relation: 'in front of you', target: 'you',
+        targetNumber: 1, balance: 'solid', offBalance: false, conditions: [],
+        statuses: [], enrichedAgeSeconds: 2,
+      }],
+    },
+  })
+  const noDagger = compileWorldSnapshot({
+    zone: ZONE, here: HERE, sequence: 4,
+    character: { ...CHARACTER, roomItems: ['some copper kronars'] },
+  })
+  const baseKey = projectionKey(base)
+  ok('sequence alone does not produce a duplicate snapshot',
+    projectionKey(same) === baseKey && !shouldPublish(projectionKey(same), baseKey, false))
+  ok('health, action lock, and roundtime changes publish without a room move',
+    shouldPublish(projectionKey(hurt), baseKey, false))
+  ok('assessed creature state publishes without a room move',
+    shouldPublish(projectionKey(assessed), baseKey, false))
+  ok('ground-item changes publish without a room move',
+    shouldPublish(projectionKey(noDagger), baseKey, false))
+  ok('the same projection forced by reconnect publishes anyway',
+    shouldPublish(baseKey, baseKey, true))
+  ok('no prior projection at all publishes', shouldPublish(baseKey, null, false))
 }
 
 console.log('\n-- tactical: what the game already knows, carried without inventing anything --')
@@ -246,6 +282,12 @@ console.log('\n-- player: the character\'s own state, carried to the viewer --')
   ok('roundtime - the one real clock in this snapshot - comes through',
     snap?.player?.roundtime === 9, String(snap?.player?.roundtime))
   ok('health is a 0-1 fraction', snap?.player?.health === 0.43, String(snap?.player?.health))
+
+	const overflow = compileWorldSnapshot({
+		zone: ZONE, here: HERE, sequence: 14,
+		character: { ...CHARACTER, vitals: { health: 120, healthMax: 100, spirit: 0, spiritMax: 0, fatigue: 0, fatigueMax: 0 } },
+	})
+	ok('health remains inside its documented 0-1 wire range', overflow?.player?.health === 1, String(overflow?.player?.health))
 
   // Absent means unknown, never "a healthy character".
   const none = compileWorldSnapshot({ zone: ZONE, here: HERE, character: null, sequence: 12 })

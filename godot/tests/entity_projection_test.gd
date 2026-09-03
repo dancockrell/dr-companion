@@ -29,8 +29,10 @@ func _initialize() -> void:
 
 	var rooms := {"crossing-1": room_one, "crossing-2": room_two}
 	var fixture := {
+		"currentRoomId": "crossing-1",
+		"player": {"cannotAct": true, "roundtime": 4, "health": 0.45, "situation": ["stunned"]},
 		"entities": [
-			{"id": "creature-1", "roomId": "crossing-1", "name": "a troll", "deck": "hostile"},
+			{"id": "creature-1", "roomId": "crossing-1", "name": "a troll", "deck": "hostile", "tactical": {"range": "melee", "statuses": ["stunned"], "conditions": [], "enrichedAgeSeconds": 8}},
 			{"id": "person-1", "roomId": "crossing-2", "name": "Kethrai", "deck": "people"},
 			{"id": "unknown-room", "roomId": "crossing-404", "name": "nothing", "deck": "hostile"},
 			{"id": "", "roomId": "crossing-1", "name": "missing id", "deck": "people"},
@@ -41,12 +43,18 @@ func _initialize() -> void:
 		]
 	}
 	layer.project_snapshot(fixture, rooms)
-	_ok("only snapshot entries with a known room and stable id render", layer.visible_ids().size() == 3)
+	_ok("confirmed player plus snapshot entries with a known room and stable id render", layer.visible_ids().size() == 4)
+	_ok("the player's own token stays at the confirmed current room node", layer.tether_room_for("player:self") == "crossing-1")
+	_ok("the player token carries the bridge-decided action lock", layer.token_for("player:self").get_meta("combatState") == "CANNOT ACT")
 	_ok("a hostile token stays tethered to its reported room", layer.tether_room_for("creature-1") == "crossing-1")
 	_ok("a person token stays tethered to its reported room", layer.tether_room_for("person-1") == "crossing-2")
 	_ok("a ground-item token stays tethered to its reported room", layer.tether_room_for("item-1") == "crossing-1")
 	_ok("an unknown room never creates an entity token", layer.tether_room_for("unknown-room") == "")
 	_ok("each confirmed entity token has an inspect hit target", layer.token_for("creature-1").has_node("InspectTarget"))
+	_ok("entity token carries the shared tactical freshness policy", layer.token_for("creature-1").get_meta("assessmentState") == "fresh")
+	_ok("entity token visibly carries one assessment-age ring", layer.token_for("creature-1").has_node("AssessmentRing"))
+	_ok("entity token carries the exact projected tactical summary", String(layer.token_for("creature-1").get_meta("tacticalSummary")).contains("melee"))
+	_ok("unassessed people stay explicitly unassessed", layer.token_for("person-1").get_meta("assessmentState") == "unassessed")
 	_ok("each confirmed ground-item token has an inspect hit target", layer.token_for("item-1").has_node("InspectTarget"))
 	var first_slot: Vector3 = layer.local_slot_for("creature-1")
 	layer.project_snapshot(fixture, rooms)

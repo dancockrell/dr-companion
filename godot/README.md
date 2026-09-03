@@ -57,10 +57,12 @@ required for this slice's acceptance gate.
   have matching `1` / `2` / `3` shortcuts. Exit buttons are keyboard
   reachable, preserve the manifest's exact move string, and share the 3D
   markers' stale-room validation rather than creating another map window.
-- `scripts/world_inspector.gd` — one collapsible current-room text inspector.
-  It mirrors only confirmed occupants and ground items tethered to the active
-  room, exposes keyboard-reachable inspect actions by stable ID, and shows an
-  honest empty state when mock/live snapshot data supplies none.
+- `scripts/world_inspector.gd` — one collapsible current-room inspector with a
+  compact live player strip plus every confirmed occupant and ground item. It
+  counts down only the real roundtime clock from its receipt moment, never
+  invents a stun duration, keeps unassessed tactics explicit, includes every
+  supplied tactical/lore fact in tooltips, and gives each row a keyboard-
+  focusable Elanthipedia search.
 - `scripts/confirmed_route_transition.gd` — a short, fading route ribbon only
   after the bridge has confirmed a room-to-room change over a known manifest
   exit. It stays silent for reconnects, rejects, external routes, and unknown
@@ -72,9 +74,16 @@ required for this slice's acceptance gate.
   for bridge-confirmed entities and ground items. Each token is parented below
   its reported room's tether and gets a deterministic local display slot; it
   receives no independent world coordinate, combat range, lore-derived model,
-  or authority to move anything. A click creates the documented, read-only
-  inspect intent only for the exact confirmed snapshot ID; the desktop shell
-  remains responsible for showing the resulting accessible inspector.
+  or authority to move anything. The character's own confirmed state gets one
+  central pawn under the current room node. Creature tokens share one assessed-
+  knowledge ring language (fresh / aging / stale / live-only / unassessed), and
+  stale assessed facts visibly mute without changing live allegiance. A click
+  creates the documented, read-only inspect intent only for the exact confirmed
+  snapshot ID.
+- `scripts/combat_presentation.gd` — the single formatting and color policy for
+  player urgency, health, roundtime, creature tactical facts, assess freshness,
+  and Elanthipedia searches. Both 3D tokens and the accessible inspector use it,
+  preventing a second interpretation of `cannotAct` or stale knowledge.
 - `mock/crossing_mock_world.json` — the checked-in mock fixture the first
   acceptance gate requires: Town Green North plus its depth-2 neighborhood
   (19 cells), extracted from the real compiled Crossing manifest by
@@ -83,8 +92,12 @@ required for this slice's acceptance gate.
 - `tests/foundation_test.gd` — the acceptance-gate test itself, runnable
   headlessly with no editor and no live connection.
 - `tests/entity_projection_test.gd` — a headless contract gate for room
-  tethering, deterministic slots, rejection of unknown rooms, and removal of
-  stale tokens on the next confirmed snapshot.
+  tethering, the current-room player pawn, assessment rings, deterministic
+  slots, rejection of unknown rooms, and removal of stale tokens on the next
+  confirmed snapshot.
+- `tests/combat_presentation_test.gd` — verifies the honest distinction among
+  unassessed, live-only, fresh, aging, and stale knowledge; player urgency;
+  health and roundtime; and the whitelisted Elanthipedia search shape.
 - `tests/route_graph_layer_test.gd` — verifies the route view is one mesh,
   covers known local connections, and excludes unknown/external destinations.
 - `tests/world_controls_test.gd` — verifies the three documented camera
@@ -175,10 +188,10 @@ on purpose, so nobody mistakes this for further along than it is:
   first real visual replacement is a cheap colored floor plane and registered
   chunky set-piece meshes, not a literal cloth/felt blanket and not an
   image-to-3D scene reconstruction.
-- **No live entity or ground-item feed.** The renderer now has a strict
-  room-tethered tabletop-token projection, but mock-mode snapshots remain
-  empty until the real presentation bridge supplies confirmed occupants and
-  room items. It does not fabricate a population for visual effect.
+- **Mock mode does not fabricate a population.** The live presentation bridge
+  supplies confirmed occupants, room items, player state, and optional assessed
+  creature facts. Standalone mock snapshots remain honestly empty; focused
+  tests inject explicit fixtures to exercise dense-room and combat states.
 - **No character animation controller.** Premium rigged miniature models are
   a separate admission path. The future controller maps confirmed live events
   to idle, turn, short-step, attack, hit, miss, defeat, and spell-pulse clips;

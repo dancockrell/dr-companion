@@ -3,7 +3,7 @@
  * `src-tauri/src/presentation_bridge.rs` and the Godot viewer's
  * `world_manifest_loader.gd`/`bridge_client.gd` already agree on (see
  * `docs/THREE_D_REBUILD_HANDOFF.md` section 4), and publishes it to Rust
- * whenever the room actually changes.
+ * whenever any viewer-relevant live fact or zone topology changes.
  *
  * This file is the one place that turns "what this app already knows" into
  * "what Godot is told." It never talks to Godot directly - only to Rust, via
@@ -411,7 +411,9 @@ export function compileWorldSnapshot(params: {
         situation: character.situation ?? [],
         cannotAct: cannotAct(character.situation),
         roundtime: character.roundtime ?? null,
-        health: maxHealth > 0 ? character.vitals.health / maxHealth : null,
+        health: maxHealth > 0
+          ? Math.max(0, Math.min(1, character.vitals.health / maxHealth))
+          : null,
       }
     : null
 
@@ -428,25 +430,43 @@ export function compileWorldSnapshot(params: {
   }
 }
 
-let lastPublishedRoomId: string | null = null
+let lastPublishedProjectionKey: string | null = null
+let lastPublishedZone: MapZone | null = null
 let sequence = 0
+let publishQueue: Promise<void> = Promise.resolve()
 
 /**
- * The one gate between "the room state updated" and "Godot gets a new
+ * The one gate between "viewer-relevant state updated" and "Godot gets a new
  * snapshot." Pure and exported on its own so it can be tested directly,
  * without needing to mock `invokeTauri` - which, being a plain function
  * export off an ES module, cannot be monkey-patched in a test anyway (the
  * module namespace object is frozen).
  *
- * Not every store update means the room changed - vitals, roundtime and
- * dozens of other fields update far more often than the character moves -
- * and a snapshot's real purpose is telling Godot *where the character is*,
- * not mirroring every field change. `force` exists for a reconnect/attach,
- * where the room may be unchanged but Godot still needs a fresh snapshot
- * (a new connection, or one recovering from a dropped event).
+ * The signature contains exactly the live facts Godot projects, not the full
+ * zone topology. This matters now that the snapshot carries health,
+ * roundtime, action locks, occupants, ground items, and assessed creature
+ * state: gating only on room id froze every one of those facts until the
+ * player moved. Topology changes are detected separately by the zone object
+ * identity in `publishWorldSnapshotIfChanged`, avoiding a megabyte-scale
+ * stringify on every status tick.
  */
-export function shouldPublish(nextRoomId: string, lastRoomId: string | null, force: boolean): boolean {
-  return force || nextRoomId !== lastRoomId
+export function shouldPublish(nextProjectionKey: string, lastProjectionKey: string | null, force: boolean): boolean {
+  return force || nextProjectionKey !== lastProjectionKey
+}
+
+/** Stable signature for every live field the current Godot projection reads.
+ * Cell topology is deliberately excluded and tracked by zone object identity
+ * at the publication boundary; `sequence` is excluded because it changes only
+ * as a consequence of publishing and must never trigger publication itself. */
+export function projectionKey(snapshot: WorldSnapshot): string {
+  return JSON.stringify({
+    worldId: snapshot.worldId,
+    currentRoomId: snapshot.currentRoomId,
+    activeRoom: snapshot.activeRoom,
+    entities: snapshot.entities,
+    groundItems: snapshot.groundItems,
+    player: snapshot.player,
+  })
 }
 
 /**
@@ -454,8 +474,8 @@ export function shouldPublish(nextRoomId: string, lastRoomId: string | null, for
  * connected - a real reconnect, not merely "is connected" (which would also
  * be true on every unrelated re-render) or "was connected" (true forever
  * after the first connect). Used to force a fresh snapshot publish past
- * `shouldPublish`'s room-changed gate, since entities/ground items can
- * change during a dropped connection without the room itself changing.
+ * `shouldPublish`'s semantic-change gate, since state can change during a
+ * dropped connection and then settle back to the last published signature.
  */
 export function justReconnected(connected: boolean, wasConnected: boolean): boolean {
   return connected && !wasConnected
@@ -510,7 +530,8 @@ export function gameCommandForIntent(
 }
 
 /**
- * Publishes a freshly-compiled snapshot to Rust, gated by `shouldPublish`.
+ * Publishes a freshly-compiled snapshot to Rust when any projected fact or
+ * zone topology changes, gated by `shouldPublish`.
  *
  * Silently no-ops in the browser (`invokeTauri` already does) and when
  * `compileWorldSnapshot` returns `null` - there is nothing dishonest to
@@ -523,19 +544,34 @@ export async function publishWorldSnapshotIfChanged(
 ): Promise<void> {
   const snapshot = compileWorldSnapshot({ ...params, sequence: sequence + 1 })
   if (!snapshot) return
-  if (!shouldPublish(snapshot.currentRoomId, lastPublishedRoomId, force)) return
-
-  sequence += 1
-  lastPublishedRoomId = snapshot.currentRoomId
-  await invokeTauri('publish_world_snapshot', { snapshot: { ...snapshot, sequence } })
+  const nextProjectionKey = projectionKey(snapshot)
+  const nextZone = params.zone
+  // Store updates can outpace a native invocation. Serialize publications so
+  // sequences stay strictly increasing and an older snapshot cannot finish
+  // after a newer one. Recover the queue before the next item so one rejected
+  // native call remains retryable instead of poisoning every future publish.
+  publishQueue = publishQueue.catch(() => undefined).then(async () => {
+    const zoneChanged = nextZone !== lastPublishedZone
+    if (!zoneChanged && !shouldPublish(nextProjectionKey, lastPublishedProjectionKey, force)) return
+    const nextSequence = sequence + 1
+    await invokeTauri('publish_world_snapshot', { snapshot: { ...snapshot, sequence: nextSequence } })
+    // A failed native call throws. Only advance the deduplication state after
+    // the bridge accepted the publish, so the next update can retry honestly.
+    sequence = nextSequence
+    lastPublishedProjectionKey = nextProjectionKey
+    lastPublishedZone = nextZone
+  })
+  await publishQueue
 }
 
 /** Test-only: lets `tools/presentation-bridge-test.mjs` (and, if it's ever
  * needed, a future reconnect flow) reset the change-detection state without
  * reaching into module-private variables. */
 export function resetPresentationBridgePublishState(): void {
-  lastPublishedRoomId = null
+  lastPublishedProjectionKey = null
+  lastPublishedZone = null
   sequence = 0
+  publishQueue = Promise.resolve()
 }
 
 /** What a Godot client needs to connect: the port it should dial, and where

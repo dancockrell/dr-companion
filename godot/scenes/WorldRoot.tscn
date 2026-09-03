@@ -116,6 +116,25 @@ autowrap_mode = 2
 [node name="RoomId" type="Label" parent="WorldInspector/Panel/Content"]
 text = "No confirmed room"
 
+[node name="PlayerStatus" type="HBoxContainer" parent="WorldInspector/Panel/Content"]
+theme_override_constants/separation = 8
+
+[node name="State" type="Label" parent="WorldInspector/Panel/Content/PlayerStatus"]
+custom_minimum_size = Vector2(98, 0)
+text = "PLAYER STATE UNKNOWN"
+
+[node name="Health" type="ProgressBar" parent="WorldInspector/Panel/Content/PlayerStatus"]
+custom_minimum_size = Vector2(80, 12)
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="HealthText" type="Label" parent="WorldInspector/Panel/Content/PlayerStatus"]
+text = "Health not received"
+
+[node name="PlayerFlags" type="Label" parent="WorldInspector/Panel/Content"]
+text = "No status flags reported"
+autowrap_mode = 2
+
 [node name="Scroll" type="ScrollContainer" parent="WorldInspector/Panel/Content"]
 custom_minimum_size = Vector2(284, 272)
 horizontal_scroll_mode = 0
