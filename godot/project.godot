@@ -2,7 +2,7 @@
 ;
 ; This project is the viewer FOUNDATION only: one WorldRoot, a manifest
 ; loader, a camera director, a content-registration contract, and a bridge
-; client that runs in mock mode until the real Tauri/Rust bridge exists. It
+; client with explicit mock and authenticated live modes. It
 ; ships no final art — Codex owns primitives, materials, and composition
 ; recipes inside the slots this project exposes. See
 ; docs/CLAUDE_3D_VIEWER_BRIEF.md and docs/THREE_D_REBUILD_HANDOFF.md at the

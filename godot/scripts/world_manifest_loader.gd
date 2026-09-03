@@ -69,6 +69,41 @@ func load_from_path(path: String) -> bool:
 	manifest_loaded.emit(cells.size(), route_count)
 	return true
 
+## Replaces topology from an authenticated live WorldSnapshot. Presentation
+## recipes are not guessed when the live bridge supplies only graph cells.
+func load_from_snapshot(snapshot: Dictionary) -> bool:
+	if int(snapshot.get("protocol", -1)) != 1:
+		manifest_load_failed.emit("unsupported live snapshot protocol")
+		return false
+	var raw_cells = snapshot.get("cells", null)
+	if typeof(raw_cells) != TYPE_ARRAY:
+		manifest_load_failed.emit("live snapshot has no cells array")
+		return false
+	var next_cells: Dictionary = {}
+	for raw_cell in raw_cells:
+		if typeof(raw_cell) != TYPE_DICTIONARY:
+			manifest_load_failed.emit("live snapshot contains a non-object cell")
+			return false
+		var cell_id := str(raw_cell.get("id", "")).strip_edges()
+		if cell_id.is_empty() or next_cells.has(cell_id):
+			manifest_load_failed.emit("live snapshot contains a missing or duplicate cell id")
+			return false
+		next_cells[cell_id] = raw_cell
+	var current_room_id := str(snapshot.get("currentRoomId", ""))
+	if current_room_id.is_empty() or not next_cells.has(current_room_id):
+		manifest_load_failed.emit("live snapshot current room is absent from its cells")
+		return false
+	cells = next_cells
+	manifest = {
+		"schemaVersion": snapshot.get("protocol", 1),
+		"worldId": snapshot.get("worldId", ""),
+		"cells": raw_cells,
+		"source": "authenticated-live-snapshot",
+	}
+	_loaded = true
+	manifest_loaded.emit(cells.size(), _count_exits())
+	return true
+
 func get_cell(cell_id: String) -> Dictionary:
 	return cells.get(cell_id, {})
 

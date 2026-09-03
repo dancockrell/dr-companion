@@ -20,12 +20,15 @@ required for this slice's acceptance gate.
   strings `tools/build-primitive-world-manifest.mjs` writes into a cell's
   `primitives[]`); an unregistered kind still renders as a visibly-flagged
   placeholder box rather than nothing.
-- `scripts/bridge_client.gd` — the presentation bridge, in mock mode. Builds
+- `scripts/bridge_client.gd` — the presentation bridge, with standalone mock
+  mode and an authenticated live mode using the Rust bridge's bounded,
+  newline-delimited loopback TCP protocol. Live mode reads the guarded port
+  and launch token from `DR Companion Data`, authenticates before admitting
+  snapshots/events or sending intents, and never logs the token. Mock mode builds
   `WorldSnapshot`-shaped dictionaries directly from the loaded manifest and
   validates every `walk` intent against the manifest's true exits before
-  mutating anything. The live-bridge swap (a real loopback WebSocket to
-  Tauri/Rust) changes the transport this file uses, not its validation
-  boundary or its public methods.
+  mutating anything. Live loopback TCP changes the transport this file uses,
+  not its validation boundary or its public methods.
 - `scripts/intent_sender.gd` — the first of two validation gates a click
   passes through (see its own header comment for why there are two).
 - `scripts/event_player.gd` — strict-sequence event playback with gap
@@ -88,6 +91,11 @@ required for this slice's acceptance gate.
 - `tests/world_inspector_test.gd` — verifies accessible entity/item actions
   expose only stable IDs confirmed in the current room and clear on the next
   snapshot.
+- `tests/live_bridge_contract_test.gd` and
+  `tests/live_bridge_transport_test.gd` — verify authenticated snapshots replace
+  topology atomically, unauthenticated data cannot replace state, guarded
+  port/token discovery reaches a real loopback socket, and live intents use
+  the Rust bridge's documented newline-delimited JSON shape.
 - `tests/confirmed_route_transition_test.gd` — verifies a travel ribbon needs
   a confirmed manifest connection and refuses unknown or same-room changes.
 - `tests/exit_anchor_layer_test.gd` — verifies anchors expose only true moves
@@ -130,9 +138,10 @@ doc's stated acceptance numbers exactly: 1,060 cells, 2,389 local routes.
 Everything else in the delivery sequence is unstarted. Specifically absent,
 on purpose, so nobody mistakes this for further along than it is:
 
-- **No real bridge.** `bridge_client.gd`'s `mock_mode` flag exists but there
-  is no loopback WebSocket, no session token, and no
-  `src-tauri/src/presentation_bridge.rs` yet. Nothing in Rust talks to Godot.
+- **No bundled launcher yet.** The Rust authenticated loopback bridge and
+  Godot TCP client now share snapshots, ordered events, and validated intents.
+  Start the viewer with `-- --live-presentation` while DR Companion is running.
+  Tauri does not yet launch, supervise, or package the Godot executable.
 - **No embedding decision.** Whether the viewer is an embedded surface or a
   dedicated window (the brief's "Windows feasibility spike") hasn't been
   attempted. `WorldRoot.tscn` currently only runs as a normal windowed Godot

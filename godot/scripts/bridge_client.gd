@@ -1,6 +1,6 @@
 extends Node
-## The local Tauri/Rust presentation bridge client — in mock mode until the
-## real loopback-WebSocket bridge exists.
+## The local Tauri/Rust presentation bridge client, with explicit mock and
+## authenticated newline-delimited loopback TCP modes.
 ##
 ## Even in mock mode this file enforces the contract the brief is explicit
 ## about: "Godot must never decide whether an exit exists or is currently
@@ -17,8 +17,14 @@ extends Node
 signal snapshot_updated(snapshot: Dictionary)
 signal intent_rejected(intent: Dictionary, reason: String)
 signal reconnected(snapshot: Dictionary)
+signal live_connection_changed(state: String)
+signal live_event_rejected(event: Dictionary, reason: String)
 
 const PROTOCOL: int = 1
+const MAX_FRAME_BYTES: int = 8 * 1024 * 1024
+const TOKEN_FILE := "presentation-bridge.token"
+const PORT_FILE := "presentation-bridge.port"
+const EVENT_KINDS := ["enter", "leave", "advance", "retreat", "attack", "hit", "miss", "parry", "evade", "block", "cast", "death", "item-drop"]
 
 ## True until a real Tauri/Rust WebSocket bridge is wired in. Nothing outside
 ## this file should ever need to branch on this — `request_snapshot`/
@@ -30,9 +36,82 @@ var mock_mode: bool = true
 var current_snapshot: Dictionary = {}
 var _sequence: int = 0
 var _current_room_id: String = ""
+var _peer := StreamPeerTCP.new()
+var _incoming := ""
+var _live_started := false
+var _authenticated := false
+var _auth_sent := false
+var _session_token := ""
+var _last_peer_status := StreamPeerTCP.STATUS_NONE
 
 func _ready() -> void:
-	pass
+	set_process(false)
+
+func _process(_delta: float) -> void:
+	if not _live_started:
+		return
+	_peer.poll()
+	var status := _peer.get_status()
+	if status != _last_peer_status:
+		_last_peer_status = status
+		if status == StreamPeerTCP.STATUS_CONNECTED:
+			live_connection_changed.emit("connected-awaiting-auth")
+		elif status == StreamPeerTCP.STATUS_ERROR or status == StreamPeerTCP.STATUS_NONE:
+			_fail_live("presentation bridge disconnected")
+			return
+	if status != StreamPeerTCP.STATUS_CONNECTED:
+		return
+	var available := _peer.get_available_bytes()
+	if available > 0:
+		_incoming += _peer.get_utf8_string(available)
+		if _incoming.to_utf8_buffer().size() > MAX_FRAME_BYTES:
+			_fail_live("presentation bridge frame exceeded the size limit")
+			return
+		_drain_live_frames()
+
+## Connects only to the Tauri-owned loopback bridge described by its guarded
+## port/token files. The token is shape-checked and is never emitted or logged.
+func start_live(config_dir: String = "") -> bool:
+	disconnect_live()
+	var directory := config_dir
+	if directory.is_empty():
+		var local_data := OS.get_environment("LOCALAPPDATA")
+		if local_data.is_empty():
+			live_connection_changed.emit("configuration-unavailable")
+			return false
+		directory = local_data.path_join("DR Companion Data")
+	var port_text := _read_small_secret_file(directory.path_join(PORT_FILE), 16)
+	var token := _read_small_secret_file(directory.path_join(TOKEN_FILE), 256)
+	if not port_text.is_valid_int():
+		live_connection_changed.emit("configuration-unavailable")
+		return false
+	var port := port_text.to_int()
+	if port < 1 or port > 65535 or token.length() < 32 or token.length() > 128 or not token.is_valid_hex_number(false):
+		live_connection_changed.emit("configuration-invalid")
+		return false
+	_session_token = token
+	var error := _peer.connect_to_host("127.0.0.1", port)
+	if error != OK:
+		_session_token = ""
+		live_connection_changed.emit("connection-failed")
+		return false
+	mock_mode = false
+	_live_started = true
+	_last_peer_status = _peer.get_status()
+	set_process(true)
+	live_connection_changed.emit("connecting")
+	return true
+
+func disconnect_live() -> void:
+	if _peer.get_status() != StreamPeerTCP.STATUS_NONE:
+		_peer.disconnect_from_host()
+	_live_started = false
+	_authenticated = false
+	_auth_sent = false
+	_session_token = ""
+	_incoming = ""
+	_last_peer_status = StreamPeerTCP.STATUS_NONE
+	set_process(false)
 
 ## Mock-mode entry point: point the bridge at a loaded world/route id and a
 ## starting room, and build the first snapshot from whatever
@@ -41,6 +120,8 @@ func _ready() -> void:
 ## same event from the rest of the viewer's point of view, just sourced
 ## locally instead of over the socket.
 func start_mock(world_id: String, starting_room_id: String) -> bool:
+	disconnect_live()
+	mock_mode = true
 	if not WorldManifestLoader.is_loaded():
 		push_error("BridgeClient.start_mock called before a manifest was loaded")
 		return false
@@ -78,6 +159,13 @@ func simulate_reconnect() -> Dictionary:
 ## this function's signature and return shape are what stays the same
 ## across that swap.
 func send_intent(intent: Dictionary) -> Dictionary:
+	if not mock_mode:
+		if not _authenticated:
+			intent_rejected.emit(intent, "presentation bridge is not authenticated")
+			return current_snapshot
+		if not _send_live_json(intent):
+			intent_rejected.emit(intent, "presentation bridge write failed")
+		return current_snapshot
 	if intent.get("kind", "") != "walk":
 		# Only `walk` mutates presentation state in this slice; inspect-*
 		# and focus-room intents are read-only and are handled by
@@ -103,6 +191,105 @@ func send_intent(intent: Dictionary) -> Dictionary:
 	current_snapshot = _build_snapshot(current_snapshot.get("worldId", ""), target_id)
 	snapshot_updated.emit(current_snapshot)
 	return current_snapshot
+
+func _read_small_secret_file(path: String, max_bytes: int) -> String:
+	if not FileAccess.file_exists(path):
+		return ""
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null or file.get_length() > max_bytes:
+		if file != null:
+			file.close()
+		return ""
+	var value := file.get_as_text().strip_edges()
+	file.close()
+	return value
+
+func _drain_live_frames() -> void:
+	var newline := _incoming.find("\n")
+	while newline >= 0:
+		var line := _incoming.substr(0, newline).strip_edges()
+		_incoming = _incoming.substr(newline + 1)
+		if not line.is_empty():
+			var parsed = JSON.parse_string(line)
+			if typeof(parsed) != TYPE_DICTIONARY:
+				_fail_live("presentation bridge sent invalid JSON")
+				return
+			_accept_live_message(parsed)
+			if not _live_started:
+				return
+		newline = _incoming.find("\n")
+
+func _accept_live_message(message: Dictionary) -> void:
+	match str(message.get("type", "")):
+		"hello":
+			if int(message.get("protocol", -1)) != PROTOCOL:
+				_fail_live("presentation bridge protocol mismatch")
+			elif not _auth_sent:
+				_auth_sent = true
+				if not _send_live_json({"type": "auth", "token": _session_token}):
+					_fail_live("presentation bridge authentication write failed")
+		"auth_ok":
+			if not _auth_sent:
+				_fail_live("presentation bridge authenticated before challenge")
+			else:
+				_authenticated = true
+				_session_token = ""
+				live_connection_changed.emit("authenticated")
+		"auth_failed":
+			_fail_live("presentation bridge authentication failed")
+		"snapshot":
+			if not _authenticated or not WorldManifestLoader.load_from_snapshot(message):
+				_fail_live("presentation bridge supplied an invalid snapshot")
+				return
+			current_snapshot = message.duplicate(true)
+			_sequence = int(message.get("sequence", 0))
+			_current_room_id = str(message.get("currentRoomId", ""))
+			EventPlayer.reset_to(_sequence)
+			snapshot_updated.emit(current_snapshot)
+		"event":
+			if not _authenticated:
+				return
+			var event_problem := _validate_live_event(message)
+			if event_problem.is_empty():
+				EventPlayer.offer(message)
+			else:
+				live_event_rejected.emit(message, event_problem)
+		"intent_rejected":
+			intent_rejected.emit({}, str(message.get("reason", "intent rejected")))
+		"error":
+			live_connection_changed.emit("server-error")
+
+func _send_live_json(message: Dictionary) -> bool:
+	if _peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+		return false
+	var payload := JSON.stringify(message) + "\n"
+	return _peer.put_data(payload.to_utf8_buffer()) == OK
+
+func _validate_live_event(event: Dictionary) -> String:
+	if int(event.get("protocol", -1)) != PROTOCOL:
+		return "unsupported event protocol"
+	if int(event.get("sequence", -1)) < 1:
+		return "event has no valid sequence"
+	var room_id := str(event.get("roomId", ""))
+	if not WorldManifestLoader.has_cell(room_id):
+		return "event names an unknown room"
+	if not EVENT_KINDS.has(str(event.get("kind", ""))):
+		return "event has an unsupported kind"
+	for field in ["sourceEntityId", "targetEntityId"]:
+		var entity_id := str(event.get(field, ""))
+		if not entity_id.is_empty() and not _snapshot_has_entity(entity_id):
+			return "event names an unknown entity"
+	return ""
+
+func _snapshot_has_entity(entity_id: String) -> bool:
+	for entity in current_snapshot.get("entities", []):
+		if entity is Dictionary and str(entity.get("id", "")) == entity_id:
+			return true
+	return false
+
+func _fail_live(reason: String) -> void:
+	disconnect_live()
+	live_connection_changed.emit("failed: %s" % reason)
 
 func _find_exit(cell_id: String, exit_move: String) -> Dictionary:
 	for exit in WorldManifestLoader.true_exits(cell_id):

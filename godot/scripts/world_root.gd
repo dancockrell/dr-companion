@@ -40,6 +40,11 @@ func _ready() -> void:
 	world_inspector.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
 	exit_root.exit_requested.connect(_on_exit_requested)
 
+	if _live_requested():
+		if not BridgeClient.start_live():
+			push_error("WorldRoot: live presentation bridge is unavailable")
+		return
+
 	if not WorldManifestLoader.load_from_path(MOCK_FIXTURE_PATH):
 		push_error("WorldRoot: failed to load mock fixture at %s" % MOCK_FIXTURE_PATH)
 		return
@@ -146,6 +151,9 @@ func _exit_towards(from_room_id: String, target_cell_id: String) -> String:
 
 func _on_snapshot_updated(snapshot: Dictionary) -> void:
 	var room_id: String = snapshot.get("currentRoomId", "")
+	if _spawned_cells.size() != WorldManifestLoader.cells.size() or (room_id != "" and not _spawned_cells.has(room_id)):
+		_prepare_all_cells()
+		route_graph.render_routes(WorldManifestLoader.cells)
 	if room_id != "" and not _last_confirmed_room_id.is_empty() and room_id != _last_confirmed_room_id and not _spawned_cells.is_empty():
 		route_transition.play_confirmed_route(_last_confirmed_room_id, room_id, WorldManifestLoader.cells)
 	if room_id != "":
@@ -154,6 +162,9 @@ func _on_snapshot_updated(snapshot: Dictionary) -> void:
 		_last_confirmed_room_id = room_id
 	_rebuild_exit_anchors(room_id)
 	_project_snapshot_tokens(snapshot)
+
+func _live_requested() -> bool:
+	return OS.get_cmdline_user_args().has("--live-presentation")
 
 func _project_snapshot_tokens(snapshot: Dictionary) -> void:
 	# The projection layer owns only visual, deterministic room-local slots.
