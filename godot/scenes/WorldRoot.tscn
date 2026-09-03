@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://c3wr0v0f0dr1w"]
+[gd_scene load_steps=8 format=3 uid="uid://c3wr0v0f0dr1w"]
 
 [ext_resource type="Script" path="res://scripts/world_root.gd" id="1_worldroot"]
 [ext_resource type="Script" path="res://scripts/camera_director.gd" id="2_camdir"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/route_graph_layer.gd" id="4_routes"]
 [ext_resource type="Script" path="res://scripts/world_controls.gd" id="5_controls"]
 [ext_resource type="Script" path="res://scripts/confirmed_route_transition.gd" id="6_transition"]
+[ext_resource type="Script" path="res://scripts/exit_anchor_layer.gd" id="7_exits"]
 
 [node name="WorldRoot" type="Node3D"]
 script = ExtResource("1_worldroot")
@@ -21,6 +22,7 @@ shadow_enabled = true
 [node name="CellRoot" type="Node3D" parent="."]
 
 [node name="ExitAnchors" type="Node3D" parent="."]
+script = ExtResource("7_exits")
 
 [node name="EntityProjection" type="Node3D" parent="."]
 script = ExtResource("3_entities")

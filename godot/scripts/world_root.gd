@@ -24,7 +24,6 @@ const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
 ## cellId -> spawned Node3D, so a room change can clear/rebuild without
 ## leaking nodes and without re-deriving which nodes belong to which cell.
 var _spawned_cells: Dictionary = {}
-var _spawned_exit_anchors: Array = []
 var _active_detail_cells: Dictionary = {}
 var _visibility_policy := CellVisibilityPolicy.new()
 var _last_confirmed_room_id := ""
@@ -35,6 +34,7 @@ func _ready() -> void:
 	entity_projection.inspect_entity_requested.connect(_on_entity_inspect_requested)
 	entity_projection.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
 	world_controls.view_requested.connect(_on_view_requested)
+	exit_root.exit_requested.connect(_on_exit_requested)
 
 	if not WorldManifestLoader.load_from_path(MOCK_FIXTURE_PATH):
 		push_error("WorldRoot: failed to load mock fixture at %s" % MOCK_FIXTURE_PATH)
@@ -197,35 +197,18 @@ func _on_view_requested(view_id: String) -> void:
 		"route": focus_route_view()
 		"room": focus_current_room_view()
 
+func _on_exit_requested(from_room_id: String, exit_move: String) -> void:
+	# Markers are rebuilt from snapshots, but the room check prevents a late
+	# click from an old frame from becoming a command in a new room.
+	if BridgeClient.current_snapshot.get("currentRoomId", "") == from_room_id:
+		IntentSender.request_walk(from_room_id, exit_move)
+
 ## Exit anchors: one visible marker per true exit of the current room,
 ## reachable to a text/list equivalent too (see `Viewer.exit_labels()`
 ## below) — the accessible-controls requirement the brief calls out is not
 ## satisfiable by 3D markers alone.
 func _rebuild_exit_anchors(room_id: String) -> void:
-	for node in _spawned_exit_anchors:
-		node.queue_free()
-	_spawned_exit_anchors.clear()
-
-	var cell: Dictionary = WorldManifestLoader.get_cell(room_id)
-	var base_position := _cell_position(cell)
-	var exits: Array = WorldManifestLoader.true_exits(room_id)
-	var count := exits.size()
-	for i in range(count):
-		var exit: Dictionary = exits[i]
-		var angle: float = TAU * float(i) / maxi(1, count)
-		var marker := MeshInstance3D.new()
-		var sphere := SphereMesh.new()
-		sphere.radius = 0.4
-		sphere.height = 0.8
-		marker.mesh = sphere
-		var material := StandardMaterial3D.new()
-		material.albedo_color = Color(0.95, 0.85, 0.3)
-		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		marker.material_override = material
-		marker.name = "Exit_%s" % exit.get("move", "?")
-		marker.position = base_position + Vector3(cos(angle) * 2.4, 0.6, sin(angle) * 2.4)
-		exit_root.add_child(marker)
-		_spawned_exit_anchors.append(marker)
+	exit_root.render_exits(room_id, WorldManifestLoader.cells)
 
 ## The accessible, non-3D-dependent list of the current room's true exits —
 ## a UI panel outside this scene calls this rather than reading the 3D

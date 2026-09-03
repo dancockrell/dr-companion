@@ -54,6 +54,9 @@ required for this slice's acceptance gate.
   after the bridge has confirmed a room-to-room change over a known manifest
   exit. It stays silent for reconnects, rejects, external routes, and unknown
   jumps instead of implying travel that did not happen.
+- `scripts/exit_anchor_layer.gd` — labels and makes each true current-room
+  exit clickable. Local destinations are placed toward their real node;
+  external exits retain their exact command label without invented geography.
 - `scripts/entity_projection_layer.gd` — creates modest tabletop tokens only
   for bridge-confirmed entities and ground items. Each token is parented below
   its reported room's tether and gets a deterministic local display slot; it
@@ -77,6 +80,8 @@ required for this slice's acceptance gate.
   requests are explicit and rejects unknown view labels.
 - `tests/confirmed_route_transition_test.gd` — verifies a travel ribbon needs
   a confirmed manifest connection and refuses unknown or same-room changes.
+- `tests/exit_anchor_layer_test.gd` — verifies anchors expose only true moves
+  for their rendered room and reject arbitrary or stale requests.
 
 ## Running the test
 
