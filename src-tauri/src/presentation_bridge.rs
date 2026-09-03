@@ -349,13 +349,22 @@ fn handle_intent(
     }
 }
 
+/// The handshake and framing only - dispatching a parsed request is
+/// `on_intent`'s job, a closure rather than a direct `state`/`AppHandle`
+/// dependency, the same shape `script_api.rs::handle_client`'s own
+/// `on_request` already uses and for the same reason: this file's own test
+/// module (below) can then exercise the real auth handshake against a real
+/// socket without needing a real `tauri::AppHandle`, which `setup.rs`'s own
+/// module doc already documents as a real, non-trivial problem to construct
+/// standalone (`mock_app()`'s `STATUS_ENTRYPOINT_NOT_FOUND` failure, past
+/// the point `cargo test` says everything is fine).
 fn handle_client(
     stream: TcpStream,
     clients: ClientList,
     state: Arc<PresentationBridgeState>,
     token: &str,
     next_id: &AtomicU64,
-    app: AppHandle,
+    mut on_intent: impl FnMut(&Value, &mut TcpStream),
 ) {
     let mut out = match stream.try_clone() {
         Ok(s) => s,
@@ -417,7 +426,7 @@ fn handle_client(
                     continue;
                 }
                 match serde_json::from_str::<Value>(trimmed) {
-                    Ok(v) => handle_intent(&v, &state, &app, &mut out),
+                    Ok(v) => on_intent(&v, &mut out),
                     Err(_) => {
                         let _ = send_json(
                             &mut out,
@@ -454,7 +463,10 @@ pub fn start(app: AppHandle) -> std::io::Result<()> {
             let token = token.clone();
             let app = app.clone();
             std::thread::spawn(move || {
-                handle_client(stream, clients, state, &token, &next_id, app);
+                let state_for_client = Arc::clone(&state);
+                handle_client(stream, clients, state_for_client, &token, &next_id, |v, out| {
+                    handle_intent(v, &state, &app, out)
+                });
             });
         }
     });
@@ -524,6 +536,92 @@ pub fn presentation_bridge_info() -> PresentationBridgeInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Read;
+
+    fn connect(port: u16) -> (TcpStream, BufReader<TcpStream>) {
+        let s = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        let r = BufReader::new(s.try_clone().unwrap());
+        (s, r)
+    }
+
+    fn read_json(r: &mut BufReader<TcpStream>) -> Value {
+        let mut line = String::new();
+        r.read_line(&mut line).unwrap();
+        serde_json::from_str(line.trim()).unwrap()
+    }
+
+    /// The handshake itself, against a real socket - the "stale/invalid
+    /// session tokens" contract test docs/CLAUDE_3D_VIEWER_BRIEF.md
+    /// requires. `handle_client` takes a no-op `on_intent` here: this test
+    /// is entirely about the auth boundary, which runs and returns before
+    /// `on_intent` is ever reached on the wrong-token path, and reaches it
+    /// with nothing worth asserting on the right-token path (that's what
+    /// `an_authed_client_receives_its_current_snapshot` below is for).
+    #[test]
+    fn requires_the_real_token_before_anything_else() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let clients: ClientList = Arc::new(Mutex::new(Vec::new()));
+        let state = Arc::new(PresentationBridgeState::default());
+        let next_id = Arc::new(AtomicU64::new(1));
+        let token = "the-real-token".to_string();
+
+        std::thread::spawn({
+            let clients = Arc::clone(&clients);
+            let state = Arc::clone(&state);
+            let next_id = Arc::clone(&next_id);
+            let token = token.clone();
+            move || {
+                for stream in listener.incoming().flatten() {
+                    handle_client(stream, Arc::clone(&clients), Arc::clone(&state), &token, &next_id, |_, _| {});
+                }
+            }
+        });
+
+        // Wrong/stale token: hello, then auth_failed, then the socket closes
+        // with nothing further - never reaches the point of registering as
+        // a client or receiving a snapshot.
+        let (_s, mut r) = connect(port);
+        assert_eq!(read_json(&mut r)["type"], "hello");
+        {
+            let mut s2 = r.get_ref().try_clone().unwrap();
+            send_json(&mut s2, &json!({"type": "auth", "token": "stale-or-forged"})).unwrap();
+        }
+        assert_eq!(read_json(&mut r)["type"], "auth_failed");
+        let mut rest = Vec::new();
+        r.read_to_end(&mut rest).unwrap();
+        assert!(rest.is_empty(), "nothing more should arrive after a refused auth");
+
+        // The real token: hello, then auth_ok.
+        let (mut s, mut r) = connect(port);
+        assert_eq!(read_json(&mut r)["type"], "hello");
+        send_json(&mut s, &json!({"type": "auth", "token": token})).unwrap();
+        assert_eq!(read_json(&mut r)["type"], "auth_ok");
+    }
+
+    /// A connection that never authenticates at all (no `auth` frame sent
+    /// before the read timeout) is refused the same way a wrong token is -
+    /// silence is not a free pass.
+    #[test]
+    fn a_connection_that_never_authenticates_is_refused_not_left_open() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let clients: ClientList = Arc::new(Mutex::new(Vec::new()));
+        let state = Arc::new(PresentationBridgeState::default());
+        let next_id = Arc::new(AtomicU64::new(1));
+
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                handle_client(stream, Arc::clone(&clients), Arc::clone(&state), "correct", &next_id, |_, _| {});
+            }
+        });
+
+        let (_s, mut r) = connect(port);
+        assert_eq!(read_json(&mut r)["type"], "hello");
+        // Send nothing - the AUTH_TIMEOUT read deadline should fire and
+        // close the connection with auth_failed, not hang forever.
+        assert_eq!(read_json(&mut r)["type"], "auth_failed");
+    }
 
     fn cell(id: &str, exits: Vec<(&str, &str)>) -> WorldCell {
         WorldCell {
