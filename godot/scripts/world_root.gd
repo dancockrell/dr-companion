@@ -15,6 +15,7 @@ const MOCK_STARTING_ROOM := "1-14"  # Town Green North
 @onready var camera: Camera3D = $CameraDirector
 @onready var cell_root: Node3D = $CellRoot
 @onready var exit_root: Node3D = $ExitAnchors
+@onready var entity_projection: Node3D = $EntityProjection
 
 ## cellId -> spawned Node3D, so a room change can clear/rebuild without
 ## leaking nodes and without re-deriving which nodes belong to which cell.
@@ -33,6 +34,7 @@ func _ready() -> void:
 		return
 
 	_spawn_all_cells()
+	_project_snapshot_tokens(BridgeClient.current_snapshot)
 	_focus_room(MOCK_STARTING_ROOM, camera.Mode.ROOM)
 
 func _spawn_all_cells() -> void:
@@ -91,6 +93,13 @@ func _on_snapshot_updated(snapshot: Dictionary) -> void:
 	if room_id != "":
 		_focus_room(room_id, camera.Mode.ROOM)
 	_rebuild_exit_anchors(room_id)
+	_project_snapshot_tokens(snapshot)
+
+func _project_snapshot_tokens(snapshot: Dictionary) -> void:
+	# The projection layer owns only visual, deterministic room-local slots.
+	# It receives no independent positions, so it cannot turn a MUD occupant
+	# into a free-roaming world actor.
+	entity_projection.project_snapshot(snapshot, _spawned_cells)
 
 func _focus_room(room_id: String, mode: int) -> void:
 	var cell: Dictionary = WorldManifestLoader.get_cell(room_id)

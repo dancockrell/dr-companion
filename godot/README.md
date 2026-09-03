@@ -36,7 +36,13 @@ required for this slice's acceptance gate.
 - `scripts/world_root.gd` + `scenes/WorldRoot.tscn` — wires the above into a
   running scene: loads the mock fixture, starts the mock bridge at Town Green
   North, spawns every cell's primitives through `ContentRegistry`, and turns
-  a click on a neighboring cell into a validated walk intent.
+  a click on a neighboring cell into a validated walk intent. It also passes
+  confirmed snapshot occupants and ground items to the projection layer.
+- `scripts/entity_projection_layer.gd` — creates modest tabletop tokens only
+  for bridge-confirmed entities and ground items. Each token is parented below
+  its reported room's tether and gets a deterministic local display slot; it
+  receives no independent world coordinate, combat range, lore-derived model,
+  or authority to move anything.
 - `mock/crossing_mock_world.json` — the checked-in mock fixture the first
   acceptance gate requires: Town Green North plus its depth-2 neighborhood
   (19 cells), extracted from the real compiled Crossing manifest by
@@ -44,6 +50,9 @@ required for this slice's acceptance gate.
   positions, and exits, not hand-authored.
 - `tests/foundation_test.gd` — the acceptance-gate test itself, runnable
   headlessly with no editor and no live connection.
+- `tests/entity_projection_test.gd` — a headless contract gate for room
+  tethering, deterministic slots, rejection of unknown rooms, and removal of
+  stale tokens on the next confirmed snapshot.
 
 ## Running the test
 
@@ -52,9 +61,15 @@ required for this slice's acceptance gate.
 ```
 
 Exits 0 with `all passed` when the gate holds, exits 1 and prints every
-failing assertion otherwise. As of this commit: 22 checks, 0 failed.
+failing assertion otherwise. The foundation gate currently has 28 checks.
 Sabotage-tested: breaking `is_true_exit` to always return true correctly
 fails exactly the two checks that exercise it and nothing else.
+
+The projection gate runs separately:
+
+```bash
+"Godot_v4.7.2-stable_win64_console.exe" --headless --path godot --script res://tests/entity_projection_test.gd
+```
 
 ## Regenerating the mock fixture
 
@@ -93,8 +108,10 @@ on purpose, so nobody mistakes this for further along than it is:
   first real visual replacement is a cheap colored floor plane and registered
   chunky set-piece meshes, not a literal cloth/felt blanket and not an
   image-to-3D scene reconstruction.
-- **No entities or ground items.** `WorldSnapshot.entities`/`.groundItems`
-  are hard-coded empty arrays; there is no source to populate them from yet.
+- **No live entity or ground-item feed.** The renderer now has a strict
+  room-tethered tabletop-token projection, but mock-mode snapshots remain
+  empty until the real presentation bridge supplies confirmed occupants and
+  room items. It does not fabricate a population for visual effect.
 - **No character animation controller.** Premium rigged miniature models are
   a separate admission path. The future controller maps confirmed live events
   to idle, turn, short-step, attack, hit, miss, defeat, and spell-pulse clips;
