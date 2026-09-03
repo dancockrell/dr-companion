@@ -3,9 +3,9 @@
   "task_id": "godot-live-combat-projection",
   "agent": "Codex /root",
   "summary": "Keep live combat facts fresh and render them honestly in the single Godot world viewer",
-  "status": "active",
+  "status": "completed",
   "claimed_at": "2026-09-03T14:08:41Z",
-  "updated_at": "2026-09-03T14:08:41Z",
+  "updated_at": "2026-09-03T14:24:47Z",
   "paths": [
     "src/lib/presentationBridge.ts",
     "src/lib/usePresentationBridgePublisher.ts",
@@ -34,7 +34,15 @@
     "notes": "Integrates the already-merged player and tactical snapshot fields into one current pipeline; no alternate bridge or viewer path. The open creature-art removal PR does not overlap these files."
   },
   "completion": {
-    "commit": null,
-    "checks": []
+    "commit": "49570fcffc06f7cc38d26fcfb7a03d6d9ef251b2",
+    "checks": [
+      "npm run test:presentation-bridge: passed, 64 checks",
+      "npm run build: passed",
+      "all godot/tests/*_test.gd with Godot 4.7.2: passed",
+      "npm run test:godot-export: passed",
+      "npm run godot:export with Godot 4.7.2: passed, 109275720-byte Windows executable, sha256 935fc64330e903a216ab772a08f4e262c114477f70cbce0b7122f8ad9cfbd2ba",
+      "git diff --check: passed",
+      "Godot emitted environment-only warnings for its unwritable user log/editor settings and unavailable Windows root certificate store; project compilation, tests, and export completed successfully"
+    ]
   }
 }
