@@ -59,6 +59,7 @@
 import type { CharacterStatus } from '../types/index.ts'
 import type { MapRoom, MapZone, MapZoneRoom } from '../bridge/types.ts'
 import { fromRoom } from './room.ts'
+import type { RoomCard } from './cards.ts'
 import { invokeTauri } from './tauri.ts'
 
 /** Matches the Godot-side manifest compiler's own convention
@@ -100,6 +101,23 @@ export interface EntitySnapshot {
   deck: 'hostile' | 'allied' | 'people'
   status: string
   count: number
+  /**
+   * Bestiary lore, sourced from Elanthipedia (`elanthipedia.play.net` -
+   * see `bestiary.ts`'s own doc comment and `docs/KNOWLEDGE.md`'s note that
+   * the domain "is their domain and their bill," i.e. genuinely play.net-
+   * hosted data, not this app's own guess). `fromRoom()` already looks this
+   * up for the existing radar's hover cards; carried through here so
+   * Godot's own inspector content (an entity card, a tooltip - Codex's to
+   * build, not this file's) has the same source-backed facts to show
+   * instead of a bare name with nothing behind it. Absent, never
+   * fabricated, when the bestiary has no entry or the match was too
+   * ambiguous to trust - `loreApproximate` marks the one case where a
+   * lookup succeeded but on weaker evidence ("some troll" matched by noun
+   * alone, not an exact name), so a confident-looking stat block doesn't
+   * overstate what's actually known.
+   */
+  lore?: RoomCard['lore']
+  loreApproximate?: boolean
 }
 
 export interface GroundItemSnapshot {
@@ -205,6 +223,10 @@ export function compileWorldSnapshot(params: {
     deck: card.deck,
     status: card.status,
     count: card.count,
+    // Elanthipedia-sourced (play.net) bestiary lore, when fromRoom() found
+    // any - see EntitySnapshot's own doc comment.
+    ...(card.lore ? { lore: card.lore } : {}),
+    ...(card.loreApproximate ? { loreApproximate: card.loreApproximate } : {}),
   }))
 
   const groundItems: GroundItemSnapshot[] = (character?.roomItems ?? []).map((name, i) => ({

@@ -65,7 +65,11 @@ const ZONE = {
 const HERE = { id: 14, uid: null, title: null, location: null }
 
 const CHARACTER = {
-  roomCreatures: ['a wild boar'],
+  // "a wild boar" is an exact bestiary name match; "a savage mage" has no
+  // such entry but resolves via the ambiguous byNoun index ("mage") -
+  // verified directly against src/data/bestiary.json, not assumed - so the
+  // fixture covers both the confident and the approximate lore paths.
+  roomCreatures: ['a wild boar', 'a savage mage'],
   roomDeadCreatures: [],
   roomAllies: [],
   roomPlayers: ['Kestrel'],
@@ -106,6 +110,22 @@ console.log('\n-- compileWorldSnapshot: a real snapshot --')
       snap.entities.some((e) => e.name === 'Kestrel' && e.deck === 'people'))
     ok('every entity is tethered to the current room id, never given its own coordinates',
       snap.entities.every((e) => e.roomId === '1-14'))
+
+    const boar = snap.entities.find((e) => e.name === 'a wild boar')
+    ok('the boar carries real Elanthipedia (play.net) bestiary lore, not just a bare name',
+      boar?.lore != null && typeof boar.lore.attackRange === 'string', JSON.stringify(boar?.lore))
+    ok('"a wild boar" is an exact bestiary name match, so it is not flagged approximate',
+      !boar?.loreApproximate)
+
+    const mage = snap.entities.find((e) => e.name === 'a savage mage')
+    ok('"a savage mage" has no exact bestiary entry but resolves lore via the noun index',
+      mage?.lore != null, JSON.stringify(mage?.lore))
+    ok('a noun-only match is marked approximate, so a confident-looking card doesn\'t overstate what\'s known',
+      mage?.loreApproximate === true)
+
+    const kestrel = snap.entities.find((e) => e.name === 'Kestrel')
+    ok('a named player carries no fabricated bestiary lore (Kestrel is not a creature)',
+      kestrel?.lore === undefined)
 
     ok('both room items became ground items', snap.groundItems.length === 2, String(snap.groundItems.length))
     ok('ground items are tethered to the room too', snap.groundItems.every((g) => g.roomId === '1-14'))
