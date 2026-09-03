@@ -77,9 +77,13 @@ required for this slice's acceptance gate.
   or authority to move anything. The character's own confirmed state gets one
   central pawn under the current room node. Creature tokens share one assessed-
   knowledge ring language (fresh / aging / stale / live-only / unassessed), and
-  stale assessed facts visibly mute without changing live allegiance. A click
-  creates the documented, read-only inspect intent only for the exact confirmed
-  snapshot ID.
+  stale assessed facts visibly mute without changing live allegiance. Exact
+  `melee` / `pole` / `missile` buckets stage tokens on three tabletop bands;
+  they are visual categories, never invented metres. An engagement line appears
+  only when the supplied target resolves to exactly one confirmed token (or the
+  player as `you`); ambiguous, missing, dead, and disengaged targets stay
+  unlinked. A click creates the documented, read-only inspect intent only for
+  the exact confirmed snapshot ID.
 - `scripts/combat_presentation.gd` — the single formatting and color policy for
   player urgency, health, roundtime, creature tactical facts, assess freshness,
   and Elanthipedia searches. Both 3D tokens and the accessible inspector use it,
@@ -92,9 +96,9 @@ required for this slice's acceptance gate.
 - `tests/foundation_test.gd` — the acceptance-gate test itself, runnable
   headlessly with no editor and no live connection.
 - `tests/entity_projection_test.gd` — a headless contract gate for room
-  tethering, the current-room player pawn, assessment rings, deterministic
-  slots, rejection of unknown rooms, and removal of stale tokens on the next
-  confirmed snapshot.
+  tethering, the current-room player pawn, exact range bands, resolvable target
+  links, assessment rings, deterministic slots, rejection of unknown rooms,
+  and removal of stale tokens on the next confirmed snapshot.
 - `tests/combat_presentation_test.gd` — verifies the honest distinction among
   unassessed, live-only, fresh, aging, and stale knowledge; player urgency;
   health and roundtime; and the whitelisted Elanthipedia search shape.

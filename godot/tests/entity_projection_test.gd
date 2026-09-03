@@ -32,7 +32,7 @@ func _initialize() -> void:
 		"currentRoomId": "crossing-1",
 		"player": {"cannotAct": true, "roundtime": 4, "health": 0.45, "situation": ["stunned"]},
 		"entities": [
-			{"id": "creature-1", "roomId": "crossing-1", "name": "a troll", "deck": "hostile", "tactical": {"range": "melee", "statuses": ["stunned"], "conditions": [], "enrichedAgeSeconds": 8}},
+			{"id": "creature-1", "roomId": "crossing-1", "name": "a troll", "deck": "hostile", "tactical": {"range": "melee", "target": "you", "disengaged": false, "dead": false, "statuses": ["stunned"], "conditions": [], "enrichedAgeSeconds": 8}},
 			{"id": "person-1", "roomId": "crossing-2", "name": "Kethrai", "deck": "people"},
 			{"id": "unknown-room", "roomId": "crossing-404", "name": "nothing", "deck": "hostile"},
 			{"id": "", "roomId": "crossing-1", "name": "missing id", "deck": "people"},
@@ -54,6 +54,9 @@ func _initialize() -> void:
 	_ok("entity token carries the shared tactical freshness policy", layer.token_for("creature-1").get_meta("assessmentState") == "fresh")
 	_ok("entity token visibly carries one assessment-age ring", layer.token_for("creature-1").has_node("AssessmentRing"))
 	_ok("entity token carries the exact projected tactical summary", String(layer.token_for("creature-1").get_meta("tacticalSummary")).contains("melee"))
+	_ok("melee staging stays inside an unassessed neutral slot", layer.local_slot_for("creature-1").length() < layer.local_slot_for("person-1").length())
+	_ok("the player room exposes all three exact DR range bands", layer.token_for("player:self").get_parent().has_node("RangeBands/RangeBand_melee") and layer.token_for("player:self").get_parent().has_node("RangeBands/RangeBand_pole") and layer.token_for("player:self").get_parent().has_node("RangeBands/RangeBand_missile"))
+	_ok("an exact 'you' target produces one engagement line", layer.target_link_count() == 1 and layer.target_for("creature-1") == "player:self")
 	_ok("unassessed people stay explicitly unassessed", layer.token_for("person-1").get_meta("assessmentState") == "unassessed")
 	_ok("each confirmed ground-item token has an inspect hit target", layer.token_for("item-1").has_node("InspectTarget"))
 	var first_slot: Vector3 = layer.local_slot_for("creature-1")

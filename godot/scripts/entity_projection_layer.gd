@@ -3,12 +3,14 @@ extends Node3D
 ##
 ## The game remains a room-node MUD: this layer receives entities and ground
 ## items that have already been confirmed by the bridge and puts a small,
-## deterministic visual token *under that room's tether*.  The local offset is
-## purely presentation spacing.  It is never a coordinate from the game, never
-## a combat range, and cannot carry a token into another room.
+## deterministic visual token *under that room's tether*. The local angle is
+## purely presentation spacing. When the bridge supplies one of DragonRealms'
+## exact assessed range buckets, the local radius uses that band; it is never
+## converted into physical distance and cannot carry a token into another room.
 
 var _tethers: Dictionary = {}
 var _projected_ids: Dictionary = {}
+var _target_links: Dictionary = {}
 const CombatPresentation := preload("res://scripts/combat_presentation.gd")
 
 signal inspect_entity_requested(entity_id: String)
@@ -23,6 +25,7 @@ func project_snapshot(snapshot: Dictionary, room_holders: Dictionary) -> void:
 	for item_value in snapshot.get("groundItems", []):
 		if item_value is Dictionary:
 			_project_ground_item(item_value, room_holders)
+	_project_engagements(snapshot)
 
 func visible_ids() -> Array:
 	return _projected_ids.keys()
@@ -43,12 +46,19 @@ func local_slot_for(projected_id: String) -> Vector3:
 		return Vector3.ZERO
 	return token.position
 
+func target_for(projected_id: String) -> String:
+	return str(_target_links.get(projected_id, ""))
+
+func target_link_count() -> int:
+	return _target_links.size()
+
 func _clear_projection() -> void:
 	for tether in _tethers.values():
 		if tether != null and is_instance_valid(tether):
 			tether.free()
 	_tethers.clear()
 	_projected_ids.clear()
+	_target_links.clear()
 
 func _project_entity(entity: Dictionary, room_holders: Dictionary) -> void:
 	var entity_id := String(entity.get("id", ""))
@@ -63,7 +73,7 @@ func _project_entity(entity: Dictionary, room_holders: Dictionary) -> void:
 	token.name = "Entity_%s" % entity_id
 	token.mesh = _entity_mesh(String(entity.get("deck", "")))
 	token.material_override = _token_material(CombatPresentation.token_color(entity))
-	token.position = _slot_for(entity_id, 0.72)
+	token.position = _slot_for(entity_id, _range_radius(entity))
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "entity")
 	token.set_meta("entityName", String(entity.get("name", "")))
@@ -97,7 +107,25 @@ func _project_player(snapshot: Dictionary, room_holders: Dictionary) -> void:
 	token.set_meta("combatState", view.get("state", "PLAYER STATE UNKNOWN"))
 	token.set_meta("healthPercent", view.get("healthPercent", 0.0))
 	tether.add_child(token)
+	_add_range_bands(tether)
 	_projected_ids["player:self"] = token
+
+func _add_range_bands(tether: Node3D) -> void:
+	if tether.has_node("RangeBands"):
+		return
+	var bands := Node3D.new()
+	bands.name = "RangeBands"
+	for definition in [["melee", 0.78, Color(0.95, 0.30, 0.24, 0.24)], ["pole", 1.24, Color(0.96, 0.67, 0.18, 0.20)], ["missile", 1.72, Color(0.35, 0.64, 0.96, 0.17)]]:
+		var ring := MeshInstance3D.new()
+		ring.name = "RangeBand_%s" % definition[0]
+		var torus := TorusMesh.new()
+		torus.inner_radius = float(definition[1]) - 0.025
+		torus.outer_radius = float(definition[1]) + 0.025
+		ring.mesh = torus
+		ring.material_override = _transparent_material(definition[2])
+		ring.position.y = 0.015
+		bands.add_child(ring)
+	tether.add_child(bands)
 
 func _add_assessment_ring(token: MeshInstance3D, state: String) -> void:
 	var ring := MeshInstance3D.new()
@@ -132,6 +160,51 @@ func _project_ground_item(item: Dictionary, room_holders: Dictionary) -> void:
 	tether.add_child(token)
 	_add_inspect_hitbox(token, "ground-item", item_id)
 	_projected_ids[item_id] = token
+
+func _project_engagements(snapshot: Dictionary) -> void:
+	var names: Dictionary = {"you": ["player:self"]} if _projected_ids.has("player:self") else {}
+	for entity_value in snapshot.get("entities", []):
+		if not entity_value is Dictionary:
+			continue
+		var entity_id := str(entity_value.get("id", ""))
+		if not _projected_ids.has(entity_id):
+			continue
+		var entity_name := str(entity_value.get("name", "")).strip_edges().to_lower()
+		if not entity_name.is_empty():
+			if not names.has(entity_name):
+				names[entity_name] = []
+			names[entity_name].append(entity_id)
+	for entity_value in snapshot.get("entities", []):
+		if not entity_value is Dictionary:
+			continue
+		var source_id := str(entity_value.get("id", ""))
+		var tactical_value = entity_value.get("tactical")
+		if not tactical_value is Dictionary or bool(tactical_value.get("dead", false)) or bool(tactical_value.get("disengaged", false)):
+			continue
+		var target_name := str(tactical_value.get("target", "")).strip_edges().to_lower()
+		var candidates: Array = names.get(target_name, [])
+		if candidates.size() != 1:
+			continue
+		var target_id := str(candidates[0])
+		if source_id == target_id or not _projected_ids.has(source_id) or not _projected_ids.has(target_id):
+			continue
+		_add_target_link(source_id, target_id, CombatPresentation.assessment_color(CombatPresentation.assessment_state(entity_value)))
+
+func _add_target_link(source_id: String, target_id: String, color: Color) -> void:
+	var source: Node3D = _projected_ids[source_id]
+	var target: Node3D = _projected_ids[target_id]
+	if source.get_parent() != target.get_parent():
+		return
+	var line_mesh := ImmediateMesh.new()
+	line_mesh.surface_begin(Mesh.PRIMITIVE_LINES, _transparent_material(Color(color.r, color.g, color.b, 0.68)))
+	line_mesh.surface_add_vertex(source.position + Vector3(0.0, 0.08, 0.0))
+	line_mesh.surface_add_vertex(target.position + Vector3(0.0, 0.08, 0.0))
+	line_mesh.surface_end()
+	var line := MeshInstance3D.new()
+	line.name = "Target_%s_to_%s" % [source_id, target_id]
+	line.mesh = line_mesh
+	source.get_parent().add_child(line)
+	_target_links[source_id] = target_id
 
 func _add_inspect_hitbox(token: MeshInstance3D, snapshot_kind: String, snapshot_id: String) -> void:
 	var body := StaticBody3D.new()
@@ -185,10 +258,26 @@ func _token_material(color: Color) -> StandardMaterial3D:
 	material.roughness = 0.42
 	return material
 
+func _transparent_material(color: Color) -> StandardMaterial3D:
+	var material := _token_material(color)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return material
+
+func _range_radius(entity: Dictionary) -> float:
+	var tactical_value = entity.get("tactical")
+	if not tactical_value is Dictionary:
+		return 1.50
+	match str(tactical_value.get("range", "")):
+		"melee": return 0.78
+		"pole": return 1.24
+		"missile": return 1.72
+		_: return 1.50
+
 func _slot_for(stable_id: String, radius: float) -> Vector3:
 	var hash_value := _stable_hash(stable_id)
 	var angle := TAU * float(hash_value % 360) / 360.0
-	var distance := radius * (0.45 + float((hash_value / 360) % 55) / 100.0)
+	var distance := radius * (0.94 + float((hash_value / 360) % 13) / 100.0)
 	return Vector3(cos(angle) * distance, 0.4, sin(angle) * distance)
 
 func _stable_hash(value: String) -> int:
