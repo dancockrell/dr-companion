@@ -1,5 +1,12 @@
 # Live-session runbook
 
+> **Rule 0 — never fork.** A problem is to be solved, never dodged. Fix the thing,
+> replace it outright, or delete the feature — those are the only three moves.
+> Never leave two answers to one question standing side by side, and never route
+> a parallel path around something you did not want to touch. That is a noodle to
+> nowhere, and it is the most serious thing you can do to this codebase.
+> Full rule: [`CLAUDE.md`](../CLAUDE.md).
+
 Dan's logins are the scarcest resource this project has — one so far tonight,
 a few minutes, mostly in mock mode. `docs/LIVE-STATE.md`'s "For whoever gets
 the next live session" is a list of four open questions. A list is not a

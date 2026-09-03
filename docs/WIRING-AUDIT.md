@@ -1,5 +1,12 @@
 # Wiring audit: what is connected, what is not
 
+> **Rule 0 — never fork.** A problem is to be solved, never dodged. Fix the thing,
+> replace it outright, or delete the feature — those are the only three moves.
+> Never leave two answers to one question standing side by side, and never route
+> a parallel path around something you did not want to touch. That is a noodle to
+> nowhere, and it is the most serious thing you can do to this codebase.
+> Full rule: [`CLAUDE.md`](../CLAUDE.md).
+
 Measured against the running app on 28 Aug 2026, with Phemius logged into the
 live server, Lich 5.20.1, bridge v0.10.1 at the time. Not read off the source
 originally — every claim below came from asking the running client or the
