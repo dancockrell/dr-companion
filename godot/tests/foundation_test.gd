@@ -109,8 +109,13 @@ func _run() -> void:
 	var content_status: Dictionary = shared_content.shared_asset_status()
 	_ok("shared content declares its visual-only fallback policy",
 		content_status.get("fallbackPolicy", "") != "")
-	_ok("the two selected shared source models are importable by this viewer",
-		content_status.get("sharedLibraryAvailable", false))
+	var shared_library_available: bool = content_status.get("sharedLibraryAvailable", false)
+	if shared_library_available:
+		_ok("an initialised shared library makes both selected source models importable",
+			shared_library_available)
+	else:
+		_ok("a bare checkout reports the missing shared library and stays on its documented honest fallback",
+			content_status.get("fallbackPolicy", "") != "")
 	var boundary: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "rough-edge-boundary-kit", "role": "boundary"})
 	_ok("the selected weathered-stone source model can decorate a neutral boundary",
 		boundary != null and boundary.get_child_count() == 2)

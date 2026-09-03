@@ -36,10 +36,16 @@ func _ready() -> void:
 	_shared_available = ResourceLoader.exists(ROCK_SMALL_A) and ResourceLoader.exists(BRIDGE_WOOD)
 
 func shared_asset_status() -> Dictionary:
-	# Re-evaluate here as well as in _ready: headless scripts can query the
-	# autoload before normal ready callbacks, while a normal viewer queries it
-	# after Godot has imported the submodule's selected source models.
-	_shared_available = _load_shared_scene(ROCK_SMALL_A) != null and _load_shared_scene(BRIDGE_WOOD) != null
+	# Validate the exact reviewed glTF files, rather than trusting the editor's
+	# generated import cache. This keeps a fresh headless checkout honest and
+	# avoids importing the complete shared catalog just to use two models.
+	var stone := _load_shared_gltf(ROCK_SMALL_A)
+	var bridge := _load_shared_gltf(BRIDGE_WOOD)
+	_shared_available = stone != null and bridge != null
+	if stone != null:
+		stone.free()
+	if bridge != null:
+		bridge.free()
 	return {
 		"sharedLibraryAvailable": _shared_available,
 		"registeredKinds": ["terrain-cell-5m", "interior-floor-5m", "water-ribbon-5m", "rough-edge-boundary-kit", "bridge-span-5m"],
@@ -94,9 +100,8 @@ func _plane_piece(piece_name: String, color: Color, width: float, depth: float, 
 func _shared_or_fallback(resource_path: String, piece_name: String, scale_value: Vector3) -> Node3D:
 	var holder := Node3D.new()
 	holder.name = piece_name
-	var packed := _load_shared_scene(resource_path)
-	if packed != null:
-		var instance := packed.instantiate()
+	var instance := _load_shared_gltf(resource_path)
+	if instance != null:
 		instance.scale = scale_value
 		holder.add_child(instance)
 		return holder
@@ -109,12 +114,18 @@ func _shared_or_fallback(resource_path: String, piece_name: String, scale_value:
 	holder.add_child(fallback)
 	return holder
 
-func _load_shared_scene(resource_path: String) -> PackedScene:
-	# ResourceLoader.exists can be stale during the first import pass in a
-	# freshly initialised submodule. Loading the exact reviewed path is the
-	# authoritative test; it remains harmless if that source is absent because
-	# the caller keeps the explicit fallback path.
-	return ResourceLoader.load(resource_path) as PackedScene
+func _load_shared_gltf(resource_path: String) -> Node3D:
+	# Do not use `load(path) as PackedScene` here. That only works after Godot's
+	# editor has generated an import cache, and asking it to scan the whole shared
+	# repository makes the consumer slow and noisy. The source GLB itself is the
+	# approved artifact, so parse that one exact file at runtime instead.
+	if not FileAccess.file_exists(resource_path):
+		return null
+	var document := GLTFDocument.new()
+	var state := GLTFState.new()
+	if document.append_from_file(resource_path, state) != OK:
+		return null
+	return document.generate_scene(state) as Node3D
 
 func _matte_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()

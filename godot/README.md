@@ -108,7 +108,9 @@ on purpose, so nobody mistakes this for further along than it is:
 
 The viewer consumes the common resource library through the Git submodule at
 `godot/shared-assets`; it deliberately does not copy source models into DR
-Companion. Initialise it after checkout with:
+Companion. The first foundation roles parse their exact approved GLB sources
+directly, so they do not require Godot to import the whole catalog. Initialise
+the submodule after checkout with:
 
 ```bash
 git submodule update --init --recursive
