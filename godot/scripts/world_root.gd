@@ -18,6 +18,7 @@ const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
 @onready var exit_root: Node3D = $ExitAnchors
 @onready var entity_projection: Node3D = $EntityProjection
 @onready var route_graph: Node3D = $RouteGraph
+@onready var route_transition: Node3D = $RouteTransition
 @onready var world_controls: CanvasLayer = $WorldControls
 
 ## cellId -> spawned Node3D, so a room change can clear/rebuild without
@@ -26,6 +27,7 @@ var _spawned_cells: Dictionary = {}
 var _spawned_exit_anchors: Array = []
 var _active_detail_cells: Dictionary = {}
 var _visibility_policy := CellVisibilityPolicy.new()
+var _last_confirmed_room_id := ""
 
 func _ready() -> void:
 	BridgeClient.snapshot_updated.connect(_on_snapshot_updated)
@@ -140,9 +142,12 @@ func _exit_towards(from_room_id: String, target_cell_id: String) -> String:
 
 func _on_snapshot_updated(snapshot: Dictionary) -> void:
 	var room_id: String = snapshot.get("currentRoomId", "")
+	if room_id != "" and not _last_confirmed_room_id.is_empty() and room_id != _last_confirmed_room_id and not _spawned_cells.is_empty():
+		route_transition.play_confirmed_route(_last_confirmed_room_id, room_id, WorldManifestLoader.cells)
 	if room_id != "":
 		_focus_room(room_id, camera.Mode.ROOM)
 		_apply_detail_window(room_id)
+		_last_confirmed_room_id = room_id
 	_rebuild_exit_anchors(room_id)
 	_project_snapshot_tokens(snapshot)
 

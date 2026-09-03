@@ -50,6 +50,10 @@ required for this slice's acceptance gate.
 - `scripts/world_controls.gd` — the in-view World / Route / Room controls.
   They are presentation-only and have matching `1` / `2` / `3` shortcuts;
   they do not send game commands or create another map window.
+- `scripts/confirmed_route_transition.gd` — a short, fading route ribbon only
+  after the bridge has confirmed a room-to-room change over a known manifest
+  exit. It stays silent for reconnects, rejects, external routes, and unknown
+  jumps instead of implying travel that did not happen.
 - `scripts/entity_projection_layer.gd` — creates modest tabletop tokens only
   for bridge-confirmed entities and ground items. Each token is parented below
   its reported room's tether and gets a deterministic local display slot; it
@@ -71,6 +75,8 @@ required for this slice's acceptance gate.
   covers known local connections, and excludes unknown/external destinations.
 - `tests/world_controls_test.gd` — verifies the three documented camera
   requests are explicit and rejects unknown view labels.
+- `tests/confirmed_route_transition_test.gd` — verifies a travel ribbon needs
+  a confirmed manifest connection and refuses unknown or same-room changes.
 
 ## Running the test
 
