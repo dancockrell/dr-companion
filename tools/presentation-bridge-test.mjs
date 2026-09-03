@@ -12,7 +12,7 @@
  *
  *   node --experimental-strip-types tools/presentation-bridge-test.mjs
  */
-import { compileWorldSnapshot, justReconnected, shouldPublish } from '../src/lib/presentationBridge.ts'
+import { cannotAct, compileWorldSnapshot, justReconnected, shouldPublish } from '../src/lib/presentationBridge.ts'
 
 let pass = 0
 let fail = 0
@@ -207,6 +207,59 @@ console.log('\n-- tactical: what the game already knows, carried without inventi
   const plain = compileWorldSnapshot({ zone: ZONE, here: HERE, character: CHARACTER, sequence: 10 })
   ok('with no roomCombatants at all, no entity gets a tactical key',
     plain?.entities.every((e) => !('tactical' in e)) === true)
+}
+
+console.log('\n-- cannotAct: the window where a fight is actually lost --')
+{
+  // A competent player is mostly not hit. The damage lands in the rare
+  // windows where the character cannot act, which is why this predicate
+  // exists at all rather than an attack feed.
+  ok('stunned means you cannot act', cannotAct(['in_combat', 'stunned']) === true)
+  ok('webbed means you cannot act', cannotAct(['webbed']) === true)
+  ok('immobilized means you cannot act', cannotAct(['immobilized']) === true)
+  ok('several at once still just means you cannot act',
+    cannotAct(['stunned', 'webbed', 'immobilized']) === true)
+
+  // prone is deliberately NOT in the set: dangerous, but you can still act.
+  ok('prone is dangerous but is NOT "cannot act" - vulnerable is not helpless',
+    cannotAct(['prone']) === false)
+  ok('ordinary combat is not "cannot act"', cannotAct(['in_combat', 'roundtime']) === false)
+  ok('no flags at all is not "cannot act"', cannotAct([]) === false)
+  ok('absent flags do not throw and do not claim helplessness',
+    cannotAct(undefined) === false)
+}
+
+console.log('\n-- player: the character\'s own state, carried to the viewer --')
+{
+  const HURT = {
+    ...CHARACTER,
+    situation: ['in_combat', 'stunned'],
+    roundtime: 9,
+    vitals: { health: 43, healthMax: 100, spirit: 10, spiritMax: 10, fatigue: 5, fatigueMax: 10 },
+  }
+  const snap = compileWorldSnapshot({ zone: ZONE, here: HERE, character: HURT, sequence: 11 })
+  ok('the snapshot carries a player block', !!snap?.player)
+  ok('every lit flag is carried verbatim, not just the ones this file reads',
+    JSON.stringify(snap?.player?.situation) === '["in_combat","stunned"]')
+  ok('cannotAct is decided once here, so two renderers cannot drift on it',
+    snap?.player?.cannotAct === true)
+  ok('roundtime - the one real clock in this snapshot - comes through',
+    snap?.player?.roundtime === 9, String(snap?.player?.roundtime))
+  ok('health is a 0-1 fraction', snap?.player?.health === 0.43, String(snap?.player?.health))
+
+  // Absent means unknown, never "a healthy character".
+  const none = compileWorldSnapshot({ zone: ZONE, here: HERE, character: null, sequence: 12 })
+  ok('with no character at all, player is null rather than a healthy-looking default',
+    none === null || none.player === null)
+
+  const noMax = compileWorldSnapshot({
+    zone: ZONE, here: HERE, sequence: 13,
+    character: { ...CHARACTER, situation: [], vitals: { health: 0, healthMax: 0, spirit: 0, spiritMax: 0, fatigue: 0, fatigueMax: 0 } },
+  })
+  ok('healthMax of zero yields null health, not a divide-by-zero or a fake 0%',
+    noMax?.player?.health === null, String(noMax?.player?.health))
+  ok('a character with no roundtime reports null, not 0 seconds left',
+    noMax?.player?.roundtime === null, String(noMax?.player?.roundtime))
 }
 
 console.log('\n-- justReconnected: the false->true edge that forces a publish past the room-changed gate --')
