@@ -525,6 +525,7 @@ pub fn publish_presentation_event(
 #[serde(rename_all = "camelCase")]
 pub struct PresentationBridgeInfo {
     pub port: Option<u16>,
+    pub token_path: String,
 }
 
 #[tauri::command]
@@ -533,7 +534,10 @@ pub fn presentation_bridge_info() -> PresentationBridgeInfo {
     let port = std::fs::read_to_string(dir.join(PORT_FILE))
         .ok()
         .and_then(|s| s.trim().parse().ok());
-    PresentationBridgeInfo { port }
+    PresentationBridgeInfo {
+        port,
+        token_path: dir.join(TOKEN_FILE).to_string_lossy().into_owned(),
+    }
 }
 
 #[cfg(test)]

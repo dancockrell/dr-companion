@@ -14,6 +14,7 @@ import { TogglesPanel } from '../shared/TogglesPanel'
 import { VarsPanel } from '../shared/VarsPanel'
 import { LinksPanel } from '../shared/LinksPanel'
 import { ScriptApiPanel } from '../shared/ScriptApiPanel'
+import { PresentationBridgePanel } from '../shared/PresentationBridgePanel'
 import { HuntingGroundsPanel } from '../shared/HuntingGroundsPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
@@ -429,6 +430,16 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               Python scripting API
             </h3>
             <ScriptApiPanel />
+          </section>
+
+          {/* Fifth of the same shape: presentation_bridge_info has been able
+              to answer this since PR #268 and nothing called it until now.
+              See PresentationBridgePanel.tsx. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              Godot 3D viewer bridge
+            </h3>
+            <PresentationBridgePanel />
           </section>
 
           <section className="space-y-2">
