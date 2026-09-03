@@ -1,5 +1,4 @@
-import { grokRoomScene } from '../data/grokRoomScenes.ts'
-import { roomScenePattern } from '../data/roomScenePatterns.ts'
+import { grokRoomScene, roomScenePattern } from './removed2d.tsx'
 import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom.ts'
 
 /**

@@ -1,6 +1,6 @@
 import { cn } from '../../lib/cn'
 import { Badge } from './Badge'
-import { CreatureArt } from './CreatureArt'
+import { CreatureArt } from '../../lib/removed2d.tsx'
 import { DECK_STYLE, type RoomCard, type Tier } from '../../lib/cards'
 
 /**

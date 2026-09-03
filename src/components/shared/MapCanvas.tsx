@@ -22,7 +22,7 @@ import { RoomHoverCard } from './RoomHoverCard'
 import { useAppStore } from '../../store/useAppStore'
 import { landmarksFor } from '../../lib/mapLandmarks'
 import { deriveMapStamps } from '../../lib/mapStamps'
-import { MapStampLayer } from './MapStampLayer'
+import { MapStampLayer } from '../../lib/removed2d.tsx'
 import { initialMapRoomId, mapRoomAccessibleName, nextMapRoomId, type MapDirection } from '../../lib/mapKeyboard'
 
 /**
@@ -486,8 +486,8 @@ export function MapCanvas({
           the player marker; SVG paint order is the contract. */}
       <MapStampLayer
         stamps={stamps}
-        xFor={(x) => x * scale - view.minX + pad}
-        yFor={(y) => y * scale - view.minY + pad}
+        xFor={(x: number) => x * scale - view.minX + pad}
+        yFor={(y: number) => y * scale - view.minY + pad}
         unit={Math.min(scale, Math.max(0.22, Math.min(view.w, view.h) / 160))}
       />
 

@@ -4,7 +4,12 @@
  * Falls back cleanly when Lich is not running.
  */
 
-import { invokeTauri } from '../lib/tauri'
+// Extension explicit, matching `gameLink.ts`. Node's ESM resolver will not
+// infer `.ts`, so while this said '../lib/tauri' the module could not be
+// imported by any test at all — which is the mechanical reason the transport
+// sat unexercised. Vite resolves either form; the test runner resolves only
+// this one.
+import { invokeTauri } from '../lib/tauri.ts'
 import type { BridgeClientMessage, BridgeServerMessage } from './types'
 
 export type RealBridgeStatus =
@@ -31,6 +36,9 @@ const MAX_RECONNECT_MS = 30_000
  */
 const STALE_AFTER_MS = 90_000
 
+/** How often the stale watch re-checks. Well under STALE_AFTER_MS. */
+const STALE_TICK_MS = 15_000
+
 export class RealBridge {
   private ws: WebSocket | null = null
   private listeners = new Set<Listener>()
@@ -49,6 +57,27 @@ export class RealBridge {
   private connectPending = false
   private lastGameTime: number | null = null
   private lastGameTimeAt = 0
+  /**
+   * Whether the clock is currently judged stopped.
+   *
+   * Separate from `status`, and that separation is the fix. The first version
+   * recorded staleness *only* by calling `setStatus('error')`, which made the
+   * judgement and the report the same variable — so there was nowhere to hold
+   * "we said stale, and the clock has since moved" and nothing ever said
+   * otherwise. Two further things followed from it:
+   *
+   *   - the watch's own guard was `status !== 'connected'`, so the moment it
+   *     fired it disqualified itself from ever running the check again;
+   *   - the only path back to 'connected' was a socket close and a fresh
+   *     `onopen`, i.e. the panel stayed accusing until the link dropped.
+   *
+   * A quiet game — standing in a bank, reading, idle overnight — is the
+   * ordinary case that trips this, and it recovers by definition. Reporting a
+   * recoverable condition irrecoverably is the same defect as stale data, just
+   * pointing the other way: the panel says something false about the link and
+   * keeps saying it.
+   */
+  private stale = false
   // `ReturnType<typeof setTimeout>` rather than `number`, because the timers
   // below are the bare globals, not `window.setTimeout`. They used to be
   // window-scoped, which meant this class could only be constructed inside a
@@ -62,8 +91,28 @@ export class RealBridge {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private shouldReconnect = false
 
-  constructor(url = DEFAULT_URL) {
+  /** How long the clock may stand still before this instance calls it stale. */
+  private staleAfterMs: number
+  /** How often the stale watch re-evaluates. */
+  private staleTickMs: number
+
+  /**
+   * The two timings are injectable purely so the stale watch can be tested.
+   *
+   * The defaults are the shipping values and nothing in the app passes
+   * anything else. Without this seam the only way to exercise a 90-second
+   * stall is to wait ninety seconds, which means in practice it is never
+   * exercised — and this class's own history is that the untestable part is
+   * the part that carried the bug. The latch fixed alongside this had been
+   * live for exactly as long as it had been unreachable by a test.
+   */
+  constructor(
+    url = DEFAULT_URL,
+    opts: { staleAfterMs?: number; staleTickMs?: number } = {}
+  ) {
     this.url = url
+    this.staleAfterMs = opts.staleAfterMs ?? STALE_AFTER_MS
+    this.staleTickMs = opts.staleTickMs ?? STALE_TICK_MS
   }
 
   getStatus() {
@@ -249,31 +298,64 @@ export class RealBridge {
     this.statusListeners.forEach((fn) => fn(s, detail))
   }
 
-  /** Record the bridge clock so we can tell a live game from a live socket. */
+  /**
+   * Record the bridge clock so we can tell a live game from a live socket.
+   *
+   * This is also the *only* place staleness is lifted, and it has to be: the
+   * clock moving is the single piece of evidence that the game is alive again,
+   * and it arrives here. Clearing it on a timer, or on any message at all,
+   * would clear it for a bridge that is still talking about a game that is
+   * still hung — which is the exact condition this whole mechanism exists to
+   * distinguish from a healthy quiet one.
+   */
   private noteGameTime(t?: number) {
     if (typeof t !== 'number') return
     if (t !== this.lastGameTime) {
       this.lastGameTime = t
       this.lastGameTimeAt = Date.now()
+      if (this.stale) {
+        this.stale = false
+        // Only meaningful while the socket is still up. If the link dropped in
+        // the meantime, `onclose` owns the status and saying 'connected' here
+        // would overwrite a truthful disconnect with a stale recovery.
+        if (this.isOpen()) {
+          this.setStatus('connected', 'Game clock moving again.')
+        }
+      }
     }
+  }
+
+  /** Whether the socket is actually open, independent of what we last reported. */
+  private isOpen() {
+    return !!this.ws && this.ws.readyState === WebSocket.OPEN
   }
 
   private startStaleWatch() {
     this.stopStaleWatch()
     this.lastGameTimeAt = Date.now()
     this.staleTimer = setInterval(() => {
-      if (this.status !== 'connected') return
+      // Gated on the socket, not on `this.status`. Gating on the status was
+      // the latch: `setStatus('error')` below made the next tick return here,
+      // so the check could fire exactly once and then never re-evaluate.
+      if (!this.isOpen()) return
       if (this.lastGameTime === null) return
       const since = Date.now() - this.lastGameTimeAt
-      if (since > STALE_AFTER_MS) {
-        this.setStatus(
-          'error',
-          `Bridge is connected but the game clock has not moved for ${Math.round(
-            since / 1000
-          )}s. The game may have hung or disconnected.`
-        )
+      if (since > this.staleAfterMs) {
+        // Announced once per stall rather than every 15s. A repeat carries no
+        // new fact — the clock is still stopped, which is what was already
+        // said — and it would retrigger every status listener, including the
+        // ones that surface a toast.
+        if (!this.stale) {
+          this.stale = true
+          this.setStatus(
+            'error',
+            `Bridge is connected but the game clock has not moved for ${Math.round(
+              since / 1000
+            )}s. The game may have hung or disconnected.`
+          )
+        }
       }
-    }, 15_000)
+    }, this.staleTickMs)
   }
 
   private stopStaleWatch() {
@@ -282,6 +364,11 @@ export class RealBridge {
       this.staleTimer = null
     }
     this.lastGameTime = null
+    // Reset with the watch. A reconnect starts a new judgement from no
+    // evidence; carrying `stale` across would let a fresh, healthy socket
+    // inherit the previous session's verdict and suppress the first real
+    // stall report on the new one.
+    this.stale = false
   }
 }
 
