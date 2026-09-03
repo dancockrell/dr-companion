@@ -47,9 +47,11 @@ required for this slice's acceptance gate.
   as one inexpensive route mesh for the world/route camera. It de-duplicates
   reciprocal exits for display and omits unresolved/external links rather than
   inventing a road, bridge, or destination.
-- `scripts/world_controls.gd` — the in-view World / Route / Room controls.
-  They are presentation-only and have matching `1` / `2` / `3` shortcuts;
-  they do not send game commands or create another map window.
+- `scripts/world_controls.gd` — the in-view World / Route / Room controls and
+  compact current-room exit list. Camera choices are presentation-only and
+  have matching `1` / `2` / `3` shortcuts. Exit buttons are keyboard
+  reachable, preserve the manifest's exact move string, and share the 3D
+  markers' stale-room validation rather than creating another map window.
 - `scripts/confirmed_route_transition.gd` — a short, fading route ribbon only
   after the bridge has confirmed a room-to-room change over a known manifest
   exit. It stays silent for reconnects, rejects, external routes, and unknown
@@ -77,7 +79,8 @@ required for this slice's acceptance gate.
 - `tests/route_graph_layer_test.gd` — verifies the route view is one mesh,
   covers known local connections, and excludes unknown/external destinations.
 - `tests/world_controls_test.gd` — verifies the three documented camera
-  requests are explicit and rejects unknown view labels.
+  requests are explicit, rejects unknown view labels, and proves the text exit
+  list cannot emit an arbitrary move or a move from a stale room.
 - `tests/confirmed_route_transition_test.gd` — verifies a travel ribbon needs
   a confirmed manifest connection and refuses unknown or same-room changes.
 - `tests/exit_anchor_layer_test.gd` — verifies anchors expose only true moves

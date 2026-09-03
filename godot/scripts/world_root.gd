@@ -34,6 +34,7 @@ func _ready() -> void:
 	entity_projection.inspect_entity_requested.connect(_on_entity_inspect_requested)
 	entity_projection.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
 	world_controls.view_requested.connect(_on_view_requested)
+	world_controls.exit_requested.connect(_on_exit_requested)
 	exit_root.exit_requested.connect(_on_exit_requested)
 
 	if not WorldManifestLoader.load_from_path(MOCK_FIXTURE_PATH):
@@ -203,17 +204,13 @@ func _on_exit_requested(from_room_id: String, exit_move: String) -> void:
 	if BridgeClient.current_snapshot.get("currentRoomId", "") == from_room_id:
 		IntentSender.request_walk(from_room_id, exit_move)
 
-## Exit anchors: one visible marker per true exit of the current room,
-## reachable to a text/list equivalent too (see `Viewer.exit_labels()`
-## below) — the accessible-controls requirement the brief calls out is not
-## satisfiable by 3D markers alone.
+## Both representations receive the identical true-exit collection. They also
+## converge on `_on_exit_requested`, which rechecks the current snapshot.
 func _rebuild_exit_anchors(room_id: String) -> void:
 	exit_root.render_exits(room_id, WorldManifestLoader.cells)
+	world_controls.render_exits(room_id, WorldManifestLoader.true_exits(room_id))
 
-## The accessible, non-3D-dependent list of the current room's true exits —
-## a UI panel outside this scene calls this rather than reading the 3D
-## markers, so the exit list stays reachable even if rendering is degraded
-## or unavailable.
+## Host-facing copy of the accessible, non-3D-dependent exit labels.
 func exit_labels() -> Array:
 	var room_id: String = BridgeClient.current_snapshot.get("currentRoomId", "")
 	var labels: Array = []

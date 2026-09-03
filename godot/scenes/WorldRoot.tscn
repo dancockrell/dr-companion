@@ -60,3 +60,23 @@ text = "Route  2"
 custom_minimum_size = Vector2(92, 38)
 tooltip_text = "Room view with the two-hop detail horizon (3)"
 text = "Room  3"
+
+[node name="ExitPanel" type="PanelContainer" parent="WorldControls"]
+offset_left = 16.0
+offset_top = 74.0
+offset_right = 188.0
+offset_bottom = 250.0
+
+[node name="Content" type="VBoxContainer" parent="WorldControls/ExitPanel"]
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="WorldControls/ExitPanel/Content"]
+text = "Current exits"
+
+[node name="ExitScroll" type="ScrollContainer" parent="WorldControls/ExitPanel/Content"]
+custom_minimum_size = Vector2(156, 132)
+horizontal_scroll_mode = 0
+
+[node name="ExitList" type="VBoxContainer" parent="WorldControls/ExitPanel/Content/ExitScroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
