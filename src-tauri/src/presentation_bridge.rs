@@ -129,6 +129,22 @@ pub struct WorldSnapshot {
     pub active_room: RoomSnapshot,
     pub entities: Vec<EntitySnapshot>,
     pub ground_items: Vec<GroundItemSnapshot>,
+    /// The character's own combat state (`PlayerSnapshot` in
+    /// `src/lib/presentationBridge.ts`), or null before any status has been
+    /// parsed.
+    ///
+    /// Opaque `Value` for the same reason `EntitySnapshot` is: this file
+    /// neither reads nor validates it, so modelling its fields here would
+    /// only create a second definition free to drift from the compiler's.
+    ///
+    /// It has to be a declared field even so. This struct is deserialized
+    /// and then re-serialized on the way to Godot, so - unlike a field
+    /// added inside an already-opaque entity - an undeclared top-level
+    /// field is silently dropped in transit. A publisher would look
+    /// correct, its tests would pass, and the viewer would never receive
+    /// this at all.
+    #[serde(default)]
+    pub player: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -682,6 +698,7 @@ mod tests {
             active_room: RoomSnapshot(json!({})),
             entities: vec![],
             ground_items: vec![],
+            player: None,
         }
     }
 
@@ -786,5 +803,65 @@ mod tests {
         );
         assert!(v.get("groundItems").is_some(), "missing groundItems: {v}");
         assert!(v.get("world_id").is_none(), "leaked snake_case field: {v}");
+    }
+
+    /// The publish path deserializes a snapshot into this struct and then
+    /// re-serializes it on the way to Godot, so any top-level field the
+    /// struct does not declare is dropped in transit - silently, with the
+    /// publisher and its own tests all still passing. `player` is the first
+    /// field added since that became true, so this pins the round trip
+    /// rather than trusting it.
+    #[test]
+    fn player_state_survives_the_deserialize_reserialize_round_trip() {
+        let incoming = json!({
+            "protocol": 1,
+            "sequence": 1,
+            "worldId": "1",
+            "currentRoomId": "1-14",
+            "cells": [],
+            "activeRoom": {"id": "1-14", "title": "Town Green North"},
+            "entities": [],
+            "groundItems": [],
+            "player": {
+                "situation": ["stunned", "webbed"],
+                "cannotAct": true,
+                "roundtime": 9,
+                "health": 0.86
+            }
+        });
+
+        let parsed: WorldSnapshot = serde_json::from_value(incoming).unwrap();
+        let out = serde_json::to_value(&parsed).unwrap();
+
+        let player = out.get("player").expect("player was dropped in transit");
+        assert_eq!(player.get("cannotAct").and_then(Value::as_bool), Some(true));
+        assert_eq!(player.get("roundtime").and_then(Value::as_i64), Some(9));
+        // Carried whole, not just the fields this file happens to name.
+        assert_eq!(
+            player
+                .get("situation")
+                .and_then(Value::as_array)
+                .map(Vec::len),
+            Some(2),
+            "situation flags did not survive: {out}"
+        );
+    }
+
+    /// A snapshot from a publisher that predates `player` must still parse,
+    /// rather than failing the whole publish over a missing optional field.
+    #[test]
+    fn a_snapshot_without_player_still_parses() {
+        let incoming = json!({
+            "protocol": 1,
+            "sequence": 1,
+            "worldId": "1",
+            "currentRoomId": "1-14",
+            "cells": [],
+            "activeRoom": {"id": "1-14", "title": "Town Green North"},
+            "entities": [],
+            "groundItems": []
+        });
+        let parsed: WorldSnapshot = serde_json::from_value(incoming).unwrap();
+        assert!(parsed.player.is_none());
     }
 }

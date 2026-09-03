@@ -172,6 +172,14 @@ type WorldSnapshot = {
   activeRoom: RoomSnapshot;
   entities: EntitySnapshot[];
   groundItems: GroundItemSnapshot[];
+  // The character's own combat state, or null before any status is parsed.
+  // See section 10 - this is the half of combat that needs no text parser.
+  player: {
+    situation: string[];      // every lit flag, verbatim
+    cannotAct: boolean;       // stunned / webbed / immobilized
+    roundtime: number | null; // the only real clock here
+    health: number | null;    // 0-1 fraction, null when unknown
+  } | null;
 };
 
 type PresentationEvent = {
@@ -314,12 +322,48 @@ produce the same shape — bodies, at ranges, in states, facing targets. It is
 correct for guilds and creatures nobody has tested against, and it is already
 true today rather than waiting on a parser.
 
+### Art direction: tabletop, speech bubbles, animated glyphs
+
+Dan's call, and it resolves the constraint above rather than working around
+it: present combat as a **tabletop** — tokens or miniatures on a board —
+with **speech bubbles** and **animated glyphs and effects**.
+
+Why this is the right answer to infinite weapons, not a compromise:
+
+- **A glyph vocabulary is finite and authorable; the weapon set is not.** A
+  stun, a web, a parry, "off balance" — each is one authored glyph that is
+  correct for every weapon ever made, including the ones nobody remembers.
+- **A token does not owe you a sword model.** Miniatures read as
+  representations, so an abstract piece is honest rather than
+  under-detailed. A photoreal body swinging the wrong weapon reads as a bug;
+  a mini with an attack glyph does not.
+- **It ports.** Glyphs key off state, and state is what a thinner MUD can
+  still supply, so the same vocabulary degrades to the universal core.
+- **MUDs are text, so keep text.** Speech bubbles carry the game's own words
+  into the scene instead of paraphrasing them into animation — which is also
+  the one presentation of combat that can never be *wrong* about what
+  happened.
+
+The options below are the concrete pieces of that direction, not
+alternatives to it.
+
 ### Render options this supports
 
-1. **Range-band staging.** Three concentric bands (melee / pole / missile)
+1. **The incapacitation window — the one that carries the drama.** A
+   competent player is mostly *not* hit: attacks miss or land lightly, round
+   after round. The damage arrives in the rare stretches where the character
+   cannot act — stunned, webbed, immobilized — with hostiles already at
+   melee. That is when a fight is lost, and swords hurt. So the scene should
+   be calm and readable in ordinary combat and **change hard** when
+   `player.cannotAct` goes true: that is the emergency, and it is the moment
+   worth every effect you have. It is also cheap and portable — one boolean,
+   already parsed, no weapon or attack text anywhere near it. Note there is
+   no duration behind any of these flags, so a stun timer must never be
+   drawn; `roundtime` is the only real clock.
+2. **Range-band staging.** Three concentric bands (melee / pole / missile)
    around the character. Composition and threat read at a glance, from the
    game's own buckets rather than invented distances.
-2. **Confidence decay — the distinctive one.** `assess` is a pull, not a
+3. **Confidence decay — the distinctive one.** `assess` is a pull, not a
    feed, so tactical knowledge ages. Drive material/opacity from
    `enrichedAgeSeconds`: crisp when fresh, drifting toward ghosted or
    wireframe as it ages, and visibly "unknown" when never assessed. This
@@ -327,13 +371,13 @@ true today rather than waiting on a parser.
    — the viewer stops asserting a minute-old position as live fact, and the
    player *sees* their information going stale, which is itself a reason to
    re-assess.
-3. **Target tethers.** Draw `target` as a link. It resolves creature-to-
+4. **Target tethers.** Draw `target` as a link. It resolves creature-to-
    creature as well as creature-to-you, so a room reads as a web of who is
    busy with whom — including which things are not looking at you.
-4. **Posture from `statuses`.** prone / stunned / hidden are live and push
+5. **Posture from `statuses`.** prone / stunned / hidden are live and push
    on every room refresh, so poses stay responsive with no assess at all.
-5. **Balance tell.** `offBalance` as a wobble or an opening in a guard.
-6. **Disengaged staging.** Pull `disengaged` bodies to the edge of the
+6. **Balance tell.** `offBalance` as a wobble or an opening in a guard.
+7. **Disengaged staging.** Pull `disengaged` bodies to the edge of the
    composition rather than deleting them — "in the room, not fighting" is a
    real and useful state, distinct from unknown range.
 
@@ -352,6 +396,39 @@ true today rather than waiting on a parser.
 - Range and target come from a pull and can be stale; `dead`, `hostile`,
   `disengaged` and `statuses` are pushed and effectively live. Weight them
   differently.
+
+### Never key presentation off weapon identity
+
+DragonRealms has effectively unbounded weapons: standard, custom, crafted,
+one-offs, and items nobody remembers being made. There is no set to
+enumerate, so **per-weapon animation is impossible by construction, not
+merely out of scope**. A viewer that branches on what the weapon *is* will
+be wrong forever and get worse over time.
+
+Drive presentation from **state and role**, never object identity:
+`cannotAct`, `roundtime`, range band, target, statuses, health. A weapon's
+name is text for a wrapper panel, not an animation key. The same argument
+retires damage-type and spell-specific effects.
+
+### Two tiers: universal core, and DragonRealms enrichment
+
+DR data comes through Lich, which is a full community-maintained bot engine
+with rights that permit this use — but Lich exists for DragonRealms and
+GemStone only (DR's is a port of the GemStone original). **Any other MUD has
+no Lich, no `assess`, no `crtrStatus`, and no combat scripts at all.** The
+viewer has to still work there, which is the deeper reason everything above
+is optional rather than assumed:
+
+- **Universal core** — rooms, exits, entities in a room, and "can the
+  character act right now." Nearly every MUD can supply this. The viewer
+  must render a complete, non-broken scene from this alone.
+- **DragonRealms enrichment** — `tactical` (range/relation/target/balance),
+  the signed advantage scale, wound severity. Strictly additive detail.
+
+`tactical` is absent per entity and `player` is nullable precisely so a
+thinner game degrades to the core rather than rendering a scene full of
+holes. Treat any enrichment field as a bonus that may never arrive; if the
+scene only reads correctly once `assess` has been run, the tiering is wrong.
 
 ### What this still cannot do
 
