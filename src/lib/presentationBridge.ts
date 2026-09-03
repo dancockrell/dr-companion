@@ -308,3 +308,21 @@ export function resetPresentationBridgePublishState(): void {
   lastPublishedRoomId = null
   sequence = 0
 }
+
+/** What a Godot client needs to connect: the port it should dial, and where
+ * its token lives. Same shape as `pythonTasks.ts`'s `ScriptApiInfo` - the
+ * Rust command was written mirroring `script_api_info` for exactly this use
+ * (a settings panel confirming the socket is up, or pointing a non-Godot
+ * client at it by hand) and had no caller until now. */
+export type PresentationBridgeInfo = {
+  /** `null` before `presentation_bridge::start` has bound the listener. */
+  port: number | null
+  tokenPath: string
+}
+
+export async function presentationBridgeInfo(): Promise<PresentationBridgeInfo> {
+  const raw = (await invokeTauri('presentation_bridge_info')) as
+    | { port?: number | null; tokenPath?: string }
+    | undefined
+  return { port: raw?.port ?? null, tokenPath: raw?.tokenPath ?? '' }
+}
