@@ -43,6 +43,10 @@ required for this slice's acceptance gate.
   graph remains available to the viewer; this budget only controls scene
   children, never the room graph or exit truth. A later world/route layer can
   add cheap silhouettes without activating local prop geometry across a city.
+- `scripts/route_graph_layer.gd` — draws all known local manifest connections
+  as one inexpensive route mesh for the world/route camera. It de-duplicates
+  reciprocal exits for display and omits unresolved/external links rather than
+  inventing a road, bridge, or destination.
 - `scripts/entity_projection_layer.gd` — creates modest tabletop tokens only
   for bridge-confirmed entities and ground items. Each token is parented below
   its reported room's tether and gets a deterministic local display slot; it
@@ -60,6 +64,8 @@ required for this slice's acceptance gate.
 - `tests/entity_projection_test.gd` — a headless contract gate for room
   tethering, deterministic slots, rejection of unknown rooms, and removal of
   stale tokens on the next confirmed snapshot.
+- `tests/route_graph_layer_test.gd` — verifies the route view is one mesh,
+  covers known local connections, and excludes unknown/external destinations.
 
 ## Running the test
 

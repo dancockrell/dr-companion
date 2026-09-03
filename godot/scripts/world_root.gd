@@ -17,6 +17,7 @@ const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
 @onready var cell_root: Node3D = $CellRoot
 @onready var exit_root: Node3D = $ExitAnchors
 @onready var entity_projection: Node3D = $EntityProjection
+@onready var route_graph: Node3D = $RouteGraph
 
 ## cellId -> spawned Node3D, so a room change can clear/rebuild without
 ## leaking nodes and without re-deriving which nodes belong to which cell.
@@ -39,6 +40,7 @@ func _ready() -> void:
 		return
 
 	_prepare_all_cells()
+	route_graph.render_routes(WorldManifestLoader.cells)
 	_apply_detail_window(MOCK_STARTING_ROOM)
 	_project_snapshot_tokens(BridgeClient.current_snapshot)
 	_focus_room(MOCK_STARTING_ROOM, camera.Mode.ROOM)
@@ -159,6 +161,23 @@ func _focus_room(room_id: String, mode: int) -> void:
 	if cell.is_empty():
 		return
 	camera.focus_on(mode, _cell_position(cell))
+
+## Public camera controls for the host UI. They do not mutate MUD state and
+## do not change the detail budget: world view keeps the local bubble mounted
+## while the route mesh supplies the city-scale context.
+func focus_world_view() -> void:
+	if WorldManifestLoader.cells.is_empty():
+		return
+	var center := Vector3.ZERO
+	for cell in WorldManifestLoader.cells.values():
+		center += _cell_position(cell)
+	center /= float(WorldManifestLoader.cells.size())
+	camera.focus_on(camera.Mode.WORLD, center)
+
+func focus_current_room_view() -> void:
+	var room_id: String = BridgeClient.current_snapshot.get("currentRoomId", "")
+	if room_id != "":
+		_focus_room(room_id, camera.Mode.ROOM)
 
 ## Exit anchors: one visible marker per true exit of the current room,
 ## reachable to a text/list equivalent too (see `Viewer.exit_labels()`
