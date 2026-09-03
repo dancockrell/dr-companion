@@ -2,13 +2,32 @@
 
 Status: **first Magnific art-direction batch**
 
+## Generation discipline
+
+Magnific generation is not a sketchpad for a stream of weak mockups. Each
+request must be a substantial production prompt: two or more focused
+place-specific paragraphs plus the universal suffix, with the exact
+DragonRealms room facts, period/genre, tabletop camera, material language,
+composition, scale, asset families, clear routes, exclusions, and intended
+Godot assembly use stated plainly. The aim is to get one strong reference that
+can guide a real mesh assembly, not to spend credits looking for a lucky image.
+
+Before another generation, inspect the current result against the room facts at
+the actual Godot camera crop and record one concrete reason to regenerate. A
+follow-up prompt changes only the identified failure—such as massing, route
+clarity, palette, asset density, or landmark silhouette—while preserving all
+facts that already worked. Do not use a whole-scene image-to-3D conversion as a
+shortcut.
+
 ## Production unit
 
 The primary visual reference is a **20–30 metre tabletop scene plate**, not an
 isolated object or a perfect tile. A reference plate is a coherent DragonRealms
-area on a deep forest-green felt or painted-cloth under-mat: broad
+area on a deep forest-green or warm-earth **matte ground plane**: broad
 terrain/building masses plus loose scatter props. It is viewed from a readable
-three-quarter isometric camera. The MUD room graph remains truth.
+three-quarter isometric camera. The MUD room graph remains truth. The ground
+plane is a cheap colored base material, not a literal felt, cloth, or blanket
+object.
 
 **Important boundary:** these are prompts for concept and composition
 references. Godot does not turn prompt prose or a generated plate into runtime
@@ -29,8 +48,9 @@ Append this paragraph to every prompt below:
 
 > Make this as an original premium tabletop-roleplaying-game terrain diorama,
 > viewed from a clear three-quarter isometric camera high enough to read the
-> whole playable area. It sits on a subtly visible deep forest-green felt or
-> painted-cloth under-mat with a thin dark wood or earth-cut edge. Scenery is
+> whole playable area. It sits on a subtly visible deep forest-green or
+> warm-earth matte base plane with a thin dark wood or earth-cut edge. This is
+> a simple color/material choice, not a fabric blanket. Scenery is
 > chunky, intentional, and lightly toy-like rather than realistic: broad
 > painted-resin color planes, pleasant bevels, clean silhouette masses, and
 > deliberate open paths for 28–32 mm miniatures. Build one complete coherent

@@ -249,6 +249,12 @@ The target is an original, contemporary **block-built tabletop world**:
 - lighting and small material accents that add charm without pretending to be
   photoreal.
 
+The tabletop read comes from the high three-quarter camera, miniature scale,
+clean color-blocked terrain bases, and a limited painted-resin material palette.
+It does **not** mean putting the city on a literal felt or cloth blanket. The
+world root starts with a cheap colored floor/ground plane; terrain, roads, and
+sets sit on it as deliberately assembled geometry.
+
 This takes inspiration from the legibility and toy-like confidence common to
 popular block-built games, but must remain an original DragonRealms world: no
 copied branded figures, textures, logos, or named visual systems.
@@ -282,6 +288,21 @@ The intended result is a readable, charming geometric world populated by
 expressive miniatures. Character is added through silhouette, palette,
 animation, sound, interaction, and a small number of authored details—not
 through uncontrolled scene realism.
+
+### 6.0.2 Acquisition split: chunky world sets, premium animated figures
+
+The environment and the characters have deliberately different acquisition
+standards:
+
+| Family | Acquisition target | Admission bar |
+|---|---|---|
+| Terrain, paths, simple facades, trees, hedges, flowers, benches, crates, barrels, and other scatter | Many inexpensive or licensed-store **geometric set pieces**, then palette-normalized in Godot. Imperfect joins are acceptable because a room recipe mixes several pieces and scatter hides simple seams. | Correct footprint, simple colors/materials, stable import, known license, no baked scene/background, and clear tactical readability. |
+| Guilds, shrines, landmarks, bridges, and interiors | Small project-made component sets assembled from room evidence; purchased generic pieces may dress them but cannot invent their identity. | Room facts, legal graph exits, no-invention review, connector/portal anchors, and readable silhouette. |
+| Player and monster miniatures | Fewer, higher-quality **paid rigged models** or approved riggable character outputs; use Magnific for concept/proportion studies and only isolated model experiments. | Shippable license, clean skeleton/rest pose, importable Godot animation data, known scale/material slots, plus idle/turn/step/attack/hit/miss/defeat/spell test clips. |
+
+The live MUD remains authoritative: an animation is presentation selected after
+the bridge reports an event. It may make a miss expressive, but cannot make a
+hit happen, move a character to a room, or imply a result before confirmation.
 
 ### 6.1 The Crossing kit, first release
 

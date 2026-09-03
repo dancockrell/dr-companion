@@ -86,9 +86,15 @@ on purpose, so nobody mistakes this for further along than it is:
 - **No content.** Every primitive is `ContentRegistry`'s flat-colored
   placeholder box — that's the intended state for this slice, not a bug, but
   it means nothing here should be shown to anyone as a visual preview of the
-  product.
+  product. The first real visual replacement is a cheap matte colored ground
+  plane and registered chunky set-piece meshes, not a literal cloth/felt
+  blanket and not image-to-3D scene reconstruction.
 - **No entities or ground items.** `WorldSnapshot.entities`/`.groundItems`
   are hard-coded empty arrays; there is no source to populate them from yet.
+- **No character animation controller.** Premium rigged miniature models are
+  a separate admission path. The future controller maps confirmed live events
+  to idle, turn, short-step, attack, hit, miss, defeat, and spell-pulse clips;
+  it does not own combat truth.
 - **No interiors, no portals, no tactical effects, no guild/shop index.**
   Slices 2 through 5 in full.
 - **No CI wiring.** The headless test command above has to be run by hand;

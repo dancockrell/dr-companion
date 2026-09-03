@@ -7,8 +7,10 @@ repeatable prop vocabulary for scene plates assembled around the existing room
 graph.
 
 > **Production reset (2026-09-03):** the primary visual unit is a coherent
-> 20–30m tabletop *assembly* on a cloth/painted game under-mat, with broad
-> environment masses and loose scatter props. A Magnific scene plate is an
+> 20–30m tabletop *assembly* on a cheap, matte colored ground plane, with broad
+> environment masses and loose scatter props. It uses a tabletop camera and
+> painted-resin material language—not a literal felt, cloth, blanket, or mat
+> mesh. A Magnific scene plate is an
 > **art-direction reference**, not geometry that Godot can safely ship. Godot
 > renders reviewed licensed-store meshes and project-made meshes assembled to
 > the room recipe. This kit is the vocabulary for those props, connectors,
@@ -502,8 +504,17 @@ Environment blocks intentionally stay calm. Characters do the emoting.
   armour category, held weapon/shield, and a few bold colours.
 - Scale: 1.4–1.7 m player miniatures against 5 m blocks; big creatures may
   consume 2×2 or 5×5 tactical slots without becoming visual clutter.
-- Motion: idle bob, turn, small step, attack anticipation, hit wobble, miss
-  follow-through, spell pulse. Use reduced-motion instant alternatives.
+- Runtime source: player and monster figures are the one asset family that
+  merits high-quality paid, **rigged** miniature models. A candidate is not
+  admitted as a character merely because it is attractive: it needs a usable
+  humanoid/creature skeleton, a clean rest pose, known scale, separate material
+  slots where recolouring is promised, a license that permits the shipped game,
+  and an export that Godot can import.
+- Motion: bind the approved rig to a shared Godot animation controller with
+  idle, turn, short room-node step, attack anticipation, hit wobble, miss
+  follow-through, defeat, and spell pulse states. The live MUD event chooses
+  the state; animation never claims an outcome the bridge has not confirmed.
+  Use reduced-motion instant alternatives.
 - No literal portrait duplication: an identity reference controls a miniature
   family, while its pose/accessories vary by entity and state.
 
