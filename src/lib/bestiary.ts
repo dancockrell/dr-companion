@@ -13,7 +13,7 @@
  * recoverable. A card that confidently says the wrong level gets someone
  * killed.
  */
-import data from '../data/bestiary.json'
+import data from '../data/bestiary.json' with { type: 'json' }
 import type { RoomCard } from './cards'
 
 type Lore = NonNullable<RoomCard['lore']>

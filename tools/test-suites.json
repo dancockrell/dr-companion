@@ -1,5 +1,6 @@
 [
   "test:vendor",
+  "test:presentation-bridge",
   "test:safety",
   "test:flow-stop",
   "test:game-command-boundary",
