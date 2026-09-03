@@ -294,6 +294,27 @@ export interface CharacterStatus {
    */
   roundtime?: number
   /**
+   * Your own footing, as an index into DR's twelve-step balance ladder
+   * (`DR_BALANCE_VALUES`: 0 'completely' off through 11 'incredibly'
+   * balanced). Absent until the first combat round has printed the bracketed
+   * balance line, or when running against a bridge older than this field.
+   *
+   * Distinct from `RoomCombatant.balance`, which is a *creature's* balance
+   * as a word from `assess`. This one is yours, it is a number, and it
+   * arrives every round rather than only when somebody runs a command.
+   */
+  balance?: number
+  /**
+   * Who is winning, as DR's own signed magnitude (`DR_POSITION_VALUES`,
+   * -9 to +9). Negative means your opponent holds the advantage, 0 is an
+   * even contest, positive means you do.
+   *
+   * Both this and `balance` come from the one line DR prints every combat
+   * round - "[You're hurt (86%), nimbly balanced and in better position.]" -
+   * which Lich's own parser already reads. Nothing in this app parses it.
+   */
+  position?: number
+  /**
    * Sixteen body parts, each with a wound and a scar, 0-3.
    *
    * Optional because absent is not the same as uninjured: right after login

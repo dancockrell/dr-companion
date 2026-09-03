@@ -259,6 +259,24 @@ export interface PlayerSnapshot {
   /** Health as a 0-1 fraction, or null when `healthMax` is missing or zero
    * (absent, not "full"). */
   health: number | null
+  /**
+   * Your own footing: an index into DR's twelve-step balance ladder, or null
+   * when unknown. Not converted to a word here - `types/index.ts` documents
+   * the ladder, and a second copy of it in this file would be free to drift
+   * from Lich's.
+   */
+  balance: number | null
+  /**
+   * Who is winning, as DR's own signed scale: -9 (opponent overwhelming you)
+   * through 0 (no advantage) to +9 (overwhelming your opponent). Null when
+   * no combat round has reported it yet.
+   *
+   * This is the closest thing the game gives to "how is the fight going",
+   * and unlike `assess` it arrives every round without anyone spending a
+   * command on it. It needs no combat-text parser: Lich reads DR's own
+   * bracketed status line and the bridge forwards the number.
+   */
+  position: number | null
 }
 
 /**
@@ -414,6 +432,13 @@ export function compileWorldSnapshot(params: {
         health: maxHealth > 0
           ? Math.max(0, Math.min(1, character.vitals.health / maxHealth))
           : null,
+        // `?? null`, never `|| null`: 0 is meaningful in both of these.
+        // Balance 0 is 'completely' off your feet - the worst rung of the
+        // ladder, not a missing reading - and position 0 is an even
+        // contest. Coercing either to null would report the most dangerous
+        // moment in a fight, and the moment it is dead even, as "unknown".
+        balance: character.balance ?? null,
+        position: character.position ?? null,
       }
     : null
 

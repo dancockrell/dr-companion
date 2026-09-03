@@ -311,6 +311,18 @@ module DRStats
   def self.tdps = 12
   def self.luck = 2
   def self.native_mana = 'holy'
+
+  # Your own footing and who is winning, both of which real Lich fills from
+  # the bracketed line DR prints every combat round. Without them here the
+  # bridge's reads raise, land in the degraded list, and the two degraded
+  # checks below fail - a stub that cannot produce what the real thing does
+  # breaks the code that depends on it. Distinct, non-round values for the
+  # same reason as the stats above: 9 is 'solidly' on the twelve-step
+  # DR_BALANCE_VALUES ladder, 2 is 'in better position' on the signed
+  # DR_POSITION_VALUES scale, so a test asserting the wrong field or the two
+  # swapped would fail rather than pass by coincidence.
+  def self.balance = 9
+  def self.position = 2
 end
 
 # Real files on disk, not a stubbed Yaml.profile_dirs override - read_settings
