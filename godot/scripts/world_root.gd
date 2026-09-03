@@ -11,6 +11,7 @@ extends Node3D
 const MOCK_FIXTURE_PATH := "res://mock/crossing_mock_world.json"
 const MOCK_WORLD_ID := "crossing-mock"
 const MOCK_STARTING_ROOM := "1-14"  # Town Green North
+const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
 
 @onready var camera: Camera3D = $CameraDirector
 @onready var cell_root: Node3D = $CellRoot
@@ -21,6 +22,8 @@ const MOCK_STARTING_ROOM := "1-14"  # Town Green North
 ## leaking nodes and without re-deriving which nodes belong to which cell.
 var _spawned_cells: Dictionary = {}
 var _spawned_exit_anchors: Array = []
+var _active_detail_cells: Dictionary = {}
+var _visibility_policy := CellVisibilityPolicy.new()
 
 func _ready() -> void:
 	BridgeClient.snapshot_updated.connect(_on_snapshot_updated)
@@ -35,14 +38,19 @@ func _ready() -> void:
 		push_error("WorldRoot: failed to start mock bridge at %s" % MOCK_STARTING_ROOM)
 		return
 
-	_spawn_all_cells()
+	_prepare_all_cells()
+	_apply_detail_window(MOCK_STARTING_ROOM)
 	_project_snapshot_tokens(BridgeClient.current_snapshot)
 	_focus_room(MOCK_STARTING_ROOM, camera.Mode.ROOM)
 
-func _spawn_all_cells() -> void:
+## Creates lightweight room holders and click targets for the whole loaded
+## graph. Detailed primitives are mounted separately by `_apply_detail_window`
+## so a city-sized manifest never instantiates every prop just to show a room.
+func _prepare_all_cells() -> void:
 	for child in cell_root.get_children():
 		child.queue_free()
 	_spawned_cells.clear()
+	_active_detail_cells.clear()
 
 	for cell_id in WorldManifestLoader.cells.keys():
 		var cell: Dictionary = WorldManifestLoader.cells[cell_id]
@@ -51,10 +59,9 @@ func _spawn_all_cells() -> void:
 		holder.position = _cell_position(cell)
 		cell_root.add_child(holder)
 		_spawned_cells[cell_id] = holder
-
-		for primitive in cell.get("primitives", []):
-			var piece := ContentRegistry.build(cell, primitive)
-			holder.add_child(piece)
+		var content := Node3D.new()
+		content.name = "DetailContent"
+		holder.add_child(content)
 
 		# A clickable body per cell, so the mock viewer can turn a click into
 		# a focus-room intent even before real per-primitive collision
@@ -70,6 +77,43 @@ func _spawn_all_cells() -> void:
 		body.add_child(shape)
 		body.input_event.connect(_on_cell_clicked.bind(cell_id))
 		holder.add_child(body)
+
+func _apply_detail_window(origin_id: String) -> void:
+	var window: Dictionary = _visibility_policy.detail_window(origin_id, WorldManifestLoader.cells)
+	var requested_ids: Array = window.get("detailIds", [])
+	var requested: Dictionary = {}
+	for cell_id in requested_ids:
+		requested[cell_id] = true
+
+	for cell_id in _active_detail_cells.keys():
+		if not requested.has(cell_id):
+			_unmount_cell_detail(cell_id)
+	for cell_id in requested.keys():
+		if not _active_detail_cells.has(cell_id):
+			_mount_cell_detail(cell_id)
+
+func _mount_cell_detail(cell_id: String) -> void:
+	var holder: Node3D = _spawned_cells.get(cell_id)
+	var cell: Dictionary = WorldManifestLoader.get_cell(cell_id)
+	if holder == null or cell.is_empty():
+		return
+	var content: Node3D = holder.get_node_or_null("DetailContent")
+	if content == null:
+		return
+	for primitive in cell.get("primitives", []):
+		content.add_child(ContentRegistry.build(cell, primitive))
+	_active_detail_cells[cell_id] = true
+
+func _unmount_cell_detail(cell_id: String) -> void:
+	var holder: Node3D = _spawned_cells.get(cell_id)
+	if holder == null:
+		_active_detail_cells.erase(cell_id)
+		return
+	var content: Node3D = holder.get_node_or_null("DetailContent")
+	if content != null:
+		for child in content.get_children():
+			child.free()
+	_active_detail_cells.erase(cell_id)
 
 func _cell_position(cell: Dictionary) -> Vector3:
 	var p: Dictionary = cell.get("position", {})
@@ -94,6 +138,7 @@ func _on_snapshot_updated(snapshot: Dictionary) -> void:
 	var room_id: String = snapshot.get("currentRoomId", "")
 	if room_id != "":
 		_focus_room(room_id, camera.Mode.ROOM)
+		_apply_detail_window(room_id)
 	_rebuild_exit_anchors(room_id)
 	_project_snapshot_tokens(snapshot)
 

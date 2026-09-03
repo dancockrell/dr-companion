@@ -23,6 +23,7 @@ extends SceneTree
 
 const MOCK_FIXTURE_PATH := "res://mock/crossing_mock_world.json"
 const TOWN_GREEN_NORTH := "1-14"
+const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
 
 var _checked := 0
 var _failed := 0
@@ -78,6 +79,18 @@ func _run() -> void:
 	_ok("mock fixture is non-trivial (floor guards a broken/empty load reading as success)",
 		loader.cells.size() >= 10, "%d cells" % loader.cells.size())
 	_ok("Town Green North is present in the mock fixture", loader.has_cell(TOWN_GREEN_NORTH))
+
+	# -- detailed geometry is a bounded, true-exit graph window --
+	var visibility_policy := CellVisibilityPolicy.new()
+	var detail_window: Dictionary = visibility_policy.detail_window(TOWN_GREEN_NORTH, loader.cells)
+	var detail_distances: Dictionary = detail_window.get("distances", {})
+	_ok("the detailed world bubble starts at the current room", detail_distances.get(TOWN_GREEN_NORTH, -1) == 0)
+	var within_two_hops := true
+	for detail_cell_id in detail_window.get("detailIds", []):
+		within_two_hops = within_two_hops and int(detail_distances.get(detail_cell_id, 99)) <= 2
+	_ok("every detailed cell is within two true-exit hops", within_two_hops)
+	_ok("an unknown room has no detailed geometry window",
+		visibility_policy.detail_window("not-a-real-room", loader.cells).get("detailIds", []).is_empty())
 
 	# -- only true exits are exposed, nothing invented --
 	var real_exits: Array = loader.true_exits(TOWN_GREEN_NORTH)

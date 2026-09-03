@@ -38,6 +38,11 @@ required for this slice's acceptance gate.
   North, spawns every cell's primitives through `ContentRegistry`, and turns
   a click on a neighboring cell into a validated walk intent. It also passes
   confirmed snapshot occupants and ground items to the projection layer.
+- `scripts/cell_visibility_policy.gd` — limits detailed mounted geometry to
+  the current room and at most two true-exit hops. The complete authoritative
+  graph remains available to the viewer; this budget only controls scene
+  children, never the room graph or exit truth. A later world/route layer can
+  add cheap silhouettes without activating local prop geometry across a city.
 - `scripts/entity_projection_layer.gd` — creates modest tabletop tokens only
   for bridge-confirmed entities and ground items. Each token is parented below
   its reported room's tether and gets a deterministic local display slot; it
@@ -63,7 +68,7 @@ required for this slice's acceptance gate.
 ```
 
 Exits 0 with `all passed` when the gate holds, exits 1 and prints every
-failing assertion otherwise. The foundation gate currently has 28 checks.
+failing assertion otherwise. The foundation gate currently has 31 checks.
 Sabotage-tested: breaking `is_true_exit` to always return true correctly
 fails exactly the two checks that exercise it and nothing else.
 
