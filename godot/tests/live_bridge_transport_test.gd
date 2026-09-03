@@ -27,7 +27,11 @@ func _run() -> void:
 
 	var bridge: Node = root.get_node("BridgeClient")
 	var snapshots: Array = []
+	var recovered_snapshots: Array = []
+	var connection_states: Array = []
 	bridge.snapshot_updated.connect(func(snapshot): snapshots.append(snapshot))
+	bridge.reconnected.connect(func(snapshot): recovered_snapshots.append(snapshot))
+	bridge.live_connection_changed.connect(func(state): connection_states.append(state))
 	_ok("Godot accepts valid guarded bridge configuration", bridge.start_live(config_dir))
 
 	var client: StreamPeerTCP = null
@@ -66,8 +70,51 @@ func _run() -> void:
 	var intent := await _read_frame(client, 3000)
 	_ok("a live intent uses the documented wire shape", intent == {"kind": "walk", "fromRoomId": "1-14", "exitMove": "north"})
 
-	bridge.disconnect_live()
 	client.disconnect_from_host()
+	deadline = Time.get_ticks_msec() + 3000
+	while not _has_state_prefix(connection_states, "reconnecting-") and Time.get_ticks_msec() < deadline:
+		await process_frame
+	_ok("a dropped socket enters bounded reconnect recovery", _has_state_prefix(connection_states, "reconnecting-"))
+	_ok("the last confirmed room remains available during recovery", bridge.current_snapshot.get("currentRoomId", "") == "1-14")
+
+	var reconnected_client: StreamPeerTCP = null
+	deadline = Time.get_ticks_msec() + 5000
+	while reconnected_client == null and Time.get_ticks_msec() < deadline:
+		if server.is_connection_available():
+			reconnected_client = server.take_connection()
+		else:
+			await process_frame
+	_ok("Godot reconnects to the same guarded loopback endpoint", reconnected_client != null)
+	if reconnected_client != null:
+		_send(reconnected_client, {"type": "hello", "protocol": 1})
+		var reconnect_auth := await _read_frame(reconnected_client, 3000)
+		_ok("a recovered socket performs a fresh authentication", reconnect_auth == {"type": "auth", "token": token})
+		_send(reconnected_client, {"type": "auth_ok"})
+		_send(reconnected_client, {
+			"type": "snapshot", "protocol": 1, "sequence": 5,
+			"worldId": "transport-test", "currentRoomId": "1-14",
+			"cells": [{"id": "1-14", "title": "Town Green North", "position": {"x": 0, "y": 0, "z": 0},
+				"exits": [{"move": "north", "direction": "north", "targetRoomId": 13, "targetCellId": null}]}],
+			"activeRoom": {"title": "Town Green North"}, "entities": [], "groundItems": [],
+		})
+		deadline = Time.get_ticks_msec() + 3000
+		while recovered_snapshots.is_empty() and Time.get_ticks_msec() < deadline:
+			await process_frame
+		_ok("a valid replacement snapshot completes recovery", recovered_snapshots.size() == 1)
+		_ok("recovery admits the fresh authoritative sequence", bridge.current_snapshot.get("sequence", -1) == 5)
+		var reconnect_count := _count_state_prefix(connection_states, "reconnecting-")
+		root.get_node("EventPlayer").offer({"sequence": 7, "kind": "hit"})
+		deadline = Time.get_ticks_msec() + 1000
+		while _count_state_prefix(connection_states, "reconnecting-") == reconnect_count and Time.get_ticks_msec() < deadline:
+			await process_frame
+		_ok("an ordered-event gap immediately requests snapshot recovery", _count_state_prefix(connection_states, "reconnecting-") > reconnect_count)
+	else:
+		_ok("a recovered socket performs a fresh authentication", false)
+		_ok("a valid replacement snapshot completes recovery", false)
+		_ok("recovery admits the fresh authoritative sequence", false)
+		_ok("an ordered-event gap immediately requests snapshot recovery", false)
+
+	bridge.disconnect_live()
 	server.stop()
 	_cleanup(config_dir)
 	_finish()
@@ -89,6 +136,16 @@ func _read_frame(peer: StreamPeerTCP, timeout_ms: int) -> Dictionary:
 
 func _send(peer: StreamPeerTCP, message: Dictionary) -> void:
 	peer.put_data((JSON.stringify(message) + "\n").to_utf8_buffer())
+
+func _has_state_prefix(states: Array, prefix: String) -> bool:
+	return _count_state_prefix(states, prefix) > 0
+
+func _count_state_prefix(states: Array, prefix: String) -> int:
+	var count := 0
+	for state in states:
+		if str(state).begins_with(prefix):
+			count += 1
+	return count
 
 func _write_text(path: String, value: String) -> void:
 	var file := FileAccess.open(path, FileAccess.WRITE)

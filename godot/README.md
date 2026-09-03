@@ -28,7 +28,9 @@ required for this slice's acceptance gate.
   `WorldSnapshot`-shaped dictionaries directly from the loaded manifest and
   validates every `walk` intent against the manifest's true exits before
   mutating anything. Live loopback TCP changes the transport this file uses,
-  not its validation boundary or its public methods.
+  not its validation boundary or its public methods. A dropped socket or
+  ordered-event gap triggers bounded backoff and a fresh authenticated
+  snapshot while the last confirmed world remains visible.
 - `scripts/intent_sender.gd` — the first of two validation gates a click
   passes through (see its own header comment for why there are two).
 - `scripts/event_player.gd` — strict-sequence event playback with gap

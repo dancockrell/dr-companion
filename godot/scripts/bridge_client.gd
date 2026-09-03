@@ -22,6 +22,8 @@ signal live_event_rejected(event: Dictionary, reason: String)
 
 const PROTOCOL: int = 1
 const MAX_FRAME_BYTES: int = 8 * 1024 * 1024
+const MAX_RECONNECT_ATTEMPTS: int = 5
+const RECONNECT_BASE_DELAY_MS: int = 250
 const TOKEN_FILE := "presentation-bridge.token"
 const PORT_FILE := "presentation-bridge.port"
 const EVENT_KINDS := ["enter", "leave", "advance", "retreat", "attack", "hit", "miss", "parry", "evade", "block", "cast", "death", "item-drop"]
@@ -43,11 +45,23 @@ var _authenticated := false
 var _auth_sent := false
 var _session_token := ""
 var _last_peer_status := StreamPeerTCP.STATUS_NONE
+var _config_dir := ""
+var _retry_at_ms := 0
+var _reconnect_attempt := 0
+var _recovering := false
 
 func _ready() -> void:
 	set_process(false)
+	call_deferred("_connect_event_recovery")
 
 func _process(_delta: float) -> void:
+	if _retry_at_ms > 0:
+		if Time.get_ticks_msec() < _retry_at_ms:
+			return
+		_retry_at_ms = 0
+		if not _begin_live_connection():
+			_schedule_reconnect("presentation bridge reconnect failed")
+		return
 	if not _live_started:
 		return
 	_peer.poll()
@@ -57,7 +71,7 @@ func _process(_delta: float) -> void:
 		if status == StreamPeerTCP.STATUS_CONNECTED:
 			live_connection_changed.emit("connected-awaiting-auth")
 		elif status == StreamPeerTCP.STATUS_ERROR or status == StreamPeerTCP.STATUS_NONE:
-			_fail_live("presentation bridge disconnected")
+			_schedule_reconnect("presentation bridge disconnected")
 			return
 	if status != StreamPeerTCP.STATUS_CONNECTED:
 		return
@@ -80,8 +94,13 @@ func start_live(config_dir: String = "") -> bool:
 			live_connection_changed.emit("configuration-unavailable")
 			return false
 		directory = local_data.path_join("DR Companion Data")
-	var port_text := _read_small_secret_file(directory.path_join(PORT_FILE), 16)
-	var token := _read_small_secret_file(directory.path_join(TOKEN_FILE), 256)
+	_config_dir = directory
+	mock_mode = false
+	return _begin_live_connection()
+
+func _begin_live_connection() -> bool:
+	var port_text := _read_small_secret_file(_config_dir.path_join(PORT_FILE), 16)
+	var token := _read_small_secret_file(_config_dir.path_join(TOKEN_FILE), 256)
 	if not port_text.is_valid_int():
 		live_connection_changed.emit("configuration-unavailable")
 		return false
@@ -89,13 +108,13 @@ func start_live(config_dir: String = "") -> bool:
 	if port < 1 or port > 65535 or token.length() < 32 or token.length() > 128 or not token.is_valid_hex_number(false):
 		live_connection_changed.emit("configuration-invalid")
 		return false
+	_peer = StreamPeerTCP.new()
 	_session_token = token
 	var error := _peer.connect_to_host("127.0.0.1", port)
 	if error != OK:
 		_session_token = ""
 		live_connection_changed.emit("connection-failed")
 		return false
-	mock_mode = false
 	_live_started = true
 	_last_peer_status = _peer.get_status()
 	set_process(true)
@@ -103,6 +122,14 @@ func start_live(config_dir: String = "") -> bool:
 	return true
 
 func disconnect_live() -> void:
+	_close_live_socket()
+	_config_dir = ""
+	_retry_at_ms = 0
+	_reconnect_attempt = 0
+	_recovering = false
+	set_process(false)
+
+func _close_live_socket() -> void:
 	if _peer.get_status() != StreamPeerTCP.STATUS_NONE:
 		_peer.disconnect_from_host()
 	_live_started = false
@@ -111,7 +138,6 @@ func disconnect_live() -> void:
 	_session_token = ""
 	_incoming = ""
 	_last_peer_status = StreamPeerTCP.STATUS_NONE
-	set_process(false)
 
 ## Mock-mode entry point: point the bridge at a loaded world/route id and a
 ## starting room, and build the first snapshot from whatever
@@ -245,7 +271,12 @@ func _accept_live_message(message: Dictionary) -> void:
 			_sequence = int(message.get("sequence", 0))
 			_current_room_id = str(message.get("currentRoomId", ""))
 			EventPlayer.reset_to(_sequence)
-			snapshot_updated.emit(current_snapshot)
+			_reconnect_attempt = 0
+			if _recovering:
+				_recovering = false
+				reconnected.emit(current_snapshot)
+			else:
+				snapshot_updated.emit(current_snapshot)
 		"event":
 			if not _authenticated:
 				return
@@ -290,6 +321,35 @@ func _snapshot_has_entity(entity_id: String) -> bool:
 func _fail_live(reason: String) -> void:
 	disconnect_live()
 	live_connection_changed.emit("failed: %s" % reason)
+
+func request_live_recovery(_expected: int = -1, _received: int = -1) -> void:
+	if mock_mode or _config_dir.is_empty():
+		return
+	_schedule_reconnect("ordered event gap requires a fresh snapshot", true)
+
+func _schedule_reconnect(reason: String, immediate: bool = false) -> void:
+	if mock_mode or _config_dir.is_empty():
+		return
+	if _retry_at_ms > 0:
+		if immediate:
+			_retry_at_ms = Time.get_ticks_msec()
+		return
+	_close_live_socket()
+	_recovering = not current_snapshot.is_empty()
+	_reconnect_attempt += 1
+	if _reconnect_attempt > MAX_RECONNECT_ATTEMPTS:
+		live_connection_changed.emit("failed: %s" % reason)
+		set_process(false)
+		return
+	var delay := 0 if immediate else mini(RECONNECT_BASE_DELAY_MS * (1 << (_reconnect_attempt - 1)), 4000)
+	_retry_at_ms = Time.get_ticks_msec() + delay
+	set_process(true)
+	live_connection_changed.emit("reconnecting-%d" % _reconnect_attempt)
+
+func _connect_event_recovery() -> void:
+	var player := get_node_or_null("/root/EventPlayer")
+	if player != null and not player.sequence_gap_detected.is_connected(request_live_recovery):
+		player.sequence_gap_detected.connect(request_live_recovery)
 
 func _find_exit(cell_id: String, exit_move: String) -> Dictionary:
 	for exit in WorldManifestLoader.true_exits(cell_id):
