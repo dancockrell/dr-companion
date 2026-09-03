@@ -12,7 +12,7 @@
  *
  *   node --experimental-strip-types tools/presentation-bridge-test.mjs
  */
-import { compileWorldSnapshot, shouldPublish } from '../src/lib/presentationBridge.ts'
+import { compileWorldSnapshot, justReconnected, shouldPublish } from '../src/lib/presentationBridge.ts'
 
 let pass = 0
 let fail = 0
@@ -153,6 +153,15 @@ console.log('\n-- shouldPublish: the gate between "state updated" and "Godot get
     shouldPublish('1-14', '1-14', true) === true)
   ok('no prior room at all (first publish this session): publishes',
     shouldPublish('1-14', null, false) === true)
+}
+
+console.log('\n-- justReconnected: the false->true edge that forces a publish past the room-changed gate --')
+{
+  ok('disconnected -> connected: a real reconnect', justReconnected(true, false) === true)
+  ok('already connected, still connected: not a reconnect', justReconnected(true, true) === false)
+  ok('still disconnected: not a reconnect', justReconnected(false, false) === false)
+  ok('connected -> disconnected: not a reconnect (dropping is not reconnecting)',
+    justReconnected(false, true) === false)
 }
 
 console.log('')
