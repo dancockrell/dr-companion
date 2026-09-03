@@ -19,6 +19,7 @@ import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoun
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
 import { usePresentationBridgePublisher } from './lib/usePresentationBridgePublisher.ts'
+import { subscribePresentationIntents } from './lib/presentationIntents.ts'
 import {
   combatBattleWant,
   combatRoomWant,
@@ -152,6 +153,18 @@ export default function App() {
   const connectBridge = useAppStore((s) => s.connectBridge)
   const hostRef = useRef<HTMLElement | null>(null)
   usePresentationBridgePublisher(v.kind === 'app')
+
+  /*
+   * The other direction of the same bridge: Godot asks, Rust validates
+   * against the snapshot we published, and this is what actually sends the
+   * command. Main window only - every window shares one Tauri event bus, so
+   * a listener in each would walk the character once per open window.
+   * See presentationIntents.ts.
+   */
+  useEffect(() => {
+    if (v.kind !== 'app') return
+    return subscribePresentationIntents()
+  }, [v.kind])
 
   /*
    * Connect the bridge when the app opens. See the git history for why this
