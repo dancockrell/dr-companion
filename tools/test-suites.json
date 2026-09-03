@@ -1,5 +1,7 @@
 [
   "test:vendor",
+  "test:presentation-bridge",
+  "test:panel-data-contracts",
   "test:safety",
   "test:flow-stop",
   "test:game-command-boundary",

@@ -20,6 +20,15 @@ const dir = mkdtempSync(join(tmpdir(), 'room-'))
  * Node ESM insists on it, and bestiary.ts imports JSON, which Node will only
  * take with an import attribute tsc does not emit. The JSON import is rewritten
  * to a plain read instead.
+ *
+ * A source file's own import can now *already* carry an explicit `.ts`
+ * (allowImportingTsExtensions is on project-wide - see tsconfig.app.json -
+ * and room.ts's own imports have started using it). `transpileModule`
+ * compiles one file in isolation, with no project context to resolve or
+ * strip that extension, so an already-explicit `./bestiary.ts` survived
+ * verbatim into the output and the old blind `+ '.js'` produced
+ * `./bestiary.ts.js` - a file this script never writes. Stripping a
+ * trailing `.ts` before appending `.js` handles both cases the same way.
  */
 const compile = (src, name) => {
   const out = join(dir, name)
@@ -27,9 +36,15 @@ const compile = (src, name) => {
     .transpileModule(readFileSync(src, 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
     })
-    .outputText.replace(/from '(\.\/[^']+)'/g, (_, r) => `from '${r}.js'`)
+    .outputText.replace(/from '(\.\/[^']+?)(\.ts)?'/g, (_, r) => `from '${r}.js'`)
     .replace(
-      /import data from ['"][^'"]+bestiary\.json['"];?/,
+      // `bestiary.ts`'s own import now carries a trailing
+      // `with { type: 'json' }` (Node ESM's own requirement for a JSON
+      // import - see that file). Matching only through the closing quote
+      // left that clause dangling after the replacement text, which is a
+      // `with` statement outside strict mode's grammar, not a JSON import
+      // attribute - a syntax error, not a silent miss.
+      /import data from ['"][^'"]+bestiary\.json['"](\s*with\s*\{[^}]*\})?;?/,
       "import { readFileSync as _rf } from 'node:fs';\n" +
         "const data = JSON.parse(_rf('src/data/bestiary.json', 'utf8'));"
     )

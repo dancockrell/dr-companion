@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://c3wr0v0f0dr1w"]
+
+[ext_resource type="Script" path="res://scripts/world_root.gd" id="1_worldroot"]
+[ext_resource type="Script" path="res://scripts/camera_director.gd" id="2_camdir"]
+
+[node name="WorldRoot" type="Node3D"]
+script = ExtResource("1_worldroot")
+
+[node name="CameraDirector" type="Camera3D" parent="."]
+script = ExtResource("2_camdir")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.7, -0.5, 0.5, 0, 0.7, 0.7, -0.7, -0.5, 0.5, 0, 60, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="CellRoot" type="Node3D" parent="."]
+
+[node name="ExitAnchors" type="Node3D" parent="."]
