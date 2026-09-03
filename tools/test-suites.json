@@ -1,6 +1,7 @@
 [
   "test:vendor",
   "test:presentation-bridge",
+  "test:presentation-intents",
   "test:panel-data-contracts",
   "test:safety",
   "test:flow-stop",

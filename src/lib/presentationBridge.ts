@@ -280,6 +280,54 @@ export function justReconnected(connected: boolean, wasConnected: boolean): bool
   return connected && !wasConnected
 }
 
+/** The wire shape `presentation_bridge.rs::handle_intent` emits as a
+ * `presentation:intent` Tauri event. `kind` is the discriminator; every other
+ * field is per-kind and optional here because this arrives as untyped JSON
+ * off a socket, not as a value this app built. */
+export interface PresentationIntentEvent {
+  kind?: string
+  fromRoomId?: string
+  exitMove?: string
+  entityId?: string
+  itemId?: string
+  roomId?: string
+}
+
+/** What an intent should turn into, if anything. */
+export interface IntentGameCommand {
+  command: string
+  label: string
+}
+
+/**
+ * Pure: decides what game command an incoming intent becomes, or `null` for
+ * none. Lives here beside `shouldPublish` and `justReconnected` - the other
+ * two pure decisions this bridge makes - so it can be tested without a Tauri
+ * event loop or a socket. `presentationIntents.ts` is the wiring that calls
+ * it; see that file's doc comment for why sending a command here is safe.
+ *
+ * Only `walk` produces a command. The other three intents are read-only
+ * presentation concerns Godot has already handled or that belong in a
+ * wrapper panel (`focus-room` never even needs this app - Rust's own comment
+ * notes Godot already has every cell position once it has a snapshot), so
+ * they resolve to `null` rather than being quietly treated as walks. The
+ * decision keys on `kind` alone, never on which fields happen to be present.
+ */
+export function gameCommandForIntent(
+  event: PresentationIntentEvent
+): IntentGameCommand | null {
+  if (event.kind !== 'walk') return null
+
+  const move = (event.exitMove ?? '').trim()
+  // An empty exit would be refused by validateGameActionCommand a moment
+  // later anyway, but as a *failure notice* in the player's face. A walk
+  // intent with no move in it is a bug upstream, not something the player
+  // did, so it is dropped here instead of being reported to them.
+  if (!move) return null
+
+  return { command: move, label: `Viewer walk “${move}”` }
+}
+
 /**
  * Publishes a freshly-compiled snapshot to Rust, gated by `shouldPublish`.
  *
