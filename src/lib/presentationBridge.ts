@@ -269,6 +269,18 @@ export function shouldPublish(nextRoomId: string, lastRoomId: string | null, for
 }
 
 /**
+ * True on the exact tick the game bridge transitions from disconnected to
+ * connected - a real reconnect, not merely "is connected" (which would also
+ * be true on every unrelated re-render) or "was connected" (true forever
+ * after the first connect). Used to force a fresh snapshot publish past
+ * `shouldPublish`'s room-changed gate, since entities/ground items can
+ * change during a dropped connection without the room itself changing.
+ */
+export function justReconnected(connected: boolean, wasConnected: boolean): boolean {
+  return connected && !wasConnected
+}
+
+/**
  * Publishes a freshly-compiled snapshot to Rust, gated by `shouldPublish`.
  *
  * Silently no-ops in the browser (`invokeTauri` already does) and when
