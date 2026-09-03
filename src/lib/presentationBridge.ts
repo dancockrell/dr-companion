@@ -206,6 +206,71 @@ export interface WorldSnapshot {
   activeRoom: { id: string; title: string }
   entities: EntitySnapshot[]
   groundItems: GroundItemSnapshot[]
+  /** The character's own combat state. Null before any status has been
+   * parsed - absent knowledge, not a healthy character. */
+  player: PlayerSnapshot | null
+}
+
+/** Flags that mean the character cannot act at all.
+ *
+ * Narrow on purpose. `prone` is NOT here: prone is dangerous (most of your
+ * defence is gone and standing costs roundtime) but you can still act, and
+ * collapsing "vulnerable" into "helpless" would overstate what the game
+ * said. `dead`/`dying` are their own presentation problem, not a combat
+ * window. Renderers that want a different set have `situation` verbatim. */
+const CANNOT_ACT_FLAGS = ['stunned', 'webbed', 'immobilized'] as const
+
+/**
+ * The character's own state during a fight.
+ *
+ * # Why this is the half that matters
+ *
+ * A competent player is mostly *not* hit - attacks miss, or land lightly,
+ * round after round. The damage arrives in the rare windows where the
+ * character cannot act: stunned, webbed, immobilized, with hostiles already
+ * at melee range. That is when a fight is lost. UberCombat, twenty years of
+ * community bug reports deep, gates nearly every action on exactly those
+ * three states, which is the same conclusion from the other direction.
+ *
+ * So this is not a nice-to-have beside an attack feed. Attack events are the
+ * *low* information signal - many of them, most meaning "nothing happened."
+ * These flags are the high one, they are rare, and they already arrive
+ * parsed. Nothing here needs a combat-text parser.
+ *
+ * # What it must not claim
+ *
+ * Every `SituationFlag` is an icon that is either lit or not, with no
+ * magnitude and no duration behind it (`types/index.ts` says so where the
+ * flag union is declared). There is no "3 seconds of stun left" anywhere in
+ * this game's output, so nothing may render a stun countdown. `roundtime` is
+ * the one honest clock here, and it comes from `XMLData.roundtime_end`.
+ */
+export interface PlayerSnapshot {
+  /** Every lit flag, verbatim, so a renderer is never limited to this
+   * file's reading of them. */
+  situation: string[]
+  /** True when a flag in `CANNOT_ACT_FLAGS` is lit. Computed here rather
+   * than in the viewer so two renderers cannot drift on what "helpless"
+   * means; `situation` is carried alongside so either can disagree. */
+  cannotAct: boolean
+  /** Seconds left of roundtime, or null when unknown. The only real clock
+   * in this snapshot - no other state here has a duration. */
+  roundtime: number | null
+  /** Health as a 0-1 fraction, or null when `healthMax` is missing or zero
+   * (absent, not "full"). */
+  health: number | null
+}
+
+/**
+ * Pure: does this situation list mean the character cannot act? Exported and
+ * tested directly, beside `shouldPublish`/`justReconnected`/
+ * `gameCommandForIntent` - the other pure decisions this bridge makes.
+ */
+export function cannotAct(situation: readonly string[] | undefined): boolean {
+  if (!situation) return false
+  return situation.some((flag) =>
+    (CANNOT_ACT_FLAGS as readonly string[]).includes(flag)
+  )
 }
 
 function cellId(zoneId: string, roomId: number): string {
@@ -336,6 +401,20 @@ export function compileWorldSnapshot(params: {
     name,
   }))
 
+  // Null rather than a default-shaped block: before any status has been
+  // parsed there is no character state to report, and a `player` reading
+  // "no flags lit, full health" would be a claim this file cannot support.
+  // Same absent-means-unknown contract `injuries` uses in types/index.ts.
+  const maxHealth = character?.vitals?.healthMax ?? 0
+  const player: PlayerSnapshot | null = character
+    ? {
+        situation: character.situation ?? [],
+        cannotAct: cannotAct(character.situation),
+        roundtime: character.roundtime ?? null,
+        health: maxHealth > 0 ? character.vitals.health / maxHealth : null,
+      }
+    : null
+
   return {
     protocol: 1,
     sequence,
@@ -345,6 +424,7 @@ export function compileWorldSnapshot(params: {
     activeRoom: { id: currentCellId, title: currentCell.title },
     entities,
     groundItems,
+    player,
   }
 }
 
