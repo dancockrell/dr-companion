@@ -278,12 +278,7 @@ fn validate_walk<'a>(
         .ok_or("not a true exit of the current room")
 }
 
-fn handle_intent(
-    v: &Value,
-    state: &PresentationBridgeState,
-    app: &AppHandle,
-    out: &mut TcpStream,
-) {
+fn handle_intent(v: &Value, state: &PresentationBridgeState, app: &AppHandle, out: &mut TcpStream) {
     let intent: PresentationIntent = match serde_json::from_value(v.clone()) {
         Ok(i) => i,
         Err(e) => {
@@ -343,7 +338,10 @@ fn handle_intent(
             // Read-only and never leaves this process - Godot already has
             // every cell's position once it has a snapshot, so this needs no
             // round trip through the frontend at all.
-            let _ = app.emit("presentation:intent", json!({"kind": "focus-room", "roomId": room_id}));
+            let _ = app.emit(
+                "presentation:intent",
+                json!({"kind": "focus-room", "roomId": room_id}),
+            );
             let _ = send_json(out, &json!({"type": "intent_accepted"}));
         }
     }
@@ -464,9 +462,14 @@ pub fn start(app: AppHandle) -> std::io::Result<()> {
             let app = app.clone();
             std::thread::spawn(move || {
                 let state_for_client = Arc::clone(&state);
-                handle_client(stream, clients, state_for_client, &token, &next_id, |v, out| {
-                    handle_intent(v, &state, &app, out)
-                });
+                handle_client(
+                    stream,
+                    clients,
+                    state_for_client,
+                    &token,
+                    &next_id,
+                    |v, out| handle_intent(v, &state, &app, out),
+                );
             });
         }
     });
@@ -573,7 +576,14 @@ mod tests {
             let token = token.clone();
             move || {
                 for stream in listener.incoming().flatten() {
-                    handle_client(stream, Arc::clone(&clients), Arc::clone(&state), &token, &next_id, |_, _| {});
+                    handle_client(
+                        stream,
+                        Arc::clone(&clients),
+                        Arc::clone(&state),
+                        &token,
+                        &next_id,
+                        |_, _| {},
+                    );
                 }
             }
         });
@@ -585,12 +595,19 @@ mod tests {
         assert_eq!(read_json(&mut r)["type"], "hello");
         {
             let mut s2 = r.get_ref().try_clone().unwrap();
-            send_json(&mut s2, &json!({"type": "auth", "token": "stale-or-forged"})).unwrap();
+            send_json(
+                &mut s2,
+                &json!({"type": "auth", "token": "stale-or-forged"}),
+            )
+            .unwrap();
         }
         assert_eq!(read_json(&mut r)["type"], "auth_failed");
         let mut rest = Vec::new();
         r.read_to_end(&mut rest).unwrap();
-        assert!(rest.is_empty(), "nothing more should arrive after a refused auth");
+        assert!(
+            rest.is_empty(),
+            "nothing more should arrive after a refused auth"
+        );
 
         // The real token: hello, then auth_ok.
         let (mut s, mut r) = connect(port);
@@ -612,7 +629,14 @@ mod tests {
 
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
-                handle_client(stream, Arc::clone(&clients), Arc::clone(&state), "correct", &next_id, |_, _| {});
+                handle_client(
+                    stream,
+                    Arc::clone(&clients),
+                    Arc::clone(&state),
+                    "correct",
+                    &next_id,
+                    |_, _| {},
+                );
             }
         });
 
@@ -627,7 +651,11 @@ mod tests {
         WorldCell {
             id: id.to_string(),
             title: format!("Room {id}"),
-            position: Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+            position: Vec3 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            },
             exits: exits
                 .into_iter()
                 .map(|(mv, target)| Exit {
@@ -676,7 +704,10 @@ mod tests {
     fn refuses_a_real_exit_of_a_different_room() {
         let snap = snapshot(
             "1-14",
-            vec![cell("1-14", vec![("north", "1-13")]), cell("1-13", vec![("south", "1-14")])],
+            vec![
+                cell("1-14", vec![("north", "1-13")]),
+                cell("1-13", vec![("south", "1-14")]),
+            ],
         );
         assert!(validate_walk(&snap, "1-14", "south").is_err());
     }
@@ -718,7 +749,10 @@ mod tests {
         let raw = json!({"kind": "walk", "fromRoomId": "1-14", "exitMove": "north"});
         let intent: PresentationIntent = serde_json::from_value(raw).expect("should parse");
         match intent {
-            PresentationIntent::Walk { from_room_id, exit_move } => {
+            PresentationIntent::Walk {
+                from_room_id,
+                exit_move,
+            } => {
                 assert_eq!(from_room_id, "1-14");
                 assert_eq!(exit_move, "north");
             }
@@ -742,7 +776,10 @@ mod tests {
         let snap = snapshot("1-14", vec![cell("1-14", vec![("north", "1-13")])]);
         let v = serde_json::to_value(&snap).unwrap();
         assert!(v.get("worldId").is_some(), "missing worldId: {v}");
-        assert!(v.get("currentRoomId").is_some(), "missing currentRoomId: {v}");
+        assert!(
+            v.get("currentRoomId").is_some(),
+            "missing currentRoomId: {v}"
+        );
         assert!(v.get("groundItems").is_some(), "missing groundItems: {v}");
         assert!(v.get("world_id").is_none(), "leaked snake_case field: {v}");
     }
