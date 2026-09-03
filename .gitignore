@@ -19,6 +19,7 @@
 #   data/elanthipedia/  <- deliberately not ignored
 data/kb/
 dist
+godot/build/
 dist-ssr
 lerna-debug.log*
 logs

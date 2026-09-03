@@ -120,6 +120,23 @@ The projection gate runs separately:
 "Godot_v4.7.2-stable_win64_console.exe" --headless --path godot --script res://tests/entity_projection_test.gd
 ```
 
+## Windows export
+
+The checked-in `Windows Desktop` preset produces one embedded-PCK executable;
+the three reviewed runtime GLBs are included explicitly because they are loaded
+by path rather than through a scene dependency. Build it with a Godot 4.3+
+editor and matching export templates:
+
+```powershell
+npm run godot:export -- --godot "C:\path\to\Godot_v4.x-stable_win64_console.exe"
+```
+
+The build helper refuses a missing/non-PE result and writes a local
+`godot/build/viewer-build.json` receipt with the exact byte count and SHA-256.
+The ignored build directory is evidence/output, not source. Tauri packaging and
+process supervision remain a separate gate: they must consume a verified
+export rather than silently packaging a placeholder.
+
 ## Regenerating the mock fixture
 
 The mock fixture was extracted from a real compiled manifest, not

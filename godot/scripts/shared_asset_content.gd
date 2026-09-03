@@ -115,10 +115,14 @@ func _shared_or_fallback(resource_path: String, piece_name: String, scale_value:
 	return holder
 
 func _load_shared_gltf(resource_path: String) -> Node3D:
-	# Do not use `load(path) as PackedScene` here. That only works after Godot's
-	# editor has generated an import cache, and asking it to scan the whole shared
-	# repository makes the consumer slow and noisy. The source GLB itself is the
-	# approved artifact, so parse that one exact file at runtime instead.
+	# A release export contains Godot's imported PackedScene, not the raw GLB
+	# bytes. Prefer that representation when it exists. Fresh headless checkouts
+	# deliberately do not import the entire shared catalog, so retain a raw-GLB
+	# fallback for the exact reviewed file selected by this content pack.
+	if ResourceLoader.exists(resource_path):
+		var imported := load(resource_path)
+		if imported is PackedScene:
+			return (imported as PackedScene).instantiate() as Node3D
 	if not FileAccess.file_exists(resource_path):
 		return null
 	var document := GLTFDocument.new()
