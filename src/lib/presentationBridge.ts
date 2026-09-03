@@ -610,6 +610,39 @@ export type PresentationBridgeInfo = {
   tokenPath: string
 }
 
+/**
+ * Whether the Godot world viewer can be started, and whether it is up.
+ *
+ * `runningKnown` is false when the process list could not be read at all -
+ * never collapse that into `running: false`, because "no viewer" and "could
+ * not look" send a person to two different places. Same three-state contract
+ * as the Rust side and as `lich.rs` before it.
+ */
+export type ViewerStatus = {
+  installed: boolean
+  /** Where the executable is, so a person can confirm which build they are
+   * about to run. Null when none was found. */
+  path: string | null
+  running: boolean
+  runningKnown: boolean
+}
+
+export async function viewerStatus(): Promise<ViewerStatus> {
+  const raw = (await invokeTauri('viewer_status')) as Partial<ViewerStatus> | undefined
+  return {
+    installed: raw?.installed ?? false,
+    path: raw?.path ?? null,
+    running: raw?.running ?? false,
+    runningKnown: raw?.runningKnown ?? false,
+  }
+}
+
+/** Starts the viewer. Rejects with a readable reason when there is nothing to
+ * start or one is already open; the caller shows it rather than swallowing it. */
+export async function launchViewer(): Promise<string> {
+  return (await invokeTauri('launch_viewer')) as string
+}
+
 export async function presentationBridgeInfo(): Promise<PresentationBridgeInfo> {
   const raw = (await invokeTauri('presentation_bridge_info')) as
     | { port?: number | null; tokenPath?: string }

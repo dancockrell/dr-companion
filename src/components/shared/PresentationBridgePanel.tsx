@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
-import { FolderOpen, RefreshCw } from 'lucide-react'
-import { presentationBridgeInfo, type PresentationBridgeInfo } from '../../lib/presentationBridge.ts'
+import { FolderOpen, Play, RefreshCw } from 'lucide-react'
+import {
+  launchViewer,
+  presentationBridgeInfo,
+  viewerStatus,
+  type PresentationBridgeInfo,
+  type ViewerStatus,
+} from '../../lib/presentationBridge.ts'
 import { revealFile } from '../../lib/setup'
 import { isTauri } from '../../lib/tauri'
 
@@ -20,17 +26,33 @@ import { isTauri } from '../../lib/tauri'
  */
 export function PresentationBridgePanel() {
   const [info, setInfo] = useState<PresentationBridgeInfo | null>(null)
+  const [viewer, setViewer] = useState<ViewerStatus | null>(null)
   const [checking, setChecking] = useState(false)
+  const [launchNote, setLaunchNote] = useState<string | null>(null)
 
   const check = () => {
     if (!isTauri()) return
     setChecking(true)
-    void presentationBridgeInfo()
-      .then(setInfo)
+    void Promise.all([presentationBridgeInfo(), viewerStatus()])
+      .then(([bridge, v]) => {
+        setInfo(bridge)
+        setViewer(v)
+      })
       .finally(() => setChecking(false))
   }
 
   useEffect(check, [])
+
+  const open = () => {
+    setLaunchNote(null)
+    void launchViewer()
+      // Both branches say what happened. A launch button that reports nothing
+      // on failure is the reason "I pressed it and nothing happened" is the
+      // hardest bug report to act on.
+      .then((msg) => setLaunchNote(msg))
+      .catch((e: unknown) => setLaunchNote(e instanceof Error ? e.message : String(e)))
+      .finally(check)
+  }
 
   if (!isTauri()) {
     return (
@@ -67,15 +89,60 @@ export function PresentationBridgePanel() {
         )}
       </div>
 
-      <button
-        type="button"
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink disabled:opacity-50"
-        onClick={check}
-        disabled={checking}
-      >
-        <RefreshCw className={`h-3 w-3 ${checking ? 'animate-spin' : ''}`} />
-        Recheck
-      </button>
+      {/* The viewer itself. Everything above describes a socket; this is the
+          only control in the app that opens the thing on the other end of it. */}
+      <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
+        <span className="text-xs text-ink-faint">World viewer</span>
+        <span className="text-xs text-ink">
+          {viewer === null
+            ? checking
+              ? 'checking…'
+              : '—'
+            : !viewer.installed
+              ? 'not built yet'
+              : !viewer.runningKnown
+                ? 'installed, cannot tell if open'
+                : viewer.running
+                  ? 'open'
+                  : 'ready'}
+        </span>
+      </div>
+
+      {viewer?.path && (
+        <p className="truncate text-xs text-ink-faint" title={viewer.path}>
+          {viewer.path}
+        </p>
+      )}
+
+      <div className="flex gap-1.5">
+        <button
+          type="button"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink disabled:opacity-50"
+          onClick={open}
+          disabled={!viewer?.installed || (viewer?.runningKnown && viewer.running)}
+        >
+          <Play className="h-3 w-3" />
+          Open viewer
+        </button>
+        <button
+          type="button"
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink disabled:opacity-50"
+          onClick={check}
+          disabled={checking}
+        >
+          <RefreshCw className={`h-3 w-3 ${checking ? 'animate-spin' : ''}`} />
+          Recheck
+        </button>
+      </div>
+
+      {launchNote && <p className="text-xs text-ink-muted leading-snug">{launchNote}</p>}
+
+      {viewer && !viewer.installed && (
+        <p className="text-xs text-ink-faint leading-snug">
+          No viewer has been built on this machine yet. `npm run viewer:export`
+          writes one into godot/build.
+        </p>
+      )}
 
       <p className="text-xs text-ink-faint leading-snug">
         The Godot 3D viewer reads both of these automatically. This is for

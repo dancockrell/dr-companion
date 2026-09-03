@@ -14,6 +14,7 @@ pub mod script_api;
 pub mod scripts;
 pub mod setup;
 pub mod sounds;
+pub mod viewer;
 
 use tauri::{Emitter, Manager, WebviewWindow, WindowEvent};
 
@@ -184,6 +185,8 @@ pub fn run() {
             presentation_bridge::publish_world_snapshot,
             presentation_bridge::publish_presentation_event,
             presentation_bridge::presentation_bridge_info,
+            viewer::viewer_status,
+            viewer::launch_viewer,
             pause::set_paused,
             pause::is_paused,
             python::python_status,
