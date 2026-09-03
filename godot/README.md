@@ -47,6 +47,9 @@ required for this slice's acceptance gate.
   as one inexpensive route mesh for the world/route camera. It de-duplicates
   reciprocal exits for display and omits unresolved/external links rather than
   inventing a road, bridge, or destination.
+- `scripts/world_controls.gd` — the in-view World / Route / Room controls.
+  They are presentation-only and have matching `1` / `2` / `3` shortcuts;
+  they do not send game commands or create another map window.
 - `scripts/entity_projection_layer.gd` — creates modest tabletop tokens only
   for bridge-confirmed entities and ground items. Each token is parented below
   its reported room's tether and gets a deterministic local display slot; it
@@ -66,6 +69,8 @@ required for this slice's acceptance gate.
   stale tokens on the next confirmed snapshot.
 - `tests/route_graph_layer_test.gd` — verifies the route view is one mesh,
   covers known local connections, and excludes unknown/external destinations.
+- `tests/world_controls_test.gd` — verifies the three documented camera
+  requests are explicit and rejects unknown view labels.
 
 ## Running the test
 

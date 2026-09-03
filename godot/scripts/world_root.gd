@@ -18,6 +18,7 @@ const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
 @onready var exit_root: Node3D = $ExitAnchors
 @onready var entity_projection: Node3D = $EntityProjection
 @onready var route_graph: Node3D = $RouteGraph
+@onready var world_controls: CanvasLayer = $WorldControls
 
 ## cellId -> spawned Node3D, so a room change can clear/rebuild without
 ## leaking nodes and without re-deriving which nodes belong to which cell.
@@ -31,6 +32,7 @@ func _ready() -> void:
 	BridgeClient.reconnected.connect(_on_snapshot_updated)
 	entity_projection.inspect_entity_requested.connect(_on_entity_inspect_requested)
 	entity_projection.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
+	world_controls.view_requested.connect(_on_view_requested)
 
 	if not WorldManifestLoader.load_from_path(MOCK_FIXTURE_PATH):
 		push_error("WorldRoot: failed to load mock fixture at %s" % MOCK_FIXTURE_PATH)
@@ -178,6 +180,17 @@ func focus_current_room_view() -> void:
 	var room_id: String = BridgeClient.current_snapshot.get("currentRoomId", "")
 	if room_id != "":
 		_focus_room(room_id, camera.Mode.ROOM)
+
+func focus_route_view() -> void:
+	var room_id: String = BridgeClient.current_snapshot.get("currentRoomId", "")
+	if room_id != "":
+		_focus_room(room_id, camera.Mode.ROUTE)
+
+func _on_view_requested(view_id: String) -> void:
+	match view_id:
+		"world": focus_world_view()
+		"route": focus_route_view()
+		"room": focus_current_room_view()
 
 ## Exit anchors: one visible marker per true exit of the current room,
 ## reachable to a text/list equivalent too (see `Viewer.exit_labels()`

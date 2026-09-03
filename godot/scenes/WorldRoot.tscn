@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://c3wr0v0f0dr1w"]
+[gd_scene load_steps=6 format=3 uid="uid://c3wr0v0f0dr1w"]
 
 [ext_resource type="Script" path="res://scripts/world_root.gd" id="1_worldroot"]
 [ext_resource type="Script" path="res://scripts/camera_director.gd" id="2_camdir"]
 [ext_resource type="Script" path="res://scripts/entity_projection_layer.gd" id="3_entities"]
 [ext_resource type="Script" path="res://scripts/route_graph_layer.gd" id="4_routes"]
+[ext_resource type="Script" path="res://scripts/world_controls.gd" id="5_controls"]
 
 [node name="WorldRoot" type="Node3D"]
 script = ExtResource("1_worldroot")
@@ -25,3 +26,31 @@ script = ExtResource("3_entities")
 
 [node name="RouteGraph" type="Node3D" parent="."]
 script = ExtResource("4_routes")
+
+[node name="WorldControls" type="CanvasLayer" parent="."]
+layer = 1
+script = ExtResource("5_controls")
+
+[node name="Margin" type="MarginContainer" parent="WorldControls"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 340.0
+offset_bottom = 62.0
+
+[node name="Views" type="HBoxContainer" parent="WorldControls/Margin"]
+theme_override_constants/separation = 8
+
+[node name="World" type="Button" parent="WorldControls/Margin/Views"]
+custom_minimum_size = Vector2(92, 38)
+tooltip_text = "Whole loaded world route context (1)"
+text = "World  1"
+
+[node name="Route" type="Button" parent="WorldControls/Margin/Views"]
+custom_minimum_size = Vector2(92, 38)
+tooltip_text = "Route view around your confirmed room (2)"
+text = "Route  2"
+
+[node name="Room" type="Button" parent="WorldControls/Margin/Views"]
+custom_minimum_size = Vector2(92, 38)
+tooltip_text = "Room view with the two-hop detail horizon (3)"
+text = "Room  3"
