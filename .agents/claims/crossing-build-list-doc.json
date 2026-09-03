@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "task_id": "crossing-build-list-doc",
+  "agent": "claude-code",
+  "summary": "Generate the Crossing asset build list and grid spec into docs/ from the room briefs",
+  "status": "completed",
+  "claimed_at": "2026-09-04T09:10:00Z",
+  "updated_at": "2026-09-04T09:40:00Z",
+  "paths": [
+    "tools/build-crossing-build-list.mjs",
+    "docs/CROSSING_BUILD_LIST.md",
+    "package.json",
+    "tools/test-suites.json",
+    "tools/crossing-build-list-test.mjs"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Dan asked for a build list covering every Crossing asset plus a grid system for placing and filing pieces. Generated from data/art/out/geometric-room-briefs.json rather than hand-written, so the counts cannot drift from the data the way a hand-maintained doc would. Does not duplicate geometric-room-briefs-crossing.md, which is a per-place catalogue of individual room briefs; this is a synthesis by asset family plus the grid, and it is derived from the same single source. Documentation and tooling only - no Godot content, which is Codex's."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "node tools/build-crossing-build-list.mjs - 1060 rooms, 975 described, 45x53 grid, 709 cells occupied",
+      "node tools/run-tests.mjs - 93 suites, 2747 checks, all passed",
+      "sabotage: stale room count in the doc - caught by the test, restored"
+    ]
+  }
+}

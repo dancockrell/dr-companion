@@ -2,6 +2,7 @@
   "test:vendor",
   "test:presentation-bridge",
   "test:presentation-intents",
+  "test:crossing-build-list",
   "test:panel-data-contracts",
   "test:safety",
   "test:flow-stop",

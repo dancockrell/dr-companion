@@ -60,6 +60,8 @@
     "test:columns": "node tools/columns-test.mjs",
     "test:presentation-bridge": "node tools/presentation-bridge-test.mjs",
     "test:presentation-intents": "node tools/presentation-intents-test.mjs",
+    "test:crossing-build-list": "node tools/crossing-build-list-test.mjs",
+    "build:crossing-list": "node tools/build-crossing-build-list.mjs",
     "test:panel-data-contracts": "node tools/panel-data-contracts-test.mjs",
     "test:room": "node tools/room-test.mjs && npm run test:room-art-selection && npm run test:grok-room-scenes",
     "test:room-art-selection": "node --experimental-strip-types tools/room-art-selection-test.ts",
