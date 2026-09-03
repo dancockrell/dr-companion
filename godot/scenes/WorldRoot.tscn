@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://c3wr0v0f0dr1w"]
+[gd_scene load_steps=9 format=3 uid="uid://c3wr0v0f0dr1w"]
 
 [ext_resource type="Script" path="res://scripts/world_root.gd" id="1_worldroot"]
 [ext_resource type="Script" path="res://scripts/camera_director.gd" id="2_camdir"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/world_controls.gd" id="5_controls"]
 [ext_resource type="Script" path="res://scripts/confirmed_route_transition.gd" id="6_transition"]
 [ext_resource type="Script" path="res://scripts/exit_anchor_layer.gd" id="7_exits"]
+[ext_resource type="Script" path="res://scripts/world_inspector.gd" id="8_inspector"]
 
 [node name="WorldRoot" type="Node3D"]
 script = ExtResource("1_worldroot")
@@ -79,4 +80,58 @@ horizontal_scroll_mode = 0
 
 [node name="ExitList" type="VBoxContainer" parent="WorldControls/ExitPanel/Content/ExitScroll"]
 size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="WorldInspector" type="CanvasLayer" parent="."]
+layer = 1
+script = ExtResource("8_inspector")
+
+[node name="Panel" type="PanelContainer" parent="WorldInspector"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -324.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 392.0
+grow_horizontal = 0
+
+[node name="Content" type="VBoxContainer" parent="WorldInspector/Panel"]
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="WorldInspector/Panel/Content"]
+
+[node name="Title" type="Label" parent="WorldInspector/Panel/Content/Header"]
+size_flags_horizontal = 3
+text = "Current room"
+
+[node name="Collapse" type="Button" parent="WorldInspector/Panel/Content/Header"]
+tooltip_text = "Hide current-room inspector"
+text = "Hide"
+
+[node name="RoomTitle" type="Label" parent="WorldInspector/Panel/Content"]
+text = "Location unresolved"
+autowrap_mode = 2
+
+[node name="RoomId" type="Label" parent="WorldInspector/Panel/Content"]
+text = "No confirmed room"
+
+[node name="Scroll" type="ScrollContainer" parent="WorldInspector/Panel/Content"]
+custom_minimum_size = Vector2(284, 272)
+horizontal_scroll_mode = 0
+
+[node name="Lists" type="VBoxContainer" parent="WorldInspector/Panel/Content/Scroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="EntityHeading" type="Label" parent="WorldInspector/Panel/Content/Scroll/Lists"]
+text = "People and creatures"
+
+[node name="Entities" type="VBoxContainer" parent="WorldInspector/Panel/Content/Scroll/Lists"]
+theme_override_constants/separation = 4
+
+[node name="ItemHeading" type="Label" parent="WorldInspector/Panel/Content/Scroll/Lists"]
+text = "Items on the ground"
+
+[node name="Items" type="VBoxContainer" parent="WorldInspector/Panel/Content/Scroll/Lists"]
 theme_override_constants/separation = 4

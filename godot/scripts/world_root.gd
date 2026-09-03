@@ -20,6 +20,7 @@ const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
 @onready var route_graph: Node3D = $RouteGraph
 @onready var route_transition: Node3D = $RouteTransition
 @onready var world_controls: CanvasLayer = $WorldControls
+@onready var world_inspector: CanvasLayer = $WorldInspector
 
 ## cellId -> spawned Node3D, so a room change can clear/rebuild without
 ## leaking nodes and without re-deriving which nodes belong to which cell.
@@ -35,6 +36,8 @@ func _ready() -> void:
 	entity_projection.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
 	world_controls.view_requested.connect(_on_view_requested)
 	world_controls.exit_requested.connect(_on_exit_requested)
+	world_inspector.inspect_entity_requested.connect(_on_entity_inspect_requested)
+	world_inspector.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
 	exit_root.exit_requested.connect(_on_exit_requested)
 
 	if not WorldManifestLoader.load_from_path(MOCK_FIXTURE_PATH):
@@ -157,6 +160,7 @@ func _project_snapshot_tokens(snapshot: Dictionary) -> void:
 	# It receives no independent positions, so it cannot turn a MUD occupant
 	# into a free-roaming world actor.
 	entity_projection.project_snapshot(snapshot, _spawned_cells)
+	world_inspector.render_snapshot(snapshot)
 
 func _on_entity_inspect_requested(entity_id: String) -> void:
 	IntentSender.request_inspect_entity(entity_id)

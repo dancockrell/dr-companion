@@ -52,6 +52,10 @@ required for this slice's acceptance gate.
   have matching `1` / `2` / `3` shortcuts. Exit buttons are keyboard
   reachable, preserve the manifest's exact move string, and share the 3D
   markers' stale-room validation rather than creating another map window.
+- `scripts/world_inspector.gd` — one collapsible current-room text inspector.
+  It mirrors only confirmed occupants and ground items tethered to the active
+  room, exposes keyboard-reachable inspect actions by stable ID, and shows an
+  honest empty state when mock/live snapshot data supplies none.
 - `scripts/confirmed_route_transition.gd` — a short, fading route ribbon only
   after the bridge has confirmed a room-to-room change over a known manifest
   exit. It stays silent for reconnects, rejects, external routes, and unknown
@@ -81,6 +85,9 @@ required for this slice's acceptance gate.
 - `tests/world_controls_test.gd` — verifies the three documented camera
   requests are explicit, rejects unknown view labels, and proves the text exit
   list cannot emit an arbitrary move or a move from a stale room.
+- `tests/world_inspector_test.gd` — verifies accessible entity/item actions
+  expose only stable IDs confirmed in the current room and clear on the next
+  snapshot.
 - `tests/confirmed_route_transition_test.gd` — verifies a travel ribbon needs
   a confirmed manifest connection and refuses unknown or same-room changes.
 - `tests/exit_anchor_layer_test.gd` — verifies anchors expose only true moves
