@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "task_id": "repository-agent-policy",
+  "agent": "codex-root",
+  "summary": "Establish the no-fork operating standard and shared work ledger",
+  "status": "completed",
+  "claimed_at": "2026-09-03T13:36:27Z",
+  "updated_at": "2026-09-03T13:59:00Z",
+  "paths": ["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md", ".agents/", "godot/shared-assets"],
+  "symbols": [],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Reconciled with the stronger universal policy found in concurrent shared-environment and QuickGrade work."
+  },
+  "completion": {
+    "commit": "77bb9b65",
+    "checks": [
+      "npm run test:godot-export: passed",
+      "npm run build: passed",
+      "git diff --check: passed"
+    ]
+  }
+}
