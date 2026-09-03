@@ -18,6 +18,7 @@ import { PanelBoundary } from './components/shared/PanelBoundary'
 import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
+import { usePresentationBridgePublisher } from './lib/usePresentationBridgePublisher.ts'
 import {
   combatBattleWant,
   combatRoomWant,
@@ -141,9 +142,16 @@ const MIN_GAME_CHAT_H = 240
 const DEFAULT_MAP_SHARE = 0.58
 
 export default function App() {
+  // Read once, up front - `view()` is a pure read of location.search, and
+  // every hook below that needs to know which window this is (the
+  // presentation-bridge publisher chief among them) has to have it before
+  // any hook is called, since hooks can't be called conditionally on the
+  // `v.kind` branches further down.
+  const v = view()
   const setupComplete = useAppStore((s) => s.setupComplete)
   const connectBridge = useAppStore((s) => s.connectBridge)
   const hostRef = useRef<HTMLElement | null>(null)
+  usePresentationBridgePublisher(v.kind === 'app')
 
   /*
    * Connect the bridge when the app opens. See the git history for why this
@@ -384,7 +392,6 @@ export default function App() {
   const moveBattleExperienceEdge = (share: number) =>
     setExperienceW(atLeastVisible(hostW * (1 - share)))
 
-  const v = view()
   if (v.kind === 'map') {
     return (
       <AuxiliaryWindowBoundary
