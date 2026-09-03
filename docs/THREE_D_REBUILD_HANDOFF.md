@@ -277,3 +277,85 @@ world-to-room zoom, focuses Town Green North, shows only its real exits, and
 allows a click to create a validated intent that changes the local mock snapshot.
 No generated art, real network connection, collision simulation, or complete
 city texture pass is required for that milestone.
+
+## 10. Combat without a combat-text parser
+
+`PresentationEvent`'s combat kinds in section 4 (`attack`, `hit`, `miss`,
+`parry`, `cast`, ...) all depend on parsing DR's combat messages, and **that
+parser does not exist**. `publish_presentation_event` is wired end to end in
+Rust and has no caller, deliberately: guessing at combat-message shapes
+without real game text to validate against would produce a second, drifted
+account of what happened in a fight.
+
+There is a whole layer of combat presentation that needs none of it.
+
+### What arrives today
+
+Every `EntitySnapshot` may carry a `tactical` block
+(`src/lib/presentationBridge.ts`, `TacticalSnapshot` — that file and
+`RoomCombatant` in `src/types/index.ts` are the source of truth, not this
+summary). It comes from Lich's own creature tracker and DR's `assess`, so
+nothing in this app parses or infers it:
+
+- `range` — DR's own three buckets: `melee`, `pole`, `missile`
+- `relation` — a positional phrase. The five the demo fixture produces,
+  measured: "in front of you", "beside you", "flanking you", "across the
+  room", "hidden nearby". The live game is not known to be limited to these
+- `target` — who this is engaging: "you", a player, or another creature
+- `balance` / `offBalance` — a softer target, when balance is known
+- `statuses` — live crtrStatus flags: "stunned", "prone", "hidden"
+- `conditions` — assess-only afflictions, e.g. "cursed"
+- `dead`, `disengaged`
+- `enrichedAgeSeconds` — how old this knowledge is; `null` = never assessed
+
+This is **agnostic by construction**: no weapon, no spell, no guild, no
+attack, no damage. A Barbarian with a bastard sword and a Moon Mage casting
+produce the same shape — bodies, at ranges, in states, facing targets. It is
+correct for guilds and creatures nobody has tested against, and it is already
+true today rather than waiting on a parser.
+
+### Render options this supports
+
+1. **Range-band staging.** Three concentric bands (melee / pole / missile)
+   around the character. Composition and threat read at a glance, from the
+   game's own buckets rather than invented distances.
+2. **Confidence decay — the distinctive one.** `assess` is a pull, not a
+   feed, so tactical knowledge ages. Drive material/opacity from
+   `enrichedAgeSeconds`: crisp when fresh, drifting toward ghosted or
+   wireframe as it ages, and visibly "unknown" when never assessed. This
+   turns the honesty requirement into the best-looking mechanic in the scene
+   — the viewer stops asserting a minute-old position as live fact, and the
+   player *sees* their information going stale, which is itself a reason to
+   re-assess.
+3. **Target tethers.** Draw `target` as a link. It resolves creature-to-
+   creature as well as creature-to-you, so a room reads as a web of who is
+   busy with whom — including which things are not looking at you.
+4. **Posture from `statuses`.** prone / stunned / hidden are live and push
+   on every room refresh, so poses stay responsive with no assess at all.
+5. **Balance tell.** `offBalance` as a wobble or an opening in a guard.
+6. **Disengaged staging.** Pull `disengaged` bodies to the edge of the
+   composition rather than deleting them — "in the room, not fighting" is a
+   real and useful state, distinct from unknown range.
+
+### Rules for rendering it
+
+- **Never turn `relation` into a fixed angle.** The five phrases listed
+  above are what the demo fixture contains, not a set anyone has confirmed
+  the live game is limited to. Place from a phrase you recognise; fall back
+  to a neutral position for any you do not, never a guessed one. Note
+  "hidden nearby" is a position *and* a concealment claim, and pairs with a
+  "hidden" status — do not render it as an ordinary location.
+- **`tactical` absent means unknown, not empty.** An unassessed creature has
+  no `tactical` key at all. That is deliberately different from one assessed
+  and found to have no statuses. Do not render "no statuses" for unknown.
+- **`enrichedAgeSeconds: null` means never assessed** — not "fresh".
+- Range and target come from a pull and can be stale; `dead`, `hostile`,
+  `disengaged` and `statuses` are pushed and effectively live. Weight them
+  differently.
+
+### What this still cannot do
+
+Swings, impacts, casts, parries, damage numbers, death blows — anything that
+is an *event* rather than a *state*. Those wait for real captured combat text.
+Build none of them on this data; a hit spark inferred from a state change
+would be exactly the invented account this split exists to prevent.

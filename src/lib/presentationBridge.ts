@@ -56,10 +56,11 @@
  * tethering model differently, that is drift worth fixing, not a sign
  * either one is wrong.
  */
-import type { CharacterStatus } from '../types/index.ts'
+import type { CharacterStatus, CombatRange } from '../types/index.ts'
 import type { MapRoom, MapZone, MapZoneRoom } from '../bridge/types.ts'
 import { fromRoom } from './room.ts'
 import type { RoomCard } from './cards.ts'
+import { combatantFor, indexCombatants } from './combat.ts'
 import { invokeTauri } from './tauri.ts'
 
 /** Matches the Godot-side manifest compiler's own convention
@@ -118,6 +119,76 @@ export interface EntitySnapshot {
    */
   lore?: RoomCard['lore']
   loreApproximate?: boolean
+  /**
+   * Tactical detail, when Lich's creature tracker has any for this entity.
+   * Absent - not null-filled - when nothing matched, so "no tactical data"
+   * and "assessed as having no statuses" stay different facts.
+   */
+  tactical?: TacticalSnapshot
+}
+
+/**
+ * What the game itself already knows about one combatant's position and
+ * state. Every field here is carried through verbatim from `RoomCombatant`
+ * (`src/types/index.ts`), which Lich's own creature tracker fills - nothing
+ * in this file parses combat text, infers an outcome, or decides who is
+ * winning.
+ *
+ * # Why this is the agnostic half of combat
+ *
+ * It carries no attack, no hit or miss, no damage, no spell and no weapon.
+ * A Barbarian swinging a bastard sword and a Moon Mage casting produce the
+ * same shape here: bodies, at ranges, in states, facing targets. That makes
+ * it renderable without anyone having written a parser for a single combat
+ * message - which is the parser this project has deliberately not guessed
+ * at - and it stays correct for guilds, weapons and creatures nobody has
+ * tested against.
+ *
+ * # Two schedules, and why staleness travels with the data
+ *
+ * `dead`, `hostile`, `disengaged` and `statuses` come from `<crtrStatus>`,
+ * which the game pushes on every room refresh - effectively live. Everything
+ * else comes from `assess`, which is a *pull*: it is null until a player or
+ * script has actually run one, and it ages from the moment it lands.
+ * `enrichedAgeSeconds` (null = never assessed) is how old that knowledge is,
+ * and it is carried rather than dropped precisely so the viewer can show
+ * confidence decaying instead of presenting a minute-old position as live
+ * fact. `types/index.ts` says it plainly: "Treat range/target/balance as
+ * potentially stale past a few dozen seconds, not as a live feed."
+ */
+export interface TacticalSnapshot {
+  /** DR's own three assess buckets. Null when never assessed. */
+  range: CombatRange | null
+  /**
+   * Positional phrase exactly as `assess` worded it. Deliberately NOT
+   * normalised into an angle or a facing enum here: this file would be
+   * inventing geometry the game never stated.
+   *
+   * The five phrases `mockBridge.ts` currently produces, measured rather
+   * than recalled: "in front of you", "beside you", "flanking you",
+   * "across the room", "hidden nearby". That is what the demo fixture
+   * contains, NOT a set anyone has confirmed the live game is limited to -
+   * a real `assess` may well word things this list does not have. The
+   * viewer should place a token from a phrase it recognises and fall back
+   * to a neutral position - never a guessed one - for any it does not.
+   */
+  relation: string | null
+  /** Who this is engaging: "you", a player's name, or another creature. */
+  target: string | null
+  balance: string | null
+  /** Below "solidly balanced" - a softer target, if balance is known at all. */
+  offBalance: boolean
+  /** Broken off combat: present in the room, not fighting. Distinct from
+   * range simply being unknown. */
+  disengaged: boolean
+  dead: boolean
+  /** crtrStatus flags, e.g. "stunned", "prone", "hidden". Live. */
+  statuses: string[]
+  /** Assess-only afflictions crtrStatus does not carry, e.g. "cursed". */
+  conditions: string[]
+  /** Seconds since the last assess enriched this entry; null = never
+   * assessed, which is not the same as "assessed and found current". */
+  enrichedAgeSeconds: number | null
 }
 
 export interface GroundItemSnapshot {
@@ -215,19 +286,49 @@ export function compileWorldSnapshot(params: {
   // inevitable rejection one step later.
   if (!currentCell) return null
 
-  const entities: EntitySnapshot[] = fromRoom(character).map((card) => ({
-    id: card.id,
-    roomId: currentCellId,
-    name: card.name,
-    noun: card.noun,
-    deck: card.deck,
-    status: card.status,
-    count: card.count,
-    // Elanthipedia-sourced (play.net) bestiary lore, when fromRoom() found
-    // any - see EntitySnapshot's own doc comment.
-    ...(card.lore ? { lore: card.lore } : {}),
-    ...(card.loreApproximate ? { loreApproximate: card.loreApproximate } : {}),
-  }))
+  // The same noun-matched correlation the 2D battle panel already uses
+  // (`combat.ts`), deliberately reused rather than reimplemented: a second
+  // copy of "which tracked combatant is this card" would be free to drift
+  // from the one players already see in BattleColumn, and its documented
+  // ambiguity (two identical hostiles cannot be told apart by noun alone)
+  // would then differ between the two views of the same room. Built once
+  // per compile, then claimed per card, exactly as that panel does it.
+  const combatants = indexCombatants(character?.roomCombatants)
+
+  const entities: EntitySnapshot[] = fromRoom(character).map((card) => {
+    const tracked = combatantFor(card, combatants)
+    return {
+      id: card.id,
+      roomId: currentCellId,
+      name: card.name,
+      noun: card.noun,
+      deck: card.deck,
+      status: card.status,
+      count: card.count,
+      // Elanthipedia-sourced (play.net) bestiary lore, when fromRoom() found
+      // any - see EntitySnapshot's own doc comment.
+      ...(card.lore ? { lore: card.lore } : {}),
+      ...(card.loreApproximate ? { loreApproximate: card.loreApproximate } : {}),
+      // Carried through field for field, never reshaped or defaulted - see
+      // TacticalSnapshot's doc comment for why staleness travels with it.
+      ...(tracked
+        ? {
+            tactical: {
+              range: tracked.range,
+              relation: tracked.relation,
+              target: tracked.target,
+              balance: tracked.balance,
+              offBalance: tracked.offBalance,
+              disengaged: tracked.disengaged,
+              dead: tracked.dead,
+              statuses: tracked.statuses ?? [],
+              conditions: tracked.conditions ?? [],
+              enrichedAgeSeconds: tracked.enrichedAgeSeconds,
+            } satisfies TacticalSnapshot,
+          }
+        : {}),
+    }
+  })
 
   const groundItems: GroundItemSnapshot[] = (character?.roomItems ?? []).map((name, i) => ({
     id: `${currentCellId}:item:${i}`,

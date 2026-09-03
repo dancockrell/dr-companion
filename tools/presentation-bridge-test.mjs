@@ -155,6 +155,60 @@ console.log('\n-- shouldPublish: the gate between "state updated" and "Godot get
     shouldPublish('1-14', null, false) === true)
 }
 
+console.log('\n-- tactical: what the game already knows, carried without inventing anything --')
+{
+  // Only the boar is assessed. The mage is in the room and untracked, which
+  // is the ordinary case before anyone runs `assess` - the two must stay
+  // distinguishable in the snapshot.
+  const ASSESSED = {
+    ...CHARACTER,
+    roomCombatants: [
+      {
+        id: 'boar-1',
+        name: 'a wild boar',
+        noun: 'boar',
+        dead: false,
+        hostile: true,
+        disengaged: false,
+        range: 'melee',
+        relation: 'in front of you',
+        target: 'you',
+        targetNumber: 1,
+        balance: 'off',
+        offBalance: true,
+        conditions: ['cursed'],
+        statuses: ['stunned'],
+        enrichedAgeSeconds: 42,
+      },
+    ],
+  }
+  const snap = compileWorldSnapshot({ zone: ZONE, here: HERE, character: ASSESSED, sequence: 9 })
+  const boar = snap?.entities.find((e) => e.noun === 'boar')
+  const mage = snap?.entities.find((e) => e.noun === 'mage')
+
+  ok('the assessed creature carries tactical data', !!boar?.tactical)
+  ok('range comes through in DR\'s own bucket', boar?.tactical?.range === 'melee', String(boar?.tactical?.range))
+  ok('the positional phrase is passed through verbatim, not turned into an angle',
+    boar?.tactical?.relation === 'in front of you', String(boar?.tactical?.relation))
+  ok('who it is engaging comes through', boar?.tactical?.target === 'you')
+  ok('offBalance comes through (a softer target)', boar?.tactical?.offBalance === true)
+  ok('live crtrStatus flags come through', JSON.stringify(boar?.tactical?.statuses) === '["stunned"]')
+  ok('assess-only conditions come through', JSON.stringify(boar?.tactical?.conditions) === '["cursed"]')
+  ok('staleness travels with the data, so the viewer can decay confidence',
+    boar?.tactical?.enrichedAgeSeconds === 42, String(boar?.tactical?.enrichedAgeSeconds))
+
+  // The honest-absence half, and the reason `tactical` is optional rather
+  // than null-filled: an unassessed creature must not read as one assessed
+  // and found to have nothing.
+  ok('an unassessed creature in the same room has no tactical key at all',
+    mage !== undefined && !('tactical' in mage))
+
+  // Nothing assessed at all must not fabricate an empty tactical block.
+  const plain = compileWorldSnapshot({ zone: ZONE, here: HERE, character: CHARACTER, sequence: 10 })
+  ok('with no roomCombatants at all, no entity gets a tactical key',
+    plain?.entities.every((e) => !('tactical' in e)) === true)
+}
+
 console.log('\n-- justReconnected: the false->true edge that forces a publish past the room-changed gate --')
 {
   ok('disconnected -> connected: a real reconnect', justReconnected(true, false) === true)
