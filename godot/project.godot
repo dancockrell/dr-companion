@@ -21,6 +21,7 @@ config/features=PackedStringArray("4.3", "Forward Plus")
 
 WorldManifestLoader="*res://scripts/world_manifest_loader.gd"
 ContentRegistry="*res://scripts/content_registry.gd"
+SharedAssetContent="*res://scripts/shared_asset_content.gd"
 BridgeClient="*res://scripts/bridge_client.gd"
 IntentSender="*res://scripts/intent_sender.gd"
 EventPlayer="*res://scripts/event_player.gd"
