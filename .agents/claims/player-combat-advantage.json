@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "task_id": "player-combat-advantage",
+  "agent": "claude-code",
+  "summary": "Carry the character's own balance and positional advantage from Lich to the viewer",
+  "status": "completed",
+  "claimed_at": "2026-09-03T14:05:00Z",
+  "updated_at": "2026-09-03T15:17:07Z",
+  "paths": [
+    "lich-scripts/companion_bridge.lic",
+    "src/types/index.ts",
+    "src/lib/presentationBridge.ts",
+    "tools/presentation-bridge-test.mjs"
+  ],
+  "symbols": [
+    "PlayerSnapshot",
+    "compileWorldSnapshot"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Additive only. DR prints a balance/position line every combat round and Lich already parses it into DRStats.balance and DRStats.position (a signed -9..+9 advantage scale from DR_POSITION_VALUES in lib/dragonrealms/drinfomon/drvariables.rb, DR's port rather than GemStone's side). The bridge reads 20 other DRStats fields and not these two, so no new parsing is needed anywhere - only forwarding. Extends the existing PlayerSnapshot from #278 rather than adding a parallel structure. Godot-side rendering is Codex's; this is data only. The installed copy in C:/Ruby4Lich5 is NOT being touched: an older installed script simply omits the fields and the client treats them as absent."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "ruby -c lich-scripts/companion_bridge.lic - Syntax OK (control: malformed ruby correctly rejected)",
+      "node tools/ruby-test.mjs lich-scripts/test/server_test.rb - all passed",
+      "npx tsc -b - clean",
+      "node tools/run-tests.mjs - 92 suites, 2727 checks, all passed",
+      "sabotage: ?? swapped for || - exactly the two zero-value checks went red, restored and re-verified"
+    ]
+  }
+}

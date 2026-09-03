@@ -703,7 +703,32 @@ module Companion
         # something else.
         'roundtime' => safe(0) {
           [(XMLData.roundtime_end.to_f - Time.now.to_f).round(1), 0].max
-        }
+        },
+        # The character's own footing and who is winning, both off the
+        # bracketed line DR prints every combat round:
+        #
+        #   [You're hurt (86%), nimbly balanced and in better position.]
+        #
+        # Lich's drparser already reads that line into DRStats.balance and
+        # DRStats.position, so nothing here parses anything - this forwards
+        # two values it has been keeping all along. Twenty other DRStats
+        # fields were already being read a few lines above; these two were
+        # simply never picked up.
+        #
+        # balance is an index into DR_BALANCE_VALUES (twelve steps, from
+        # 'completely' off through 'incredibly' balanced). position is a
+        # signed magnitude from DR_POSITION_VALUES: negative means the
+        # opponent holds the advantage, 0 is an even contest, positive means
+        # you do. Both are DragonRealms' own vocabulary from
+        # lib/dragonrealms/drinfomon/drvariables.rb - the DR port, not
+        # GemStone's side of the same install, whose combat vocabulary
+        # differs and must never be substituted here.
+        #
+        # Sent raw. Turning an index into a word belongs to the client, which
+        # already owns every other piece of display vocabulary, and a second
+        # copy of the ladder here would be free to drift from Lich's.
+        'balance' => safe(nil, as: 'balance') { DRStats.balance },
+        'position' => safe(nil, as: 'position') { DRStats.position }
         #
         # There is deliberately no roomAllies here. Lich has no list of
         # creatures fighting on your side: DRRoom.npcs is everything the game

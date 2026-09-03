@@ -304,6 +304,46 @@ console.log('\n-- player: the character\'s own state, carried to the viewer --')
     noMax?.player?.roundtime === null, String(noMax?.player?.roundtime))
 }
 
+console.log('\n-- balance and position: how the fight is actually going --')
+{
+  const FIGHT = {
+    ...CHARACTER,
+    situation: ['in_combat'],
+    vitals: { health: 86, healthMax: 100, spirit: 10, spiritMax: 10, fatigue: 5, fatigueMax: 10 },
+    balance: 9,
+    position: 2,
+  }
+  const snap = compileWorldSnapshot({ zone: ZONE, here: HERE, character: FIGHT, sequence: 20 })
+  ok('balance comes through as the ladder index, not a word',
+    snap?.player?.balance === 9, String(snap?.player?.balance))
+  ok('position comes through on DR\'s own signed scale',
+    snap?.player?.position === 2, String(snap?.player?.position))
+
+  // The falsy-zero trap, and the reason these use `?? null` rather than
+  // `|| null`. Balance 0 is 'completely' off your feet - the worst rung of
+  // the ladder - and position 0 is a dead-even contest. Both are real
+  // readings that happen to be falsy.
+  const PINNED = { ...FIGHT, balance: 0, position: 0 }
+  const pinned = compileWorldSnapshot({ zone: ZONE, here: HERE, character: PINNED, sequence: 21 })
+  ok('balance 0 (completely off balance) survives as 0, not null',
+    pinned?.player?.balance === 0, String(pinned?.player?.balance))
+  ok('position 0 (no advantage) survives as 0, not null',
+    pinned?.player?.position === 0, String(pinned?.player?.position))
+
+  // Losing badly: the opponent's side of the same scale.
+  const LOSING = { ...FIGHT, position: -7 }
+  const losing = compileWorldSnapshot({ zone: ZONE, here: HERE, character: LOSING, sequence: 22 })
+  ok('a negative position (opponent in excellent position) is carried signed',
+    losing?.player?.position === -7, String(losing?.player?.position))
+
+  // An older installed bridge simply does not send these.
+  const OLD = compileWorldSnapshot({ zone: ZONE, here: HERE, character: { ...CHARACTER, situation: [] }, sequence: 23 })
+  ok('a bridge too old to send balance reports null, not a fake reading',
+    OLD?.player?.balance === null, String(OLD?.player?.balance))
+  ok('a bridge too old to send position reports null, not a fake even contest',
+    OLD?.player?.position === null, String(OLD?.player?.position))
+}
+
 console.log('\n-- justReconnected: the false->true edge that forces a publish past the room-changed gate --')
 {
   ok('disconnected -> connected: a real reconnect', justReconnected(true, false) === true)
