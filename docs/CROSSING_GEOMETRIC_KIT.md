@@ -6,14 +6,15 @@ Purpose: give an environment artist, asset store curator, or Asset Maker a
 repeatable prop vocabulary for scene plates assembled around the existing room
 graph.
 
-> **Production reset (2026-09-03):** the main visual unit is no longer an
-> isolated 5m object generated one at a time. It is a high-quality 20–30m
-> **tabletop scene plate**: a coherent DragonRealms area on a cloth/painted
-> game under-mat, with broad environment masses and loose scatter props. This
-> kit remains valuable as the vocabulary for props, connectors, replacement
-> pieces, and store acquisitions, but a city should not look like every card
-> below was tiled by a machine. See `CROSSING_TTRPG_SCENE_PROMPTS.md` for the
-> primary Magnific production route.
+> **Production reset (2026-09-03):** the primary visual unit is a coherent
+> 20–30m tabletop *assembly* on a cloth/painted game under-mat, with broad
+> environment masses and loose scatter props. A Magnific scene plate is an
+> **art-direction reference**, not geometry that Godot can safely ship. Godot
+> renders reviewed licensed-store meshes and project-made meshes assembled to
+> the room recipe. This kit is the vocabulary for those props, connectors,
+> replacement pieces, and store acquisitions; a city must not look like every
+> card below was tiled by a machine. See `CROSSING_TTRPG_SCENE_PROMPTS.md` for
+> the composition references that guide assembly.
 
 This is a city kit, not a set of room pictures. A room is made by combining
 several pieces. Repetition is desirable; sameness is not.
@@ -120,8 +121,9 @@ plastic miniatures; the city remains calm, matte, constructed geometry.
 **Library scale and delivery count.** This Crossing starter library contains
 **104 base primitive briefs** plus **10 reviewed special-building sets**. It is
 not a command to generate 114 isolated models. A card can be satisfied by a
-reviewed store asset, a simple hand-authored mesh, or a component harvested
-from an approved scene plate. Only a reusable piece that survives review is
+reviewed store asset or a simple project-made mesh. A generated scene plate may
+inform silhouette, composition, and palette but is never harvested or converted
+into runtime geometry by default. Only a reusable piece that survives review is
 delivered as an isolated GLB with its pivot, collision shape, connectors, and
 low-detail companion. The target is a small controlled library of genuinely
 useful scatter/connector pieces, not unbounded generated clutter.
@@ -247,6 +249,8 @@ glossy: water, potion glass, enamel shield, gemstone, magical effect.
 For every Asset Maker/model delivery, include:
 
 1. **One isolated asset or one explicit set of variants.** No full scene.
+   Whole-scene images are composition references only; they are never a direct
+   image-to-3D source for shipped world geometry.
 2. **Clean neutral background** if generated from an image; no other buildings
    or landscape hiding behind it.
 3. **Turntable-friendly form:** recognisable from front, side, and rear.

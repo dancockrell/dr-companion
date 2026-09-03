@@ -11,6 +11,8 @@ else {
   const registry = JSON.parse(readFileSync(outputPath, 'utf8'))
   const tree = registry.assets.find((asset) => asset.id === 'T01')
   const path = registry.assets.find((asset) => asset.id === 'P01')
+  const ledger = JSON.parse(readFileSync('data/world/crossing-primitive-asset-ledger.json', 'utf8'))
+  const townGreenReference = ledger.scenePlates['crossing-town-green-north-east-v1']
   if (registry.counts.total === 114) pass('all 104 base assets and 10 special sets have machine-readable cards')
   else fail(`expected 114 kit records, got ${registry.counts.total}`)
   if (registry.assets.every((asset) => asset.brief.length > 120 && asset.source.path.endsWith('CROSSING_GEOMETRIC_KIT.md'))) pass('each runtime card retains its complete authored brief and source')
@@ -23,4 +25,6 @@ else {
   else fail('an approved asset lacks a packaged runtime path')
   if ([tree, path].every((asset) => asset?.admission.origin?.kind === 'owned-generation' && asset.admission.origin.provider === 'Magnific')) pass('generated candidates retain provider and license provenance')
   else fail('a generated candidate lacks provenance')
+  if (townGreenReference?.status === 'art-direction-reference' && townGreenReference.runtimeUse === 'reference-only' && townGreenReference.notRuntimeGeometry === true) pass('the Town Green render is quarantined as art direction, never runtime geometry')
+  else fail('a scene render can be mistaken for a runtime asset')
 }

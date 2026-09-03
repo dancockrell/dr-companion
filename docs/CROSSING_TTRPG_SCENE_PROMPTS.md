@@ -1,21 +1,27 @@
 # The Crossing: Tabletop Scene-Plate Prompt Packet
 
-Status: **first Magnific environment batch**
+Status: **first Magnific art-direction batch**
 
 ## Production unit
 
-The primary 3D content unit is a **20–30 metre tabletop scene plate**, not an
-isolated object or a perfect tile. A plate is a coherent DragonRealms area on a
-deep forest-green felt or painted-cloth under-mat: broad terrain/building masses
-plus loose scatter props. It is viewed from a readable three-quarter isometric
-camera. The MUD room graph remains truth; a plate is scenery for confirmed room
-nodes, exits, actors, items, and events.
+The primary visual reference is a **20–30 metre tabletop scene plate**, not an
+isolated object or a perfect tile. A reference plate is a coherent DragonRealms
+area on a deep forest-green felt or painted-cloth under-mat: broad
+terrain/building masses plus loose scatter props. It is viewed from a readable
+three-quarter isometric camera. The MUD room graph remains truth.
 
-The reusable kit remains a vocabulary. Purchased or generated trees, hedges,
-benches, barrels, flowers, bridge bits, facades, and connectors can be scattered
-between larger plate elements. They do not need to tessellate perfectly. The
-tabletop conversion should feel intentionally assembled, not like a failed
-simulated city.
+**Important boundary:** these are prompts for concept and composition
+references. Godot does not turn prompt prose or a generated plate into runtime
+geometry. The Godot scene assembler receives the same intent—required room
+facts, palette, silhouette, prop families, clear exit mouths, and exclusions—
+then places reviewed licensed-store or project-made meshes. A reference can
+teach us what to build; it is not itself a build artifact.
+
+The reusable kit remains a vocabulary. Purchased trees, hedges, benches,
+barrels, flowers, bridge bits, facades, terrain dressing, and connectors are
+the geometry that can be scattered between larger project-made landmark
+elements. They do not need to tessellate perfectly. The tabletop conversion
+should feel intentionally assembled, not like a failed simulated city.
 
 ## Universal Magnific suffix
 
@@ -125,14 +131,17 @@ content later; the square stays legible when no activity is reported.
 
 ## Admission workflow
 
-1. Generate one plate per prompt, inspect it at the equivalent in-game crop,
-   then change one meaningful variable for a variation.
+1. Generate one reference plate per prompt, inspect it at the equivalent
+   in-game crop, then change one meaningful variable for a variation.
 2. Preserve creation ID, complete prompt, tool/model, intended room/area role,
-   and review result in the asset ledger.
-3. Reject beautiful but incorrect scene plates. Required room facts and clear
+   and review result in the asset ledger as **reference-only** provenance.
+3. Reject beautiful but incorrect references. Required room facts and clear
    graph-exit anchors outrank surface detail.
-4. Keep each complete plate. Extract only clearly reusable prop meshes from it;
-   never force all scenery into a perfect grid.
-5. Admit store assets for foliage, props, and terrain dressing when stronger,
-   recording provider, license, attribution, scale, and palette adaptation in
-   the same ledger.
+4. Turn the accepted reference into an assembly brief: required mesh families,
+   target silhouette, palette, prop density, clear lanes, and exclusions. Do
+   not extract or convert an entire reference plate into runtime geometry.
+5. Admit actual store or project-made assets for foliage, props, terrain
+   dressing, landmarks, and interiors when they meet the kit's connector,
+   licensing, scale, and tabletop-material gates. Record provider, license,
+   attribution, scale, palette adaptation, and packaged runtime path in the
+   same ledger.

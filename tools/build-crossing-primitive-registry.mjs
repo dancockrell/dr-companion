@@ -8,6 +8,15 @@ const outputPath = join(outputDir, 'crossing-primitive-registry.json')
 const source = readFileSync(sourcePath, 'utf8')
 const ledger = JSON.parse(readFileSync(ledgerPath, 'utf8'))
 
+for (const [id, reference] of Object.entries(ledger.scenePlates ?? {})) {
+  if (reference.status !== 'art-direction-reference') {
+    throw new Error(`${id} must be an art-direction-reference, not a runtime asset admission`)
+  }
+  if (reference.runtimeUse !== 'reference-only' || reference.notRuntimeGeometry !== true) {
+    throw new Error(`${id} must explicitly prohibit direct runtime geometry use`)
+  }
+}
+
 const familyFor = (id) => ({
   G: 'terrain-water', P: 'route', H: 'boundary', T: 'foliage',
   B: 'facade-civic', E: 'exit-anchor', R: 'prop', S: 'special-set',
@@ -77,6 +86,7 @@ const output = {
   schemaVersion: 1,
   generatedFrom: { sourcePath, ledgerPath },
   admissionRule: 'Only an approved asset with a packaged runtimePath may be loaded by a production viewer.',
+  artDirectionRule: 'Scene prompt references guide mesh assembly but never become direct runtime geometry.',
   counts: {
     total: assets.length,
     planned: assets.filter((asset) => asset.admission.status === 'planned').length,
