@@ -83,12 +83,16 @@ on purpose, so nobody mistakes this for further along than it is:
   dedicated window (the brief's "Windows feasibility spike") hasn't been
   attempted. `WorldRoot.tscn` currently only runs as a normal windowed Godot
   scene.
-- **No content.** Every primitive is `ContentRegistry`'s flat-colored
-  placeholder box — that's the intended state for this slice, not a bug, but
-  it means nothing here should be shown to anyone as a visual preview of the
-  product. The first real visual replacement is a cheap matte colored ground
-  plane and registered chunky set-piece meshes, not a literal cloth/felt
-  blanket and not image-to-3D scene reconstruction.
+- **Only neutral foundation content.** `SharedAssetContent` now renders matte
+  terrain, interior floor, water, rough boundary scatter, and a simple bridge
+  cue. It uses the pinned `godot/shared-assets` submodule when present and an
+  intentionally obvious matte fallback when it is not. It does **not** turn
+  any generic mesh into a named DragonRealms guild, shrine, shop, landmark,
+  or room: those remain unregistered placeholders until their own description,
+  composition recipe, source record, and in-engine review are ready. The
+  first real visual replacement is a cheap colored floor plane and registered
+  chunky set-piece meshes, not a literal cloth/felt blanket and not an
+  image-to-3D scene reconstruction.
 - **No entities or ground items.** `WorldSnapshot.entities`/`.groundItems`
   are hard-coded empty arrays; there is no source to populate them from yet.
 - **No character animation controller.** Premium rigged miniature models are
@@ -99,3 +103,20 @@ on purpose, so nobody mistakes this for further along than it is:
   Slices 2 through 5 in full.
 - **No CI wiring.** The headless test command above has to be run by hand;
   it is not yet in any GitHub Actions job.
+
+## Shared reusable asset library
+
+The viewer consumes the common resource library through the Git submodule at
+`godot/shared-assets`; it deliberately does not copy source models into DR
+Companion. Initialise it after checkout with:
+
+```bash
+git submodule update --init --recursive
+```
+
+The first review ledger is `assets/shared_asset_selections.json`. Treat it as
+an admission gate: a candidate must be checked at room and world zoom for
+scale, ground contact, silhouette, material readability, and suitability for
+its exact semantic role. Source geometry is presentation-only; map routes,
+legal exits, collision, navigation, selection, and live MUD state remain
+outside the asset pack.

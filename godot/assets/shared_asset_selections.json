@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "consumer": "DR Companion Godot world viewer",
+  "sharedLibrary": {
+    "repository": "https://github.com/dancockrell/project-42-pirate-island-rpg",
+    "submodulePath": "godot/shared-assets",
+    "requiredBranch": "codex/shared-asset-platform",
+    "pinnedRevisionPolicy": "The DR Companion commit records the submodule SHA. Upgrade it only through this selection review."
+  },
+  "admission": {
+    "visualLanguage": ["chunky geometric", "tabletop miniature", "matte", "readable at room and world zoom"],
+    "forbiddenSubstitutions": [
+      "No generic mesh may stand in for a named DragonRealms guild, shrine, shop, landmark, or room.",
+      "No mesh contributes routes, legal exits, collision authority, navigation authority, selection authority, or game-state facts."
+    ],
+    "reviewRule": "Every newly used library asset gets a camera, scale, ground-contact, silhouette, and lore-appropriateness review before it is promoted beyond the neutral foundation set."
+  },
+  "selections": [
+    {
+      "id": "dr.shared.tabletop-weathered-stone.scatter",
+      "sourcePack": "resource.geometry.geology.tabletop-weathered-stone.v1",
+      "sourceLicense": "CC0-1.0",
+      "paths": [
+        "resource-packs/geometry/geology/tabletop-weathered-stone-v1/models/rock_smallA.glb",
+        "resource-packs/geometry/geology/tabletop-weathered-stone-v1/models/rock_smallB.glb"
+      ],
+      "role": "rough-edge-boundary-kit scatter only",
+      "reviewState": "foundation approved; in-engine dense-scene and camera review pending",
+      "appropriateness": "Neutral temperate stone dressing. It signals a rough world boundary without claiming a specific location or facility.",
+      "presentationOnly": true
+    },
+    {
+      "id": "dr.shared.kenney-nature.wood-narrow-bridge",
+      "sourcePack": "asset.shared.kenney.nature-kit.2_1.source",
+      "sourceLicense": "CC0-1.0",
+      "paths": [
+        "resource-packs/source/cc0/kenney/nature-kit-2.1/bridge_woodNarrow.glb"
+      ],
+      "role": "bridge-span-5m visual only",
+      "reviewState": "foundation approved; scale and approach composition review pending",
+      "appropriateness": "A simple reusable crossing cue. Whether a bridge is present, where it leads, and whether passage is legal always remain manifest facts.",
+      "presentationOnly": true
+    }
+  ]
+}

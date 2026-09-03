@@ -1,0 +1,4 @@
+[submodule "godot/shared-assets"]
+	path = godot/shared-assets
+	url = https://github.com/dancockrell/project-42-pirate-island-rpg.git
+	branch = codex/shared-asset-platform

@@ -91,12 +91,36 @@ func _run() -> void:
 		real_moves.size() > 0 and loader.is_true_exit(TOWN_GREEN_NORTH, real_moves[0]),
 		real_moves[0] if real_moves.size() > 0 else "(no exits to test)")
 
-	# -- content registry never leaves a slot silently empty --
-	var placeholder: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "terrain-cell-5m", "role": "base"})
-	_ok("an unregistered primitive kind still produces a visible placeholder, not nothing",
-		placeholder != null and placeholder is Node3D)
-	if placeholder != null:
-		placeholder.free()  # never parented into a tree here, so queue_free's next-frame deferral has nothing to run against - free it now.
+	# -- content registration never makes neutral foundation art silently vanish --
+	var shared_content := _autoload("SharedAssetContent")
+	shared_content.ensure_registration()
+	_ok("neutral foundation content registers its documented primitive slots",
+		registry.is_registered("terrain-cell-5m") and registry.is_registered("water-ribbon-5m") and registry.is_registered("bridge-span-5m"))
+	var terrain: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "terrain-cell-5m", "role": "base"})
+	_ok("a registered terrain primitive produces visible presentation geometry, not nothing",
+		terrain != null and terrain is Node3D and terrain.get_child_count() > 0)
+	if terrain != null:
+		terrain.free()
+	var unknown: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "unmade-special-landmark", "role": "landmark"})
+	_ok("an unregistered lore-specific primitive still produces an honest placeholder, not a guessed building",
+		unknown != null and unknown is Node3D)
+	if unknown != null:
+		unknown.free()
+	var content_status: Dictionary = shared_content.shared_asset_status()
+	_ok("shared content declares its visual-only fallback policy",
+		content_status.get("fallbackPolicy", "") != "")
+	_ok("the two selected shared source models are importable by this viewer",
+		content_status.get("sharedLibraryAvailable", false))
+	var boundary: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "rough-edge-boundary-kit", "role": "boundary"})
+	_ok("the selected weathered-stone source model can decorate a neutral boundary",
+		boundary != null and boundary.get_child_count() == 2)
+	if boundary != null:
+		boundary.free()
+	var bridge_visual: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "bridge-span-5m", "role": "landform"})
+	_ok("the selected bridge source model can render without inventing a route",
+		bridge_visual != null and bridge_visual.get_child_count() > 0)
+	if bridge_visual != null:
+		bridge_visual.free()
 
 	# -- starting the mock bridge builds the first snapshot honestly --
 	var started: bool = bridge.start_mock("crossing-mock", TOWN_GREEN_NORTH)
