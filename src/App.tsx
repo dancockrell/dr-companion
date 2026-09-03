@@ -18,15 +18,30 @@ import { PanelBoundary } from './components/shared/PanelBoundary'
 import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoundary'
 import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
-import { combatBattleWant, combatRoomWant, fitColumns, pickReset, DEFAULT_ROOM_W } from './lib/columns'
+import { usePresentationBridgePublisher } from './lib/usePresentationBridgePublisher.ts'
+import { subscribePresentationIntents } from './lib/presentationIntents.ts'
+import {
+  combatBattleWant,
+  combatRoomWant,
+  fitColumns,
+  pickReset,
+  DEFAULT_ROOM_W,
+  DEFAULT_MAP_W,
+  DEFAULT_DASH_W,
+  pixelsForSizeShare,
+  sizeShareForPixels,
+  storedSizeShare,
+} from './lib/columns'
+import { BATTLE_SCENE_MAX_WIDTH_VH } from './components/room/BattleColumn'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
 import { requestGameAction } from './lib/gameActions'
 import { requestStartFlow, requestStopAll } from './lib/flowStop'
 import { MACROS } from './data/macros'
-import { canSendMacro } from './lib/canSendMacro'
+import { requestMacro } from './lib/macroFlight'
 import { writeText } from './lib/storage'
+import { taskPinActiveId, taskPinLanguage } from './lib/quickSwitch'
 import { StorageWarning } from './components/shared/StorageWarning'
 import { LazySurface } from './components/shared/LazySurface'
 
@@ -55,8 +70,8 @@ function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app
  * rather than whatever fitColumns had left over, so it is a genuine third
  * column alongside Battle and Experience. See columns.ts's own doc comment
  * on why an unclaimed leftover still goes here by default. */
-const ROOM_KEY = 'drc.room-width.v1'
-const BATTLE_KEY = 'drc.battle-width.v2'
+const ROOM_KEY = 'drc.room-width.v2'
+const BATTLE_KEY = 'drc.battle-width.v3'
 /** Was `drc.dash-width.v1` - the same stored preference, same fitColumns
  * slot, now spent on the Experience strip instead of the middle dashboard
  * that no longer exists. Renamed rather than reused under its old name so a
@@ -64,9 +79,44 @@ const BATTLE_KEY = 'drc.battle-width.v2'
  * what it now is - and because DEFAULT_DASH_W/DASH_EMPTY_WANT in columns.ts
  * were sized for a two-column panel grid, not a single scrolling board; see
  * the width picked below. */
-const EXPERIENCE_KEY = 'drc.experience-width.v1'
-const MAP_HEIGHT_KEY = 'drc.map-height.v2'
+const EXPERIENCE_KEY = 'drc.experience-width.v2'
+const MAP_HEIGHT_KEY = 'drc.map-height.v3'
 const LEGACY_MAP_HEIGHT_KEY = 'drc.map-height.v1'
+
+/**
+ * Stored as a share of the window (0 to 1), not a pixel count.
+ *
+ * A width chosen at 1920px is a sliver of a 5120px ultrawide and swallows a
+ * 1280px laptop whole - a fixed pixel preference is only ever right on the
+ * screen it was set on, which is why fitColumns carries an entire "not
+ * enough width" rescue path (squeeze-toward-floor, a banner, a Reset
+ * widths button) for the moment that preference stops fitting. Storing the
+ * *share* instead means the preference is resolution-independent by
+ * construction: the same layout comes back on any screen, not a pixel
+ * count that happened to fit one. `Splitter.tsx`'s dividers already work
+ * this way; this brings the outer three columns and the map's height in
+ * line with it instead of carrying two different storage strategies for
+ * the same kind of control.
+ *
+ * Every key bumped its version alongside this change - a share and a pixel
+ * count are both just numbers, and reading an old 460 (px) as 460 (a share,
+ * i.e. 46000%) would be silent, wrong, and exactly the "old data under a
+ * new meaning" trap. A bumped key simply falls back to the default once,
+ * the same way `EXPERIENCE_KEY`'s own rename above already handled a prior
+ * meaning-change to this exact family of settings.
+ *
+ * The rescue path in fitColumns still matters and is untouched: a share
+ * remains a *request*, and a squeezed/very small window still needs the
+ * same floors, ceilings and "Reset widths" banner it always did. This only
+ * changes what "the player's request" means from a fixed pixel count to a
+ * fraction of whatever window they set it on.
+ */
+function readShare(key: string, reference: number, fallbackPx: number): number {
+  return storedSizeShare(localStorage.getItem(key), reference, fallbackPx)
+}
+function writeShare(key: string, share: number) {
+  if (share > 0 && share < 1) writeText(key, String(share))
+}
 
 /** The divider itself, which sits between the columns and has to be counted. */
 const SPLIT_W = 8
@@ -93,9 +143,28 @@ const MIN_GAME_CHAT_H = 240
 const DEFAULT_MAP_SHARE = 0.58
 
 export default function App() {
+  // Read once, up front - `view()` is a pure read of location.search, and
+  // every hook below that needs to know which window this is (the
+  // presentation-bridge publisher chief among them) has to have it before
+  // any hook is called, since hooks can't be called conditionally on the
+  // `v.kind` branches further down.
+  const v = view()
   const setupComplete = useAppStore((s) => s.setupComplete)
   const connectBridge = useAppStore((s) => s.connectBridge)
   const hostRef = useRef<HTMLElement | null>(null)
+  usePresentationBridgePublisher(v.kind === 'app')
+
+  /*
+   * The other direction of the same bridge: Godot asks, Rust validates
+   * against the snapshot we published, and this is what actually sends the
+   * command. Main window only - every window shares one Tauri event bus, so
+   * a listener in each would walk the character once per open window.
+   * See presentationIntents.ts.
+   */
+  useEffect(() => {
+    if (v.kind !== 'app') return
+    return subscribePresentationIntents()
+  }, [v.kind])
 
   /*
    * Connect the bridge when the app opens. See the git history for why this
@@ -126,50 +195,37 @@ export default function App() {
         if (pin.kind === 'command') {
           const [macroId, variationId] = pin.actionKey.split(':')
           const variation = MACROS.find((macro) => macro.id === macroId)?.variations.find((item) => item.id === variationId)
-          const state = useAppStore.getState()
-          if (variation && canSendMacro({ stopLatched: state.character?.stopLatched, inFlight: false, connected: !!state.character }).canSend) {
-            state.requestIntent('run_macro', { commands: variation.commands })
-          }
+          if (variation) requestMacro(variation.commands)
           return
         }
         if (pin.kind === 'script') {
           startScript(pin.name)
           return
         }
-        if (pin.id === activeFlow) requestStopAll()
-        else requestStartFlow(pin.id)
+        if (taskPinActiveId(pin) === activeFlow) requestStopAll()
+        else requestStartFlow(pin.id, taskPinLanguage(pin))
       },
     })
   }, [setupComplete, requestIntent])
 
   /**
-   * The columns are fixed widths in pixels, not shares of the window - see
-   * columns.ts for why. Three real preferences now (Room, Battle,
-   * Experience) - any width nobody asked for still goes to Room by default
-   * (see fitColumns), so a wide window opens filled rather than with a
-   * blank margin, but Room is no longer *only* ever a leftover.
+   * The columns are shares of the window, not fixed pixel widths - see
+   * `readShare`/`writeShare` above for why. Three real preferences now
+   * (Room, Battle, Experience) - any width nobody asked for still goes to
+   * Room by default (see fitColumns), so a wide window opens filled rather
+   * than with a blank margin, but Room is no longer *only* ever a leftover.
+   *
+   * `window.innerWidth` stands in for `hostW` only until the real
+   * measurement below lands on the next layout pass - close enough for one
+   * frame, and self-correcting the moment `hostW` is real.
    */
-  const [roomW, setRoomWState] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(ROOM_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : DEFAULT_ROOM_W
-  })
+  const [roomShare, setRoomShare] = useState<number>(() =>
+    readShare(ROOM_KEY, window.innerWidth, DEFAULT_ROOM_W)
+  )
 
-  const setRoomW = (px: number) => {
-    const next = Math.max(MIN_PX, Math.round(px))
-    setRoomWState(next)
-    writeText(ROOM_KEY, String(next))
-  }
-
-  const [battleW, setBattleWState] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(BATTLE_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 760
-  })
-
-  const setBattleW = (px: number) => {
-    const next = Math.max(MIN_PX, Math.round(px))
-    setBattleWState(next)
-    writeText(BATTLE_KEY, String(next))
-  }
+  const [battleShare, setBattleShare] = useState<number>(() =>
+    readShare(BATTLE_KEY, window.innerWidth, DEFAULT_MAP_W)
+  )
 
   /** Experience, all the way to the right - see ExperienceStrip.tsx. A
    * single fixed column (MindstateBoard no longer reflows into two or three)
@@ -178,36 +234,38 @@ export default function App() {
    * two-digit mindstate number, the longest real combination) rather than
    * guessed, with the scrollbar hidden (ExperienceStrip's own `no-scrollbar`)
    * so it never eats into that measurement. */
-  const [experienceW, setExperienceWState] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(EXPERIENCE_KEY))
-    return Number.isFinite(saved) && saved >= MIN_PX ? saved : 168
-  })
-
-  const setExperienceW = (px: number) => {
-    const next = Math.max(MIN_PX, Math.round(px))
-    setExperienceWState(next)
-    writeText(EXPERIENCE_KEY, String(next))
-  }
+  const [experienceShare, setExperienceShare] = useState<number>(() =>
+    readShare(EXPERIENCE_KEY, window.innerWidth, DEFAULT_DASH_W)
+  )
 
   /**
-   * How tall the map gets at the top of its shared column, in pixels -
-   * player-set, the same way the other columns are.
+   * How tall the map gets at the top of its shared column, as a share of the
+   * window - player-set, the same way the other columns are.
+   *
+   * This used to be a fixed 120px, which is smaller than the map panel's own
+   * chrome: measured live, the header is 27px and the pin-palette tool rail
+   * is 78px, plus padding and gaps of about 28px more - 133px of always-there
+   * content before a single pixel of the actual chart can be drawn. At 120
+   * the chart got 0px and rendered nothing, silently: no error, no "too
+   * short" notice, just an empty box, on an entirely ordinary window size.
+   * Floored at 300 instead, so the worst case is a small but real map rather
+   * than an invisible one - and `mapCanShareHeight` below (which gates the
+   * "map hidden while the window is this short" message on this same
+   * constant) now actually fires before the chart disappears, instead of
+   * after.
    */
-  const MIN_MAP_H = 120
-  const [mapH, setMapHState] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(MAP_HEIGHT_KEY))
-    if (Number.isFinite(saved) && saved >= MIN_MAP_H) return saved
+  const MIN_MAP_H = 300
+  const [mapHShare, setMapHShare] = useState<number>(() => {
+    const shared = Number(localStorage.getItem(MAP_HEIGHT_KEY))
+    if (Number.isFinite(shared) && shared > 0 && shared < 1) return shared
     const legacy = Number(localStorage.getItem(LEGACY_MAP_HEIGHT_KEY))
     // Keep a real v1 customization. Only migrate the old shipped 480px
     // default, which is far too shallow on tall and ultrawide displays.
-    if (Number.isFinite(legacy) && legacy >= MIN_MAP_H && legacy !== 480) return legacy
-    return Math.max(MIN_MAP_H, Math.round(window.innerHeight * DEFAULT_MAP_SHARE))
+    if (Number.isFinite(legacy) && legacy >= MIN_MAP_H && legacy !== 480) {
+      return sizeShareForPixels(legacy, window.innerHeight)
+    }
+    return DEFAULT_MAP_SHARE
   })
-  const setMapH = (px: number) => {
-    const next = Math.max(MIN_MAP_H, Math.round(px))
-    setMapHState(next)
-    writeText(MAP_HEIGHT_KEY, String(next))
-  }
 
   const dock = useMapDock()
 
@@ -229,6 +287,37 @@ export default function App() {
     ro.observe(el)
     return () => ro.disconnect()
   }, [setupComplete])
+
+  // Shares are the live source of truth, not merely a startup encoding.
+  // Re-resolving them against the measured host on every render means a
+  // running window keeps the player's proportions while it is resized.
+  const widthReference = hostW || window.innerWidth
+  const heightReference = hostH || window.innerHeight
+  const roomW = pixelsForSizeShare(roomShare, widthReference, MIN_PX)
+  const battleW = pixelsForSizeShare(battleShare, widthReference, MIN_PX)
+  const experienceW = pixelsForSizeShare(experienceShare, widthReference, MIN_PX)
+  const mapH = pixelsForSizeShare(mapHShare, heightReference, MIN_MAP_H)
+
+  const setRoomW = (px: number) => {
+    const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
+    setRoomShare(share)
+    writeShare(ROOM_KEY, share)
+  }
+  const setBattleW = (px: number) => {
+    const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
+    setBattleShare(share)
+    writeShare(BATTLE_KEY, share)
+  }
+  const setExperienceW = (px: number) => {
+    const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
+    setExperienceShare(share)
+    writeShare(EXPERIENCE_KEY, share)
+  }
+  const setMapH = (px: number) => {
+    const share = sizeShareForPixels(Math.max(MIN_MAP_H, Math.round(px)), heightReference)
+    setMapHShare(share)
+    writeShare(MAP_HEIGHT_KEY, share)
+  }
 
   const character = useAppStore((s) => s.character)
   const experienceEmpty = !character
@@ -261,10 +350,21 @@ export default function App() {
     mapDocked: true,
     splitW: SPLIT_W,
     dashEmpty: experienceEmpty,
-    // The scene is height-limited and square. Grow Battle automatically only
-    // while that width can become visible scene; explicit divider choices
-    // above this remain untouched inside fitColumns.
-    mapGrowthMax: hostH > 0 ? Math.max(battleW, hostH * 0.62) : undefined,
+    // The scene is height-limited and landscape (8:5), so its own width cap
+    // is a fixed share of `hostH` — `BATTLE_SCENE_MAX_WIDTH_VH`, the same
+    // number `RoomScene`'s `min(100%, …vh)` uses to size the DOM (see
+    // `BattleColumn`'s export of it). Grow Battle automatically only while
+    // that width can become visible scene; explicit divider choices above
+    // this remain untouched inside fitColumns.
+    //
+    // This used to be a second, independently-guessed constant (0.62) that
+    // was tighter than the scene's real ceiling (0.832), so Battle plateaued
+    // well short of the width `RoomScene` would actually have used — on a
+    // wide-but-not-equally-tall window the column stopped growing at ~62% of
+    // the window's height no matter how much wider the window got. Sharing
+    // the one real number instead of carrying a second approximation of it
+    // fixes that class of drift outright rather than re-tuning the guess.
+    mapGrowthMax: hostH > 0 ? Math.max(battleW, hostH * (BATTLE_SCENE_MAX_WIDTH_VH / 100)) : undefined,
     // A single-column skill rail stops gaining information once its labels,
     // numbers and useful bar length fit. In combat, return any width beyond
     // that to the two active play surfaces. This is a display-time ceiling:
@@ -305,7 +405,6 @@ export default function App() {
   const moveBattleExperienceEdge = (share: number) =>
     setExperienceW(atLeastVisible(hostW * (1 - share)))
 
-  const v = view()
   if (v.kind === 'map') {
     return (
       <AuxiliaryWindowBoundary

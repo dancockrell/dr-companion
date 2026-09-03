@@ -1,0 +1,38 @@
+; DR Companion — Single 3D World Viewer
+;
+; This project is the viewer FOUNDATION only: one WorldRoot, a manifest
+; loader, a camera director, a content-registration contract, and a bridge
+; client with explicit mock and authenticated live modes. It
+; ships no final art — Codex owns primitives, materials, and composition
+; recipes inside the slots this project exposes. See
+; docs/CLAUDE_3D_VIEWER_BRIEF.md and docs/THREE_D_REBUILD_HANDOFF.md at the
+; repo root for the full contract this project implements.
+
+config_version=5
+
+[application]
+
+config/name="DR Companion World Viewer"
+config/description="Single continuous 3D world/route/room viewer for DR Companion. Local presentation renderer only — owns no game state, credentials, or topology truth."
+run/main_scene="res://scenes/WorldRoot.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
+
+[autoload]
+
+WorldManifestLoader="*res://scripts/world_manifest_loader.gd"
+ContentRegistry="*res://scripts/content_registry.gd"
+SharedAssetContent="*res://scripts/shared_asset_content.gd"
+BridgeClient="*res://scripts/bridge_client.gd"
+IntentSender="*res://scripts/intent_sender.gd"
+EventPlayer="*res://scripts/event_player.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+environment/defaults/default_clear_color=Color(0.06, 0.07, 0.09, 1)

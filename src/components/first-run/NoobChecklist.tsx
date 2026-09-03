@@ -3,7 +3,7 @@ import { NOOB_CHECKLIST } from '../../data/noobChecklist'
 export function NoobChecklist() {
   return (
     <div className="rounded-xl border border-border bg-surface-raised p-3 space-y-2">
-      <h3 className="text-xs font-semibold text-ink uppercase tracking-wider">
+      <h3 className="text-xs font-medium text-ink uppercase tracking-wider">
         Before serious training (noob checklist)
       </h3>
       {/* No height cap.

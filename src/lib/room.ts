@@ -8,7 +8,7 @@
  */
 import type { CharacterStatus } from '../types'
 import type { Deck, RoomCard } from './cards'
-import { loreFor, isApproximate } from './bestiary'
+import { loreFor, isApproximate } from './bestiary.ts'
 
 /**
  * The bare noun out of a display name.

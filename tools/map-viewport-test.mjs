@@ -29,8 +29,12 @@ check('a zoomed map can pan inside its bounds', clampMapPan({ x: -300, y: -220 }
 check('a zoomed-out map stays centered', clampMapPan({ x: -400, y: 200 }, viewport, fitted, 0.5), { x: 225, y: 150 })
 check('a naturally small map stays centered', clampMapPan({ x: 0, y: 0 }, viewport, { width: 300, height: 200 }, 1), { x: 300, y: 200 })
 check('fit is an atomic viewport operation', /const fitView = useCallback/.test(hookSource) && /bounded\(\{ x: 0, y: 0 \}, nextZoom\)/.test(hookSource), true)
+check('resize bursts coalesce into one animation-frame viewport write', /let frame: number \| null = null/.test(hookSource) && /frame = requestAnimationFrame/.test(hookSource) && /if \(frame !== null\) return/.test(hookSource), true)
+check('unmount cancels a queued resize viewport write', /observer\.disconnect\(\)[\s\S]*cancelAnimationFrame\(frame\)/.test(hookSource), true)
 check('the docked fit button uses the atomic viewport operation', /onClick=\{\(\) => fitView\(\)\}/.test(panelSource), true)
 check('room changes have one reset path, not duplicate effects', (panelSource.match(/A room update must update the view/g) || []).length, 1)
+check('the chart owns the full docked viewport', /h-full min-h-0 min-w-0 w-full flex-1/.test(panelSource), true)
+check('no empty priority slot steals the rest of the map width', !/Reserved for a priority panel/.test(panelSource) && !/aspectRatio:/.test(panelSource), true)
 
 if (failures) process.exit(1)
 console.log('\nall map viewport checks passed')

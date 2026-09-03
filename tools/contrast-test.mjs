@@ -44,6 +44,17 @@ function contrast(a, b) {
 // --- the palette, read from source rather than duplicated -------------------
 
 const css = readFileSync('src/index.css', 'utf8')
+
+check(
+  'raw buttons receive a visible keyboard-focus fallback',
+  /button:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--color-accent\)[^}]*outline-offset:\s*2px/s.test(css),
+  'src/index.css must protect buttons that do not use the shared Button component'
+)
+check(
+  'raw buttons receive the shared 150ms state transition',
+  /button\s*\{[^}]*transition-property:[^}]*background-color[^}]*transform[^}]*transition-duration:\s*150ms/s.test(css),
+  'raw buttons must not snap while the shared Button component eases'
+)
 const palette = Object.fromEntries(
   [...css.matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [
     m[1],
@@ -71,6 +82,12 @@ for (const ink of inks) {
     )
   }
 }
+
+const battleActionBarSource = readFileSync('src/components/room/BattleActionBar.tsx', 'utf8')
+check(
+  'magic actions use the semantic magic token rather than a raw framework purple',
+  battleActionBarSource.includes("magic: 'border-magic/40'") && !battleActionBarSource.includes('border-purple-')
+)
 
 console.log('')
 console.log('-- scrollbars belong to the warm interface on every engine --')
@@ -114,6 +131,62 @@ check(
     reducedMotion.includes('[class*="active:scale-"]') &&
     /transform:\s*none\s*!important/.test(reducedMotion)
 )
+const battleActions = readFileSync('src/components/room/BattleActionBar.tsx', 'utf8')
+const taskFlow = readFileSync('src/components/dashboard/TaskFlowPanel.tsx', 'utf8')
+const panel = readFileSync('src/components/shared/Panel.tsx', 'utf8')
+const combatRadar = readFileSync('src/components/shared/CombatRadar.tsx', 'utf8')
+const soundControls = readFileSync('src/components/game/SoundControls.tsx', 'utf8')
+const portrait = readFileSync('src/components/shared/Portrait.tsx', 'utf8')
+check(
+  'frequent action decks use subtle, motion-safe press depth',
+  battleActions.includes('game-icon-button') &&
+    taskFlow.includes('active:scale-[0.98]') &&
+    /\.game-icon-button:active:not\(:disabled\)\s*\{[^}]*scale\(0\.97\)/s.test(css) &&
+    reducedMotion.includes('.game-icon-button:active') &&
+    ![battleActions, taskFlow].some((source) => source.includes('active:scale-95'))
+)
+check(
+  'battle actions and panel headers retain shared focus and typography conventions',
+  battleActions.includes('focus-visible:outline-offset-2') &&
+    panel.includes('uppercase tracking-wide') &&
+    !panel.includes('uppercase tracking-wider')
+)
+check(
+  'transient sound and radar popovers stay below modal dialogs',
+  combatRadar.includes('pointer-events-auto fixed z-40') &&
+    !combatRadar.includes('pointer-events-auto fixed z-50') &&
+    soundControls.includes('absolute bottom-full right-0 z-40') &&
+    !soundControls.includes('absolute bottom-full right-0 z-50')
+)
+check(
+  'the portrait chooser uses the shared modal tier',
+  portrait.includes('fixed inset-0 z-50') && !portrait.includes('z-[100]')
+)
+
+const retiredOnAccent = walk('src').filter((file) =>
+  readFileSync(file, 'utf8').includes('text-[#1a1408]')
+)
+check(
+  'accent surfaces use the semantic on-accent text token',
+  retiredOnAccent.length === 0,
+  retiredOnAccent.length ? `${retiredOnAccent.length} files still hardcode #1a1408` : ''
+)
+
+const componentSources = walk('src/components').map((file) => ({
+  file,
+  text: readFileSync(file, 'utf8'),
+}))
+const modalScrims = componentSources.filter(({ text }) =>
+  text.includes('fixed inset-0 z-50') && text.includes('bg-scrim')
+)
+const retiredBlackScrims = componentSources.filter(({ text }) =>
+  /fixed inset-0 z-50[^"']*bg-black\//.test(text)
+)
+check(
+  'modal backdrops use one semantic scrim token',
+  css.includes('--color-scrim: rgb(0 0 0 / 0.5)') && modalScrims.length === 9 && retiredBlackScrims.length === 0,
+  `${modalScrims.length} semantic modal scrims; ${retiredBlackScrims.length} raw black scrims`
+)
 
 // --- the type floor ---------------------------------------------------------
 
@@ -147,6 +220,32 @@ check(
   'no type below 12px',
   offenders.length === 0,
   offenders.length ? `${offenders.length} found, e.g. ${offenders[0]}` : ''
+)
+
+// These values are exact aliases of Tailwind's spacing scale, not bespoke
+// measurements. Keeping the named form makes the shared design language
+// visible in source and prevents equivalent one-off spellings from spreading.
+const canonicalSizeAliases = new Map([
+  ['max-w-[14rem]', 'max-w-56'],
+  ['max-w-[11rem]', 'max-w-44'],
+  ['max-w-[15rem]', 'max-w-60'],
+  ['min-w-[10rem]', 'min-w-40'],
+  ['min-w-[13rem]', 'min-w-52'],
+  ['min-h-[13rem]', 'min-h-52'],
+  ['max-w-[12rem]', 'max-w-48'],
+  ['min-h-[2.75rem]', 'min-h-11'],
+])
+const nonCanonicalSizes = []
+for (const file of walk('src')) {
+  const text = readFileSync(file, 'utf8')
+  for (const [arbitrary, canonical] of canonicalSizeAliases) {
+    if (text.includes(arbitrary)) nonCanonicalSizes.push(`${file}: ${arbitrary} -> ${canonical}`)
+  }
+}
+check(
+  'exact spacing-scale aliases use their canonical Tailwind classes',
+  nonCanonicalSizes.length === 0,
+  nonCanonicalSizes.length ? `${nonCanonicalSizes.length} found, e.g. ${nonCanonicalSizes[0]}` : ''
 )
 
 // --- the same inks, at the opacities the app actually renders them ----------
@@ -252,6 +351,29 @@ if (headerRow) {
     headerRow.trim().slice(0, 96)
   )
 }
+
+console.log('')
+console.log('-- loading motion is shared, announced and policy-safe --')
+const loadingNotice = readFileSync('src/components/shared/LoadingNotice.tsx', 'utf8')
+check('the shared loading notice announces asynchronous work',
+  loadingNotice.includes('role="status"') && loadingNotice.includes('aria-live="polite"'))
+check('the shared loading spinner respects reduced motion',
+  loadingNotice.includes('animate-spin motion-reduce:animate-none'))
+const configEditors = [
+  'AliasesEditor.tsx',
+  'GagsEditor.tsx',
+  'HighlightsEditor.tsx',
+  'MacrosEditor.tsx',
+  'PresetsEditor.tsx',
+  'SubstitutesEditor.tsx',
+]
+for (const file of configEditors) {
+  const source = readFileSync(join('src', 'components', 'config', file), 'utf8')
+  check(`${file} uses the shared loading notice`, source.includes('<LoadingNotice />'))
+}
+const radar = readFileSync('src/components/shared/CombatRadar.tsx', 'utf8')
+check('CombatRadar has no dormant looping attention pulse',
+  !radar.includes('animate-pulse') && !radar.includes('pulse?: boolean'))
 
 console.log('')
 console.log(fails === 0 ? 'all passed' : `${fails} FAILED`)

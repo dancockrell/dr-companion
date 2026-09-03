@@ -1,12 +1,5 @@
 # How DragonRealms actually works, and what that means for Companion
 
-> **Rule 0 — never fork.** A problem is to be solved, never dodged. Fix the thing,
-> replace it outright, or delete the feature — those are the only three moves.
-> Never leave two answers to one question standing side by side, and never route
-> a parallel path around something you did not want to touch. That is a noodle to
-> nowhere, and it is the most serious thing you can do to this codebase.
-> Full rule: [`CLAUDE.md`](../CLAUDE.md).
-
 Research pass, 25 Aug 2026. Sources are Elanthipedia, the elanthia-online
 GitHub org, and reading community Genie scripts to see which cases they handle.
 Script code was read to learn play patterns. None of it was copied, and one of

@@ -27,8 +27,7 @@ export function ScriptIconPicker({
   title: string
   /** The icon currently shown on the tile - a player's own choice, or the guess. */
   current: ScriptIconKey
-  /** What scriptIcons.ts would pick on its own, for the "reset" option - `undefined` for a
-   * built-in task, which has no guesser and nothing sensible to reset to. */
+  /** What scriptIcons.ts would pick on its own, for the reset option. */
   guessed?: ScriptIconKey
   onPick: (icon: ScriptIconKey) => void
   onReset?: () => void
@@ -37,7 +36,7 @@ export function ScriptIconPicker({
   const dialogRef = useModalDialog(onClose)
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       data-gameplay-shortcuts="suspend"
       onClick={onClose}
     >

@@ -9,6 +9,7 @@
 import { useMemo, useState } from 'react'
 import { Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste } from 'lucide-react'
 import { parseGags, type Gag } from '../../lib/gags'
+import { LoadingNotice } from '../shared/LoadingNotice'
 import { reloadGags } from '../../lib/useGags'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
 import {
@@ -182,7 +183,7 @@ export function GagsEditor() {
         </button>
       </div>
 
-      {editor.loading && <div className="py-6 text-center text-sm text-ink-faint">Loading…</div>}
+      {editor.loading && <LoadingNotice />}
       {editor.error && !editor.loading && editor.entries.length === 0 && (
         <div className="rounded border border-border bg-surface-raised p-3 text-sm text-ink-muted">
           {editor.error}
@@ -193,8 +194,14 @@ export function GagsEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">Import multiple gags - paste #gag lines below</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
-              <X className="h-3.5 w-3.5" />
+            <button
+              type="button"
+              onClick={cancelForm}
+              aria-label="Cancel gag import"
+              title="Cancel gag import"
+              className="rounded p-1 text-ink-faint hover:text-ink"
+            >
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <textarea
@@ -232,7 +239,7 @@ export function GagsEditor() {
               type="button"
               onClick={() => void submitImport()}
               disabled={busy || !importPreview?.valid.length}
-              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
             >
               {busy ? 'Importing…' : `Import ${importPreview?.valid.length ?? 0}`}
             </button>
@@ -244,8 +251,14 @@ export function GagsEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">{adding ? 'New gag' : 'Edit gag'}</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
-              <X className="h-3.5 w-3.5" />
+            <button
+              type="button"
+              onClick={cancelForm}
+              aria-label={adding ? 'Cancel new gag' : 'Cancel editing gag'}
+              title={adding ? 'Cancel new gag' : 'Cancel editing gag'}
+              className="rounded p-1 text-ink-faint hover:text-ink"
+            >
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <label className="flex flex-col gap-1 text-xs">
@@ -267,7 +280,7 @@ export function GagsEditor() {
               type="button"
               onClick={() => void submitForm()}
               disabled={busy}
-              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
             >
               {busy ? 'Saving…' : adding ? 'Add' : 'Save'}
             </button>
@@ -282,7 +295,7 @@ export function GagsEditor() {
               {g.pattern}
             </span>
             {isPlayerAddedLine(editor.text, g.sourceLine) && (
-              <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-[#1a1408]">
+              <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-surface">
                 yours
               </span>
             )}

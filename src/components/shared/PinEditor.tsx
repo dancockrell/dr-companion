@@ -19,7 +19,7 @@ import {
   type PinIcon,
   type MapPin,
 } from '../../lib/mapPins'
-import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
+import { PinIconGlyph } from './PinIconGlyph'
 import { useModalDialog } from '../../lib/useModalDialog'
 
 export function PinEditor({
@@ -78,7 +78,7 @@ export function PinEditor({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       data-gameplay-shortcuts="suspend"
       onClick={() => { if (!dirty) onClose() }}
     >
@@ -106,7 +106,6 @@ export function PinEditor({
         {!existing && (
           <div className="mt-2 flex flex-wrap gap-1">
             {PIN_PRESETS.map((preset) => {
-              const Icon = PIN_ICON_COMPONENT[preset.icon]
               return (
                 <button
                   key={preset.label}
@@ -120,7 +119,7 @@ export function PinEditor({
                   }}
                   className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-ink-muted hover:border-accent/60 hover:text-accent"
                 >
-                  <Icon className="h-3.5 w-3.5" style={{ color: PIN_COLOR_HEX[preset.color] }} />
+                  <PinIconGlyph icon={preset.icon} className="h-3.5 w-3.5 object-contain" style={{ color: PIN_COLOR_HEX[preset.color] }} />
                 </button>
               )
             })}
@@ -203,7 +202,6 @@ export function PinEditor({
               <span className="h-1.5 w-1.5 rounded-full bg-current" />
             </button>
             {filteredIcons.map((key) => {
-              const Icon = PIN_ICON_COMPONENT[key]
               return (
                 <button
                   key={key}
@@ -216,7 +214,7 @@ export function PinEditor({
                     icon === key ? 'border-accent text-accent' : 'border-border text-ink-faint'
                   }`}
                 >
-                  <Icon className="h-4.5 w-4.5" />
+                  <PinIconGlyph icon={key} className="h-4.5 w-4.5 object-contain" />
                 </button>
               )
             })}

@@ -12,6 +12,7 @@
 import { useMemo, useState } from 'react'
 import { Trash2, Pencil, X, RotateCcw, Search } from 'lucide-react'
 import { parsePresets, presetColours, type Preset } from '../../lib/presets'
+import { LoadingNotice } from '../shared/LoadingNotice'
 import { reloadPresets } from '../../lib/usePresets'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
 import {
@@ -154,7 +155,7 @@ export function PresetsEditor() {
         />
       </div>
 
-      {editor.loading && <div className="py-6 text-center text-sm text-ink-faint">Loading…</div>}
+      {editor.loading && <LoadingNotice />}
       {editor.error && !editor.loading && editor.entries.length === 0 && (
         <div className="rounded border border-border bg-surface-raised p-3 text-sm text-ink-muted">
           {editor.error}
@@ -228,7 +229,7 @@ export function PresetsEditor() {
                     type="button"
                     onClick={() => void submitForm(p)}
                     disabled={busy}
-                    className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+                    className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
                   >
                     {busy ? 'Saving…' : 'Save'}
                   </button>

@@ -1,8 +1,55 @@
 import { useRef, useState } from 'react'
-import * as Icons from 'lucide-react'
+import {
+  Activity,
+  Brain,
+  Coins,
+  Eye,
+  EyeOff,
+  Footprints,
+  Heart,
+  Navigation,
+  Package,
+  Search,
+  Shield,
+  ShieldOff,
+  Sparkles,
+  Star,
+  Swords,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useScrollEdges } from '../../lib/useScrollEdges'
 import { MACROS, type Macro } from '../../data/macros'
+
+/**
+ * The lucide component behind each macro's `icon` name.
+ *
+ * Was `(Icons as Record<string, LucideIcon>)[m.icon]` against a namespace
+ * import of the whole package - a runtime string lookup defeats
+ * tree-shaking, so every lucide icon shipped in the startup bundle to
+ * render the 15 named here. `MACROS` is a fixed, in-repo list (`data/
+ * macros.ts`), not player or bridge data, so the set of names this ever
+ * needs to resolve is closed and known at build time - the same reasoning
+ * `scriptIconComponents.ts` already applies to script icons, one file over.
+ */
+const MACRO_ICON: Record<string, LucideIcon> = {
+  Activity,
+  Brain,
+  Coins,
+  Eye,
+  EyeOff,
+  Footprints,
+  Heart,
+  Navigation,
+  Package,
+  Search,
+  Shield,
+  ShieldOff,
+  Sparkles,
+  Star,
+  Swords,
+}
 
 /**
  * The macro bar.
@@ -63,7 +110,7 @@ export function MacroBar({
       >
         {MACROS.map((m) => {
           const v = variationOf(m)
-          const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[m.icon] ?? Icons.Zap
+          const Icon = MACRO_ICON[m.icon] ?? Zap
           const isOpen = open === m.id
 
           return (

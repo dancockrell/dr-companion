@@ -23,7 +23,7 @@ if (match) {
   if (last >= first + 2) check(roomScenePattern(zone, first + 2) === firstArt, 'scene holds across three adjacent rooms')
   check(roomScenePattern(zone, first) === roomScenePattern(zone, first), 'selection is stable across repeated calls')
 }
-check(roomScenePattern('1', 129) !== roomScenePattern('1', 132), 'a reviewed multi-image range advances after its three-room hold')
+check(roomScenePattern('69', 474) !== roomScenePattern('69', 477), 'a reviewed multi-image range advances after its three-room hold')
 
 const baskets = JSON.parse(readFileSync('data/art/scene-baskets.json', 'utf8'))
 for (const family of [...Object.values(baskets.generic), ...Object.values(baskets.regionalCity)]) for (const art of family) check(existsSync(`public${art}`), `basket asset exists: ${art}`)
@@ -47,6 +47,8 @@ check((crossing?.avoid ?? []).some((item) => /generic medieval street/.test(item
 check(Object.keys(crossing?.plannedArtFamilies ?? {}).length >= 8, 'Crossing has generation-ready differentiated art families')
 check(Object.values(crossing?.plannedArtFamilies ?? {}).every((family) => family.priority && family.variants && family.prompt?.length > 100), 'Crossing planned families have priority, variant count, and authoritative prompts')
 check(baskets.reviewedPlaceAssignments?.["1::Traders' Market"]?.category === 'regional-city', 'Crossing Traders Market has a reviewed exact assignment')
+check(baskets.reviewedPlaceAssignments?.['6::Brambles']?.arts?.length === 4, 'Brambles has a four-view reviewed Magnific route family')
+check(/magnific-art\/room-scenes\/brambles-route/.test(roomScenePattern('6', 275) ?? ''), 'Brambles selects its exact Magnific family instead of generic forest art')
 
 const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 'utf8'))
 const audit = JSON.parse(readFileSync('data/art/out/scene-basket-audit.json', 'utf8'))

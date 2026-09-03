@@ -26,6 +26,14 @@ export function Preflight({
   return (
     <div className="min-h-full flex flex-col items-center justify-center p-8 gap-6 text-center">
       <div className="relative">
+        {/* A compass rose, not the old ring-and-stem placeholder shape (that
+         * one also happened to be the app icon before it was replaced with a
+         * proper mark - this is the same brand carried into the one screen
+         * that doesn't load a PNG). Cardinal points in the accent gold,
+         * intercardinal points a shade back in accent-soft, same two-tone
+         * split the original used. Ties this title screen to the map board
+         * elsewhere in the app, which is the one thing a DragonRealms player
+         * already associates with a compass. */}
         <svg
           width="88"
           height="88"
@@ -33,26 +41,20 @@ export function Preflight({
           aria-hidden="true"
           className="opacity-90"
         >
-          <circle
-            cx="50"
-            cy="50"
-            r="29"
-            fill="none"
-            stroke="var(--color-accent)"
-            strokeWidth="7.5"
-            strokeLinecap="round"
-            strokeDasharray="152 30"
-            transform="rotate(75 50 50)"
-          />
-          <rect
-            x="46.2"
-            y="46"
-            width="7.5"
-            height="40"
-            rx="3"
-            fill="var(--color-accent-soft)"
-          />
-          <circle cx="50" cy="50" r="8.5" fill="var(--color-accent)" />
+          <circle cx="50" cy="50" r="46" fill="none" stroke="var(--color-border)" strokeWidth="1.5" />
+          <g fill="var(--color-accent-soft)">
+            <path d="M 50.00 50.00 L 52.94 45.95 L 69.09 30.91 L 54.05 47.06 Z" />
+            <path d="M 50.00 50.00 L 54.05 52.94 L 69.09 69.09 L 52.94 54.05 Z" />
+            <path d="M 50.00 50.00 L 47.06 54.05 L 30.91 69.09 L 45.95 52.94 Z" />
+            <path d="M 50.00 50.00 L 45.95 47.06 L 30.91 30.91 L 47.06 45.95 Z" />
+          </g>
+          <g fill="var(--color-accent)">
+            <path d="M 50.00 50.00 L 48.78 43.11 L 50.00 8.00 L 51.22 43.11 Z" />
+            <path d="M 50.00 50.00 L 56.89 48.78 L 92.00 50.00 L 56.89 51.22 Z" />
+            <path d="M 50.00 50.00 L 51.22 56.89 L 50.00 92.00 L 48.78 56.89 Z" />
+            <path d="M 50.00 50.00 L 43.11 51.22 L 8.00 50.00 L 43.11 48.78 Z" />
+          </g>
+          <circle cx="50" cy="50" r="6" fill="var(--color-surface)" stroke="var(--color-accent)" strokeWidth="2.5" />
         </svg>
       </div>
 

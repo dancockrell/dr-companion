@@ -17,6 +17,7 @@
 import { listenTauri, invokeTauri, isTauri } from './tauri.ts'
 import { feed, newStreamState, looksTagged, characterState } from './gameStream.ts'
 import type { StreamCharacterState } from '../types/stream'
+import { validateGameCommand } from './gameCommand.ts'
 
 export interface GameLine {
   seq: number
@@ -147,7 +148,24 @@ function notify() {
  * per newline with an empty stream, which is exactly right and means there is
  * no second code path to keep working.
  */
-const parser = newStreamState()
+let parser = newStreamState()
+
+/**
+ * Drop everything the tag parser has learned so far - vitals, indicators,
+ * compass, room occupants, room title.
+ *
+ * `parser` used to live for the module's whole lifetime, so a detach and a
+ * fresh attach to a different character kept the old one's last-known health,
+ * mana, and posture flags (bleeding/poisoned/etc.) on screen. `vitals.ts` and
+ * `situation.ts` both prefer the stream's answer over the bridge's whenever
+ * the stream has one at all, so the new character's UI would keep reporting
+ * the previous character's state, with full confidence, until the game
+ * happened to resend every one of those tags on its own. Call this anywhere
+ * the underlying connection is known to no longer describe the same session.
+ */
+function resetStream() {
+  parser = newStreamState()
+}
 
 /** Sequence numbers are assigned here now, because one chunk can be many lines. */
 let nextSeq = 0
@@ -421,6 +439,7 @@ export async function attachGame(port: number, host?: string): Promise<LinkState
   backfilled = false
   queued = []
   lastChunkSeq = 0
+  resetStream()
 
   try {
     state = adopt(asLinkState(await invokeTauri('game_attach', { host: host ?? null, port })) ?? state)
@@ -460,12 +479,13 @@ export async function attachGame(port: number, host?: string): Promise<LinkState
 
 export async function detachGame(): Promise<LinkState> {
   state = asLinkState(await invokeTauri('game_detach')) ?? state
+  resetStream()
   notify()
   return state
 }
 
 export async function sendGame(command: string): Promise<void> {
-  await invokeTauri('game_send', { command })
+  await invokeTauri('game_send', { command: validateGameCommand(command) })
 }
 
 export async function refreshGameState(): Promise<LinkState> {

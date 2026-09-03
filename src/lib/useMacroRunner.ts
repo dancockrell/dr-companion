@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { canSendMacro } from './canSendMacro'
+import { macroInFlight, requestMacro, subscribeMacroFlight } from './macroFlight'
 
 /**
  * How long a sent macro is treated as still running.
@@ -17,8 +18,6 @@ import { canSendMacro } from './canSendMacro'
  * the safer error: the bridge still refuses what it should, so the worst case
  * is the old behaviour, not a new one.
  */
-const IN_FLIGHT_MS = 900
-
 /**
  * "Send this macro" plus the gating around it, in one place.
  *
@@ -30,36 +29,13 @@ const IN_FLIGHT_MS = 900
  */
 export function useMacroRunner() {
   const character = useAppStore((s) => s.character)
-  const requestIntent = useAppStore((s) => s.requestIntent)
-
-  const [inFlight, setInFlight] = useState(false)
-  const timer = useRef<number | null>(null)
+  const inFlight = useSyncExternalStore(subscribeMacroFlight, macroInFlight, () => false)
 
   const run = useCallback(
     (commands: string[]) => {
-      // Re-checked at the moment of sending, not only when rendering. A
-      // disabled button is a hint, not a guarantee: a keyboard macro, a
-      // command palette entry, or a state change between paint and click can
-      // all reach this. The guard belongs where the send happens.
-      if (!canSendMacro({ stopLatched: character?.stopLatched, inFlight, connected: !!character }).canSend) {
-        return
-      }
-
-      // The bridge's own refusal is still the authority and is left entirely
-      // alone. `stopLatched` is absent on an older bridge, where this
-      // predicate correctly says "can send" and the refusal is the only thing
-      // standing between a latched stop and a macro - so the pre-emptive fix
-      // must never become the only fix.
-      requestIntent('run_macro', { commands })
-
-      setInFlight(true)
-      if (timer.current !== null) window.clearTimeout(timer.current)
-      timer.current = window.setTimeout(() => {
-        setInFlight(false)
-        timer.current = null
-      }, IN_FLIGHT_MS)
+      requestMacro(commands)
     },
-    [character, inFlight, requestIntent]
+    []
   )
 
   const state = canSendMacro({

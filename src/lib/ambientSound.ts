@@ -1,4 +1,5 @@
 import { effectiveAudioGain, onMasterMuteChange } from './audioMaster.ts'
+import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults.ts'
 
 /**
  * Music: per-zone playlists and an optional radio override. No ambient
@@ -264,6 +265,23 @@ class Layer {
 
   refreshMasterGain() {
     if (this.el) this.el.volume = this.target
+  }
+
+  /**
+   * True pause/resume of the underlying element - distinct from setGain(0),
+   * which only silences the output while the track keeps advancing (and, for
+   * a non-looping source, can run to its end and fire `ended` while
+   * "paused"). See pauseMusic()/resumeMusic() below for why both exist.
+   */
+  pause() {
+    this.el?.pause()
+  }
+
+  resume() {
+    // Resume through the same observable attempt path as initial playback
+    // and Retry. A rejected play() must surface in the transport instead of
+    // leaving the UI claiming that a paused element is playing.
+    if (this.el) this.attempt(this.el)
   }
 
   /**
@@ -886,7 +904,7 @@ export function skipTrack(dir: 1 | -1) {
  * gate is separate; see `Layer`'s header. Default 0 (28 Aug 2026, Dan) - a first run
  * starts silent; kept in sync by hand with persistence.ts's own default.
  */
-let musicGain = 0
+let musicGain: number = DEFAULT_AUDIO_VOLUMES.music
 const musicVolumeListeners = new Set<(v: number) => void>()
 export function setMusicVolume(v: number) {
   musicGain = Math.max(0, Math.min(1.5, v))
@@ -948,20 +966,56 @@ function fadeMusicVolume(target: number, ms = FADE_MS) {
  * back to" contract as SoundControls' own per-channel mute buttons. Kept at
  * the module level rather than in a component so it works regardless of
  * which UI, if any, is mounted when the OS sends the action.
+ *
+ * Fades the gain to 0 for the same smooth transition a track-to-track
+ * crossfade gets, then actually pauses the element once the fade finishes -
+ * fading alone (the original implementation) only silenced the output while
+ * the track kept advancing underneath, so "paused" and playing looked
+ * identical from outside the tab and a non-looping track could run to its
+ * end and fire `ended` (advancing the playlist) while the UI still said
+ * Paused. `pauseTimer` is cancelled on a resume that lands mid-fade, so a
+ * quick pause/resume tap doesn't pause the element a moment after resuming it.
  */
 let preMuteMusicGain: number | null = null
+let pauseTimer: ReturnType<typeof setTimeout> | null = null
 export function pauseMusic() {
-  if (musicGain <= 0) return
+  // Ignore repeated Pause actions during the same transition. Otherwise a
+  // second click would remember the already-faded intermediate gain and
+  // Resume would come back quieter than the player left it.
+  if (pauseTimer || preMuteMusicGain !== null) return
+  // Zero is a real user-selected gain, not a missing preference. Preserve it
+  // exactly so Pause/Resume never doubles as an implicit unmute.
   preMuteMusicGain = musicGain
+  if (musicGain <= 0) {
+    music.pause()
+    return
+  }
   fadeMusicVolume(0)
+  pauseTimer = setTimeout(() => {
+    pauseTimer = null
+    music.pause()
+  }, FADE_MS)
 }
 export function resumeMusic() {
-  fadeMusicVolume(preMuteMusicGain ?? 0.45)
+  const restoreGain = preMuteMusicGain
+  if (pauseTimer) {
+    clearTimeout(pauseTimer)
+    pauseTimer = null
+  }
+  music.resume()
+  // Media-session Play can arrive without a preceding Pause. In that case
+  // resume the element without inventing a new channel volume.
+  if (restoreGain !== null) fadeMusicVolume(restoreGain)
   preMuteMusicGain = null
 }
 
 /** For a hard reset - leaving a character, or a settings reload. */
 export function stopMusic() {
+  if (pauseTimer) clearTimeout(pauseTimer)
+  pauseTimer = null
+  if (fadeTimer) clearInterval(fadeTimer)
+  fadeTimer = null
+  preMuteMusicGain = null
   music.stop()
   currentZone = null
   customStreamUrl = null

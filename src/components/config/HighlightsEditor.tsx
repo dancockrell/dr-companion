@@ -11,6 +11,7 @@
 import { useMemo, useState } from 'react'
 import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, Volume2, VolumeX, ClipboardPaste } from 'lucide-react'
 import { parseHighlights, paint, segments, type Highlight, type HighlightType } from '../../lib/highlights'
+import { LoadingNotice } from '../shared/LoadingNotice'
 import { reloadHighlights } from '../../lib/useHighlights'
 import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
 import {
@@ -354,7 +355,7 @@ export function HighlightsEditor() {
         </button>
       </div>
 
-      {editor.loading && <div className="py-6 text-center text-sm text-ink-faint">Loading…</div>}
+      {editor.loading && <LoadingNotice />}
       {editor.error && !editor.loading && editor.entries.length === 0 && (
         <div className="rounded border border-border bg-surface-raised p-3 text-sm text-ink-muted">
           {editor.error}
@@ -365,8 +366,14 @@ export function HighlightsEditor() {
         <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-ink">Import multiple highlights - paste #highlight lines below</span>
-            <button type="button" onClick={cancelForm} className="rounded p-1 text-ink-faint hover:text-ink">
-              <X className="h-3.5 w-3.5" />
+            <button
+              type="button"
+              onClick={cancelForm}
+              aria-label="Cancel highlight import"
+              title="Cancel highlight import"
+              className="rounded p-1 text-ink-faint hover:text-ink"
+            >
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           </div>
           <textarea
@@ -417,7 +424,7 @@ export function HighlightsEditor() {
               type="button"
               onClick={() => void submitImport()}
               disabled={busy || !importPreview?.valid.length}
-              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
             >
               {busy ? 'Importing…' : `Import ${importPreview?.valid.length ?? 0}`}
             </button>
@@ -499,7 +506,7 @@ export function HighlightsEditor() {
                     </button>
                   )}
                   {isPlayerAddedLine(editor.text, h.sourceLine) && (
-                    <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-[#1a1408]">
+                    <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-surface">
                       yours
                     </span>
                   )}
@@ -577,8 +584,14 @@ function HighlightForm({
     <div className="rounded-lg border border-accent-soft bg-surface-raised p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold text-ink">{isNew ? 'New highlight' : 'Edit highlight'}</span>
-        <button type="button" onClick={onCancel} className="rounded p-1 text-ink-faint hover:text-ink">
-          <X className="h-3.5 w-3.5" />
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label={isNew ? 'Cancel new highlight' : 'Cancel editing highlight'}
+          title={isNew ? 'Cancel new highlight' : 'Cancel editing highlight'}
+          className="rounded p-1 text-ink-faint hover:text-ink"
+        >
+          <X aria-hidden="true" className="h-3.5 w-3.5" />
         </button>
       </div>
 
@@ -691,7 +704,7 @@ function HighlightForm({
           type="button"
           onClick={onSubmit}
           disabled={busy}
-          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-[#1a1408] disabled:opacity-50"
+          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-surface disabled:opacity-50"
         >
           {busy ? 'Saving…' : isNew ? 'Add' : 'Save'}
         </button>

@@ -25,7 +25,7 @@ export function ConfigManagerSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-3"
       data-gameplay-shortcuts="suspend"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
@@ -96,7 +96,7 @@ function TabButton({
       onClick={onClick}
       className={cn(
         'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-        active ? 'bg-accent text-[#1a1408]' : 'text-ink-faint hover:text-ink'
+        active ? 'bg-accent text-surface' : 'text-ink-faint hover:text-ink'
       )}
     >
       {children}

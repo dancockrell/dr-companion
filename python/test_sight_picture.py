@@ -111,6 +111,37 @@ ok(
 )
 
 print()
+print("-- stale rate-window entries age out even though only record() prunes --")
+c3b = FakeCompanion()
+t3b = Task(c3b)
+now = time.time()
+# `_Rate.record()` is the only thing that prunes `sent` to the trailing 60s
+# window, and it only runs from `Task.do()`. A flow that's been blocked in a
+# long `until`-wait sends nothing through `do()`, so a burst from minutes ago
+# never gets pruned on its own - maybe_refresh has to prune what it reads,
+# or it stays stuck at the headroom line long after the real budget is free.
+t3b._rate.sent = [now - 90.0] * half  # filled the cap 90s ago, well outside the window
+sp3b = SightPicture(interval=0.0)
+sp3b.maybe_refresh(t3b)
+ok(
+    "refreshes once old traffic has aged out of the real 60s window",
+    len(c3b.sent) == 1
+    and len(t3b._rate.sent) == 1
+    and all(time.time() - sent_at < 60.0 for sent_at in t3b._rate.sent),
+    f"sent={c3b.sent!r}, rate={t3b._rate.sent!r}",
+)
+c3c = FakeCompanion()
+t3c = Task(c3c)
+t3c._rate.sent = [now] * half  # same count, but genuinely recent
+sp3c = SightPicture(interval=0.0)
+sp3c.maybe_refresh(t3c)
+ok(
+    "still refuses when that traffic is genuinely recent",
+    c3c.sent == [],
+    repr(c3c.sent),
+)
+
+print()
 print("-- capture only counts while a rotation answer is in flight --")
 sp4 = SightPicture(interval=1000.0)
 sp4.capture("nothing is collecting yet")

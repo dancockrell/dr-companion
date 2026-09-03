@@ -6,21 +6,9 @@
  * the crowded case, because a resolver that cannot converge would hang a drag
  * handler rather than merely misplace a box.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
-import ts from 'typescript'
+import { readFileSync } from 'node:fs'
 
-const dir = mkdtempSync(join(tmpdir(), 'free-'))
-const out = join(dir, 'freeLayout.js')
-writeFileSync(
-  out,
-  ts.transpileModule(readFileSync('src/lib/freeLayout.ts', 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText
-)
-const m = await import(pathToFileURL(out).href)
+const m = await import('../src/lib/freeLayout.ts')
 
 let fails = 0
 const check = (label, got, want) => {
@@ -141,6 +129,10 @@ ok('keyboard resizing obeys minimum and bounds', keyboardClamped.w === m.MIN_W &
 const canvasSource = readFileSync('src/components/dashboard/FreeCanvas.tsx', 'utf8')
 ok('keyboard mode has explicit save and cancel paths', /e\.key === 'Enter'/.test(canvasSource) && /e\.key === 'Escape'/.test(canvasSource) && /changes cancelled/.test(canvasSource))
 ok('keyboard mode announces geometry without moving focus', /role="status"/.test(canvasSource) && /aria-live="polite"/.test(canvasSource) && /aria-pressed/.test(canvasSource))
+ok('canvas chrome sits above a contained panel stacking context',
+  /className="absolute right-1 top-1 z-30/.test(canvasSource) &&
+  /className="absolute inset-0 z-10"/.test(canvasSource) &&
+  /zIndex: dragging \? 9999 : 10 \+/.test(canvasSource))
 
 console.log(fails ? `\n${fails} failed` : '\nall passed')
 process.exit(fails ? 1 : 0)

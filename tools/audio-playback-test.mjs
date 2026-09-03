@@ -42,9 +42,14 @@ const originalWarn = console.warn
 console.warn = (...parts) => warnings.push(parts.join(' '))
 
 const {
+  musicVolume,
   nowPlaying,
+  pauseMusic,
   retryMusic,
+  resumeMusic,
+  setCrossfadeStyle,
   setCustomStream,
+  setMusicVolume,
   stopMusic,
 } = await import('../src/lib/ambientSound.ts')
 
@@ -54,6 +59,31 @@ const check = (name, condition, detail = '') => {
   console.log(`${condition ? 'OK  ' : 'FAIL'} ${name.padEnd(62)}${detail}`)
 }
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const {
+  alertPlaybackFailureNote,
+  alertPlaybackFailures,
+  clearAlertPlaybackFailure,
+  onAlertPlaybackFailuresChange,
+  recordAlertPlaybackFailure,
+  resetAlertPlaybackFailures,
+} = await import('../src/lib/alertPlaybackStatus.ts')
+
+console.log('-- alert failures are visible without leaking media details --')
+let notifications = 0
+const unsubscribe = onAlertPlaybackFailuresChange(() => notifications++)
+const blocked = new Error('https://user:secret@example.invalid/private?token=hidden')
+blocked.name = 'NotAllowedError'
+recordAlertPlaybackFailure('Growl.wav', blocked)
+check('a blocked alert becomes an inspectable failure', alertPlaybackFailures().has('Growl.wav'))
+check('the blocked-play note tells the player how to recover', alertPlaybackFailureNote(blocked).includes('channel preview'))
+check('alert diagnostics never echo a source or error message', !alertPlaybackFailures().get('Growl.wav')?.includes('secret'))
+clearAlertPlaybackFailure('Growl.wav')
+check('a later successful play clears the prior failure', !alertPlaybackFailures().has('Growl.wav'))
+check('failure changes notify the open Sound panel', notifications === 2)
+unsubscribe()
+resetAlertPlaybackFailures()
 
 console.log('-- playback state follows the media element --')
 MockAudio.behavior = 'reject'
@@ -70,6 +100,54 @@ retryMusic()
 await settle()
 check('Retry reuses the selected media element', MockAudio.instances.at(-1) === failedElement)
 check('a confirmed playing event clears the prior failure', nowPlaying()?.status === 'playing' && !nowPlaying()?.error)
+
+console.log('\n-- Pause freezes the media element and Resume is observable --')
+setCrossfadeStyle('cut')
+setMusicVolume(0.6)
+pauseMusic()
+await wait(650)
+check('Pause reaches the media element after the fade', failedElement.paused === true)
+check('the pause fade reaches silence', musicVolume() === 0, String(musicVolume()))
+
+resumeMusic()
+await settle()
+await wait(650)
+check('Resume continues the same media element', MockAudio.instances.at(-1) === failedElement && failedElement.paused === false)
+check('Resume restores the exact pre-pause gain', Math.abs(musicVolume() - 0.6) < 0.001, String(musicVolume()))
+
+setMusicVolume(0)
+pauseMusic()
+check('Pause reaches an already-muted media element', failedElement.paused === true)
+resumeMusic()
+await settle()
+check('Resume does not turn an intentional zero gain into an implicit unmute',
+  failedElement.paused === false && musicVolume() === 0,
+  String(musicVolume()))
+setMusicVolume(0.6)
+
+pauseMusic()
+resumeMusic()
+await wait(650)
+check('a quick Pause/Resume cannot leave a stale timer that pauses later', failedElement.paused === false)
+
+pauseMusic()
+await wait(650)
+MockAudio.behavior = 'reject'
+resumeMusic()
+await settle()
+check('a rejected Resume becomes a visible playback failure', nowPlaying()?.status === 'failed' && nowPlaying()?.error?.includes('Retry'))
+
+MockAudio.behavior = 'resolve'
+retryMusic()
+await settle()
+setMusicVolume(0.6)
+pauseMusic()
+stopMusic()
+setCustomStream('https://example.invalid/after-reset')
+await settle()
+const afterReset = MockAudio.instances.at(-1)
+await wait(650)
+check('Stop cancels a pending pause before a new source starts', afterReset.paused === false)
 
 console.log('\n-- media errors and stalls are visible failures --')
 MockAudio.behavior = 'pending'
@@ -93,6 +171,16 @@ const transport = await import('node:fs').then(({ readFileSync }) =>
   readFileSync('src/components/game/MusicTransport.tsx', 'utf8')
 )
 check('the shared transport renders a visible Retry action', transport.includes('failed &&') && />\s*Retry\s*</.test(transport))
+check('both state-changing music icon buttons have explicit names', (transport.match(/aria-label=\{failed \? 'Retry music'/g) ?? []).length === 2)
+
+const alertSource = await import('node:fs').then(({ readFileSync }) =>
+  readFileSync('src/lib/alertSound.ts', 'utf8')
+)
+const soundPanel = await import('node:fs').then(({ readFileSync }) =>
+  readFileSync('src/components/game/SoundControls.tsx', 'utf8')
+)
+check('a rejected alert play records a visible failure', /catch\(\(error\) => recordAlertPlaybackFailure\(name, error\)\)/.test(alertSource))
+check('channel previews explicitly bypass live-alert throttles', (soundPanel.match(/\{ preview: true \}/g) ?? []).length === 3)
 
 stopMusic()
 console.warn = originalWarn

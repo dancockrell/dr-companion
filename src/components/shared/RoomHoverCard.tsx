@@ -19,7 +19,7 @@ import { isWatched, toggleWatched } from '../../lib/watchedRooms'
 import { cachedElanthipedia, fetchElanthipedia, type ElanthipediaPage } from '../../lib/elanthipedia'
 import type { GameInstance } from '../../types'
 import { landmarksFor } from '../../lib/mapLandmarks'
-import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
+import { PinIconGlyph } from './PinIconGlyph'
 
 export function RoomHoverCard({
   room,
@@ -137,11 +137,10 @@ export function RoomHoverCard({
         {landmarks.length > 0 && (
           <div className="mt-1.5 border-t border-border pt-1.5">
             {landmarks.map((landmark) => {
-              const Icon = PIN_ICON_COMPONENT[landmark.icon]
               return (
                 <p key={landmark.kind} className="flex items-center gap-1.5 text-ink-muted">
                   <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full" style={{ background: PIN_COLOR_HEX[landmark.color] }}>
-                    <Icon className="h-3 w-3 text-surface" />
+                    <PinIconGlyph icon={landmark.icon} className="h-3 w-3 object-contain" />
                   </span>
                   <span><strong className="font-medium text-ink">{landmark.kind}</strong> — {landmark.label}</span>
                 </p>

@@ -12,6 +12,7 @@ import {
   PanelTop,
   PersonStanding,
   Plus,
+  Repeat,
   RotateCw,
   Shield,
   ShieldCheck,
@@ -22,6 +23,7 @@ import {
 import { isIntentImplemented, useAppStore } from '../../store/useAppStore'
 import { useDragScroll } from '../../lib/useDragScroll'
 import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { nextArmorInRotation } from '../../lib/armorRotation'
 import {
   ARMOR_COVERAGE,
   armorCandidates,
@@ -128,6 +130,22 @@ export function ArmorManager() {
   const wearAll = pieces.filter((piece) => !wornNow(piece.name, worn)).map((piece) => piece.name)
   const removeAll = pieces.filter((piece) => wornNow(piece.name, worn)).map((piece) => piece.name).reverse()
   const shieldPiece = pieces.find((piece) => piece.coverage.includes('shield'))
+
+  // Head and hands get their own row rather than living only in the scrolling
+  // list below: players often remove them independently for manual-dexterity
+  // tasks, and a rack may carry more than one configured option per slot.
+  const headPieces = pieces.filter((piece) => piece.coverage.includes('head'))
+  const handsPieces = pieces.filter((piece) => piece.coverage.includes('hands'))
+  const headWorn = headPieces.find((piece) => wornNow(piece.name, worn))
+  const handsWorn = handsPieces.find((piece) => wornNow(piece.name, worn))
+  const rotateSlot = (candidatesInSlot: ArmorLoadoutPiece[], current: ArmorLoadoutPiece | undefined) => {
+    const next = nextArmorInRotation(candidatesInSlot, current)
+    if (!next) return
+    if (current && current.id !== next.id) run('swap', [next.name, current.name])
+    else if (!current) run('wear', [next.name])
+  }
+  const bareTargets = [headWorn, handsWorn].filter((piece): piece is ArmorLoadoutPiece => Boolean(piece)).map((piece) => piece.name)
+
   const coverageCount = new Map<ArmorCoverage, number>()
   for (const piece of pieces) {
     for (const part of piece.coverage) coverageCount.set(part, (coverageCount.get(part) ?? 0) + 1)
@@ -225,6 +243,69 @@ export function ArmorManager() {
             </div>
           )}
 
+          {/* One-click slot controls for the two pieces players most often
+              remove independently. Rotation appears only when the rack has a
+              genuine alternative configured for that slot. */}
+          {(headPieces.length > 0 || handsPieces.length > 0) && (
+            <div className="grid grid-cols-2 gap-1" aria-label="Helm and glove controls">
+              {headPieces.length > 0 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => headWorn ? run('remove', [headWorn.name]) : rotateSlot(headPieces, headWorn)}
+                  className="flex items-center justify-center gap-1 rounded border border-border px-1 py-1 text-xs text-ink-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40"
+                  title={headWorn ? `Remove ${armorCommandTarget(headWorn.name)}` : `Wear ${armorCommandTarget(headPieces[0].name)}`}
+                >
+                  <HardHat className="h-3.5 w-3.5" />{headWorn ? 'Helm off' : 'Helm on'}
+                </button>
+              )}
+              {handsPieces.length > 0 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => handsWorn ? run('remove', [handsWorn.name]) : rotateSlot(handsPieces, handsWorn)}
+                  className="flex items-center justify-center gap-1 rounded border border-border px-1 py-1 text-xs text-ink-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40"
+                  title={handsWorn ? `Remove ${armorCommandTarget(handsWorn.name)}` : `Wear ${armorCommandTarget(handsPieces[0].name)}`}
+                >
+                  <Hand className="h-3.5 w-3.5" />{handsWorn ? 'Gloves off' : 'Gloves on'}
+                </button>
+              )}
+              {headPieces.length > 1 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => rotateSlot(headPieces, headWorn)}
+                  className="flex items-center justify-center gap-1 rounded border border-info/40 px-1 py-0.5 text-xs text-info hover:bg-info/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40"
+                  title={`Rotate to the next of ${headPieces.length} helms in the rack`}
+                >
+                  <Repeat className="h-3 w-3" />Rotate helm
+                </button>
+              )}
+              {handsPieces.length > 1 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => rotateSlot(handsPieces, handsWorn)}
+                  className="flex items-center justify-center gap-1 rounded border border-info/40 px-1 py-0.5 text-xs text-info hover:bg-info/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40"
+                  title={`Rotate to the next of ${handsPieces.length} gloves in the rack`}
+                >
+                  <Repeat className="h-3 w-3" />Rotate gloves
+                </button>
+              )}
+              {bareTargets.length > 0 && (
+                <button
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => run('remove', bareTargets)}
+                  className="col-span-2 flex items-center justify-center gap-1 rounded border border-warn/40 px-1 py-0.5 text-xs text-warn hover:bg-warn/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40"
+                  title="Remove helm and gloves — locksmithing, first aid, forging and most manual-dexterity tasks want bare hands"
+                >
+                  Bare head &amp; hands
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="flex min-w-0 gap-1">
             <select value={selected} onChange={(event) => setSelected(event.target.value)} className="min-w-0 flex-1 rounded border border-border bg-surface px-1.5 py-1 text-xs text-ink outline-none focus:border-info" aria-label="Add an inventory item to the armor rack">
               <option value="">Add carried or worn item…</option>
@@ -272,7 +353,7 @@ export function ArmorManager() {
                       const active = piece.coverage.includes(part)
                       const meta = COVERAGE_META[part]
                       return (
-                        <button key={part} type="button" onClick={() => toggleCoverage(piece.id, part)} className={`rounded border px-1 py-0.5 text-xs leading-none ${active ? 'border-info/55 bg-info/15 text-info' : 'border-border/70 text-ink-faint hover:text-ink'}`} title={`${active ? 'Remove' : 'Add'} ${meta.label.toLowerCase()} coverage`}>{meta.short}</button>
+                        <button key={part} type="button" onClick={() => toggleCoverage(piece.id, part)} className={`rounded border px-1 py-0.5 text-xs leading-none ${active ? 'border-info/55 bg-info/15 text-info' : 'border-border/70 text-ink-faint hover:text-ink'}`} title={`${active ? 'Remove' : 'Add'} ${meta.label.toLowerCase()} coverage`} aria-label={`${active ? 'Remove' : 'Add'} ${meta.label.toLowerCase()} coverage for ${piece.name}`} aria-pressed={active}>{meta.short}</button>
                       )
                     })}
                   </div>

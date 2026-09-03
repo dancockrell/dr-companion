@@ -19,6 +19,7 @@
 #   data/elanthipedia/  <- deliberately not ignored
 data/kb/
 dist
+godot/build/
 dist-ssr
 lerna-debug.log*
 logs
@@ -41,8 +42,14 @@ yarn-error.log*
 # Generated art inputs and outputs. Regenerable from the map data and the
 # bestiary, and room-prompts.json alone is 20 MB.
 data/art/out/
+data/world/out/
 data/art/manifest.json
 data/art/room-prompts.json
+# Paid source reels and their full PNG harvests are preserved locally, but do
+# not ship with the application. Their hashes, prompts, review decisions and
+# admitted runtime derivatives live in tracked curation ledgers instead.
+data/art/source-videos/
+data/art/harvests/
 
 # Superseded renders held outside the repo, never committed.
 quarantine*/

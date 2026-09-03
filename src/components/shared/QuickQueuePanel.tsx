@@ -97,7 +97,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
-        <h2 className="flex items-center gap-1.5 font-medium text-ink-faint uppercase tracking-wider">
+        <h2 className="flex items-center gap-1.5 text-xs font-medium text-ink-faint uppercase tracking-wider">
           <ListOrdered className="w-3.5 h-3.5" />
           Quick Queue
         </h2>
@@ -199,7 +199,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
                     type="button"
                     onClick={() => move(item.id, -1)}
                     disabled={i === 0}
-                    className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-30"
+                    className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-40"
                     title="Move earlier" aria-label="Move earlier"
                   >
                     <ArrowUp className="h-3 w-3" />
@@ -208,7 +208,7 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
                     type="button"
                     onClick={() => move(item.id, 1)}
                     disabled={i === queue.length - 1}
-                    className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-30"
+                    className="shrink-0 text-ink-faint hover:text-ink disabled:opacity-40"
                     title="Move later" aria-label="Move later"
                   >
                     <ArrowDown className="h-3 w-3" />

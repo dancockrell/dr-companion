@@ -16,6 +16,8 @@
 import { readJSON, writeJSON } from './storage'
 import { profileKey } from './profiles'
 import type { GameInstance } from '../types'
+import { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors'
+export { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors'
 
 /**
  * A small fixed palette rather than a colour picker. Six is enough to tell
@@ -27,7 +29,7 @@ export type PinColor = (typeof PIN_COLORS)[number]
 
 export const PIN_COLOR_HEX: Record<PinColor, string> = {
   blue: '#4f8fe0',
-  gold: '#d4a83a',
+  gold: '#d4a84b',
   green: '#4caf6e',
   red: '#e0554f',
   purple: '#a476dd',
@@ -53,7 +55,7 @@ export const PIN_COLOR_HEX: Record<PinColor, string> = {
  * in a newer lucide release renders nothing and fails silently, which is a
  * worse bug than an icon list that is merely short.
  */
-export const PIN_ICONS = [
+const LUCIDE_PIN_ICONS = [
   'alert-triangle',
   'amphora',
   'anchor',
@@ -427,7 +429,24 @@ export const PIN_ICONS = [
   'worm',
   'wrench',
 ] as const
+
+export const CUSTOM_PIN_ICONS = ['fantasy-dragon'] as const
+export const PIN_ICONS = [...LUCIDE_PIN_ICONS, ...CUSTOM_PIN_ICONS] as const
+export type LucidePinIcon = (typeof LUCIDE_PIN_ICONS)[number]
+export type CustomPinIcon = (typeof CUSTOM_PIN_ICONS)[number]
 export type PinIcon = (typeof PIN_ICONS)[number]
+
+export function isCustomPinIcon(icon: PinIcon): icon is CustomPinIcon {
+  return (CUSTOM_PIN_ICONS as readonly string[]).includes(icon)
+}
+
+export function isLucidePinIcon(icon: PinIcon): icon is LucidePinIcon {
+  return !isCustomPinIcon(icon)
+}
+
+export function customPinIconHref(icon: CustomPinIcon): string {
+  return `/pin-icons/${icon}.png`
+}
 
 export interface MapPin {
   id: string
@@ -483,14 +502,14 @@ export interface MapPin {
 export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = [
   // Home base and banking
   { label: 'Home', icon: 'home', color: 'blue' },
-  { label: 'Bank', icon: 'landmark', color: 'gold' },
+  { label: 'Bank', icon: 'landmark', color: COMMON_PLACE_PIN_COLORS.bank },
   { label: 'Vault', icon: 'coins', color: 'gold' },
   { label: 'Locker', icon: 'package', color: 'blue' },
 
   // Services and training
-  { label: 'Healer', icon: 'heart-pulse', color: 'green' },
+  { label: 'Healer', icon: 'heart-pulse', color: COMMON_PLACE_PIN_COLORS.healer },
   { label: 'Hospital', icon: 'hospital', color: 'green' },
-  { label: 'Guild', icon: 'shield', color: 'purple' },
+  { label: 'Guild', icon: 'shield', color: COMMON_PLACE_PIN_COLORS.guild },
   { label: 'Trainer', icon: 'swords', color: 'gold' },
   { label: 'Training Hall', icon: 'graduation-cap', color: 'gold' },
   { label: 'Empath', icon: 'sparkles', color: 'green' },
@@ -504,7 +523,7 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
   { label: 'Post Office', icon: 'scroll', color: 'blue' },
 
   // Shops
-  { label: 'Shop', icon: 'shopping-bag', color: 'blue' },
+  { label: 'Shop', icon: 'shopping-bag', color: COMMON_PLACE_PIN_COLORS.shop },
   { label: 'General Store', icon: 'backpack', color: 'blue' },
   { label: 'Armor Shop', icon: 'shield', color: 'blue' },
   { label: 'Weapon Shop', icon: 'sword', color: 'blue' },
@@ -537,9 +556,14 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
   { label: 'Shrine', icon: 'cross', color: 'purple' },
   { label: 'Crossing', icon: 'waves', color: 'slate' },
   { label: 'Overlook', icon: 'sun', color: 'slate' },
-  { label: 'Camp', icon: 'moon', color: 'slate' },
+  { label: 'Camp', icon: 'tent-tree', color: 'slate' },
+  { label: 'Observatory', icon: 'telescope', color: 'purple' },
+  { label: 'Music Hall', icon: 'music', color: 'purple' },
+  { label: 'Cemetery', icon: 'ghost', color: 'slate' },
 
   // Combat and hazard
+  { label: 'Dragon', icon: 'fantasy-dragon', color: 'red' },
+  { label: 'Dragon Lair', icon: 'fantasy-dragon', color: 'red' },
   { label: 'Hunting Spot', icon: 'swords', color: 'red' },
   { label: 'Danger', icon: 'skull', color: 'red' },
   { label: 'Ambush Spot', icon: 'flame', color: 'red' },

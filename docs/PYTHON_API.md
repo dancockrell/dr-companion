@@ -1,12 +1,5 @@
 # Python scripting API
 
-> **Rule 0 — never fork.** A problem is to be solved, never dodged. Fix the thing,
-> replace it outright, or delete the feature — those are the only three moves.
-> Never leave two answers to one question standing side by side, and never route
-> a parallel path around something you did not want to touch. That is a noodle to
-> nowhere, and it is the most serious thing you can do to this codebase.
-> Full rule: [`CLAUDE.md`](../CLAUDE.md).
-
 Decided in [ENGINE.md](ENGINE.md): Python is the scripting language this
 project offers, out-of-process, talking to the app over a documented socket
 rather than reaching into Ruby's or Rust's own state. This is that document.

@@ -14,6 +14,9 @@
   --color-surface: #0d0c0a;
   --color-surface-raised: #16140f;
   --color-surface-overlay: #211d16;
+  /* One depth cue for every modal. Keeping the alpha in the token prevents
+     dialogs from independently darkening the same game scene. */
+  --color-scrim: rgb(0 0 0 / 0.5);
 
   /* Vellum.
    *
@@ -73,6 +76,9 @@
   --color-warn: #d99a3c;
   --color-danger: #d2635a;
   --color-info: #7ba3c4;
+  /* Arcane actions need a named family rather than a raw framework palette
+     color. Keep this aligned with the purple map-pin identity. */
+  --color-magic: #a476dd;
 
   /* Scrollbar hardware, in the same aged-metal family as panel borders and
      controls. These remain visible against both ink surfaces and the pale
@@ -104,6 +110,87 @@ body {
   scrollbar-color: var(--color-scrollbar-thumb) transparent;
   scrollbar-width: thin;
 }
+
+/* Raw controls are common in the compact game surfaces. Give every native
+ * button the same short state continuity and visible keyboard affordance as
+ * the shared Button component. Component-specific transition utilities and
+ * focus rings remain more specific and may still override these defaults. */
+button {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform, filter;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Compact game controls should feel like objects from the world, not default
+ * desktop widgets. The inset rim, dark forged face and lower bevel are shared
+ * by the action deck and map vocabulary; colour and silhouette still carry
+ * meaning on each individual control. Keeping this code-native preserves the
+ * sharp, accessible icon set at every display scale. */
+.game-icon-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-width: 1px;
+  border-style: solid;
+  background-color: var(--color-surface-raised);
+  background-image:
+    radial-gradient(circle at 50% 14%, color-mix(in srgb, currentColor 18%, transparent) 0, transparent 46%),
+    linear-gradient(145deg, rgba(255, 246, 218, 0.08), transparent 42%, rgba(0, 0, 0, 0.28));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 210, 0.16),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.34),
+    0 2px 3px rgba(0, 0, 0, 0.34);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.game-icon-button::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 3px;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, currentColor 10%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+.game-icon-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, currentColor 70%, var(--color-border));
+  filter: brightness(1.16) saturate(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 220, 0.22),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.32),
+    0 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+.game-icon-button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.97);
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Shape is a second channel beside colour. These silhouettes denote families;
+ * each action or place still owns a unique pictogram and full tooltip. */
+.game-icon-button[data-game-shape="combat"],
+.game-icon-button[data-game-shape="danger"] { border-radius: 0.18rem 0.55rem; }
+.game-icon-button[data-game-shape="health"],
+.game-icon-button[data-game-shape="services"] { border-radius: 0.75rem 0.75rem 0.35rem 0.35rem; }
+.game-icon-button[data-game-shape="hunt"],
+.game-icon-button[data-game-shape="craft"] { border-radius: 0.55rem 0.18rem 0.55rem 0.18rem; }
+.game-icon-button[data-game-shape="goods"],
+.game-icon-button[data-game-shape="shops"] { border-radius: 0.22rem; }
+.game-icon-button[data-game-shape="magic"],
+.game-icon-button[data-game-shape="social"] { border-radius: 0.7rem 0.25rem; }
+.game-icon-button[data-game-shape="travel"],
+.game-icon-button[data-game-shape="home"] { border-radius: 9999px; }
+.game-icon-button[data-game-shape="info"],
+.game-icon-button[data-game-shape="landmark"] { border-radius: 0.25rem 0.25rem 0.65rem 0.65rem; }
+.game-icon-button[data-game-shape="utility"] { border-radius: 0.6rem; }
 
 /* Warm, tokenized scrollbar for WebView2 / Chromium. */
 ::-webkit-scrollbar {
@@ -173,7 +260,9 @@ body {
    * than layout. Remove the state change itself, not merely its easing. */
   [class*="hover:-translate-y"]:hover,
   [class*="active:translate-y"]:active,
-  [class*="active:scale-"]:active {
+  [class*="active:scale-"]:active,
+  .game-icon-button:hover,
+  .game-icon-button:active {
     transform: none !important;
   }
 }

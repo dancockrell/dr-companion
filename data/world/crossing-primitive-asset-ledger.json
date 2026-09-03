@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Admission ledger for the Crossing geometric 3D kit. A model is never a runtime asset until its status is approved and its packaged path is recorded. Generated scene images are reference-only art direction, never direct runtime geometry.",
+  "scenePlates": {
+    "crossing-town-green-north-east-v1": {
+      "status": "art-direction-reference",
+      "creationId": "Doar3Jipcl",
+      "tool": "Magnific text-to-image",
+      "promptSource": "docs/CROSSING_TTRPG_SCENE_PROMPTS.md#A-town-green-northeast-gathering-ground",
+      "role": "25m Town Green North/East composition reference; benchmark for the Godot mesh-assembly art direction.",
+      "runtimeUse": "reference-only",
+      "notRuntimeGeometry": true,
+      "reviewRequired": [
+        "Inspect at the Godot world/room camera crop, not only at full image size.",
+        "Verify the open green, north cobble/privet relationship, blank restrained frontage, and clear ancient-oak gathering ring.",
+        "Reject invented routes, named signage, crowds, inventory, or unsupported scenery.",
+        "Turn accepted observations into mesh-family, palette, density, and clear-lane requirements; never convert this whole image into a shipped Godot scene."
+      ]
+    }
+  },
+  "sourceReferences": {
+    "G01": {
+      "creationId": "jU4Wp6jLD0",
+      "tool": "Magnific text-to-image",
+      "purpose": "Isolated source reference for the 5m open lawn tile; awaiting a conversion decision."
+    },
+    "P01": {
+      "creationId": "rgynM6Cxtc",
+      "tool": "Magnific text-to-image",
+      "purpose": "Isolated source reference for the centered 5m packed-earth route tile."
+    },
+    "H01": {
+      "creationId": "yizBvVWPW9",
+      "tool": "Magnific text-to-image",
+      "purpose": "Isolated source reference for the 5m straight privet hedge run; awaiting a conversion decision."
+    }
+  },
+  "assets": {
+    "P01": {
+      "status": "candidate",
+      "creationId": "TdmKs4fVNR",
+      "sourceImageCreationId": "rgynM6Cxtc",
+      "tool": "Magnific image-to-3D",
+      "origin": {
+        "kind": "owned-generation",
+        "provider": "Magnific",
+        "licenseReference": "Account-generated asset; retain creation IDs and applicable platform terms.",
+        "attribution": null
+      },
+      "model": "tripo-p1",
+      "faceLimit": 450,
+      "textureQuality": "none",
+      "purpose": "Connector-geometry conversion experiment for the 5m straight packed-earth path.",
+      "reviewRequired": [
+        "Verify a centered, unobstructed 2m north/south corridor at 5m tabletop scale.",
+        "Verify both route connectors match in position, width, and y=0 elevation.",
+        "Verify the grass/path edge does not include unsupported stones, roots, signs, or scenery.",
+        "Create the required low-detail LOD before approval."
+      ],
+      "runtimePath": null
+    },
+    "T01": {
+      "status": "candidate",
+      "creationId": "lJ6TMVtgv9",
+      "sourceImageCreationId": "8aHSUocIrU",
+      "tool": "Magnific image-to-3D",
+      "origin": {
+        "kind": "owned-generation",
+        "provider": "Magnific",
+        "licenseReference": "Account-generated asset; retain creation IDs and applicable platform terms.",
+        "attribution": null
+      },
+      "model": "tripo-p1",
+      "faceLimit": 450,
+      "textureQuality": "none",
+      "purpose": "First isolated primitive-conversion experiment for the compact Crossing shade tree.",
+      "reviewRequired": [
+        "Verify silhouette against the T01 brief at tabletop scale.",
+        "Verify a flat y=0 contact plane and a 2.5m footprint after import.",
+        "Verify no baked studio background, text, or unsupported roots/props.",
+        "Create the required low-detail LOD before approval."
+      ],
+      "runtimePath": null
+    }
+  }
+}

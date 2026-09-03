@@ -1,12 +1,5 @@
 # DR Companion — Lich Bridge Contract
 
-> **Rule 0 — never fork.** A problem is to be solved, never dodged. Fix the thing,
-> replace it outright, or delete the feature — those are the only three moves.
-> Never leave two answers to one question standing side by side, and never route
-> a parallel path around something you did not want to touch. That is a noodle to
-> nowhere, and it is the most serious thing you can do to this codebase.
-> Full rule: [`CLAUDE.md`](../CLAUDE.md).
-
 **Version:** 0.1  
 **Status:** Design + mock implemented; live Ruby side not yet shipped
 
@@ -872,43 +865,6 @@ also fix `$drch_reply`'s shape in the same pass** — a `HealthResult`-like
 double (respond_to `:wounds`/`:bleeders`/etc., not a `Hash`) or the
 success test will keep passing for a code path production still can't
 reach.
-
-```
-grep -n "def check_health" -A45 lich-scripts/companion_bridge.lic
-```
-
-Calls `DRCH.check_health`, wrapped in `rescue StandardError; nil; end`, then
-gates on `data.is_a?(Hash)`.
-
-**That gate is never true against a real Lich install, and this is a bug,
-not a documented limitation.** `DRCH.check_health`
-(`lib/dragonrealms/commons/common-healing.rb:22`) returns a `HealthResult`
-instance on success — a plain class (`grep -n "class HealthResult"
-lib/dragonrealms/commons/common-healing.rb` → not `< Hash`, no `Hash`
-ancestor), not a `Hash`. `HealthResult#[]` is defined for backward
-compatibility (`data['wounds']` would actually resolve, since `[]` forwards
-to `send(:wounds)`) — but the bridge's own `unless data.is_a?(Hash)` check
-rejects it before that method is ever called. **Every successful
-`DRCH.check_health` call is routed into the same fallback branch as a
-failed one**, which sends a raw `HEALTH` command and, at best, logs its raw
-text with no structured data at all (`[true, 'health read']`, nothing
-parsed). The wound/bleeder/poisoned/diseased branch below the `is_a?(Hash)`
-check — the one issue #4's injuries spec (above, in this file) is written
-against — is currently dead code. `downloads-8a` found the symptom (the
-harness always takes the fallback, because `DRCH` was unstubbed); this is
-the root cause, and it is not a harness artifact — an unstubbed test and a
-real Lich install hit the exact same branch for the same reason.
-
-**Not fixed here**, deliberately: the one-line fix (`data.respond_to?(:wounds)`
-in place of `data.is_a?(Hash)`) is trivial, but issue #4's spec above already
-claims this exact code path for a larger piece of work — persisting
-injuries across polls, the 13→4 severity bucketing, wiring into
-`status.injuries`. Changing the gate in isolation would make `check_health`
-start logging real wound text without doing any of that, which is a
-different, smaller change than #4 describes and could conflict with
-whoever implements it. Recording the finding here so #4's implementer
-starts from the right place instead of re-discovering that the primary
-path never ran.
 
 **`HealthResult` also exposes fields the bridge has never read even in the
 dead code**: `parasites`, `lodged`, `score`, `dead`, `vitality`, plus

@@ -256,6 +256,7 @@ export function MusicTransport({
           className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
           onClick={() => (failed ? retryMusic() : playing ? pauseMusic() : resumeMusic())}
           title={failed ? 'Retry music' : playing ? 'Pause music' : 'Play music'}
+          aria-label={failed ? 'Retry music' : playing ? 'Pause music' : 'Play music'}
         >
           {failed ? (
             <RefreshCw className="h-3.5 w-3.5 text-warn" />
@@ -274,7 +275,7 @@ export function MusicTransport({
         >
           <SkipForward className="h-3.5 w-3.5" />
         </button>
-        {/* min-w-16, max-w-[12rem], no flex-grow - deliberately not `flex-1`
+        {/* min-w-16, max-w-48, no flex-grow - deliberately not `flex-1`
           * (29 Aug 2026, still true after the scrubber moved to its own row
           * 30 Aug 2026). `flex-1` gives an element `flex-basis: 0%`, so it
           * grows to fill whatever space nothing else claims *regardless of
@@ -292,7 +293,7 @@ export function MusicTransport({
           (onTitleClick ? (
             <button
               type="button"
-              className="min-w-16 max-w-[12rem] truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
+              className="min-w-16 max-w-48 truncate text-left text-xs text-ink-muted hover:text-ink hover:underline"
               title={
                 (now ? `${nowLabel}${now.composer ? ` — ${now.composer}` : ''}${now.error ? ` — ${now.error}` : ''}` : 'Silent') +
                 ' — open Sound'
@@ -303,7 +304,7 @@ export function MusicTransport({
             </button>
           ) : (
             <span
-              className="min-w-16 max-w-[12rem] truncate text-xs text-ink-muted"
+              className="min-w-16 max-w-48 truncate text-xs text-ink-muted"
               title={now ? `${nowLabel}${now.composer ? ` — ${now.composer}` : ''}${now.error ? ` — ${now.error}` : ''}` : 'Silent'}
               role={failed ? 'alert' : undefined}
             >
@@ -365,6 +366,7 @@ export function MusicTransport({
               className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
               onClick={() => (failed ? retryMusic() : playing ? pauseMusic() : resumeMusic())}
               title={failed ? 'Retry music' : playing ? 'Mute music' : 'Unmute music'}
+              aria-label={failed ? 'Retry music' : playing ? 'Mute music' : 'Unmute music'}
             >
               {vol <= 0 ? (
                 <VolumeX className="h-3.5 w-3.5" />
@@ -379,7 +381,11 @@ export function MusicTransport({
               min={0}
               max={150}
               value={Math.round(vol * 100)}
-              onChange={(e) => setMusicVolume(Number(e.currentTarget.value) / 100)}
+              onChange={(e) => {
+                const next = Number(e.currentTarget.value) / 100
+                setMusicVolume(next)
+                savePrefs({ musicVolume: next })
+              }}
               className="w-12 min-w-9 shrink accent-accent sm:w-16"
               title={`Music volume: ${Math.round(vol * 100)}%`}
               aria-label="Music volume (quick)"

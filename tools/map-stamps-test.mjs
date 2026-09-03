@@ -5,10 +5,14 @@ import ts from 'typescript'
 
 const dir = join('node_modules', '.drc-test')
 mkdirSync(dir, { recursive: true })
+const colorsOut = join(dir, 'mapPlaceColors.mjs')
+writeFileSync(colorsOut, ts.transpileModule(readFileSync('src/lib/mapPlaceColors.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText)
 const landmarksOut = join(dir, 'mapLandmarks.mjs')
 writeFileSync(landmarksOut, ts.transpileModule(readFileSync('src/lib/mapLandmarks.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText)
+}).outputText.replace("'./mapPlaceColors'", "'./mapPlaceColors.mjs'"))
 const out = join(dir, 'mapStamps.mjs')
 writeFileSync(out, ts.transpileModule(readFileSync('src/lib/mapStamps.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -130,6 +134,8 @@ let levels = 0
 let repeatedCompositions = 0
 let busiestComposition = 0
 let straySeals = 0
+let marketV2Reachable = false
+let highlandV2Reachable = false
 for (const file of readdirSync('src/data/map').filter((name) => name !== 'index.json')) {
   const zone = JSON.parse(readFileSync(`src/data/map/${file}`, 'utf8'))
   for (const level of [...new Set(zone.rooms.map((r) => r.z ?? 0))]) {
@@ -142,6 +148,8 @@ for (const file of readdirSync('src/data/map').filter((name) => name !== 'index.
     if (stamps.length) terrainZones++
     if (stamps.length >= 4) repeatedCompositions++
     busiestComposition = Math.max(busiestComposition, stamps.length)
+    if (stamps.some((stamp) => stamp.kind === 'market' && stamp.role !== 'background' && stamp.variant % 2 === 1)) marketV2Reachable = true
+    if (stamps.some((stamp) => stamp.kind === 'highland' && stamp.role === 'background')) highlandV2Reachable = true
   }
   zones++
 }
@@ -150,6 +158,8 @@ check('no drawable level carries a meaningless compass', straySeals === 0, `${le
 check('terrain information appears across most of the world', terrainZones >= 60, `${terrainZones} mapped levels`)
 check('many shipped maps receive a multi-stamp composition', repeatedCompositions >= 35, `${repeatedCompositions} mapped levels`)
 check('no shipped sheet exceeds the legibility ceiling', busiestComposition <= 64, `${busiestComposition} marks on the busiest sheet`)
+check('the approved market replacement is reachable on shipped maps', marketV2Reachable)
+check('the approved highland replacement is reachable on shipped maps', highlandV2Reachable)
 
 console.log('\n-- the visual layer stays below function --')
 const canvas = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')
@@ -161,8 +171,16 @@ check('every impression identifies its stamp family for live QA', layer.includes
 check('every impression declares background, illustration, or hero role', layer.includes('data-map-stamp-role'))
 check('layout never searches blank paper or globally spreads stamps', !derivation.includes('illustrationPoint') && !derivation.includes('spreadStamps') && derivation.includes('structuralPlacement'))
 check('map art uses generated raster engravings', layer.includes('<image') && layer.includes('STAMP_ART') && layer.includes('href={image.href}'))
+check('featured art has deterministic variant selection', layer.includes('featuredVariants[stamp.variant % featuredVariants.length]'))
 check('the primitive path renderer has been removed', !layer.includes('<path') && !layer.includes('<circle') && !layer.includes('<text') && !layer.includes('function Tree') && !layer.includes('function Peak') && !layer.includes('MapDrawing'))
 check('engraved ink is integrated into parchment', layer.includes("mixBlendMode: 'multiply'") && layer.includes('preserveAspectRatio="xMidYMid meet"'))
+check('pixel-rejected atlas crops are recorded with reasons', layer.includes('REJECTED_STAMP_ART') && layer.includes('adjacent roof fragment') && layer.includes('second cut-off ridge'))
+const runtimeCatalog = layer.slice(layer.indexOf('const STAMP_ART'), layer.indexOf('/**\n * Pictorial cartography'))
+check('rejected atlas crops cannot be selected at runtime', !runtimeCatalog.includes("atlas/13.png") && !runtimeCatalog.includes("atlas/21.png"))
+for (const assetPath of ['public/map-stamps/market-v2.png', 'public/map-stamps/highland-v2.png']) {
+  const asset = existsSync(assetPath) ? readFileSync(assetPath) : Buffer.alloc(0)
+  check(`${assetPath.split('/').pop()} is a reviewed transparent replacement`, asset.length > 100_000 && asset[25] === 6 && layer.includes(`/${assetPath.replace('public/', '')}`), `${asset.length} bytes`)
+}
 const stampKinds = ['water', 'woodland', 'highland', 'underground', 'settlement', 'ruins', 'wetland', 'coast', 'arid', 'cultivated', 'frozen', 'burial', 'worship', 'fortification', 'bridge', 'harbor', 'market', 'service-bank', 'service-healer', 'service-guild', 'service-inn', 'service-forge', 'service-library', 'service-training', 'service-gate', 'service-arcane', 'service-civic']
 for (const kind of stampKinds) {
   const assetPath = `public/map-stamps/${kind}.png`
@@ -175,7 +193,12 @@ for (let index = 1; index <= 30; index++) {
   const name = String(index).padStart(2, '0')
   const assetPath = `public/map-stamps/atlas/${name}.png`
   const asset = existsSync(assetPath) ? readFileSync(assetPath) : Buffer.alloc(0)
-  check(`Magnific atlas cell ${name} is a transparent runtime asset`, layer.includes(`/map-stamps/atlas/${name}.png`) && asset.length > 10_000 && asset[25] === 6, `${asset.length} bytes`)
+  const isRejected = index === 13 || index === 21
+  check(
+    `Magnific atlas cell ${name} is a transparent ${isRejected ? 'retained source asset' : 'runtime asset'}`,
+    asset.length > 10_000 && asset[25] === 6 && (isRejected || runtimeCatalog.includes(`/map-stamps/atlas/${name}.png`)),
+    `${asset.length} bytes`
+  )
 }
 check('gateway destinations are visibly continued off the sheet', canvas.includes('data-map-gateway-callout="true"') && canvas.includes('shortGatewayLabel') && canvas.includes('hasGatewaysOnLevel'))
 check('duplicate gateways share one destination label', canvas.includes('byDestination') && canvas.includes('candidates.reduce'))

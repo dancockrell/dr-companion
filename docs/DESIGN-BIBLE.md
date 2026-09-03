@@ -1,12 +1,5 @@
 # Design bible
 
-> **Rule 0 — never fork.** A problem is to be solved, never dodged. Fix the thing,
-> replace it outright, or delete the feature — those are the only three moves.
-> Never leave two answers to one question standing side by side, and never route
-> a parallel path around something you did not want to touch. That is a noodle to
-> nowhere, and it is the most serious thing you can do to this codebase.
-> Full rule: [`CLAUDE.md`](../CLAUDE.md).
-
 Written after building four layout mechanisms in one afternoon — a panel
 stack, a column flow, a free canvas, a docking model — each invented on the
 spot to fix the last one, none of them designed. The result rendered the map
@@ -50,10 +43,15 @@ There is not a second one.
   Squeezing degrades everything at once and silently.
 - **Something is always on screen.** The last region never folds away.
 
-**No columns.** A column flow rearranges things under the player without being
-asked, and at width it simply makes boxes wider, which buys nothing.
+**No automatic column flow.** A browser-like grid that silently rearranges
+things under the player is not a layout contract. The client *does* use
+purposeful columns: Map, Battle, Game/Scripts, room/inventory, and Skills have
+stable jobs and shared splitters. At width those regions earn their space;
+they do not become arbitrary wider cards.
 
-So: two modes, docked and free, and no third.
+So: two modes, docked and free, and no third. Docked regions may sit beside
+one another when that keeps a tactical fact visible. They fold only at a named
+breakpoint, never because an individual panel guessed it needed more room.
 
 **Free placement is supported**, as a mode the player turns on by dragging a
 panel out of its region. Overruled here after this document first banned it:
@@ -65,27 +63,30 @@ Docked is the default because it needs no arrangement. Free is one drag away
 and one control back, and in free mode the same two rules still hold: nothing
 leaves the window, and nothing overlaps anything else.
 
-## 3. The map is a drawer
+## 3. The map is a first-class workspace
 
-The map is not a panel and does not live in the stack. It **slides in and out
-from the left edge**, and it is the only thing that does.
+The map is a durable docked region, normally at the left of the workspace, and
+can be popped out into its own window. It is not a disposable drawer. Travel,
+gateway choices, landmarks, pinning, and the player's position are all facts a
+player may need while reading the battle and game stream beside it.
 
-It earns that because it is the one surface that is *watched* rather than
-consulted. A panel competing for vertical space in a column loses that argument
-every time. A drawer is open when you are travelling and shut when you are not,
-and the state is one control, not a layout negotiation.
-
-The map is drawn once. If it appears twice, that is a bug, not a feature.
+It earns its full measured viewport: no empty priority panel may borrow its
+width, and the chart never preserves a fake natural aspect ratio that leaves a
+dead black half-column. The docked and popped-out maps share the same toolbar,
+pin rail, keyboard navigation, and map state. The map is drawn once per window;
+two charts in one surface remain a bug, not a feature.
 
 ### Drawing rooms
 
-- The cartography has a **native 10px grid**: 1,221 of Crossing's connections
-  are exactly 10px apart. Draw at that spacing. Do not fit a zone into a box —
-  that squashes an authored layout into porridge.
+- The cartography has a **native 10px grid**: authored geometry is retained in
+  map coordinates and transformed by one measured viewport. Fit, zoom, drag,
+  touch, and resize may never write competing transforms.
 - **Rooms never overlap and never cross their container.** A room box is
   smaller than the grid step so neighbours cannot touch.
-- Draw the **local area**, not the zone. 220 rooms around the character, walked
-  outward along real exits. A player navigates by what is near them.
+- Draw the **full verified zone** by default. The player can fit the whole
+  world area, then zoom and grab-scroll to a local route without throwing away
+  genuine exits or landmarks. Unresolved topology is visibly unresolved; it is
+  never guessed into the map.
 
 ## 4. Say what things are, in the game's words
 
@@ -157,10 +158,21 @@ The current build has huge borders and huge margins. Both are wrong.
 - Two modes, **basic** and **power**, not a settings tree.
 - Boundaries drag. Decks pin their density. Panels tear off into their own
   window. All of it persists per mode.
-- **No menus.** A control that hides its own state behind a click costs a click
-  to discover what it is.
+- A compact disclosure is allowed when it prevents an unbounded row: saved
+  pins, large item piles, and container contents may open a named, keyboard
+  reachable list. A disclosure must say what it contains and return focus when
+  closed; it is not a hiding place for a second control system.
 
-## 9. The test for any new element
+## 9. Ownership and overflow
+
+Every player-visible region has one owner and one failure mode. A component may
+contribute data or an action, but it does not get to create a rival header,
+command bar, or scroll surface. The current ownership table lives in
+[`INFORMATION-OWNERSHIP.md`](./INFORMATION-OWNERSHIP.md) and is part of this
+contract: changes to a region's responsibility update that table and its
+behavioral test together.
+
+## 10. The test for any new element
 
 Before adding anything, answer: **what question does this answer, at the moment
 the player glances at it?**

@@ -7,10 +7,10 @@
  * can schedule the next step. That invariant rules out lifting the driver,
  * or even a handle to it, into the store.
  *
- * What crosses instead is a plain notification with no state and nothing to
- * schedule: call `requestStopAll()` (or Pause's, or Resume's) and every
- * current subscriber's callback runs once, synchronously. One factory, four
- * independent channels, so Pause firing never also fires Stop's subscribers.
+ * What crosses instead is a direct request to both task backends. Stop cannot
+ * depend on a panel subscriber: the Tasks and scripts panel may be hidden or
+ * popped out while its Python or TypeScript process keeps running. Pause and
+ * Resume retain local notification channels in addition to their Rust gate.
  *
  * # What changed when flows became Python
  *
@@ -23,7 +23,9 @@
  * reach only the flows this app shipped, and now they hold every automated
  * command, including scripts this app never started.
  */
-import { setPaused } from './pythonTasks'
+import { setPaused, stopTask } from './pythonTasks'
+import { stopNodeTask } from './nodeTasks'
+import { stopAllTaskBackends } from './stopAllTasks'
 
 type Listener<T> = (payload: T) => void
 
@@ -42,7 +44,6 @@ function createSignal<T = void>() {
   }
 }
 
-const stopAll = createSignal()
 const pauseAll = createSignal()
 const resumeAll = createSignal()
 // Carries a flow id (and, since two backends can each own that id — a
@@ -53,8 +54,16 @@ const resumeAll = createSignal()
 // extended to the one verb they didn't cover.
 const startFlow = createSignal<{ id: string; lang?: 'python' | 'typescript' }>()
 
-export const onStopAll = stopAll.on
-export const requestStopAll = () => stopAll.request()
+/**
+ * Stop both client-owned task processes without relying on mounted UI.
+ *
+ * `allSettled` is deliberate: one backend being absent or failing must never
+ * prevent the other stop request from being attempted, and a caller that does
+ * not await this safety action must not create an unhandled rejection.
+ */
+export function requestStopAll(): void {
+  void stopAllTaskBackends(stopTask, stopNodeTask)
+}
 
 export const onPauseAll = pauseAll.on
 

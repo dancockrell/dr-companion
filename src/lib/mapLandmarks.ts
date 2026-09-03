@@ -1,5 +1,6 @@
 import type { MapZoneRoom } from '../bridge/types'
 import type { PinColor, PinIcon } from './mapPins'
+import { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors'
 
 export type LandmarkKind =
   | 'bank'
@@ -22,6 +23,15 @@ export type LandmarkKind =
   | 'office'
   | 'justice'
   | 'post'
+  | 'locksmith'
+  | 'jeweler'
+  | 'tailor'
+  | 'food'
+  | 'stable'
+  | 'performance'
+  | 'bath'
+  | 'auction'
+  | 'storage'
 
 export interface MapLandmark {
   kind: LandmarkKind
@@ -58,11 +68,20 @@ const RULES: Array<{
   pattern: RegExp
   excludePattern?: RegExp
 }> = [
-  { kind: 'healer', label: 'Healer', icon: 'hospital', color: 'green', pattern: /\b(healer|empath|hospital|triage|infirmary|herbal remed)/i },
+  { kind: 'healer', label: 'Healer', icon: 'hospital', color: COMMON_PLACE_PIN_COLORS.healer, pattern: /\b(healer|empath|hospital|triage|infirmary|herbal remed)/i },
   { kind: 'justice', label: 'Court, jail, or constabulary', icon: 'scale', color: 'red', pattern: /\b(court|courthouse|justice|constab\w*|magistrate|jail|gaol|prison|guard office)\b/i, excludePattern: /\bfood\s+court\b/i },
   { kind: 'post', label: 'Post, records, or registry', icon: 'scroll-text', color: 'blue', pattern: /\b(post office|registry|registrar|records office|clerk'?s office|licensing)/i },
+  { kind: 'locksmith', label: 'Locksmith', icon: 'key-round', color: 'gold', pattern: /\b(locksmith|lockpick|lock pick|keymaker|key maker)/i },
+  { kind: 'jeweler', label: 'Jeweler', icon: 'gem', color: 'blue', pattern: /\b(jewel(?:er|ler|ry)|gem shop|gemcutter|gem cutter|lapidar)/i },
+  { kind: 'tailor', label: 'Tailor or outfitter', icon: 'scissors', color: 'blue', pattern: /\b(tailor|seamstress|clothier|clothing|haberdash|outfitter|weaver'?s shop)/i },
+  { kind: 'food', label: 'Food or provisions', icon: 'utensils', color: 'gold', pattern: /\b(bakery|baker|restaurant|kitchen|food shop|grocer|provisioner|butcher|confection|sweet shop)/i },
+  { kind: 'stable', label: 'Stable', icon: 'paw-print', color: 'gold', pattern: /\b(stables?|stablemaster|livery|horse yard)/i },
+  { kind: 'performance', label: 'Performance venue', icon: 'music', color: 'purple', pattern: /\b(theatre|theater|playhouse|concert hall|music hall|amphitheat|auditorium|performance hall)/i },
+  { kind: 'bath', label: 'Bathhouse', icon: 'bath', color: 'blue', pattern: /\b(bathhouse|baths|bathing room|hot springs?)/i },
+  { kind: 'auction', label: 'Auction house', icon: 'gavel', color: 'gold', pattern: /\b(auction|bidding hall)/i },
+  { kind: 'storage', label: 'Storage or locker', icon: 'warehouse', color: 'slate', pattern: /\b(storage|warehouse|locker|cloakroom|coat check)/i },
   { kind: 'office', label: 'Public office', icon: 'building', color: 'slate', pattern: /\b(office|bureau|administration|administrative|reception|secretary)/i },
-  { kind: 'bank', label: 'Bank or vault', icon: 'landmark', color: 'blue', pattern: /\b(bank|teller|vault|exchange|depository|carousel)\b/i },
+  { kind: 'bank', label: 'Bank or vault', icon: 'landmark', color: COMMON_PLACE_PIN_COLORS.bank, pattern: /\b(bank|teller|vault|exchange|depository|carousel)\b/i },
   { kind: 'trainer', label: 'Trainer', icon: 'dumbbell', color: 'gold', pattern: /\b(trainer|training (room|yard|field)|practice (room|yard)|recruitment office)\b/i },
   { kind: 'weapon', label: 'Weapons', icon: 'bow-arrow', color: 'red', pattern: /\b(weapons?|swords?|blades?|bowyer|fletcher|archery|arms dealer)\b/i },
   { kind: 'armor', label: 'Armor', icon: 'shield', color: 'blue', pattern: /\b(armor|armour|armory|shield|chainmail|plate)\b/i },
@@ -70,15 +89,22 @@ const RULES: Array<{
   { kind: 'magic', label: 'Magic', icon: 'wand-sparkles', color: 'purple', pattern: /\b(mages?|magic|magical|enchant|arcane|spell|talisman|wand|grimoire)\b/i },
   { kind: 'portal', label: 'Portal', icon: 'orbit', color: 'purple', pattern: /\b(portal|teleport|moongate|rift)\b/i },
   { kind: 'dock', label: 'Boat travel', icon: 'anchor', color: 'blue', pattern: /\b(dock|pier|ferry|barge|gondola|harbor|harbour|shipyard|wharf)\b/i },
-  { kind: 'guild', label: 'Guild or trainer', icon: 'graduation-cap', color: 'purple', pattern: /\b(guild|trainer|training (room|yard|field)|academy|headquarters|recruitment office)\b/i },
+  { kind: 'guild', label: 'Guild or trainer', icon: 'graduation-cap', color: COMMON_PLACE_PIN_COLORS.guild, pattern: /\b(guild|trainer|training (room|yard|field)|academy|headquarters|recruitment office)\b/i },
   { kind: 'travel', label: 'Travel connection', icon: 'route', color: 'blue', pattern: /\b(gate|dock|pier|ferry|barge|portal|tram|gondola|caravan|travel start|waystation|bridge)\b/i },
   { kind: 'temple', label: 'Temple or shrine', icon: 'church', color: 'purple', pattern: /\b(temple|shrine|altar|chapel|depart)\b/i },
   { kind: 'craft', label: 'Crafting', icon: 'hammer', color: 'gold', pattern: /\b(forge|smithy|workshop|workroom|crafting|alchemy|enchanting|engineering|outfitting|weaving|tannery|repair tools?)\b/i },
   { kind: 'library', label: 'Library or study', icon: 'book-open', color: 'slate', pattern: /\b(library|reading room|archive|scholarship|grimoire)\b/i },
   { kind: 'inn', label: 'Inn or tavern', icon: 'beer', color: 'gold', pattern: /\b(inn|tavern|taproom|pub|bar|alehouse|rest)\b/i },
-  { kind: 'shop', label: 'Shop or market', icon: 'shopping-basket', color: 'gold', pattern: /\b(shop|store|market|emporium|armory|weapons?|armor|outfitter|supplies|boutique|wares|cobblery)\b/i },
+  { kind: 'shop', label: 'Shop or market', icon: 'shopping-basket', color: COMMON_PLACE_PIN_COLORS.shop, pattern: /\b(shop|store|market|emporium|armory|weapons?|armor|outfitter|supplies|boutique|wares|cobblery)\b/i },
   { kind: 'hunt', label: 'Hunting or danger', icon: 'crosshair', color: 'red', pattern: /\b(hunting|target range|goblins?|boars?|rats?|ogres?|wyverns?|vipers?|zombies?|undead|spirits?|bloodvines?|moths?|gryphons?|deer|cougars?|wolves|vermin)\b/i },
 ]
+
+/** One category-to-icon/color contract shared by every map surface. */
+export function landmarkPresentation(kind: LandmarkKind): Pick<MapLandmark, 'icon' | 'color'> {
+  const rule = RULES.find((candidate) => candidate.kind === kind)
+  if (!rule) throw new Error(`Unknown landmark kind: ${kind}`)
+  return { icon: rule.icon, color: rule.color }
+}
 
 /**
  * Turn cartographer-authored labels and live Lich tags into visible landmarks.
@@ -115,7 +141,7 @@ export function landmarksFor(room: MapZoneRoom): MapLandmark[] {
   const specificKinds = new Set(hits.map(({ rule }) => rule.kind))
   const meaningful = hits
     .filter(({ rule }) => {
-      if (rule.kind === 'shop' && (specificKinds.has('weapon') || specificKinds.has('armor') || specificKinds.has('alchemy'))) return false
+      if (rule.kind === 'shop' && ['weapon', 'armor', 'alchemy', 'locksmith', 'jeweler', 'tailor', 'food', 'auction'].some((kind) => specificKinds.has(kind as LandmarkKind))) return false
       if (rule.kind === 'craft' && (specificKinds.has('alchemy') || specificKinds.has('magic'))) return false
       if (rule.kind === 'travel' && (specificKinds.has('dock') || specificKinds.has('portal'))) return false
       if (rule.kind === 'guild' && specificKinds.has('trainer')) return false

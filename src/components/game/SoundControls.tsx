@@ -35,7 +35,7 @@
  * output gate and never rewrites any of these four configured values.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio, Search, Siren, Skull, MessageCircle, Music2, Star, X, ListMusic, Plus, Check, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
+import { Volume2, Volume1, VolumeX, SkipBack, SkipForward, Play, Radio, Search, Siren, Skull, MessageCircle, Music2, Star, X, Trash2, ListMusic, Plus, Check, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
 import {
   playAlert,
   setAlertsVolume,
@@ -86,6 +86,7 @@ import { favoriteStations, onFavoritesChange, toggleFavorite, removeFavorite } f
 import { onOpenSoundPanelRequest } from '../../lib/soundPanelOpen'
 import { cn } from '../../lib/cn'
 import { masterMuted, onMasterMuteChange, setMasterMuted } from '../../lib/audioMaster'
+import { alertPlaybackFailures, onAlertPlaybackFailuresChange } from '../../lib/alertPlaybackStatus'
 import { MusicTransport } from './MusicTransport'
 
 /** Search results cap - the pool is 178 tracks (29 Aug 2026: down from 217
@@ -537,7 +538,8 @@ export function SoundControls() {
   }, [open])
 
   /*
-   * Sounds the loader asked for and could not find.
+   * Sounds the loader could not find, plus files that loaded but the game
+   * window could not play.
    *
    * `alertSound.ts` has recorded these all along - the note from `read_sound`
    * on a miss, the exception text on a throw - specifically so a config naming
@@ -546,18 +548,23 @@ export function SoundControls() {
    * failure mode: an alert that should fire is silent, the app knows exactly
    * which file is absent and why, and never says so.
    *
-   * Polled rather than subscribed because the map is a plain Map with no
-   * change notification, and adding one to the audio path for a diagnostic
-   * panel is the wrong trade. Two seconds, only while the panel is open, so
-   * a miss that happens while somebody is looking still appears.
+   * Missing-file diagnostics are polled because that cache predates change
+   * notifications. Playback failures do publish immediately, so a blocked
+   * preview appears while the listener is still looking at the mixer.
    */
-  const [missingList, setMissingList] = useState<Array<[string, string]>>([])
+  const [soundFailures, setSoundFailures] = useState<Array<[string, string]>>([])
   useEffect(() => {
     if (!open) return
-    const read = () => setMissingList([...missingSounds().entries()])
+    const read = () => setSoundFailures([
+      ...new Map([...missingSounds(), ...alertPlaybackFailures()]).entries(),
+    ])
     read()
     const t = setInterval(read, 2000)
-    return () => clearInterval(t)
+    const unsubscribe = onAlertPlaybackFailuresChange(read)
+    return () => {
+      clearInterval(t)
+      unsubscribe()
+    }
   }, [open])
 
   const overallPct = Math.round(((alerts + danger + speech + music) / 4) * 100)
@@ -589,7 +596,7 @@ export function SoundControls() {
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 z-50 mb-1 max-h-[80vh] w-96 overflow-y-auto rounded-lg border border-border bg-surface p-3 shadow-2xl">
+        <div className="absolute bottom-full right-0 z-40 mb-1 max-h-[80vh] w-96 overflow-y-auto rounded-lg border border-border bg-surface p-3 shadow-2xl">
           <div className="mb-2 text-xs font-semibold text-ink">Sound</div>
 
           <SectionLabel>Alerts</SectionLabel>
@@ -608,7 +615,7 @@ export function SoundControls() {
                 // A quick way to hear where the slider landed, the same
                 // sound the idle warning uses - trying a volume by waiting
                 // for the next real alert is not feedback.
-                () => playAlert('Thunder.wav', 'alert')
+                () => playAlert('Thunder.wav', 'alert', { preview: true })
               )}
             />
             <ChannelRow
@@ -622,7 +629,7 @@ export function SoundControls() {
                 setDanger,
                 setDangerVolume,
                 (v) => savePrefs({ dangerVolume: v }),
-                () => playAlert('Growl.wav', 'danger')
+                () => playAlert('Growl.wav', 'danger', { preview: true })
               )}
             />
             <ChannelRow
@@ -636,7 +643,7 @@ export function SoundControls() {
                 setSpeech,
                 setSpeechVolume,
                 (v) => savePrefs({ speechVolume: v }),
-                () => playAlert('Whisper.wav', 'speech')
+                () => playAlert('Whisper.wav', 'speech', { preview: true })
               )}
             />
           </div>
@@ -644,15 +651,15 @@ export function SoundControls() {
           {/* Only when there are some. A permanent "0 missing" row would be
             * one more thing to skim past, and this needs to be read on the
             * one day it appears. */}
-          {missingList.length > 0 && (
+          {soundFailures.length > 0 && (
             <div className="mt-2 rounded border border-warn/40 bg-warn/5 px-2 py-1.5">
               <div className="mb-1 text-xs font-medium text-warn">
-                {missingList.length === 1
+                {soundFailures.length === 1
                   ? '1 sound could not be played'
-                  : `${missingList.length} sounds could not be played`}
+                  : `${soundFailures.length} sounds could not be played`}
               </div>
               <ul className="flex flex-col gap-0.5">
-                {missingList.map(([name, note]) => (
+                {soundFailures.map(([name, note]) => (
                   <li key={name} className="text-xs text-ink-muted">
                     <span className="font-mono text-ink">{name}</span>
                     {note ? <span className="text-ink-faint"> — {note}</span> : null}
@@ -662,7 +669,7 @@ export function SoundControls() {
               {/* The name is the actionable part: it is what the config asked
                 * for, so it is what has to exist on disk. */}
               <div className="mt-1 text-xs text-ink-faint">
-                Named by a highlight or alert but not found in the sounds folder.
+                A source may be missing, blocked by playback policy, or unsupported by this game window.
               </div>
               {/* resetAlerts() already existed and cleared exactly this cache -
                 * nothing called it, so a file dropped into the sounds folder
@@ -673,7 +680,7 @@ export function SoundControls() {
                 className="mt-1.5 rounded border border-warn/40 px-1.5 py-0.5 text-xs text-warn hover:bg-warn/10"
                 onClick={() => {
                   resetAlerts()
-                  setMissingList([...missingSounds().entries()])
+                  setSoundFailures([])
                 }}
               >
                 Reload sounds
@@ -822,7 +829,7 @@ export function SoundControls() {
                           title={`Remove ${f.name} from favorites`}
                           aria-label={`Remove ${f.name} from favorites`}
                         >
-                          <X className="h-3 w-3" />
+                          <Trash2 aria-hidden="true" className="h-3 w-3" />
                         </button>
                       </div>
                     )
@@ -908,7 +915,7 @@ export function SoundControls() {
                             title={`Delete "${p.name}"`}
                             aria-label={`Delete ${p.name}`}
                           >
-                            <X className="h-3 w-3" />
+                            <Trash2 aria-hidden="true" className="h-3 w-3" />
                           </button>
                         </div>
                         {expanded && (
@@ -935,8 +942,9 @@ export function SoundControls() {
                                       className="shrink-0 text-ink-faint hover:text-warn"
                                       onClick={() => removeTrackFromPlaylist(p.id, id)}
                                       title={`Remove "${t.title}" from ${p.name}`}
+                                      aria-label={`Remove ${t.title} from ${p.name}`}
                                     >
-                                      <X className="h-3 w-3" />
+                                      <Trash2 aria-hidden="true" className="h-3 w-3" />
                                     </button>
                                   </div>
                                 )

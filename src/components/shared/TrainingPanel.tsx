@@ -12,9 +12,11 @@ import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
 import {
   suggestTraining,
   nextTrainingTarget,
+  emptySkillsReason,
 } from '../../data/skills'
 import { activityTrainingFor } from '../../data/activityTraining'
 import { PLAY_SONGS, PLAY_MOODS, moodDifficulty, buildPlayCommand } from '../../data/performance'
+import { useMacroRunner } from '../../lib/useMacroRunner'
 
 /**
  * The PLAY picker (issue #12).
@@ -26,12 +28,12 @@ import { PLAY_SONGS, PLAY_MOODS, moodDifficulty, buildPlayCommand } from '../../
  * Nothing is sent until Practice is pressed; this only builds the command.
  */
 function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
-  const requestIntent = useAppStore((s) => s.requestIntent)
   const addLog = useAppStore((s) => s.addLog)
   const bridgeIntents = useAppStore((s) => s.bridgeIntents)
   const [song, setSong] = useState(PLAY_SONGS[0].id)
   const [mood, setMood] = useState('')
   const [instrument, setInstrument] = useState(instrumentGuess)
+  const macro = useMacroRunner()
 
   const difficulty = mood ? moodDifficulty(mood) : 'neutral'
   // run_macro has no handler in companion_bridge.lic as of this writing (see
@@ -93,12 +95,12 @@ function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
         </span>
         <button
           type="button"
-          disabled={!instrument.trim() || !macroAvailable}
-          title={macroAvailable ? undefined : 'Not yet implemented in the connected bridge.'}
+          disabled={!instrument.trim() || !macroAvailable || !macro.canSend}
+          title={macroAvailable ? (macro.reason ?? undefined) : 'Not yet implemented in the connected bridge.'}
           onClick={() => {
             const cmd = buildPlayCommand(song, mood, instrument)
             addLog(`Practicing: ${cmd}`)
-            requestIntent('run_macro', { commands: [cmd] })
+            macro.run([cmd])
           }}
           className="shrink-0 rounded border border-accent/40 bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -110,6 +112,9 @@ function PlayPicker({ instrumentGuess }: { instrumentGuess: string }) {
           The connected bridge doesn't run commands yet (run_macro isn't implemented) — this builds the
           right command but can't send it until that lands.
         </p>
+      )}
+      {macroAvailable && macro.reason && (
+        <p className="text-xs text-warn leading-snug">{macro.reason}</p>
       )}
     </div>
   )
@@ -176,22 +181,10 @@ export function TrainingPanel({ dense: _dense = false }: { dense?: boolean }) {
   if (!character) return null
 
   if (skills.length === 0) {
-    /*
-     * Two reasons for an empty list, and they need different words.
-     *
-     * `skillsReady` is false only while DRInfomon's post-login startup is
-     * still filling skills in - about a second. The bridge has sent that flag
-     * since it was written (companion_bridge.lic:636) and the type has carried
-     * it with a comment saying exactly what it is for. Nothing read it, so
-     * this panel blamed the bridge either way, and during that window the
-     * message below was not merely vague but wrong: the bridge is current, it
-     * does report ranks and mindstate, and the data is a second out.
-     *
-     * Undefined means a bridge or mock predating the field, which the type's
-     * own comment says to treat as the old always-ready behaviour rather than
-     * as a third state. So only an explicit `false` is the waiting case.
-     */
-    const waiting = character.skillsReady === false
+    // Which of the two empty cases this is - see emptySkillsReason in
+    // data/skills.ts, where the rule and its reasoning live, and
+    // tools/skills-empty-test.mjs, which holds it in place.
+    const waiting = emptySkillsReason(character.skillsReady) === 'waiting'
     return (
       <section className="pb-1.5 shrink-0">
         <h2 className="text-xs font-medium text-ink-faint uppercase tracking-wider mb-1.5">

@@ -159,5 +159,30 @@ console.log('\n-- against the real curated file, an edit changes only its own li
   }
 }
 
+console.log('\n-- icon-only config actions say exactly what they cancel --')
+{
+  const editors = [
+    ['AliasesEditor.tsx', 'alias'],
+    ['GagsEditor.tsx', 'gag'],
+    ['MacrosEditor.tsx', 'macro'],
+    ['SubstitutesEditor.tsx', 'substitute'],
+    ['HighlightsEditor.tsx', 'highlight'],
+  ]
+  for (const [file, noun] of editors) {
+    const source = readFileSync(`src/components/config/${file}`, 'utf8')
+    ok(`${noun} import close is named`, source.includes(`aria-label="Cancel ${noun} import"`))
+    ok(`${noun} editor close distinguishes new from edit`,
+      source.includes(`'Cancel new ${noun}'`) && source.includes(`'Cancel editing ${noun}'`))
+    ok(`${noun} close glyphs are decorative`,
+      (source.match(/<X aria-hidden="true"/g) ?? []).length >= 2)
+  }
+
+  const connect = readFileSync('src/components/first-run/ConnectGuide.tsx', 'utf8')
+  ok('copy command reports both action and success state',
+    connect.includes("copied ? 'Command copied' : 'Copy command'"))
+  ok('copy and success glyphs are decorative',
+    /<Check aria-hidden="true"/.test(connect) && /<Copy aria-hidden="true"/.test(connect))
+}
+
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

@@ -1,0 +1,228 @@
+{
+  "policy": {
+    "approvedProvenance": "Grok Imagine full pack 1938",
+    "sourceDirectory": "GROK_FULL_ART_PACK_1938/all",
+    "reviewMethod": "visual contact-sheet review at native 1792x1008 landscape resolution",
+    "admissionRule": "only reviewed Grok landscapes; no non-Grok or low-resolution filler"
+  },
+  "subjects": {
+    "forest-travel-expanded": {
+      "exactSubject": "unnamed mature forest travel in varied light",
+      "canonicalTraits": ["mature trees", "traversable forest floor", "strong natural depth"],
+      "habitat": "forest, woodland, grove and forest-road rooms; moonlit art only when night is supported",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/ancient-forest-36342832.jpg", "/grok-art/room-scenes/young-woodland-2d872f5f.jpg", "/grok-art/room-scenes/moonlit-forest-road-9c594ba5.jpg"],
+      "rejects": ["non-Grok forest renders", "moonlit scenes without night evidence"],
+      "regenerationNeeded": false
+    },
+    "natural-water-expanded": {
+      "exactSubject": "natural stream and wetland landing travel",
+      "canonicalTraits": ["visible water", "legible bank or landing", "environmental depth"],
+      "habitat": "streams, riverbanks, wetlands and small piers",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/autumn-mountain-stream-44d208fc.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/wetland-pier-dawn-2f9d3487.jpg"],
+      "rejects": ["non-Grok water renders", "urban harbor scenes for wilderness water"],
+      "regenerationNeeded": false
+    },
+    "catacomb-vault": {
+      "exactSubject": "old enclosed stone catacomb passage",
+      "canonicalTraits": ["buried masonry", "vaulted enclosure", "clear underground depth"],
+      "habitat": "catacombs, crypts, sewers and masonry underground rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/catacomb-vault-86126f69.jpg",
+      "approvedVariants": [],
+      "rejects": ["open wilderness caves without masonry", "non-Grok underground renders"],
+      "regenerationNeeded": false
+    },
+    "snow-country-expanded": {
+      "exactSubject": "windswept snowfield and frozen settlement travel",
+      "canonicalTraits": ["continuous snow cover", "cold exposed atmosphere", "readable route or settlement"],
+      "habitat": "snowfields and explicitly frozen cities",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/windswept-snowfield-93cbec8e.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/frozen-city-8ac67c07.jpg"],
+      "rejects": ["temperate streets", "frozen settlement art for empty wilderness"],
+      "regenerationNeeded": false
+    },
+    "lantern-bridges": {
+      "exactSubject": "substantial old stone bridges with lantern lighting",
+      "canonicalTraits": ["visible crossing structure", "stone construction", "strong approach and destination"],
+      "habitat": "named bridges and bridge approaches; lantern variant only for dim or night rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/stone-bridge-lanterns-dee585d4.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/lantern-bridge-night-5dbfe8ff.jpg"],
+      "rejects": ["ordinary riverbanks", "night bridge art without low-light evidence"],
+      "regenerationNeeded": false
+    },
+    "field-ruins-expanded": {
+      "exactSubject": "ancient ruins and standing stones in reclaimed open land",
+      "canonicalTraits": ["recognizable old stonework", "long abandonment", "vegetation reclaiming the site"],
+      "habitat": "ruins, standing stones and abandoned field monuments",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/ancient-field-ruins-9bf266af.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/standing-stone-glade-8d15e0af.jpg"],
+      "rejects": ["intact active civic structures", "non-Grok ruin renders"],
+      "regenerationNeeded": false
+    },
+    "tropical-island-village": {
+      "exactSubject": "small tropical waterside settlement",
+      "canonicalTraits": ["tropical vegetation", "visible water", "compact inhabited village"],
+      "habitat": "explicit tropical island or coastal village rooms",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/tropical-island-village-d6fb2276.jpg",
+      "approvedVariants": [],
+      "rejects": ["temperate inland towns", "empty tropical wilderness"],
+      "regenerationNeeded": false
+    },
+    "vineyard-road": {
+      "exactSubject": "cultivated vineyard road with lantern markers",
+      "canonicalTraits": ["ordered vines", "managed agricultural road", "rural depth"],
+      "habitat": "vineyards, wine estates and explicitly cultivated grape roads",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/vineyard-lantern-road-3734f583.jpg",
+      "approvedVariants": [],
+      "rejects": ["uncultivated grassland", "generic forest paths"],
+      "regenerationNeeded": false
+    },
+    "working-river-settlement": {
+      "exactSubject": "working river town, docks and covered piers",
+      "canonicalTraits": ["built waterfront", "working docks or boats", "dense settlement context"],
+      "habitat": "river towns, wharves, quays and covered piers; night variants only when supported",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/riverside-timber-town-5707fe76.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/working-river-docks-174a62c2.jpg", "/grok-art/room-scenes/lantern-pier-night-3f16f5eb.jpg", "/grok-art/room-scenes/covered-pier-night-ba01d7e4.jpg"],
+      "rejects": ["natural banks without settlement", "night docks without night evidence"],
+      "regenerationNeeded": false
+    },
+    "rainy-city-alley": {
+      "exactSubject": "rain-wet old-city alley",
+      "canonicalTraits": ["medieval-fantasy construction", "walkable public space", "visible rainy atmosphere"],
+      "habitat": "settled streets and alleys only when rain or wet streets are supported",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/rainy-city-alley-72b7a786.jpg",
+      "approvedVariants": [],
+      "rejects": ["wilderness rooms", "rain imagery without weather evidence", "portrait-oriented architecture used as a battle backdrop"],
+      "regenerationNeeded": false
+    },
+    "mountain-country-expanded": {
+      "exactSubject": "open mountain meadow and steep cliff valley",
+      "canonicalTraits": ["visible elevation", "mountain horizon", "legible traversable terrain"],
+      "habitat": "mountain meadows, high valleys, cliffs and passes",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/mountain-meadow-84245eb6.jpg",
+      "approvedVariants": ["/grok-art/room-scenes/cliff-valley-e8aa1349.jpg"],
+      "rejects": ["flat lowland fields", "urban streets without mountain context"],
+      "regenerationNeeded": false
+    },
+    "glasshouse-garden": {
+      "exactSubject": "cultivated enclosed glasshouse garden",
+      "canonicalTraits": ["managed planting", "glass enclosure", "formal garden circulation"],
+      "habitat": "glasshouses, conservatories and explicitly cultivated enclosed gardens",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/glasshouse-garden-4d19a989.jpg",
+      "approvedVariants": [],
+      "rejects": ["wild forest clearings", "open agricultural fields"],
+      "regenerationNeeded": false
+    },
+    "forest-hut": {
+      "exactSubject": "isolated small hut in mature forest",
+      "canonicalTraits": ["single rustic dwelling", "dense forest setting", "clear approach"],
+      "habitat": "explicit forest huts, hermit dwellings and isolated woodland shelters",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/forest-hut-6bc5be5d.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic forest without a dwelling", "dense town neighborhoods"],
+      "regenerationNeeded": false
+    },
+    "official-working-office": {
+      "exactSubject": "guildleader, guildmaster, registry, bank or public official's working office",
+      "canonicalTraits": ["substantial dark-wood desk", "books and ledgers", "organized record boxes", "brass balance for official work"],
+      "habitat": "titles explicitly naming a guildleader, guildmaster, registry, bank, teller, public office or records office; never a street named after a bank",
+      "currentImage": "/grok-art/room-scenes/guild-hall-441c3d78.jpg",
+      "approvedPrimary": null,
+      "approvedVariants": [],
+      "rejects": ["monumental marble guild hall for a private office", "leather workshop inferred from incidental furniture", "generic street named Bank Street"],
+      "regenerationNeeded": true,
+      "sourceFile": "b2888959-d3fe-4eea-bcf8-4702eafbf291.jpg",
+      "sha256": "d9113137f91aeb22f927d974b80abc4074c76c0bf031a6a7c1289d6c4e5b882b",
+      "rejectionReason": "Rejected after native-resolution review: the lower half is a flat gray incomplete payload."
+    },
+    "healer-ward": {
+      "exactSubject": "bright communal healer ward and infirmary",
+      "canonicalTraits": ["rows of clean beds", "herbal treatment table", "bright restorative interior", "clear patient circulation"],
+      "habitat": "titles explicitly naming a hospital, infirmary, healing ward, treatment room, sickroom or clinic",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/healer-ward-f3a8421c.jpg",
+      "approvedVariants": [],
+      "rejects": ["apothecary retail counters", "generic guild halls", "healer NPC references without a ward location"],
+      "regenerationNeeded": false,
+      "sourceFile": "f3a8421c-dc2d-49bb-984b-7122a6c752a2.jpg",
+      "sha256": "0851db658dffe5ee4f35f5f696338c33a2e0c06a7925ca7977915f030d664296"
+    },
+    "armory-service-room": {
+      "exactSubject": "enclosed armory and organized weapon storehouse",
+      "canonicalTraits": ["racked swords and polearms", "shields and helmets", "secure enclosed service counter", "lantern-lit stone and timber"],
+      "habitat": "titles explicitly naming an armory, armoury, arms room, weapon storehouse or weapon racks",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/armory-7142832a.jpg",
+      "approvedVariants": [],
+      "rejects": ["active training halls", "battlefields", "generic weapon mentions in room prose"],
+      "regenerationNeeded": false,
+      "sourceFile": "7142832a-f196-4970-85df-47f7cfe285d7.jpg",
+      "sha256": "865c4f51cbd6c01cd65c4cb2486c34205b4a7a57d5db491aa60b7df4e9c9c35b"
+    },
+    "locksmith-service-room": {
+      "exactSubject": "locksmith and lockpicking workshop",
+      "canonicalTraits": ["wall-mounted locks", "fine lock tools", "dark-wood work counter", "secure specialist interior"],
+      "habitat": "titles explicitly naming a locksmith, lock shop, lockpick shop or lockpicking workshop",
+      "currentImage": null,
+      "approvedPrimary": "/grok-art/room-scenes/locksmith-ee33bafb.jpg",
+      "approvedVariants": [],
+      "rejects": ["generic tool shops", "thieves' rooms without locksmith service", "incidental keys or locks in prose"],
+      "regenerationNeeded": false,
+      "sourceFile": "ee33bafb-409f-4bcd-9fbc-422a70b458c4.jpg",
+      "sha256": "8b932ef2b8708f960f0c02f5bd64d532f136adbd0bc8cc48f2828120150d12b3"
+    },
+    "working-tannery": {
+      "exactSubject": "working tannery with stretched hides and treatment vats",
+      "canonicalTraits": ["hides on frames", "treatment barrels", "cutting bench", "industrial masonry interior"],
+      "habitat": "titles explicitly naming a tannery, tanner's shop, tanning room or tanning workshop",
+      "currentImage": "/grok-art/room-scenes/leather-workshop-1390477d.jpg",
+      "approvedPrimary": null,
+      "approvedVariants": [],
+      "rejects": ["finished-leather retail shops", "incidental leather furniture", "generic outfitter rooms without tanning"],
+      "regenerationNeeded": true,
+      "sourceFile": "4299577b-b6a8-4fb0-80d6-cae4edf4952d.jpg",
+      "sha256": "28e02f69c1f48b67696f3a4d7f2b153124d0d4204687a7ac897d21182dc6a61c",
+      "rejectionReason": "Rejected after native-resolution review: the lower half is a flat gray incomplete payload."
+    },
+    "carpet-merchant": {
+      "exactSubject": "carpet and rug merchant's storeroom",
+      "canonicalTraits": ["rolled patterned rugs", "hanging carpets", "warm daylight", "dense merchant inventory"],
+      "habitat": "titles explicitly naming a carpet shop, carpet merchant, rug shop or rug merchant",
+      "currentImage": "/grok-art/room-scenes/textile-shop-1eed98c2.jpg",
+      "approvedPrimary": null,
+      "approvedVariants": [],
+      "rejects": ["generic textile workrooms", "unrelated market exteriors", "incidental floor rugs"],
+      "regenerationNeeded": true,
+      "sourceFile": "37558278-e8c4-4b86-b1bb-1e7c88bf6991.jpg",
+      "sha256": "296742aa6a1c18ef07d17d94726e8eb9892398b5eaa78538d634fdadb8fde975",
+      "rejectionReason": "Rejected after native-resolution review: a hard reconstruction seam is followed by a black lower band."
+    },
+    "glove-merchant": {
+      "exactSubject": "glove merchant and glover's fitted-goods shop",
+      "canonicalTraits": ["displayed gloves", "dark-wood shelving", "fitting mirror", "merchant writing desk"],
+      "habitat": "titles explicitly naming a glove shop, glover's shop or glove merchant",
+      "currentImage": "/grok-art/room-scenes/textile-shop-1eed98c2.jpg",
+      "approvedPrimary": null,
+      "approvedVariants": [],
+      "rejects": ["generic clothing stores", "offices without glove inventory", "incidental gloves in room prose"],
+      "regenerationNeeded": true,
+      "sourceFile": "94e50c0a-fb85-4df6-80fe-4b327cacd13f.jpg",
+      "sha256": "25b44d22d9d9662766c1bf7557bf1cfe6c6f283cc7e33bd58fb14938ba4364ac",
+      "rejectionReason": "Rejected after native-resolution review: the lower half is a flat gray incomplete payload."
+    }
+  }
+}

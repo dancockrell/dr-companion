@@ -1,0 +1,234 @@
+extends Node3D
+## The single world viewer's root scene script.
+##
+## Ties the autoloads together for one running viewer: loads a manifest,
+## starts the (currently mock-only) bridge, spawns cell content through
+## `ContentRegistry`, and drives `CameraDirector` off whatever room the
+## bridge says is current. This file owns wiring, not policy — it never
+## itself decides what a cell looks like (`ContentRegistry`'s job) or
+## whether a click is a legal walk (`IntentSender`/`BridgeClient`'s job).
+
+const MOCK_FIXTURE_PATH := "res://mock/crossing_mock_world.json"
+const MOCK_WORLD_ID := "crossing-mock"
+const MOCK_STARTING_ROOM := "1-14"  # Town Green North
+const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
+
+@onready var camera: Camera3D = $CameraDirector
+@onready var cell_root: Node3D = $CellRoot
+@onready var exit_root: Node3D = $ExitAnchors
+@onready var entity_projection: Node3D = $EntityProjection
+@onready var route_graph: Node3D = $RouteGraph
+@onready var route_transition: Node3D = $RouteTransition
+@onready var world_controls: CanvasLayer = $WorldControls
+@onready var world_inspector: CanvasLayer = $WorldInspector
+
+## cellId -> spawned Node3D, so a room change can clear/rebuild without
+## leaking nodes and without re-deriving which nodes belong to which cell.
+var _spawned_cells: Dictionary = {}
+var _active_detail_cells: Dictionary = {}
+var _visibility_policy := CellVisibilityPolicy.new()
+var _last_confirmed_room_id := ""
+
+func _ready() -> void:
+	BridgeClient.snapshot_updated.connect(_on_snapshot_updated)
+	BridgeClient.reconnected.connect(_on_snapshot_updated)
+	entity_projection.inspect_entity_requested.connect(_on_entity_inspect_requested)
+	entity_projection.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
+	world_controls.view_requested.connect(_on_view_requested)
+	world_controls.exit_requested.connect(_on_exit_requested)
+	world_inspector.inspect_entity_requested.connect(_on_entity_inspect_requested)
+	world_inspector.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
+	exit_root.exit_requested.connect(_on_exit_requested)
+
+	if _live_requested():
+		if not BridgeClient.start_live():
+			push_error("WorldRoot: live presentation bridge is unavailable")
+		return
+
+	if not WorldManifestLoader.load_from_path(MOCK_FIXTURE_PATH):
+		push_error("WorldRoot: failed to load mock fixture at %s" % MOCK_FIXTURE_PATH)
+		return
+	if not BridgeClient.start_mock(MOCK_WORLD_ID, MOCK_STARTING_ROOM):
+		push_error("WorldRoot: failed to start mock bridge at %s" % MOCK_STARTING_ROOM)
+		return
+
+	_prepare_all_cells()
+	route_graph.render_routes(WorldManifestLoader.cells)
+	_apply_detail_window(MOCK_STARTING_ROOM)
+	_project_snapshot_tokens(BridgeClient.current_snapshot)
+	_focus_room(MOCK_STARTING_ROOM, camera.Mode.ROOM)
+
+## Creates lightweight room holders and click targets for the whole loaded
+## graph. Detailed primitives are mounted separately by `_apply_detail_window`
+## so a city-sized manifest never instantiates every prop just to show a room.
+func _prepare_all_cells() -> void:
+	for child in cell_root.get_children():
+		child.queue_free()
+	_spawned_cells.clear()
+	_active_detail_cells.clear()
+
+	for cell_id in WorldManifestLoader.cells.keys():
+		var cell: Dictionary = WorldManifestLoader.cells[cell_id]
+		var holder := Node3D.new()
+		holder.name = "Cell_%s" % cell_id
+		holder.position = _cell_position(cell)
+		cell_root.add_child(holder)
+		_spawned_cells[cell_id] = holder
+		var content := Node3D.new()
+		content.name = "DetailContent"
+		holder.add_child(content)
+
+		# A clickable body per cell, so the mock viewer can turn a click into
+		# a focus-room intent even before real per-primitive collision
+		# shapes exist. Codex's content later adds its own collision where a
+		# specific mesh needs finer picking; this is the always-present
+		# fallback the contract needs for slice 0's acceptance gate.
+		var body := StaticBody3D.new()
+		body.name = "ClickTarget"
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(4.5, 1.0, 4.5)
+		shape.shape = box
+		body.add_child(shape)
+		body.input_event.connect(_on_cell_clicked.bind(cell_id))
+		holder.add_child(body)
+
+func _apply_detail_window(origin_id: String) -> void:
+	var window: Dictionary = _visibility_policy.detail_window(origin_id, WorldManifestLoader.cells)
+	var requested_ids: Array = window.get("detailIds", [])
+	var requested: Dictionary = {}
+	for cell_id in requested_ids:
+		requested[cell_id] = true
+
+	for cell_id in _active_detail_cells.keys():
+		if not requested.has(cell_id):
+			_unmount_cell_detail(cell_id)
+	for cell_id in requested.keys():
+		if not _active_detail_cells.has(cell_id):
+			_mount_cell_detail(cell_id)
+
+func _mount_cell_detail(cell_id: String) -> void:
+	var holder: Node3D = _spawned_cells.get(cell_id)
+	var cell: Dictionary = WorldManifestLoader.get_cell(cell_id)
+	if holder == null or cell.is_empty():
+		return
+	var content: Node3D = holder.get_node_or_null("DetailContent")
+	if content == null:
+		return
+	for primitive in cell.get("primitives", []):
+		content.add_child(ContentRegistry.build(cell, primitive))
+	_active_detail_cells[cell_id] = true
+
+func _unmount_cell_detail(cell_id: String) -> void:
+	var holder: Node3D = _spawned_cells.get(cell_id)
+	if holder == null:
+		_active_detail_cells.erase(cell_id)
+		return
+	var content: Node3D = holder.get_node_or_null("DetailContent")
+	if content != null:
+		for child in content.get_children():
+			child.free()
+	_active_detail_cells.erase(cell_id)
+
+func _cell_position(cell: Dictionary) -> Vector3:
+	var p: Dictionary = cell.get("position", {})
+	return Vector3(p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0))
+
+func _on_cell_clicked(_camera: Node, event: InputEvent, _pos: Vector3, _normal: Vector3, _shape_idx: int, cell_id: String) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var current_room: String = BridgeClient.current_snapshot.get("currentRoomId", "")
+		var exit := _exit_towards(current_room, cell_id)
+		if exit != "":
+			IntentSender.request_walk(current_room, exit)
+		else:
+			IntentSender.request_focus_room(cell_id)
+
+func _exit_towards(from_room_id: String, target_cell_id: String) -> String:
+	for exit in WorldManifestLoader.true_exits(from_room_id):
+		if exit.get("targetCellId", "") == target_cell_id:
+			return exit.get("move", "")
+	return ""
+
+func _on_snapshot_updated(snapshot: Dictionary) -> void:
+	var room_id: String = snapshot.get("currentRoomId", "")
+	if _spawned_cells.size() != WorldManifestLoader.cells.size() or (room_id != "" and not _spawned_cells.has(room_id)):
+		_prepare_all_cells()
+		route_graph.render_routes(WorldManifestLoader.cells)
+	if room_id != "" and not _last_confirmed_room_id.is_empty() and room_id != _last_confirmed_room_id and not _spawned_cells.is_empty():
+		route_transition.play_confirmed_route(_last_confirmed_room_id, room_id, WorldManifestLoader.cells)
+	if room_id != "":
+		_focus_room(room_id, camera.Mode.ROOM)
+		_apply_detail_window(room_id)
+		_last_confirmed_room_id = room_id
+	_rebuild_exit_anchors(room_id)
+	_project_snapshot_tokens(snapshot)
+
+func _live_requested() -> bool:
+	return OS.get_cmdline_user_args().has("--live-presentation")
+
+func _project_snapshot_tokens(snapshot: Dictionary) -> void:
+	# The projection layer owns only visual, deterministic room-local slots.
+	# It receives no independent positions, so it cannot turn a MUD occupant
+	# into a free-roaming world actor.
+	entity_projection.project_snapshot(snapshot, _spawned_cells)
+	world_inspector.render_snapshot(snapshot)
+
+func _on_entity_inspect_requested(entity_id: String) -> void:
+	IntentSender.request_inspect_entity(entity_id)
+
+func _on_ground_item_inspect_requested(item_id: String) -> void:
+	IntentSender.request_inspect_ground_item(item_id)
+
+func _focus_room(room_id: String, mode: int) -> void:
+	var cell: Dictionary = WorldManifestLoader.get_cell(room_id)
+	if cell.is_empty():
+		return
+	camera.focus_on(mode, _cell_position(cell))
+
+## Public camera controls for the host UI. They do not mutate MUD state and
+## do not change the detail budget: world view keeps the local bubble mounted
+## while the route mesh supplies the city-scale context.
+func focus_world_view() -> void:
+	if WorldManifestLoader.cells.is_empty():
+		return
+	var center := Vector3.ZERO
+	for cell in WorldManifestLoader.cells.values():
+		center += _cell_position(cell)
+	center /= float(WorldManifestLoader.cells.size())
+	camera.focus_on(camera.Mode.WORLD, center)
+
+func focus_current_room_view() -> void:
+	var room_id: String = BridgeClient.current_snapshot.get("currentRoomId", "")
+	if room_id != "":
+		_focus_room(room_id, camera.Mode.ROOM)
+
+func focus_route_view() -> void:
+	var room_id: String = BridgeClient.current_snapshot.get("currentRoomId", "")
+	if room_id != "":
+		_focus_room(room_id, camera.Mode.ROUTE)
+
+func _on_view_requested(view_id: String) -> void:
+	match view_id:
+		"world": focus_world_view()
+		"route": focus_route_view()
+		"room": focus_current_room_view()
+
+func _on_exit_requested(from_room_id: String, exit_move: String) -> void:
+	# Markers are rebuilt from snapshots, but the room check prevents a late
+	# click from an old frame from becoming a command in a new room.
+	if BridgeClient.current_snapshot.get("currentRoomId", "") == from_room_id:
+		IntentSender.request_walk(from_room_id, exit_move)
+
+## Both representations receive the identical true-exit collection. They also
+## converge on `_on_exit_requested`, which rechecks the current snapshot.
+func _rebuild_exit_anchors(room_id: String) -> void:
+	exit_root.render_exits(room_id, WorldManifestLoader.cells)
+	world_controls.render_exits(room_id, WorldManifestLoader.true_exits(room_id))
+
+## Host-facing copy of the accessible, non-3D-dependent exit labels.
+func exit_labels() -> Array:
+	var room_id: String = BridgeClient.current_snapshot.get("currentRoomId", "")
+	var labels: Array = []
+	for exit in WorldManifestLoader.true_exits(room_id):
+		labels.append(exit.get("move", ""))
+	return labels

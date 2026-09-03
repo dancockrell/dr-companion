@@ -16,14 +16,14 @@
  * this file's original design, where a route was previewed and moving stayed
  * a separate decision - see the comment on `goThere` below.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Map as MapIcon,
   RefreshCw,
   Layers,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
+  AppWindow,
   PanelRightClose,
   ZoomIn,
   ZoomOut,
@@ -65,6 +65,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
     zone,
     browsing,
     zoneStack,
+    arrivalIds,
     zoneLoading,
     zoneLoadError,
     retryZone,
@@ -163,12 +164,17 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   })
   const { containerRef, contentRef, x: panX, y: panY, dragging, handlers, zoomBy, fitView } = viewport
 
+  const fittedZoneRef = useRef<string | null>(null)
+
   // A room update must update the view, not only the red "here" marker in an
-  // off-screen part of a previously panned map. Return the docked map to fit
-  // when live location changes; deliberate browsing keeps its own view.
+  // off-screen part of a previously panned map. A newly followed cross-map
+  // link must also fit its destination once; later deliberate browsing pan is
+  // preserved.
   useEffect(() => {
-    if (browsing) return
-    fitView()
+    const zoneId = zone?.zone ?? null
+    const zoneChanged = fittedZoneRef.current !== zoneId
+    fittedZoneRef.current = zoneId
+    if (zoneChanged || !browsing) fitView()
   }, [browsing, fitView, hereId, level, zone?.zone])
 
   const character = useAppStore((s) => s.character)
@@ -556,12 +562,13 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
           is given, and a max-height box collapses to the content's own size —
           which for a small zone is a stamp in the corner.
           In plane mode the height comes from the column instead. */}
+      <div className={plane ? 'flex min-h-0 flex-1' : 'contents'}>
       <div
         ref={containerRef}
         title="Map colours: dark you, red hazard, blue bank/healer/guild/shop"
         className={`relative rounded ${
           `overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`
-        } ${plane ? 'flex-1 min-h-0' : ''}`}
+        } ${plane ? 'h-full min-h-0 min-w-0 w-full flex-1' : ''}`}
         style={{
           // The page, behind and around the chart. Letterboxing in the app's
           // dark surface would read as the map having been cut off rather than
@@ -612,6 +619,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             fit
             onPick={pinBrush ? (roomId) => { dropPin(roomId, pinBrush); setPinBrush(null) } : goThere}
             onZone={pushZone}
+            arrivalIds={arrivalIds}
             trail={trail}
             pins={pinsByRoom}
             onPinRoom={pinRoom}
@@ -634,6 +642,7 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
             </span>
           </div>
         )}
+      </div>
       </div>
 
       {/* The way back.
@@ -795,7 +804,7 @@ function Shell({
             </>
           )}
         </h3>
-        {search && <div className="min-w-[10rem] flex-1">{search}</div>}
+        {search && <div className="min-w-40 flex-1">{search}</div>}
         <div className="flex shrink-0 items-center gap-2 pt-0.5">
           {right}
           {onPopOut && (
@@ -805,7 +814,7 @@ function Shell({
               title="Open the map in its own window" aria-label="Open the map in its own window"
               onClick={onPopOut}
             >
-              <ExternalLink className="w-3.5 h-3.5" />
+              <AppWindow aria-hidden="true" className="w-3.5 h-3.5" />
             </button>
           )}
           {onRefresh && (

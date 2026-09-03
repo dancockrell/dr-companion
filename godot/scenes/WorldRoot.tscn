@@ -1,0 +1,156 @@
+[gd_scene load_steps=9 format=3 uid="uid://c3wr0v0f0dr1w"]
+
+[ext_resource type="Script" path="res://scripts/world_root.gd" id="1_worldroot"]
+[ext_resource type="Script" path="res://scripts/camera_director.gd" id="2_camdir"]
+[ext_resource type="Script" path="res://scripts/entity_projection_layer.gd" id="3_entities"]
+[ext_resource type="Script" path="res://scripts/route_graph_layer.gd" id="4_routes"]
+[ext_resource type="Script" path="res://scripts/world_controls.gd" id="5_controls"]
+[ext_resource type="Script" path="res://scripts/confirmed_route_transition.gd" id="6_transition"]
+[ext_resource type="Script" path="res://scripts/exit_anchor_layer.gd" id="7_exits"]
+[ext_resource type="Script" path="res://scripts/world_inspector.gd" id="8_inspector"]
+
+[node name="WorldRoot" type="Node3D"]
+script = ExtResource("1_worldroot")
+
+[node name="CameraDirector" type="Camera3D" parent="."]
+script = ExtResource("2_camdir")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.7, -0.5, 0.5, 0, 0.7, 0.7, -0.7, -0.5, 0.5, 0, 60, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="CellRoot" type="Node3D" parent="."]
+
+[node name="ExitAnchors" type="Node3D" parent="."]
+script = ExtResource("7_exits")
+
+[node name="EntityProjection" type="Node3D" parent="."]
+script = ExtResource("3_entities")
+
+[node name="RouteGraph" type="Node3D" parent="."]
+script = ExtResource("4_routes")
+
+[node name="RouteTransition" type="Node3D" parent="."]
+script = ExtResource("6_transition")
+
+[node name="WorldControls" type="CanvasLayer" parent="."]
+layer = 1
+script = ExtResource("5_controls")
+
+[node name="Margin" type="MarginContainer" parent="WorldControls"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 340.0
+offset_bottom = 62.0
+
+[node name="Views" type="HBoxContainer" parent="WorldControls/Margin"]
+theme_override_constants/separation = 8
+
+[node name="World" type="Button" parent="WorldControls/Margin/Views"]
+custom_minimum_size = Vector2(92, 38)
+tooltip_text = "Whole loaded world route context (1)"
+text = "World  1"
+
+[node name="Route" type="Button" parent="WorldControls/Margin/Views"]
+custom_minimum_size = Vector2(92, 38)
+tooltip_text = "Route view around your confirmed room (2)"
+text = "Route  2"
+
+[node name="Room" type="Button" parent="WorldControls/Margin/Views"]
+custom_minimum_size = Vector2(92, 38)
+tooltip_text = "Room view with the two-hop detail horizon (3)"
+text = "Room  3"
+
+[node name="ExitPanel" type="PanelContainer" parent="WorldControls"]
+offset_left = 16.0
+offset_top = 74.0
+offset_right = 188.0
+offset_bottom = 250.0
+
+[node name="Content" type="VBoxContainer" parent="WorldControls/ExitPanel"]
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="WorldControls/ExitPanel/Content"]
+text = "Current exits"
+
+[node name="ExitScroll" type="ScrollContainer" parent="WorldControls/ExitPanel/Content"]
+custom_minimum_size = Vector2(156, 132)
+horizontal_scroll_mode = 0
+
+[node name="ExitList" type="VBoxContainer" parent="WorldControls/ExitPanel/Content/ExitScroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="WorldInspector" type="CanvasLayer" parent="."]
+layer = 1
+script = ExtResource("8_inspector")
+
+[node name="Panel" type="PanelContainer" parent="WorldInspector"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -324.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 392.0
+grow_horizontal = 0
+
+[node name="Content" type="VBoxContainer" parent="WorldInspector/Panel"]
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="WorldInspector/Panel/Content"]
+
+[node name="Title" type="Label" parent="WorldInspector/Panel/Content/Header"]
+size_flags_horizontal = 3
+text = "Current room"
+
+[node name="Collapse" type="Button" parent="WorldInspector/Panel/Content/Header"]
+tooltip_text = "Hide current-room inspector"
+text = "Hide"
+
+[node name="RoomTitle" type="Label" parent="WorldInspector/Panel/Content"]
+text = "Location unresolved"
+autowrap_mode = 2
+
+[node name="RoomId" type="Label" parent="WorldInspector/Panel/Content"]
+text = "No confirmed room"
+
+[node name="PlayerStatus" type="HBoxContainer" parent="WorldInspector/Panel/Content"]
+theme_override_constants/separation = 8
+
+[node name="State" type="Label" parent="WorldInspector/Panel/Content/PlayerStatus"]
+custom_minimum_size = Vector2(98, 0)
+text = "PLAYER STATE UNKNOWN"
+
+[node name="Health" type="ProgressBar" parent="WorldInspector/Panel/Content/PlayerStatus"]
+custom_minimum_size = Vector2(80, 12)
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="HealthText" type="Label" parent="WorldInspector/Panel/Content/PlayerStatus"]
+text = "Health not received"
+
+[node name="PlayerFlags" type="Label" parent="WorldInspector/Panel/Content"]
+text = "No status flags reported"
+autowrap_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="WorldInspector/Panel/Content"]
+custom_minimum_size = Vector2(284, 272)
+horizontal_scroll_mode = 0
+
+[node name="Lists" type="VBoxContainer" parent="WorldInspector/Panel/Content/Scroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="EntityHeading" type="Label" parent="WorldInspector/Panel/Content/Scroll/Lists"]
+text = "People and creatures"
+
+[node name="Entities" type="VBoxContainer" parent="WorldInspector/Panel/Content/Scroll/Lists"]
+theme_override_constants/separation = 4
+
+[node name="ItemHeading" type="Label" parent="WorldInspector/Panel/Content/Scroll/Lists"]
+text = "Items on the ground"
+
+[node name="Items" type="VBoxContainer" parent="WorldInspector/Panel/Content/Scroll/Lists"]
+theme_override_constants/separation = 4

@@ -8,6 +8,7 @@ pub mod lich_health;
 pub mod media_keys;
 pub mod node;
 pub mod pause;
+pub mod presentation_bridge;
 pub mod python;
 pub mod script_api;
 pub mod scripts;
@@ -180,6 +181,9 @@ pub fn run() {
             close_panel_window,
             panel_windows,
             script_api::script_api_info,
+            presentation_bridge::publish_world_snapshot,
+            presentation_bridge::publish_presentation_event,
+            presentation_bridge::presentation_bridge_info,
             pause::set_paused,
             pause::is_paused,
             python::python_status,
@@ -211,6 +215,15 @@ pub fn run() {
                 // player who never scripts should not lose the client over a
                 // port bind failure.
                 eprintln!("warning: script API did not start: {e}");
+            }
+
+            // The Godot presentation bridge - same non-fatal treatment as the
+            // script API above. The 3D viewer is an optional presentation
+            // layer (see docs/CLAUDE_3D_VIEWER_BRIEF.md: "the client remains
+            // usable if Godot is absent/crashed"), never something a bind
+            // failure should take the rest of the app down over.
+            if let Err(e) = presentation_bridge::start(app.handle().clone()) {
+                eprintln!("warning: presentation bridge did not start: {e}");
             }
 
             if let Some(window) = app.get_webview_window("main") {
