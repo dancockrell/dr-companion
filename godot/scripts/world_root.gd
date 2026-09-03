@@ -25,6 +25,8 @@ var _spawned_exit_anchors: Array = []
 func _ready() -> void:
 	BridgeClient.snapshot_updated.connect(_on_snapshot_updated)
 	BridgeClient.reconnected.connect(_on_snapshot_updated)
+	entity_projection.inspect_entity_requested.connect(_on_entity_inspect_requested)
+	entity_projection.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
 
 	if not WorldManifestLoader.load_from_path(MOCK_FIXTURE_PATH):
 		push_error("WorldRoot: failed to load mock fixture at %s" % MOCK_FIXTURE_PATH)
@@ -100,6 +102,12 @@ func _project_snapshot_tokens(snapshot: Dictionary) -> void:
 	# It receives no independent positions, so it cannot turn a MUD occupant
 	# into a free-roaming world actor.
 	entity_projection.project_snapshot(snapshot, _spawned_cells)
+
+func _on_entity_inspect_requested(entity_id: String) -> void:
+	IntentSender.request_inspect_entity(entity_id)
+
+func _on_ground_item_inspect_requested(item_id: String) -> void:
+	IntentSender.request_inspect_ground_item(item_id)
 
 func _focus_room(room_id: String, mode: int) -> void:
 	var cell: Dictionary = WorldManifestLoader.get_cell(room_id)

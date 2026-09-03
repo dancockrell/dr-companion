@@ -10,6 +10,9 @@ extends Node3D
 var _tethers: Dictionary = {}
 var _projected_ids: Dictionary = {}
 
+signal inspect_entity_requested(entity_id: String)
+signal inspect_ground_item_requested(item_id: String)
+
 func project_snapshot(snapshot: Dictionary, room_holders: Dictionary) -> void:
 	_clear_projection()
 	for entity_value in snapshot.get("entities", []):
@@ -27,6 +30,10 @@ func tether_room_for(projected_id: String) -> String:
 	if token == null or not is_instance_valid(token):
 		return ""
 	return String(token.get_meta("roomId", ""))
+
+func token_for(projected_id: String) -> Node3D:
+	var token: Node3D = _projected_ids.get(projected_id)
+	return token if token != null and is_instance_valid(token) else null
 
 func local_slot_for(projected_id: String) -> Vector3:
 	var token: Node3D = _projected_ids.get(projected_id)
@@ -59,6 +66,7 @@ func _project_entity(entity: Dictionary, room_holders: Dictionary) -> void:
 	token.set_meta("snapshotKind", "entity")
 	token.set_meta("entityName", String(entity.get("name", "")))
 	tether.add_child(token)
+	_add_inspect_hitbox(token, "entity", entity_id)
 	_projected_ids[entity_id] = token
 
 func _project_ground_item(item: Dictionary, room_holders: Dictionary) -> void:
@@ -81,7 +89,27 @@ func _project_ground_item(item: Dictionary, room_holders: Dictionary) -> void:
 	token.set_meta("snapshotKind", "ground-item")
 	token.set_meta("itemName", String(item.get("name", "")))
 	tether.add_child(token)
+	_add_inspect_hitbox(token, "ground-item", item_id)
 	_projected_ids[item_id] = token
+
+func _add_inspect_hitbox(token: MeshInstance3D, snapshot_kind: String, snapshot_id: String) -> void:
+	var body := StaticBody3D.new()
+	body.name = "InspectTarget"
+	var shape := CollisionShape3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = 0.42 if snapshot_kind == "entity" else 0.24
+	shape.shape = sphere
+	body.add_child(shape)
+	body.input_event.connect(_on_inspect_target_clicked.bind(snapshot_kind, snapshot_id))
+	token.add_child(body)
+
+func _on_inspect_target_clicked(_camera: Node, event: InputEvent, _position: Vector3, _normal: Vector3, _shape_idx: int, snapshot_kind: String, snapshot_id: String) -> void:
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	if snapshot_kind == "entity":
+		inspect_entity_requested.emit(snapshot_id)
+	else:
+		inspect_ground_item_requested.emit(snapshot_id)
 
 func _tether_for(room_id: String, room_holders: Dictionary) -> Node3D:
 	var existing: Node3D = _tethers.get(room_id)

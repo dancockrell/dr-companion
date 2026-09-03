@@ -46,6 +46,8 @@ func _initialize() -> void:
 	_ok("a person token stays tethered to its reported room", layer.tether_room_for("person-1") == "crossing-2")
 	_ok("a ground-item token stays tethered to its reported room", layer.tether_room_for("item-1") == "crossing-1")
 	_ok("an unknown room never creates an entity token", layer.tether_room_for("unknown-room") == "")
+	_ok("each confirmed entity token has an inspect hit target", layer.token_for("creature-1").has_node("InspectTarget"))
+	_ok("each confirmed ground-item token has an inspect hit target", layer.token_for("item-1").has_node("InspectTarget"))
 	var first_slot: Vector3 = layer.local_slot_for("creature-1")
 	layer.project_snapshot(fixture, rooms)
 	_ok("room-local slots are deterministic across equivalent snapshots", first_slot.is_equal_approx(layer.local_slot_for("creature-1")))

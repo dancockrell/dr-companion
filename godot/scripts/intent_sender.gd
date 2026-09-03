@@ -31,14 +31,43 @@ func request_walk(from_room_id: String, exit_move: String) -> bool:
 	BridgeClient.send_intent(intent)
 	return true
 
-## Read-only intents (inspect-entity / inspect-ground-item / focus-room)
-## never mutate presentation state, so they skip BridgeClient.send_intent
-## entirely — there is nothing for the bridge to confirm, only something for
-## a UI panel to display from data the viewer already has.
+## Read-only intents never mutate presentation state. They still travel across
+## the bridge when a live transport exists, because the desktop shell owns the
+## accessible inspector panel; mock mode simply preserves the current snapshot.
+## An inspect request is only constructed for an id already present in the
+## confirmed snapshot — Godot cannot make a name clickable by inventing an
+## entity or floor item.
+func request_inspect_entity(entity_id: String) -> bool:
+	if not _snapshot_has_id(BridgeClient.current_snapshot.get("entities", []), entity_id):
+		intent_refused.emit("unknown entity id: %s" % entity_id)
+		return false
+	var intent := {"kind": "inspect-entity", "entityId": entity_id}
+	intent_created.emit(intent)
+	BridgeClient.send_intent(intent)
+	return true
+
+func request_inspect_ground_item(item_id: String) -> bool:
+	if not _snapshot_has_id(BridgeClient.current_snapshot.get("groundItems", []), item_id):
+		intent_refused.emit("unknown ground item id: %s" % item_id)
+		return false
+	var intent := {"kind": "inspect-ground-item", "itemId": item_id}
+	intent_created.emit(intent)
+	BridgeClient.send_intent(intent)
+	return true
+
 func request_focus_room(room_id: String) -> bool:
 	if not WorldManifestLoader.has_cell(room_id):
 		intent_refused.emit("unknown room id: %s" % room_id)
 		return false
 	var intent := {"kind": "focus-room", "roomId": room_id}
 	intent_created.emit(intent)
+	BridgeClient.send_intent(intent)
 	return true
+
+func _snapshot_has_id(entries: Array, requested_id: String) -> bool:
+	if requested_id.is_empty():
+		return false
+	for entry in entries:
+		if entry is Dictionary and String(entry.get("id", "")) == requested_id:
+			return true
+	return false

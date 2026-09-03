@@ -42,7 +42,9 @@ required for this slice's acceptance gate.
   for bridge-confirmed entities and ground items. Each token is parented below
   its reported room's tether and gets a deterministic local display slot; it
   receives no independent world coordinate, combat range, lore-derived model,
-  or authority to move anything.
+  or authority to move anything. A click creates the documented, read-only
+  inspect intent only for the exact confirmed snapshot ID; the desktop shell
+  remains responsible for showing the resulting accessible inspector.
 - `mock/crossing_mock_world.json` — the checked-in mock fixture the first
   acceptance gate requires: Town Green North plus its depth-2 neighborhood
   (19 cells), extracted from the real compiled Crossing manifest by
