@@ -1,7 +1,5 @@
 extends SceneTree
-## Travel effects are allowed only after the snapshot has confirmed an actual
-## manifest transition. This gate checks the effect's truth boundary, not its
-## timing or appearance.
+## Phase 1 records confirmed travel but remains visually static.
 
 const MOCK_FIXTURE_PATH := "res://mock/crossing_mock_world.json"
 const ConfirmedRouteTransition := preload("res://scripts/confirmed_route_transition.gd")
@@ -19,11 +17,12 @@ func _initialize() -> void:
 		if not candidate.is_empty() and loader.has_cell(candidate):
 			target_id = candidate
 			break
-	_ok("fixture has a known local route to animate", not target_id.is_empty())
+	_ok("fixture has a known local route to traverse", not target_id.is_empty())
 	var layer: Node3D = ConfirmedRouteTransition.new()
 	root.add_child(layer)
-	_ok("a confirmed true-exit transition creates a route ribbon", layer.play_confirmed_route(source_id, target_id, loader.cells))
+	_ok("a confirmed true-exit transition is accepted", layer.play_confirmed_route(source_id, target_id, loader.cells))
 	_ok("the ribbon records only its confirmed source and destination", layer.last_route() == {"fromRoomId": source_id, "toRoomId": target_id})
+	_ok("the static phase starts no travel animation", not layer.is_playing())
 	_ok("an unknown destination creates no travel effect", not layer.play_confirmed_route(source_id, "not-a-room", loader.cells))
 	_ok("a same-room snapshot is not presented as travel", not layer.play_confirmed_route(source_id, source_id, loader.cells))
 	layer.free()

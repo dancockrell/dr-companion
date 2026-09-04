@@ -64,10 +64,10 @@ required for this slice's acceptance gate.
   invents a stun duration, keeps unassessed tactics explicit, includes every
   supplied tactical/lore fact in tooltips, and gives each row a keyboard-
   focusable Elanthipedia search.
-- `scripts/confirmed_route_transition.gd` — a short, fading route ribbon only
-  after the bridge has confirmed a room-to-room change over a known manifest
-  exit. It stays silent for reconnects, rejects, external routes, and unknown
-  jumps instead of implying travel that did not happen.
+- `scripts/confirmed_route_transition.gd` — validates and records a confirmed
+  room-to-room change over a known manifest exit. The current static phase
+  starts no travel animation; reconnects, rejects, external routes, and unknown
+  jumps remain quiet. This is the seam a later truthful streak effect will use.
 - `scripts/exit_anchor_layer.gd` — labels and makes each true current-room
   exit clickable. Local destinations are placed toward their real node;
   external exits retain their exact command label without invented geography.

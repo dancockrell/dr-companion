@@ -7,6 +7,19 @@ const outputDir = 'data/world/out'
 const primitiveWorldPath = join(outputDir, `${zone}-primitive-world.json`)
 const outputPath = join(outputDir, `${zone}-node-tethered-world.json`)
 
+export function classifyTether(command, direction) {
+  const text = `${command} ${direction}`.toLowerCase()
+  if (/\b(portal|moongate|rift|vortex)\b/.test(text)) return 'portal'
+  if (/\b(warp|teleport|nexus)\b/.test(text)) return 'warp'
+  if (/\b(ferry|boat|ship|barge|raft)\b/.test(text)) return 'ferry'
+  if (/\b(ladder|rope|vine|branch|drain pipe)\b/.test(text)) return 'ladder'
+  if (/\b(stair|steps|up|down)\b/.test(text)) return 'stairs'
+  if (/\b(door|gate|arch|curtain|threshold|opening|entrance|exit|out)\b/.test(text)) return 'threshold'
+  if (/\b(path|trail|track)\b/.test(text)) return 'path'
+  if (/^(north|northeast|east|southeast|south|southwest|west|northwest)\b/.test(text)) return 'road'
+  return 'other'
+}
+
 execFileSync(process.execPath, ['tools/build-primitive-world-manifest.mjs', zone], { stdio: 'inherit' })
 const world = JSON.parse(readFileSync(primitiveWorldPath, 'utf8'))
 const nodeIds = new Set(world.cells.map((cell) => cell.id))
@@ -29,18 +42,32 @@ const transitions = world.routes.map((route) => {
     toNodeId: route.to,
     command: route.move,
     direction: route.direction,
-    presentation: 'animate-then-confirm-node-teleport',
+    tetherKind: classifyTether(route.move, route.direction),
+    presentation: 'confirm-then-snap',
+    futureTraversalEffect: 'streak-along-tether',
     visualDistanceMetres,
   }
 })
 
 const output = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   model: 'node-tethered-mud-projection',
+  view: {
+    projection: 'fixed-orthographic-isometric',
+    rotation: 'locked',
+  },
+  animationPhase: 'static-rigged',
+  kitContract: {
+    baseFamilies: ['western-fantasy', 'bronze-age-mythic', 'eastern-wushu-fantasy'],
+    overlays: ['elven', 'treefolk', 'faction', 'cult'],
+    portableConcepts: ['footprints', 'tile-recipes', 'prop-sockets', 'actor-spawn-points', 'typed-tethers', 'influence-hooks'],
+    authority: 'mud-room-graph',
+  },
   generatedFrom: {
     primitiveWorldPath,
     roomTruth: 'Each node is one authoritative MUD room; transitions are graph edges, not free-world pathfinding.',
-    actorTruth: 'Live actors are tethered to their reported room node. Local positions are renderer slots only.',
+    actorTruth: 'Live actors are tethered to their reported room node. Local rig-ready spawn sockets are renderer slots only.',
+    traversalTruth: 'Phase 1 snaps after a confirmed graph traversal. Future motion is a fast streak along that same typed tether, never simulated walking.',
   },
   nodes,
   transitions,
