@@ -139,7 +139,7 @@ export function PresentationBridgePanel() {
 
       {viewer && !viewer.installed && (
         <p className="text-xs text-ink-faint leading-snug">
-          No viewer has been built on this machine yet. `npm run viewer:export`
+          No viewer has been built on this machine yet. `npm run godot:export`
           writes one into godot/build.
         </p>
       )}

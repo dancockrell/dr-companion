@@ -42,7 +42,7 @@ pub const VIEWER_EXE: &str = "DRCompanionWorldViewer.exe";
 ///
 /// Two real cases and they are genuinely different. In a shipped build the
 /// exe is a bundled resource beside the app. On a development machine it is
-/// whatever `npm run viewer:export` last wrote into `godot/build/`, which is
+/// whatever `npm run godot:export` last wrote into `godot/build/`, which is
 /// not committed and frequently absent.
 ///
 /// Pure, and takes both roots as arguments rather than reaching for an
@@ -147,7 +147,7 @@ pub fn launch_viewer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<Stri
 
     let exe = status.path.ok_or_else(|| {
         format!(
-            "No world viewer found. Build one with `npm run viewer:export`, \
+            "No world viewer found. Build one with `npm run godot:export`, \
              which writes {VIEWER_EXE} into godot/build."
         )
     })?;

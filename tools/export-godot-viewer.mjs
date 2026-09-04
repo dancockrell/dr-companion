@@ -13,6 +13,45 @@ function option(name) {
   return index >= 0 ? args[index + 1] : undefined
 }
 
+// Checked before anything that needs the shared-assets submodule, so it runs
+// on a checkout that has not initialised it. Put after the asset validation it
+// was unreachable on exactly the machines most likely to have the bug.
+//
+// The app tells a person how to build a viewer when it cannot find one, and
+// that instruction points at this tool. It was wrong once already - the text
+// said `npm run viewer:export`, and the script is `godot:export` - which is
+// the worst kind of message: confident, specific, and failing for a reason
+// the reader cannot see. Checked here rather than trusted to care, because
+// the string lives in Rust and TSX and nothing else compares it to
+// package.json.
+const INSTRUCTION_SOURCES = [
+  'src-tauri/src/viewer.rs',
+  'src/components/shared/PresentationBridgePanel.tsx',
+]
+const scripts = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')).scripts
+let namedCommands = 0
+for (const file of INSTRUCTION_SOURCES) {
+  const path = resolve(root, file)
+  if (!existsSync(path)) continue
+  for (const [, script] of readFileSync(path, 'utf8').matchAll(/npm run ([a-z0-9:_-]+)/g)) {
+    namedCommands += 1
+    if (!scripts[script]) {
+      console.error(
+        `${file} tells the user to run \`npm run ${script}\`, which is not a script in package.json.`,
+      )
+      process.exit(1)
+    }
+  }
+}
+if (namedCommands === 0) {
+  console.error(
+    'No `npm run` instruction found in any of: ' +
+      INSTRUCTION_SOURCES.join(', ') +
+      '. Either the files moved or the guidance was removed - a check that examines nothing passes for free.',
+  )
+  process.exit(1)
+}
+
 const selections = JSON.parse(readFileSync(resolve(projectDir, 'assets', 'shared_asset_selections.json'), 'utf8'))
 const runtimeAssets = selections.selections.flatMap((selection) =>
   selection.paths.map((path) => `shared-assets/${path}`),
@@ -30,7 +69,10 @@ for (const local of runtimeAssets) {
   }
 }
 if (args.includes('--check')) {
-  console.log(`Godot export contract is synchronized with ${runtimeAssets.length} reviewed runtime assets.`)
+  console.log(
+    `Godot export contract is synchronized with ${runtimeAssets.length} reviewed runtime assets; ` +
+      `${namedCommands} npm command(s) named in app-facing messages all exist.`,
+  )
   process.exit(0)
 }
 
