@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "isometric-world-board",
+  "agent": "Codex /root",
+  "summary": "Revise the world viewer around a fixed isometric board and add typed graph-tether presentation metadata",
+  "status": "active",
+  "claimed_at": "2026-09-04T12:00:00Z",
+  "updated_at": "2026-09-04T12:00:00Z",
+  "paths": [
+    "docs/THREE_D_WORLD_STRATEGY.md",
+    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/CLAUDE_3D_VIEWER_BRIEF.md",
+    "godot/README.md",
+    "godot/scripts/camera_director.gd",
+    "godot/tests/camera_director_test.gd",
+    "godot/tests/foundation_test.gd",
+    "src/types/worldPresentation.ts",
+    "tools/build-node-tethered-world-projection.mjs",
+    "tools/node-tethered-world-projection-test.mjs"
+  ],
+  "symbols": [
+    "NodeTransitionProjection",
+    "camera_director",
+    "classify_tether"
+  ],
+  "coordination": {
+    "depends_on": ["714bf8a8"],
+    "conflicts_with": [],
+    "notes": "Builds on the shipped single Godot viewer and authoritative node projection. The only open PR removes generated creature art and does not overlap these paths. Historical viewer docs are revised in place so the repository retains one product direction."
+  },
+  "completion": {
+    "commit": null,
+    "checks": []
+  }
+}

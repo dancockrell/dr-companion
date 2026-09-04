@@ -7,7 +7,7 @@ Status: **approved direction; ready for parallel implementation**
 Retire the player-facing 2D map/radar/battle presentation. Keep its room graph,
 room IDs, exits, map coordinates, parser state, command pipeline, and text UI
 as authoritative data/fallbacks. The player-facing replacement is one 3D
-tabletop world with a continuous camera:
+tabletop world with one fixed-view orthographic isometric camera:
 
 1. **World distance:** a whole city/region made from simple colored primitive
    models, landmarks, water, bridges, and route ribbons.
@@ -27,10 +27,11 @@ has one stable world anchor. A player, NPC, creature, and floor item belongs to
 the authoritative room node reported by the game; a renderer may give it a
 local visual slot but may never let it wander into another room by inference.
 
-When a player chooses a legal exit, the viewer may animate a route ribbon,
-camera motion, or miniature departure. The new room is a confirmed node
-transition—effectively a visual teleport from one connected MUD node to the
-next—not free-world pathfinding or simulated walking. If the command fails or
+When a player chooses a legal exit, the viewer waits for confirmation and then
+snaps the actor tether to the new room. The MUD graph reports the transition
+and the presentation follows—not free-world pathfinding or simulated walking.
+A later animation phase may add a fast streak along the typed tether after
+confirmation; conventional walk cycles are not the travel model. If the command fails or
 the next snapshot does not confirm arrival, presentation returns to the last
 confirmed node. Visual distance is for framing only and never claims game time,
 combat range, collision, or travel cost.
