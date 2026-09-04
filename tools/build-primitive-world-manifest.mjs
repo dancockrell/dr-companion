@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { boardLayoutFor, classifyTether, tetherAnchorFor } from './isometric-board-layout.mjs'
 
 const zone = process.argv[2] ?? '1'
 const briefsPath = 'data/art/out/geometric-room-briefs.json'
@@ -92,12 +93,15 @@ const cells = cellsForZone.map((cell) => ({
   tags: cell.classification.tags,
   spatialMode: cell.classification.spatialMode,
   palette: palette(cell),
+  board: boardLayoutFor(cell),
   primitives: primitiveRecipe(cell),
   exits: cell.map.exits.map((exit) => ({
     move: exit.move,
     direction: exit.dir,
     targetRoomId: exit.to,
     targetCellId: typeof exit.to === 'number' && localIds.has(`${zone}-${exit.to}`) ? `${zone}-${exit.to}` : null,
+    tetherKind: classifyTether(exit.move, exit.dir),
+    boardAnchor: tetherAnchorFor(exit.dir),
   })),
 }))
 

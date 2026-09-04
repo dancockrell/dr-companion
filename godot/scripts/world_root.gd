@@ -72,6 +72,7 @@ func _prepare_all_cells() -> void:
 		var holder := Node3D.new()
 		holder.name = "Cell_%s" % cell_id
 		holder.position = _cell_position(cell)
+		holder.set_meta("board", cell.get("board", {}))
 		cell_root.add_child(holder)
 		_spawned_cells[cell_id] = holder
 		var content := Node3D.new()

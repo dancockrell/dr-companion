@@ -1,24 +1,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { classifyTether } from './isometric-board-layout.mjs'
 
 const zone = process.argv[2] ?? '1'
 const outputDir = 'data/world/out'
 const primitiveWorldPath = join(outputDir, `${zone}-primitive-world.json`)
 const outputPath = join(outputDir, `${zone}-node-tethered-world.json`)
-
-export function classifyTether(command, direction) {
-  const text = `${command} ${direction}`.toLowerCase()
-  if (/\b(portal|moongate|rift|vortex)\b/.test(text)) return 'portal'
-  if (/\b(warp|teleport|nexus)\b/.test(text)) return 'warp'
-  if (/\b(ferry|boat|ship|barge|raft)\b/.test(text)) return 'ferry'
-  if (/\b(ladder|rope|vine|branch|drain pipe)\b/.test(text)) return 'ladder'
-  if (/\b(stair|steps|up|down)\b/.test(text)) return 'stairs'
-  if (/\b(door|gate|arch|curtain|threshold|opening|entrance|exit|out)\b/.test(text)) return 'threshold'
-  if (/\b(path|trail|track)\b/.test(text)) return 'path'
-  if (/^(north|northeast|east|southeast|south|southwest|west|northwest)\b/.test(text)) return 'road'
-  return 'other'
-}
 
 execFileSync(process.execPath, ['tools/build-primitive-world-manifest.mjs', zone], { stdio: 'inherit' })
 const world = JSON.parse(readFileSync(primitiveWorldPath, 'utf8'))

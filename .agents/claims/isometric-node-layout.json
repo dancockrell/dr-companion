@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "task_id": "isometric-node-layout",
+  "agent": "Codex /root",
+  "summary": "Compile and consume stable isometric cell footprints, typed tether anchors, and rig-ready actor formations",
+  "status": "active",
+  "claimed_at": "2026-09-04T06:25:00Z",
+  "updated_at": "2026-09-04T06:25:00Z",
+  "paths": [
+    "tools/isometric-board-layout.mjs",
+    "tools/build-primitive-world-manifest.mjs",
+    "tools/build-node-tethered-world-projection.mjs",
+    "tools/primitive-world-manifest-test.mjs",
+    "tools/node-tethered-world-projection-test.mjs",
+    "godot/scripts/world_root.gd",
+    "godot/scripts/entity_projection_layer.gd",
+    "godot/tests/entity_projection_test.gd"
+  ],
+  "symbols": ["boardLayoutFor", "classifyTether", "tetherAnchorFor", "entity_projection_layer._board_slot"],
+  "coordination": {
+    "depends_on": ["f8388b5a"],
+    "conflicts_with": [],
+    "notes": "Continues the merged fixed-isometric MVP. The open creature-art removal PR does not overlap these paths. Metadata is compiled into the existing manifest and consumed by the existing Godot projection path."
+  },
+  "completion": {"commit": null, "checks": []}
+}
