@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "viewer-launch",
+  "agent": "claude-code",
+  "summary": "Give the app a way to find, start and report on the Godot world viewer",
+  "status": "completed",
+  "claimed_at": "2026-09-04T09:55:00Z",
+  "updated_at": "2026-09-04T10:20:00Z",
+  "paths": [
+    "src-tauri/src/viewer.rs",
+    "src-tauri/src/lib.rs",
+    "src/lib/presentationBridge.ts",
+    "src/components/shared/PresentationBridgePanel.tsx"
+  ],
+  "symbols": [
+    "viewer_status",
+    "launch_viewer",
+    "PresentationBridgePanel"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "The chain currently ends in nothing: godot/ builds an exe via tools/export-godot-viewer.mjs, and no code anywhere launches it, it is not in tauri.conf.json resources, and no UI can open it. Every piece built for the viewer is therefore unreachable by a player. Dan gave ownership of the whole game on 4 Sep 2026, so this takes the launch/lifecycle side that section 2 of the handoff doc had listed under Codex. Follows lich.rs's established external-process pattern (three-state running/running_known, refuse a second instance only when known, non-fatal throughout) rather than inventing a second one. Deliberately NOT adding the exe to tauri.conf.json resources in this slice: the file does not exist unless someone runs the export, and a missing resource fails the whole bundle build. Godot reads the bridge port and token off disk itself, so nothing is passed on the command line - same reasoning as lich.rs refusing to put a password there."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "cargo test --lib - 108 passed (4 new viewer tests)",
+      "cargo fmt -- --check - clean",
+      "npx tsc -b - clean",
+      "node tools/run-tests.mjs - 93 suites, 2747 checks, all passed",
+      "both commands registered in generate_handler! and both have a TS caller, with a control"
+    ]
+  }
+}
