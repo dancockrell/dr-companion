@@ -40,6 +40,8 @@
   "test:ai-alert-broker",
   "test:ai-job-store",
   "test:ai-review-scheduler",
+  "test:ai-model-provider",
+  "test:ai-worker",
   "test:link",
   "test:eval",
   "test:contrast",

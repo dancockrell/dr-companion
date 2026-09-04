@@ -154,6 +154,8 @@
     "test:ai-alert-broker": "node --experimental-strip-types tools/ai-alert-broker-test.mjs",
     "test:ai-job-store": "node --experimental-strip-types tools/ai-job-store-test.mjs",
     "test:ai-review-scheduler": "node --experimental-strip-types tools/ai-review-scheduler-test.mjs",
+    "test:ai-model-provider": "node --experimental-strip-types tools/ai-model-provider-test.mjs",
+    "test:ai-worker": "node --experimental-strip-types tools/ai-worker-test.mjs",
     "test:escapes": "node tools/escape-check.mjs",
     "test:subscribe": "node tools/subscribe-test.mjs",
     "test:verified-claim": "node tools/verified-claim-test.mjs",
