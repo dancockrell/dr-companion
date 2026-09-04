@@ -1,6 +1,6 @@
-# DR Companion 3D World Strategy
+# DR Companion Fixed-Isometric World Board Strategy
 
-Status: **approved replacement direction; primitive-first implementation pending**
+Status: **approved replacement direction; supersedes the orbiting continuous-camera concept**
 Scope: a scalable primary 3D city/world and tactical presentation for
 DragonRealms room, route, and combat data. This is the contract for replacing
 the current map/radar/battle presentation, not an assertion that a
@@ -12,7 +12,7 @@ three-dimensional world is already playable.
 
 The companion should make a familiar place feel like a place.
 
-A player opens one coherent, navigable tabletop world: zoomed far out it is a
+A player opens one coherent, fixed-view isometric tabletop world: zoomed far out it is a
 city or region, zoomed closer it becomes a route through that world, and zoomed
 all the way in it becomes the current room and its battle space. There is no
 separate player-facing 2D map to keep in sync. The 3D view is the primary
@@ -34,13 +34,15 @@ The promise has four non-negotiable parts:
    may be shown for an unreviewed room. It must never be named or framed as a
    bespoke canonical reconstruction.
 
-### 1.1 One camera, three distances
+### 1.1 One fixed isometric camera, three distances
 
-The camera, not a mode switch, is the navigation interface:
+Pan, focus, and zoom change the board framing. Camera rotation does not: a
+locked orthographic isometric view gives every tile, footprint, tether, prop,
+and actor socket one dependable screen-language at every distance.
 
 | Distance | Player sees | Player can do |
 |---|---|---|
-| **World** | a whole district/city assembled from chunky colored blocks, roofs, water, bridges, major landmarks, and a current-position beacon | pan, orbit, zoom, select a known destination or route |
+| **World** | a whole district/city assembled from chunky colored blocks, roofs, water, bridges, major landmarks, and a current-position beacon | pan, zoom, select a known destination or route |
 | **Route** | the connected streets, paths, bridges, docks, thresholds, and named destination silhouettes between nearby rooms | follow the legal route, preview the next exit, inspect known services |
 | **Room / tactical** | the active room cell with inhabitants, ground items, exits, range bands, and battle events | use real commands, inspect entities/items, follow live combat |
 
@@ -101,6 +103,20 @@ market tents, docks, trees, gates, and district props are reused. The map tells
 us how those pieces connect; room descriptions tell us which pieces are allowed.
 
 This gives the city continuity without requiring 1,000 bespoke scenes.
+
+### 2.3 Static first, rigged from the start
+
+The current production phase has no character locomotion, idle cycles, combat
+performance, or environmental animation. Actors snap between confirmed room
+nodes and display in stable spawn sockets. Character and creature assets must
+still ship with clean skeletons, root bones, pivots, facing conventions,
+attachment sockets, and footprint metadata so later animation does not require
+rebuilding the board or asset library.
+
+The later traversal language is a very fast directional streak across the
+actual graph tethers. It communicates the distance covered without claiming
+continuous walking. That effect begins only after the MUD confirms each graph
+transition. Until that phase is implemented, confirmation produces a snap.
 
 ---
 
@@ -229,6 +245,29 @@ behind.
 ---
 
 ## 6. Building kit strategy
+
+### 6.0 Broad kit families, specialized overlays
+
+Initial content is organized around three broad fantasy archetypes, not literal
+historical reconstructions:
+
+| Base family | Purpose |
+|---|---|
+| **Western fantasy** | familiar town, forest, keep, village, road, and guild silhouettes |
+| **Bronze-age mythic mashup** | monumental stone, sun-baked settlements, temples, ports, and heroic civic forms |
+| **Eastern / wushu fantasy mashup** | layered roofs, mountain paths, courtyards, gardens, bridges, and martial-fantasy silhouettes |
+
+Special identities are composable overlays—elven, treefolk, cult, faction,
+guild, climate, corruption, occupation—not separate world systems. Each kit
+piece declares a grid footprint, connection faces, height/occlusion bounds,
+prop sockets, actor spawn sockets, palette/material roles, allowed overlays,
+evidence state, and provenance.
+
+The reusable vocabulary may later serve Pirate Island: footprints, tile
+recipes, props, spawn sockets, typed tethers, influence/state hooks, and review
+metadata are portable concepts. DR Companion's topology and live state are not
+portable content; its MUD graph remains authoritative and is never reshaped to
+fit another game's world model.
 
 We start with components that make many rooms more truthful, not glamorous
 hero buildings that only work once.
@@ -440,12 +479,12 @@ Fifty items on a floor must not create fifty full-size meshes.
 
 ## 9. Camera and controls
 
-- **District table:** constrained orbit/pan/zoom; current room stays locatable;
+- **District table:** fixed-heading pan/zoom; current room stays locatable;
   reset returns to the player.
-- **Local cell:** a readable elevated three-quarter camera, with a modest
-  orbit range. Exit anchors and active combat remain in frame.
-- **Tactical table:** camera locks to the encounter grammar by default, with
-  optional inspect/orbit only when it cannot obscure status/accessibility.
+- **Local cell:** the same readable isometric heading at a closer scale. Exit
+  anchors and active combat remain in frame.
+- **Tactical table:** the same heading locks to the encounter grammar; inspect
+  changes focus or zoom, never board orientation.
 - **Reduced motion:** replaces travel sweeps and attack animation with immediate
   position updates plus a short, non-flashing state cue.
 - **Performance fallback:** a clear “2D map” control is always present. A failed

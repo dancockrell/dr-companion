@@ -1,4 +1,4 @@
-# DR Companion — 3D World Viewer (Slice 0: Foundation)
+# DR Companion — Fixed-Isometric World Viewer
 
 Implements slice 0 ("Viewer contract") of `docs/THREE_D_REBUILD_HANDOFF.md`.
 The foundation was contributed through PR #267 and is now maintained by Codex
@@ -36,8 +36,9 @@ required for this slice's acceptance gate.
 - `scripts/event_player.gd` — strict-sequence event playback with gap
   detection, ready for slice 3's live event stream; unexercised by live
   events yet, covered by its own ordering tests below.
-- `scripts/camera_director.gd` — one continuous camera, three framing modes
-  (world/route/room), tweened rather than cut.
+- `scripts/camera_director.gd` — one locked orthographic isometric camera with
+  three framing scales (world/route/room). Focus and scale tween; rotation does
+  not. This replaces the earlier orbit-capable continuous-camera direction.
 - `scripts/world_root.gd` + `scenes/WorldRoot.tscn` — wires the above into a
   running scene: loads the mock fixture, starts the mock bridge at Town Green
   North, spawns every cell's primitives through `ContentRegistry`, and turns
@@ -63,10 +64,10 @@ required for this slice's acceptance gate.
   invents a stun duration, keeps unassessed tactics explicit, includes every
   supplied tactical/lore fact in tooltips, and gives each row a keyboard-
   focusable Elanthipedia search.
-- `scripts/confirmed_route_transition.gd` — a short, fading route ribbon only
-  after the bridge has confirmed a room-to-room change over a known manifest
-  exit. It stays silent for reconnects, rejects, external routes, and unknown
-  jumps instead of implying travel that did not happen.
+- `scripts/confirmed_route_transition.gd` — validates and records a confirmed
+  room-to-room change over a known manifest exit. The current static phase
+  starts no travel animation; reconnects, rejects, external routes, and unknown
+  jumps remain quiet. This is the seam a later truthful streak effect will use.
 - `scripts/exit_anchor_layer.gd` — labels and makes each true current-room
   exit clickable. Local destinations are placed toward their real node;
   external exits retain their exact command label without invented geography.
@@ -119,6 +120,21 @@ required for this slice's acceptance gate.
   a confirmed manifest connection and refuses unknown or same-room changes.
 - `tests/exit_anchor_layer_test.gd` — verifies anchors expose only true moves
   for their rendered room and reject arbitrary or stale requests.
+
+## Current presentation phase
+
+The viewer is **static but rig-ready**. Actors use stable room-tether spawn
+sockets and snap only after a confirmed graph transition. New character and
+creature assets must retain skeleton/root, facing, pivot, footprint, and
+attachment metadata even though no locomotion or combat animation plays yet.
+The reserved later travel effect is a fast streak along the confirmed typed
+tether, not conventional walking.
+
+Environment content begins with western-fantasy, bronze-age-mythic, and
+eastern/wushu-fantasy base kits. Elven, treefolk, faction, cult, guild, and
+other identities are overlays. Footprints, recipes, sockets, tethers, and
+state hooks may be shared with a later Pirate Island project, but DR room
+topology and live state always come from the MUD graph.
 
 ## Running the test
 

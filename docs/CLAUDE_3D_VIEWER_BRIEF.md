@@ -10,7 +10,7 @@
 ## Mission
 
 Help convert DR Companion from a player-facing collection of 2D map, radar,
-and battle panes into **one continuous 3D tabletop world viewer**. Codex will
+and battle panes into **one fixed-view isometric tabletop world viewer**. Codex will
 provide the visual content: primitive assets, city and interior composition
 recipes, special guild/shop sets, props, character/monster miniatures, and
 event effects. Your job is to make the viewer reliable, data-driven, secure,
@@ -24,7 +24,7 @@ inventory.
 
 ## Product outcome
 
-The player sees one spatial viewer with a continuous camera:
+The player sees one spatial viewer with a locked orthographic isometric camera:
 
 1. **World distance** — city/region, rivers, bridges, landmarks, routes, and
    the player's current place.
@@ -43,8 +43,9 @@ over the one viewer.
 
 The world is a node-tethered MUD projection. Each room is one stable world
 node; live entities and floor items remain tethered to their authoritative
-`roomId`. A legal movement command can animate a route or miniature departure,
-but only a confirmed snapshot changes the tether to the destination node. Do
+`roomId`. For now, a legal movement command snaps the actor only after a
+confirmed snapshot changes the tether to the destination node. A future pass
+may render that confirmed traversal as a fast streak along the tether. Do
 not pathfind, simulate collision, derive combat distance, or let an actor
 cross a room boundary because a mesh happens to be adjacent. Use the generated
 `npm run world:node-projection` artifact as the renderer-neutral expression of
@@ -187,7 +188,7 @@ or a second camera/runtime.
    bridge stub, content-registration contract.
 2. **Crossing ground:** deterministic Crossing world manifest, current-room
    focus, exact exits, content slots populated by a small primitive sample.
-3. **Town Green and portal:** validated walking, room changes, a real
+3. **Town Green and portal:** validated discrete traversal, room changes, a real
    exterior-to-interior transition, selected entity/item intent.
 4. **Tactical table:** ordered confirmed event playback with graceful recovery.
 5. **Civic depth:** manifest/index support for guilds, shops, named landmarks,
