@@ -159,6 +159,14 @@ effects testable without a DragonRealms session.
 
 ## 4. Versioned bridge contract
 
+Live `WorldSnapshot` cells carry the same presentation-only `board` footprint,
+rig-socket spawn points, typed tether kind, and directional board-edge anchor as
+the offline primitive manifest. Live topology can therefore replace the offline
+cells after connection without erasing the renderer's static isometric layout
+hooks. These fields never create exits or movement: room IDs, targets, and legal
+moves remain authoritative MUD graph facts. Directionless exits retain a null
+anchor rather than receiving invented geometry.
+
 The first protocol is JSON over authenticated loopback WebSocket. It is
 local-only and launch-scoped. A later optimized transport is acceptable only if
 it preserves the same semantic messages and test fixtures.

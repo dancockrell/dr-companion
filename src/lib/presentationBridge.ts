@@ -61,6 +61,14 @@ import type { MapRoom, MapZone, MapZoneRoom } from '../bridge/types.ts'
 import { fromRoom } from './room.ts'
 import type { RoomCard } from './cards.ts'
 import { combatantFor, indexCombatants } from './combat.ts'
+import {
+  boardLayoutFor,
+  classifyTether,
+  tetherAnchorFor,
+  type BoardAnchor,
+  type BoardLayout,
+  type TetherKind,
+} from './isometric-board-layout.mjs'
 import { invokeTauri } from './tauri.ts'
 
 /** Matches the Godot-side manifest compiler's own convention
@@ -83,12 +91,18 @@ export interface WorldExit {
   direction: string
   targetRoomId: number | null
   targetCellId: string | null
+  tetherKind: TetherKind
+  /** Local edge socket for directional exits. Null means that the graph
+   * provides no honest compass-side placement for this tether. */
+  boardAnchor: BoardAnchor | null
 }
 
 export interface WorldCell {
   id: string
   title: string
   position: Vec3
+  /** Presentation-only footprint and rig sockets; never movement truth. */
+  board: BoardLayout
   exits: WorldExit[]
 }
 
@@ -316,6 +330,8 @@ function exitsFor(zoneId: string, room: MapZoneRoom): WorldExit[] {
         direction: link ? link.kind : 'leave-zone',
         targetRoomId: link ? link.to : null,
         targetCellId: link ? cellId(zoneId, link.to) : null,
+        tetherKind: classifyTether(move, link?.kind ?? 'leave-zone'),
+        boardAnchor: tetherAnchorFor(move),
       }
     })
 }
@@ -356,6 +372,7 @@ export function compileWorldSnapshot(params: {
     id: cellId(zoneId, room.id),
     title: room.title ?? '',
     position: worldPosition(room),
+    board: boardLayoutFor({}),
     exits: exitsFor(zoneId, room),
   }))
 

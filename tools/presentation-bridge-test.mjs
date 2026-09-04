@@ -99,9 +99,19 @@ console.log('\n-- compileWorldSnapshot: a real snapshot --')
 
     const here = snap.cells.find((c) => c.id === '1-14')
     ok('the current cell carries its real title', here?.title === 'The Crossing, Town Green North')
+    ok('live cells carry the same five-metre board footprint as offline cells',
+      here?.board.footprint.width === 5 && here.board.footprint.depth === 5)
+    ok('live cells preserve the rig-ready player spawn socket',
+      here?.board.spawnPoints.some((spawn) => spawn.role === 'player' && spawn.rigSocket === 'humanoid-root') ?? false)
     ok('the linked exit resolves to the real target cell', here?.exits.find((e) => e.move === 'south')?.targetCellId === '1-13')
+    ok('a compass traversal stays a typed road in the live snapshot',
+      here?.exits.find((e) => e.move === 'south')?.tetherKind === 'road')
+    ok('a compass traversal carries its local board-edge anchor',
+      here?.exits.find((e) => e.move === 'south')?.boardAnchor?.z === 2.5)
     ok('a zone-leaving exit ("go gate") is still a real exit, with no fabricated local target',
       here?.exits.some((e) => e.move === 'go gate' && e.targetCellId === null) ?? false)
+    ok('a named gate is a threshold but has no fabricated compass anchor',
+      here?.exits.some((e) => e.move === 'go gate' && e.tetherKind === 'threshold' && e.boardAnchor === null) ?? false)
     ok('no exit was invented beyond what moves[] actually listed', here?.exits.length === 2, String(here?.exits.length))
 
     ok('the hostile creature in the room became an entity, already classified hostile (never inferred by Godot)',

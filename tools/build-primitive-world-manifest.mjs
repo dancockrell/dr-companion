@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { boardLayoutFor, classifyTether, tetherAnchorFor } from './isometric-board-layout.mjs'
+import { boardLayoutFor, classifyTether, tetherAnchorFor } from '../src/lib/isometric-board-layout.mjs'
 
 const zone = process.argv[2] ?? '1'
 const briefsPath = 'data/art/out/geometric-room-briefs.json'
