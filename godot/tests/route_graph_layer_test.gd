@@ -25,6 +25,17 @@ func _initialize() -> void:
 	_ok("one segment is drawn for each known undirected manifest connection", layer.segment_count() == expected_pairs.size())
 	_ok("the route graph is one mesh instance, not a node per exit", layer.get_child_count() == 1)
 	_ok("the mock subset exposes at least one local route", layer.segment_count() > 0)
+	var typed_cells := {
+		"a": {"position": {"x": 0, "y": 0, "z": 0}, "exits": [
+			{"targetCellId": "b", "tetherKind": "road"},
+			{"targetCellId": "c", "tetherKind": "portal"},
+		]},
+		"b": {"position": {"x": 5, "y": 0, "z": 0}, "exits": [{"targetCellId": "a", "tetherKind": "road"}]},
+		"c": {"position": {"x": 0, "y": 0, "z": 5}, "exits": [{"targetCellId": "a", "tetherKind": "portal"}]},
+	}
+	layer.render_routes(typed_cells)
+	_ok("roads and portals retain separate static visual families", layer.segment_count_for("road") == 1 and layer.segment_count_for("portal") == 1)
+	_ok("each used tether family owns one mesh and material", layer.get_child_count() == 2)
 	layer.free()
 	print("%d checked, %d failed" % [_checked, _failed])
 	quit(1 if _failed > 0 else 0)

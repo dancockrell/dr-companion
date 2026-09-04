@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "task_id": "isometric-typed-tethers",
+  "agent": "Codex /root",
+  "summary": "Render typed graph tethers distinctly and stop inventing positions for unresolved exits",
+  "status": "active",
+  "claimed_at": "2026-09-04T06:51:07Z",
+  "updated_at": "2026-09-04T06:51:07Z",
+  "paths": [
+    "godot/scripts/route_graph_layer.gd",
+    "godot/tests/route_graph_layer_test.gd",
+    "godot/scripts/exit_anchor_layer.gd",
+    "godot/tests/exit_anchor_layer_test.gd",
+    "godot/README.md"
+  ],
+  "symbols": ["route_graph_layer.render_routes", "exit_anchor_layer._anchor_offset"],
+  "coordination": {
+    "depends_on": ["e3632918"],
+    "conflicts_with": [],
+    "notes": "Consumes the merged typed-tether and board-anchor metadata in the one existing Godot viewer. No animation or alternate route system."
+  },
+  "completion": {"commit": null, "checks": []}
+}

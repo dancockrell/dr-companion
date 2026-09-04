@@ -50,9 +50,11 @@ required for this slice's acceptance gate.
   children, never the room graph or exit truth. A later world/route layer can
   add cheap silhouettes without activating local prop geometry across a city.
 - `scripts/route_graph_layer.gd` — draws all known local manifest connections
-  as one inexpensive route mesh for the world/route camera. It de-duplicates
-  reciprocal exits for display and omits unresolved/external links rather than
-  inventing a road, bridge, or destination.
+  as inexpensive static meshes grouped by typed tether family for the
+  world/route camera. Roads, paths, thresholds, stairs, ladders, ferries,
+  portals, warps, and unclassified links have distinct restrained materials.
+  It de-duplicates reciprocal exits and omits unresolved/external links rather
+  than inventing a road, bridge, or destination.
 - `scripts/world_controls.gd` — the in-view World / Route / Room controls and
   compact current-room exit list. Camera choices are presentation-only and
   have matching `1` / `2` / `3` shortcuts. Exit buttons are keyboard
@@ -69,8 +71,9 @@ required for this slice's acceptance gate.
   starts no travel animation; reconnects, rejects, external routes, and unknown
   jumps remain quiet. This is the seam a later truthful streak effect will use.
 - `scripts/exit_anchor_layer.gd` — labels and makes each true current-room
-  exit clickable. Local destinations are placed toward their real node;
-  external exits retain their exact command label without invented geography.
+  exit clickable. Compiled compass anchors win, then known local destinations.
+  Directionless/external exits retain their exact command in a neutral,
+  explicitly unpositioned stack rather than receiving invented geography.
 - `scripts/entity_projection_layer.gd` — creates modest tabletop tokens only
   for bridge-confirmed entities and ground items. Each token is parented below
   its reported room's tether and gets a deterministic local display slot; it

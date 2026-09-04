@@ -25,6 +25,16 @@ func _initialize() -> void:
 	_ok("the request retains the room the marker was rendered for", requested == [{"room": ROOM_ID, "move": expected_moves[0]}])
 	_ok("an arbitrary move is not clickable", not layer.request_exit(ROOM_ID, "go imaginary secret door"))
 	_ok("a stale marker cannot request a walk from another room", not layer.request_exit("not-current", expected_moves[0]))
+	var placement_cells := {
+		"room": {"position": {"x": 0, "y": 0, "z": 0}, "exits": [
+			{"move": "north", "boardAnchor": {"x": 0, "y": 0, "z": -2.5}, "targetCellId": "north-room"},
+			{"move": "go mysterious portal", "boardAnchor": null, "targetCellId": null},
+		]},
+		"north-room": {"position": {"x": 0, "y": 0, "z": -5}, "exits": []},
+	}
+	layer.render_exits("room", placement_cells)
+	_ok("compiled board anchors resolve a true compass exit", layer.position_state_for("north") == "resolved")
+	_ok("a directionless external exit stays actionable but unpositioned", layer.position_state_for("go mysterious portal") == "unpositioned" and layer.request_exit("room", "go mysterious portal"))
 	layer.free()
 	print("%d checked, %d failed" % [_checked, _failed])
 	quit(1 if _failed > 0 else 0)
