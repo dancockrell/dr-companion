@@ -28,4 +28,8 @@ else {
   else fail('water has no primitive treatment')
   if (world.queues.unresolvedCellIds.every((id) => world.cells.find((cell) => cell.id === id)?.status === 'missing-description')) pass('unresolved cells remain explicit')
   else fail('unresolved cells are not honest')
+  if (world.cells.every((cell) => cell.board?.footprint?.width === 5 && cell.board?.selectionBounds?.width === 4.5 && cell.board?.spawnPoints?.some((point) => point.role === 'player' && point.rigSocket === 'humanoid-root'))) pass('every room cell has a stable isometric footprint and rig-ready player formation')
+  else fail('isometric cell footprints or rig-ready formations are missing')
+  if (townGreenNorth?.exits.every((exit) => typeof exit.tetherKind === 'string') && townGreenNorth?.exits.find((exit) => exit.direction === 'north')?.boardAnchor?.z === -2.5) pass('true exits carry typed tethers and camera-stable edge anchors')
+  else fail('typed tether or board-edge anchor metadata is missing')
 }

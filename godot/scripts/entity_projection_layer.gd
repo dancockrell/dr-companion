@@ -73,7 +73,9 @@ func _project_entity(entity: Dictionary, room_holders: Dictionary) -> void:
 	token.name = "Entity_%s" % entity_id
 	token.mesh = _entity_mesh(String(entity.get("deck", "")))
 	token.material_override = _token_material(CombatPresentation.token_color(entity))
-	token.position = _slot_for(entity_id, _range_radius(entity))
+	var tactical_value = entity.get("tactical")
+	var role := "hostile" if String(entity.get("deck", "")) == "hostile" else "occupant"
+	token.position = _slot_for(entity_id, _range_radius(entity)) if tactical_value is Dictionary else _board_slot(tether, role, entity_id, 1.50)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "entity")
 	token.set_meta("entityName", String(entity.get("name", "")))
@@ -100,7 +102,7 @@ func _project_player(snapshot: Dictionary, room_holders: Dictionary) -> void:
 	pawn.height = 0.94
 	token.mesh = pawn
 	token.material_override = _token_material(CombatPresentation.player_color(player_value))
-	token.position = Vector3(0.0, 0.52, 0.0)
+	token.position = _board_slot(tether, "player", "player:self", 0.0)
 	var view := CombatPresentation.player_view(player_value)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "player")
@@ -153,7 +155,7 @@ func _project_ground_item(item: Dictionary, room_holders: Dictionary) -> void:
 	mesh.size = Vector3(0.28, 0.12, 0.28)
 	token.mesh = mesh
 	token.material_override = _token_material(Color(0.94, 0.71, 0.18))
-	token.position = _slot_for(item_id, 1.55) + Vector3(0.0, 0.08, 0.0)
+	token.position = _board_slot(tether, "item", item_id, 1.55)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "ground-item")
 	token.set_meta("itemName", String(item.get("name", "")))
@@ -235,6 +237,7 @@ func _tether_for(room_id: String, room_holders: Dictionary) -> Node3D:
 	var tether := Node3D.new()
 	tether.name = "RoomTether_%s" % room_id
 	tether.set_meta("roomId", room_id)
+	tether.set_meta("board", room_holder.get_meta("board", {}))
 	room_holder.add_child(tether)
 	_tethers[room_id] = tether
 	return tether
@@ -279,6 +282,20 @@ func _slot_for(stable_id: String, radius: float) -> Vector3:
 	var angle := TAU * float(hash_value % 360) / 360.0
 	var distance := radius * (0.94 + float((hash_value / 360) % 13) / 100.0)
 	return Vector3(cos(angle) * distance, 0.4, sin(angle) * distance)
+
+func _board_slot(tether: Node3D, role: String, stable_id: String, fallback_radius: float) -> Vector3:
+	var board_value = tether.get_meta("board", {})
+	if board_value is Dictionary:
+		var matches: Array = []
+		for point in board_value.get("spawnPoints", []):
+			if point is Dictionary and str(point.get("role", "")) == role:
+				matches.append(point)
+		if not matches.is_empty():
+			var point: Dictionary = matches[_stable_hash(stable_id) % matches.size()]
+			var anchor: Dictionary = point.get("anchor", {})
+			return Vector3(float(anchor.get("x", 0.0)), float(anchor.get("y", 0.4)), float(anchor.get("z", 0.0)))
+	var fallback := _slot_for(stable_id, fallback_radius)
+	return fallback + Vector3(0.0, -0.32, 0.0) if role == "item" else fallback
 
 func _stable_hash(value: String) -> int:
 	var result := 17

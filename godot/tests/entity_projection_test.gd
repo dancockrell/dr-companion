@@ -20,6 +20,10 @@ func _initialize() -> void:
 	root.add_child(world)
 	var room_one := Node3D.new()
 	room_one.name = "Cell_crossing-1"
+	room_one.set_meta("board", {"spawnPoints": [
+		{"id": "player", "role": "player", "anchor": {"x": 0.0, "y": 0.52, "z": 0.0}, "rigSocket": "humanoid-root"},
+		{"id": "item", "role": "item", "anchor": {"x": 1.55, "y": 0.08, "z": 1.55}, "rigSocket": "item-root"},
+	]})
 	world.add_child(room_one)
 	var room_two := Node3D.new()
 	room_two.name = "Cell_crossing-2"
@@ -46,6 +50,7 @@ func _initialize() -> void:
 	_ok("confirmed player plus snapshot entries with a known room and stable id render", layer.visible_ids().size() == 4)
 	_ok("the player's own token stays at the confirmed current room node", layer.tether_room_for("player:self") == "crossing-1")
 	_ok("the player token carries the bridge-decided action lock", layer.token_for("player:self").get_meta("combatState") == "CANNOT ACT")
+	_ok("the player occupies the manifest's rig-ready spawn point", layer.local_slot_for("player:self").is_equal_approx(Vector3(0.0, 0.52, 0.0)))
 	_ok("a hostile token stays tethered to its reported room", layer.tether_room_for("creature-1") == "crossing-1")
 	_ok("a person token stays tethered to its reported room", layer.tether_room_for("person-1") == "crossing-2")
 	_ok("a ground-item token stays tethered to its reported room", layer.tether_room_for("item-1") == "crossing-1")
@@ -59,6 +64,7 @@ func _initialize() -> void:
 	_ok("an exact 'you' target produces one engagement line", layer.target_link_count() == 1 and layer.target_for("creature-1") == "player:self")
 	_ok("unassessed people stay explicitly unassessed", layer.token_for("person-1").get_meta("assessmentState") == "unassessed")
 	_ok("each confirmed ground-item token has an inspect hit target", layer.token_for("item-1").has_node("InspectTarget"))
+	_ok("ground items consume their declared board formation", layer.local_slot_for("item-1").is_equal_approx(Vector3(1.55, 0.08, 1.55)))
 	var first_slot: Vector3 = layer.local_slot_for("creature-1")
 	layer.project_snapshot(fixture, rooms)
 	_ok("room-local slots are deterministic across equivalent snapshots", first_slot.is_equal_approx(layer.local_slot_for("creature-1")))
