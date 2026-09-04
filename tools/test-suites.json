@@ -42,6 +42,7 @@
   "test:ai-review-scheduler",
   "test:ai-model-provider",
   "test:ai-worker",
+  "test:ai-worker-host",
   "test:link",
   "test:eval",
   "test:contrast",

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "task_id": "local-ai-host-wiring",
+  "agent": "claude-code",
+  "summary": "Give the AI worker a real caller: ingest the live stream into the journal, derive alerts from already-parsed state, and show honest status",
+  "status": "active",
+  "claimed_at": "2026-09-04T14:00:00Z",
+  "updated_at": "2026-09-04T14:00:00Z",
+  "paths": [
+    "src/lib/aiWorkerHost.ts",
+    "src/components/shared/AiWorkerPanel.tsx",
+    "src/components/layout/SettingsSheet.tsx",
+    "tools/ai-worker-host-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    ".agents/claims/local-ai-host-wiring.json"
+  ],
+  "symbols": [
+    "ingestLines",
+    "deriveAlerts",
+    "useAiWorkerHost",
+    "AiWorkerPanel"
+  ],
+  "coordination": {
+    "depends_on": ["c6723e27", "d2004ee5"],
+    "conflicts_with": [],
+    "notes": "Fixes a defect in my own previous two slices: aiEventJournal, aiAlertBroker, aiJobStore, aiReviewScheduler, aiModelProvider and aiWorker had no caller anywhere in src/, which AGENTS.md forbids outright - no unused scaffolds without a current caller and an explicit product purpose. This adds the caller and the visible surface, which is also acceptance criterion 14: model failure, absence, timeout and out-of-memory must be visible. Uses the established owners rather than new paths: ingestion subscribes to gameVersion through useSyncExternalStore exactly as useGameLines.ts documents, reads gameLines() only inside the effect body and never as a dependency, and tracks an ingested count so no line is journalled twice or skipped. tools/gamelines-test.mjs scopes its raw-accessor ban to src/components; this hook is in src/lib, which that check explicitly allows for non-component code, and it follows the version-counter rule the check exists to enforce. Alerts are derived from already-parsed state - CharacterStatus.situation flags and bridgeConnected - never from a second pass over game text, so no parser is duplicated. The panel follows PresentationBridgePanel's precedent in SettingsSheet. Still no model ships and still no path to the command boundary."
+  },
+  "completion": {
+    "commit": null,
+    "checks": []
+  }
+}
