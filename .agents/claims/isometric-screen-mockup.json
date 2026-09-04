@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "task_id": "isometric-screen-mockup",
+  "agent": "codex-root",
+  "summary": "Build and visually verify a self-contained HTML mockup of the fixed-isometric DR Companion screen",
+  "status": "active",
+  "claimed_at": "2026-09-04T10:05:00Z",
+  "updated_at": "2026-09-04T10:05:00Z",
+  "paths": [
+    "docs/mockups/dr-companion-isometric-mvp.html",
+    ".agents/claims/isometric-screen-mockup.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["56df738b"],
+    "conflicts_with": [],
+    "notes": "A documentation mockup illustrating the approved client direction; it is not a second runtime UI or a claim that these controls are implemented."
+  },
+  "completion": {
+    "commit": null,
+    "checks": []
+  }
+}
