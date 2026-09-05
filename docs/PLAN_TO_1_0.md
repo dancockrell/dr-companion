@@ -911,14 +911,15 @@ whether it is embedded, docked or a separate window is D0.
 ### Lane G — AI slices 5–7 (after Lane A)
 
 - [x] **G0  Evidence outlives the journal** (≈25)
-  commit: e82330d1 verified: 2026-09-05 minutes: 40
+  commit: 489f3489 verified: 2026-09-05 minutes: 40
   touches: new:src/lib/aiEvidenceStore.ts, new:tools/ai-evidence-store-test.mjs, C1>src/lib/aiJobStore.ts, package.json, tools/test-suites.json
   depends-on: A5
   do: a claim's `evidenceRefs` are `event:<seq>` strings, and the journal evicts at 5000 events, so a candidate reviewed an hour later can cite evidence nobody can read. The handoff's `observations.read(refs)` presumes durable observations. Minimum honest version: `pin(refs, journal)` copies the referenced events' `{seq, at, kind, payload}` into `drc.ai-evidence.v1` at the moment a job or claim cites them; `resolve(refs)` returns them or `{missing:[…]}` — never a silent partial. `JobStore.create` pins `inputRefs`; G5's store refuses a claim whose refs do not resolve. Bounded by count with the oldest **unreferenced** entries evicted first; an entry cited by a live claim is never evicted.
   verify: tests — pin, evict the journal past capacity, resolve → still returns the payload; a ref never pinned → listed in `missing`; eviction skips cited entries.
   sabotage: evict cited entries → red.
 
-- [ ] **G1  Producer: divergent exits** (≈25)
+- [x] **G1  Producer: divergent exits** (≈25)
+  commit: 77849376 verified: 2026-09-05 minutes: 40
   touches: new:src/lib/aiJobProducers.ts, C1>src/lib/aiWorkerHost.ts, new:tools/ai-job-producers-test.mjs, package.json, tools/test-suites.json
   depends-on: A4
   do: `detectExitDivergence(snapshotCell, parsedExits)` → `[{move, inSnapshot, inStream}]`. Parsed exits come from the stream parser's room state (`grep -n "exits" src/lib/gameStream.ts src/types/stream.ts`) — never parse text here. Non-empty → `jobs.create({kind:'map_reconciliation', scope:{roomId}, inputRefs:['event:<seq>'], allowedTools:['flag_conflict']})` unless a non-terminal job already has that `scope.roomId`.
@@ -926,7 +927,7 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: remove the dedupe → red.
 
 - [x] **G2  Tool registry + `room_by_id`** (≈15)
-  commit: 26dfd050 verified: 2026-09-05 minutes: 35
+  commit: 489f3489 verified: 2026-09-05 minutes: 35
   touches: new:src/lib/aiKnowledgeTools.ts, new:tools/ai-knowledge-tools-test.mjs, package.json, tools/test-suites.json
   depends-on: A4
   do: `callTool(name, args, allowedTools, trace)` returns `{ok:false, reason}` for a disallowed or unknown name — never throws. Every tool declares `{id, validate(args), maxResultBytes}`; an over-size result is truncated with `truncated:true`, never silently cut. Every call is appended to `trace` as `{tool, argsSummary, bytes, at}` (no payloads, no secrets) so a job's tool use is inspectable. Text fields returned to a model are wrapped as `{untrusted:true, text}` so the prompt builder can label them "data, not instructions" (the handoff's injection rule). `room_by_id(zone, id)` → `{id, title, exits:[{move,to}], tags}` from the same `MapZone` data `compileWorldSnapshot` reads.
@@ -934,28 +935,29 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: skip the allowlist → red; skip the size cap → red.
 
 - [x] **G3  Tool `lore_for`** (≈10)
-  commit: 026050a7 verified: 2026-09-05 minutes: 15
+  commit: 489f3489 verified: 2026-09-05 minutes: 15
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
   depends-on: G2
   do: wraps `bestiary.ts` `loreFor`/`isApproximate` → `{lore, approximate} | null`.
   verify: known creature → lore; unknown → null; approximate flagged.
 
 - [x] **G4  Tool `recent_events`** (≈10)
-  commit: bf863754 verified: 2026-09-05 minutes: 20
+  commit: 489f3489 verified: 2026-09-05 minutes: 20
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
   depends-on: G2
   do: `journal.readFrom(max(0, ack-n))` limited to n; returns kinds, seqs and the G12 privacy class only — never `text` (it may hold player speech).
   verify: a check asserts no returned object has a `text` key.
 
 - [x] **G5  Candidate-claim store** (≈35; two commits)
-  commit: f23cc92a verified: 2026-09-05 minutes: 55
+  commit: 489f3489 verified: 2026-09-05 minutes: 55
   touches: new:src/lib/aiClaimStore.ts, new:tools/ai-claim-store-test.mjs, package.json, tools/test-suites.json
   depends-on: A5
   do: the schema is the handoff's §28 (adopted whole — see section 11): `schemaVersion:1, claimId, subject, predicate, value, status ∈ candidate|corroborated|accepted-local|published|rejected|retracted|superseded, evidenceRefs[] (non-empty and resolvable via G0), producer {kind:'human'|'parser'|'model'|'import', identity, model?, adapter?, softwareVersion?}, confidence: number|null, createdAt, reviewedAt, reviewer, supersedes, privacy ∈ private|group|public-candidate (default private), licence: string|null`. Transitions: candidate→corroborated→accepted-local; candidate|corroborated→rejected; accepted-local→published only when `privacy !== 'private'` and `licence` is set (and only once G11-era sharing exists — refused until then); any non-terminal→retracted; supersession appends a new claim naming the old, never edits it (§31). `drc.ai-claims.v1`. **Imports nothing from mapData, mapPins, bestiary or any canonical store** — a source check in the test enforces it.
   verify: transitions; empty or unresolvable evidence refused; `published` refused for `private`; supersession leaves the old record addressable; a supersession cycle (A supersedes B supersedes A) refused; source check green.
   sabotage: allow empty evidence → red; allow the cycle → red.
 
-- [ ] **G6  Map job yields a claim even with no model** (≈25)
+- [x] **G6  Map job yields a claim even with no model** (≈25)
+  commit: fa5301dd verified: 2026-09-05 minutes: 50
   touches: C1>src/lib/aiWorker.ts, G1>src/lib/aiJobProducers.ts, C1>tools/ai-worker-test.mjs
   depends-on: G1, G5
   do: on `map_reconciliation` with provider absent or failing, emit the deterministic claim `{subject:'room:<id>', predicate:'exit_divergence', value:{diff}, confidence:0.5, producer:{kind:'parser', identity:'aiJobProducers.detectExitDivergence'}}`, job → `awaiting_review`. A working provider's parsed JSON adds a second claim with `producer.kind:'model'`; malformed → `invalid_output` and the deterministic claim still stands. Every model-proposed tether passes `validateTetherCandidate` (handoff §33) before it becomes a claim: `fromRoomId` known; a non-null `toRoomId` must appear as `currentRoomId` in a cited authoritative snapshot; a directionless exit gets `boardAnchor:null`, never a guessed one; kind `ferry` needs transport evidence; kinds `portal|warp` never infer adjacency from board proximity. A proposal that fails validation is recorded in the job note, not as a claim.
@@ -968,7 +970,8 @@ whether it is embedded, docked or a separate window is D0.
   do: list candidates (subject, predicate, evidence count, producer, confidence); Accept/Reject change status only; evidence tooltip.
   verify: create a claim in devtools; it appears; Accept → accepted; pins/map `localStorage` keys byte-identical before and after (read them in devtools).
 
-- [ ] **G8  Corroboration** (≈15)
+- [x] **G8  Corroboration** (≈15)
+  commit: 59838bc9 verified: 2026-09-05 minutes: 25
   touches: G5>src/lib/aiClaimStore.ts, G5>tools/ai-claim-store-test.mjs
   depends-on: G5
   do: same `(subject,predicate,value)` from a second independent `evidenceRef` → `corroborated`.

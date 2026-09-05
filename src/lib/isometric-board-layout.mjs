@@ -28,6 +28,48 @@ export function tetherAnchorFor(direction) {
 }
 
 /**
+ * The game's own abbreviations for the directions above.
+ *
+ * DragonRealms' compass tag sends `<dir value='ne'/>`; the cartographer's
+ * moves are written out in full ("northeast"). Anything comparing the two has
+ * to agree on one vocabulary, and this file is where the compass vocabulary
+ * already lives - a second copy of it beside a consumer would be free to drift
+ * from the anchors, which is the failure `streamLabels.ts` was split out of a
+ * component to avoid.
+ *
+ * `up`, `down` and `out` are deliberately absent: the anchors have no place
+ * for them, they are not compass bearings, and giving them one would be a
+ * claim about compass placement the graph never made.
+ */
+const COMPASS_ABBREVIATIONS = {
+  n: 'north',
+  ne: 'northeast',
+  e: 'east',
+  se: 'southeast',
+  s: 'south',
+  sw: 'southwest',
+  w: 'west',
+  nw: 'northwest',
+}
+
+/**
+ * One direction word, or null when the value is not a compass bearing at all.
+ *
+ * Null rather than the input, so a caller can tell "this is northeast written
+ * differently" from "this is `go gate`, which the compass will never report" -
+ * and those two must stay different, because comparing a doorway against a
+ * compass that cannot mention doorways would report a divergence in every room
+ * that has one.
+ */
+export function expandCompassDirection(value) {
+  const text = String(value ?? '')
+    .trim()
+    .toLowerCase()
+  if (COMPASS_ABBREVIATIONS[text]) return COMPASS_ABBREVIATIONS[text]
+  return COMPASS_ANCHORS[text] ? text : null
+}
+
+/**
  * How far apart adjacent rooms sit, in metres.
  *
  * `tools/build-primitive-world-manifest.mjs` multiplies map units by 0.25, and

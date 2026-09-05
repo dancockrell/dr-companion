@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "g1-producer-divergent-exits",
+  "agent": "claude-code",
+  "summary": "The first job producer: notice that the cartographer's map and the game's compass disagree about a room's exits, and ask for one reconciliation per room",
+  "status": "completed",
+  "claimed_at": "2026-09-05T20:00:00Z",
+  "updated_at": "2026-09-05T20:40:00Z",
+  "paths": [
+    "src/lib/aiJobProducers.ts",
+    "tools/ai-job-producers-test.mjs",
+    "src/lib/aiWorkerHost.ts",
+    "src/lib/isometric-board-layout.mjs",
+    "src/lib/isometric-board-layout.d.mts",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAYER_DATA.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g1-producer-divergent-exits.json"
+  ],
+  "symbols": ["detectExitDivergence", "proposeMapReconciliation", "expandCompassDirection"],
+  "coordination": {
+    "depends_on": ["A4", "G0"],
+    "conflicts_with": [],
+    "notes": "No text is parsed. The snapshot side is the cartographer's own moves (the same list presentationBridge's exitsFor pairs with links); the stream side is gameStream's compass tag, read through gameLink's existing streamCharacterState accessor. Only compass bearings are compared: the compass never reports `go gate`, `climb ladder` or `out`, so including them would report a divergence in every room with a door - a check that always fires, which carries as much information as one that never does. The host wiring also closes a gap G0 left: EvidenceStore had no constructor anywhere in src/, so a job's inputRefs would have gone on dangling. The host now builds one and hands it to JobStore.",
+    "deviations": "Two files outside the increment's touches list. `expandCompassDirection` went into src/lib/isometric-board-layout.mjs (plus its .d.mts) rather than into the new module, because that file already owns COMPASS_ANCHORS and a second copy of the compass vocabulary beside a consumer would be free to drift from the anchors. Lane L also edits that file; the addition is an appended export, so a conflict resolves by keeping both."
+  },
+  "completion": {
+    "commit": "77849376",
+    "checks": [
+      "node --experimental-strip-types tools/ai-job-producers-test.mjs: 34 checked, 0 failed / all passed",
+      "verify - divergent -> 1 job: 'a job was created' (1 direction(s) disagree), scope.roomId room:142, inputRefs event:3, allowedTools flag_conflict",
+      "verify - again -> still 1: 'asking again creates nothing' (already covered by job:1), 'still exactly one job' 1",
+      "verify - other room -> 2: 'another room gets its own job' OK, 'two jobs now' 2",
+      "verify - the check cannot always fire: 'only bearings are compared' 0 divergences for a room whose exits are north, go gate, climb ladder, out, up against a compass of ['n']",
+      "sabotage - dedupe branch disabled: 4 red - 'asking again creates nothing' (1 direction(s) disagree), 'and points at the job that already covers it', 'still exactly one job' (2), 'two jobs now' (3); exit 1; restore md5 OK"
+    ]
+  }
+}

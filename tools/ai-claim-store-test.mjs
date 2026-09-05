@@ -283,9 +283,74 @@ console.log('\n-- the source check: this store cannot reach canonical data --')
   ok('and the whole import list is short enough to be worth asserting', imports.length <= 3, imports.join(', '))
 }
 
+console.log('\n-- corroboration needs evidence the claim does not already rest on --')
+{
+  const { claims } = fresh()
+  const first = claims.create(base({ evidenceRefs: ['event:1'] })).claim
+  ok('it starts as a candidate', first.status === 'candidate')
+
+  // The failure this exists to stop: a producer that runs every second citing
+  // the same observation until one sighting looks like a hundred.
+  const sameRef = claims.corroborate({
+    subject: 'room:142',
+    predicate: 'exit_divergence',
+    value: base().value,
+    evidenceRefs: ['event:1'],
+    now: LATER,
+  })
+  ok('the same ref corroborates nothing', sameRef.ok === false, sameRef.ok ? 'accepted' : sameRef.reason)
+  ok('and the refusal says so', (sameRef.reason ?? '').includes('already rests on that evidence'), sameRef.reason ?? '')
+  ok('the claim did not move', claims.get(first.claimId).status === 'candidate')
+  ok('and gained no evidence', claims.get(first.claimId).evidenceRefs.length === 1)
+
+  const second = claims.corroborate({
+    subject: 'room:142',
+    predicate: 'exit_divergence',
+    value: base().value,
+    evidenceRefs: ['event:2'],
+    now: LATER,
+  })
+  ok('an independent ref corroborates', second.ok === true, second.ok ? '' : second.reason)
+  ok('the claim is now corroborated', claims.get(first.claimId).status === 'corroborated')
+  ok('and cites both', claims.get(first.claimId).evidenceRefs.join(',') === 'event:1,event:2',
+    claims.get(first.claimId).evidenceRefs.join(','))
+  ok('no second record was made', claims.all().length === 1, String(claims.all().length))
+
+  const unresolvable = claims.corroborate({
+    subject: 'room:142',
+    predicate: 'exit_divergence',
+    value: base().value,
+    evidenceRefs: ['event:9999'],
+    now: LATER,
+  })
+  ok('evidence that does not resolve cannot corroborate', unresolvable.ok === false, unresolvable.ok ? '' : unresolvable.reason)
+
+  const other = claims.corroborate({
+    subject: 'room:142',
+    predicate: 'exit_divergence',
+    value: { diff: 'something else entirely' },
+    evidenceRefs: ['event:3'],
+    now: LATER,
+  })
+  ok('a different value is a different assertion', other.ok === false, other.ok ? 'matched anyway' : other.reason)
+
+  claims.transition(first.claimId, 'rejected', { now: LATER, reviewer: 'Dan' })
+  const afterRejection = claims.corroborate({
+    subject: 'room:142',
+    predicate: 'exit_divergence',
+    value: base().value,
+    evidenceRefs: ['event:3'],
+    now: LATER,
+  })
+  ok('a rejected claim cannot be corroborated back to life', afterRejection.ok === false,
+    afterRejection.ok ? 'revived' : afterRejection.reason)
+  ok('and it is still rejected', claims.get(first.claimId).status === 'rejected')
+}
+
+
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 65
+const MIN_EXPECTED = 78
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

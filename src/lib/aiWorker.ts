@@ -32,9 +32,11 @@
  */
 import type { AlertBroker } from './aiAlertBroker.ts'
 import type { EventJournal } from './aiEventJournal.ts'
-import type { JobStore } from './aiJobStore.ts'
+import type { BackgroundJob, JobStore } from './aiJobStore.ts'
 import type { ModelProvider, ModelRequest, ModelResult } from './aiModelProvider.ts'
 import { generateWithinBudget, parseStructured, PrivacyGateError } from './aiModelProvider.ts'
+import type { ClaimStore } from './aiClaimStore.ts'
+import { validateTetherCandidate, type TetherCandidate } from './aiJobProducers.ts'
 import type { Activity } from './aiReviewScheduler.ts'
 import { decideReview } from './aiReviewScheduler.ts'
 
@@ -97,6 +99,25 @@ export interface WorkerDeps {
   /** Stable instruction prefix. Supplied by the caller so this module does not
    * own prompt content. */
   instructions: string
+  /**
+   * Where candidate claims go, when there is anywhere.
+   *
+   * Optional, because a host that has not wired one is a host that produces no
+   * claims rather than a host that crashes - and because the whole point of a
+   * candidate store is that it is separate from anything canonical, so this
+   * module holding a hard reference to one would be the wrong shape.
+   */
+  claims?: ClaimStore | null
+  /** Resolves evidence refs for the tether validator. */
+  evidence?: {
+    resolve(refs: readonly string[]): {
+      resolved: Array<{ ref: string; kind: string; payload: unknown }>
+      missing: string[]
+    }
+  } | null
+  /** Whether the map knows a room. Injected so the validator cannot read
+   * anything else out of the map. */
+  knownRoom?: (roomId: string) => boolean
 }
 
 export type WorkerOutcome =
@@ -124,6 +145,9 @@ export type WorkerOutcome =
       jobId: string
       result: ModelResult
       status: string
+      /** Claims this job produced, if any. Present so a caller can tell a job
+       * that reviewed something from one that only ran. */
+      claimIds?: string[]
     }
 
 /**
@@ -163,6 +187,137 @@ async function generateOrRefuse(
     }
     throw error
   }
+}
+
+/** What a recorder did, so the job note can say it rather than the caller
+ * inferring it from a count. */
+interface ClaimRecording {
+  claimIds: string[]
+  note: string
+}
+
+/**
+ * The claim a map reconciliation produces without asking anything.
+ *
+ * `detectExitDivergence` already decided this, deterministically, from two
+ * lists the app had parsed - so the job has a reviewable result before a model
+ * is involved and whatever the model does. That is the whole point of the
+ * increment: an install with no model is not an install with no map work.
+ *
+ * `confidence: 0.5` is advisory and says what it means - the two sources
+ * disagree and this claim does not know which is right. Producer is the parser
+ * by name, because `kind: 'parser'` alone cannot tell two parsers apart.
+ */
+function recordDeterministicDivergence(
+  deps: WorkerDeps,
+  job: BackgroundJob,
+  nowIso: string
+): ClaimRecording {
+  if (!deps.claims) return { claimIds: [], note: 'no claim store is attached, so nothing was recorded' }
+
+  const roomId = typeof job.scope.roomId === 'string' ? job.scope.roomId : null
+  const diff = Array.isArray(job.scope.divergence) ? job.scope.divergence : []
+  if (!roomId || diff.length === 0) {
+    return { claimIds: [], note: 'the job carries no room or no divergence to claim' }
+  }
+
+  // Corroboration first. The same divergence noticed again from a *different*
+  // event is a second observation of one fact, not a second fact - and a
+  // producer that created a fresh claim each time would fill the review list
+  // with copies of one disagreement.
+  const corroborated = deps.claims.corroborate({
+    subject: roomId,
+    predicate: 'exit_divergence',
+    value: { diff },
+    evidenceRefs: job.inputRefs,
+    now: nowIso,
+  })
+  if (corroborated.ok && corroborated.claim) {
+    return {
+      claimIds: [corroborated.claim.claimId],
+      note: `corroborated ${corroborated.claim.claimId}`,
+    }
+  }
+
+  const created = deps.claims.create({
+    subject: roomId,
+    predicate: 'exit_divergence',
+    value: { diff },
+    evidenceRefs: job.inputRefs,
+    producer: { kind: 'parser', identity: 'aiJobProducers.detectExitDivergence' },
+    confidence: 0.5,
+    now: nowIso,
+  })
+  if (!created.ok || !created.claim) {
+    return { claimIds: [], note: `the parser claim was refused: ${created.reason ?? 'unknown'}` }
+  }
+  return { claimIds: [created.claim.claimId], note: `parser claim ${created.claim.claimId}` }
+}
+
+/**
+ * Tethers the model proposed, each one checked before it may become a claim.
+ *
+ * Three refusals, and every one of them is recorded in the job note rather
+ * than as a claim. That distinction is the increment: a proposal that failed
+ * validation is *evidence about the model*, not evidence about the map, and
+ * storing it as a candidate would put an invented destination one Accept click
+ * away from the map.
+ *
+ * Malformed output is `invalid_output` and changes nothing else. The
+ * deterministic claim above still stands, because it never depended on this.
+ */
+function recordModelTethers(
+  deps: WorkerDeps,
+  job: BackgroundJob,
+  text: string,
+  nowIso: string
+): ClaimRecording {
+  if (!deps.claims) return { claimIds: [], note: 'no claim store is attached, so nothing was recorded' }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return { claimIds: [], note: 'invalid_output: the model result was not JSON' }
+  }
+
+  const proposals = (parsed as { tethers?: unknown })?.tethers
+  if (!Array.isArray(proposals)) {
+    return { claimIds: [], note: 'invalid_output: the model result carried no tethers array' }
+  }
+
+  const knownRoom = deps.knownRoom ?? (() => false)
+  const claimIds: string[] = []
+  const refused: string[] = []
+
+  for (const raw of proposals) {
+    const candidate = raw as TetherCandidate
+    const verdict = validateTetherCandidate(
+      { ...candidate, evidenceRefs: candidate?.evidenceRefs ?? job.inputRefs },
+      { evidence: deps.evidence ?? null, knownRoom }
+    )
+    if (!verdict.ok) {
+      refused.push(verdict.reason)
+      continue
+    }
+    const created = deps.claims.create({
+      subject: verdict.candidate.fromRoomId,
+      predicate: 'has_tether',
+      value: verdict.candidate,
+      evidenceRefs: verdict.candidate.evidenceRefs,
+      producer: { kind: 'model', identity: 'local-worker' },
+      confidence: null,
+      now: nowIso,
+    })
+    if (created.ok && created.claim) claimIds.push(created.claim.claimId)
+    else refused.push(created.reason ?? 'the claim store refused it')
+  }
+
+  const parts: string[] = []
+  if (claimIds.length > 0) parts.push(`model claims ${claimIds.join(', ')}`)
+  if (refused.length > 0) parts.push(`refused ${refused.length}: ${refused.join(' | ')}`)
+  if (parts.length === 0) parts.push('the model proposed nothing')
+  return { claimIds, note: parts.join('; ') }
 }
 
 /**
@@ -273,6 +428,12 @@ export async function runWorkerOnce(
     return { did: 'background-idle', reason: started.reason ?? 'could not start the job' }
   }
 
+  // A map reconciliation has an answer before any model is asked, so it takes
+  // a different path: the deterministic claim is written first and stands
+  // whatever the provider does.
+  const deterministic =
+    next.kind === 'map_reconciliation' ? recordDeterministicDivergence(deps, next, nowIso) : null
+
   const result = await generateOrRefuse(
     provider,
     {
@@ -283,6 +444,28 @@ export async function runWorkerOnce(
     },
     signal
   )
+
+  if (next.kind === 'map_reconciliation') {
+    const model = result.ok ? recordModelTethers(deps, next, result.text ?? '', nowIso) : null
+    const notes = [deterministic?.note, model?.note].filter(Boolean)
+    if (!result.ok && result.failure !== 'cancelled') notes.push(`${result.failure}: ${result.message}`)
+    if (!result.ok && result.failure === 'absent') notes.push('no model is installed; the parser claim stands alone')
+
+    // awaiting_review even when the provider failed, because something real
+    // was produced: a claim a person can accept or reject. Reporting this as
+    // `failed` would hide a finished piece of work behind an absent model.
+    const to = !result.ok && result.failure === 'cancelled' ? 'cancelled' : 'awaiting_review'
+    jobs.transition(next.jobId, to, { now: nowIso, note: notes.join('; ') })
+
+    return {
+      did: 'background-job',
+      reason: decision.reason,
+      jobId: next.jobId,
+      result,
+      status: jobs.get(next.jobId)?.status ?? 'unknown',
+      claimIds: [...(deterministic?.claimIds ?? []), ...(model?.claimIds ?? [])],
+    }
+  }
 
   // Success is a candidate awaiting review, never a completion: nothing here
   // has validated the output or promoted anything.

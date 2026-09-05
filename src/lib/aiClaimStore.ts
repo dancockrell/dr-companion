@@ -338,6 +338,60 @@ export class ClaimStore {
   }
 
   /**
+   * A second, independent observation of something already claimed.
+   *
+   * Corroboration is not "the same fact seen twice". It is the same fact
+   * supported by evidence the claim did not already rest on, and the
+   * difference is the whole of it: a producer that runs every second would
+   * otherwise corroborate its own claim off one observation until it looked
+   * like a hundred, and confidence built that way is a number counting how
+   * often a loop ran.
+   *
+   * So a call citing only refs the claim already holds is refused, by name,
+   * and the claim does not move. Only a genuinely new ref promotes
+   * `candidate` to `corroborated`.
+   *
+   * The match is on the triple - subject, predicate and value - because two
+   * claims that differ in value are two different assertions, however alike
+   * they look. Terminal claims are not matched: corroborating something a
+   * person has already rejected would quietly undo the rejection.
+   */
+  corroborate(params: {
+    subject: string
+    predicate: string
+    value: unknown
+    evidenceRefs: readonly string[]
+    now: string
+  }): ClaimResult {
+    const fingerprint = JSON.stringify(params.value)
+    const match = this.all().find(
+      (c) =>
+        c.subject === params.subject &&
+        c.predicate === params.predicate &&
+        JSON.stringify(c.value) === fingerprint &&
+        (c.status === 'candidate' || c.status === 'corroborated')
+    )
+    if (!match) return { ok: false, reason: 'no open claim makes that assertion' }
+
+    const fresh = params.evidenceRefs.filter((ref) => !match.evidenceRefs.includes(ref))
+    if (fresh.length === 0) {
+      return {
+        ok: false,
+        claim: match,
+        reason: `Refused: ${match.claimId} already rests on that evidence, so it corroborates nothing`,
+      }
+    }
+
+    const problem = this.evidenceProblem(fresh)
+    if (problem) return { ok: false, claim: match, reason: `Refused corroboration: ${problem}` }
+
+    match.evidenceRefs = [...match.evidenceRefs, ...fresh]
+    if (match.status === 'candidate') match.status = 'corroborated'
+    this.persist()
+    return { ok: true, claim: match }
+  }
+
+  /**
    * Append a claim that replaces an existing one.
    *
    * The old record is marked `superseded` and keeps everything else it had, so

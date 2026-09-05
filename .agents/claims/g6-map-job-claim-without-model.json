@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "task_id": "g6-map-job-claim-without-model",
+  "agent": "claude-code",
+  "summary": "A map reconciliation produces a reviewable claim before any model is asked, and every model-proposed tether passes the section 17 validator or lands in the job note instead",
+  "status": "completed",
+  "claimed_at": "2026-09-05T20:45:00Z",
+  "updated_at": "2026-09-05T21:35:00Z",
+  "paths": [
+    "src/lib/aiWorker.ts",
+    "src/lib/aiJobProducers.ts",
+    "src/lib/aiIngest.ts",
+    "src/lib/aiWorkerHost.ts",
+    "tools/ai-worker-test.mjs",
+    "docs/PLAYER_DATA.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g6-map-job-claim-without-model.json"
+  ],
+  "symbols": ["validateTetherCandidate", "recordDeterministicDivergence", "recordModelTethers"],
+  "coordination": {
+    "depends_on": ["G1", "G5"],
+    "conflicts_with": [],
+    "notes": "A map_reconciliation job goes to awaiting_review even when the provider is absent or failing, because something real was produced - a claim a person can accept or reject. Reporting that as `failed` would hide finished work behind a missing model. A proposal that fails validation is recorded in the job note and never as a claim: a failed proposal is evidence about the model, not about the map, and storing it as a candidate would put an invented destination one Accept click away from the map. aiIngest.ts and aiWorkerHost.ts are outside the increment's touches list and were edited to give this a real caller - without the host constructing a ClaimStore and threading it through runHostTick, `deps.claims` would be a field nothing ever sets and the whole path would be dead in the app.",
+    "deviations": "The authoritative-snapshot rule means a non-null destination is refused until something journals a `snapshot` event; today the journal carries `line` events, so in the running app every model-proposed destination is refused. That is the safe direction to be wrong in and is why the rule is a requirement on the evidence rather than on the proposal - it is recorded here rather than softened."
+  },
+  "completion": {
+    "commit": "fa5301dd",
+    "checks": [
+      "node --experimental-strip-types tools/ai-worker-test.mjs: 81 checked, 0 failed / all passed",
+      "verify absent -> 1 claim + awaiting_review: claim:1, confidence 0.5, producer aiJobProducers.detectExitDivergence, note 'parser claim claim:1; absent: No local model is installed.; no model is installed; the parser claim stands alone'",
+      "verify failing -> same: note 'parser claim claim:1; out_of_memory: CUDA out of memory', status awaiting_review",
+      "verify valid JSON -> 2 claims: [\"claim:1\",\"claim:2\"], the second predicate has_tether",
+      "adversarial invented destination -> no claim: [\"claim:1\"], note 'refused 1: destination room:999 appears in no cited authoritative snapshot'",
+      "adversarial directionless exit -> boardAnchor null even though the model supplied {x:9,y:9,z:9,yawDeg:9}",
+      "adversarial portal with proximity-only evidence -> 'refused 1: a portal may not be inferred from board proximity (board-proximity)'",
+      "adversarial ferry without transport evidence -> 'refused 1: a ferry needs a transport entry or a successful crossing in evidence'; positive control: the same ferry WITH a transport event is accepted (2 claims), so the clause is not refusing everything",
+      "adversarial unknown origin room -> 'refused 1: fromRoomId room:404 is not a room the map knows'",
+      "malformed output -> note 'parser claim claim:1; invalid_output: the model result was not JSON', parser claim still stands, status awaiting_review",
+      "sabotage - destination check disabled: 4 red - 'no model claim for an invented destination' ([\"claim:1\",\"claim:2\"]), 'the note names the destination', 'and says no snapshot witnessed it', 'nothing produced by a model exists'; exit 1; restore md5 OK",
+      "node tools/run-tests.mjs: 123 passed, 0 failed, 0 not run | 3863 checks across 123 suites / all passed"
+    ]
+  }
+}

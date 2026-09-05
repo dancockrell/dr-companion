@@ -22,7 +22,7 @@
     "deviations": "The plan's verify asks for `a 1 MB fixture result → truncated flag`; docs/LOCAL_AI_BACKGROUND_WORKER.md section 16 asks for a tool that would exceed its ceiling to fail rather than truncate. Both are implemented, split by shape: an array is shortened with truncated:true because a prefix of an array is still a true partial answer, and anything else is refused because half an object is not a smaller object, it is a wrong one. capResult is exported because the shortening branch is otherwise unreachable through any tool that returns an object, and a branch nobody can execute on purpose is a branch nobody can prove."
   },
   "completion": {
-    "commit": "26dfd050",
+    "commit": "489f3489",
     "checks": [
       "node --experimental-strip-types tools/ai-knowledge-tools-test.mjs: 44 checked, 0 failed / all passed",
       "verify - allowed: 'the call succeeded' OK, room 142 returned with exits [{move:'north',to:143}] and title/tags wrapped untrusted",

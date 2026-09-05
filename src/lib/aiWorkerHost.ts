@@ -55,11 +55,21 @@
  * comes from `bridgeConnected` for the same reason.
  */
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
-import { gameDropped, gameLines, gameVersion, subscribeGame } from './gameLink'
+import {
+  gameDropped,
+  gameLines,
+  gameVersion,
+  streamCharacterState,
+  subscribeGame,
+} from './gameLink'
 import { useAppStore } from '../store/useAppStore'
 import { AlertBroker } from './aiAlertBroker.ts'
 import { EventJournal, seedJournalCursor } from './aiEventJournal.ts'
+import { ClaimStore } from './aiClaimStore.ts'
+import { EvidenceStore } from './aiEvidenceStore.ts'
+import { detectExitDivergence, proposeMapReconciliation } from './aiJobProducers.ts'
 import { JobStore } from './aiJobStore.ts'
+import { readJSON, writeJSON } from './storage.ts'
 import { absentProvider, type ModelHealth, type ModelProvider } from './aiModelProvider.ts'
 import { localProvider, type LocalModelProvider } from './aiLocalProvider.ts'
 import {
@@ -299,6 +309,8 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
   const journal = useRef<EventJournal>(null as unknown as EventJournal)
   const alerts = useRef<AlertBroker>(null as unknown as AlertBroker)
   const jobs = useRef<JobStore>(null as unknown as JobStore)
+  const evidence = useRef<EvidenceStore>(null as unknown as EvidenceStore)
+  const claims = useRef<ClaimStore>(null as unknown as ClaimStore)
   if (journal.current === null) {
     journal.current = new EventJournal()
     // A remount inside one run must not re-review everything already seen.
@@ -306,8 +318,24 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
     // because sequence numbers restart and that cursor names other events.
     seedJournalCursor(journal.current)
     alerts.current = new AlertBroker()
-    jobs.current = new JobStore()
+    // Constructed before the job store, because that store pins through it.
+    // Without this the evidence store would be a module nothing builds, and a
+    // job's inputRefs would go on dangling the moment the journal evicted -
+    // which is the defect G0 exists to close, not a feature waiting for a
+    // caller.
+    evidence.current = new EvidenceStore({ source: journal.current })
+    evidence.current.load()
+    jobs.current = new JobStore({ evidence: evidence.current })
     jobs.current.load()
+    // Candidates, kept where they cannot become canonical data. The storage
+    // functions are handed in rather than imported by that module, so its own
+    // import list stays short enough for its source check to be worth
+    // asserting - see aiClaimStore.ts's constructor comment.
+    claims.current = new ClaimStore({
+      evidence: evidence.current,
+      storage: { read: readJSON, write: writeJSON },
+    })
+    claims.current.load()
     // Anything left running belonged to a process that is gone. Resolving it
     // here, once, is what keeps a restart honest rather than leaving records
     // claiming a worker that does not exist.
@@ -329,6 +357,10 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
     lastAppendAt: null,
   })
   const lastRoomId = useRef<number | null>(null)
+  /** The room-and-compass pair the exit check last saw. Its only job is to
+   * keep that check off the hot path of a store subscription that fires
+   * several times a second. */
+  const lastExitSignature = useRef<string | null>(null)
 
   // Ingestion. Keyed on the version counter; the buffer is read inside the
   // effect and never appears in the dependency array.
@@ -377,6 +409,37 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
       // handled condition stays suppressed after it has ended, so its next
       // occurrence - a second stun, minutes later - would never be raised.
       alerts.current.reconcile(derived.map((a) => a.key))
+
+      // Does the map agree with the game about the way out of here?
+      //
+      // Both sides are already parsed by their own owners: `mapHere.moves` is
+      // the cartographer's own list, and the compass is the game telling a
+      // frontend that declared the `xml` capability which bearings exist.
+      // Guarded on the pair actually changing, because this pass runs on every
+      // store update and re-deciding an unchanged room several times a second
+      // is work with no possible new answer in it.
+      const compass = streamCharacterState().compass?.value ?? null
+      const signature = `${roomId ?? 'none'}|${compass ? compass.join(',') : 'none'}`
+      if (signature !== lastExitSignature.current) {
+        lastExitSignature.current = signature
+        const newest = journal.current.stats().newestAppended
+        if (mapHere && roomId !== null && compass) {
+          proposeMapReconciliation({
+            jobs: jobs.current,
+            roomId: `room:${roomId}`,
+            divergence: detectExitDivergence(
+              { exits: (mapHere.moves ?? []).map((move) => ({ move })) },
+              compass
+            ),
+            // The newest event stands for "the state at the moment this was
+            // noticed". Omitted rather than faked when nothing has been
+            // journalled yet: `event:0` names no event, and a job citing it
+            // would carry provenance that cannot resolve.
+            evidenceSeqs: newest > 0 ? [newest] : [],
+            now: new Date().toISOString(),
+          })
+        }
+      }
     }
     pass()
     return useAppStore.subscribe(pass)
@@ -411,6 +474,15 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
             roomCombatants: character?.roomCombatants,
             isTown: character?.location.isTown,
           },
+          claims: claims.current,
+          evidence: evidence.current,
+          // The map's own answer to "is this a room", read at the moment the
+          // turn starts. A model proposing a tether from a room the
+          // cartographer has never heard of is proposing about nothing.
+          knownRoom: (roomId) =>
+            (useAppStore.getState().mapZone?.rooms ?? []).some(
+              (room) => `room:${room.id}` === roomId
+            ),
           memory: memory.current,
           now: Date.now(),
           nowIso: new Date().toISOString(),

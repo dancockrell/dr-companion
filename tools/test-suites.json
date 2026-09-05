@@ -48,6 +48,7 @@
   "test:ai-evidence-store",
   "test:ai-knowledge-tools",
   "test:ai-claim-store",
+  "test:ai-job-producers",
   "test:ai-alert-broker",
   "test:ai-job-store",
   "test:ai-review-scheduler",
