@@ -56,8 +56,9 @@
  * tethering model differently, that is drift worth fixing, not a sign
  * either one is wrong.
  */
-import type { CharacterStatus } from '../types/index.ts'
+import type { CharacterStatus, InventorySummary } from '../types/index.ts'
 import type { MapRoom, MapZone, MapZoneRoom } from '../bridge/types.ts'
+import { appearanceFor, playerAppearanceFor } from './appearance.ts'
 import { fromRoom } from './room.ts'
 import { combatantFor, indexCombatants } from './combat.ts'
 import {
@@ -159,9 +160,17 @@ export function compileWorldSnapshot(params: {
   zone: MapZone | null
   here: MapRoom | null
   character: CharacterStatus | null
+  /**
+   * Optional because appearance is enrichment: what the character is wearing
+   * comes from `InventorySummary.worn`, which is a separate store field and a
+   * separate bridge call, and a snapshot published before the first inventory
+   * scan is still a complete snapshot. Absent means "not asked yet", which is
+   * why `worn` itself is optional inside it - see its own doc comment.
+   */
+  inventory?: InventorySummary | null
   sequence: number
 }): WorldSnapshot | null {
-  const { zone, here, character, sequence } = params
+  const { zone, here, character, inventory, sequence } = params
 
   // No zone, no zone id, or the zone itself reported failure: there is
   // nothing true to publish. A snapshot with an empty cells array would
@@ -202,6 +211,12 @@ export function compileWorldSnapshot(params: {
 
   const entities: EntitySnapshot[] = fromRoom(character).map((card) => {
     const tracked = combatantFor(card, combatants)
+    // Resolved from the entity's own noun, which for a creature names neither
+    // a weapon nor a piece of armour, so this is absent nearly always - and
+    // that is the intended answer rather than a shortfall. Guessing a mesh
+    // for an unrecognised noun is the substitution the asset registry's
+    // `forbiddenSubstitutions` rule forbids.
+    const appearance = appearanceFor('weapon', card.noun) ?? appearanceFor('armor', card.noun)
     return {
       id: card.id,
       roomId: currentCellId,
@@ -214,6 +229,7 @@ export function compileWorldSnapshot(params: {
       // any - see EntitySnapshot's own doc comment.
       ...(card.lore ? { lore: card.lore } : {}),
       ...(card.loreApproximate ? { loreApproximate: card.loreApproximate } : {}),
+      ...(appearance ? { appearance } : {}),
       // Carried through field for field, never reshaped or defaulted - see
       // TacticalSnapshot's doc comment for why staleness travels with it.
       ...(tracked
@@ -235,17 +251,24 @@ export function compileWorldSnapshot(params: {
     }
   })
 
-  const groundItems: GroundItemSnapshot[] = (character?.roomItems ?? []).map((name, i) => ({
-    id: `${currentCellId}:item:${i}`,
-    roomId: currentCellId,
-    name,
-  }))
+  const groundItems: GroundItemSnapshot[] = (character?.roomItems ?? []).map((name, i) => {
+    const appearance = appearanceFor('weapon', name) ?? appearanceFor('armor', name)
+    return {
+      id: `${currentCellId}:item:${i}`,
+      roomId: currentCellId,
+      name,
+      ...(appearance ? { appearance } : {}),
+    }
+  })
 
   // Null rather than a default-shaped block: before any status has been
   // parsed there is no character state to report, and a `player` reading
   // "no flags lit, full health" would be a claim this file cannot support.
   // Same absent-means-unknown contract `injuries` uses in types/index.ts.
   const maxHealth = character?.vitals?.healthMax ?? 0
+  const playerAppearance = character
+    ? playerAppearanceFor(character.hands, inventory?.worn)
+    : null
   const player: PlayerSnapshot | null = character
     ? {
         situation: character.situation ?? [],
@@ -261,6 +284,11 @@ export function compileWorldSnapshot(params: {
         // moment in a fight, and the moment it is dead even, as "unknown".
         balance: character.balance ?? null,
         position: character.position ?? null,
+        // `hands` is the wielded-item field - it is not called `wield`
+        // anywhere in this codebase, which is worth saying because the
+        // obvious grep for one misses it. Absent when neither hand nor any
+        // worn piece resolved to a class.
+        ...(playerAppearance ? { appearance: playerAppearance } : {}),
       }
     : null
 
@@ -368,7 +396,12 @@ export function gameCommandForIntent(
  * app already treats as ordinary (not yet connected, zone still loading).
  */
 export async function publishWorldSnapshotIfChanged(
-  params: { zone: MapZone | null; here: MapRoom | null; character: CharacterStatus | null },
+  params: {
+    zone: MapZone | null
+    here: MapRoom | null
+    character: CharacterStatus | null
+    inventory?: InventorySummary | null
+  },
   force = false
 ): Promise<void> {
   const snapshot = compileWorldSnapshot({ ...params, sequence: sequence + 1 })

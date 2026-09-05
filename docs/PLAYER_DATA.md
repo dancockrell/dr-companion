@@ -9,8 +9,8 @@ this app. None of it is sent anywhere. Nothing here is a password, a
 credential or a game session secret: the app never sees the player's
 password, which goes to Lich's own login (plan section 5, bar 2).
 
-27 keys, owned by 23 files, found by scanning
-301 source files.
+28 keys, owned by 24 files, found by scanning
+302 source files.
 
 ## The keys
 
@@ -24,6 +24,7 @@ password, which goes to Lich's own login (plan section 5, bar 2).
 | `drc.ai-evidence.v1` | Journal events an AI job or candidate claim cites, copied so the evidence outlives the journal that recorded it. Game text only where an event already carried it; nothing new is captured for this. | `src/lib/aiEvidenceStore.ts` |
 | `drc.ai-jobs.v1` | Background AI jobs and their status. Absent unless the optional local model has been used. | `src/lib/aiJobStore.ts` |
 | `drc.ai-provider.v1` | The address of a model server on this machine, if the player has chosen to run one. Absent on every install that has not. One URL and nothing else: no key, no token, no game text - the provider refuses any address that is not 127.0.0.1 or localhost, so this cannot name somewhere off the machine. | `src/lib/aiWorkerHost.ts` |
+| `drc.appearance.v1` | Which 3D model the player picked for an item, overriding the compiled default for its class. Item names and asset ids only; no game text. | `src/lib/appearance.ts` |
 | `drc.armor-loadouts.v1` | A character's corrections to the derived armour coverage, which the live inventory feed cannot supply. | `src/lib/armorLoadout.ts` |
 | `drc.attach-port.v2` | The last port the player typed into the game connection bar. A number, not JSON. | `src/components/game/GameConnectionBar.tsx` |
 | `drc.board-slot-width.v1` | How wide the middle board slot is, as a fraction of the window. Replaces `drc.battle-width.v3`: the slot holds the map and the battle picture together now, so the key was bumped rather than reused under a new meaning. | `src/App.tsx` |

@@ -11,6 +11,7 @@
 import type { CombatRange } from '../types/index.ts'
 import type { RoomCard } from './cards.ts'
 import type { BoardAnchor, BoardLayout, TetherKind } from './isometric-board-layout.mjs'
+import type { Appearance, PlayerAppearance } from './appearance.ts'
 
 export interface Vec3 {
   x: number
@@ -71,6 +72,17 @@ export interface EntitySnapshot {
    * and "assessed as having no statuses" stay different facts.
    */
   tactical?: TacticalSnapshot
+  /**
+   * Which mesh this entity's noun resolves to, when it resolves to anything.
+   *
+   * Absent - not null-filled - when the noun names no class the appearance
+   * table knows, which for a creature is nearly always: the table covers
+   * weapons and armour, and "a kobold" is neither. See
+   * `docs/THREE_D_REBUILD_HANDOFF.md` section 11 for why an unrecognised noun
+   * must resolve to nothing rather than to the nearest-looking mesh, and
+   * `src/lib/appearance.ts` for the resolver.
+   */
+  appearance?: Appearance
 }
 
 /**
@@ -141,6 +153,13 @@ export interface GroundItemSnapshot {
   id: string
   roomId: string
   name: string
+  /**
+   * Which mesh this item's name resolves to. Absent when the name names no
+   * class - see `EntitySnapshot.appearance`. Ground items are where the
+   * weapon table actually fires today: a dropped broadsword is a real Large
+   * Edged item, where a creature's noun is neither a weapon nor armour.
+   */
+  appearance?: Appearance
 }
 
 export interface WorldSnapshot {
@@ -214,6 +233,15 @@ export interface PlayerSnapshot {
    * bracketed status line and the bridge forwards the number.
    */
   position: number | null
+  /**
+   * What the character is holding and wearing, as meshes.
+   *
+   * Absent when nothing resolved, and each field inside it is absent rather
+   * than null for the same reason: "we do not know what is in that hand" and
+   * "that hand is empty" are different facts, and a figure drawn from the
+   * second when the first is true is an invented account of the character.
+   */
+  appearance?: PlayerAppearance
 }
 
 /** The wire shape `presentation_bridge.rs::handle_intent` emits as a

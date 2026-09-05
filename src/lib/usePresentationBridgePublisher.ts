@@ -49,6 +49,11 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
   const zone = useAppStore((s) => s.mapZone)
   const here = useAppStore((s) => s.mapHere)
   const character = useAppStore((s) => s.character)
+  // Appearance's worn half comes from here (see `appearance.ts`); the hands
+  // half is already on `character`. Subscribed rather than read once, because
+  // an inventory scan lands well after the first snapshot and the viewer
+  // would otherwise draw an undressed figure until the next room change.
+  const inventory = useAppStore((s) => s.inventory)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
 
   // Starts false rather than undefined so a session that mounts already
@@ -61,6 +66,6 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
     if (!enabled) return
     const force = justReconnected(bridgeConnected, wasConnected.current)
     wasConnected.current = bridgeConnected
-    void publishWorldSnapshotIfChanged({ zone, here, character }, force)
-  }, [enabled, zone, here, character, bridgeConnected])
+    void publishWorldSnapshotIfChanged({ zone, here, character, inventory }, force)
+  }, [enabled, zone, here, character, inventory, bridgeConnected])
 }
