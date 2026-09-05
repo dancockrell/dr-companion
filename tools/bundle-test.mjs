@@ -19,7 +19,8 @@
  * runtime, only in a real build, and only because of a string. So the built
  * output gets read directly.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 
@@ -125,5 +126,65 @@ check(
 )
 
 console.log('')
-console.log(fails === 0 ? 'all passed' : `${fails} FAILED`)
+console.log('-- the exported viewer, and where the installer puts it --')
+
+// The bug this guards has no error message anywhere. The installer bundles the
+// viewer to one path and `viewer::viewer_candidates` looks for it at another,
+// so the app reports "not built yet" while the exe is sitting in the install
+// directory. Nothing fails, nothing logs, and there is no string to grep.
+//
+// The destination is read out of the release config this repository actually
+// builds installers from, rather than restated here from memory: a second
+// spelling of the path is the very drift being checked for.
+const VIEWER_BUILD = 'godot/build/DRCompanionWorldViewer.exe'
+const RELEASE_CONF = 'src-tauri/tauri.release.conf.json'
+let notChecked = 0
+
+if (!existsSync(VIEWER_BUILD)) {
+  // Loudly, and it must not read as a pass in the summary below. A viewer that
+  // was never exported is a supported build - the beta ships with the viewer
+  // disabled - but "we did not look" and "we looked and it was right" are
+  // different results and folding them together is the habit this repository
+  // keeps paying for.
+  notChecked += 1
+  console.log(`NOT CHECKED: viewer not built - ${VIEWER_BUILD} does not exist, so there is`)
+  console.log('             no bundled destination to check. Export it with `npm run godot:export`')
+  console.log('             (needs the godot/shared-assets submodule and a Godot 4.3 binary).')
+} else {
+  // The generator already refuses to emit a config whose destination viewer.rs
+  // does not resolve, so that contract is not re-checked here - it is invoked,
+  // and its refusal is turned into a named FAIL rather than a stack trace,
+  // because a thrown child process in the middle of a suite is a result nobody
+  // reads.
+  let generated = true
+  try {
+    execFileSync(process.execPath, ['tools/build-release-config.mjs'], {
+      stdio: ['ignore', 'inherit', 'pipe'],
+      encoding: 'utf8',
+    })
+  } catch (error) {
+    generated = false
+    const text = String(error.stderr ?? error.message)
+    // The first line of a node stack trace is the file and line, which says
+    // nothing. The thrown message is the part that names the drift.
+    const why = text.split('\n').find((line) => /Error:/.test(line)) ?? text.trim().split('\n')[0]
+    check('the release config can be derived at all', false, why.trim())
+  }
+  if (generated) {
+    const resources = JSON.parse(readFileSync(RELEASE_CONF, 'utf8'))?.bundle?.resources ?? {}
+    const dest = resources[`../${VIEWER_BUILD}`]
+    check('the exported viewer is a bundled resource', Boolean(dest), dest ?? 'no entry in the release config')
+    check(
+      'and it is bundled to the viewer/ folder the app searches first',
+      dest === 'viewer/DRCompanionWorldViewer.exe',
+      String(dest),
+    )
+  }
+}
+
+console.log('')
+if (fails > 0) console.log(`${fails} FAILED`)
+else if (notChecked > 0)
+  console.log(`no failures, but ${notChecked} not checked: the viewer resource destination`)
+else console.log('all passed')
 process.exit(fails === 0 ? 0 : 1)
