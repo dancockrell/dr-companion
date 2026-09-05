@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "task_id": "k1-appearance-design-note",
+  "agent": "claude-code",
+  "summary": "K1 - docs/THREE_D_REBUILD_HANDOFF.md section 11 states the appearance contract: a compiled defaults table, a player override store, and an appearance field on EntitySnapshot and player, with no 2D art anywhere in it",
+  "status": "done",
+  "claimed_at": "2026-09-05T19:10:00Z",
+  "updated_at": "2026-09-05T19:35:00Z",
+  "paths": [
+    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/k1-appearance-design-note.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["C7"],
+    "conflicts_with": [],
+    "notes": "Extends four existing owners and adds no fifth: shared_asset_selections.json (Codex) owns the id vocabulary, src/data/skills.ts owns the weapon classes, src/lib/armorLoadout.ts owns the armour classes and the item-name normalisation, presentationBridge.ts/presentationTypes.ts own the carrier. Section 11 names all four in a table. Nothing here touches portraits.ts, playerArt.ts, creatureArt.ts, Portrait.tsx, RoomBackdrop.tsx or RoomScene.tsx, which is why C7 being open does not block it. Lane L owns this document; L1-L5 are merged and L6 is [!], so nobody else is editing it. Appended a new section 11 rather than editing any existing one."
+  },
+  "evidence": {
+    "c7_reading": "C7's own claim blocks on the rewrite/remove-2d owner's answer about splitting that branch. Lane K's dependency on it was recorded as 'K3 onward'. Measured instead: appearance touches none of the six files that branch deletes, so only K6 (picker UI in DashboardLayout.tsx) is actually downstream of the answer. Section 3.1's prose was corrected to say so.",
+    "tension_with_section_10": "Section 10 already says 'Never key presentation off weapon identity'. Section 11 reconciles rather than contradicts: section 10's argument is that DR weapons are unbounded and unenumerable, so per-weapon ANIMATION is impossible by construction. Appearance is keyed to CLASS, and SKILLS_BY_SET.Weapon is precisely the closed 14-entry set section 10 says identity lacks. Section 11 restates the line: appearance decides what mesh is held, never what it does.",
+    "registry_state": "godot/assets/shared_asset_selections.json admits exactly two ids and both are scenery (dr.shared.tabletop-weathered-stone.scatter, dr.shared.kenney-nature.wood-narrow-bridge). So every weapon and armour class resolves to modelId: null today. Section 11 records that as the correct output rather than a gap, and states what admitting a mesh costs."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "verify: the section exists and names the four owners it extends -> grep -c '^## 11' docs/THREE_D_REBUILD_HANDOFF.md = 1; the owners table names shared_asset_selections.json, src/data/skills.ts, src/lib/armorLoadout.ts and src/lib/presentationBridge.ts, 4 of 4.",
+      "node tools/plan-audit.mjs -> plan ok",
+      "node tools/run-tests.mjs -> all passed (test:plan and test:third-party both read this document's neighbours)"
+    ]
+  }
+}
