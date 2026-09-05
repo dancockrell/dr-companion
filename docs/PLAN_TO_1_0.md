@@ -283,6 +283,7 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
+| J | J1, J2a–J2c | `lane-j/map-audit` | `dev/wt-j` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12, F7 and F8 in PR #315, which emptied the
@@ -335,7 +336,11 @@ waits on Lane A is stale and has gone.
 own: D5's measurements were all taken against the mock bridge, and D6 depends
 on the new layout having survived a real play session. Whoever picks it up
 should read D6's own `blocked-on` and `note` lines first — its `do:` as written
-would remove the `'map'` panel id, which is still live. **J** waits on D6.
+would remove the `'map'` panel id, which is still live. **J no longer waits on
+D6** — that line used to stand here and was too strict. Triage needed only the
+fact that `MAP_WINDOW_ENABLED` is already `false`, which is measurable today,
+and none of #175's seven findings turned out to need the deletion to be judged.
+J1's `note:` records the measurement. J2a–J2c touch none of D6's files.
 
 **When two lanes touch one file**, §3's conflict matrix decides who goes first;
 where it is silent, the earlier `Since` wins and the other rebases. Conflicts in
@@ -1219,17 +1224,42 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane J — Map audit (#175)
 
-- [ ] **J1  Triage every finding** (≈30)
+- [x] **J1  Triage every finding** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 55
   touches: none
-  depends-on: D6
+  depends-on: none
   do: for each verified finding in #175: `dies-with-map-window` (already gone after D6), `moves-to-viewer-contract` (Lane L), or `still-real`. Post the triage as an issue comment.
   verify: the comment exists; each finding has one tag.
+  result: posted at issue #175 comment `5552095979`, seven findings, one verdict each — 1 `still-real` (partly fixed), 2 `still-real` re-diagnosed, 3 `still-real` (already fixed, no guard), 4 not still-real, 5 `moves-to-viewer-contract`, 6 half refuted and half upstream, 7 `dies-with-map-window`. Fetched back through the API and grepped rather than trusted from the post.
+  note: **`depends-on:` was D6 and is now `none`, deliberately.** D6 is blocked on a live play session that has not happened, and no finding needed the deletion to be judged — only that `MAP_WINDOW_ENABLED` is already `false`, which is measurable today. Measured rather than reasoned, because the window/panel distinction is what D6's original wording got wrong: from a dev server on this branch `?view=panel&id=map` returns 1041 elements matching `[id^="map-room-"]` and `?view=map` returns 0 and renders the dashboard instead.
 
-- [ ] **J2  Each `still-real` finding** (≈20 each; add `J2a, J2b…` lines under this one as they are claimed)
+- [~] **J2  Each `still-real` finding** (≈20 each; add `J2a, J2b…` lines under this one as they are claimed)
+  owner: claude-code claim: j1-triage-map-audit since: 2026-09-05
   touches: per finding
   depends-on: J1
   do: fix with a DOM-measured verification; close #175 when the list is empty.
   verify: per finding.
+  note: J1 produced three fixable increments — J2a, J2b, J2c below. Finding 1 (no creature icons beyond `fantasy-dragon`) is the one `still-real` item Lane J is **not** fixing: it needs generated art and no image generator is reachable from this fleet. The picker already admits non-Lucide entries through `CUSTOM_PIN_ICONS`, so closing it is one array entry per admitted image and no code change. #175 stays open on that alone.
+
+- [ ] **J2a  A zone with no way out says which kind of nothing it is** (≈35)
+  touches: tools/build-map.mjs, tools/gateway-test.mjs
+  depends-on: J1
+  do: #175's finding 2 called zone `33a` a closed loop with no exits. It is not. `Map33a_Road_to_Therenborough.xml` carries two gateway notes — `Map33_Riverhaven_West_Gate.xml` and `Map34_Mistwood_Forest.xml` — and **neither file exists in `C:/Genie4/Maps`**, so the build cannot resolve them; the zone ships three rooms with honest `leaves` doors instead. `build-map.mjs` already counts these into `unresolved`, and its own comment says that count is "the difference between 'the data has no gateways' and 'this Genie install is missing files'" — and then **nothing ever prints it**. So: emit the count and the distinct missing filenames from `build-map.mjs`, and in `gateway-test.mjs` promote the existing `INFO N special or isolated maps` line to a real assertion against a named list carrying a reason per zone. Assert it **both ways** — nothing newly isolated, and nothing on the list that is now connected — because only the second direction catches a zone quietly gaining a route.
+  verify: `node tools/gateway-test.mjs` ends `all passed` with the isolated set asserted as exactly `14d, 33a, 90e, 997, 999, 99a, TF990`; on a machine that has `C:/Genie4/Maps`, `node tools/build-map.mjs` names its 8 unresolvable targets.
+  sabotage: delete one zone id from the expected list → that check goes red naming the zone, and only that check; restore and md5 must match.
+
+- [ ] **J2b  The saved-pin count reads as English at every count** (≈20)
+  touches: src/lib/mapPins.ts, src/components/shared/MapPinBar.tsx, tools/pins-test.mjs
+  depends-on: J1
+  do: #175's finding 3 (`"1 saved pins"`) is already fixed at `MapPinBar.tsx:64`, and **nothing in the suite asserts either branch**, so it can regress in silence — which is how it shipped the first time. Move the wording into `savedPinsLabel(count)` beside the rest of the pin vocabulary in `mapPins.ts`, have `MapPinBar` call it for both its `aria-label` and its `title`, and unit-test the function in `pins-test.mjs`, which already owns `mapPins.ts`. Test the property (the label a screen reader reads) at 0, 1, 2 and 11, not the presence of a ternary.
+  verify: `npm run test:pins` green with the new checks named; in the browser, one pin → `aria-label="1 saved pin"`, two pins → `"2 saved pins"`.
+  sabotage: make `savedPinsLabel` always plural → the count-1 check goes red, and only it; restore and md5 must match.
+
+- [ ] **J2c  The viewer inherits the terrain-variety problem, so say so** (≈15)
+  touches: docs/THREE_D_REBUILD_HANDOFF.md
+  depends-on: J1
+  do: #175's finding 5 is confirmed exactly — 27 stamp kinds in `MapStampLayer.tsx`, 22 with two images, 4 with three, 1 with four, on an 85-zone map. It is real and it is not worth fixing here: §1 of the handoff retires the player-facing 2D map, so commissioning more 2D terrain art buys repetition relief on a surface that is going away. Add a contract line under the world-presentation section: the viewer's terrain and landmark presentation is judged on visible repetition across a zone, not on having one asset per kind, and a kind with a single motif is a gap to record rather than a kind that is done. Name `MapStampLayer.tsx`'s 27 kinds as the vocabulary being handed over.
+  verify: the section exists and names the measured 22/4/1 split, so the number the viewer has to beat is on the page rather than in an issue comment.
 
 ---
 
