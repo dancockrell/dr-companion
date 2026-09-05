@@ -987,9 +987,9 @@ whether it is embedded, docked or a separate window is D0.
 - [ ] **I1  Token test with a ratchet** (≈30)
   touches: new:tools/color-token-test.mjs, new:tools/color-token-allowlist.json, package.json, tools/test-suites.json
   depends-on: none
-  do: scan `src/components/**/*.tsx` for `#[0-9a-fA-F]{3,8}\b`, `rgba?\(`, `hsl\(`, and Tailwind arbitrary colours `\[(#|rgb|hsl)`; every hit today goes into the allowlist as `file:line:literal`. Fail on any hit not in the allowlist; fail if an allowlist entry no longer matches (so it only shrinks). Print `remaining: N` and a per-directory breakdown (`config, dashboard, first-run, game, layout, room, shared` + the two root files).
-  verify: green today with `remaining: N`; add one literal → red naming file:line.
-  sabotage: that literal.
+  do: scan `src/components/**/*.tsx` for `#[0-9a-fA-F]{3,8}\b`, `rgba?\(`, `hsl\(`, and Tailwind arbitrary colours `\[(#|rgb|hsl)`; every hit today goes into the allowlist. **Key each entry on `file` + `literal` + a count, never on a line number**: several lanes edit these files concurrently, so line numbers shift under an allowlist that has not changed meaning, and a ratchet that fails on an unrelated edit teaches everyone to regenerate it, which is the one thing that must never become routine. So an entry is `{file, literal, count}`; the test fails when a `(file, literal)` pair appears more times than the allowlist permits, when a pair is absent from the allowlist entirely, or when an allowlisted pair no longer appears at all (it can only shrink). It still reports the offending line numbers in the failure message, because that is what a person needs in order to go and fix it. Print `remaining: N` and a per-directory breakdown (`config, dashboard, first-run, game, layout, room, shared` plus the two root files).
+  verify: green today with `remaining: N`; add one literal to a file that already has an allowlisted one → red naming the file, the literal, and the line it appeared on; move an allowlisted literal to a different line without changing it → still green.
+  sabotage: that added literal. Also, in a scratch copy, key the allowlist on line numbers instead and shift a file by one line: the run goes red with nothing actually changed, which is the failure this wording exists to prevent.
 
 - [ ] **I2  Bank/shop pin contradiction** (≈20)
   touches: src/lib/pinIcons.ts, src/lib/mapPins.ts, I1>tools/color-token-allowlist.json
