@@ -219,8 +219,19 @@ async function main() {
   if (process.argv.includes('--require-real')) return requireReal()
 
   const existing = readExistingManifest()
-  if (existing) {
-    console.log(`vendored: ${existing.version}, ${existing.bytes} bytes, sha256 ${existing.sha256.slice(0, 16)}…`)
+  if (existing?.stub) {
+    // A stub manifest records `sha256: null` on purpose - there is no real
+    // file to hash - so reading a digest out of it crashed with
+    // `Cannot read properties of null (reading 'slice')`, from a message that
+    // named neither the file nor vendoring. That killed `npm run tauri:build`
+    // in *every* worktree prepared the way the plan says to prepare one, since
+    // `worktree:init` writes exactly this stub. Issue #323.
+    //
+    // Saying what is actually there is also more useful than a digest: a stub
+    // is the one state where the next step matters.
+    console.log(`vendored: a placeholder stub, not the real installer. Fetch it with \`npm run vendor:fetch\`.`)
+  } else if (existing) {
+    console.log(`vendored: ${existing.version}, ${existing.bytes} bytes, sha256 ${existing.sha256?.slice(0, 16) ?? 'unrecorded'}…`)
   } else {
     console.log('vendored: nothing yet')
   }

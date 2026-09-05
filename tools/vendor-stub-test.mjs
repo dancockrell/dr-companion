@@ -137,6 +137,40 @@ function readExisting() {
   }
 }
 
+// --- reporting on a stub must not crash (issue #323) ------------------------
+//
+// A stub manifest records `sha256: null` deliberately: there is no real file to
+// hash. Reading a digest out of it threw `Cannot read properties of null
+// (reading 'slice')` from a message naming neither the file nor vendoring, and
+// it killed `npm run tauri:build` in every worktree prepared the way the plan
+// says to prepare one - `worktree:init` writes exactly this stub. The crash was
+// in the *reporting* path, so the guard that matters still worked; both halves
+// are checked here, because a fix that stopped the crash by weakening
+// `--require-real` would be far worse than the crash.
+{
+  const stubbed = run(['--stub'])
+  check('--stub writes placeholders', stubbed.code === 0, stubbed.out.trim().split('\n').pop())
+
+  const reported = run(['--check'])
+  check('and reporting on them exits cleanly rather than crashing', reported.code === 0, `exit ${reported.code}`)
+  // Asserting the word "stub" appears was not enough: the fallback line prints
+  // `vendored: stub, …` because the manifest's *version* is the string "stub",
+  // so a check for that word passed with the branch disabled. Sabotage is what
+  // said so. The guidance is the thing only this branch produces.
+  check(
+    'the report tells the reader how to get the real installer, which only the stub branch does',
+    /vendor:fetch/.test(reported.out) && !/Cannot read properties/.test(reported.out),
+    reported.out.trim().split('\n').pop()
+  )
+  check(
+    'and it prints no digest field at all, having none to print',
+    !/sha256/.test(reported.out)
+  )
+
+  const guarded = run(['--require-real'])
+  check('and --require-real still refuses that stub, which is the half that must not soften', guarded.code === 1)
+}
+
 // --- the GitHub API failure path, which had never been executed -------------
 //
 // `Vendor Ruby4Lich5` failed with a bare `GitHub API: HTTP 403` three times on
