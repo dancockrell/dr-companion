@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task_id": "g2-tool-registry-room-by-id",
+  "agent": "claude-code",
+  "summary": "The typed, allowlisted, size-capped, traced read-only tool registry a model reaches the world through, with room_by_id as its first tool",
+  "status": "completed",
+  "claimed_at": "2026-09-05T18:20:00Z",
+  "updated_at": "2026-09-05T18:55:00Z",
+  "paths": [
+    "src/lib/aiKnowledgeTools.ts",
+    "tools/ai-knowledge-tools-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g2-tool-registry-room-by-id.json"
+  ],
+  "symbols": ["callTool", "capResult", "untrusted", "TOOL_IDS", "ToolTraceEntry"],
+  "coordination": {
+    "depends_on": ["A4"],
+    "conflicts_with": [],
+    "notes": "room_by_id reads a MapZone the caller supplies - the same shape compileWorldSnapshot reads - rather than importing mapData.ts. Two reasons pointing the same way: mapData.ts resolves zones through import.meta.glob, which only Vite can do, so importing it would make this module untestable outside the app; and a tool layer that reaches into a canonical store on its own has whatever scope it can see rather than the scope it was given. No new parser: exits are the cartographer's own move/destination pairs, paired by index exactly as toZoneRoom writes them, with a null rather than a guess where one side is absent.",
+    "deviations": "The plan's verify asks for `a 1 MB fixture result → truncated flag`; docs/LOCAL_AI_BACKGROUND_WORKER.md section 16 asks for a tool that would exceed its ceiling to fail rather than truncate. Both are implemented, split by shape: an array is shortened with truncated:true because a prefix of an array is still a true partial answer, and anything else is refused because half an object is not a smaller object, it is a wrong one. capResult is exported because the shortening branch is otherwise unreachable through any tool that returns an object, and a branch nobody can execute on purpose is a branch nobody can prove."
+  },
+  "completion": {
+    "commit": "PENDING",
+    "checks": [
+      "node --experimental-strip-types tools/ai-knowledge-tools-test.mjs: 44 checked, 0 failed / all passed",
+      "verify - allowed: 'the call succeeded' OK, room 142 returned with exits [{move:'north',to:143}] and title/tags wrapped untrusted",
+      "verify - disallowed: 'Tool \"room_by_id\" is not in this job's allowedTools.'",
+      "verify - unknown: 'Tool \"map_write\" does not exist.'",
+      "verify - 1 MB fixture: 'result of 2708956 bytes exceeds the 4096-byte ceiling and cannot be shortened honestly'; array form: 'flagged as truncated' OK with bytes 4077 <= 4096",
+      "verify - trace: 'three calls, three entries' OK, in call order, argsSummary 'zone=str(1) id=142' (no payloads), keys argsSummary,at,bytes,ok,tool",
+      "sabotage A - allowlist check replaced with `if (false)`: 4 red - 'refused', 'the refusal names the tool', 'the refusal says it was the allowlist', 'the attempt is still traced'; exit 1; restore md5 OK",
+      "sabotage B - size cap short-circuited to always return untruncated: 6 red - 'it did not come back as if it fitted', 'the refusal names the ceiling', 'flagged as truncated', 'and it actually fits' (133891), 'and it is shorter' (5000), 'an over-size object is refused, not cut'; exit 1; restore md5 OK"
+    ]
+  }
+}

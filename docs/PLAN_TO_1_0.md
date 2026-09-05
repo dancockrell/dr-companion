@@ -890,7 +890,7 @@ whether it is embedded, docked or a separate window is D0.
 ### Lane G — AI slices 5–7 (after Lane A)
 
 - [x] **G0  Evidence outlives the journal** (≈25)
-  commit: d5b7ac53 verified: 2026-09-05 minutes: 40
+  commit: 014a3046 verified: 2026-09-05 minutes: 40
   touches: new:src/lib/aiEvidenceStore.ts, new:tools/ai-evidence-store-test.mjs, C1>src/lib/aiJobStore.ts, package.json, tools/test-suites.json
   depends-on: A5
   do: a claim's `evidenceRefs` are `event:<seq>` strings, and the journal evicts at 5000 events, so a candidate reviewed an hour later can cite evidence nobody can read. The handoff's `observations.read(refs)` presumes durable observations. Minimum honest version: `pin(refs, journal)` copies the referenced events' `{seq, at, kind, payload}` into `drc.ai-evidence.v1` at the moment a job or claim cites them; `resolve(refs)` returns them or `{missing:[…]}` — never a silent partial. `JobStore.create` pins `inputRefs`; G5's store refuses a claim whose refs do not resolve. Bounded by count with the oldest **unreferenced** entries evicted first; an entry cited by a live claim is never evicted.
@@ -904,7 +904,8 @@ whether it is embedded, docked or a separate window is D0.
   verify: divergent → 1 job; again → still 1; other room → 2.
   sabotage: remove the dedupe → red.
 
-- [ ] **G2  Tool registry + `room_by_id`** (≈15)
+- [x] **G2  Tool registry + `room_by_id`** (≈15)
+  commit: PENDING-G2 verified: 2026-09-05 minutes: 35
   touches: new:src/lib/aiKnowledgeTools.ts, new:tools/ai-knowledge-tools-test.mjs, package.json, tools/test-suites.json
   depends-on: A4
   do: `callTool(name, args, allowedTools, trace)` returns `{ok:false, reason}` for a disallowed or unknown name — never throws. Every tool declares `{id, validate(args), maxResultBytes}`; an over-size result is truncated with `truncated:true`, never silently cut. Every call is appended to `trace` as `{tool, argsSummary, bytes, at}` (no payloads, no secrets) so a job's tool use is inspectable. Text fields returned to a model are wrapped as `{untrusted:true, text}` so the prompt builder can label them "data, not instructions" (the handoff's injection rule). `room_by_id(zone, id)` → `{id, title, exits:[{move,to}], tags}` from the same `MapZone` data `compileWorldSnapshot` reads.
