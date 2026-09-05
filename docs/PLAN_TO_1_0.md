@@ -485,7 +485,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   verify: six table-driven checks in priority order.
   sabotage: swap combat/travel order → combat-while-moving check red.
 
-- [ ] **A5  Journal cursor survives a panel remount** (≈20)
+- [x] **A5  Journal cursor survives a panel remount** (≈20)
+  commit: 3671a73f verified: 2026-09-05 minutes: 30
   touches: C1>src/lib/aiEventJournal.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-event-journal-test.mjs
   depends-on: C1
   do: `seedAcknowledged(cursor)` on the journal. The host persists `{sessionId, acknowledged}` under `drc.ai-journal-cursor.v1`; on mount seeds only when `sessionId` matches the in-memory session id. Sequence numbers restart per process, so this survives a remount, **not** a restart — say so in the doc comment and point at `JobStore.recoverInterrupted` for the restart case.
@@ -493,7 +494,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   sabotage: make `seedAcknowledged` a no-op → red.
   pitfalls: 3.
 
-- [ ] **A6  Publish status only on change** (≈10)
+- [x] **A6  Publish status only on change** (≈10)
+  commit: 12196a93 verified: 2026-09-05 minutes: 30
   touches: C1>src/lib/aiWorkerHost.ts
   depends-on: A1
   do: shallow-compare against the last published status; publish `ticks` every 5th tick only.
