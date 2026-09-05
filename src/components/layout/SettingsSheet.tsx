@@ -22,6 +22,7 @@ import { DEMO_PRESET_LIST } from '../../bridge'
 import { loadPrefs } from '../../lib/persistence'
 import { useModalDialog } from '../../lib/useModalDialog'
 import { LICH_LICENSE } from '../../data/lichLicense'
+import { DiagnosticsPanel } from '../shared/DiagnosticsPanel'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -456,6 +457,17 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               App.tsx in the first place (see AiWorkerPanel.tsx's header).
               Mounting it in both places would be one component pretending to
               be two panels, and the two would drift. */}
+
+          {/* E12. Its own section rather than a row inside Debug: the six
+              questions here are the ones asked before anybody has decided
+              there is a bug, and burying them under a heading called Debug is
+              how a person answering "is Ruby installed?" never finds them. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              Diagnostics
+            </h3>
+            <DiagnosticsPanel />
+          </section>
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">

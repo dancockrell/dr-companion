@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "task_id": "e12-diagnostics-and-bug-bundle",
+  "agent": "claude-code",
+  "summary": "A Diagnostics section answering six questions in three states, and a bug bundle that refuses rather than redacts when a credential is in it",
+  "status": "completed",
+  "claimed_at": "2026-09-05T20:15:00Z",
+  "updated_at": "2026-09-05T21:05:00Z",
+  "paths": [
+    "src/components/shared/DiagnosticsPanel.tsx",
+    "src/components/layout/SettingsSheet.tsx",
+    "src/lib/bugBundle.ts",
+    "tools/bug-bundle-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAYER_DATA.md",
+    "docs/PRIVACY.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/e12-diagnostics-and-bug-bundle.json"
+  ],
+  "symbols": ["buildBugBundle", "REQUIRED_ROW_IDS", "DiagnosticRow", "Presence", "DiagnosticsPanel"],
+  "coordination": {
+    "depends_on": ["a1", "b6"],
+    "conflicts_with": [],
+    "notes": "bugBundle.ts is not a fork of bugReport.ts and the module header says why: bugReport answers 'what happened' (commands and replies, scoped and scrubbed), this answers 'what is this machine'. Neither privacy rule is rewritten - the log goes through bugReport's exported scrub so there is one set of private-speech patterns, and the finished text goes through aiModelProvider's scanForSecrets so there is one list of credential shapes. Both would have been tempting to reimplement and both are the copy that gets fixed last. Ruby and Lich come from the lich_status this app already computes rather than a second probe; the model row reads the same getAiStatus AiWorkerPanel reads. SettingsSheet.tsx is shared with Lane G (G7) and Lane H (H2): one new <section> added immediately before the existing Debug section, nothing reordered. Diagnostics is its own section rather than a row inside Debug because these six questions get asked before anyone has decided there is a bug."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "npm run test:bug-bundle: 19 checked, 0 failed",
+      "the increment's own case: a log line carrying ['pass','word',': ','hunter','2'].join('') is refused, patterns == ['account password'], and the message plus pattern list are asserted not to contain 'hunter2' or the assembled string",
+      "a credential placed in a diagnostic detail rather than the log is also refused - this is what proves the scan is on the finished artefact rather than scoped to one field, and a credential split across fields is exactly how a per-field scan misses one",
+      "a bundle missing rows still builds and names them in diagnosticsNotGathered, so an incomplete bundle cannot be mistaken for a complete one",
+      "a tell in the activity log is removed by bugReport's scrub and the bundle records that something was removed rather than hiding it",
+      "npx tsc -b: exit 0; node tools/run-tests.mjs: 120 suites, all passed",
+      "sabotage, skipping the scan: exit 1, '15 checked, 4 failed' - the three refusals plus the positive control, which failed with the message 'THE GATE DID NOT FIRE'. Without that control a scanner that had silently stopped running would leave the three refusal assertions as the only evidence, and they would simply flip to green-looking passes in a future where the gate returned safe by default.",
+      "restored: md5 src/lib/bugBundle.ts 606dec7bb69258cf1d12e2b306a492c1, matching pre-sabotage",
+      "the plan's trap 6 was present in the first draft and is recorded rather than quietly fixed: the gather callback depended on ai.ticks and ai.journalPending, which change every second, so a lich_status probe measured at about five seconds would have restarted on every tick of an unrelated worker. Fixed by reading getAiStatus() inside the callback; the now-unused subscription was removed rather than kept.",
+      "docs/PLAYER_DATA.md and docs/PRIVACY.md regenerated - both record a scanned-source-file count and this increment adds two files. The suite caught both, which is the generators working."
+    ]
+  }
+}

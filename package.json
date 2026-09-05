@@ -72,6 +72,7 @@
     "appearance-defaults:build": "node tools/build-appearance-defaults.mjs",
     "test:appearance": "node tools/appearance-test.mjs",
     "test:privacy": "node tools/build-privacy-doc.mjs --check",
+    "test:bug-bundle": "node --experimental-strip-types tools/bug-bundle-test.mjs",
     "privacy:build": "node tools/build-privacy-doc.mjs",
     "test:plan": "node tools/plan-audit.mjs",
     "build:crossing-list": "node tools/build-crossing-build-list.mjs",

@@ -10,7 +10,7 @@ credential or a game session secret: the app never sees the player's
 password, which goes to Lich's own login (plan section 5, bar 2).
 
 28 keys, owned by 24 files, found by scanning
-303 source files.
+305 source files.
 
 ## The keys
 
