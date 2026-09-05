@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "a7-rust-suite-fresh-worktree",
+  "agent": "claude-code",
+  "summary": "The Rust suite compiles and passes from a worktree that had no build state, and its passed count equals the one CI's tauri job reports for main",
+  "status": "completed",
+  "claimed_at": "2026-09-05T15:00:00Z",
+  "updated_at": "2026-09-05T15:20:00Z",
+  "paths": [
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a7-rust-suite-fresh-worktree.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["c3-worktree-init"],
+    "conflicts_with": [],
+    "notes": "touches: none. No source file changes: this increment is a measurement, and its only artefacts are this claim and the plan marker. Worktree dev/wt-a7 off origin/main at 113ef294, node_modules junctioned from the main checkout, npm run worktree:init run before any cargo call (trap 8). The claim's value is the equality with CI, so the CI number was read first from the run for the exact base commit rather than from a nearby one."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "npm run worktree:init: exit 0, 'wrote placeholders to C:\\Users\\Admin\\dev\\wt-a7\\src-tauri\\vendor' and the shared-assets submodule checked out at e44ad95f",
+      "the build was genuinely fresh, not a reused target dir: no CARGO_TARGET_DIR set, no .cargo/config.toml at user or repo level, src-tauri/target absent before the run, 289 'Compiling' lines in the log and a 2.0 GB target directory after it. Worth stating because the run took 60 seconds, which is fast enough to look like a cache hit and was not",
+      "cargo test --lib in dev/wt-a7/src-tauri: exit 0, 'test result: ok. 117 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s'",
+      "cargo test (the whole command CI's tauri job runs, not only --lib): exit 0, three result lines - lib 117 passed, src/main.rs 0 passed, doc-tests 0 passed, 0 failed throughout",
+      "cargo fmt --check: exit 0 (trap 9)",
+      "CI baseline read from the tauri job of the run for this branch's exact base commit 113ef294 (run 33973123694, job 101325042758, conclusion success): 'running 117 tests' then 'test result: ok. 117 passed; 0 failed', plus the same 0/0 for main.rs and doc-tests. The previous green run on main (33972082431, head d61cefe3) reports 117 as well, so the number is not an artefact of one run",
+      "equality required by verify: local 117 == CI 117, and the two zero lines match as well",
+      "sabotage - the suite must be able to go red from this worktree, or a green run proves nothing. Deleted the '\"mute\" => Ok(VK_VOLUME_MUTE)' match arm in src-tauri/src/media_keys.rs, which that module's own comment names as its intended sabotage. It compiled (warning: constant VK_VOLUME_MUTE is never used) rather than failing to load, so the sabotage reached the line under test (trap 15): 'test result: FAILED. 116 passed; 1 failed', exit 101, and the failure carried the real error 'unknown media action: mute' from every_documented_action_resolves_to_a_distinct_vk rather than a tautology",
+      "restored with git checkout -- src-tauri/src/media_keys.rs; git status --porcelain printed nothing, which is byte-identity with HEAD; cargo test --lib then back to exit 0, 117 passed",
+      "a first sabotage attempt aimed at bridge_token.rs's shape check was abandoned rather than forced: weakening a token validator is not a thing to do to prove a point when a benign match arm makes the same point",
+      "node tools/plan-audit.mjs: plan ok"
+    ]
+  }
+}
