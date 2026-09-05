@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task_id": "e8-disconnect-reconnect",
+  "agent": "claude-code",
+  "summary": "A socket dropped mid-stream leaves the pane saying disconnected with the reason, sendGame is refused with the backend's own message, and reattaching runs the backfill",
+  "status": "completed",
+  "claimed_at": "2026-09-05T14:35:00Z",
+  "updated_at": "2026-09-05T15:10:00Z",
+  "paths": [
+    "tools/backlog-test.mjs",
+    "tools/game-connection-owner-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/e8-disconnect-reconnect.json"
+  ],
+  "symbols": [
+    "deliverState",
+    "sendRefusal"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "The behaviour goes in tools/backlog-test.mjs, which already owns the Tauri double, the game:line handler and freshLink(); it gains a game:state deliverer and a game_send refusal beside them rather than a second harness. E8 named tools/mounted-test.mjs as the second file, but mounted-test's stake in this is one source check that GameConnectionBar calls attachGame/detachGame, and the check that was actually missing is the consuming side: that the bar reads link.note when disconnected instead of only the flag. That belongs in tools/game-connection-owner-test.mjs, which already owns every claim about that component, so the touches list was corrected to name it. mounted-test.mjs is unchanged."
+  },
+  "completion": {
+    "commit": "5dedb9e6",
+    "checks": [
+      "npm run test:backlog: 33 checks, 0 failed (was 25)",
+      "the three named checks: 'a socket dropped mid-stream leaves the pane saying disconnected', 'sendGame is refused with the backend's own reason', 'reconnecting runs the backfill, so the pane gets what it missed'",
+      "plus 'and it keeps the reason rather than a bare flag' (note survives), 'the scrollback survives the drop', and 'what could not be recovered is counted rather than hidden' (gameDropped() == 2)",
+      "control first: 'the link reports connected while text is arriving', because a line arriving is what sets connected, so without it 'disconnected' could be the state the module started in",
+      "npm run test:game-connection-owner: all passed, 5 checks, including the new 'a disconnected bar reads the reason rather than only the flag'",
+      "sabotage 1: wrapped sendGame's invokeTauri in try/catch-swallow -> FAIL 'sendGame is refused with the backend's own reason: expected \"Not attached to a game.\", got \"(not refused at all)\"'; restored, md5 01bf9699a0306ee69abd952f1cd14cde matched",
+      "sabotage 1, first attempt, discarded: a scripted string edit left an unbalanced try { and the run died on ERR_INVALID_TYPESCRIPT_SYNTAX. A sabotage that fails to compile tested nothing (plan trap 15); redone through the Edit tool and rerun before believing it.",
+      "sabotage 2: made the game:state listener ignore the state it was given -> FAIL 'a socket dropped mid-stream leaves the pane saying disconnected' and FAIL 'and it keeps the reason rather than a bare flag'; restored, md5 01bf9699a0306ee69abd952f1cd14cde matched, suite green again"
+    ]
+  }
+}

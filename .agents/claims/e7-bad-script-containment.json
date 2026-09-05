@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "task_id": "e7-bad-script-containment",
+  "agent": "claude-code",
+  "summary": "Containment fixtures for both task runners: a task that raises, one that loops until the caller's timeout, and one that exits non-zero are reported distinctly, and the calling process is unaffected",
+  "status": "completed",
+  "claimed_at": "2026-09-05T13:45:00Z",
+  "updated_at": "2026-09-05T14:30:00Z",
+  "paths": [
+    "python/test_runner.py",
+    "typescript/test_runner.ts",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/e7-bad-script-containment.json"
+  ],
+  "symbols": [
+    "FIXTURES",
+    "DRIVER",
+    "testContainment"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Extends the two existing runner suites rather than adding a third file. typescript/ does have tests, so the increment's 'mirror in the TS runner's tests if it has any' applies and typescript/test_runner.ts joins the touches list; its existing testUserDiscovery already copies runner.ts into a temp tree with its own tasks/user, so the containment fixtures reuse that shape instead of inventing a second one. Neither suite writes into python/tasks/user or typescript/tasks/user: the Python side redirects runner.USER_DIR at a temp directory in the child, the TS side runs a copied runner.ts whose USER_DIR resolves from its own location. A test that leaves a task called 'raises' in a player's list has broken containment in the other direction."
+  },
+  "completion": {
+    "commit": "8672ef45",
+    "checks": [
+      "npm run test:runner: all passed, 19 assertions (was 11)",
+      "the three named checks: 'a task that raises is reported as a failure naming the exception' (exit 1, RuntimeError in stderr), 'a task that loops forever is stopped by the caller's timeout' (5s), 'a task that exits non-zero is reported with its own exit code, not a traceback' (exit 3, no traceback)",
+      "distinctness, which is the actual property: {'good': 0, 'raises': 1, 'exits': 3, 'unknown': 2} -- four outcomes, four reported states, so 'it failed' for all of them would fail this check",
+      "denominator: 'the harness can run a well-behaved task through the real runner' runs first, because a broken driver would make every containment check pass by failing for the wrong reason",
+      "a timeout that means 'the child never started' cannot read as 'the task looped': the loop fixture prints a marker and flushes before looping, and the partial output is asserted",
+      "npm run test:ts-runner: all checks OK, the same six checks against typescript/runner.ts, reporting {good:0, raises:1, exits:3, unknown:2} and status null / signal SIGTERM for the loop",
+      "the TS loop fixture needed a live timer: a bare `await new Promise(() => {})` makes node exit 13 on an unsettled top-level await, which passed the timeout check while measuring node's own exit rather than the caller's timeout. Caught because the first run reported 'status 13, signal null'.",
+      "sabotage: wrapped `registry[task_id][3]().run()` in try/except-pass returning 0 in python/runner.py -> exit 1, FAIL 'a task that raises is reported as a failure naming the exception' (exit 0) and FAIL 'the four outcomes are reported distinctly' ({'raises': 0}); restored, md5 d44eaf9e732362b5ce651051182f38b1 matched before and after, suite green again"
+    ]
+  }
+}

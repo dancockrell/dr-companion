@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "task_id": "e6-player-data-inventory",
+  "agent": "claude-code",
+  "summary": "docs/PLAYER_DATA.md generated from src/ by tools/build-player-data-doc.mjs: every localStorage key, what it holds, who owns it, and what a player sees when a write fails",
+  "status": "completed",
+  "claimed_at": "2026-09-05T13:00:00Z",
+  "updated_at": "2026-09-05T13:40:00Z",
+  "paths": [
+    "tools/build-player-data-doc.mjs",
+    "docs/PLAYER_DATA.md",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/e6-player-data-inventory.json"
+  ],
+  "symbols": [
+    "DESCRIBES",
+    "KEY_PATTERN",
+    "GREP_PATTERN",
+    "CALL_PATTERN"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Follows tools/build-crossing-build-list.mjs: prose authored in the generator, every figure derived at generation time, a floor that refuses to publish from a truncated scan. That generator has no --check of its own (tools/crossing-build-list-test.mjs re-derives instead); this one carries --check because the question is the generator's own comparison, which is what the increment's verify line asks for. tools/test-suites.json was added to the touches list: E6 named package.json only, and a suite registered in one place never runs (plan trap 2)."
+  },
+  "findings": [
+    {
+      "what": "Nothing in src/ calls localStorage.setItem directly",
+      "judgement": "Checked, not assumed. Every write goes through src/lib/storage.ts, so the doc can give one answer to 'what happens on quota failure' instead of one per key. The only non-JSON writes are writeText for the two plain-number settings (window-fraction sizes and the attach port)."
+    },
+    {
+      "what": "drc.map-height.v1 is read but never written",
+      "judgement": "It is the superseded key, read once to migrate a genuine v1 customisation. Recorded as such in the doc rather than listed as if it were live."
+    }
+  ],
+  "completion": {
+    "commit": "98f4cbc6",
+    "checks": [
+      "node tools/build-player-data-doc.mjs: docs/PLAYER_DATA.md: 23 keys, 19 owner files, 293 source files scanned",
+      "node tools/build-player-data-doc.mjs --check: exit 0, '23 keys checked, 0 failed'",
+      "key count equals the increment's grep count: grep -rhoE \"writeJSON\\('[^']+'|readJSON<[^>]*>\\('[^']+'|(KEY|STORAGE_KEY) = '[^']+'\" src/ | sort -u | wc -l -> 23, and the generator runs that same pattern itself as a second, differently-shaped derivation and refuses to publish on disagreement",
+      "the other direction: every readJSON/writeJSON/writeText call site's key identifier must be a constant the inventory knows; an unrecognised one aborts naming the file",
+      "sabotage 1 (drift): edited the doc's key-count line -> --check exit 1, 'FAIL docs/PLAYER_DATA.md has drifted from src/'; restored, md5 6a653773328f98320ca6b54106bf7204 matched before and after",
+      "sabotage 2 (a new undescribed key): added a second key constant to src/lib/offClasses.ts, named SABOTAGE_KEY and holding a drc.sabotage version-1 string -> exit 1, 'keys with no description: drc.sabotage.v1'; restored, md5 bde0dea1160fd2bd1ee61f7c6dcaee82 matched, --check exit 0 again. Worded rather than quoted here: gitleaks reads a constant-name-equals-string-literal pair as a credential on entropy (plan trap 3), and rewording is cheaper than a documented --no-verify."
+    ]
+  }
+}

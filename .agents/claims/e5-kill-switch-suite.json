@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "task_id": "e5-kill-switch-suite",
+  "agent": "claude-code",
+  "summary": "Kill-switch suite (tools/kill-switch-test.mjs): Stop/Pause/Resume work with isTauri() false, and no owner reaches an ai*, viewer or task-runner module it should not",
+  "status": "completed",
+  "claimed_at": "2026-09-05T12:00:00Z",
+  "updated_at": "2026-09-05T12:55:00Z",
+  "paths": [
+    "tools/kill-switch-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "src/lib/flowStop.ts",
+    "src/lib/pythonTasks.ts",
+    "src/lib/nodeTasks.ts",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/e5-kill-switch-suite.json"
+  ],
+  "symbols": [
+    "category",
+    "closure",
+    "relativeImports"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Owners found exactly as the increment says: src/lib/stopAllTasks.ts and src/lib/flowStop.ts. The third source the increment allows for (grep -rn 'runaway|cancelCommand' src/lib/*.ts) yields only a severity-example comment in aiAlertBroker.ts, which owns no stop path, so the owner list is two. tools/flow-stop-test.ts already owns the fan-out contract of stopAllTaskBackends against two fakes; this suite deliberately does not restate those cases and asks the different question -- does the real wiring survive a missing backend. The Tauri double reuses the mock.module pattern established by tools/backlog-test.mjs rather than adding a second way to stub that module."
+  },
+  "findings": [
+    {
+      "what": "src/lib/flowStop.ts imports both task-runner modules (./pythonTasks.ts, ./nodeTasks.ts)",
+      "category": "python and node-runner imports by a kill-switch owner",
+      "judgement": "Real, recorded, not papered over. flowStop.ts is the wiring layer and stopping those two processes is the whole of what Stop means, so the coupling is the feature; but it does mean the kill switch cannot load with the runner modules absent, a weaker property than the safety core holds. src/lib/stopAllTasks.ts takes its backends as arguments and imports nothing at all. The suite pins the finding as an exact two-element set, so a third runner import, or any runner import reaching the core, fails rather than joining a set that quietly grows.",
+      "clean": "Neither owner reaches any ai* or viewer module, transitively. flowStop.ts's closure is exactly flowStop, pythonTasks, nodeTasks, stopAllTasks, tauri."
+    },
+    {
+      "what": "src/lib/flowStop.ts, pythonTasks.ts and nodeTasks.ts used extensionless relative imports",
+      "category": "trap 1 of the plan",
+      "judgement": "Fixed here (four import lines gain '.ts'), which is why those three files were added to E5's touches. Without it node cannot load any kill-switch owner, so every 'works with isTauri() false' check would have had to be a source-text check instead of running the code. gameLink.ts already writes './tauri.ts'; this makes the kill-switch owners match the convention rather than adding a bespoke loader hook to work around them."
+    }
+  ],
+  "completion": {
+    "commit": "bdf54a35",
+    "checks": [
+      "node --experimental-test-module-mocks tools/kill-switch-test.mjs: all kill-switch checks passed, 37 checks, exit 0",
+      "each check names its owner file, e.g. 'OK   src/lib/flowStop.ts: requestStopAll asked Rust to stop the Python task'",
+      "closure printed: src/lib/flowStop.ts reaches: src/lib/flowStop.ts, src/lib/pythonTasks.ts, src/lib/nodeTasks.ts, src/lib/stopAllTasks.ts, src/lib/tauri.ts",
+      "sabotage: commented out 'void stopAllTaskBackends(stopTask, stopNodeTask)' in src/lib/flowStop.ts -> exit 1, FAIL 'requestStopAll asked Rust to stop the Python task' and FAIL '... the TypeScript task'; restored, md5 e8313a95a426253a3330b2326d5afa8a matched before and after",
+      "positive control: the classifier is asserted to label aiWorkerHost.ts, aiModelProvider.ts, pythonTasks.ts and nodeTasks.ts, and each sample file is asserted to exist, so a rename cannot leave the category check unable to fail"
+    ]
+  }
+}

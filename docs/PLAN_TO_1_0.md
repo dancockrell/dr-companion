@@ -689,27 +689,31 @@ whether it is embedded, docked or a separate window is D0.
   do: `Get-AuthenticodeSignature .\DRCompanion*.exe | Format-List` → record `Status` verbatim (`NotSigned` expected).
   verify: the doc has it.
 
-- [ ] **E5  Kill-switch suite** (≈40; may split)
-  touches: new:tools/kill-switch-test.mjs, package.json, tools/test-suites.json
+- [x] **E5  Kill-switch suite** (≈40; may split)
+  commit: bdf54a35 verified: 2026-09-05 minutes: 55
+  touches: new:tools/kill-switch-test.mjs, package.json, tools/test-suites.json, src/lib/flowStop.ts, src/lib/pythonTasks.ts, src/lib/nodeTasks.ts
   depends-on: none
   do: owners: `src/lib/stopAllTasks.ts`, `src/lib/flowStop.ts`, and whatever `grep -rn "runaway\|cancelCommand" src/lib/*.ts` finds. For each: a check that it works with `isTauri()` false, and a source check that the owner imports no `ai*`, viewer, python or node-runner module. An owner that does is a finding: file it, do not paper over.
   verify: suite green, each check naming its owner file.
   sabotage: comment out the stop path in a copy → red.
 
-- [ ] **E6  Player-data inventory, generated** (≈25)
-  touches: new:tools/build-player-data-doc.mjs, new:docs/PLAYER_DATA.md, package.json
+- [x] **E6  Player-data inventory, generated** (≈25)
+  commit: 98f4cbc6 verified: 2026-09-05 minutes: 40
+  touches: new:tools/build-player-data-doc.mjs, new:docs/PLAYER_DATA.md, package.json, tools/test-suites.json
   depends-on: none
   do: `grep -rhoE "writeJSON\('[^']+'|readJSON<[^>]*>\('[^']+'|(KEY|STORAGE_KEY) = '[^']+'" src/ | sort -u` drives a table: key, what it holds, owner file, behaviour on quota failure (`storage.ts` reports; say what the UI shows). The generator asserts its key count equals the grep's count. Same pattern as `tools/build-crossing-build-list.mjs`.
   verify: `node tools/build-player-data-doc.mjs --check` exit 0 against the committed doc.
 
-- [ ] **E7  Bad-script containment fixtures** (≈20)
-  touches: python/test_runner.py
+- [x] **E7  Bad-script containment fixtures** (≈20)
+  commit: 8672ef45 verified: 2026-09-05 minutes: 45
+  touches: python/test_runner.py, typescript/test_runner.ts
   depends-on: none
   do: three fixtures — raises, loops until the runner's timeout, exits non-zero — asserting the runner reports each distinctly and the app process is unaffected (the runner is out-of-process; the assertion is on reported state). Mirror in the TS runner's tests if it has any (`ls typescript/`).
   verify: `npm run test:runner` green with the three names.
 
-- [ ] **E8  Disconnect/reconnect behaviour test** (≈20)
-  touches: tools/mounted-test.mjs, tools/backlog-test.mjs
+- [x] **E8  Disconnect/reconnect behaviour test** (≈20)
+  commit: 5dedb9e6 verified: 2026-09-05 minutes: 35
+  touches: tools/backlog-test.mjs, tools/game-connection-owner-test.mjs
   depends-on: none
   do: these two already exercise `attachGame`/`detachGame`/`backfill` (`grep -ln "detachGame\|backfill" tools/*.mjs`). Add: socket dropped mid-stream → pane says disconnected; `sendGame` refused with a reason; reconnect → backfill runs (`gameLink.ts` `backfill()`).
   verify: both suites green with the three named checks.

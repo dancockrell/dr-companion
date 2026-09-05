@@ -23,9 +23,9 @@
  * reach only the flows this app shipped, and now they hold every automated
  * command, including scripts this app never started.
  */
-import { setPaused, stopTask } from './pythonTasks'
-import { stopNodeTask } from './nodeTasks'
-import { stopAllTaskBackends } from './stopAllTasks'
+import { setPaused, stopTask } from './pythonTasks.ts'
+import { stopNodeTask } from './nodeTasks.ts'
+import { stopAllTaskBackends } from './stopAllTasks.ts'
 
 type Listener<T> = (payload: T) => void
 

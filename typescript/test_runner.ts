@@ -34,10 +34,11 @@ function ok(label: string, cond: boolean, detail = ''): void {
  * the *original* file against a *different* `cwd` would silently keep
  * reading the real repo's tasks/user/ regardless of what the test set up.
  */
-function run(args: string[], script: string = RUNNER, cwd: string = __dirname) {
+function run(args: string[], script: string = RUNNER, cwd: string = __dirname, timeoutMs?: number) {
   return spawnSync(process.execPath, ['--experimental-strip-types', script, ...args], {
     cwd,
     encoding: 'utf8',
+    ...(timeoutMs === undefined ? {} : { timeout: timeoutMs }),
   })
 }
 
@@ -125,9 +126,108 @@ function testUserDiscovery(): void {
   }
 }
 
+/**
+ * The same three bad scripts python/test_runner.py runs, against this runner.
+ *
+ * A task is a separate process, so containment is not something this file can
+ * assert by catching anything: it has to run the real CLI and look at what
+ * came back. The property is that the three are reported *differently* -
+ * "it failed" for all of them would pass a check that only asked whether
+ * each one failed, and leave the app with nothing to tell the player.
+ */
+function testContainment(): void {
+  const dir = mkdtempSync(join(tmpdir(), 'dr-companion-containment-'))
+  try {
+    writeFileSync(join(dir, 'runner.ts'), readFileSync(RUNNER, 'utf8'))
+    const tasksDir = join(dir, 'tasks')
+    const userDir = join(tasksDir, 'user')
+    mkdirSync(userDir, { recursive: true })
+    // Same reason as testUserDiscovery: REGISTRY's task.watch entry is
+    // resolved at import, so the copy needs a stub that never runs.
+    writeFileSync(join(tasksDir, 'watch.ts'), 'export {}\n')
+
+    writeFileSync(join(userDir, 'good.ts'), 'export function main() { console.log("fixture: finished") }\n')
+    writeFileSync(
+      join(userDir, 'raises.ts'),
+      'export function main() { throw new Error("containment fixture raised on purpose") }\n'
+    )
+    writeFileSync(
+      join(userDir, 'exits.ts'),
+      'export function main() { console.log("fixture: exiting 3"); process.exit(3) }\n'
+    )
+    writeFileSync(
+      join(userDir, 'loops.ts'),
+      // The timer is load-bearing. A bare `await new Promise(() => {})` does
+      // not loop: node notices the top-level await can never settle and exits
+      // 13 on its own, which is a different outcome entirely and would have
+      // this check measuring node's exit rather than the caller's timeout.
+      'export async function main() {\n' +
+        '  console.log("fixture: looping")\n' +
+        '  const keepAlive = setInterval(() => {}, 50)\n' +
+        '  await new Promise(() => {})\n' +
+        '  clearInterval(keepAlive)\n' +
+        '}\n'
+    )
+
+    const copy = join(dir, 'runner.ts')
+
+    // The denominator, first: a broken harness makes every check below
+    // "pass" by failing for the wrong reason.
+    const good = run(['run', 'user.good'], copy, dir)
+    ok(
+      'the harness can run a well-behaved task through the real runner',
+      good.status === 0 && good.stdout.includes('fixture: finished'),
+      `status ${good.status}, stderr ${good.stderr.trim().slice(-160)}`
+    )
+
+    const raises = run(['run', 'user.raises'], copy, dir)
+    ok(
+      'a task that raises is reported as a failure naming the exception',
+      raises.status !== 0 && raises.stderr.includes('containment fixture raised on purpose'),
+      `status ${raises.status}`
+    )
+
+    const exits = run(['run', 'user.exits'], copy, dir)
+    ok(
+      'a task that exits non-zero is reported with its own exit code',
+      exits.status === 3 && !exits.stderr.includes('Error:'),
+      `status ${exits.status}, stderr ${exits.stderr.trim().slice(-160)}`
+    )
+
+    const LOOP_TIMEOUT_MS = 5000
+    const loops = run(['run', 'user.loops'], copy, dir, LOOP_TIMEOUT_MS)
+    ok(
+      'a task that loops forever is stopped by the caller\'s timeout',
+      loops.status === null && loops.signal !== null,
+      `status ${loops.status}, signal ${loops.signal}, timeout ${LOOP_TIMEOUT_MS}ms`
+    )
+    // Without this, a fixture that failed to start and a driver that hung on
+    // its own would both look like a task looping.
+    ok('...and it really was looping, not failing to start', (loops.stdout ?? '').includes('fixture: looping'))
+
+    const unknown = run(['run', 'user.no_such_task'], copy, dir)
+    const reported = [good.status, raises.status, exits.status, unknown.status]
+    ok(
+      'the four outcomes are reported distinctly rather than as one "it failed"',
+      new Set(reported).size === 4,
+      JSON.stringify({ good: good.status, raises: raises.status, exits: exits.status, unknown: unknown.status })
+    )
+
+    const after = run(['run', 'user.good'], copy, dir)
+    ok(
+      'this process is unaffected: a good task still runs after all four',
+      after.status === 0 && after.stdout.includes('fixture: finished'),
+      `status ${after.status}`
+    )
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
 testList()
 testRunUnknown()
 testUserDiscovery()
+testContainment()
 
 console.log('')
 console.log(failed === 0 ? 'all checks OK' : `${failed} FAILED`)

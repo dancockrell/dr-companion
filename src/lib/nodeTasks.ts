@@ -20,7 +20,7 @@
  * prevent, and it doesn't stop mattering because the two processes happen to
  * be written in different languages.
  */
-import { invokeTauri, listenTauri, isTauri } from './tauri'
+import { invokeTauri, listenTauri, isTauri } from './tauri.ts'
 
 /** One runnable task, as `typescript/runner.ts` describes it. */
 export type NodeTaskInfo = {
