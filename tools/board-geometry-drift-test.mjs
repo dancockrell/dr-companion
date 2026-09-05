@@ -54,7 +54,7 @@
  * half the dimension itself, and the nearest tidy half-metre to any of those.
  * Nothing in it is written down here; change CELL_GAP_METRES and the set moves.
  *
- * Two scope limits, stated rather than left to be discovered:
+ * Three scope limits, stated rather than left to be discovered:
  *
  *   - Heights are deliberately out. The manifest publishes 1 and 3, and those
  *     are also a clamp bound, a colour channel and the deliberately implausible
@@ -66,6 +66,22 @@
  *   - The scan covers `godot/scripts` only. A fixture under `godot/tests` may
  *     legitimately name a superseded number in order to prove the wrong answer
  *     was reachable, which is the opposite of a viewer typing it.
+ *   - A git submodule under `godot/` is another repository's code and is not
+ *     scanned. `godot/shared-assets` is a checkout of
+ *     `project-42-pirate-island-rpg`, whose setpiece scripts place props by
+ *     hand: two coordinates in `reception_terrace_component.gd` happen to be
+ *     4.4, and neither is a board dimension. Scanning them made this suite fail
+ *     on any worktree that follows docs/PLAN_TO_1_0.md §0.4 - which runs
+ *     `git submodule update --init` - while passing in CI, where
+ *     `actions/checkout` leaves `submodules:` unset and the directory is empty.
+ *     A check whose verdict depends on whether a submodule happens to be
+ *     initialised is not a check about this repository.
+ *
+ *     The exclusion is read from `.gitmodules` rather than written here, so a
+ *     second submodule is covered without this file being touched, and the two
+ *     denominators below are what stop it becoming a way to see nothing: the
+ *     submodule holds 32 of the 62 `.gd` files present when it is initialised,
+ *     and the floors are set against the 30 that are ours.
  *
  * The complementary half - that every cell actually publishes a footprint, so
  * the viewer never has to fall back at all - is
@@ -76,7 +92,7 @@
  * Run: node tools/board-geometry-drift-test.mjs
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, sep as SEPARATOR } from 'node:path'
 import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES, boardLayoutFor } from '../src/lib/isometric-board-layout.mjs'
 
 const LAYOUT_SOURCE = 'src/lib/isometric-board-layout.mjs'
@@ -93,10 +109,12 @@ const GODOT_SCRIPTS = 'godot/scripts'
 /** 13 exist. Same reasoning as the floor below it. */
 const MINIMUM_SCRIPT_FILES = 8
 
-/** 27 exist. Far enough below that adding or removing a script never touches
- * it, high enough that a walk which found nothing cannot clear it - the number
- * that goes to zero when the directory walk breaks, rather than when the
- * repository is clean. */
+/** 30 of ours exist (62 with `godot/shared-assets` initialised, which is not
+ * scanned - see the header). Far enough below that adding or removing a script
+ * never touches it, high enough that a walk which found nothing cannot clear it
+ * - the number that goes to zero when the directory walk breaks, or when the
+ * submodule exclusion below starts excluding more than a submodule, rather than
+ * when the repository is clean. */
 const MINIMUM_GD_FILES = 15
 
 /** 12 are derived today. The number that goes to zero when the derivation
@@ -251,10 +269,47 @@ const refusedDimensions = () => {
   return refused
 }
 
+/**
+ * The repository-relative path of every git submodule, read out of
+ * `.gitmodules`.
+ *
+ * Derived rather than listed so a second submodule is excluded without this
+ * file being touched, and returned as a Set of forward-slash paths because that
+ * is how `.gitmodules` spells them on every platform. `MODULE_PATHS.size` is
+ * asserted below: an empty result would silently put the exclusion back to
+ * scanning everything, which is the state this replaced.
+ */
+const submodulePaths = () => {
+  const found = new Set()
+  let text = ''
+  try {
+    text = readFileSync('.gitmodules', 'utf8')
+  } catch {
+    return found
+  }
+  for (const line of text.split('\n')) {
+    const match = /^\s*path\s*=\s*(.+?)\s*$/.exec(line)
+    if (match) found.add(match[1].split(SEPARATOR).join('/'))
+  }
+  return found
+}
+
+const MODULE_PATHS = submodulePaths()
+
+/**
+ * Every `.gd` file under `dir` that belongs to this repository.
+ *
+ * A directory named by `.gitmodules` is another repository's checkout and is
+ * skipped whole, initialised or not. See the header for why: one of them places
+ * props at coordinates that collide with a board dimension, and whether it has
+ * been cloned is not a fact about this viewer.
+ */
 const gdFiles = (dir) => {
   const out = []
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry)
+    const relative = full.split(SEPARATOR).join('/')
+    if (MODULE_PATHS.has(relative)) continue
     if (statSync(full).isDirectory()) out.push(...gdFiles(full))
     else if (entry.endsWith('.gd')) out.push(full)
   }
@@ -338,6 +393,27 @@ ok(
 )
 
 // -- and no second copy in the viewer --
+//
+// The exclusion before the walk that uses it. An empty `.gitmodules` parse
+// would put this suite back to scanning another repository's setpieces, and it
+// would do it silently, so the number that has to be non-zero is asserted
+// rather than assumed.
+ok(
+  'the submodule exclusion was read from .gitmodules',
+  MODULE_PATHS.size >= 1,
+  MODULE_PATHS.size ? [...MODULE_PATHS].join(', ') : 'no `path =` line parsed - the exclusion would exclude nothing',
+)
+ok(
+  'and it excludes a directory that really is one',
+  [...MODULE_PATHS].some((p) => p.startsWith(`${GODOT_ROOT}/`)),
+  `positive control: a submodule under ${GODOT_ROOT}/ is what this scan would otherwise walk into`,
+)
+ok(
+  'and it does not swallow the viewer’s own scripts',
+  !MODULE_PATHS.has(GODOT_SCRIPTS) && !MODULE_PATHS.has(GODOT_ROOT),
+  `negative control: ${GODOT_SCRIPTS} and ${GODOT_ROOT} are ours`,
+)
+
 const files = gdFiles(GODOT_ROOT)
 ok('the GDScript walk found scripts to scan', files.length >= MINIMUM_GD_FILES, `${files.length} .gd files, floor ${MINIMUM_GD_FILES}`)
 
