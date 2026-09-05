@@ -156,6 +156,7 @@
     "test:map-stamps": "node tools/map-stamps-test.mjs",
     "test:map-stamp-curation": "node tools/map-stamp-curation-test.mjs",
     "test:gamelines": "node tools/gamelines-test.mjs",
+    "test:color-tokens": "node tools/color-token-test.mjs",
     "test:stream-consumers": "node tools/stream-consumers-test.mjs",
     "test:room-occupants": "node tools/room-occupants-test.mjs",
     "test:storage": "node tools/storage-test.mjs",

@@ -18,6 +18,7 @@
   "test:icon-semantics",
   "test:macroguard",
   "test:gamelines",
+  "test:color-tokens",
   "test:escapes",
   "test:subscribe",
   "test:cdp-timeout",
