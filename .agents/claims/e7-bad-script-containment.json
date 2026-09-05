@@ -23,7 +23,7 @@
     "notes": "Extends the two existing runner suites rather than adding a third file. typescript/ does have tests, so the increment's 'mirror in the TS runner's tests if it has any' applies and typescript/test_runner.ts joins the touches list; its existing testUserDiscovery already copies runner.ts into a temp tree with its own tasks/user, so the containment fixtures reuse that shape instead of inventing a second one. Neither suite writes into python/tasks/user or typescript/tasks/user: the Python side redirects runner.USER_DIR at a temp directory in the child, the TS side runs a copied runner.ts whose USER_DIR resolves from its own location. A test that leaves a task called 'raises' in a player's list has broken containment in the other direction."
   },
   "completion": {
-    "commit": "a37ff78b",
+    "commit": "8672ef45",
     "checks": [
       "npm run test:runner: all passed, 19 assertions (was 11)",
       "the three named checks: 'a task that raises is reported as a failure naming the exception' (exit 1, RuntimeError in stderr), 'a task that loops forever is stopped by the caller's timeout' (5s), 'a task that exits non-zero is reported with its own exit code, not a traceback' (exit 3, no traceback)",
