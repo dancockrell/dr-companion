@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "task_id": "a10-handled-alerts",
+  "agent": "claude-code",
+  "summary": "A handled alert stays handled until its condition actually clears, with critical exempt",
+  "status": "completed",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "src/lib/aiAlertBroker.ts",
+    "src/lib/aiWorkerHost.ts",
+    "tools/ai-alert-broker-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a10-handled-alerts.json"
+  ],
+  "symbols": ["AlertBroker.reconcile", "AlertBroker.handledCount", "AlertBroker.acknowledge"],
+  "coordination": {
+    "depends_on": ["a2-tick-survives-store-updates"],
+    "conflicts_with": [],
+    "notes": "The design says a Set of handled keys; this uses a Map of the retired alerts, because the point of keeping the record is occurrences - 'stunned four rounds running' is worth more than 'stunned', and a Set would discard it at the moment it starts to matter. reconcile takes the keys deriveAlerts produced this pass, so what counts as still-true stays with the code that decides what an alert is. One pre-existing check had to change: 'the same key can be raised again later as a new alert' asserted deduplicated === false and occurrences === 1, which was the mechanism, while its name states the property. The property is now more true, not less - the key becomes actionable again and preempts - so the body was rewritten to assert that, and the commit says so, because editing a test to make your own change pass is indistinguishable from this unless it is named."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "'OK the same condition next round does not re-enter the queue  0', 'OK but it is still counted, because four rounds stunned is worth more than one  2'",
+      "'OK reconcile forgets a handled condition that is no longer reported  situation:stunned', 'OK a condition that ended and came back is a fresh alert  1'",
+      "'OK a repeated critical re-enters the queue even though it was handled  1' and 'OK and says so, so background work stops again'",
+      "sabotage - make raise() ignore the handled record: 6 checks red starting with 'FAIL the same condition next round does not re-enter the queue  1'; restored, md5sum b37bab97b51da35fcc9ba4752cb82d08 matched",
+      "node --experimental-strip-types tools/ai-alert-broker-test.mjs: 42 checked, 0 failed (was 25)"
+    ]
+  }
+}
