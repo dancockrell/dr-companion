@@ -128,6 +128,30 @@ console.log('\n-- scope: a tool answers about the zone it was given and nothing 
   ok('no zone loaded is null rather than an invented room', noContext.ok === true && noContext.value === null)
 }
 
+console.log('\n-- lore_for answers from the bestiary, and says when the match was weak --')
+{
+  const trace = []
+  const exact = callTool('lore_for', { name: "an adan'f blood warrior", noun: 'warrior' }, ALL, trace, {})
+  ok('a known creature returns lore', exact.ok === true && exact.value !== null, JSON.stringify(exact).slice(0, 90))
+  ok('the level came through', exact.ok && exact.value?.lore?.level === 54, exact.ok ? JSON.stringify(exact.value).slice(0, 60) : '')
+  ok('an exact name match is not flagged approximate', exact.ok && exact.value?.approximate === false)
+
+  // 773 creatures share 408 nouns, so a noun-only hit is weaker evidence and
+  // must say so - a card that hid the difference would let a model state a
+  // level it cannot support.
+  const weak = callTool('lore_for', { name: 'a nameless thing nobody wrote down', noun: 'mage' }, ALL, trace, {})
+  ok('a noun-only match still returns lore', weak.ok === true && weak.value !== null)
+  ok('and is flagged approximate', weak.ok && weak.value?.approximate === true)
+  ok('a noun-only entry carries no level', weak.ok && weak.value?.lore?.level === undefined, weak.ok ? JSON.stringify(weak.value) : '')
+
+  const unknown = callTool('lore_for', { name: 'a thing', noun: 'nothingatallliketh' }, ALL, trace, {})
+  ok('an unknown creature is null, not an invented card', unknown.ok === true && unknown.value === null)
+
+  const bad = callTool('lore_for', { name: '', noun: 'mage' }, ALL, trace, {})
+  ok('an empty name is refused before execution', bad.ok === false && bad.reason.includes('name must be'), bad.ok ? '' : bad.reason)
+  ok('every one of those is traced', trace.length === 4, String(trace.length))
+}
+
 console.log('\n-- an over-size result is flagged, never silently cut --')
 {
   // A megabyte of rooms. The ceiling is 4 KB, so this must come back marked.
@@ -201,7 +225,7 @@ console.log('\n-- the trace has one entry per call, in order --')
 
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 38
+const MIN_EXPECTED = 46
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

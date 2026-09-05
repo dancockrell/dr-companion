@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "task_id": "g3-tool-lore-for",
+  "agent": "claude-code",
+  "summary": "lore_for wraps the shipped bestiary as a read-only tool, carrying the approximate flag rather than hiding a noun-only match",
+  "status": "completed",
+  "claimed_at": "2026-09-05T18:56:00Z",
+  "updated_at": "2026-09-05T19:05:00Z",
+  "paths": [
+    "src/lib/aiKnowledgeTools.ts",
+    "tools/ai-knowledge-tools-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g3-tool-lore-for.json"
+  ],
+  "symbols": ["lore_for"],
+  "coordination": {
+    "depends_on": ["G2"],
+    "conflicts_with": [],
+    "notes": "Extends G2's registry rather than adding a second one. bestiary.ts's loreFor/isApproximate stay the only lookup: nothing here re-derives a creature from a name. approximate travels with the result because 773 creatures share 408 nouns, so a noun-only hit is weaker evidence and a result that hid the difference would let a model state a level the data cannot support - the same reason bestiary.ts keeps its two indexes apart."
+  },
+  "completion": {
+    "commit": "PENDING-G3",
+    "checks": [
+      "node --experimental-strip-types tools/ai-knowledge-tools-test.mjs: 53 checked, 0 failed / all passed",
+      "verify - known creature: 'a known creature returns lore' with {\"lore\":{\"level\":54,\"minCap\":250,...}} and approximate false",
+      "verify - unknown: 'an unknown creature is null, not an invented card' OK",
+      "verify - approximate flagged: 'and is flagged approximate' OK; the noun-only entry carries no level, {\"lore\":{\"castsSpells\":true,...},\"approximate\":true}",
+      "sabotage - approximate hardcoded false: 1 red, 'and is flagged approximate', exit 1; restore md5 OK"
+    ]
+  }
+}

@@ -38,6 +38,7 @@
  * can see rather than whatever it was given.
  */
 import type { MapZone, MapZoneRoom } from '../bridge/types'
+import { isApproximate, loreFor } from './bestiary.ts'
 
 /**
  * Text that came from outside this app.
@@ -178,6 +179,31 @@ const TOOLS: Record<string, ReadOnlyTool> = {
     },
   },
 
+
+  /**
+   * What the bestiary already knows about a creature.
+   *
+   * `approximate` is the whole reason this is a tool rather than a lookup the
+   * prompt builder does inline: 773 creatures share 408 nouns, so a match on
+   * the noun alone is weaker evidence and a card that hid that difference
+   * would let a model state a level it cannot support.
+   */
+  lore_for: {
+    id: 'lore_for',
+    maxResultBytes: 4096,
+    validate(args) {
+      if (typeof args.name !== 'string' || args.name.length === 0) return 'name must be a non-empty string'
+      if (typeof args.noun !== 'string' || args.noun.length === 0) return 'noun must be a non-empty string'
+      return null
+    },
+    execute(args) {
+      const name = args.name as string
+      const noun = args.noun as string
+      const lore = loreFor(name, noun)
+      if (!lore) return null
+      return { lore, approximate: isApproximate(name, noun) }
+    },
+  },
 }
 
 /** Every tool that exists. Exported so a test can assert the registry rather

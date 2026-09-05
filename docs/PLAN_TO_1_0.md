@@ -912,7 +912,8 @@ whether it is embedded, docked or a separate window is D0.
   verify: allowed → result; disallowed → refusal naming the tool; unknown → refusal; a 1 MB fixture result → truncated flag and `bytes <= maxResultBytes`; trace has one entry per call.
   sabotage: skip the allowlist → red; skip the size cap → red.
 
-- [ ] **G3  Tool `lore_for`** (≈10)
+- [x] **G3  Tool `lore_for`** (≈10)
+  commit: PENDING-G3 verified: 2026-09-05 minutes: 15
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
   depends-on: G2
   do: wraps `bestiary.ts` `loreFor`/`isApproximate` → `{lore, approximate} | null`.
