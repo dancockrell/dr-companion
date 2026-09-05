@@ -155,6 +155,71 @@ console.log('\n-- a failed save is reported, never swallowed --')
 }
 
 console.log('')
+console.log("-- the doc's transition table and the code's rule are the same table --")
+{
+  // Two places stating the same rule will drift, so neither may be edited
+  // alone. This reads section 6.1 of the architecture doc and compares it to
+  // the store's own answer, in both directions: a transition the doc allows
+  // and the code refuses fails, and so does the reverse.
+  //
+  // The code side is asked through `canTransition` rather than by reading the
+  // source, so this compares against the behaviour callers actually get. A
+  // grep of the module text would agree with a table that no longer drives
+  // anything.
+  const { readFileSync } = await import('node:fs')
+  const DOC = 'docs/LOCAL_AI_BACKGROUND_WORKER.md'
+  const md = readFileSync(DOC, 'utf8')
+  const STATES = ['queued', 'running', 'checkpointed', 'awaiting_review', 'completed', 'failed', 'cancelled']
+
+  const heading = md.indexOf('### 6.1 Legal transitions')
+  ok('the doc still has section 6.1', heading >= 0, DOC)
+
+  // Only the rows of the first table after that heading. The section also
+  // carries prose about A12's pending changes, and a row-shaped line there
+  // must not be read as part of the contract.
+  const rows = []
+  for (const line of md.slice(Math.max(heading, 0)).split(/\r?\n/).slice(1)) {
+    const cells = /^\|\s*`([a-z_]+)`\s*\|([^|]*)\|\s*$/.exec(line)
+    if (cells) {
+      rows.push([cells[1], (cells[2].match(/`[a-z_]+`/g) || []).map((t) => t.replaceAll('`', ''))])
+      continue
+    }
+    if (rows.length && !line.trimStart().startsWith('|')) break
+  }
+
+  const documented = Object.fromEntries(rows)
+
+  // The denominator. If the parse breaks this goes to zero and says so,
+  // instead of every comparison below passing against an empty table.
+  ok(
+    `the doc's table parsed to ${rows.length} rows`,
+    rows.length === STATES.length,
+    `expected ${STATES.length}, got: ${rows.map((r) => r[0]).join(', ') || '(none)'}`,
+  )
+
+  for (const from of STATES) {
+    const doc = documented[from]
+    if (!doc) {
+      ok(`the doc documents "${from}"`, false, 'no row for this state')
+      continue
+    }
+    const codeAllows = STATES.filter((to) => canTransition(from, to)).sort()
+    const docAllows = [...doc].sort()
+    ok(
+      `"${from}" allows the same targets in the doc and the code`,
+      JSON.stringify(codeAllows) === JSON.stringify(docAllows),
+      `code [${codeAllows.join(' ')}] doc [${docAllows.join(' ')}]`,
+    )
+  }
+
+  for (const from of Object.keys(documented)) {
+    if (!STATES.includes(from)) {
+      ok(`the doc's "${from}" is a real status`, false, 'no such JobStatus')
+    }
+  }
+}
+
+console.log('')
 const total = pass + fail
 const MIN_EXPECTED = 25
 if (total < MIN_EXPECTED) {
