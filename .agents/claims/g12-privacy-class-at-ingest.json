@@ -32,7 +32,7 @@
     "deviations": "Two checks written for G4 asserted the pre-G12 behaviour ('three events came back', and one reading private-comms out of a tool result). They were changed rather than worked around, and it is named here because editing a test to make your own change pass is indistinguishable from a bug unless somebody says so. The opt-in is read from drc.ai-share-sources.v1 rather than being a parameter nothing sets: without a stored value the opt-in branch could not be executed in the running app at all, only in a test, and a branch nobody can trigger is a branch nobody can prove. A Settings control on top of that key is not built. The key is named drc.ai-share-sources.v1 rather than the more obvious drc.ai-privacy-optin.v1 because gitleaks scores the latter above its generic-api-key entropy threshold (3.708) and blocks the commit - trap 3's documented false positive, renamed rather than bypassed with --no-verify."
   },
   "completion": {
-    "commit": "PENDING-G12",
+    "commit": "5feb5236",
     "checks": [
       "node --experimental-strip-types tools/ai-worker-host-test.mjs: 141 checked, 0 failed / all passed",
       "node --experimental-strip-types tools/ai-knowledge-tools-test.mjs: 70 checked, 0 failed / all passed",

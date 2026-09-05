@@ -22,7 +22,7 @@
     "deviations": "The plan's G7 text says status 'accepted'; the schema in docs/LOCAL_AI_BACKGROUND_WORKER.md section 7 says 'accepted-local', and the store implements that. Recorded in the G5 claim too."
   },
   "completion": {
-    "commit": "PENDING-G7",
+    "commit": "00dd6be2",
     "checks": [
       "npx tsc -b: exit 0",
       "verified in the running app at 127.0.0.1:1437 (vite dev, started and killed by pid) rather than by reading the source",

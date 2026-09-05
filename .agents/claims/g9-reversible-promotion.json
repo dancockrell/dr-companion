@@ -23,7 +23,7 @@
     "notes": "Pins had no provenance field, so it was added as required rather than optional and filled in on read for every pin written before it existed. On read rather than as a one-off rewrite: a migration that runs once has to have run, and a store restored from a backup or synced from another machine would arrive unmigrated afterwards with nothing to catch it. aiClaimStore.ts still imports nothing canonical - its source check would fail otherwise - so promote and revertPromotion take the pin functions as arguments and the review panel supplies them, which puts the code that writes a pin where the person doing the promoting is. revertPromotion is given the recorded pin id and nothing else: a position, a room or a predicate all name whatever happens to be there now rather than the thing that was created."
   },
   "completion": {
-    "commit": "PENDING-G9",
+    "commit": "d4325f75",
     "checks": [
       "node --experimental-strip-types tools/ai-claim-store-test.mjs: 117 checked, 0 failed / all passed",
       "verify - promote: 'exactly one pin was added' 3, 'marked as an AI candidate' ai-candidate, 'and the claim records which pin' pin-ai-claim-1",

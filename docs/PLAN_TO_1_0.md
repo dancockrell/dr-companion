@@ -283,7 +283,6 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
-| G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12, F7 and F8 in PR #315, which emptied the
@@ -294,8 +293,9 @@ change), and **K** (K1–K5, PRs #313 and this one; K6 is `[!]` on a content
 gap, not a code one). Their rows are gone from the table above, which is what
 finishing a lane looks like here. **H** is finished too (H1–H4, H6, H7; PRs
 #316 and #318), with H5 and H8 left `[!]`: H5 needs a model runtime this
-machine does not have and no numbers were invented for it, and H8 depends on
-G6, which is not started. Both say what would unblock them.
+machine does not have and no numbers were invented for it, and H8 depended on
+G6, which is now `[x]` - so H8's stated blocker is gone and it is free for
+whoever holds H. Both say what would unblock them.
 
 **Lane E is finished too** (E1, E9, E11, E12 and F5; PR #314), with **E2, E3
 and E10 left `[!]`**. E1 is not what blocks those three: the clean VM exists
@@ -309,6 +309,18 @@ than rebuilding a VM. Two defects outside the lane were filed rather than
 worked around: #323 (`npm run tauri:build` cannot run in any worktree prepared
 by `worktree:init`) and #324 (`run-tests` counts a suite's honest NOT CHECKED
 as a pass).
+
+**Lane G is finished** (G0, G1, G2–G10 and G12; PRs #317, #322 and this one),
+with **G11 deliberately not started**: it is the one increment that gives
+model output a path to a real game command, and section 10 requires Dan's
+approval before it merges. Nothing in G0–G12 can reach `gameActions.ts`, no
+model ships (`absentProvider` is still the only provider in `src/`), and the
+only path from a candidate into canonical data is G9's promotion, which is
+explicit, records the pin id it created, and reverts by that id. One
+prediction in the plan turned out wrong and is left corrected rather than
+quietly met: G10 says the callerless-command sweep would then list only
+`extract_lich` and `bridge_install_status`. It lists a third,
+`install_bundled_ruby`, which is outside this lane.
 
 **K1–K5 are done** (PRs #313 and the Lane K follow-up). C7's open question
 turned out not to gate any of them: appearance touches none of the six files
@@ -952,7 +964,7 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: evict cited entries → red.
 
 - [x] **G1  Producer: divergent exits** (≈25)
-  commit: 77849376 verified: 2026-09-05 minutes: 40
+  commit: e32c7a8e verified: 2026-09-05 minutes: 40
   touches: new:src/lib/aiJobProducers.ts, C1>src/lib/aiWorkerHost.ts, new:tools/ai-job-producers-test.mjs, package.json, tools/test-suites.json
   depends-on: A4
   do: `detectExitDivergence(snapshotCell, parsedExits)` → `[{move, inSnapshot, inStream}]`. Parsed exits come from the stream parser's room state (`grep -n "exits" src/lib/gameStream.ts src/types/stream.ts`) — never parse text here. Non-empty → `jobs.create({kind:'map_reconciliation', scope:{roomId}, inputRefs:['event:<seq>'], allowedTools:['flag_conflict']})` unless a non-terminal job already has that `scope.roomId`.
@@ -990,7 +1002,7 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: allow empty evidence → red; allow the cycle → red.
 
 - [x] **G6  Map job yields a claim even with no model** (≈25)
-  commit: fa5301dd verified: 2026-09-05 minutes: 50
+  commit: e32c7a8e verified: 2026-09-05 minutes: 50
   touches: C1>src/lib/aiWorker.ts, G1>src/lib/aiJobProducers.ts, C1>tools/ai-worker-test.mjs
   depends-on: G1, G5
   do: on `map_reconciliation` with provider absent or failing, emit the deterministic claim `{subject:'room:<id>', predicate:'exit_divergence', value:{diff}, confidence:0.5, producer:{kind:'parser', identity:'aiJobProducers.detectExitDivergence'}}`, job → `awaiting_review`. A working provider's parsed JSON adds a second claim with `producer.kind:'model'`; malformed → `invalid_output` and the deterministic claim still stands. Every model-proposed tether passes `validateTetherCandidate` (handoff §33) before it becomes a claim: `fromRoomId` known; a non-null `toRoomId` must appear as `currentRoomId` in a cited authoritative snapshot; a directionless exit gets `boardAnchor:null`, never a guessed one; kind `ferry` needs transport evidence; kinds `portal|warp` never infer adjacency from board proximity. A proposal that fails validation is recorded in the job note, not as a claim.
@@ -998,21 +1010,21 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: skip the destination check → the invented-destination test red.
 
 - [x] **G7  Claim review UI** (≈30)
-  commit: PENDING-G7 verified: 2026-09-05 minutes: 45
+  commit: 00dd6be2 verified: 2026-09-05 minutes: 45
   touches: new:src/components/shared/AiClaimsPanel.tsx, src/components/layout/SettingsSheet.tsx
   depends-on: G5
   do: list candidates (subject, predicate, evidence count, producer, confidence); Accept/Reject change status only; evidence tooltip.
   verify: create a claim in devtools; it appears; Accept → accepted; pins/map `localStorage` keys byte-identical before and after (read them in devtools).
 
 - [x] **G8  Corroboration** (≈15)
-  commit: 59838bc9 verified: 2026-09-05 minutes: 25
+  commit: e32c7a8e verified: 2026-09-05 minutes: 25
   touches: G5>src/lib/aiClaimStore.ts, G5>tools/ai-claim-store-test.mjs
   depends-on: G5
   do: same `(subject,predicate,value)` from a second independent `evidenceRef` → `corroborated`.
   verify: test; sabotage: count the same ref twice → red.
 
 - [x] **G9  Reversible promotion** (≈30)
-  commit: PENDING-G9 verified: 2026-09-05 minutes: 50
+  commit: d4325f75 verified: 2026-09-05 minutes: 50
   touches: G5>src/lib/aiClaimStore.ts, src/lib/mapPins.ts, G7>src/components/shared/AiClaimsPanel.tsx, G5>tools/ai-claim-store-test.mjs
   depends-on: G7
   do: read `mapPins.ts`'s pin shape first; if pins lack a `provenance` field add one defaulting to `'player'` with a migration check. Promote (only from `accepted`) creates a pin `provenance:'ai-candidate'` and records `{claimId, pinId}`; Revert deletes exactly that pin and returns the claim to `accepted`.
@@ -1020,7 +1032,7 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: revert by index → "other pins identical" red.
 
 - [x] **G10  `publish_presentation_event` gets its caller** (≈20)
-  commit: PENDING-G10 verified: 2026-09-05 minutes: 35
+  commit: 5feb5236 verified: 2026-09-05 minutes: 35
   touches: C1>src/lib/aiIngest.ts, C4>src/lib/viewerClient.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: C4
   do: on `situation` transitions for stunned/webbed/immobilized (on and off) publish `PresentationEvent{kind:'status-change', authoritativeText:<flag>, roomId}` — derived from already-parsed flags, no text parsing. Godot's `event_player.gd` consumes ordered events.
@@ -1035,7 +1047,7 @@ whether it is embedded, docked or a separate window is D0.
   pitfalls: this is the one increment that gives model output a path to the game. Dan's approval is required before merge (section 10).
 
 - [x] **G12  Privacy class at ingest** (≈25)
-  commit: PENDING-G12 verified: 2026-09-05 minutes: 45
+  commit: 5feb5236 verified: 2026-09-05 minutes: 45
   touches: C1>src/lib/aiIngest.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: A4
   do: the handoff's §37 table. Each journalled event gets `privacy ∈ 'public-game' | 'private-player' | 'private-comms' | 'third-party'` derived from the already-parsed `stream` id (`grep -n "stream" src/types/stream.ts` for the vocabulary — whispers, thoughts, private messages are already labelled by the bridge). `private-comms` events are journalled (capture is continuous) but **excluded from every model request and every tool result by default**; a per-source opt-in setting lifts it. Credentials never have a class: they are refused by the scanner before they exist as events (A11).

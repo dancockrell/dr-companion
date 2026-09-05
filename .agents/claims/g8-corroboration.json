@@ -21,7 +21,7 @@
     "deviations": "aiWorker.ts is outside the increment's touches list; it is where the caller had to go, for the reason above."
   },
   "completion": {
-    "commit": "59838bc9",
+    "commit": "e32c7a8e",
     "checks": [
       "node --experimental-strip-types tools/ai-claim-store-test.mjs: 99 checked, 0 failed / all passed",
       "verify - independent ref: 'an independent ref corroborates' OK, status corroborated, evidenceRefs event:1,event:2, 'no second record was made' 1",
