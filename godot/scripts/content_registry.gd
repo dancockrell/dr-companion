@@ -108,18 +108,51 @@ const MISSING_FOOTPRINT_MARKER_COLOR := Color(1.0, 0.0, 1.0, 1.0)
 ## exist, so naming the `ContentRegistry` singleton inside one is a compile
 ## error there and nowhere else - measured, on exit_anchor_layer_test.gd:
 ## "Identifier not found: ContentRegistry". Consumers preload this script and
-## call these three on it, which is the same file the autoload runs.
+## call these on it, which is the same file the autoload runs.
 static func footprint_metres(cell: Dictionary) -> Dictionary:
+	return _box_metres(cell, "footprint")
+
+## The width, depth and height this cell published for its *click target*, in
+## metres, or an empty Dictionary when it published none.
+##
+## A box of its own beside the footprint rather than a reuse of it, because the
+## manifest publishes two and they answer two different questions.
+## `src/lib/isometric-board-layout.mjs` says of this one: "the click target is
+## the block, not the pitch. A selection box larger than the thing drawn means
+## clicking the gap between two rooms silently picks one of them, which makes an
+## exit hard to hit as well as hard to see." The two are equal today and need
+## not stay so - what a room is drawn as and how generously it can be picked are
+## the layout's decisions to make separately, and reading one for the other here
+## would take that decision away from it.
+##
+## `world_root.gd` typed `Vector3(4.5, 1.0, 4.5)` for this until issue #366: a
+## number for a dimension nothing else in the viewer still typed, 5 cm proud of
+## the block on every side, and flatly wrong in height for an interior cutaway,
+## which publishes 3. Neither drift scan could see it, because 4.5 is neither
+## the block nor the pitch - a copy that is *nearly* right is invisible to a
+## check that looks for the right number, which is why
+## `tools/board-geometry-drift-test.mjs` now refuses the near-misses as a class.
+static func selection_bounds_metres(cell: Dictionary) -> Dictionary:
+	return _box_metres(cell, "selectionBounds")
+
+## One reader for every box a cell publishes under `board`, so a second opinion
+## about how a cell states its dimensions cannot exist.
+##
+## All three fields are required together, whichever box is being asked for: two
+## thirds of a box is the same broken contract as no box at all, and answering
+## the missing third with a default would be exactly the invented number this
+## file exists to refuse.
+static func _box_metres(cell: Dictionary, field: String) -> Dictionary:
 	var board_value = cell.get("board", {})
 	if not (board_value is Dictionary):
 		return {}
-	var footprint_value = (board_value as Dictionary).get("footprint", {})
-	if not (footprint_value is Dictionary):
+	var box_value = (board_value as Dictionary).get(field, {})
+	if not (box_value is Dictionary):
 		return {}
-	var footprint: Dictionary = footprint_value
-	var width = footprint.get("width")
-	var depth = footprint.get("depth")
-	var height = footprint.get("height")
+	var box: Dictionary = box_value
+	var width = box.get("width")
+	var depth = box.get("depth")
+	var height = box.get("height")
 	if not (width is float or width is int):
 		return {}
 	if not (depth is float or depth is int):
@@ -141,11 +174,31 @@ static func footprint_metres(cell: Dictionary) -> Dictionary:
 ## with no footprint says so however it is drawn. A cell that publishes one
 ## costs nothing.
 static func block_size_metres(cell: Dictionary) -> Vector3:
-	var footprint := footprint_metres(cell)
-	if footprint.is_empty():
-		push_error("ContentRegistry: cell '%s' published no complete board.footprint (width, depth and height), so its block size is unknown. Drawing the %s m missing-footprint marker rather than inventing one; the size belongs to the manifest (see src/lib/isometric-board-layout.mjs)." % [cell.get("id", "<unknown>"), MISSING_FOOTPRINT_MARKER_METRES])
+	return _size_or_marker(cell, footprint_metres(cell), "footprint", "its block size")
+
+## The size, in metres, of the box a click on this cell has to land in: the
+## published `selectionBounds`, or the marker cube when it published none.
+##
+## `world_root.gd` builds one `BoxShape3D` per cell from this. The degraded case
+## takes the same path as a missing footprint on purpose rather than a second
+## one of its own: a marker-sized click target is nearly impossible to hit, so a
+## cell whose contract is broken becomes unclickable and says why on the console
+## - which is the honest failure. A plausible box would leave a room that picks
+## slightly wrong and reports nothing, and that is the bug this replaced.
+static func selection_size_metres(cell: Dictionary) -> Vector3:
+	return _size_or_marker(cell, selection_bounds_metres(cell), "selectionBounds", "the box a click on it has to land in")
+
+## The one degraded path for every box above: say which cell and which field on
+## the console, and hand back a cube that cannot be mistaken for a room.
+##
+## Reported here rather than at each call site, so a cell with a broken contract
+## says so however it is being used, and so a new consumer cannot arrive with a
+## quieter version of the same report.
+static func _size_or_marker(cell: Dictionary, box: Dictionary, field: String, what: String) -> Vector3:
+	if box.is_empty():
+		push_error("ContentRegistry: cell '%s' published no complete board.%s (width, depth and height), so %s is unknown. Using the %s m missing-footprint marker rather than inventing one; the size belongs to the manifest (see src/lib/isometric-board-layout.mjs)." % [cell.get("id", "<unknown>"), field, what, MISSING_FOOTPRINT_MARKER_METRES])
 		return Vector3(MISSING_FOOTPRINT_MARKER_METRES, MISSING_FOOTPRINT_MARKER_METRES, MISSING_FOOTPRINT_MARKER_METRES)
-	return Vector3(footprint["width"], footprint["height"], footprint["depth"])
+	return Vector3(box["width"], box["height"], box["depth"])
 
 ## The ground square this cell owns, in metres - the pitch, so one room's ground
 ## meets the next room's - or the missing-ground marker when it published none.
