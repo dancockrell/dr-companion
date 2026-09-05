@@ -273,10 +273,10 @@ PRs per lane, squash-merged.
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
 | K | K1–K5 | `lane-k/appearance` | `dev/wt-k` | 5 Sep 2026 |
 | G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
-| C/F | C12, F7, F8 | `chore/dead-test-suites` | `dev/wt-tests` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
-F2, F6, PRs #293 and #295), **I** (I1–I11, PRs #303 and #300) and **L**
+F2, F6, PRs #293 and #295; then C12, F7 and F8 in PR #315, which emptied the
+UNWIRED backlog C6 opened), **I** (I1–I11, PRs #303 and #300) and **L**
 (L1–L5, PRs #305 and this one; L6 is `[!]`, blocked on four acceptance lines
 that need a live character and one human click, neither of which is a code
 change). Their rows are gone from the table above, which is what finishing a
