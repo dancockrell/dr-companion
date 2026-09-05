@@ -462,14 +462,16 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   sabotage: put `character` back into the deps array in a copy → red.
   pitfalls: 6.
 
-- [ ] **A3  Review hash covers what matters** (≈15)
+- [x] **A3  Review hash covers what matters** (≈15)
+  commit: b283e0ac verified: 2026-09-05 minutes: 25
   touches: C1>src/lib/aiIngest.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: A2
   do: `reviewHash({roomId, situation: sorted, inRoundtime: (roundtime ?? 0) > 0, hostiles: count of roomCombatants hostile && !dead})` → `JSON.stringify`.
   verify: room change → differs; health 84→83 → equal; roundtime 9→4 → equal; 4→0 → differs.
   sabotage: drop `roomId` → room-change check red.
 
-- [ ] **A4  Derive all six activities** (≈20)
+- [x] **A4  Derive all six activities** (≈20)
+  commit: b283e0ac verified: 2026-09-05 minutes: 30
   touches: C1>src/lib/aiIngest.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: A2
   do:
