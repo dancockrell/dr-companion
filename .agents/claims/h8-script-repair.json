@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "task_id": "h8-script-repair",
+  "agent": "claude-code",
+  "summary": "A script that has failed twice the same way gets a model-drafted patch written to a candidate file under the app data directory, syntax-checked and run under E7's containment driver, and recorded as a candidate script_patch claim that never activates and never touches the original",
+  "status": "completed",
+  "claimed_at": "2026-09-05T22:10:00Z",
+  "updated_at": "2026-09-05T23:25:00Z",
+  "paths": [
+    "src/lib/aiJobProducers.ts",
+    "src/lib/aiWorker.ts",
+    "src/lib/aiKnowledgeTools.ts",
+    "tools/ai-script-repair-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/h8-script-repair.json"
+  ],
+  "symbols": [
+    "proposeScriptRepair",
+    "countRepeatedFailures",
+    "normalizeScriptError",
+    "applyUnifiedDiff",
+    "validatePatchTarget",
+    "runScriptRepair",
+    "ScriptRepairPort",
+    "ScriptCheck",
+    "read_script"
+  ],
+  "coordination": {
+    "depends_on": ["G6", "H3"],
+    "conflicts_with": [],
+    "notes": "Both depends-on are [x] on main: G6 at fa5301dd, H3 in PR #318. Every file touched has an existing owner and was extended rather than copied. The producer joins proposeMapReconciliation in aiJobProducers.ts, which already owns both the producer and the validator that aiWorker.ts calls; read_script joins the three tools in aiKnowledgeTools.ts and reuses its cap, trace and untrusted wrapper rather than reading a file itself; the repair branch joins the map branch in aiWorker.ts. No sibling module was created. The worker reaches the script through callTool('read_script', ...) rather than through the port directly, so the 64 KB ceiling, the audit trace and the untrusted label all apply - a job that read the file itself would have none of the three and would look identical at the call site.",
+    "deviations": "Two, both recorded rather than softened. (1) `node --check` is named in the increment's do: and is not run, because it was measured to be unusable here: none of the three languages scriptFiles.ts admits is JavaScript, and pointed at a .ts file node v24.19.0 parses it as CommonJS and reports 'SyntaxError: Missing initializer in const declaration' on the valid line `const a: number = 1`. A check that fires on everything is as empty as one that fires on nothing. TypeScript gets tsc --noEmit; Python gets python -m py_compile, which the plan's list predates. (2) The app is not wired, for two reasons neither of which is inside this increment's touches: nothing tells the AI host that a task failed (the host ingests the game stream; pythonTasks.ts and nodeTasks.ts report run outcomes to the UI and nowhere else), so there is no signal for the producer to count; and the port needs a Tauri-side implementation to read scripts, write into the real app data directory and run the interpreters, which the browser cannot do. An earlier draft blamed Lane G's claim on aiWorkerHost.ts; G finished in PR #327 while this branch was open, so that reason is gone. The ports are optional on WorkerDeps and an absent one makes the job fail saying it had nowhere to work, never succeed quietly. Filed as an issue rather than done silently."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "npm run test:ai-script-repair: 91 passed, 0 failed, 2 not checked / all passed",
+      "verify (known-good diff, checks recorded, original hash unchanged) ruby: 'ruby: THE ORIGINAL FILE IS BYTE-IDENTICAL  ddfffedcbb7b0d022ec9b3fa595ced71 -> ddfffedcbb7b0d022ec9b3fa595ced71'; job note 'tools: read_script; candidate <appdata>/script-candidates/job-1/harvest.rb; ruby -c=pass E7 containment fixtures=not_checked; claim claim:1; the script itself is unchanged'",
+      "verify python: 'python: the language check ran and passed on the candidate  python -m py_compile: pass' and 'python: the E7 fixtures ran the candidate out of process  E7 containment fixtures: pass', original byte-identical b283a4703ff2d88644f44b63d447d7d4",
+      "verify typescript: 'typescript: the language check ran and passed on the candidate  tsc --noEmit: pass', original byte-identical d295b43aca5bea969fa17e90c7b46521",
+      "NOT CHECKED, twice, and neither is a pass: 'ruby: E7 containment fixtures - a Ruby script is a Lich script and runs only inside Lich, so there is no out-of-process runner to contain it' and 'typescript: E7 containment fixtures - typescript/runner.ts fixes USER_DIR at module scope'. Python's fixture run has a denominator: E7's own known-good fixture runs first, and a driver that cannot run it downgrades the result to not_checked instead of condemning the candidate.",
+      "interpreters actually found and used: ruby=C:\\Ruby4Lich5\\4.0.6\\bin\\ruby.exe (via tools/find-ruby.mjs), python=python (via tools/find-python.mjs, Python 3.13.15), tsc=node_modules/typescript/bin/tsc",
+      "a broken candidate is recorded as failing rather than hidden: 'ruby -c: fail', claim still status candidate, job awaiting_review - a reviewer sees the diff and the verdict",
+      "four ways to produce nothing all leave the script byte-identical and all say why: absent model, prose answer, a patch that does not apply, no workspace attached",
+      "the privacy gate reaches the repair path: a script carrying a credential-shaped comment gives 'privacy_gate: withheld: account password' and the note carries the pattern name and never the value; script byte-identical",
+      "read_script through the registry: every path-shaped id refused (python:../../../etc/passwd, python:.., ruby:a/b, python:, perl:thing, python:harvest:extra); a job without it in allowedTools cannot call it; the trace records 'id=str(14)' and no source text; a 70,193-byte script is refused whole - 'result of 70193 bytes exceeds the 65536-byte ceiling and cannot be shortened honestly' - rather than truncated",
+      "structural: 'aiWorker.ts imports nothing that writes a script or sends a command  12 imports; offending: none'. The first version of that check matched bare words and flagged the file's own header comment saying it imports none of them - a check failing on its documentation - so it now parses import specifiers.",
+      "sabotage (the one the plan names, write over the original -> hash check red): disabled the post-job hash comparison -> 'FAIL the job aborts when the original changed under it' and 'FAIL and records no claim about a file that moved', 89 passed 2 failed, exit 1. Restored, md5 4bbe20a549a531b5f1ef981eebd36cce either side. Re-run after rebasing onto main at 89439b6a: same two red, restored md5 fa030b8e397b27091adf50744426e37a either side, git diff empty.",
+      "sabotage (mine, make the job activate the patch): deleted the pre-write validatePatchTarget so a workspace aiming at the original is not refused until after the write -> 'FAIL the original is byte-identical and still its own text', 90 passed 1 failed, exit 1. The check that did NOT go red is the informative half: 'the job refuses to write the candidate' still passed, because the post-write check caught it - something refused, and the script was already overwritten. Only byte-identity separates those. Restored, md5 4bbe20a549a531b5f1ef981eebd36cce either side.",
+      "denominator: the suite asserts at least 55 checks ran (90 did), that at least three candidate files exist on disk under the temporary app data directory, and that no candidate was ever written into a script directory",
+      "npx tsc -b: exit 0",
+      "node tools/run-tests.mjs (rebased onto main at faa0ca77): 142 passed, 0 failed, 0 not run, 4 partial | 4821 checks across 142 suites, ending 'no failures, but 6 thing(s) went unchecked in 4 suite(s): test:appearance-defaults, test:ai-script-repair, test:bundle, test:primitive-world'. It no longer ends 'all passed' and should not: #330 landed while this branch was open and now carries a suite's honest NOT CHECKED all the way to the summary, so this suite's two skips are visible at the top level instead of only inside it. Baseline before any change was 140 suites / 4331 checks; this branch adds one suite of 91 checks, and the rest of the rise is main's own.",
+      "node tools/plan-audit.mjs: plan ok: 113 increments, 262 paths checked, 0 awaiting"
+    ]
+  }
+}

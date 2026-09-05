@@ -98,8 +98,8 @@ export interface ProposeParams {
 }
 
 export interface ProposeResult {
-  /** The job that now covers this room, whether this call made it or an
-   * earlier one did. Null when there was nothing to reconcile. */
+  /** The job that now covers this subject, whether this call made it or an
+   * earlier one did. Null when there was nothing to propose. */
   job: BackgroundJob | null
   created: boolean
   reason: string
@@ -283,4 +283,262 @@ export function validateTetherCandidate(
   const boardAnchor = bearing ? (candidate.boardAnchor ?? null) : null
 
   return { ok: true, candidate: { ...candidate, boardAnchor, status: 'candidate' } }
+}
+
+/* ------------------------------------------------------------------------- *
+ * Script repair
+ *
+ * `docs/LOCAL_AI_BACKGROUND_WORKER.md` section 10. The producer below is the
+ * "observe repeated failure" step and nothing further; the draft, the checks
+ * and the review gate belong to `aiWorker.ts`, and activation belongs to
+ * nobody yet, deliberately.
+ * ------------------------------------------------------------------------- */
+
+/** One observed failure of one script. */
+export interface ScriptFailure {
+  /** `<lang>:<name>`, the same id `read_script` takes. */
+  scriptId: string
+  /** What the runner reported, verbatim. Normalised only for comparison. */
+  error: string
+  at: string
+}
+
+/**
+ * Two error strings are "the same error" when this says so.
+ *
+ * Whitespace only. It is tempting to strip line numbers and paths so a fault
+ * that moved still counts, and that is exactly the change that would make a
+ * script fail twice for two different reasons and be repaired as though it
+ * had failed twice for one - a producer firing on a pattern that is not
+ * there. Under-matching costs a repair job nobody asked for; over-matching
+ * costs a patch aimed at the wrong fault, so the conservative direction is
+ * the right one to be wrong in.
+ */
+export function normalizeScriptError(error: string): string {
+  return String(error ?? '').trim().replace(/\s+/g, ' ')
+}
+
+/** How many of these failures are this script failing this way. */
+export function countRepeatedFailures(
+  failures: readonly ScriptFailure[],
+  scriptId: string,
+  error: string
+): number {
+  const wanted = normalizeScriptError(error)
+  if (wanted.length === 0) return 0
+  return failures.filter((f) => f.scriptId === scriptId && normalizeScriptError(f.error) === wanted).length
+}
+
+export interface ScriptRepairParams {
+  jobs: JobStore
+  /** `<lang>:<name>`. */
+  scriptId: string
+  /** Every failure the caller has kept, this one included. */
+  failures: readonly ScriptFailure[]
+  /** The failure just observed. */
+  error: string
+  evidenceSeqs: readonly number[]
+  now: string
+}
+
+/**
+ * The only tool a repair job may use.
+ *
+ * One entry, and it is read-only. A job that could call anything able to
+ * write would be one Accept click away from editing a script that is running,
+ * which section 10's "never edits a running script" forbids; the allowlist is
+ * where that stops being a promise about care and becomes a fact about what
+ * the job can express.
+ */
+const SCRIPT_REPAIR_TOOLS = ['read_script']
+
+/** Below this, a failure is an incident rather than a pattern. Section 10
+ * says "observe repeated failure", and one is not repeated. */
+const REPAIR_THRESHOLD = 2
+
+/**
+ * Ask for a repair to be drafted, once a script has failed the same way twice.
+ *
+ * Two guards, and both are the same guard the map producer needed. A single
+ * failure is noise - a closed door, a moved creature, a disconnect - and
+ * drafting a patch for it would put the model to work on a script that is
+ * fine. And a job already open on this script covers the next failure too:
+ * without the dedupe a script failing in a loop would produce a job per
+ * failure, which is a review queue nobody can read.
+ */
+export function proposeScriptRepair(params: ScriptRepairParams): ProposeResult {
+  const count = countRepeatedFailures(params.failures, params.scriptId, params.error)
+  if (count < REPAIR_THRESHOLD) {
+    return {
+      job: null,
+      created: false,
+      reason: `${params.scriptId} has failed this way ${count} time(s); ${REPAIR_THRESHOLD} are needed before a repair is drafted`,
+    }
+  }
+
+  const existing = params.jobs
+    .all()
+    .find((job) => job.kind === 'script_repair' && !isTerminal(job.status) && job.scope.scriptId === params.scriptId)
+  if (existing) {
+    return { job: existing, created: false, reason: `already covered by ${existing.jobId}` }
+  }
+
+  const job = params.jobs.create({
+    kind: 'script_repair',
+    scope: {
+      scriptId: params.scriptId,
+      error: normalizeScriptError(params.error),
+      failureCount: count,
+    },
+    inputRefs: params.evidenceSeqs.map(eventRef),
+    allowedTools: SCRIPT_REPAIR_TOOLS,
+    now: params.now,
+  })
+  return { job, created: true, reason: `${params.scriptId} failed the same way ${count} times` }
+}
+
+export type PatchApplication = { ok: true; text: string } | { ok: false; reason: string }
+
+/** Line endings, read off the file rather than assumed. A patched copy that
+ * silently converted CRLF to LF would report a diff of every line to anybody
+ * who looked at it afterwards. */
+function dominantEnding(text: string): string {
+  const crlf = (text.match(/\r\n/g) ?? []).length
+  const lf = (text.match(/\n/g) ?? []).length - crlf
+  return crlf > lf ? '\r\n' : '\n'
+}
+
+/**
+ * Apply a unified diff, or refuse and say which line disagreed.
+ *
+ * Strict on purpose, and the strictness is the feature. Every context and
+ * removed line must match the original exactly at the position the hunk
+ * header names; a fuzzy applier would produce a plausible file from a patch
+ * written against something else, which is the one outcome worse than
+ * refusing - `applyUnifiedDiff` returning a *wrong* file would be checked,
+ * pass, and reach a reviewer looking correct.
+ *
+ * Note what it does not do: it never touches a file. It takes text and
+ * returns text, so the only thing that can write anything is the caller that
+ * was given somewhere to write.
+ */
+export function applyUnifiedDiff(original: string, diff: string): PatchApplication {
+  if (typeof diff !== 'string' || diff.trim().length === 0) {
+    return { ok: false, reason: 'the patch was empty' }
+  }
+
+  const ending = dominantEnding(original)
+  const src = original.split(/\r?\n/)
+  const patch = diff.split(/\r?\n/)
+
+  const out: string[] = []
+  let cursor = 0
+  let hunks = 0
+
+  for (let i = 0; i < patch.length; i++) {
+    const line = patch[i]
+    if (line === undefined) continue
+    if (!line.startsWith('@@')) continue
+
+    const header = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line)
+    if (!header) return { ok: false, reason: `unreadable hunk header: ${line.slice(0, 60)}` }
+
+    // Unified diffs are 1-based and a hunk that removes nothing starts at 0.
+    const start = Math.max(0, Number(header[1]) - 1)
+    if (start < cursor) {
+      return { ok: false, reason: `hunk at line ${start + 1} overlaps or precedes the previous one` }
+    }
+    if (start > src.length) {
+      return { ok: false, reason: `hunk starts at line ${start + 1}, past the end of a ${src.length}-line file` }
+    }
+    for (; cursor < start; cursor++) out.push(src[cursor] as string)
+
+    hunks++
+    for (i++; i < patch.length; i++) {
+      const body = patch[i] as string
+      if (body === undefined) break
+      if (body.startsWith('@@')) {
+        i--
+        break
+      }
+      // A diff's trailing "\ No newline at end of file" is a note about the
+      // file, not a line of it.
+      if (body.startsWith('\\')) continue
+
+      const mark = body.length === 0 ? ' ' : body[0]
+      const content = body.length === 0 ? '' : body.slice(1)
+
+      if (mark === '+') {
+        out.push(content)
+        continue
+      }
+      if (mark === ' ' || mark === '-') {
+        if (cursor >= src.length) {
+          return { ok: false, reason: `the patch expects a line ${cursor + 1} the file does not have` }
+        }
+        if (src[cursor] !== content) {
+          return {
+            ok: false,
+            reason: `line ${cursor + 1} does not match the patch: the file has "${(src[cursor] as string).slice(0, 40)}", the patch expects "${content.slice(0, 40)}"`,
+          }
+        }
+        cursor++
+        if (mark === ' ') out.push(content)
+        continue
+      }
+      return { ok: false, reason: `unreadable patch line ${i + 1}: ${body.slice(0, 60)}` }
+    }
+  }
+
+  if (hunks === 0) return { ok: false, reason: 'the patch contained no hunks' }
+  for (; cursor < src.length; cursor++) out.push(src[cursor] as string)
+  return { ok: true, text: out.join(ending) }
+}
+
+export type TargetVerdict = { ok: true } | { ok: false; reason: string }
+
+/** Windows gives the same file two spellings and a case-insensitive
+ * filesystem gives it several more, so comparison happens on one form. */
+function normalizePath(path: string): string {
+  return String(path ?? '')
+    .replace(/[\\/]+/g, '/')
+    .replace(/\/+$/, '')
+    .toLowerCase()
+}
+
+/**
+ * Where a patched copy is allowed to go, which is nowhere near the original.
+ *
+ * This is the invariant the whole increment exists for, written as a function
+ * so it can be called rather than remembered. Three refusals:
+ *
+ * - the candidate is the original, which is the failure by its true name;
+ * - the candidate is anywhere in the original's directory, which is how a
+ *   `.patched` sibling ends up being picked up by a runner that globs a
+ *   directory - `python/runner.py` discovers `tasks/user/*` on every call;
+ * - the candidate is outside the app data directory, so a workspace with no
+ *   configured home cannot fall back to writing beside the thing it copied.
+ */
+export function validatePatchTarget(params: {
+  originalPath: string
+  candidatePath: string
+  appDataDir: string
+}): TargetVerdict {
+  const original = normalizePath(params.originalPath)
+  const candidate = normalizePath(params.candidatePath)
+  const home = normalizePath(params.appDataDir)
+
+  if (home.length === 0) return { ok: false, reason: 'no app data directory is configured to write a candidate into' }
+  if (candidate.length === 0) return { ok: false, reason: 'the candidate has no path' }
+  if (candidate === original) {
+    return { ok: false, reason: 'the candidate path is the script itself; a patch is never written over the original' }
+  }
+  if (!candidate.startsWith(`${home}/`)) {
+    return { ok: false, reason: `the candidate ${params.candidatePath} is outside the app data directory ${params.appDataDir}` }
+  }
+  const originalDir = original.slice(0, original.lastIndexOf('/'))
+  if (originalDir.length > 0 && candidate.startsWith(`${originalDir}/`)) {
+    return { ok: false, reason: 'the candidate is in the script directory, where a runner would discover it' }
+  }
+  return { ok: true }
 }
