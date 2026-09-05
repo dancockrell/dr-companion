@@ -192,6 +192,67 @@ button:focus-visible {
 .game-icon-button[data-game-shape="landmark"] { border-radius: 0.25rem 0.25rem 0.65rem 0.65rem; }
 .game-icon-button[data-game-shape="utility"] { border-radius: 0.6rem; }
 
+/* Depth on the battle board.
+ *
+ * Same vocabulary as .game-icon-button above and written the same way, for the
+ * same reason: black and white at an alpha are light falling on a thing, not
+ * palette. A --color-* token would be the wrong shape for them, because the
+ * theme going warmer or cooler does not move a shadow, and inventing
+ * --color-shadow-35, -40, -55 and -68 would be four near-duplicates of one
+ * idea. What they do need is to be written once. These were three separate
+ * inline style strings in CombatRadar.tsx, which is how two components come to
+ * disagree about how dark a room picture gets - the exact failure
+ * tools/color-token-test.mjs exists to stop.
+ */
+
+/* A puck reads as a small physical token sitting on the board rather than a
+ * flat icon printed on it: a cast shadow beneath, a highlight along the top
+ * edge, a shade along the bottom, the way light falls on a round chip.
+ * box-shadow rather than a drop-shadow filter - it costs nothing extra to
+ * composite, and the two inset shadows are what make the token read as domed
+ * rather than merely floating. */
+.board-puck {
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.55),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 2px 3px rgba(255, 255, 255, 0.25),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.35);
+}
+
+/* The vitals pill floating over the compass: lifted further off the board than
+ * a puck is, so a longer, softer shadow, and a single rim light along the top
+ * instead of a dome. */
+.board-pill {
+  box-shadow:
+    0 3px 14px rgba(0, 0, 0, 0.68),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Two washes over the room picture, and they are deliberately different rather
+ * than a drift somebody should collapse.
+ *
+ * .board-wash is the embedded compass: restrained, so the radar stays readable
+ * over both pale snow and dark caves without hiding the room art that makes
+ * the board feel situated. Brighter at the player's own space, off-centre with
+ * the compass, and cool rather than neutral so the vignette that gives edge
+ * pucks their contrast does not read as soot.
+ *
+ * .board-disc is standalone BattlePanel: the plain dark disc this radar has
+ * always drawn hostiles on. It starts at the app's one modal depth cue and
+ * falls off from there, and it is heavy on purpose - there is no compass under
+ * it and nothing else to read. */
+.board-wash {
+  background: radial-gradient(
+    circle at 42% 50%,
+    rgba(15, 23, 31, 0.08) 0%,
+    rgba(10, 14, 20, 0.28) 58%,
+    rgba(5, 8, 12, 0.62) 100%
+  );
+}
+.board-disc {
+  background: radial-gradient(circle at 50% 50%, var(--color-scrim) 0%, rgba(0, 0, 0, 0.7) 100%);
+}
+
 /* Warm, tokenized scrollbar for WebView2 / Chromium. */
 ::-webkit-scrollbar {
   width: 8px;

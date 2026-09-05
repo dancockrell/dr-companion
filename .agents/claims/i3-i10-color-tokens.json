@@ -32,6 +32,13 @@
   },
   "completion": {
     "commit": "",
-    "checks": []
+    "checks": [
+      "I5, I6 (PR #303): node tools/color-token-test.mjs -> remaining 52 -> 49, all passed; the other 49 entries still match, which is the control that stripComments did not eat code",
+      "I5, I6 sabotage: string tracking removed -> FAIL on exactly the two string cases, md5 fdd25d975370ad7152f1435ffbf33c0f restored; SettingsSheet line carrying both {/* PR #268 */} and color: #268aff -> prose ignored, code caught, md5 beac1d01d1c614f83394d9bc166aa3f5 restored",
+      "I3: node tools/color-token-test.mjs -> remaining 49 -> 30, all passed, 39 checks; src/components/shared is empty of literals",
+      "I3 measured in the running app at 127.0.0.1:1439 (dev server, demo dashboard): .board-puck x40, .board-pill x1, .board-wash x1 computed styles are byte-identical to the inline strings they replaced, including var(--color-scrim) resolving to rgba(0,0,0,0.5); .board-disc verified live at ?view=panel&id=room, 296x296, same gradient. Zero appearance change for CombatRadar.",
+      "I3 MindstateBoard is a deliberate appearance change and was measured rather than eyeballed: the eight bands composited at 32% over --color-surface give adjacent steps 10,11,30,33,10,9,22 against the old ramp 13,16,54,70,21,22,15. The amber-to-red half is compressed because --color-warn and --color-danger sit close in this palette; both intermediate mixes are 50/50, the maximin split, checked at 50/40/30/25/20. The step that got bigger is nearly-locked to mind lock, 15 -> 22, which is the one boundary the board exists to make unmissable.",
+      "npx tsc -b exit 0; node tools/run-tests.mjs all passed; node tools/plan-audit.mjs plan ok"
+    ]
   }
 }
