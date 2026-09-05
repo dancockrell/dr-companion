@@ -18,6 +18,7 @@
  */
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { readFlags } from './cli-flags.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const buildDir = resolve(root, 'src-tauri', 'target', 'release')
@@ -36,8 +37,16 @@ const buildDir = resolve(root, 'src-tauri', 'target', 'release')
  * reports the viewer's absence as a stated fact rather than passing over it in
  * silence. Three states, not two: shipped, deliberately absent, missing when
  * it was wanted.
+ *
+ * Read through `readFlags` rather than `process.argv.includes`, so a
+ * misspelling in the workflow expression that passes this flag is a refusal
+ * rather than a silent "no viewer expected" - the one reading under which this
+ * check passes a release that is missing the thing it exists to require.
  */
-const expectViewer = process.argv.includes('--expect-viewer')
+const expectViewer = readFlags({
+  name: 'verify-release-bundle',
+  boolean: ['--expect-viewer'],
+})['--expect-viewer']
 
 /** Basenames that must be somewhere under the release output. */
 const REQUIRED = [

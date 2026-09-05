@@ -8,6 +8,18 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Called by .github/workflows/release.yml, which needs it before it builds
+  # or publishes anything.
+  #
+  # `branches:` above cannot match `refs/tags/v*` - branch and tag filters are
+  # separate lists - so until 5 Sep 2026 a tag ran release.yml and nothing
+  # else, and a draft release could be published from a commit that had run
+  # `test:bundle` and no other suite: 1 of 142, no tsc, no lint, no clippy, no
+  # Rust tests. Adding `tags:` here would have run this workflow beside the
+  # release rather than before it, which is a report and not a gate. A
+  # `workflow_call` plus `needs:` is the same suites, defined once, that
+  # GitHub will not let the release start without.
+  workflow_call:
 
 # On a pull request only the tip matters, so superseding a run is right. On
 # main it is not: each commit is a distinct state somebody may build on, and
@@ -94,6 +106,79 @@ jobs:
       # can never be read as one that passed.
       - name: Test suites
         run: npm run test:all
+
+  # The eleven .gd scripts in godot/tests - 131 checks that ran in no automated
+  # place at all until this job existed.
+  #
+  # They were written, reviewed, committed, and then only ever run when a human
+  # typed `npm run test:godot` on a machine that happened to have a Godot 4.3
+  # binary. That is not a theoretical cost: `live_bridge_transport_test.gd` is
+  # the only thing in this repository that would have caught #341, and it had
+  # never run; before that, the same file called an API that arrived in Godot
+  # 4.4 and failed to *parse* for as long as anyone had been shipping it.
+  #
+  # Separate job rather than a line in tools/test-suites.json, because
+  # test:godot needs an engine and would report NOT RUN -> exit 1 for everyone
+  # who has not installed one (tools/needs-env.mjs records exactly this).
+  godot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # The engine this job installs, and the sha512 GitHub publishes for that
+      # exact asset in the release's own SHA512-SUMS.txt. Pinned together: a
+      # swapped or truncated download fails the checksum rather than running a
+      # different engine than the one these tests are about.
+      GODOT_VERSION: '4.3'
+      GODOT_SHA512: 'fd52bb4ba8acc30ca5accd1c566d470ad7282f891ccc0995dfafabcf92bcf76280ce182bf9d80ebd885f3ed2165d01e1fc3f2928436b15498dfbd98656c2a45a'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      # godot/project.godot is the authority on which engine this project is.
+      # The pin above is a second statement of the same fact, so it is checked
+      # rather than trusted: bumping the project without bumping this would
+      # otherwise keep testing the new project against the old engine, green
+      # the whole way, which is the failure mode the version comment in
+      # release.yml warns about and nothing enforced.
+      - name: Install Godot ${{ env.GODOT_VERSION }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! grep -q "PackedStringArray(\"${GODOT_VERSION}\"" godot/project.godot; then
+            echo "::error::godot/project.godot does not declare Godot ${GODOT_VERSION}."
+            echo "::error::This job pins that version and a sha512 for that exact download."
+            echo "::error::Bump GODOT_VERSION and GODOT_SHA512 together (the sum is in the"
+            echo "::error::release's SHA512-SUMS.txt) or this would test against the wrong engine."
+            grep -n 'config/features' godot/project.godot
+            exit 1
+          fi
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          zip="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fsSL "$base/$zip" -o godot.zip
+          echo "${GODOT_SHA512}  godot.zip" | sha512sum -c -
+          unzip -q godot.zip -d "$RUNNER_TEMP/godot"
+          bin="$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          chmod +x "$bin"
+          "$bin" --version
+          # tools/godot-tests.mjs treats GODOT4 as a contract rather than the
+          # first entry in a fallback list: if what it names does not run, it
+          # fails instead of printing NOT CHECKED and exiting 0. Without that,
+          # a broken install here would finish this job green having asserted
+          # nothing - a job that cannot fail.
+          echo "GODOT4=$bin" >> "$GITHUB_ENV"
+
+      - run: npm ci
+
+      # The run log carries the count: "11 of 11 Godot test scripts passed, 131
+      # checks". The floor is asserted inside the tool (MIN_CHECKS, 60 against a
+      # real 131), so every script can be found, parse and exit clean while
+      # checking nothing and this still goes red.
+      - name: Godot tests
+        run: npm run test:godot
 
   # The Rust half. Separate so it does not hold up the fast feedback.
   tauri:
