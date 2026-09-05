@@ -125,7 +125,29 @@ function classify(result, output) {
   }
 
   if (code !== 0) return { state: 'FAILED', why: `exit ${code}`, checks }
-  return { state: 'PASSED', why: '', checks }
+
+  // A suite can run, pass everything it attempted, and still have declined to
+  // check part of its job - `bundle-test` without a built viewer,
+  // `crossing-build-list` without its generated briefs. Those suites announce
+  // it honestly, and the runner used to lose the announcement: it counted the
+  // checks that did run, saw exit 0, and filed the suite under `passed`.
+  //
+  // Measured at one commit an hour apart: `crossing-build-list` reported 1
+  // check in one run and 20 in another, and both runs ended `all passed`.
+  // Nineteen checks silently absent, invisible unless somebody diffed two
+  // runs' per-suite counts, which is how it was found (issue #324).
+  //
+  // The `notRun` bucket is not the right home for these - it means "could not
+  // execute at all", and a suite that ran and checked nine of its ten things
+  // is a different animal. So it stays PASSED and carries what it skipped,
+  // which the summary then refuses to hide. The exit code deliberately does
+  // not change: a skipped optional input is not a failure, and making it one
+  // would break the suites that were written to skip honestly.
+  const skipped = output
+    .split(/\r?\n/)
+    .filter((l) => /\bNOT CHECKED\b/.test(l))
+    .map((l) => l.trim())
+  return { state: 'PASSED', why: '', checks, skipped }
 }
 
 function runSuite(name) {
@@ -186,6 +208,10 @@ for (const name of names) {
 const passed = results.filter((r) => r.state === 'PASSED')
 const failed = results.filter((r) => r.state === 'FAILED')
 const notRun = results.filter((r) => r.state === 'NOT RUN')
+/** Suites that passed everything they attempted and said they skipped part of
+ * their job. Reported separately because a pass with a hole in it is neither a
+ * failure nor a clean run, and folding it into either loses the hole. */
+const partial = results.filter((r) => r.skipped?.length)
 const totalChecks = results.reduce((n, r) => n + r.checks.total, 0)
 
 console.log('\n' + '-'.repeat(60))
@@ -221,8 +247,17 @@ if (notRun.length) {
   }
 }
 
+if (partial.length) {
+  console.log(`\n${partial.length} suite(s) passed but skipped part of their job:`)
+  for (const r of partial) {
+    console.log(`  ${r.name.padEnd(22)} ${r.checks.total} checks ran`)
+    for (const line of r.skipped) console.log(`      ${line}`)
+  }
+}
+
 console.log(
   `\n${passed.length} passed, ${failed.length} failed, ${notRun.length} not run` +
+    (partial.length ? `, ${partial.length} partial` : '') +
     `  |  ${totalChecks} checks across ${results.length} suites`
 )
 
@@ -244,8 +279,19 @@ if (floorProblems.length) {
 }
 
 // The summary line can never say "all passed" while something was skipped.
-if (failed.length === 0 && notRun.length === 0) {
+if (failed.length === 0 && notRun.length === 0 && partial.length === 0) {
   console.log('\nall passed')
+  process.exit(0)
+}
+
+// Everything ran and nothing failed, but some suite declined part of its work.
+// Not a failure, and not something to say "all passed" over either.
+if (failed.length === 0 && notRun.length === 0) {
+  const count = partial.reduce((n, r) => n + r.skipped.length, 0)
+  console.log(
+    `\nno failures, but ${count} thing(s) went unchecked in ${partial.length} suite(s): ` +
+      partial.map((r) => r.name).join(', ')
+  )
   process.exit(0)
 }
 
