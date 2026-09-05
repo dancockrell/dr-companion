@@ -82,6 +82,7 @@ const INITIAL_STATUS: AiWorkerStatus = {
   lastOutcome: null,
   lastFailure: null,
   ticks: 0,
+  unreviewedWithoutModel: 0,
 }
 
 let currentStatus: AiWorkerStatus = INITIAL_STATUS
@@ -226,13 +227,18 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
         lastRoomId.current = roomId
       }
 
-      for (const a of deriveAlerts({
+      const derived = deriveAlerts({
         situation: character?.situation,
         bridgeConnected,
         everConnected: everConnected.current,
-      })) {
+      })
+      for (const a of derived) {
         alerts.current.raise(a.priority, a.key, a.detail, now)
       }
+      // What is still true, told to the broker on every pass. Without this a
+      // handled condition stays suppressed after it has ended, so its next
+      // occurrence - a second stun, minutes later - would never be raised.
+      alerts.current.reconcile(derived.map((a) => a.key))
     }
     pass()
     return useAppStore.subscribe(pass)

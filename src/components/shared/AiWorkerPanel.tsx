@@ -51,13 +51,46 @@ export function AiWorkerPanel() {
         </div>
       )}
 
+      {/* An install with no model journals every line and acknowledges none,
+          so the bound is reached and events fall off the back exactly as
+          designed. The capture is correct; calling it "discarded before
+          review" would be a permanent red warning about a review that was
+          never going to happen. Loss is a failure only when there is
+          something to fail. */}
+      {!status.available && status.unreviewedWithoutModel > 0 && (
+        <p className="text-xs text-ink-muted leading-snug">
+          No local model, so {status.unreviewedWithoutModel} captured event
+          {status.unreviewedWithoutModel === 1 ? ' is' : 's are'} unreviewed. Nothing is
+          wrong: capture runs continuously and the client is unaffected.
+        </p>
+      )}
+
       {/* Never folded into a general health indicator: loss is the one failure
           this design cannot recover from, so it says so plainly when it
           happens and stays out of the way when it does not. */}
-      {lost > 0 && (
+      {status.available && lost > 0 && (
         <p className="text-xs text-danger leading-snug">
           {lost} event{lost === 1 ? '' : 's'} were discarded before review. The AI has an
           incomplete picture of that period; game state and the client are unaffected.
+        </p>
+      )}
+
+      {/* A refused prompt is a working privacy gate, not a broken worker, so
+          it is named rather than left to read as a generic failure. */}
+      {status.lastFailure?.startsWith('privacy_gate') && (
+        <p className="text-xs text-ink-muted leading-snug">
+          Sensitive input withheld: the review was refused before it reached the model.
+        </p>
+      )}
+
+      {/* What is actually true today. There is no local provider in this
+          build, so the panel must not imply that pointing it at something
+          would help. tools/ai-worker-host-test.mjs holds this sentence to the
+          presence of src/lib/aiLocalProvider.ts, so the promise and the code
+          cannot drift apart. */}
+      {!status.available && (
+        <p className="text-xs text-ink-faint leading-snug">
+          Local model support is not yet available in this build.
         </p>
       )}
 

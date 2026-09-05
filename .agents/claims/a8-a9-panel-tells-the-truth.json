@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "task_id": "a8-a9-panel-tells-the-truth",
+  "agent": "claude-code",
+  "summary": "Say what this build can actually do, and stop calling an install with no model a permanent data loss",
+  "status": "completed",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "src/components/shared/AiWorkerPanel.tsx",
+    "src/lib/aiIngest.ts",
+    "src/lib/aiWorkerHost.ts",
+    "tools/ai-worker-host-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a8-a9-panel-tells-the-truth.json"
+  ],
+  "symbols": ["AiWorkerPanel", "unreviewedWithoutModel"],
+  "coordination": {
+    "depends_on": ["a1-host-at-app-root"],
+    "conflicts_with": [],
+    "notes": "A9 adds one field to the existing status rather than a parallel counter, and the panel keys the danger-ink paragraph on availability instead of gaining a second loss display. The check that the panel's promise matches the presence of src/lib/aiLocalProvider.ts is written so it will start demanding the other sentence the moment H1 lands the file - it asserts the pair, not today's answer, so it cannot go stale into a false pass. One thing worth recording: the A6 field-coverage guard was itself defective and this increment found it. It read Object.keys of a hand-written fixture, so a new status field was invisible to it - the exact failure it claims to prevent. It now reads the keys off a status runHostTick really produced, and reported the missing unreviewedWithoutModel case immediately."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "A9: 'OK capture still runs with no model - the events are journalled  6000', 'OK and they are reported as unreviewed, not as loss  7000', 'OK with a model available the same input reports real loss  1000', 'OK and nothing is filed as unreviewed-for-want-of-a-model  0'",
+      "A9 sabotage - remove the availability branch from unreviewedWithoutModel: 'FAIL and nothing is filed as unreviewed-for-want-of-a-model  1000', 80 checked 1 failed; restored, md5sum 1e53ccbff0f25d8906863d34bc6b18b1 matched",
+      "A8: 'OK the panel says exactly one of the two things  not-yet=true point-at-one=false' and 'OK aiLocalProvider.ts is absent, so the panel must say support is not in this build  aiLocalProvider.ts present: false'",
+      "the A6 coverage guard, fixed to read a real status, went red naming the uncovered field: 'FAIL every field of the status except ticks has a changed value to test with  unreviewedWithoutModel'; green once covered",
+      "npx tsc -b: exit 0",
+      "node tools/run-tests.mjs: every AI suite green; the run's only failures are test:needs-env and test:player-data, which arrived on main with #292 and #293 and are untouched by this branch"
+    ]
+  }
+}

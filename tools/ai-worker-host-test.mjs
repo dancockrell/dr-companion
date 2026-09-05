@@ -289,18 +289,30 @@ console.log('\n-- a turn in flight is not disturbed by unrelated updates --')
 
 console.log('\n-- status is published on a change, and otherwise on a slow schedule --')
 {
-  const base = {
-    available: false,
-    providerReason: 'No local model is installed.',
-    journalPending: 0,
-    journalLost: 0,
-    missedLines: 0,
-    pendingAlerts: 0,
-    jobs: {},
-    lastOutcome: 'background-idle',
-    lastFailure: null,
-    ticks: 1,
-  }
+  // A status the host really produced, not a fixture. The field list below is
+  // read off this object, so a field added to AiWorkerStatus is covered here
+  // without anybody remembering - which is the whole failure being guarded
+  // against, and a hand-written base could not detect it.
+  const base = await runHostTick({
+    journal: new EventJournal(),
+    alerts: new AlertBroker(),
+    jobs: new JobStore(),
+    provider: {
+      describe: () => ({ available: false, reason: 'No local model is installed.' }),
+      generate: async () => ({ ok: false, failure: 'absent', message: 'none' }),
+    },
+    app: { situation: [], roundtime: 0, bridgeConnected: true, roomId: 'r1', roomCombatants: [], isTown: false },
+    memory: {
+      lastReviewAt: null,
+      lastReviewedHash: null,
+      ticks: 0,
+      missedLines: 0,
+      roomChangedAt: null,
+      lastAppendAt: 9_990,
+    },
+    now: 10_000,
+    nowIso: '2026-09-05T00:00:00.000Z',
+  })
 
   ok('two identical statuses are the same', sameStatus(base, { ...base }))
   ok('a different tick count alone is not a change - it moves every second by design',
@@ -320,6 +332,7 @@ console.log('\n-- status is published on a change, and otherwise on a slow sched
     jobs: { running: 1 },
     lastOutcome: 'review',
     lastFailure: 'timeout: too slow',
+    unreviewedWithoutModel: 42,
   }
   const fields = Object.keys(base).filter((k) => k !== 'ticks')
   ok('every field of the status except ticks has a changed value to test with',
@@ -362,6 +375,85 @@ console.log('\n-- the tick effect does not depend on per-tick state --')
     /\bcharacter\b/.test(control?.[1] ?? ''), control?.[1] ?? 'no match')
 }
 
+console.log('\n-- no model is an idle worker, not a permanent red loss counter --')
+{
+  // What shipped: an install with no model journals every line, never
+  // acknowledges (an absent provider never returns ok), fills the 5000-event
+  // bound, and the panel then reads "N events were discarded before review"
+  // in danger ink forever. The capture is right; the framing was a lie.
+  const runFor = async (provider) => {
+    const j = new EventJournal()
+    const buffer = []
+    for (let i = 0; i < 6000; i++) buffer.push(line(`line ${i}`))
+    ingestLines(j, buffer, 0)
+    const memory = {
+      lastReviewAt: null,
+      lastReviewedHash: null,
+      ticks: 0,
+      missedLines: 0,
+      roomChangedAt: null,
+      lastAppendAt: 9_990,
+    }
+    return runHostTick({
+      journal: j,
+      alerts: new AlertBroker(),
+      jobs: new JobStore(),
+      provider,
+      app: { situation: [], roundtime: 0, bridgeConnected: true, roomId: 'r1', roomCombatants: [], isTown: false },
+      memory,
+      now: 10_000,
+      nowIso: '2026-09-05T00:00:00.000Z',
+    })
+  }
+
+  const absent = await runFor({
+    describe: () => ({ available: false, reason: 'No local model is installed.' }),
+    generate: async () => ({ ok: false, failure: 'absent', message: 'No local model is installed.' }),
+  })
+  ok('capture still runs with no model - the events are journalled',
+    absent.journalPending > 0, String(absent.journalPending))
+  ok('and they are reported as unreviewed, not as loss',
+    absent.unreviewedWithoutModel > 0, String(absent.unreviewedWithoutModel))
+  ok('the count covers everything captured, including what the bound dropped',
+    absent.unreviewedWithoutModel >= absent.journalLost + absent.journalPending,
+    `${absent.unreviewedWithoutModel} >= ${absent.journalLost} + ${absent.journalPending}`)
+
+  const scripted = await runFor({
+    describe: () => ({ available: true, profile: 'scripted' }),
+    generate: async () => ({ ok: true, text: 'reviewed', tokens: 3 }),
+  })
+  ok('with a model available the same input reports real loss',
+    scripted.journalLost > 0, String(scripted.journalLost))
+  ok('and nothing is filed as unreviewed-for-want-of-a-model',
+    scripted.unreviewedWithoutModel === 0, String(scripted.unreviewedWithoutModel))
+
+  const fs = await import('node:fs')
+  const panel = fs.readFileSync('src/components/shared/AiWorkerPanel.tsx', 'utf8')
+  ok('the danger-ink loss paragraph is reachable only when a provider is available',
+    /status\.available && lost > 0/.test(panel))
+  ok('and the no-model paragraph is not in danger ink',
+    /unreviewedWithoutModel > 0[\s\S]{0,200}text-ink-muted/.test(panel))
+}
+
+console.log('\n-- the panel promises only what this build can do --')
+{
+  const fs = await import('node:fs')
+  const panel = fs.readFileSync('src/components/shared/AiWorkerPanel.tsx', 'utf8')
+  const providerExists = fs.existsSync('src/lib/aiLocalProvider.ts')
+  const saysNotAvailable = /Local model support is not yet available in this build\./.test(panel)
+  const saysPointAtOne = /Point Settings . Local model at a running Ollama or LM Studio on 127\.0\.0\.1/.test(panel)
+
+  ok('the panel says exactly one of the two things', saysNotAvailable !== saysPointAtOne,
+    `not-yet=${saysNotAvailable} point-at-one=${saysPointAtOne}`)
+  ok(providerExists
+    ? 'aiLocalProvider.ts exists, so the panel must tell the player where to point it'
+    : 'aiLocalProvider.ts is absent, so the panel must say support is not in this build',
+    providerExists ? saysPointAtOne : saysNotAvailable,
+    `aiLocalProvider.ts present: ${providerExists}`)
+  ok('a refused prompt is named rather than left to read as a generic failure',
+    /Sensitive input withheld/.test(panel))
+}
+
 console.log('\n-- the host cannot reach the game command path --')
 {
   const fs = await import('node:fs')
@@ -377,7 +469,7 @@ console.log('\n-- the host cannot reach the game command path --')
 
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 65
+const MIN_EXPECTED = 75
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

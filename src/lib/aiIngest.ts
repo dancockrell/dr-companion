@@ -116,6 +116,18 @@ export interface AiWorkerStatus {
    * that was never mounted - which is the state this feature used to ship in.
    */
   ticks: number
+  /**
+   * Events captured but never reviewed because there is no model to review
+   * them with, including any the retention bound has already dropped.
+   *
+   * Separate from `journalLost` because they are different facts. An install
+   * with no model journals every line and acknowledges none, so the bound is
+   * reached and events fall off the back - working exactly as designed.
+   * Reporting that as loss would put a permanent red warning on a client
+   * that has nothing wrong with it, and a warning that is always on is one
+   * nobody reads on the day it means something.
+   */
+  unreviewedWithoutModel: number
 }
 
 /**
@@ -137,7 +149,8 @@ export function sameStatus(a: AiWorkerStatus, b: AiWorkerStatus): boolean {
     a.missedLines !== b.missedLines ||
     a.pendingAlerts !== b.pendingAlerts ||
     a.lastOutcome !== b.lastOutcome ||
-    a.lastFailure !== b.lastFailure
+    a.lastFailure !== b.lastFailure ||
+    a.unreviewedWithoutModel !== b.unreviewedWithoutModel
   ) {
     return false
   }
@@ -375,5 +388,9 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
     lastOutcome: outcome.did,
     lastFailure: failure,
     ticks: memory.ticks,
+    // Only meaningful while there is no model. With one available these
+    // same events are a backlog being worked through, and journalLost is
+    // then the honest place for anything the bound dropped.
+    unreviewedWithoutModel: health.available ? 0 : journal.pending() + journal.stats().lost,
   }
 }
