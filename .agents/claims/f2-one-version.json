@@ -30,7 +30,7 @@
     }
   ],
   "completion": {
-    "commit": "TBD",
+    "commit": "48f6f3af",
     "checks": [
       "node tools/set-version.mjs --check: exit 0, 'OK   all 4 files declare 0.1.1', one line per file",
       "round trip: set 9.9.9, --check exit 0 at 9.9.9, set 0.1.1 -> all four files byte-identical to before (md5 unchanged on all four)",

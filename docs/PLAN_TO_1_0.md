@@ -690,7 +690,7 @@ whether it is embedded, docked or a separate window is D0.
   verify: the doc has it.
 
 - [x] **E5  Kill-switch suite** (≈40; may split)
-  commit: bdf54a35 verified: 2026-09-05 minutes: 55
+  commit: 9eef5356 verified: 2026-09-05 minutes: 55
   touches: new:tools/kill-switch-test.mjs, package.json, tools/test-suites.json, src/lib/flowStop.ts, src/lib/pythonTasks.ts, src/lib/nodeTasks.ts
   depends-on: none
   do: owners: `src/lib/stopAllTasks.ts`, `src/lib/flowStop.ts`, and whatever `grep -rn "runaway\|cancelCommand" src/lib/*.ts` finds. For each: a check that it works with `isTauri()` false, and a source check that the owner imports no `ai*`, viewer, python or node-runner module. An owner that does is a finding: file it, do not paper over.
@@ -698,21 +698,21 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: comment out the stop path in a copy → red.
 
 - [x] **E6  Player-data inventory, generated** (≈25)
-  commit: 98f4cbc6 verified: 2026-09-05 minutes: 40
+  commit: 9eef5356 verified: 2026-09-05 minutes: 40
   touches: new:tools/build-player-data-doc.mjs, new:docs/PLAYER_DATA.md, package.json, tools/test-suites.json
   depends-on: none
   do: `grep -rhoE "writeJSON\('[^']+'|readJSON<[^>]*>\('[^']+'|(KEY|STORAGE_KEY) = '[^']+'" src/ | sort -u` drives a table: key, what it holds, owner file, behaviour on quota failure (`storage.ts` reports; say what the UI shows). The generator asserts its key count equals the grep's count. Same pattern as `tools/build-crossing-build-list.mjs`.
   verify: `node tools/build-player-data-doc.mjs --check` exit 0 against the committed doc.
 
 - [x] **E7  Bad-script containment fixtures** (≈20)
-  commit: 8672ef45 verified: 2026-09-05 minutes: 45
+  commit: 9eef5356 verified: 2026-09-05 minutes: 45
   touches: python/test_runner.py, typescript/test_runner.ts
   depends-on: none
   do: three fixtures — raises, loops until the runner's timeout, exits non-zero — asserting the runner reports each distinctly and the app process is unaffected (the runner is out-of-process; the assertion is on reported state). Mirror in the TS runner's tests if it has any (`ls typescript/`).
   verify: `npm run test:runner` green with the three names.
 
 - [x] **E8  Disconnect/reconnect behaviour test** (≈20)
-  commit: 5dedb9e6 verified: 2026-09-05 minutes: 35
+  commit: 9eef5356 verified: 2026-09-05 minutes: 35
   touches: tools/backlog-test.mjs, tools/game-connection-owner-test.mjs
   depends-on: none
   do: these two already exercise `attachGame`/`detachGame`/`backfill` (`grep -ln "detachGame\|backfill" tools/*.mjs`). Add: socket dropped mid-stream → pane says disconnected; `sendGame` refused with a reason; reconnect → backfill runs (`gameLink.ts` `backfill()`).
@@ -755,7 +755,7 @@ whether it is embedded, docked or a separate window is D0.
   verify: `gh release view v0.0.0-ci-check --json assets --jq '.assets[].name'` lists the `.exe`, then both are deleted.
 
 - [x] **F2  One version, three files** (≈15)
-  commit: TBD verified: 2026-09-05 minutes: 30
+  commit: 48f6f3af verified: 2026-09-05 minutes: 30
   touches: new:tools/set-version.mjs, package.json, tools/test-suites.json
   depends-on: none
   do: sets `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` from one argument; `--check` prints all three and exits 1 if they differ. Script `version:set`.
@@ -781,7 +781,7 @@ whether it is embedded, docked or a separate window is D0.
   verify: the grep's destination count equals the doc's line count.
 
 - [x] **F6  Third-party licences, generated** (≈25)
-  commit: TBD verified: 2026-09-05 minutes: 50
+  commit: 21df5812 verified: 2026-09-05 minutes: 50
   touches: new:tools/build-third-party.mjs, new:THIRD_PARTY.md, package.json, tools/test-suites.json
   depends-on: none
   do: from `package.json` deps (`license` fields), `cargo metadata`, Lich (BSD-3), Godot (MIT), fonts, and every admitted asset's `sourceLicense` in `godot/assets/shared_asset_selections.json`. `--check` exits 0 when the committed file matches.

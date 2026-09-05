@@ -43,7 +43,7 @@
     }
   ],
   "completion": {
-    "commit": "TBD",
+    "commit": "21df5812",
     "checks": [
       "node tools/build-third-party.mjs: THIRD_PARTY.md: 7 runtime and 11 build npm packages, 319 Rust crates, 2 shared assets (450 lines)",
       "node tools/build-third-party.mjs --check: exit 0, 'all third-party licence checks passed', 10 OK lines",
