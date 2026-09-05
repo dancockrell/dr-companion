@@ -1029,11 +1029,23 @@ whether it is embedded, docked or a separate window is D0.
   verify: green today with `remaining: N`; add one literal to a file that already has an allowlisted one → red naming the file, the literal, and the line it appeared on; move an allowlisted literal to a different line without changing it → still green.
   sabotage: that added literal. Also, in a scratch copy, key the allowlist on line numbers instead and shift a file by one line: the run goes red with nothing actually changed, which is the failure this wording exists to prevent.
 
-- [ ] **I2  Bank/shop pin contradiction** (≈20)
-  touches: src/lib/pinIcons.ts, src/lib/mapPins.ts, I1>tools/color-token-allowlist.json
+- [x] **I2  Bank/shop pin contradiction** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 35
+  touches: src/lib/mapPins.ts, tools/pins-test.mjs
   depends-on: I1
-  do: `grep -n -iE "#[0-9a-f]{3,8}|color" src/lib/pinIcons.ts src/lib/mapPins.ts`; both read one token; remove their allowlist lines; confirm visually in the pins list.
-  verify: `remaining` dropped by exactly those lines.
+  do: as written this increment expected two files to disagree about a colour. They no longer do: `src/lib/mapPlaceColors.ts` holds one table and the pin presets, the automatic landmarks and Quick Travel all read it — somebody fixed it before this plan existed, and `pinIcons.ts` has no colours in it at all. What was still there is the same defect one level down: nine of the ten *shop* presets typed `'blue'` instead of reading `COMMON_PLACE_PIN_COLORS.shop`. Correct today, wrong the day the table changes, and one shop pin would then move while nine stayed. All ten now read the table, and `tools/pins-test.mjs` grew the guard the original fix never got: no rival `category: 'colour'` table in any of the three consumers, and at least ten shop lookups.
+  verify: `npm run test:pins` → `all passed`, 66 assertions, including `every shop preset reads the shared colour rather than typing it: 10 lookups`.
+  sabotage: turn one preset back into `'gold'` → red at `9 lookups`; restored, md5 `119ff62c4380` either side. A first version of that guard did *not* fire, because it looked for the word `shop` on a line that says `label: 'Jeweler'` — it was measuring rival tables, not typed literals, and the sabotage is what said so.
+  pitfalls: the allowlist is untouched — `mapPins.ts` is `src/lib`, and I1 scans `src/components`.
+
+- [x] **C10  Eight suites that had never run, and one that contradicted another** (≈60)
+  commit: (this PR) verified: 2026-09-05 minutes: 60
+  touches: tools/scrollable-region-test.mjs, tools/needs-env.mjs, tools/test-suites.json, package.json
+  depends-on: C6
+  do: unplanned. C6's own list said 21 `test:` scripts existed that the full suite never reached — tests that had not run since the day they were written. Eight of them pass today and are now registered: `scrollable-region`, `map-landmarks`, `map-state-sync`, `splitter-range`, `map-viewport`, `game-time`, `command-history`, `editor-safety`. Registered suites go from 104 to 115 and the backlog from 21 to 13. `scrollable-region` did **not** pass, and the reason is the interesting part: it asserted flatly that no scrollable region may carry `no-scrollbar` or `touch-none`, while `battlespace-test.mjs` — registered, green, maintained — asserts the exact opposite for the battle workspace on purpose, and `CombatRadar` explains in prose why (the roster sits over a picture, where a permanent scrollbar track reads as chrome). Two tests answering one question is the drift this repo forbids, and a dormant test does not get to overrule a maintained one by having never run. The property they both agree on is that **a region which scrolls must be operable**: it shows a scrollbar, or it hides it and drag-scrolls instead. That is what it now checks, so no shipped behaviour changed. Its file list was also ten hand-typed paths that had drifted — it named `CombatRadar` and missed `BattleColumn`, which has the same construction — so the population is now computed by walking `src/components`, with a floor.
+  verify: `node tools/run-tests.mjs` → `all passed`, 115 suites; `test:scrollable-region` → `scrollable regions found by walking src/components: 11`, 41 checks, 0 failed; `test:needs-env` → 16 listed entries, exit 0.
+  sabotage: strip a region's drag handlers *and* hide its scrollbar → `FAIL … is operable`; restored, md5 `e31ca1319c6f` either side. The first attempt renamed only `useDragScroll` and left `onPointerMove`, so the region could still be dragged and the check was right not to fire — trap 15, caught by the sabotage failing to go red rather than by reading.
+  pitfalls: the checks match text, so writing a comment explaining why a file no longer sets `touch-none` made them flag their own documentation. Whole-line `//` comments are stripped before matching now. A check that fails on its own explanation teaches people to stop writing explanations.
 
 - [ ] **I3  `src/components/shared`** (≈25)  · **I4  `room`** · **I5  `layout`** · **I6  `game`** · **I7  `dashboard`** · **I8  `first-run`** · **I9  `config`** · **I10  `MapWindow.tsx` + `PanelWindow.tsx`** (≈15 each)
   touches: (that directory), src/index.css, I1>tools/color-token-allowlist.json
