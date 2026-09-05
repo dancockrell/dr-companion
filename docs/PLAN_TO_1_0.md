@@ -711,9 +711,11 @@ whether it is embedded, docked or a separate window is D0.
   do: Settings → Apps → uninstall; list what remains under `%APPDATA%` and `%LOCALAPPDATA%` (user data should; program files should not).
   verify: both lists in the doc.
 
-- [ ] **E4  Is the installer signed?** (≈5)
+- [x] **E4  Is the installer signed?** (≈5)
+  commit: (this PR) verified: 2026-09-05 minutes: 5
   touches: none
   depends-on: F1
+  result: `Status : NotSigned`, `SignerCertificate : (none)`, measured on the artefact from run 2 rather than assumed. Recorded in `docs/verification/release-dry-run-2026-09-05.md`; the decision it supports is `docs/RELEASE.md` §2.1.
   do: `Get-AuthenticodeSignature .\DRCompanion*.exe | Format-List` → record `Status` verbatim (`NotSigned` expected).
   verify: the doc has it.
 
@@ -776,9 +778,11 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane F — Release engineering
 
-- [~] **F1  Throwaway-tag release run** (≈30 + waiting)
+- [x] **F1  Throwaway-tag release run** (≈30 + waiting)
+  commit: (this PR) verified: 2026-09-05 minutes: 75
   touches: none
   depends-on: none
+  result: run 1 failed at `actions/checkout` — `submodules: recursive` cannot clone `godot/shared-assets`, whose repository is private, because a workflow's built-in token reaches only its own repository. Every tagged release since this wiring landed would have failed identically, and nothing had ever run it. Fixed by making the viewer's absence a state rather than a crash (see `docs/RELEASE.md`). Run 2 green: a draft release with a 217,267,200-byte installer, SHA-256 `9FCF5444…DECAE8`, carrying the correct "does not include the Godot world viewer" note in its body. Full record in `docs/verification/release-dry-run-2026-09-05.md`, including what is still unexercised: the token branch has never run, and the installer has not been installed anywhere.
   do: `git tag v0.0.0-ci-check origin/main && git push origin v0.0.0-ci-check`; `gh run watch`. The Godot install step (`release.yml` around line 60–69) has never executed. Each failure becomes `F1a…` here with its fix. Success = draft release with the installer and `release:verify` printing both resources. Delete the draft and the tag after.
   verify: `gh release view v0.0.0-ci-check --json assets --jq '.assets[].name'` lists the `.exe`, then both are deleted.
 
@@ -790,13 +794,15 @@ whether it is embedded, docked or a separate window is D0.
   verify: `node tools/set-version.mjs --check` exit 0 today.
   sabotage: bump one file by hand → exit 1 naming it.
 
-- [ ] **F3  Signing decision** (≈15)
+- [x] **F3  Signing decision** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 20
   touches: new:docs/RELEASE.md
   depends-on: E4
   do: OV certificate (annual cost; SmartScreen still warns until reputation builds) vs unsigned with a download-page note. Recommend unsigned for beta. Section 10 for Dan.
   verify: "Decided:" line.
 
-- [ ] **F4  Update-check decision** (≈15)
+- [x] **F4  Update-check decision** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 15
   touches: F3>docs/RELEASE.md
   depends-on: F3
   do: the app already fetches Ruby4Lich5 from GitHub releases (`tools/vendor-fetch.mjs`, `setup.rs`). Reuse for a "newer version available" link (no auto-install) or rely on the page. Recommend the link. Section 10.
