@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "task_id": "b5-app-exit-closes-viewer",
+  "agent": "claude-code",
+  "summary": "Hold the viewer child so the app can close it on exit and answer about its own viewer",
+  "status": "completed",
+  "claimed_at": "2026-09-05T07:45:00Z",
+  "updated_at": "2026-09-05T08:20:00Z",
+  "paths": [
+    "src-tauri/src/viewer.rs",
+    "src-tauri/src/lib.rs",
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": ["ViewerProcess", "Held", "close_viewer", "held_state", "apply_held"],
+  "coordination": {
+    "depends_on": ["b2-app-launches-viewer-live"],
+    "conflicts_with": [],
+    "notes": "Extends the existing owner: launch_viewer keeps being the one launcher and now keeps what it launched, and viewer_status keeps being the one status. The kill is by the handle this app created, never by image name - several sessions on this machine run their own viewers and a name-based kill would take theirs. Committed together with B6 because both edit ViewerStatus in viewer.rs and splitting the hunks would have produced two commits neither of which compiles."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "cargo test --lib -> 116 passed (4 new here, including one that spawns a real child, holds it, closes it and asserts the slot is cleared)",
+      "cargo fmt -- --check exit 0",
+      "in the running app: Open viewer -> viewer pid 37360, panel reads 'open' (the held-child answer); app closed with WM_CLOSE -> tasklist /FI \"IMAGENAME eq DRCompanionWorldViewer.exe\" -> 'INFO: No tasks are running which match the specified criteria.'",
+      "sabotage: the RunEvent::Exit branch disabled with `if false &&`, rebuilt, viewer opened (pid 20836), app closed the same way -> 'viewer SURVIVED the app: True pid 20836'. Restored, md5sum -c matched a7803244a3b6d5fc9b3dfd4d0b3c6b0d, and the orphan was killed by that pid. Without this the earlier pass was only evidence that the viewer was gone, not that this code closed it."
+    ]
+  }
+}

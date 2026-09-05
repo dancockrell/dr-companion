@@ -31,11 +31,13 @@ const NEEDS_ENVIRONMENT = [
   },
   {
     script: 'test:live-chain',
-    requires: 'the app running with the viewer attached',
-    // Written and registered by B1-B4 (#292). The marker saying it was still
-    // to come outlived the suite by one PR and turned this check red on main,
-    // which is the check doing its job: it refuses to let "arrives later"
-    // stand beside a script that is already here.
+    // The marker saying it was still to come outlived the suite by one PR and
+    // turned this check red on main, which is the check doing its job: it
+    // refuses to let "arrives later" stand beside a script that is already
+    // here. The requirement is narrower than it first read - it stands in for
+    // the viewer rather than needing one, authenticating on the bridge itself
+    // and checking the snapshot and the intent boundary.
+    requires: 'the app running, attached to a game so it has a room to publish',
   },
   {
     script: 'test:protocol-harness',

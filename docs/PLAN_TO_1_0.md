@@ -582,15 +582,17 @@ in the chain (token/port files, auth, reconnect) is already written.
   sabotage: wrong token → `FAIL auth`.
   pitfalls: 4.
 
-- [ ] **B5  App exit closes the viewer** (≈25)
+- [x] **B5  App exit closes the viewer** (≈25)
+  commit: (this PR) verified: 2026-09-05 minutes: 35
   touches: src-tauri/src/viewer.rs, src-tauri/src/lib.rs
   depends-on: B2
   do: hold the `Child` in managed state `Mutex<Option<Child>>`; on `RunEvent::Exit` (`grep -n "RunEvent\|on_window_event\|\.run(" src-tauri/src/lib.rs`) call `kill()`; `viewer_status` consults `try_wait()` on the held child before falling back to `tasklist`.
   verify: `cargo test --lib viewer` green; launch viewer from the app, close the app, `tasklist /FI "IMAGENAME eq DRCompanionWorldViewer.exe"` → not listed.
   pitfalls: 9, 12.
 
-- [ ] **B6  Viewer crash visible within a tick** (≈15)
-  touches: src-tauri/src/viewer.rs, src/components/shared/PresentationBridgePanel.tsx
+- [x] **B6  Viewer crash visible within a tick** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 25
+  touches: src-tauri/src/viewer.rs, src/components/shared/PresentationBridgePanel.tsx, src/lib/presentationBridge.ts
   depends-on: B5
   do: `viewer_status` returns `exitCode: Option<i32>` when the held child exited; panel shows "viewer exited (code N)" and a Relaunch button.
   verify: kill the viewer by PID while the app runs; Recheck shows the line.

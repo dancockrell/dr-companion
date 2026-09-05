@@ -208,6 +208,7 @@ pub fn run() {
         .manage(pause::Pause::default())
         .manage(python::PythonTasks::default())
         .manage(node::NodeTasks::default())
+        .manage(viewer::ViewerProcess::default())
         .setup(|app| {
             // The Python scripting socket. Started here rather than lazily on
             // first use, so a script waiting for the app to open does not
@@ -262,6 +263,17 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running DR Companion");
+        .build(tauri::generate_context!())
+        .expect("error while running DR Companion")
+        .run(|app, event| {
+            // The viewer is a separate window with a socket to a bridge that
+            // dies with this process. Left alone it outlives the app that made
+            // it, connected to nothing, and Task Manager is the only way to be
+            // rid of it. Killed by the handle we hold, never by image name -
+            // several sessions run on this machine.
+            if matches!(event, tauri::RunEvent::Exit) {
+                use tauri::Manager;
+                viewer::close_viewer(&app.state::<viewer::ViewerProcess>());
+            }
+        });
 }

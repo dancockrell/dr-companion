@@ -35,9 +35,53 @@
 //! error, and nothing in the app's startup depends on any of it.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Child, Command};
+use std::sync::Mutex;
 
 use serde::Serialize;
+
+/// The viewer this app started, for as long as it is ours to answer for.
+///
+/// Two things need it. Closing the app must close the viewer it opened -
+/// otherwise a window with a live socket to a bridge that no longer exists
+/// outlives the thing that made it, and the only way to be rid of it is Task
+/// Manager. And the process list cannot tell *our* viewer from one somebody
+/// started by hand or from another session's, so a held child is the only
+/// honest answer to "is the viewer we launched still up".
+#[derive(Default)]
+pub struct ViewerProcess(Mutex<Option<Child>>);
+
+/// What a held child is doing, with "we could not tell" kept separate from
+/// "it is gone" - the same three-state rule `viewer_running` follows.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Held {
+    /// Nothing is held: this app has not launched a viewer this session.
+    None,
+    Running,
+    Exited(Option<i32>),
+    /// A held child that could not be waited on. Never collapse into Exited:
+    /// killing on exit is worth attempting even when the answer is unclear.
+    Unknown,
+}
+
+/// Pure so the mapping can be tested without spawning anything, which is the
+/// half that has actually been wrong before: `running: false` and
+/// `running_known: false` mean different things and only one of them is a no.
+fn apply_held(status: &mut ViewerStatus, held: Held) {
+    match held {
+        Held::None => {}
+        Held::Running => {
+            status.running = true;
+            status.running_known = true;
+        }
+        Held::Exited(code) => {
+            status.running = false;
+            status.running_known = true;
+            status.exit_code = code;
+        }
+        Held::Unknown => {}
+    }
+}
 
 /// The name the export writes, and therefore the name to look for and the one
 /// the process list will show. Kept in one place because it is the join
@@ -124,17 +168,76 @@ pub struct ViewerStatus {
     /// this into `running: false` - "no viewer" and "could not look" send a
     /// person to two different places.
     pub running_known: bool,
+    /// The exit status of the viewer *this app started*, once it has one.
+    ///
+    /// A crashed viewer and a viewer nobody opened both read as "ready", and
+    /// the difference is the whole question when somebody says the window
+    /// vanished. `None` means either: no viewer was launched this session, or
+    /// one is still running. Read alongside `running`, never alone.
+    ///
+    /// `Some(None)` is not representable here on purpose - a process killed by
+    /// a signal has no code, and `Option<i32>` flattened to null is the same
+    /// as "still running" to the panel, which would be a lie. Windows always
+    /// has a code, so this is a Windows-shaped simplification and is written
+    /// down rather than discovered later.
+    pub exit_code: Option<i32>,
 }
 
-fn status_for(candidates: &[PathBuf]) -> ViewerStatus {
+fn status_for(candidates: &[PathBuf], held: Held) -> ViewerStatus {
     let found = candidates.iter().find(|p| p.is_file());
     let running = viewer_running();
-    ViewerStatus {
+    let mut status = ViewerStatus {
         installed: found.is_some(),
         path: found.map(|p| p.to_string_lossy().into_owned()),
         running: running.unwrap_or(false),
         running_known: running.is_some(),
+        // Only a held child can say this; the process list cannot.
+        exit_code: None,
+    };
+    // The held child wins over the process list where it has anything to say:
+    // it is about the viewer this app started, and `tasklist` is about anything
+    // sharing the name.
+    apply_held(&mut status, held);
+    status
+}
+
+/// What the held child says, waiting on it without blocking.
+///
+/// `try_wait` remembers the status once it has reaped it, so this stays
+/// truthful on every later call rather than only the first.
+fn held_state(process: &ViewerProcess) -> Held {
+    let mut guard = match process.0.lock() {
+        Ok(g) => g,
+        // A poisoned lock means a panic while holding it. That is a real
+        // "cannot tell", not a "no viewer".
+        Err(_) => return Held::Unknown,
+    };
+    match guard.as_mut() {
+        None => Held::None,
+        Some(child) => match child.try_wait() {
+            Ok(None) => Held::Running,
+            Ok(Some(status)) => Held::Exited(status.code()),
+            Err(_) => Held::Unknown,
+        },
     }
+}
+
+/// Close the viewer this app opened. Called on the app's own exit.
+///
+/// Kills by the handle we created, never by image name: several sessions run
+/// on this machine and more than one viewer can be open, so a name-based kill
+/// would take somebody else's window with it.
+pub fn close_viewer(process: &ViewerProcess) {
+    let Ok(mut guard) = process.0.lock() else {
+        return;
+    };
+    if let Some(child) = guard.as_mut() {
+        // Already gone is the ordinary case when somebody closed the window
+        // themselves; `kill` errors on it and there is nothing to do about it.
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+    *guard = None;
 }
 
 fn resolved_candidates<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Vec<PathBuf> {
@@ -151,14 +254,20 @@ fn resolved_candidates<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Vec<Path
 }
 
 #[tauri::command]
-pub fn viewer_status<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> ViewerStatus {
-    status_for(&resolved_candidates(&app))
+pub fn viewer_status<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    process: tauri::State<'_, ViewerProcess>,
+) -> ViewerStatus {
+    status_for(&resolved_candidates(&app), held_state(&process))
 }
 
 #[tauri::command]
-pub fn launch_viewer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<String, String> {
+pub fn launch_viewer<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    process: tauri::State<'_, ViewerProcess>,
+) -> Result<String, String> {
     let candidates = resolved_candidates(&app);
-    let status = status_for(&candidates);
+    let status = status_for(&candidates, held_state(&process));
 
     // Refuse rather than race, and only when we actually know. A second viewer
     // would open a second window onto the same world and both would answer the
@@ -174,7 +283,7 @@ pub fn launch_viewer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<Stri
         )
     })?;
 
-    Command::new(&exe)
+    let child = Command::new(&exe)
         .args(viewer_launch_args())
         .current_dir(
             Path::new(&exe)
@@ -184,6 +293,14 @@ pub fn launch_viewer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<Stri
         )
         .spawn()
         .map_err(|e| format!("Could not start the world viewer: {e}"))?;
+
+    // Held so the app can close it again, and so status can answer about this
+    // viewer rather than about anything with the same name. A previous child
+    // in the slot has already exited or been refused above, so dropping it
+    // here leaks nothing.
+    if let Ok(mut guard) = process.0.lock() {
+        *guard = Some(child);
+    }
 
     Ok("Opening the world viewer.".into())
 }
@@ -258,10 +375,108 @@ mod tests {
     }
 
     #[test]
+    fn a_held_child_answers_about_our_viewer_rather_than_the_process_list() {
+        // The process list cannot tell this app's viewer from another
+        // session's, so where the held child has an answer it is the better
+        // one. Both directions, because only overriding one way would let a
+        // stale tasklist reading keep a dead viewer alive on screen.
+        let mut running = ViewerStatus {
+            running: false,
+            running_known: true,
+            ..Default::default()
+        };
+        apply_held(&mut running, Held::Running);
+        assert!(running.running && running.running_known);
+
+        let mut exited = ViewerStatus {
+            running: true,
+            running_known: true,
+            ..Default::default()
+        };
+        apply_held(&mut exited, Held::Exited(Some(1)));
+        assert!(!exited.running && exited.running_known);
+        assert_eq!(
+            exited.exit_code,
+            Some(1),
+            "a viewer that crashed must be distinguishable from one nobody opened"
+        );
+    }
+
+    #[test]
+    fn an_exit_code_is_only_reported_for_a_viewer_that_actually_exited() {
+        // Otherwise the panel says "viewer exited (code N)" over a running
+        // window, or over a session in which nothing was ever launched.
+        for held in [Held::None, Held::Running, Held::Unknown] {
+            let mut s = ViewerStatus::default();
+            apply_held(&mut s, held);
+            assert_eq!(s.exit_code, None, "{held:?} produced an exit code");
+        }
+    }
+
+    #[test]
+    fn holding_nothing_and_failing_to_wait_both_leave_the_process_list_alone() {
+        // The two cases that must not become an answer. Held::Unknown in
+        // particular is a panic or a failed wait, and reading it as "no
+        // viewer" is what would let the app start a second one.
+        for held in [Held::None, Held::Unknown] {
+            let mut s = ViewerStatus {
+                running: true,
+                running_known: true,
+                ..Default::default()
+            };
+            apply_held(&mut s, held);
+            assert!(s.running, "{held:?} overrode the process list");
+            let mut unknown = ViewerStatus::default();
+            apply_held(&mut unknown, held);
+            assert!(
+                !unknown.running_known,
+                "{held:?} invented knowledge the app does not have"
+            );
+        }
+    }
+
+    #[test]
+    fn closing_an_empty_slot_is_not_an_error() {
+        // The ordinary case on exit: the app is closed without a viewer ever
+        // having been opened, and nothing about that is exceptional.
+        let process = ViewerProcess::default();
+        assert_eq!(held_state(&process), Held::None);
+        close_viewer(&process);
+        assert_eq!(held_state(&process), Held::None);
+    }
+
+    #[test]
+    fn a_real_child_is_held_then_killed_and_the_status_follows() {
+        // The whole B5 behaviour against an actual process, because the pure
+        // mapping above cannot show that `try_wait` reports what this module
+        // thinks it does. `cmd /c pause` waits on stdin forever and is on
+        // every Windows machine.
+        let child = Command::new("cmd")
+            .args(["/c", "pause"])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .expect("could not spawn a test child");
+        let process = ViewerProcess::default();
+        *process.0.lock().unwrap() = Some(child);
+
+        assert_eq!(held_state(&process), Held::Running);
+        close_viewer(&process);
+        assert_eq!(
+            held_state(&process),
+            Held::None,
+            "the slot must be cleared, or the next launch is refused forever"
+        );
+    }
+
+    #[test]
     fn nothing_installed_reports_absence_rather_than_claiming_a_path() {
-        let s = status_for(&[PathBuf::from(
-            "/definitely/not/here/DRCompanionWorldViewer.exe",
-        )]);
+        let s = status_for(
+            &[PathBuf::from(
+                "/definitely/not/here/DRCompanionWorldViewer.exe",
+            )],
+            Held::None,
+        );
         assert!(!s.installed);
         assert!(
             s.path.is_none(),
