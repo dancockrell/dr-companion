@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task_id": "i3-i10-color-tokens",
+  "agent": "claude-code",
+  "summary": "Empty the colour-literal allowlist directory by directory: replace raw literals with src/index.css tokens, and stop the ratchet reading prose as colour",
+  "status": "in_progress",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "tools/color-token-test.mjs",
+    "tools/color-token-allowlist.json",
+    "src/index.css",
+    "src/components/shared/CombatRadar.tsx",
+    "src/components/shared/MindstateBoard.tsx",
+    "src/components/room/RoomBackdrop.tsx",
+    "src/components/room/RoomScene.tsx",
+    "src/components/config/HighlightsEditor.tsx",
+    "src/components/config/PresetsEditor.tsx",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/i3-i10-color-tokens.json"
+  ],
+  "symbols": [
+    "stripComments",
+    "scanText",
+    "BANDS",
+    "PUCK_SHADOW"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Continues Lane I from the session that landed I1 and I2 rather than starting a rival ratchet: tools/color-token-test.mjs and its allowlist are that session's files and are extended in place. Lane D is editing src/App.tsx and moving panels between src/components directories concurrently; the allowlist is keyed on {file, literal, count}, so a moved file changes its key and the ratchet says so on rebase - rebased and re-run after each. The conflict matrix reserves RoomBackdrop.tsx and RoomScene.tsx to `rewrite/remove-2d` until C7 is decided; C7 is [x] as of 5 Sep, and `git diff --stat origin/main...origin/rewrite/remove-2d -- src/components/room/` shows that branch deleting RoomBackdrop.tsx outright, which is recorded in the I4 handling rather than guessed at."
+  },
+  "completion": {
+    "commit": "",
+    "checks": []
+  }
+}

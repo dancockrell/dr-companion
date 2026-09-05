@@ -271,7 +271,8 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
-| I | I1–I11 | `lane-i/color-tokens` | `dev/wt-i` | 5 Sep 2026 |
+| I | I1–I2 (done) | `lane-i/color-tokens` | `dev/wt-i` | 5 Sep 2026 |
+| I | I3–I11 | `lane-i2/token-cleanup` | `dev/wt-i2` | 5 Sep 2026 |
 | D | D1–D6 | `lane-d/layout` | `dev/wt-d` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296) and **E/F** (E5–E8,
@@ -1061,11 +1062,13 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: put the 4.4 call back → `FAIL … Parse Error: Static function "get_temp_dir()" not found`; break one assertion in `world_controls_test.gd` → `FAIL … 1 of 7 checks failed`; truncate a claim to `{ "broken":` → `FAIL claim … is not valid JSON`. All three restored with matching md5s (`7392970e3fc0`, `4c7b7b032573`, `c3550e4c8135`).
   pitfalls: Godot exits 0 both for a script it could not load and for a script that passed, so the exit code alone cannot tell them apart — which is exactly how a broken script survived. The runner requires a recognisable result line and fails a run that produces none. With no Godot binary it prints NOT CHECKED and `0 of the Godot tests ran`, rather than exiting silently green.
 
-- [ ] **I3  `src/components/shared`** (≈25)  · **I4  `room`** · **I5  `layout`** · **I6  `game`** · **I7  `dashboard`** · **I8  `first-run`** · **I9  `config`** · **I10  `MapWindow.tsx` + `PanelWindow.tsx`** (≈15 each)
-  touches: (that directory), src/index.css, I1>tools/color-token-allowlist.json
+- [~] **I3  `src/components/shared`** (≈25)  · **I4  `room`** · **I5  `layout`** · **I6  `game`** · **I7  `dashboard`** · **I8  `first-run`** · **I9  `config`** · **I10  `MapWindow.tsx` + `PanelWindow.tsx`** (≈15 each)
+  owner: claude-code claim: i3-i10-color-tokens since: 2026-09-05
+  touches: (that directory), src/index.css, I1>tools/color-token-allowlist.json, I1>tools/color-token-test.mjs
   depends-on: I1
   do: replace literals with tokens from `src/index.css`; a missing token is added there once; remove the allowlist lines; `remaining` drops by the count fixed and never rises.
   verify: `node tools/color-token-test.mjs` prints the lower `remaining`.
+  note: eight IDs share one checkbox, so the marker can only move when all eight are done; each ships its own PR and this line goes `[x]` with the last of them. I7, I8 and I10 were already clean the day I1 landed — `dashboard` (8 files), `first-run` (6) and the two root components hold no literal at all, and the walk demonstrably reaches them because it reports 117 files and finds literals in six of the others.
 
 - [ ] **I11  Delete the allowlist** (≈5)
   touches: I1>tools/color-token-test.mjs, I1>tools/color-token-allowlist.json

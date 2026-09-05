@@ -17,16 +17,6 @@
       "count": 1
     },
     {
-      "file": "src/components/game/SoundControls.tsx",
-      "literal": "rgb(46,42,32)",
-      "count": 1
-    },
-    {
-      "file": "src/components/layout/SettingsSheet.tsx",
-      "literal": "#268",
-      "count": 1
-    },
-    {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#12283a",
       "count": 1
@@ -254,11 +244,6 @@
     {
       "file": "src/components/shared/MindstateBoard.tsx",
       "literal": "#f97316",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/PresentationBridgePanel.tsx",
-      "literal": "#268",
       "count": 1
     }
   ]
