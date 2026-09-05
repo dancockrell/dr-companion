@@ -20,6 +20,7 @@
  * output gets read directly.
  */
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -387,6 +388,143 @@ if (existsSync(HOOKS_NSH)) {
       ? `${stray.join(', ')} - RMDir /r there takes the user's portraits, Lich and Genie with it`
       : `${recursiveTargets(nsh).length} recursive delete(s), all of them ${allowed}`,
   )
+
+  // ---- the retry that makes the checkbox finish its own deletion ----------
+  //
+  // The hook also re-runs Tauri's `RmDir /r "$LOCALAPPDATA\<bundle id>"` until
+  // the WebView2 profile is actually gone, because the first attempt races the
+  // `msedgewebview2.exe` children that outlive the killed app, and `RmDir /r`
+  // skips what it cannot delete without a word
+  // (docs/verification/uninstall-2026-09-06.md).
+  //
+  // What matters about that line is not that it exists but which guards it
+  // sits inside: a recursive delete of the WebView2 profile is correct under
+  // the checkbox and is destruction of the user's own browser profile without
+  // it. Grepping a few lines of context around it answers a different
+  // question, because NSIS puts no bound on how far away the `${If}` is - so
+  // the guards are read structurally, by walking LogicLib nesting, and the
+  // walk is then run against a deliberately unguarded copy.
+  for (const [label, ok, detail] of nshGuardChecks(nsh)) check(label, ok, detail)
+
+  // The saboteur. That walk is the newest code in this file and the only part
+  // of it with no history of being right, so a green line from it means
+  // nothing until it has been seen to go red. This lifts the checkbox guard -
+  // the exact mutation that would ship a recursive delete of somebody's
+  // browser profile into every uninstall.
+  //
+  // The condition is *rewritten*, not deleted. Deleting the `${If}` line
+  // orphans its `${EndIf}` and the walk then goes red on the nesting instead,
+  // which is a different failure wearing the same colour: it would pass this
+  // suite while proving nothing about whether guards are read at all. So the
+  // sabotage keeps the structure intact and changes only what the condition
+  // says, and the assertion below names which lines must go red and which
+  // must stay green.
+  //
+  // It is applied to a string, never to the file, so there is no window in
+  // which a real hook on disk is broken and nothing to restore. The md5
+  // either side says that rather than promising it.
+  const md5 = (s) => createHash('md5').update(s).digest('hex')
+  const beforeMd5 = md5(readFileSync(HOOKS_NSH))
+  const unguarded = nsh.replace(/\$DeleteAppDataCheckboxState\s*=\s*1/g, '$UpdateMode <> 1')
+  check(
+    'the sabotage changed something - the checkbox condition was actually rewritten',
+    unguarded !== nsh && !/\$DeleteAppDataCheckboxState/.test(unguarded),
+    unguarded === nsh
+      ? 'nothing matched, so the check below proves nothing'
+      : '',
+  )
+  const sabotaged = nshGuardChecks(unguarded)
+  const red = sabotaged.filter(([, ok]) => !ok).map(([label]) => label)
+  const expectedRed = sabotaged
+    .map(([label]) => label)
+    .filter((label) => label.endsWith('is behind the checkbox'))
+  check(
+    'and exactly the checkbox-guard checks go red on it',
+    expectedRed.length === 2 &&
+      red.length === expectedRed.length &&
+      expectedRed.every((label) => red.includes(label)),
+    `red: ${red.join('; ') || 'nothing'} / expected: ${expectedRed.join('; ') || 'nothing'}`,
+  )
+  check(
+    'while the nesting walk itself stays green, so the red above is about guards',
+    sabotaged.some(([label, ok]) => ok && label.startsWith('the LogicLib nesting')),
+  )
+  check(
+    'the hook file on disk is unchanged by this test',
+    md5(readFileSync(HOOKS_NSH)) === beforeMd5,
+    beforeMd5,
+  )
+}
+
+/**
+ * The guard checks, as a function so the same walk can be pointed at a
+ * sabotaged copy. Returns `[label, ok, detail]` triples rather than calling
+ * `check` itself, so the sabotage run can read its results instead of
+ * printing them.
+ *
+ * `text` is the hook with backslashes already turned into forward slashes.
+ */
+function nshGuardChecks(text) {
+  const results = []
+  const say = (label, ok, detail = '') => results.push([label, ok, detail])
+
+  // LogicLib nesting: `${If}` opens a frame, `${AndIf}`/`${OrIf}` extend the
+  // open one, `${EndIf}` closes it. Every other statement is tagged with the
+  // conditions in scope where it sits.
+  const stack = []
+  const scoped = []
+  let balanced = true
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/;.*$/, '').trim()
+    if (/^\$\{If\}/.test(line)) stack.push([line])
+    else if (/^\$\{(AndIf|OrIf)\}/.test(line)) {
+      if (stack.length === 0) balanced = false
+      else stack[stack.length - 1].push(line)
+    } else if (/^\$\{EndIf\}/.test(line)) {
+      if (stack.length === 0) balanced = false
+      else stack.pop()
+    } else if (line) {
+      scoped.push({ line, guards: stack.flat().join(' ') })
+    }
+  }
+  // The denominator, and it is the number that goes to zero when the walk
+  // breaks: with a broken parser every "is it guarded" answer below would be
+  // a statement about this function rather than about the hook.
+  say(
+    'the LogicLib nesting in the hook parses and balances',
+    balanced && stack.length === 0 && scoped.length > 10,
+    `${scoped.length} statements read, ${stack.length} conditions left open, balanced=${balanced}`,
+  )
+
+  const destructive = scoped.filter(({ line }) => /^RMDir\s+\/r\s/i.test(line))
+  say(
+    'the walk found every recursive delete in the hook',
+    destructive.length >= 2,
+    `${destructive.length} found: ${destructive.map((d) => d.line).join(' | ')}`,
+  )
+  for (const { line, guards } of destructive) {
+    const named = line.replace(/\s+/g, ' ')
+    say(
+      `${named} is behind the checkbox`,
+      /\$DeleteAppDataCheckboxState\s*=\s*1/.test(guards),
+      guards || 'no enclosing condition at all',
+    )
+    say(
+      `${named} is behind the update guard`,
+      /\$UpdateMode\s*<>\s*1/.test(guards),
+      guards || 'no enclosing condition at all',
+    )
+  }
+
+  // And the retry has to be bounded. An unbounded one hangs the uninstall on
+  // a handle that is never released.
+  const limit = /IntCmp\s+\$R7\s+(\d+)\s/.exec(text)?.[1]
+  say(
+    'the retry loop is bounded, by a limit short enough to wait out',
+    Boolean(limit) && Number(limit) > 0 && Number(limit) <= 40,
+    limit ? `${limit} attempts, 500 ms apart` : 'no IntCmp bound on the retry counter',
+  )
+  return results
 }
 
 console.log('')

@@ -1,4 +1,5 @@
-; Uninstall hook: take the two loopback bearer tokens with us.
+; Uninstall hook: take the two loopback bearer tokens with us, and make the
+; "Delete the application data" checkbox mean what it says.
 ;
 ; Tauri's own uninstaller deletes `$APPDATA\<bundle id>` and
 ; `$LOCALAPPDATA\<bundle id>` when "Delete the application data" is ticked, and
@@ -54,5 +55,59 @@
 
     ; Not /r. Succeeds only if the folder is now empty.
     RMDir "$LOCALAPPDATA\DR Companion Data"
+
+    ; --- and Tauri's own deletion, made to finish -----------------------
+    ;
+    ; Everything above is about a folder Tauri's uninstaller cannot see. This
+    ; is about the one it can, and gets wrong.
+    ;
+    ; `Section Uninstall` kills the app (`CheckIfAppIsRunning`, which calls
+    ; `KillProcessCurrentUser` and then `Sleep 500`) and, a second or two of
+    ; file deletion later, runs `RmDir /r "$LOCALAPPDATA\${BUNDLEID}"` on the
+    ; WebView2 profile. Killing `dr-companion.exe` does not kill its
+    ; `msedgewebview2.exe` children: they notice the host has gone and exit on
+    ; their own, and until they do they hold open handles on the profile's
+    ; LevelDB `LOCK` files and databases. `RmDir /r` skips whatever it cannot
+    ; delete and says nothing, so the uninstaller reports success over a
+    ; half-deleted profile and the user is told their data is gone when it is
+    ; not.
+    ;
+    ; Measured on the clean VM, 6 Sep 2026
+    ; (docs/verification/uninstall-2026-09-06.md). Same build, same checkbox,
+    ; three conditions, and the residue tracks how the app died - which is
+    ; what F8 saw once each way and could not account for.
+    ;
+    ; The retry is on the *outcome*, not on the processes. Waiting for
+    ; `msedgewebview2.exe` would mean waiting on an image name shared with
+    ; Edge and with every other WebView2 app on the machine: not identifiable
+    ; from NSIS, and the wrong question anyway. "Is the directory gone" is
+    ; what the checkbox claims, so it is what gets checked.
+    ;
+    ; It costs nothing when the deletion already worked - the first
+    ; `IfFileExists` is false and the loop never runs. Its ceiling is
+    ; 20 x 500 ms = 10 s, reached only where handles are genuinely still held.
+    ; If it runs out, that is printed rather than swallowed; the details pane
+    ; is the only place an uninstaller can say anything at all.
+    ;
+    ; Under the checkbox only. Unticked, this folder is the user's browser
+    ; profile and theirs to keep.
+    ${If} $DeleteAppDataCheckboxState = 1
+      StrCpy $R7 0
+      drc_webview_retry:
+        IfFileExists "$LOCALAPPDATA\${BUNDLEID}" 0 drc_webview_gone
+        IntCmp $R7 20 drc_webview_stuck 0 drc_webview_stuck
+        Sleep 500
+        RMDir /r "$LOCALAPPDATA\${BUNDLEID}"
+        IntOp $R7 $R7 + 1
+        Goto drc_webview_retry
+      drc_webview_stuck:
+        DetailPrint "DR Companion: $LOCALAPPDATA\${BUNDLEID} is still present after $R7 retries; part of it could not be deleted."
+        Goto drc_webview_done
+      drc_webview_gone:
+        ${If} $R7 > 0
+          DetailPrint "DR Companion: application data removed on retry $R7."
+        ${EndIf}
+      drc_webview_done:
+    ${EndIf}
   ${EndIf}
 !macroend
