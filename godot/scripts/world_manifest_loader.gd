@@ -113,9 +113,10 @@ func has_cell(cell_id: String) -> bool:
 ## The only exits this viewer is allowed to draw for a cell: exactly what the
 ## manifest carries for it, nothing inferred and nothing added. An exit whose
 ## `targetCellId` is null is a real exit the mock/manifest could not resolve
-## locally (points outside the loaded subset, or is marked `external`) — it
-## is still a true exit and still gets an anchor, it just has nowhere local
-## to walk the camera to yet.
+## locally — it points outside the loaded subset. The null is the whole
+## signal, in both the mock fixture and a live snapshot; there is no separate
+## flag to consult. It is still a true exit and still gets an anchor, it just
+## has nowhere local to walk the camera to yet.
 func true_exits(cell_id: String) -> Array:
 	var cell := get_cell(cell_id)
 	if cell.is_empty() or not cell.has("exits"):
