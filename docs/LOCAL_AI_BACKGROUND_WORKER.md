@@ -196,6 +196,32 @@ Required states are `queued`, `running`, `checkpointed`, `awaiting_review`,
 `completed`. Retrying a job must be idempotent or create a new candidate
 revision linked to the earlier attempt.
 
+### 6.1 Legal transitions
+
+This table is normative and it is also the table `ALLOWED` in
+`src/lib/aiJobStore.ts` implements. The two are compared by
+`tools/ai-job-store-test.mjs`, which parses this table out of this file, so a
+change to either that is not made to both fails the build. Edit them together.
+
+| From | May become |
+|---|---|
+| `queued` | `running`, `cancelled` |
+| `running` | `checkpointed`, `awaiting_review`, `completed`, `failed`, `cancelled`, `queued` |
+| `checkpointed` | `running`, `cancelled`, `failed` |
+| `awaiting_review` | `completed`, `failed`, `cancelled` |
+| `completed` | — |
+| `failed` | — |
+| `cancelled` | — |
+
+Two changes are pending and deliberately not written above, because the table
+must describe the code as it stands rather than as it is about to be.
+Increment A12 of `PLAN_TO_1_0.md` will require a `resultRef` on
+`running → completed`, so a job cannot reach a terminal success without
+naming what it produced, and will add `checkpointed → queued` so a resumable
+job can be handed back to the queue instead of only forward to `running`. The
+implementation handoff of 5 Sep 2026 records both; neither is true of the code
+today.
+
 Initial job families:
 
 - `map_reconciliation`
@@ -235,12 +261,39 @@ A candidate claim should resemble:
   "status": "candidate",
   "producer": {
     "kind": "model",
+    "identity": "local-worker",
     "model": "Qwen3-4B-Instruct",
-    "adapter": "dr-companion-local-v1"
+    "adapter": "dr-companion-local-v1",
+    "softwareVersion": "0.1.1"
   },
-  "supersedes": null
+  "createdAt": "2026-09-04T00:00:00Z",
+  "reviewedAt": null,
+  "reviewer": null,
+  "supersedes": null,
+  "privacy": "private",
+  "licence": null
 }
 ```
+
+Every field above is required, and the four the first draft of this section
+left out are the ones that decide whether a claim may leave the machine. They
+were adopted from the implementation handoff of 5 Sep 2026 while nothing had
+yet been built against the narrower shape, so they cost a decision now instead
+of a migration later.
+
+| Field | Why it is not optional |
+|---|---|
+| `privacy` | `private`, `group`, or `public-candidate`. Publication reads this field, so a claim with no privacy is a claim nothing may safely share. |
+| `licence` | Null only when the claim rests on nothing third-party. A claim derived from wiki prose or a community script carries the terms it inherited. |
+| `reviewer` | Who accepted it, named. A promotion with no reviewer cannot be audited or reversed against a person. |
+| `reviewedAt` | Null until reviewed. "Never reviewed" and "reviewed and found current" must stay different facts, exactly as with `enrichedAgeSeconds` elsewhere in this app. |
+| `producer.identity` | Which worker, parser, importer or person emitted it. `producer.kind` alone cannot distinguish two models or two people. |
+
+`status` is one of `candidate`, `corroborated`, `accepted-local`, `published`,
+`rejected`, `retracted`, or `superseded`. `retracted` and `superseded` are
+distinct on purpose: a retraction says the claim should never have been made,
+a supersession says a better one exists, and collapsing them loses the reason
+the older record is still on file.
 
 Confidence is advisory, never proof. Promotion policy is based on evidence type
 and risk. A private provisional visual tag may be admitted after one clean
@@ -424,6 +477,33 @@ The first complete slice is acceptable when:
 - the fixed-isometric board continues to render solely from authoritative room
   identity plus presentation metadata.
 
+### 14.1 Required adversarial tests
+
+The criteria above are the happy path, and a suite that only proves the happy
+path is a suite that cannot tell a working seam from an inert one. Each seam
+below is acceptable only when its attack column is also covered. Adopted from
+the implementation handoff of 5 Sep 2026, which listed them against the same
+seams this document already names.
+
+| Seam | Happy path | Required attack |
+|---|---|---|
+| Event journal | Ordered append, read, acknowledge | Acknowledging past the latest event; a cursor behind retention; an append during a read; a crash before the acknowledgement |
+| Ingestion | New lines appended once | Remount and replay; a trimmed source buffer; a version tick carrying no new lines |
+| Alert broker | Priority, dedupe, acknowledge | Priority escalation; a repeated alert; a false disconnect at startup; acknowledge as distinct from resolve |
+| Scheduler | Activity cadence | An unchanged review hash; a clock that runs backwards; a critical alert arriving before the next due time; no provider at all |
+| Job store | Legal transitions | An illegal terminal transition; a restart while `running`; a duplicate retry; a stale worker lease |
+| Provider | A valid schema result | Timeout, abort, out of memory, malformed JSON, extra fields, a secret reaching the prompt |
+| Worker | Success advances the cursor | An abort or invalid result must not acknowledge; an alert preempts background work; a stale checkpoint |
+| Candidate claims | Append and review | Missing evidence; a forged reference; a supersession cycle; a claim rejected on privacy or licence |
+| Map job | An observed tether candidate | An invented destination; a directionless exit given a fabricated anchor; a portal treated as adjacency |
+| Script job | A patch passes fixtures | A path escape; modifying a running file; a network attempt; a base hash that changed underneath |
+| Command suggestion | A confirmed exact command | Stale state; an altered command; an expired suggestion; a second pending action |
+
+Two of these are already increments rather than aspirations: the alert
+broker's acknowledge-versus-resolve row is A10 of `PLAN_TO_1_0.md`, filed
+after a persistent stun was found re-raising an urgent review every second,
+and the job store's terminal row is A12.
+
 ## 15. Explicitly deferred
 
 - autonomous unrestricted play;
@@ -438,3 +518,155 @@ The first complete slice is acceptable when:
 
 These are deferred so the MVP can first prove reliable capture, interruption,
 evidence, resumability, and one safe end-to-end background result.
+
+## 16. Read-only tool registry
+
+The model reaches the world through typed tools and through nothing else. A
+tool declares its shapes and its ceiling:
+
+```ts
+interface ReadOnlyTool<I, O> {
+  id: string
+  inputSchema: JsonSchema
+  outputSchema: JsonSchema
+  maxResultBytes: number
+  execute(input: I, context: ToolContext): Promise<O>
+}
+```
+
+The initial set, all read-only:
+
+- `map.get_node(roomId)`, `map.get_tethers(roomId)`,
+  `map.find_conflicts(regionId, since)`
+- `observations.read(refs)`
+- `knowledge.search(query, sourceFilters, limit)`,
+  `knowledge.get_record(stableId)`
+- `scripts.search(language, query)`,
+  `scripts.read_excerpt(path, startLine, endLine)`
+- `tests.list_for_path(path)`
+
+An allowlist of names is the smaller half of this. The rules are the half that
+does the work:
+
+- **Validate input before execution.** A tool that trusts its arguments is a
+  tool the model can point anywhere.
+- **Enforce the result ceiling and the scope,** both. `maxResultBytes` is not
+  advisory; a tool that would exceed it fails rather than truncating, because
+  a silently shortened corpus is a wrong answer that looks complete.
+- **Return stable references, not copied corpora.** `observations.read(refs)`
+  presumes durable evidence: a reference that dangles after journal eviction
+  is a claim whose provenance cannot be re-derived, so evidence has to outlive
+  the journal or the reference must not be issued.
+- **Escape or label every piece of untrusted text.** Room descriptions, wiki
+  prose and script source are data. Nothing read through a tool is ever
+  interpreted as an instruction, however it is phrased.
+- **Record every call in the job trace, without secrets.** A job whose tool
+  calls are not in its trace cannot be audited, and a trace carrying a
+  credential is a leak with a long tail.
+
+Adopted from the implementation handoff of 5 Sep 2026, which stated the rules
+this section had left as an allowlist.
+
+## 17. Map candidate validator
+
+A tether the model proposes is checked before it is even allowed to be a
+candidate. The validator is deterministic and runs without the model:
+
+```text
+FUNCTION validateTetherCandidate(candidate, evidenceStore, mapStore):
+  REQUIRE candidate.fromRoomId is known to mapStore
+  REQUIRE candidate.evidenceRefs is not empty
+  evidence = evidenceStore.resolveAll(candidate.evidenceRefs)
+  REQUIRE every evidence item resolves, is unmodified, and is in scope
+
+  IF candidate.toRoomId is not null:
+    REQUIRE evidence contains an authoritative snapshot whose roomId
+            equals candidate.toRoomId
+  ELSE:
+    candidate.boardAnchor = null
+
+  IF candidate.kind == 'ferry':
+    REQUIRE evidence includes a transport entry or a successful crossing
+
+  IF candidate.kind IN {'portal', 'warp'}:
+    REQUIRE no geometric adjacency is inferred from visual proximity
+
+  candidate.status = 'candidate'
+  RETURN candidate
+```
+
+Each clause exists because of a specific way a plausible-looking map is wrong.
+An **invented destination** is the commonest: a model that has read a room
+description can name an exit's far side without anything ever having gone
+through it, and only the authoritative-snapshot requirement separates a
+observed tether from a guessed one. A **directionless exit** must not be given
+a board anchor, because an anchor is a claim about compass placement and the
+graph did not make one — null is the honest value, and `WorldExit.boardAnchor`
+in `src/lib/presentationTypes.ts` already documents it that way. A **portal**
+looks adjacent on a board and is not: proximity in a presentation layout is
+never evidence about movement, which is the same rule the world contract
+states from the other end.
+
+## 18. Suggestion to command boundary
+
+This is the only path by which model output can become a game command, and it
+is confirmation-gated at every step:
+
+```text
+FUNCTION requestSuggestionExecution(suggestionId, userConfirmation):
+  suggestion = suggestions.get(suggestionId)
+  REQUIRE suggestion.status == 'pending'
+  REQUIRE suggestion.expiresAt > now
+  REQUIRE userConfirmation.matches(suggestion.id, suggestion.exactCommand)
+  REQUIRE authoritativeState.version == suggestion.basedOnStateVersion
+  REQUIRE commandPolicy.allows(suggestion.commandType, currentContext)
+
+  pending = existingCommandBoundary.submit(suggestion.exactCommand)
+  suggestions.markAwaitingAuthoritativeResult(suggestion.id, pending.id)
+  RETURN pending
+
+ON gameResult(pendingId, result):
+  suggestion = suggestions.forPending(pendingId)
+  suggestions.resolveFromAuthoritativeResult(suggestion.id, result)
+```
+
+Five properties, and none of them is optional:
+
+1. **The exact command.** The player confirms the literal text that will be
+   sent, not a description of it. A confirmation that matches an intent rather
+   than a string is a confirmation of something else.
+2. **The state version.** A suggestion made about a room the character has
+   left is stale, and staleness here is not cosmetic — it is the difference
+   between attacking what is in front of you and attacking nothing.
+3. **Expiry.** A pending suggestion ages out on its own rather than waiting to
+   be wrong.
+4. **One pending action at a time.** Two confirmations in flight cannot be
+   reasoned about, by the player or by the code.
+5. **The model never labels its own proposal successful.** The outcome comes
+   from the game, through the existing command boundary, which stays the only
+   thing that talks to Lich.
+
+## 19. Data classification before prompting
+
+Every piece of state is classified before it can reach a prompt, and the
+classification decides what may happen to it.
+
+| Class | Examples | Handling |
+|---|---|---|
+| Public game state | Room title, a public NPC action, a public system line | May enter a local prompt, carrying provenance |
+| Private player state | Build, inventory, personal notes | Local prompt only, for an explicit product purpose; never published |
+| Private communications | Whispers, direct messages | **Excluded by default**; opt-in per source, never global |
+| Credential | Password, API key, token, private key | Never prompted, never logged, never trained on, never published |
+| Third-party authored | Scripts, wiki prose, model files | Track licence, source, permission, and untrusted-instruction status |
+| Generated candidate | A model claim, a patch, a category | Stored with producer, evidence, review state, and its limits |
+
+The credential row is already enforced by the scanner this document's section
+2 requires. The private-communications row is not yet built, and it is the one
+most easily lost by accident: whispers arrive in the same stream as everything
+else, so excluding them is an active step rather than a default that happens
+on its own. It is increment G12 of `PLAN_TO_1_0.md`, with the per-source
+opt-in recommended rather than a single global switch, because "share my
+whispers" is not one decision.
+
+Adopted from the implementation handoff of 5 Sep 2026, which had the full
+table where this document had only the credential rule.

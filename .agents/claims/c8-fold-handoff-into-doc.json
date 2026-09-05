@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task_id": "c8-fold-handoff-into-doc",
+  "agent": "claude-code",
+  "summary": "The 5 Sep implementation handoff's normative content is now in docs/LOCAL_AI_BACKGROUND_WORKER.md, in that document's voice, with the job table held to the code by a test",
+  "status": "completed",
+  "claimed_at": "2026-09-05T15:30:00Z",
+  "updated_at": "2026-09-05T16:10:00Z",
+  "paths": [
+    "docs/LOCAL_AI_BACKGROUND_WORKER.md",
+    "tools/ai-job-store-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/c8-fold-handoff-into-doc.json"
+  ],
+  "symbols": [
+    "validateTetherCandidate",
+    "requestSuggestionExecution"
+  ],
+  "coordination": {
+    "depends_on": ["c1"],
+    "conflicts_with": [],
+    "notes": "Two of the six sections had an owner in this document already, and extending that owner was the only honest option. The PDF's claim schema is a superset of the one section 7 carried, so section 7's JSON gained the missing fields and a table saying why each is not optional, rather than a second schema appearing lower down. The job table went into section 6 as 6.1 for the same reason. Only the four genuinely new subjects became new sections, numbered 16 to 19 so nothing above them had to be renumbered and no cross-reference elsewhere in the repo broke. The PDF is not committed and its text is not pasted: every section was rewritten, and where the PDF gave only a table of nouns the reasoning was supplied from what the repo already knows (the boardAnchor-null rule, for instance, is the same rule presentationTypes.ts states about a directionless exit). Section 6.1 does NOT include A12's two pending changes: the table must describe the code as it stands, so they are named in prose beneath it as pending instead. Lane A owns src/lib/aiJobStore.ts and this increment did not edit it - the test asks the store through canTransition rather than reading ALLOWED, so nothing in Lane A's file had to change and nothing there can drift away from the doc unnoticed either."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "grep -c privacy docs/LOCAL_AI_BACKGROUND_WORKER.md -> 4 (increment asked for >= 3)",
+      "grep -c for validateTetherCandidate or the phrase 'invented destination' -> 3 (asked for >= 1); control grep for a word not in the file -> 0, so the counts are the file's and not the command's",
+      "npm run test:ai-job-store: 41 checked, 0 failed, all passed (was 32; the comparison adds 9, including the parsed-row-count denominator)",
+      "sabotage of the doc, as the increment specifies: added `queued` to the checkpointed row -> exit 1, 'FAIL \"checkpointed\" allows the same targets in the doc and the code  code [cancelled failed running] doc [cancelled failed queued running]'. Restored, md5sum -c OK.",
+      "sabotage of the code, the other direction: removed 'cancelled' from awaiting_review in aiJobStore.ts -> exit 1, 'FAIL \"awaiting_review\" ... code [completed failed] doc [cancelled completed failed]'. Restored, md5sum -c OK. Both directions matter: a doc that can only be wrong about the code catches half the drift.",
+      "the parse has a denominator: 'the doc's table parsed to 7 rows' fails if the heading moves or the table shape changes, so a broken parse cannot pass every comparison against an empty table",
+      "npx tsc -b exit 0; node tools/run-tests.mjs: 102 passed, 0 failed, 3071 checks, all passed",
+      "the PDF was read with pdftotext -layout into a temp file outside the repo and is neither committed nor quoted"
+    ]
+  }
+}

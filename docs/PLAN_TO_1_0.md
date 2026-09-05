@@ -404,7 +404,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   → `exit: 0` and `test result: ok`.
   pitfalls: 8, 11.
 
-- [ ] **C4  Split `presentationBridge.ts`** (≈40; two commits)
+- [x] **C4  Split `presentationBridge.ts`** (≈40; two commits)
+  commit: (this PR) verified: 2026-09-05 minutes: 40
   touches: src/lib/presentationBridge.ts, new:src/lib/presentationTypes.ts, new:src/lib/viewerClient.ts, src/components/shared/PresentationBridgePanel.tsx
   depends-on: C1
   do: commit 1 moves every `export interface|type` into `presentationTypes.ts` with re-exports left behind. Commit 2 moves `viewerStatus`, `launchViewer`, `presentationBridgeInfo`, `ViewerStatus`, `PresentationBridgeInfo` into `viewerClient.ts`, updates `PresentationBridgePanel.tsx`, deletes the re-exports nothing uses (`grep -rn "from './presentationBridge'" src tools` → each importer either imports a type from `presentationTypes.ts` or a function still in the bridge). Leave `compileWorldSnapshot`, `shouldPublish`, `justReconnected`, `gameCommandForIntent`, `cannotAct`, `publishWorldSnapshotIfChanged` where they are.
@@ -1283,7 +1284,8 @@ for a model; every generated fact is a candidate with provenance.
 before M3 (provider) matches Lane G before Lane H's *product* dependence, but it
 skips Lane A because it did not know Lane A's defects exist. Lane A stays first.
 
-- [ ] **C8  Fold the PDF's normative content into the architecture doc** (≈40)
+- [x] **C8  Fold the PDF's normative content into the architecture doc** (≈40)
+  commit: (this PR) verified: 2026-09-05 minutes: 40
   touches: C1>docs/LOCAL_AI_BACKGROUND_WORKER.md
   depends-on: C1
   do: append as normative sections, rewritten in that document's voice and citing the PDF by date: the §28 claim schema, §29 tool rules, §33 tether validator, §36 suggestion gate, §37 classification table, and the §41 attack matrix as "required adversarial tests" beside §14's acceptance criteria. Reconcile the job table with A12's outcome. Do not paste the PDF; do not commit it. After this, the PDF has no content the repo lacks.
