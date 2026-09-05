@@ -58,6 +58,7 @@
     "test:layout": "node tools/layout-test.mjs",
     "test:splitter-range": "node tools/splitter-range-test.mjs",
     "test:columns": "node tools/columns-test.mjs",
+    "test:location-line": "node tools/location-line-test.mjs",
     "test:presentation-bridge": "node tools/presentation-bridge-test.mjs",
     "test:presentation-intents": "node tools/presentation-intents-test.mjs",
     "test:crossing-build-list": "node tools/crossing-build-list-test.mjs",

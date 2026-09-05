@@ -15,7 +15,6 @@ import { VarsPanel } from '../shared/VarsPanel'
 import { LinksPanel } from '../shared/LinksPanel'
 import { ScriptApiPanel } from '../shared/ScriptApiPanel'
 import { PresentationBridgePanel } from '../shared/PresentationBridgePanel'
-import { AiWorkerPanel } from '../shared/AiWorkerPanel'
 import { HuntingGroundsPanel } from '../shared/HuntingGroundsPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
@@ -443,15 +442,16 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             <PresentationBridgePanel />
           </section>
 
-          {/* Acceptance criterion 14: model failure, absence, timeout and
-              out-of-memory must be visible. Most installs read "not
-              installed", which is the honest and entirely workable state. */}
-          <section className="space-y-2">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
-              Local AI worker
-            </h3>
-            <AiWorkerPanel />
-          </section>
+          {/* The local AI worker's status panel used to be here. D4 moved it
+              to the context rail (the workspace's right column in App.tsx),
+              and it *moved* rather than gaining a second mount. Acceptance
+              criterion 14 asks that model failure, absence, timeout and
+              out-of-memory be visible, and a status display that only exists
+              while a settings sheet is open is visible to nobody - which is
+              the same reason `aiWorkerHost` was lifted out of this panel to
+              App.tsx in the first place (see AiWorkerPanel.tsx's header).
+              Mounting it in both places would be one component pretending to
+              be two panels, and the two would drift. */}
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">

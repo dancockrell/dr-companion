@@ -10,7 +10,7 @@ credential or a game session secret: the app never sees the player's
 password, which goes to Lich's own login (plan section 5, bar 2).
 
 24 keys, owned by 20 files, found by scanning
-295 source files.
+297 source files.
 
 ## The keys
 
@@ -23,12 +23,12 @@ password, which goes to Lich's own login (plan section 5, bar 2).
 | `drc.ai-jobs.v1` | Background AI jobs and their status. Absent unless the optional local model has been used. | `src/lib/aiJobStore.ts` |
 | `drc.armor-loadouts.v1` | A character's corrections to the derived armour coverage, which the live inventory feed cannot supply. | `src/lib/armorLoadout.ts` |
 | `drc.attach-port.v2` | The last port the player typed into the game connection bar. A number, not JSON. | `src/components/game/GameConnectionBar.tsx` |
-| `drc.battle-width.v3` | How wide the battle column is, as a fraction of the window. | `src/App.tsx` |
-| `drc.experience-width.v2` | How wide the experience column is, as a fraction of the window. | `src/App.tsx` |
+| `drc.board-slot-width.v1` | How wide the middle board slot is, as a fraction of the window. Replaces `drc.battle-width.v3`: the slot holds the map and the battle picture together now, so the key was bumped rather than reused under a new meaning. | `src/App.tsx` |
 | `drc.layout.v1` | Panel order and rectangles, one entry per UI mode: the real keys are `drc.layout.v1.<mode>`. Merged against the current defaults on read, so a panel added later still appears. | `src/lib/layout.ts` |
+| `drc.left-rail-width.v1` | How wide the character side is, as a fraction of the window. Replaces `drc.room-width.v2`, which measured a much wider column holding the map and the transcript. | `src/App.tsx` |
 | `drc.macros.v1` | Which variation each macro slot runs. | `src/lib/useMacroChoice.ts` |
-| `drc.map-height.v1` | Superseded by `drc.map-height.v3`. Read once, to migrate a genuine v1 customisation; never written. | `src/App.tsx` |
-| `drc.map-height.v3` | How tall the map is, as a fraction of the window. | `src/App.tsx` |
+| `drc.map-height.v1` | Superseded by `drc.map-height.v4`. Read once, to migrate a genuine v1 customisation; never written. | `src/App.tsx` |
+| `drc.map-height.v4` | How the board slot divides between the map above and the battle picture below, as a fraction of the window. `.v4` because v3 measured the map against the game transcript, which now lives in the console row. | `src/App.tsx` |
 | `drc.map.v1` | Where the map is docked, how wide, and how far it is zoomed. A property of this window rather than of a character, so it does not follow a profile. | `src/lib/mapDock.ts` |
 | `drc.middle-panels-hidden.v1` | Which boxes in the dashboard middle column the player has switched off, on top of whichever set the mode already shows. | `src/lib/panelVisibility.ts` |
 | `drc.nudge.v1` | Visit counts behind the "you keep coming back here, pin it?" nudge, per profile. | `src/lib/pinNudge.ts` |
@@ -37,7 +37,7 @@ password, which goes to Lich's own login (plan section 5, bar 2).
 | `drc.player-marker.v1` | The icon and colour of the player marker on the map. | `src/lib/playerMarker.ts` |
 | `drc.portrait.v1` | The portrait chosen for each character. | `src/lib/portraits.ts` |
 | `drc.quickswitch.v3` | What is pinned to the Quick Switch bar and in what order: tasks (with their language), commands and raw scripts. | `src/lib/quickSwitch.ts` |
-| `drc.room-width.v2` | How wide the room column is, as a fraction of the window. | `src/App.tsx` |
+| `drc.right-rail-width.v1` | How wide the context side is, as a fraction of the window. Replaces `drc.experience-width.v2`; the experience strip moved to the console row and this rail holds alerts, actions and the AI worker. | `src/App.tsx` |
 | `drc.script-icons.v1` | Icon overrides for scripts, one entry per script rather than one per profile. | `src/lib/scriptIconOverrides.ts` |
 | `drc.watched-rooms.v1` | Rooms the player is watching, per profile. | `src/lib/watchedRooms.ts` |
 
