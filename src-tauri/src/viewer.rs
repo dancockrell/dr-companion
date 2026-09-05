@@ -7,18 +7,25 @@
 //! the app could *start* the thing, it was not bundled, and no control opened
 //! it. A renderer a player cannot reach is exactly as useful as no renderer.
 //!
-//! # Nothing goes on the command line
+//! # No *secrets* go on the command line
 //!
 //! `presentation_bridge::start` writes the port and the session token into the
-//! app data directory, and the Godot client reads them from there. So the
-//! launch here passes no arguments at all.
+//! app data directory, and the Godot client reads them from there. Neither is
+//! ever passed here.
 //!
-//! That is deliberate and it is the same rule `lich.rs` states about
-//! passwords: a command line is visible in the process list to every other
-//! program on the machine, and lands in crash dumps and parent-process logs.
-//! The bridge token is a credential for a socket that can turn into a game
-//! command, so it belongs in a file with the app's own permissions, not in
-//! `argv`.
+//! That is the same rule `lich.rs` states about passwords: a command line is
+//! visible in the process list to every other program on the machine, and
+//! lands in crash dumps and parent-process logs. The bridge token is a
+//! credential for a socket that can turn into a game command, so it belongs in
+//! a file with the app's own permissions, not in `argv`.
+//!
+//! A mode flag is not a credential, and one is now passed. Until this was
+//! written the launch passed no arguments at all, and
+//! `godot/scripts/world_root.gd` goes live only when `--live-presentation` is
+//! among the user arguments - so every viewer the app had ever started came up
+//! in the mock Crossing fixture, showing a world that was not the player's.
+//! Nothing errored, which is why it survived: a mock world and a live one look
+//! the same until you read the room names.
 //!
 //! # The app has to stay usable when the viewer is absent
 //!
@@ -37,6 +44,21 @@ use serde::Serialize;
 /// between `tools/export-godot-viewer.mjs` and this module - two spellings of
 /// it would mean a viewer that launches and can never be found again.
 pub const VIEWER_EXE: &str = "DRCompanionWorldViewer.exe";
+
+/// The flag `godot/scripts/world_root.gd::_live_requested` looks for. Spelled
+/// once, here, because the two halves live in different languages and a
+/// typo in either produces a viewer that starts happily in the mock world.
+pub const LIVE_FLAG: &str = "--live-presentation";
+
+/// What the viewer is started with.
+///
+/// The bare `--` matters: Godot itself consumes everything before it, and
+/// `OS.get_cmdline_user_args()` - which is what the viewer reads - returns
+/// only what follows. Passed as a slice from a pure function so a test can
+/// assert both the separator and the flag without spawning anything.
+pub fn viewer_launch_args() -> [&'static str; 2] {
+    ["--", LIVE_FLAG]
+}
 
 /// Where the viewer might be, in the order worth trying.
 ///
@@ -152,9 +174,8 @@ pub fn launch_viewer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<Stri
         )
     })?;
 
-    // No arguments: the bridge port and token are files the viewer reads for
-    // itself. See this module's header for why they must not be here.
     Command::new(&exe)
+        .args(viewer_launch_args())
         .current_dir(
             Path::new(&exe)
                 .parent()
@@ -198,6 +219,41 @@ mod tests {
         // spelling here would launch nothing and find nothing, with no error.
         for p in viewer_candidates(Some(Path::new("/app/res")), Some(Path::new("/repo"))) {
             assert_eq!(p.file_name().unwrap(), VIEWER_EXE);
+        }
+    }
+
+    #[test]
+    fn the_launch_asks_for_live_mode_after_the_user_argument_separator() {
+        let args = viewer_launch_args();
+        assert_eq!(
+            args[0], "--",
+            "Godot keeps everything before `--` for itself, so a flag without \
+             the separator never reaches get_cmdline_user_args"
+        );
+        assert_eq!(args[1], LIVE_FLAG);
+    }
+
+    #[test]
+    fn the_live_flag_is_spelled_the_way_the_gdscript_reads_it() {
+        // The two ends of this are in different languages, so nothing else
+        // compares them. A silent disagreement here is a viewer that starts in
+        // the mock world and looks entirely healthy doing it.
+        let gd = include_str!("../../godot/scripts/world_root.gd");
+        assert!(
+            gd.contains(&format!("\"{LIVE_FLAG}\"")),
+            "world_root.gd does not look for {LIVE_FLAG}"
+        );
+    }
+
+    #[test]
+    fn no_launch_argument_is_a_secret() {
+        // The module header's rule, asserted rather than promised: the port
+        // and token are files, and a mode flag is the only thing allowed here.
+        for arg in viewer_launch_args() {
+            assert!(
+                !arg.contains("token") && !arg.contains("port"),
+                "a credential reached argv: {arg}"
+            );
         }
     }
 

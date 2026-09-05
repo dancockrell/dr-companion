@@ -12,6 +12,15 @@ const MOCK_FIXTURE_PATH := "res://mock/crossing_mock_world.json"
 const MOCK_WORLD_ID := "crossing-mock"
 const MOCK_STARTING_ROOM := "1-14"  # Town Green North
 const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
+## The flag the host passes after `--`. Spelled identically in
+## `src-tauri/src/viewer.rs::LIVE_FLAG`, which has a test that reads this file
+## and compares them, because nothing else can: a disagreement between the two
+## is a viewer that comes up in the mock Crossing and looks perfectly healthy.
+const LIVE_FLAG := "--live-presentation"
+## Retry cadence for a live start that could not even open a socket. The
+## bridge's own reconnect timer only exists once a connection has been made, so
+## the case where DR Companion is not running yet has nothing else driving it.
+const LIVE_RETRY_SECONDS := 2.0
 
 @onready var camera: Camera3D = $CameraDirector
 @onready var cell_root: Node3D = $CellRoot
@@ -28,6 +37,10 @@ var _spawned_cells: Dictionary = {}
 var _active_detail_cells: Dictionary = {}
 var _visibility_policy := CellVisibilityPolicy.new()
 var _last_confirmed_room_id := ""
+## Built in code rather than in the scene: it exists only on the live path and
+## the scene file is shared content. Null until a live start is attempted.
+var _live_status: Label = null
+var _live_retry: Timer = null
 
 func _ready() -> void:
 	BridgeClient.snapshot_updated.connect(_on_snapshot_updated)
@@ -41,8 +54,15 @@ func _ready() -> void:
 	exit_root.exit_requested.connect(_on_exit_requested)
 
 	if _live_requested():
+		_build_live_status()
+		BridgeClient.live_connection_changed.connect(_on_live_connection_changed)
 		if not BridgeClient.start_live():
 			push_error("WorldRoot: live presentation bridge is unavailable")
+			# Returning here used to leave a black window with nothing in it and
+			# no way to tell a broken viewer from an app that simply is not
+			# running yet. Say which, and keep trying.
+			_show_live_status("Bridge unavailable — is DR Companion running?")
+			_begin_live_retry()
 		return
 
 	if not WorldManifestLoader.load_from_path(MOCK_FIXTURE_PATH):
@@ -151,6 +171,8 @@ func _exit_towards(from_room_id: String, target_cell_id: String) -> String:
 	return ""
 
 func _on_snapshot_updated(snapshot: Dictionary) -> void:
+	# Real state arrived, so whatever the banner last said is now untrue.
+	_show_live_status("")
 	var room_id: String = snapshot.get("currentRoomId", "")
 	if _spawned_cells.size() != WorldManifestLoader.cells.size() or (room_id != "" and not _spawned_cells.has(room_id)):
 		_prepare_all_cells()
@@ -165,7 +187,73 @@ func _on_snapshot_updated(snapshot: Dictionary) -> void:
 	_project_snapshot_tokens(snapshot)
 
 func _live_requested() -> bool:
-	return OS.get_cmdline_user_args().has("--live-presentation")
+	return OS.get_cmdline_user_args().has(LIVE_FLAG)
+
+func _build_live_status() -> void:
+	if _live_status != null:
+		return
+	var layer := CanvasLayer.new()
+	layer.name = "LiveStatus"
+	layer.layer = 100
+	_live_status = Label.new()
+	_live_status.name = "Message"
+	_live_status.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_live_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_live_status.offset_top = 24.0
+	_live_status.visible = false
+	layer.add_child(_live_status)
+	add_child(layer)
+
+## The one place the live banner's text is set. Hidden again by the first
+## snapshot, so the label can never outlive the condition it describes.
+func _show_live_status(message: String) -> void:
+	if _live_status == null:
+		return
+	_live_status.text = message
+	_live_status.visible = not message.is_empty()
+
+func _begin_live_retry() -> void:
+	if _live_retry != null:
+		return
+	_live_retry = Timer.new()
+	_live_retry.name = "LiveRetry"
+	_live_retry.wait_time = LIVE_RETRY_SECONDS
+	_live_retry.timeout.connect(_on_live_retry_timeout)
+	add_child(_live_retry)
+	_live_retry.start()
+
+func _on_live_retry_timeout() -> void:
+	# Once a socket is open BridgeClient owns the retrying, so stop competing
+	# with its backoff: this timer exists only for the never-connected case.
+	if BridgeClient.start_live():
+		_end_live_retry()
+
+func _end_live_retry() -> void:
+	if _live_retry == null:
+		return
+	_live_retry.stop()
+	_live_retry.queue_free()
+	_live_retry = null
+
+func _on_live_connection_changed(state: String) -> void:
+	match state:
+		"authenticated":
+			_end_live_retry()
+			_show_live_status("")
+		"connecting", "connected-awaiting-auth":
+			# A socket is open, so BridgeClient's own backoff takes over from
+			# the never-connected retry above.
+			_end_live_retry()
+			_show_live_status("Connecting to DR Companion…")
+		"configuration-unavailable", "configuration-invalid", "connection-failed":
+			_show_live_status("Bridge unavailable — is DR Companion running?")
+			_begin_live_retry()
+		_:
+			if state.begins_with("failed:"):
+				_show_live_status("Bridge unavailable — is DR Companion running?")
+				_begin_live_retry()
+			elif state.begins_with("reconnecting-"):
+				_show_live_status("Reconnecting to DR Companion…")
 
 func _project_snapshot_tokens(snapshot: Dictionary) -> void:
 	# The projection layer owns only visual, deterministic room-local slots.

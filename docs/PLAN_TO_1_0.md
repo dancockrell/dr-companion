@@ -552,7 +552,8 @@ in the chain (token/port files, auth, reconnect) is already written.
   verify: `ls -la godot/build/DRCompanionWorldViewer.exe` → size > 1 MB.
   pitfalls: 8.
 
-- [ ] **B2  The app launches the viewer live** (≈25)
+- [x] **B2  The app launches the viewer live** (≈25)
+  commit: (this PR) verified: 2026-09-05 minutes: 55
   touches: src-tauri/src/viewer.rs, godot/scripts/world_root.gd
   depends-on: B1
   do: `viewer.rs`: `Command::new(&exe).args(["--", "--live-presentation"])` — Godot user args follow `--`; a mode flag is not a credential, so update the module header from "nothing goes on the command line" to "no *secrets* go on the command line", keeping the reasoning about the token. `world_root.gd` `_ready()`: when live is requested and `start_live()` fails, do not silently `return` into an empty scene — set a visible label (the world_controls or inspector already has status text: `grep -n "status\|label" godot/scripts/world_controls.gd | head`) reading "Bridge unavailable — is DR Companion running?" and let `BridgeClient`'s reconnect timer keep trying. Mock stays a dev path reached only without the flag.
