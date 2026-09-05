@@ -17,8 +17,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { findRuby, notCheckedMessage } from './find-ruby.mjs'
+import { freePort } from './free-port.mjs'
 
-const PORT = 7894
+// Asked for at run time rather than fixed at 7894: several sessions run this
+// suite at once on this machine, and two copies wanting one port produced a
+// failure that read as a bridge bug. See tools/free-port.mjs.
+const PORT = await freePort()
 let fails = 0
 
 function check(label, ok, detail = '') {
