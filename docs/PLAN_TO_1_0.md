@@ -950,7 +950,7 @@ whether it is embedded, docked or a separate window is D0.
 
 - [~] **F8  Uninstall test on the CI artefact** (≈10)
   owner: lane-f claim: f8-uninstall-ci-artefact since: 2026-09-05
-  touches: .github/workflows/ci.yml, new:docs/verification/uninstall-2026-09-05.md, docs/verification/first-run-2026-09-05.md
+  touches: .github/workflows/ci.yml, src-tauri/installer-hooks.nsh, src-tauri/tauri.conf.json, tools/bundle-test.mjs, tools/vm-inventory.ps1, new:docs/verification/uninstall-2026-09-05.md, docs/verification/first-run-2026-09-05.md
   depends-on: E3, F1
   do: E3 again with the CI-built installer; append to the E2 doc.
   verify: appended.
