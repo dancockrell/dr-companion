@@ -120,5 +120,18 @@
   "test:game-time",
   "test:command-history",
   "test:editor-safety",
-  "test:godot-fixture-contract"
+  "test:godot-fixture-contract",
+  "test:geometric-briefs",
+  "test:primitive-world",
+  "test:node-projection",
+  "test:geometric-kit",
+  "test:primitive-registry",
+  "test:room-scene-patterns",
+  "test:portrait-art",
+  "test:dead-produced-values",
+  "test:panel-window-lifecycle",
+  "test:task-catalog-status",
+  "test:game-connection-owner",
+  "test:map-keyboard",
+  "test:sound-actions"
 ]
