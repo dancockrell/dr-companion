@@ -350,16 +350,160 @@ mod tests {
         assert_eq!(args[1], LIVE_FLAG);
     }
 
+    /// Answer, from the GDScript's own text, the only question that matters
+    /// here: **which literal does the script's command-line check actually
+    /// read?**
+    ///
+    /// Not "does this string appear in the file" - that was the old assertion,
+    /// and hoisting the literal into `const LIVE_FLAG` moved its sole
+    /// occurrence out of the use site, so the check went on passing over a
+    /// script that read something else entirely (issue #343).
+    ///
+    /// So: find the one call to `OS.get_cmdline_user_args()`, take the
+    /// argument the `.has(...)` beside it reads, and follow a
+    /// `const NAME := "value"` indirection when that argument is an
+    /// identifier. The site is located by *behaviour* rather than by function
+    /// name, so renaming `_live_requested` does not quietly disarm this.
+    ///
+    /// Returns `Err` with the reason whenever the question cannot be answered.
+    /// Three states, never two: matched, mismatched, and could-not-tell - and
+    /// the last is a red test, because a parser that no longer understands the
+    /// script has to say so rather than pass.
+    fn flag_the_gdscript_reads(gd: &str) -> Result<String, String> {
+        fn string_literal(s: &str) -> Option<&str> {
+            s.strip_prefix('"')?.split('"').next()
+        }
+
+        // File-scope `const NAME := "value"` / `const NAME = "value"`.
+        let mut consts: Vec<(&str, &str)> = Vec::new();
+        for line in gd.lines() {
+            let Some(rest) = line.trim_start().strip_prefix("const ") else {
+                continue;
+            };
+            let Some((name, value)) = rest.split_once('=') else {
+                continue;
+            };
+            if let Some(literal) = string_literal(value.trim()) {
+                consts.push((name.trim().trim_end_matches(':').trim(), literal));
+            }
+        }
+
+        let sites: Vec<&str> = gd
+            .lines()
+            .filter(|l| l.contains("get_cmdline_user_args"))
+            .collect();
+        let [site] = sites.as_slice() else {
+            return Err(format!(
+                "expected exactly one call to get_cmdline_user_args in world_root.gd, \
+                 found {}: {sites:?}",
+                sites.len()
+            ));
+        };
+
+        let after = site
+            .split_once("get_cmdline_user_args")
+            .map(|(_, rest)| rest)
+            .unwrap_or_default();
+        let Some(arg) = after
+            .split_once(".has(")
+            .and_then(|(_, rest)| rest.split_once(')'))
+            .map(|(arg, _)| arg.trim())
+            .filter(|arg| !arg.is_empty())
+        else {
+            return Err(format!(
+                "the command-line call is not the `.has(<flag>)` shape this parser \
+                 reads: {}",
+                site.trim()
+            ));
+        };
+
+        if let Some(literal) = string_literal(arg) {
+            return Ok(literal.to_string());
+        }
+
+        consts
+            .iter()
+            .find(|(name, _)| *name == arg)
+            .map(|(_, value)| value.to_string())
+            .ok_or_else(|| {
+                format!(
+                    "the check reads `{arg}`, which is neither a string literal nor a \
+                     file-scope string const in world_root.gd (consts seen: {:?})",
+                    consts.iter().map(|(n, _)| *n).collect::<Vec<_>>()
+                )
+            })
+    }
+
     #[test]
-    fn the_live_flag_is_spelled_the_way_the_gdscript_reads_it() {
+    fn the_flag_rust_passes_is_the_flag_the_gdscript_reads() {
         // The two ends of this are in different languages, so nothing else
         // compares them. A silent disagreement here is a viewer that starts in
         // the mock world and looks entirely healthy doing it.
         let gd = include_str!("../../godot/scripts/world_root.gd");
-        assert!(
-            gd.contains(&format!("\"{LIVE_FLAG}\"")),
-            "world_root.gd does not look for {LIVE_FLAG}"
+        let read = flag_the_gdscript_reads(gd)
+            .unwrap_or_else(|why| panic!("cannot tell what world_root.gd reads: {why}"));
+        assert_eq!(
+            read, LIVE_FLAG,
+            "world_root.gd's command-line check reads {read:?}, but this module \
+             launches the viewer with {LIVE_FLAG:?} - the viewer would boot into the \
+             mock world"
         );
+    }
+
+    #[test]
+    fn the_gdscript_reader_reports_the_use_site_not_the_declaration() {
+        // Issue #343's own sabotage, kept as a case: the const still declares
+        // the real flag and the check reads a different one. The old assertion
+        // passed on exactly this.
+        let sabotaged = concat!(
+            "const LIVE_FLAG := \"--live-presentation\"\n",
+            "func _live_requested() -> bool:\n",
+            "\treturn OS.get_cmdline_user_args().has(\"--live\")\n"
+        );
+        assert_eq!(flag_the_gdscript_reads(sabotaged).unwrap(), "--live");
+
+        // Positive control on the same parser: the shape the repo actually
+        // ships must resolve through the const to the real flag.
+        let honest = concat!(
+            "const LIVE_FLAG := \"--live-presentation\"\n",
+            "func _live_requested() -> bool:\n",
+            "\treturn OS.get_cmdline_user_args().has(LIVE_FLAG)\n"
+        );
+        assert_eq!(
+            flag_the_gdscript_reads(honest).unwrap(),
+            "--live-presentation"
+        );
+    }
+
+    #[test]
+    fn the_gdscript_reader_refuses_rather_than_guesses() {
+        // A parser that cannot find its answer must fail, not return a
+        // plausible one. Each case names what went wrong.
+        let cases = [
+            (
+                "no command-line check at all",
+                "const LIVE_FLAG := \"--live-presentation\"\n",
+            ),
+            (
+                "two checks, so `the` flag is not well defined",
+                "func a():\n\treturn OS.get_cmdline_user_args().has(\"--x\")\n\
+                 func b():\n\treturn OS.get_cmdline_user_args().has(\"--y\")\n",
+            ),
+            (
+                "an identifier with no const behind it",
+                "func a():\n\treturn OS.get_cmdline_user_args().has(MISSING)\n",
+            ),
+            (
+                "not the .has() shape",
+                "func a():\n\treturn OS.get_cmdline_user_args().size() > 0\n",
+            ),
+        ];
+        for (why, gd) in cases {
+            assert!(
+                flag_the_gdscript_reads(gd).is_err(),
+                "{why}: the reader returned an answer it could not have known"
+            );
+        }
     }
 
     #[test]
