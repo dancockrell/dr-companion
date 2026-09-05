@@ -3,6 +3,7 @@
   "test:presentation-bridge",
   "test:presentation-intents",
   "test:crossing-build-list",
+  "test:plan",
   "test:panel-data-contracts",
   "test:safety",
   "test:flow-stop",
