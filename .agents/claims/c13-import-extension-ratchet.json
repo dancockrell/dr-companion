@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "task_id": "c13-import-extension-ratchet",
+  "agent": "claude-code",
+  "summary": "Enforce trap 1 with a check: a relative import Node must resolve needs a file extension, and a relative .json import needs its attributes",
+  "status": "completed",
+  "claimed_at": "2026-09-05T18:00:00Z",
+  "updated_at": "2026-09-05T18:00:00Z",
+  "paths": [
+    "tools/import-extension-test.mjs",
+    "tools/import-extension-allowlist.json",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/c13-import-extension-ratchet.json"
+  ],
+  "symbols": [
+    "specifiersIn",
+    "resolveSpecifier",
+    "fixedSpecifier"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Trap 1 in docs/PLAN_TO_1_0.md, enforced by nothing until now. I grepped tools/ for an existing owner before writing anything: no tool parses module specifiers, and the nearest relative, tools/color-token-test.mjs, ratchets colour literals in components and knows nothing about imports. This extends that tool's shape - a shrinking allowlist keyed on content rather than line number, for the reason its own header gives - rather than copying its code. The rewrite half is the same tool's --fix mode, not a sibling codemod, so there is one owner for the question 'what is a resolvable specifier here'. Registration touches package.json and tools/test-suites.json, which the conflict matrix says everyone adding a test appends to; keep both sides on conflict.",
+    "decisions": [
+      "Type-only imports are exempt rather than fixed for consistency. Node erases the import type declaration entirely, so no extension can matter, and the 124 of them sit in files six lanes are editing at once - real rebase cost against no defect.",
+      "The inline form import { type X } from './y' is NOT exempt. tsconfig.app.json sets verbatimModuleSyntax and node v24.19.0 agrees: the statement survives stripping and is resolved. Measured, not assumed.",
+      "Scope is all of src/, .tsx included. Only Vite loads .tsx today so the failure does not exist there yet; it exists the first day a test imports a component, and the fix is cheaper now than at 527 specifiers.",
+      "Check first with everything allowlisted, rewrite second (C14). Six lanes are landing concurrently and a 171-file diff would sit unmerged; this way the class stops growing the hour it merges."
+    ]
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "node tools/import-extension-test.mjs: 307 files, 927 relative specifiers, 703 unresolvable-by-node, 701 allowlisted; all passed; exit 0",
+      "node tools/run-tests.mjs: all passed, test:import-extensions listed",
+      "npx tsc -b: exit 0",
+      "node tools/plan-audit.mjs: plan ok",
+      "sabotage - './storage.ts' to './storage' in src/lib/aiEventJournal.ts: FAIL src/lib/aiEventJournal.ts:35 imports './storage' with no file extension, exit 1; restored, md5 c532194d801a282bfc6361dd2ead6546 matches",
+      "negative control - extensionless import type: exit 0, 0 FAIL lines",
+      "negative control - a package import plus an already-correct specifier added to a real file: exit 0, 0 FAIL lines",
+      "positive control on the subtle form - extensionless import { type X }: exit 1, FAIL src/lib/aiEventJournal.ts:3",
+      "negative control - stale allowlist entry: FAIL allowlist entry src/lib/nothing.ts -> './gone' no longer matches anything; remove it",
+      "unhappy branch - DRC_IMPORT_EXT_ALLOWLIST at a missing file: NOT CHECKED, exit 1, not a pass",
+      "unhappy branch - DRC_IMPORT_EXT_ROOT=tools: only 10 file(s) and 13 relative specifier(s) examined (floor 120/600), exit 1"
+    ]
+  }
+}

@@ -23,6 +23,7 @@
   "test:macroguard",
   "test:gamelines",
   "test:color-tokens",
+  "test:import-extensions",
   "test:escapes",
   "test:subscribe",
   "test:cdp-timeout",
