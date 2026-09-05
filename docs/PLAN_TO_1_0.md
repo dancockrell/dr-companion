@@ -281,12 +281,13 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
-| F | F8 | `lane-f/f8-uninstall` | `dev/wt-f8` | 5 Sep 2026 |
 | G | G11 | `lane-g/g11-confirmation-gate` | `dev/wt-g11` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
-F2, F6, PRs #293 and #295; then C12, F7 and F8 in PR #315, which emptied the
-UNWIRED backlog C6 opened), **I** (I1–I11, PRs #303 and #300) and **L**
+F2, F6, PRs #293 and #295; then C12 and F7 in PR #315, which emptied the
+UNWIRED backlog C6 opened — that PR's *title* also names F8, but F8 was not
+done there and stayed `[!]` until 5 Sep 2026), **I** (I1–I11, PRs #303 and
+#300) and **L**
 (L1–L5, PRs #305 and this one; L6 is `[!]`, blocked on four acceptance lines
 that need a live character and one human click, neither of which is a code
 change), and **K** (K1–K5, PRs #313 and this one; K6 is `[!]` on a content
@@ -948,13 +949,16 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: both branches, since a skip that cannot become a check is not a skip. Point `VIEWER_SRC` at `Sabotaged.exe` → `FAIL the exported viewer is a bundled resource: no entry in the release config` plus `FAIL and it is bundled to the viewer/ folder…: undefined`; rename `dir.join("viewer")` in `viewer.rs` → `FAIL the release config can be derived at all: Error: viewer.rs does not look for the viewer under a "viewer" folder…`. Restored, md5 `38cc398ffe46` and `20f85970347e` either side.
   pitfalls: the checked branch was exercised with a one-byte placeholder at `godot/build/DRCompanionWorldViewer.exe` (gitignored), because the real export needs the private `shared-assets` submodule. That proves the branch runs and can go red; it does not prove a real installer works, which is F8's and F9's job.
 
-- [~] **F8  Uninstall test on the CI artefact** (≈10)
-  owner: lane-f claim: f8-uninstall-ci-artefact since: 2026-09-05
-  touches: .github/workflows/ci.yml, new:docs/verification/uninstall-2026-09-05.md, docs/verification/first-run-2026-09-05.md
+- [x] **F8  Uninstall test on the CI artefact** (≈10)
+  commit: (this PR, with #338) verified: 2026-09-05 minutes: 190
+  touches: .github/workflows/ci.yml, new:src-tauri/installer-hooks.nsh, src-tauri/tauri.conf.json, tools/bundle-test.mjs, new:tools/vm-inventory.ps1, new:docs/verification/uninstall-2026-09-05.md, docs/verification/first-run-2026-09-05.md
   depends-on: E3, F1
   do: E3 again with the CI-built installer; append to the E2 doc.
-  verify: appended.
-  finding-before-starting: **the `tauri` job built an installer and threw it away.** `gh api repos/dancockrell/dr-companion/actions/runs/33972082431/artifacts --jq '.artifacts[]'` printed nothing on a run whose `tauri` job is `success`, and `ci.yml` had no `upload-artifact` step — the phrase "the CI artefact" named something that did not exist for the whole life of this increment. The first commit of this lane adds the upload, which is also what F9 and any future installer test need.
+  blocked-on-that-turned-out-to-be-stale: E3 merged in PR #335 this morning. The real blocker was one nobody had named: **there was no CI artefact.** `ci.yml`'s `tauri` job ran `tauri build` and ended, so a 217 MB installer was built on every push to `main` and thrown away with the runner — `gh api .../actions/runs/33972082431/artifacts` returns `0` on a run whose `tauri` job says `success`. The phrase "the CI artefact", which this increment and F9 are both written against, named something that had never existed. PR #338 adds the upload plus a step that refuses unless exactly one `*-setup.exe` is present and prints its sha256 to the run summary.
+  result: `docs/verification/uninstall-2026-09-05.md`, and it is a separate document rather than an append to the E2 one, which is what `do:` asked for — that document is E2/E3/E10's walkthrough and this is four uninstall runs across two builds; folding them together would have buried both. The E2 document is edited in one place, to point here and to close the open question its own reviewer left about `inv.ps1` never having been committed. **The finding: neither uninstall path removed the two loopback bearer tokens.** `%LOCALAPPDATA%\DR Companion Data` survived byte-identical — `files=5 bytes=68583698` before and after — on the default *and* with "Delete the application data" ticked, which E3 had not exercised. Ticking the box removes the WebView2 profile, the actual user data, and leaves two 64-character credentials for loopback sockets. Cause read out of the generated `installer.nsi`, not inferred: the checkbox reaches `$APPDATA\${BUNDLEID}` and `$LOCALAPPDATA\${BUNDLEID}` and nothing else, while `app_data_dir()` deliberately lives outside both so an uninstall can never take a Lich tree with it. Issue #352. Fixed here in `src-tauri/installer-hooks.nsh` and re-verified on a second CI build: credentials gone on both paths, `DR Companion Data` gone entirely on the ticked one, `portraits\`/`lich\`/`genie\` never at risk because the final `RMDir` is not recursive. The program half was clean on every run and matches E3 exactly. Five defects from E2/E10 were re-checked against the CI build and all five reproduce; Defect 5's identifier turns out to be a music track title, which narrows it to the sound player.
+  verify: four inventories from `tools/vm-inventory.ps1`, printed in full in the document, each opening with a control probe that aborts the script if `%LOCALAPPDATA%\Microsoft` is missing, and carrying denominators (`1 of 6 uninstall entries read`, `2 of 47 .lnk files seen`) that fall to `0 of 5` and `0 of 45` across an uninstall. A fifth, on the restored `clean` snapshot before anything was installed, is the control that the script can say ABSENT correctly: `probes=15 present=1 absent=14`, the one present being the control probe. Chain of custody on both installers: CI's own sha256, `sha256sum` on the host after `gh run download`, and `Get-FileHash` inside the guest, all three equal.
+  sabotage: five, on the guard in `tools/bundle-test.mjs`, each reddening its own named check and no other — rename the data folder in `setup.rs` (`and the hook deletes from that same folder (DR Companion Store)`), drop one `Delete` line (`the uninstall hook deletes script-api.token`), rename the Rust constant so the reader finds three of four (`all four bridge credential filenames were read out of the Rust: 3 of 4`), add a recursive delete of the data folder (`and it never recursively deletes the data folder itself`), unwire `installerHooks` (`tauri.conf.json wires an installer hook file`). A sixth aborted itself rather than reporting a pass, because its pattern no longer matched the file. All three damaged files restored byte-identical by md5.
+  pitfalls: `VBoxManage startvm --type gui` did not work on this host — two `VirtualBoxVM.exe` per attempt, a `GUI/Qt` session lock on a machine still reporting `poweroff`, and every retry adding two more. `--type headless` started it first time. `controlvm screenshotpng` returned a stale 1024x768 frame of an empty desktop while the guest reported 1440x900 and `GetWindowRect` listed a window that frame did not contain; capture from inside the guest instead. And `guestcontrol run` both exits non-zero having done the work and occasionally starts nothing at all, so the runner deletes its output file in the guest first and asserts it exists afterwards — without that it hands back the previous task's output, which reads as a result and did produce two identical screenshots of a page the installer had already left.
 
 - [ ] **F9  `v1.0.0-beta.1`** (≈20)
   touches: none

@@ -230,6 +230,102 @@ if (generated) {
 if (scratch) rmSync(scratch, { recursive: true, force: true })
 
 console.log('')
+console.log('-- the uninstaller cleanup hook, and the paths it deletes --')
+
+// F8 found that neither uninstall path removed the two loopback bearer tokens:
+// Tauri's "Delete the application data" checkbox only reaches
+// `$LOCALAPPDATA\<bundle id>`, and this app deliberately keeps its runtime
+// files somewhere else. src-tauri/installer-hooks.nsh closes that, and the
+// closing depends on a folder name and four file names being spelled the same
+// in NSIS as they are in Rust.
+//
+// That is two files answering one question, so it is checked rather than
+// commented. The failure it prevents is silent in the worst way: if setup.rs
+// renames the folder, the hook goes on deleting a path nobody writes to any
+// more and the uninstaller keeps reporting success while leaving live
+// credentials on disk.
+//
+// Backslashes are stripped from the hook text before matching, and never typed
+// here: a path separator that has to survive JS escaping and a regex is two
+// chances to write a check that silently matches nothing.
+const HOOKS_NSH = 'src-tauri/installer-hooks.nsh'
+const TAURI_CONF = 'src-tauri/tauri.conf.json'
+
+const conf = JSON.parse(readFileSync(TAURI_CONF, 'utf8'))
+const hookPath = conf?.bundle?.windows?.nsis?.installerHooks
+check(
+  'tauri.conf.json wires an installer hook file',
+  hookPath === 'installer-hooks.nsh',
+  hookPath ?? 'bundle.windows.nsis.installerHooks is unset, so nothing below runs at uninstall time',
+)
+check(`and ${HOOKS_NSH} exists`, existsSync(HOOKS_NSH))
+
+if (existsSync(HOOKS_NSH)) {
+  const nsh = readFileSync(HOOKS_NSH, 'utf8').split(String.fromCharCode(92)).join('/')
+  const setupRs = readFileSync('src-tauri/src/setup.rs', 'utf8')
+
+  // The folder, taken from the Rust that builds it rather than restated here.
+  const folder = /\.join\("(DR Companion[^"]*)"\)/.exec(setupRs)?.[1]
+  check(
+    'setup.rs still names an app data folder the hook can be checked against',
+    Boolean(folder),
+    folder ?? 'no .join("DR Companion...") found in setup.rs',
+  )
+  if (folder) {
+    const sameFolder = nsh.includes(`$LOCALAPPDATA/${folder}/`)
+    check(
+      `and the hook deletes from that same folder (${folder})`,
+      sameFolder,
+      // Only on failure: a detail printed beside OK reads as a finding.
+      sameFolder
+        ? ''
+        : nsh.includes('$LOCALAPPDATA/')
+          ? 'the hook names a different folder'
+          : 'the hook names no LOCALAPPDATA path',
+    )
+  }
+
+  // The four credential files, each read out of the Rust module that writes it.
+  const credentials = [
+    ['src-tauri/src/presentation_bridge.rs', 'TOKEN_FILE'],
+    ['src-tauri/src/presentation_bridge.rs', 'PORT_FILE'],
+    ['src-tauri/src/script_api.rs', 'TOKEN_FILE'],
+    ['src-tauri/src/script_api.rs', 'PORT_FILE'],
+  ].map(([file, name]) => {
+    const source = readFileSync(file, 'utf8')
+    const value = new RegExp(`const ${name}: &str = "([^"]+)"`).exec(source)?.[1]
+    return { file, name, value }
+  })
+
+  // The denominator, and it is the number that goes to zero when the mechanism
+  // breaks: if these regexes stop matching, every check below would pass
+  // vacuously against `undefined`.
+  const found = credentials.filter((c) => c.value).length
+  check(
+    'all four bridge credential filenames were read out of the Rust',
+    found === 4,
+    `${found} of 4 - ` +
+      credentials.map((c) => `${c.name}@${c.file.split('/').pop()}=${c.value ?? 'NOT FOUND'}`).join(', '),
+  )
+  if (found === 4) {
+    for (const { value } of credentials) {
+      check(`the uninstall hook deletes ${value}`, nsh.includes(`/${value}"`))
+    }
+  }
+
+  // The one thing it must never do. `DR Companion Data` can hold the player's
+  // own portraits and whole Lich and Genie installs (custom_portraits.rs:21,
+  // setup.rs:406 and :796), which is the entire reason app_data_dir() is not
+  // the install directory in the first place.
+  const recursive = new RegExp(`RMDir\\s+/r\\s+"\\$LOCALAPPDATA/${folder ?? 'DR Companion Data'}"`, 'i')
+  check(
+    'and it never recursively deletes the data folder itself',
+    !recursive.test(nsh),
+    recursive.test(nsh) ? "RMDir /r there takes the user's portraits, Lich and Genie with it" : '',
+  )
+}
+
+console.log('')
 if (fails > 0) console.log(`${fails} FAILED`)
 else console.log('all passed')
 process.exit(fails === 0 ? 0 : 1)

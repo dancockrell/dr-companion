@@ -44,7 +44,8 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "displayLanguageSelector": false
+        "displayLanguageSelector": false,
+        "installerHooks": "installer-hooks.nsh"
       }
     },
     "shortDescription": "DragonRealms desktop client, built on Lich 5",
