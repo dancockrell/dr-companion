@@ -41,6 +41,15 @@ import {
   pixelsForSizeShare,
   sizeShareForPixels,
   storedSizeShare,
+  frameFits,
+  SIDE_LEFT_W,
+  SIDE_RIGHT_W,
+  BOARD_MIN_W,
+  CONSOLE_H,
+  TOPBAR_H,
+  FRAME_MIN_W,
+  FRAME_MIN_H,
+  FRAME_CHROME_W,
 } from '../src/lib/columns.ts'
 
 let pass = 0
@@ -357,6 +366,78 @@ console.log('\n-- pickReset: window too narrow even for all three defaults - sti
     plan.room === DEFAULT_ROOM_W && plan.map === DEFAULT_MAP_W && plan.dash === DEFAULT_DASH_W,
     JSON.stringify(plan)
   )
+}
+
+console.log('-- the approved frame: the mockup numbers, and what collapses first --')
+{
+  // The constants are a transcription, so the check that matters most is not
+  // arithmetic about them - it is that they still say what the mockup says.
+  // Read the mockup's CSS and require each number to appear in the
+  // declaration it was copied from, so editing the mockup without editing
+  // these (or the reverse) fails here rather than months later on a screen.
+  const mockup = readFileSync(
+    new URL('../docs/mockups/dr-companion-isometric-mvp.html', import.meta.url),
+    'utf8',
+  )
+  const tracks = `${SIDE_LEFT_W}px minmax(${BOARD_MIN_W}px, 1fr) ${SIDE_RIGHT_W}px`
+  ok(
+    'the workspace track list is the mockup’s',
+    mockup.includes(`grid-template-columns: ${tracks}`),
+    tracks,
+  )
+  ok(
+    'the app row list is the mockup’s',
+    mockup.includes(`grid-template-rows: ${TOPBAR_H}px minmax(0, 1fr) ${CONSOLE_H}px`),
+  )
+  ok('the frame width floor is the mockup’s', mockup.includes(`min-width: ${FRAME_MIN_W}px`))
+  ok('the frame height floor is the mockup’s', mockup.includes(`min-height: ${FRAME_MIN_H}px`))
+  ok('the chrome allowance is derived, not typed', FRAME_CHROME_W === 22, String(FRAME_CHROME_W))
+
+  const laptop = frameFits(1366, 768)
+  ok('1366x768 fits the frame', laptop.fits === true, JSON.stringify(laptop.mustCollapse))
+  ok('1366x768 collapses nothing', laptop.mustCollapse.length === 0)
+  ok('1366x768 gives the board every spare pixel', laptop.boardW === 866, String(laptop.boardW))
+  ok('a window that fits is short by nothing', laptop.shortW === 0 && laptop.shortH === 0)
+
+  const narrow = frameFits(1100, 768)
+  ok('1100x768 does not fit', narrow.fits === false)
+  ok(
+    'the right side collapses first',
+    narrow.mustCollapse[0] === 'right',
+    JSON.stringify(narrow.mustCollapse),
+  )
+  ok('the left side survives at 1100', !narrow.mustCollapse.includes('left'))
+  ok('the shortfall is measured, not merely flagged', narrow.shortW === 20, String(narrow.shortW))
+  ok(
+    'the board keeps the width the collapsed rail freed',
+    narrow.boardW === 1100 - FRAME_CHROME_W - SIDE_LEFT_W,
+    String(narrow.boardW),
+  )
+
+  // Exactly at the minimum is the boundary the whole constant exists to
+  // define, and an off-by-one here is the difference between the shipped
+  // default fitting on first run and showing a collapsed rail on it.
+  const exact = frameFits(FRAME_MIN_W, FRAME_MIN_H)
+  ok('the frame minimum itself fits', exact.fits === true)
+  ok('the frame minimum collapses nothing', exact.mustCollapse.length === 0)
+  ok('at the minimum the board is exactly its floor', exact.boardW === BOARD_MIN_W, String(exact.boardW))
+  ok('one pixel under the minimum does not fit', frameFits(FRAME_MIN_W - 1, FRAME_MIN_H).fits === false)
+
+  const tiny = frameFits(800, 600)
+  ok(
+    'both rails collapse on a very narrow window',
+    tiny.mustCollapse.join(',') === 'right,left',
+    tiny.mustCollapse.join(','),
+  )
+  ok('the board never reports less than its floor', tiny.boardW >= BOARD_MIN_W, String(tiny.boardW))
+
+  // Height is the half a width-only check would silently drop. A window wide
+  // enough and too short must still report not-fitting, or "fits" means
+  // "fits horizontally" and nobody reading it knows that.
+  const short = frameFits(1920, 600)
+  ok('a wide but short window does not fit', short.fits === false)
+  ok('shortness collapses no column', short.mustCollapse.length === 0)
+  ok('the height shortfall is reported', short.shortH === FRAME_MIN_H - 600, String(short.shortH))
 }
 
 // The denominator, printed whether or not anything failed: a suite that
