@@ -3,6 +3,8 @@ import { FolderOpen, Play, RefreshCw } from 'lucide-react'
 import {
   launchViewer,
   presentationBridgeInfo,
+  viewerExitNote,
+  viewerStateLabel,
   viewerStatus,
   type PresentationBridgeInfo,
   type ViewerStatus,
@@ -54,6 +56,8 @@ export function PresentationBridgePanel() {
       .finally(check)
   }
 
+  const exitNote = viewerExitNote(viewer)
+
   if (!isTauri()) {
     return (
       <p className="text-xs text-ink-faint">
@@ -94,19 +98,18 @@ export function PresentationBridgePanel() {
       <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
         <span className="text-xs text-ink-faint">World viewer</span>
         <span className="text-xs text-ink">
-          {viewer === null
-            ? checking
-              ? 'checking…'
-              : '—'
-            : !viewer.installed
-              ? 'not built yet'
-              : !viewer.runningKnown
-                ? 'installed, cannot tell if open'
-                : viewer.running
-                  ? 'open'
-                  : 'ready'}
+          {viewerStateLabel(viewer, checking)}
         </span>
       </div>
+
+      {/* A viewer that crashed and a viewer nobody opened both read as "ready"
+          without this, and the difference is the whole question when somebody
+          says the window vanished. */}
+      {exitNote && (
+        <p className="text-xs text-ink-muted leading-snug" role="status">
+          {exitNote}
+        </p>
+      )}
 
       {viewer?.path && (
         <p className="truncate text-xs text-ink-faint" title={viewer.path}>
@@ -122,7 +125,7 @@ export function PresentationBridgePanel() {
           disabled={!viewer?.installed || (viewer?.runningKnown && viewer.running)}
         >
           <Play className="h-3 w-3" />
-          Open viewer
+          {exitNote ? 'Relaunch viewer' : 'Open viewer'}
         </button>
         <button
           type="button"

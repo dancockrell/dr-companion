@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "task_id": "b7-reconnect-contract",
+  "agent": "claude-code",
+  "summary": "Exercise the reconnect contract and record which half this machine could actually reach",
+  "status": "completed",
+  "claimed_at": "2026-09-05T08:30:00Z",
+  "updated_at": "2026-09-05T08:50:00Z",
+  "paths": ["docs/PLAN_TO_1_0.md"],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["b3-record-the-proof"],
+    "conflicts_with": [],
+    "notes": "Appended to the existing B3 record rather than starting a second verification file, so there is one account of this chain rather than two that will disagree."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "Godot half, proven: viewer opened from Settings (pid 36204), killed by that pid, relaunched (pid 35100, a new process), and its window again read Empaths' Guild / 1-308. A watching client's whole log across the episode was three lines ending 'snapshot sequence 5 room 1-308', so nothing new was published and the room on screen came from the held snapshot handed over at auth.",
+      "a second client connecting minutes after the publish also received sequence 5 on auth, which is the same contract from the other side",
+      "Lich half, NOT reached: Detach then Attach produced 'client detached' / 'client attached' in the fixture and game_status connected with 16 lines, and no snapshot reached the bridge. justReconnected follows bridgeConnected, which is the companion-bridge plugin socket on 7415, not the game socket Attach opens - tools/fake-lich.mjs provides only the latter, so the forced-publish path could not have fired whatever happened. Recorded as unexercised rather than as a pass or a defect: the room did not change, so deduplication was also correct."
+    ]
+  }
+}

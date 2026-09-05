@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task_id": "b6-viewer-crash-visible",
+  "agent": "claude-code",
+  "summary": "Report the viewer's exit code and say so in the bridge panel, with a Relaunch button",
+  "status": "completed",
+  "claimed_at": "2026-09-05T08:00:00Z",
+  "updated_at": "2026-09-05T08:25:00Z",
+  "paths": [
+    "src-tauri/src/viewer.rs",
+    "src/lib/viewerClient.ts",
+    "src/components/shared/PresentationBridgePanel.tsx",
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": [
+    "ViewerStatus.exit_code",
+    "viewerExitNote",
+    "PresentationBridgePanel"
+  ],
+  "coordination": {
+    "depends_on": [
+      "b5-app-exit-closes-viewer"
+    ],
+    "conflicts_with": [],
+    "notes": "Originally written against src/lib/presentationBridge.ts, which the conflict matrix reserved for C4. C4 (PR #296) landed while this branch was in review and moved ViewerStatus into the new src/lib/viewerClient.ts, so the rebase conflict was resolved by moving these additions there rather than keeping a copy in either file - the clean move the earlier note predicted. viewerClient.ts is now the only place ViewerStatus and its decisions live."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "cargo test --lib -> 116 passed, including that Held::None, Held::Running and Held::Unknown all produce no exit code",
+      "npx tsc -b exit 0",
+      "in the running app: Open viewer, then Stop-Process -Id 8284 -Force (the pid this app launched), then Recheck in the viewer panel -> 'World viewer / exited / The viewer exited (code -1).' and the button now reads 'Relaunch viewer'",
+      "viewer_status over the Tauri bridge at the same moment: {\"running\":false,\"runningKnown\":true,\"exitCode\":-1}",
+      "found while verifying: the Script API panel beside this one also has a Recheck button, so a first attempt clicked the wrong panel's and read a stale line. The check was redone against the button inside the viewer panel's own row."
+    ]
+  }
+}

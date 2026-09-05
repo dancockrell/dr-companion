@@ -35,6 +35,11 @@ export type ViewerStatus = {
   path: string | null
   running: boolean
   runningKnown: boolean
+  /** The exit status of the viewer this app started, once it has one. Null
+   * when none was launched this session or one is still running, so it is
+   * only meaningful beside `running` - `viewerExitNote` is the one place that
+   * reads the pair. */
+  exitCode: number | null
 }
 
 export async function viewerStatus(): Promise<ViewerStatus> {
@@ -44,7 +49,44 @@ export async function viewerStatus(): Promise<ViewerStatus> {
     path: raw?.path ?? null,
     running: raw?.running ?? false,
     runningKnown: raw?.runningKnown ?? false,
+    // ?? not ||, because 0 is the ordinary exit code of a viewer somebody
+    // closed themselves and is exactly the case worth telling apart.
+    exitCode: raw?.exitCode ?? null,
   }
+}
+
+/**
+ * The one word the bridge panel shows for the viewer's state.
+ *
+ * Pure and here rather than as a ternary inside the component, because the
+ * interesting cases are the ones nothing renders in a browser preview: no
+ * viewer built, and a process list that could not be read. Both used to be
+ * unreachable from any test, and "cannot tell" collapsing into "ready" is
+ * exactly the confusion this three-state contract exists to prevent.
+ */
+export function viewerStateLabel(status: ViewerStatus | null, checking: boolean): string {
+  if (!status) return checking ? 'checking…' : '—'
+  if (!status.installed) return 'not built yet'
+  if (status.running) return 'open'
+  if (viewerExitNote(status)) return 'exited'
+  if (!status.runningKnown) return 'installed, cannot tell if open'
+  return 'ready'
+}
+
+/**
+ * What to say about a viewer that is no longer running, or null when there is
+ * nothing to say.
+ *
+ * Pure, and kept out of the panel, because the interesting part is which
+ * combinations mean nothing: a null code is "never launched, or still up",
+ * and saying "exited" over either of those is worse than saying nothing at
+ * all.
+ */
+export function viewerExitNote(status: ViewerStatus | null): string | null {
+  if (!status || status.running || status.exitCode === null) return null
+  return status.exitCode === 0
+    ? 'The viewer was closed.'
+    : `The viewer exited (code ${status.exitCode}).`
 }
 
 /** Starts the viewer. Rejects with a readable reason when there is nothing to

@@ -100,6 +100,7 @@
   "test:yaml",
   "test:server",
   "test:live",
+  "test:viewer-absent",
   "test:map",
   "test:map-walk",
   "test:map-nearest",
