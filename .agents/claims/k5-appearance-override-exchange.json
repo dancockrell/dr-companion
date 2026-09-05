@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "task_id": "k5-appearance-override-exchange",
+  "agent": "claude-code",
+  "summary": "K5 - export, import and merge for the appearance override store, with the local player's own choice always winning and conflicts returned rather than resolved",
+  "status": "done",
+  "claimed_at": "2026-09-05T21:55:00Z",
+  "updated_at": "2026-09-05T22:30:00Z",
+  "paths": [
+    "src/lib/appearance.ts",
+    "tools/appearance-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/k5-appearance-override-exchange.json"
+  ],
+  "symbols": [
+    "exportAppearanceOverrides",
+    "importAppearanceOverrides",
+    "AppearanceExport",
+    "AppearanceImportResult"
+  ],
+  "coordination": {
+    "depends_on": ["K3"],
+    "conflicts_with": [],
+    "notes": "Added to K3's src/lib/appearance.ts rather than beside it. A separate importer module would have needed its own copy of REGISTRY_IDS and its own view of the store's key, and two things answering 'is this id admitted' will drift. Registered in both package.json and tools/test-suites.json."
+  },
+  "evidence": {
+    "the_rule": "Import never overwrites. A disagreement is returned in `conflicts` naming both sides, so a person settles it; an unknown id is counted in `ignoredUnknownIds` rather than dropped in silence, because a file that imports 'successfully' while a third of it vanished is a loss discovered months later. Identical choices are neither added nor a conflict - there is nothing to decide.",
+    "the_stand_in_store": "storage.ts reads localStorage, which Node lacks, and returns its fallback on the ReferenceError. Correct behaviour, and it would have made every write in this suite a silent no-op passing for the wrong reason. The suite stands up a Map-backed localStorage and its first block is a control proving a write reaches the store and reads back, before any behaviour is asserted."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "verify: node tools/appearance-test.mjs -> 27 checked, 0 failed, all passed",
+      "verify, the merge rule: 'OK THE RULE: the local choice is untouched, not silently overwritten  dr.shared.kenney-nature.wood-narrow-bridge'; 'OK a disagreement is returned as a conflict  [{\"itemId\":\"bastard-sword\",\"mine\":\"...wood-narrow-bridge\",\"theirs\":\"...weathered-stone.scatter\"}]'",
+      "verify, unknown ids: 'OK an id this build does not admit is not stored'; 'OK ...it is counted, so a file that half-vanished says so  2'; 'OK the usable entry still lands - one bad row does not discard the good ones'",
+      "verify, idempotence: re-importing the same file adds nothing and still reports the one genuine disagreement",
+      "sabotage (let import overwrite: apply `theirs` and count it as added in the conflict branch) -> exit 1, 4 red and exactly the right 4: 'FAIL an item the local player had not chosen is taken  2', 'FAIL THE RULE: the local choice is untouched, not silently overwritten  dr.shared.tabletop-weathered-stone.scatter', 'FAIL ...and the resolver still reports the local choice', 'FAIL ...and still reports the one genuine disagreement'",
+      "restore: md5sum -c -> src/lib/appearance.ts: OK (7618a7a2e631fd132bb6894e6bfd8b60)",
+      "npx tsc -b -> exit 0",
+      "node tools/run-tests.mjs -> all passed",
+      "node tools/plan-audit.mjs -> plan ok"
+    ]
+  }
+}

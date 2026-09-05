@@ -170,6 +170,91 @@ export function appearanceClasses(kind: AppearanceKind): string[] {
 }
 
 /**
+ * One player's exported choices.
+ *
+ * `provenance` is always `'player'` on export and is not read back on import:
+ * it says what the file is, so a reader who finds one on disk knows it is
+ * somebody's hand-made preferences rather than a generated default table.
+ */
+export interface AppearanceExport {
+  version: 1
+  overrides: AppearanceOverrides
+  provenance: 'player'
+}
+
+export interface AppearanceImportResult {
+  /** Choices taken from the file because the local player had none. */
+  added: number
+  /**
+   * Items where the file and the local player disagree. Never applied. The
+   * local choice always wins, because an import is somebody else's opinion
+   * arriving at a machine whose owner has already expressed their own, and
+   * silently replacing it would be indistinguishable from losing it.
+   */
+  conflicts: Array<{ itemId: string; mine: string; theirs: string }>
+  /**
+   * Entries naming an id this build's registry does not admit. Counted rather
+   * than dropped in silence: a file that imports "successfully" while a third
+   * of it vanished is the sort of quiet loss that gets discovered months
+   * later.
+   */
+  ignoredUnknownIds: number
+  /** Entries the file's shape made unusable (missing id, wrong type). */
+  ignoredMalformed: number
+}
+
+export function exportAppearanceOverrides(): AppearanceExport {
+  return { version: 1, overrides: loadAppearanceOverrides(), provenance: 'player' }
+}
+
+/**
+ * Merge an exported file into this machine's choices.
+ *
+ * Three rules, and the first is the one that must never be relaxed:
+ * the local player's own choice always wins; a conflict is *returned*, never
+ * resolved; and an id this build does not know is counted, not stored.
+ *
+ * Takes `unknown` because the input is a file somebody handed us, not a value
+ * this app built.
+ */
+export function importAppearanceOverrides(input: unknown): AppearanceImportResult {
+  const result: AppearanceImportResult = {
+    added: 0,
+    conflicts: [],
+    ignoredUnknownIds: 0,
+    ignoredMalformed: 0,
+  }
+
+  const raw = (input as AppearanceExport | null)?.overrides
+  if (!raw || typeof raw !== 'object') return result
+
+  const mine = loadAppearanceOverrides()
+  const next = { ...mine }
+
+  for (const [itemId, theirs] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof itemId !== 'string' || itemId === '' || typeof theirs !== 'string') {
+      result.ignoredMalformed += 1
+      continue
+    }
+    if (!REGISTRY_IDS.has(theirs)) {
+      result.ignoredUnknownIds += 1
+      continue
+    }
+    const own = mine[itemId]
+    if (own === undefined) {
+      next[itemId] = theirs
+      result.added += 1
+      continue
+    }
+    // Identical choices are not a conflict; there is nothing to decide.
+    if (own !== theirs) result.conflicts.push({ itemId, mine: own, theirs })
+  }
+
+  if (result.added > 0) saveAppearanceOverrides(next)
+  return result
+}
+
+/**
  * The character's own figure: what is in each hand and what is worn.
  *
  * Every field is absent rather than null when nothing resolved, so a viewer
