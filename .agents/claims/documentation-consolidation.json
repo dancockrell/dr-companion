@@ -3,9 +3,9 @@
   "task_id": "documentation-consolidation",
   "agent": "Codex GitHub documentation audit",
   "summary": "Route current design to the fixed isometric board and label superseded presentation documents",
-  "status": "active",
+  "status": "completed",
   "claimed_at": "2026-09-05T06:28:02.684750+00:00",
-  "updated_at": "2026-09-05T06:28:02.684750+00:00",
+  "updated_at": "2026-09-05T06:33:48.961985+00:00",
   "paths": [
     "README.md",
     "docs/THREE_D_WORLD_STRATEGY.md",
@@ -22,7 +22,13 @@
     "notes": "Reviewed active claims and open PRs. Preserve PLAN_TO_1_0.md and its concurrent lane-register work; no runtime or asset edits."
   },
   "completion": {
-    "commit": null,
-    "checks": []
+    "commit": "6f08356acdac7d77a342e9f8be9a0fed8f90f1cf",
+    "checks": [
+      "git diff --check: passed",
+      "New relative Markdown links against tracked Git tree: passed",
+      "Commit secret-scanning hook: passed",
+      "Manual review against user direction and open PR scope: passed",
+      "Application/runtime suites: not_run (documentation-only change)"
+    ]
   }
 }
