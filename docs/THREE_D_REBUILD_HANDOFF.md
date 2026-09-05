@@ -699,3 +699,45 @@ projection.
 mesh from another one. Every rung of the order ends in a token or in nothing.
 If the viewer ever has to choose between two meshes for one entity, the data
 is wrong and the right move is to render nothing and say so, not to pick.
+
+## 12. Terrain and landmark variety: the number to beat
+
+§1 retires the player-facing 2D map, so the viewer inherits its job of saying
+what kind of country the player is standing in. It inherits the vocabulary too,
+and it should inherit the measurement rather than rediscover it.
+
+The 2D map draws that country with **stamps**: 27 kinds in
+`src/components/shared/MapStampLayer.tsx`, split into terrain (`woodland`,
+`highland`, `water`, `wetland`, `coast`, `arid`, `cultivated`, `frozen`,
+`underground`, `settlement`, `ruins`, `burial`), named landmarks (`worship`,
+`fortification`, `bridge`, `harbor`, `market`) and services (`service-bank`,
+`-healer`, `-guild`, `-inn`, `-forge`, `-library`, `-training`, `-arcane`,
+`-gate`, `-civic`). That list is the vocabulary being handed over, and it is
+derived from room names, so the viewer can compute it from the same data.
+
+Issue #175 measured what it is actually drawn with: **22 of the 27 kinds have
+two art variants, 4 have three, and 1 has four**, spread across 85 zones and
+17,750 rooms. Crossing alone is 1,060 rooms with a `settlement` cap of 420
+copies drawn from two images. The finding is real and it is deliberately not
+being fixed in the 2D layer, because more 2D terrain art is investment in a
+surface that is going away.
+
+So the contract:
+
+1. **Terrain presentation is judged on visible repetition across one zone, not
+   on having one asset per kind.** A kind is not done when it has an asset; it
+   is done when walking a zone does not read as the same object stamped
+   repeatedly. Two variants over 420 placements did not clear that bar in 2D
+   and will not clear it in 3D.
+2. **A kind with a single motif is a recorded gap, not a finished kind.** Say
+   which kinds are thin, in the asset registry, the way the stamp curation
+   ledger already does — a kind that is quietly under-served looks identical to
+   one that is finished, which is the whole reason #175 had to count them by
+   hand.
+3. **Variation may come from placement, scale, rotation and material as well as
+   from distinct meshes**, and that is preferred: it is cheaper than
+   commissioning 27 × N assets and it is what an atlas does. What is not
+   allowed is the §11 move of borrowing another kind's asset to fill a gap.
+4. **The count is a number the viewer has to beat, so keep it visible.** 22/4/1
+   is the state being replaced. A successor that ships 27 kinds at two variants
+   each has moved the problem, not solved it.
