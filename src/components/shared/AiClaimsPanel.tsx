@@ -6,6 +6,8 @@ import {
   subscribeAiClaims,
 } from '../../lib/aiWorkerHost.ts'
 import type { Claim } from '../../lib/aiClaimStore.ts'
+import { addPin, loadPins, removePin } from '../../lib/mapPins'
+import { useAppStore } from '../../store/useAppStore'
 
 /**
  * Where a candidate claim meets a person.
@@ -25,8 +27,12 @@ import type { Claim } from '../../lib/aiClaimStore.ts'
  * are byte-identical either side of an Accept.
  *
  * Promotion - the one path from an accepted claim into a canonical store - is
- * separate, explicit and reversible, and is not in this panel yet: an
- * accepted claim shows as accepted and does nothing else.
+ * separate, explicit and reversible, and it is this panel that supplies the
+ * pin functions: `aiClaimStore.ts` imports nothing canonical, so the code
+ * that actually writes a pin has to live where the person doing the
+ * promoting is. Remove puts the map back exactly as it was, by the pin id
+ * recorded at promotion rather than by anything that could name a different
+ * pin later.
  *
  * # Confidence is shown as what it is
  *
@@ -60,6 +66,46 @@ export function AiClaimsPanel() {
   }
 
   const now = () => new Date().toISOString()
+  const character = useAppStore.getState().character
+
+  const promote = (claim: Claim) =>
+    act(() =>
+      store.promote(claim.claimId, {
+        now: now(),
+        createPin: (c) => {
+          // No character means no per-character pin store to write into. A
+          // refusal, not a pin dropped somewhere arbitrary.
+          if (!character) return null
+          const roomId = Number.parseInt(String(c.subject).replace(/^room:/, ''), 10)
+          if (!Number.isFinite(roomId)) return null
+          const pins = addPin(character.name, character.instance, {
+            roomId,
+            zone: useAppStore.getState().mapZone?.zone ?? '',
+            label: `${c.predicate} (AI candidate)`,
+            color: 'purple',
+            note: `Promoted from ${c.claimId}. Evidence: ${c.evidenceRefs.join(', ')}`,
+            provenance: 'ai-candidate',
+          })
+          return pins[pins.length - 1]?.id ?? null
+        },
+      })
+    )
+
+  const revert = (claim: Claim) =>
+    act(() =>
+      store.revertPromotion(claim.claimId, {
+        now: now(),
+        deletePin: (pinId) => {
+          if (!character) return false
+          const before = loadPins(character.name, character.instance).length
+          const after = removePin(character.name, character.instance, pinId).length
+          // The count is the evidence that something was actually removed.
+          // Reporting a revert that deleted nothing would leave the record
+          // saying the map had been put back when it had not.
+          return after === before - 1
+        },
+      })
+    )
 
   return (
     <div className="space-y-2">
@@ -97,7 +143,25 @@ export function AiClaimsPanel() {
       ))}
 
       {accepted.map((claim) => (
-        <ClaimRow key={claim.claimId} claim={claim} />
+        <ClaimRow key={claim.claimId} claim={claim}>
+          {claim.promotedPinId ? (
+            <button
+              type="button"
+              className="rounded-lg border border-border px-2 py-1 text-xs text-ink-muted hover:text-ink"
+              onClick={() => revert(claim)}
+            >
+              Remove that pin
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="rounded-lg border border-border px-2 py-1 text-xs text-ink-muted hover:text-ink"
+              onClick={() => promote(claim)}
+            >
+              Promote to a pin
+            </button>
+          )}
+        </ClaimRow>
       ))}
 
     </div>
@@ -125,6 +189,7 @@ function ClaimRow({ claim, children }: { claim: Claim; children?: React.ReactNod
           confidence {claim.confidence === null ? '—' : claim.confidence.toFixed(2)}
         </span>
         <span>{claim.status}</span>
+        {claim.promotedPinId ? <span>pinned as {claim.promotedPinId}</span> : null}
       </div>
       {children ? <div className="flex gap-1.5">{children}</div> : null}
     </div>

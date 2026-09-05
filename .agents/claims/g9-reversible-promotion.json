@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task_id": "g9-reversible-promotion",
+  "agent": "claude-code",
+  "summary": "The one path from an accepted claim into canonical data: a pin marked ai-candidate, recorded by id, and a revert that deletes exactly that pin",
+  "status": "completed",
+  "claimed_at": "2026-09-05T22:50:00Z",
+  "updated_at": "2026-09-05T23:40:00Z",
+  "paths": [
+    "src/lib/aiClaimStore.ts",
+    "src/lib/mapPins.ts",
+    "src/lib/pinsFile.ts",
+    "src/components/shared/AiClaimsPanel.tsx",
+    "tools/ai-claim-store-test.mjs",
+    "tools/pins-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g9-reversible-promotion.json"
+  ],
+  "symbols": ["ClaimStore.promote", "ClaimStore.revertPromotion", "MapPin.provenance", "PinProvenance"],
+  "coordination": {
+    "depends_on": ["G7"],
+    "conflicts_with": [],
+    "notes": "Pins had no provenance field, so it was added as required rather than optional and filled in on read for every pin written before it existed. On read rather than as a one-off rewrite: a migration that runs once has to have run, and a store restored from a backup or synced from another machine would arrive unmigrated afterwards with nothing to catch it. aiClaimStore.ts still imports nothing canonical - its source check would fail otherwise - so promote and revertPromotion take the pin functions as arguments and the review panel supplies them, which puts the code that writes a pin where the person doing the promoting is. revertPromotion is given the recorded pin id and nothing else: a position, a room or a predicate all name whatever happens to be there now rather than the thing that was created."
+  },
+  "completion": {
+    "commit": "PENDING-G9",
+    "checks": [
+      "node --experimental-strip-types tools/ai-claim-store-test.mjs: 117 checked, 0 failed / all passed",
+      "verify - promote: 'exactly one pin was added' 3, 'marked as an AI candidate' ai-candidate, 'and the claim records which pin' pin-ai-claim-1",
+      "verify - revert: 'the count is restored' 2, 'the other pins are byte-identical' OK against a fixture holding two hand-made pins either side of the promoted one",
+      "verify - refusals: a candidate cannot be promoted; promoting twice refused; reverting twice refused; a createPin returning null leaves the claim unpromoted; a deletePin that removed nothing is a refusal and the record still points at the pin",
+      "node tools/pins-test.mjs: 73 assertions, all passed - 'an old pin still loads' 1, 'and is attributed to the player' player, 'and one that says otherwise keeps what it said' ai-candidate, 'the corpse marker the app drops is still the player's map' player",
+      "verified in the running app at 127.0.0.1:1437: Promote raised the pin count 1 -> 2 with provenances [player, ai-candidate], the claim recorded promotedPinId 142-mtodttgo1sjr; Remove that pin returned the count to 1 and drc.pins.v1 was byteIdenticalAfterRevert true against the pre-promotion value, with the claim back to accepted-local and promotedPinId null",
+      "sabotage - revertPromotion given the claim's list position instead of the recorded pin id: 1 red, 'the other pins are byte-identical' showing the player's own pin-a deleted and the AI pin left behind: [{\"id\":\"pin-b\",...},{\"id\":\"pin-ai-claim-1\",...,\"provenance\":\"ai-candidate\"}]; exit 1; restore md5 OK"
+    ]
+  }
+}

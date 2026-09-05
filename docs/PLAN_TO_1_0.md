@@ -1011,7 +1011,8 @@ whether it is embedded, docked or a separate window is D0.
   do: same `(subject,predicate,value)` from a second independent `evidenceRef` → `corroborated`.
   verify: test; sabotage: count the same ref twice → red.
 
-- [ ] **G9  Reversible promotion** (≈30)
+- [x] **G9  Reversible promotion** (≈30)
+  commit: PENDING-G9 verified: 2026-09-05 minutes: 50
   touches: G5>src/lib/aiClaimStore.ts, src/lib/mapPins.ts, G7>src/components/shared/AiClaimsPanel.tsx, G5>tools/ai-claim-store-test.mjs
   depends-on: G7
   do: read `mapPins.ts`'s pin shape first; if pins lack a `provenance` field add one defaulting to `'player'` with a migration check. Promote (only from `accepted`) creates a pin `provenance:'ai-candidate'` and records `{claimId, pinId}`; Revert deletes exactly that pin and returns the claim to `accepted`.

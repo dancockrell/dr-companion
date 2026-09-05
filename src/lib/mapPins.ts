@@ -477,7 +477,25 @@ export interface MapPin {
   system?: boolean
   /** Epoch ms, so pins can be listed oldest/newest if that's ever wanted. */
   createdAt: number
+  /**
+   * Who put this pin here.
+   *
+   * `player` is everything that existed before this field and everything a
+   * person makes by hand. `ai-candidate` is a pin promoted from an accepted
+   * AI claim, and it exists so that promotion is *reversible against the
+   * record*: without it, an AI-created pin is indistinguishable from one the
+   * player drew, and "undo what the worker added" becomes a judgement call
+   * over somebody's own map.
+   *
+   * Required rather than optional, and filled in on load for every pin
+   * written before the field existed - see `loadStore`. An optional field
+   * would let a caller forget it, and the pin it forgot would then be
+   * unattributable rather than obviously old.
+   */
+  provenance: PinProvenance
 }
+
+export type PinProvenance = 'player' | 'ai-candidate'
 
 /**
  * Starter chips PinEditor offers for a brand-new pin: label, icon and colour
@@ -604,7 +622,22 @@ export type PinStore = Record<string, MapPin[]>
 
 function loadStore(): PinStore {
   const parsed = readJSON<unknown>(STORAGE_KEY, {})
-  return typeof parsed === 'object' && parsed !== null ? (parsed as PinStore) : {}
+  if (typeof parsed !== 'object' || parsed === null) return {}
+
+  // Every pin written before `provenance` existed was made by a person, so
+  // that is what it is filled in as. Done on read rather than as a one-off
+  // rewrite: a migration that runs once has to have run, and a file restored
+  // from a backup or synced from another machine would arrive unmigrated
+  // afterwards with nothing to catch it.
+  const store = parsed as PinStore
+  for (const key of Object.keys(store)) {
+    const pins = store[key]
+    if (!Array.isArray(pins)) continue
+    for (const pin of pins) {
+      if (pin && pin.provenance === undefined) pin.provenance = 'player'
+    }
+  }
+  return store
 }
 
 export const MAP_PINS_STORAGE_KEY = STORAGE_KEY
@@ -644,12 +677,16 @@ export function addPin(
     icon?: PinIcon
     note?: string
     system?: boolean
+    provenance?: PinProvenance
   }
 ): MapPin[] {
   const store = loadStore()
   const key = profileKey(name, instance)
   const full: MapPin = {
     ...pin,
+    // A caller that says nothing made this by hand. Only the promotion path
+    // passes anything else, and it says so explicitly.
+    provenance: pin.provenance ?? 'player',
     id: `${pin.roomId}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     createdAt: Date.now(),
   }
@@ -709,6 +746,10 @@ export function setCorpseMarker(
     color: 'red',
     icon: 'skull',
     system: true,
+    // The app drops this one itself, and it is still not an AI candidate:
+    // it is the client acting on the player's own death, which is the
+    // player's own map.
+    provenance: 'player',
     createdAt: Date.now(),
   }
   const next = [...(store[key] ?? []).filter((p) => !p.system), marker]
