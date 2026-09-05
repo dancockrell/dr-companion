@@ -141,12 +141,37 @@ function describe(marker) {
   return { ' ': 'not started', '~': 'in progress', x: 'done', '!': 'blocked', '-': 'dropped' }[marker] ?? marker
 }
 
+/**
+ * Gate membership, from section 4. Kept here rather than parsed out of the
+ * prose because the prose states ranges ("A1-A6") that a parser would have to
+ * guess the expansion of, and a wrong guess would report a gate green that is
+ * not. When section 4 changes, change this table in the same commit; the
+ * `--tally` output names any gate increment that is not a real ID, so a
+ * rename cannot leave this silently pointing at nothing.
+ */
+const GATES = {
+  '0 stable base': ['C0', 'C1', 'C2', 'C3', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'B1', 'B2', 'B3', 'E1', 'E2', 'E3', 'E4', 'F1'],
+  '1 text client alone': ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'E5', 'E6', 'E7', 'E8', 'E9', 'C4', 'C5', 'C6', 'C8', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12'],
+  '2 first run': ['E10', 'E11', 'E12', 'F2', 'F3', 'F4'],
+  '3 viewer optional': ['B4', 'B5', 'B6', 'B7', 'B8', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6'],
+  '4 AI optional': ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G12', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8'],
+  '5 public quality': ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7', 'I8', 'I9', 'I10', 'I11', 'J1', 'J2', 'F5', 'F6', 'F7', 'F8'],
+  '6 release': ['F9', 'F10', 'F11', 'F12'],
+}
+
+function bar(done, total, width = 24) {
+  const filled = total === 0 ? 0 : Math.round((done / total) * width)
+  return '#'.repeat(filled) + '.'.repeat(width - filled)
+}
+
 function tally(increments) {
   const counts = { ' ': 0, '~': 0, x: 0, '!': 0, '-': 0 }
+  const marker = new Map()
   let minutes = 0
   let timed = 0
   for (const inc of increments) {
     counts[inc.marker] += inc.ids.length
+    for (const id of inc.ids) marker.set(id, inc.marker)
     if (inc.minutes != null) {
       minutes += inc.minutes
       timed++
@@ -154,6 +179,41 @@ function tally(increments) {
   }
   for (const [k, v] of Object.entries(counts)) console.log(`[${k}] ${describe(k).padEnd(12)} ${v}`)
   console.log(`recorded minutes: ${minutes} across ${timed} done increments`)
+
+  // Per lane: the letter is the lane, so this needs no second table to drift.
+  console.log('\nby lane')
+  const lanes = new Map()
+  for (const [id, m] of marker) {
+    const lane = id[0]
+    if (!lanes.has(lane)) lanes.set(lane, { done: 0, total: 0, active: 0, blocked: 0 })
+    const l = lanes.get(lane)
+    l.total++
+    if (m === 'x') l.done++
+    if (m === '~') l.active++
+    if (m === '!') l.blocked++
+  }
+  for (const lane of [...lanes.keys()].sort()) {
+    const l = lanes.get(lane)
+    const extra = [l.active ? `${l.active} in progress` : '', l.blocked ? `${l.blocked} blocked` : ''].filter(Boolean).join(', ')
+    console.log(`  ${lane}  ${bar(l.done, l.total)}  ${String(l.done).padStart(2)}/${String(l.total).padEnd(3)}${extra ? '  ' + extra : ''}`)
+  }
+
+  console.log('\nby gate (section 4)')
+  let unknown = 0
+  for (const [name, ids] of Object.entries(GATES)) {
+    const known = ids.filter((id) => marker.has(id))
+    for (const id of ids) {
+      if (!marker.has(id)) {
+        unknown++
+        console.log(`  WARNING gate "${name}" names ${id}, which is not an increment`)
+      }
+    }
+    const done = known.filter((id) => marker.get(id) === 'x').length
+    const blocked = known.filter((id) => marker.get(id) === '!').length
+    const state = done === known.length && known.length > 0 ? 'GREEN' : `${blocked ? blocked + ' blocked' : ''}`
+    console.log(`  ${name.padEnd(22)} ${bar(done, known.length)}  ${String(done).padStart(2)}/${String(known.length).padEnd(3)}${state ? '  ' + state : ''}`)
+  }
+  if (unknown > 0) console.log(`\n${unknown} gate member(s) name no increment - fix the GATES table in this file`)
 }
 
 function claims() {

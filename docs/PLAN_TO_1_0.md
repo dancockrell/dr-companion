@@ -39,6 +39,14 @@ Tally (from the repo root):
 node tools/plan-audit.mjs --tally
 ```
 
+It prints the marker counts, then a bar per lane, then a bar per gate from
+section 4, plus the minutes recorded on finished increments. That is the
+answer to "where is this project", and it comes from the markers rather than
+from anyone's summary, so it cannot flatter. A gate reads GREEN only when
+every one of its increments is `[x]`. If a gate names an increment that does
+not exist, the tally says so instead of quietly counting a smaller
+denominator.
+
 ### 0.2 The document lives in the repo, so bookkeeping is a commit
 
 The marker change ships **in the increment's own commit** — add
@@ -247,6 +255,35 @@ Then `gh pr checks <n>`; merge when green with `gh pr merge <n> --squash
 S2 = B1…B4 → L1…L6 → B5…B8. S3 = E1, E5–E9 → F1–F8 → E10–E12. A fourth
 session takes I, then J after D5, then K after C7. D starts when A1 is `[x]`
 and D0 is decided.
+
+### 3.1 Lanes in flight
+
+One row per session that currently holds a lane. **Claim a lane by adding your
+row before you start, and delete it when your last PR merges** — a row here is
+what stops two sessions picking the same increment, and a stale row is worse
+than none, because it makes the lane look taken.
+
+Every lane works in its own worktree off `origin/main`, never in
+`C:\Users\Admin\dev\dr-companion` (§1 trap 11). One branch per lane, one or two
+PRs per lane, squash-merged.
+
+| Lane | Increments | Branch | Worktree | Since |
+|---|---|---|---|---|
+| A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
+| B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
+| C | C3–C8 | `lane-c/hygiene` | `dev/wt-c` | 5 Sep 2026 |
+| E/F | E5–E8, F2, F6 | `lane-ef/tests-and-release-prep` | `dev/wt-ef` | 5 Sep 2026 |
+
+Free to claim now: **I** (design tokens, no dependencies), **K1–K2**
+(appearance defaults, needs C7 recorded only), **L1** (contract ownership,
+after B3). **D** waits on A1 `[x]`. **G** waits on Lane A finishing and on C4.
+**J** waits on D6.
+
+**When two lanes touch one file**, §3's conflict matrix decides who goes first;
+where it is silent, the earlier `Since` wins and the other rebases. Conflicts in
+`package.json`, `tools/test-suites.json` and this file's marker lines are always
+resolved by keeping **both** sides' entries, then re-running
+`node tools/plan-audit.mjs` and the suite before pushing.
 
 ---
 
