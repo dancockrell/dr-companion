@@ -19,7 +19,7 @@
     "notes": "Extends G2's registry rather than adding a second one. bestiary.ts's loreFor/isApproximate stay the only lookup: nothing here re-derives a creature from a name. approximate travels with the result because 773 creatures share 408 nouns, so a noun-only hit is weaker evidence and a result that hid the difference would let a model state a level the data cannot support - the same reason bestiary.ts keeps its two indexes apart."
   },
   "completion": {
-    "commit": "PENDING-G3",
+    "commit": "026050a7",
     "checks": [
       "node --experimental-strip-types tools/ai-knowledge-tools-test.mjs: 53 checked, 0 failed / all passed",
       "verify - known creature: 'a known creature returns lore' with {\"lore\":{\"level\":54,\"minCap\":250,...}} and approximate false",

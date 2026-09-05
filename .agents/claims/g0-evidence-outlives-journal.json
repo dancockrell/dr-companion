@@ -28,7 +28,7 @@
     "notes": "Extends the established owners rather than adding a parallel one. The journal (aiEventJournal.ts) keeps its bound and its cursor unchanged - nothing here re-reads game text or opens a second capture path; the store copies out of the journal through the same readFrom query a consumer uses. JobStore gains an optional evidence pinner on its constructor, so every existing `new JobStore()` call site and test keeps working and this module has no opinion about where evidence lives. Deviation from the plan's pseudocode, recorded rather than silent: `pin(refs, citedBy)` holds its source on the store instead of taking the journal per call, because JobStore.create would otherwise need a journal reference it has no other use for. The source is structural (EvidenceSource), so the store can be fed a fixture without building a journal."
   },
   "completion": {
-    "commit": "014a3046",
+    "commit": "e82330d1",
     "checks": [
       "node --experimental-strip-types tools/ai-evidence-store-test.mjs: 41 checked, 0 failed / all passed",
       "verify - pin then evict the journal past capacity: 'the journal itself no longer holds event 2' (oldest retained is 21) and 'the evidence store still resolves both' with payload {\"text\":\"line 2\"}",

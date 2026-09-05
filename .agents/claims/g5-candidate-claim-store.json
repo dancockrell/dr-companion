@@ -24,7 +24,7 @@
     "deviations": "The plan's G7/G9 text says 'accepted'; the schema in docs/LOCAL_AI_BACKGROUND_WORKER.md section 7 says 'accepted-local'. The schema wins - it is the normative half - and G7/G9 will use accepted-local. accepted-local -> published stays in the table because it is in the contract, its two conditions (privacy not private, licence set) are checked, and then it is refused anyway with a reason naming the missing sharing path: a published status on a machine with nowhere to publish to would be a record of something that never happened."
   },
   "completion": {
-    "commit": "PENDING-G5",
+    "commit": "f23cc92a",
     "checks": [
       "node --experimental-strip-types tools/ai-claim-store-test.mjs: 86 checked, 0 failed / all passed",
       "verify - transitions: candidate->corroborated->accepted-local all ok, reviewer 'Dan' and reviewedAt recorded; 'the refusal names the pair' Refused accepted-local -> rejected",

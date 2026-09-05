@@ -890,7 +890,7 @@ whether it is embedded, docked or a separate window is D0.
 ### Lane G — AI slices 5–7 (after Lane A)
 
 - [x] **G0  Evidence outlives the journal** (≈25)
-  commit: 014a3046 verified: 2026-09-05 minutes: 40
+  commit: e82330d1 verified: 2026-09-05 minutes: 40
   touches: new:src/lib/aiEvidenceStore.ts, new:tools/ai-evidence-store-test.mjs, C1>src/lib/aiJobStore.ts, package.json, tools/test-suites.json
   depends-on: A5
   do: a claim's `evidenceRefs` are `event:<seq>` strings, and the journal evicts at 5000 events, so a candidate reviewed an hour later can cite evidence nobody can read. The handoff's `observations.read(refs)` presumes durable observations. Minimum honest version: `pin(refs, journal)` copies the referenced events' `{seq, at, kind, payload}` into `drc.ai-evidence.v1` at the moment a job or claim cites them; `resolve(refs)` returns them or `{missing:[…]}` — never a silent partial. `JobStore.create` pins `inputRefs`; G5's store refuses a claim whose refs do not resolve. Bounded by count with the oldest **unreferenced** entries evicted first; an entry cited by a live claim is never evicted.
@@ -905,7 +905,7 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: remove the dedupe → red.
 
 - [x] **G2  Tool registry + `room_by_id`** (≈15)
-  commit: PENDING-G2 verified: 2026-09-05 minutes: 35
+  commit: 26dfd050 verified: 2026-09-05 minutes: 35
   touches: new:src/lib/aiKnowledgeTools.ts, new:tools/ai-knowledge-tools-test.mjs, package.json, tools/test-suites.json
   depends-on: A4
   do: `callTool(name, args, allowedTools, trace)` returns `{ok:false, reason}` for a disallowed or unknown name — never throws. Every tool declares `{id, validate(args), maxResultBytes}`; an over-size result is truncated with `truncated:true`, never silently cut. Every call is appended to `trace` as `{tool, argsSummary, bytes, at}` (no payloads, no secrets) so a job's tool use is inspectable. Text fields returned to a model are wrapped as `{untrusted:true, text}` so the prompt builder can label them "data, not instructions" (the handoff's injection rule). `room_by_id(zone, id)` → `{id, title, exits:[{move,to}], tags}` from the same `MapZone` data `compileWorldSnapshot` reads.
@@ -913,21 +913,21 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: skip the allowlist → red; skip the size cap → red.
 
 - [x] **G3  Tool `lore_for`** (≈10)
-  commit: PENDING-G3 verified: 2026-09-05 minutes: 15
+  commit: 026050a7 verified: 2026-09-05 minutes: 15
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
   depends-on: G2
   do: wraps `bestiary.ts` `loreFor`/`isApproximate` → `{lore, approximate} | null`.
   verify: known creature → lore; unknown → null; approximate flagged.
 
 - [x] **G4  Tool `recent_events`** (≈10)
-  commit: PENDING-G4 verified: 2026-09-05 minutes: 20
+  commit: bf863754 verified: 2026-09-05 minutes: 20
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
   depends-on: G2
   do: `journal.readFrom(max(0, ack-n))` limited to n; returns kinds, seqs and the G12 privacy class only — never `text` (it may hold player speech).
   verify: a check asserts no returned object has a `text` key.
 
 - [x] **G5  Candidate-claim store** (≈35; two commits)
-  commit: PENDING-G5 verified: 2026-09-05 minutes: 55
+  commit: f23cc92a verified: 2026-09-05 minutes: 55
   touches: new:src/lib/aiClaimStore.ts, new:tools/ai-claim-store-test.mjs, package.json, tools/test-suites.json
   depends-on: A5
   do: the schema is the handoff's §28 (adopted whole — see section 11): `schemaVersion:1, claimId, subject, predicate, value, status ∈ candidate|corroborated|accepted-local|published|rejected|retracted|superseded, evidenceRefs[] (non-empty and resolvable via G0), producer {kind:'human'|'parser'|'model'|'import', identity, model?, adapter?, softwareVersion?}, confidence: number|null, createdAt, reviewedAt, reviewer, supersedes, privacy ∈ private|group|public-candidate (default private), licence: string|null`. Transitions: candidate→corroborated→accepted-local; candidate|corroborated→rejected; accepted-local→published only when `privacy !== 'private'` and `licence` is set (and only once G11-era sharing exists — refused until then); any non-terminal→retracted; supersession appends a new claim naming the old, never edits it (§31). `drc.ai-claims.v1`. **Imports nothing from mapData, mapPins, bestiary or any canonical store** — a source check in the test enforces it.
