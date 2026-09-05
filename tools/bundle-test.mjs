@@ -20,7 +20,8 @@
  * output gets read directly.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 
@@ -138,53 +139,83 @@ console.log('-- the exported viewer, and where the installer puts it --')
 // spelling of the path is the very drift being checked for.
 const VIEWER_BUILD = 'godot/build/DRCompanionWorldViewer.exe'
 const RELEASE_CONF = 'src-tauri/tauri.release.conf.json'
-let notChecked = 0
 
-if (!existsSync(VIEWER_BUILD)) {
-  // Loudly, and it must not read as a pass in the summary below. A viewer that
-  // was never exported is a supported build - the beta ships with the viewer
-  // disabled - but "we did not look" and "we looked and it was right" are
-  // different results and folding them together is the habit this repository
-  // keeps paying for.
-  notChecked += 1
-  console.log(`NOT CHECKED: viewer not built - ${VIEWER_BUILD} does not exist, so there is`)
-  console.log('             no bundled destination to check. Export it with `npm run godot:export`')
-  console.log('             (needs the godot/shared-assets submodule and a Godot 4.3 binary).')
-} else {
-  // The generator already refuses to emit a config whose destination viewer.rs
-  // does not resolve, so that contract is not re-checked here - it is invoked,
-  // and its refusal is turned into a named FAIL rather than a stack trace,
-  // because a thrown child process in the middle of a suite is a result nobody
-  // reads.
-  let generated = true
-  try {
-    execFileSync(process.execPath, ['tools/build-release-config.mjs'], {
+// This branch used to be skipped outright on any machine without a Godot
+// export - which is every developer machine and most CI jobs, so the check
+// that stops the installer bundling the viewer where `viewer.rs` never looks
+// had, in practice, never run.
+//
+// It does not need a real export. The generator decides whether to emit the
+// viewer entry purely on whether a file exists at the viewer path, and the
+// entry it emits is a pair of constants, so a stand-in file exercises the
+// exact mapping that ships. `DRC_VIEWER_EXE` moves only the existence probe
+// and `--out` keeps the result out of the checked-in config, so nothing
+// fabricated is written into `godot/build/` or `src-tauri/` where another
+// session or a real `tauri build` could pick it up.
+//
+// What this does NOT prove, said plainly rather than left to be assumed: that
+// Godot can export a viewer, or that the exported binary runs. That is
+// `test:godot`'s job and `npm run godot:export`'s. This proves that when a
+// viewer exists, the release config carries it to `viewer/`.
+const realViewer = existsSync(VIEWER_BUILD)
+const scratch = realViewer ? null : mkdtempSync(join(tmpdir(), 'drc-bundle-'))
+const standIn = scratch ? join(scratch, 'DRCompanionWorldViewer.exe') : VIEWER_BUILD
+if (scratch) writeFileSync(standIn, 'not a real viewer; a stand-in for the existence probe\n')
+const generatedConf = scratch ? join(scratch, 'tauri.release.conf.json') : RELEASE_CONF
+
+// The generator already refuses to emit a config whose destination viewer.rs
+// does not resolve, so that contract is not re-checked here - it is invoked,
+// and its refusal is turned into a named FAIL rather than a stack trace,
+// because a thrown child process in the middle of a suite is a result nobody
+// reads.
+let generated = true
+try {
+  execFileSync(
+    process.execPath,
+    realViewer
+      ? ['tools/build-release-config.mjs']
+      : ['tools/build-release-config.mjs', '--out', generatedConf],
+    {
       stdio: ['ignore', 'inherit', 'pipe'],
       encoding: 'utf8',
-    })
-  } catch (error) {
-    generated = false
-    const text = String(error.stderr ?? error.message)
-    // The first line of a node stack trace is the file and line, which says
-    // nothing. The thrown message is the part that names the drift.
-    const why = text.split('\n').find((line) => /Error:/.test(line)) ?? text.trim().split('\n')[0]
-    check('the release config can be derived at all', false, why.trim())
-  }
-  if (generated) {
-    const resources = JSON.parse(readFileSync(RELEASE_CONF, 'utf8'))?.bundle?.resources ?? {}
-    const dest = resources[`../${VIEWER_BUILD}`]
-    check('the exported viewer is a bundled resource', Boolean(dest), dest ?? 'no entry in the release config')
-    check(
-      'and it is bundled to the viewer/ folder the app searches first',
-      dest === 'viewer/DRCompanionWorldViewer.exe',
-      String(dest),
-    )
-  }
+      env: realViewer ? process.env : { ...process.env, DRC_VIEWER_EXE: standIn },
+    }
+  )
+} catch (error) {
+  generated = false
+  const text = String(error.stderr ?? error.message)
+  // The first line of a node stack trace is the file and line, which says
+  // nothing. The thrown message is the part that names the drift.
+  const why = text.split('\n').find((line) => /Error:/.test(line)) ?? text.trim().split('\n')[0]
+  check('the release config can be derived at all', false, why.trim())
 }
+if (generated) {
+  const how = realViewer
+    ? `a real export at ${VIEWER_BUILD}`
+    : `a stand-in at ${standIn} (DRC_VIEWER_EXE); this checks the mapping, not that Godot can export`
+  const resources = JSON.parse(readFileSync(generatedConf, 'utf8'))?.bundle?.resources ?? {}
+  const baseCount = Object.keys(JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8'))?.bundle?.resources ?? {}).length
+  // Count the fragile thing. "More than zero resources" is true whether or not
+  // the probe found a viewer - the base config's own entries are always there
+  // - so a broken override would look exactly like a moved destination, and
+  // the two checks below would go red for a reason nobody could tell apart.
+  // The number that actually disappears is the +1.
+  check(
+    'the generator found a viewer, so there is a viewer entry to judge',
+    Object.keys(resources).length === baseCount + 1,
+    `${Object.keys(resources).length} resources against ${baseCount} in the base config, from ${how}`
+  )
+  const dest = resources[`../${VIEWER_BUILD}`]
+  check('the exported viewer is a bundled resource', Boolean(dest), dest ?? 'no entry in the release config')
+  check(
+    'and it is bundled to the viewer/ folder the app searches first',
+    dest === 'viewer/DRCompanionWorldViewer.exe',
+    String(dest),
+  )
+}
+if (scratch) rmSync(scratch, { recursive: true, force: true })
 
 console.log('')
 if (fails > 0) console.log(`${fails} FAILED`)
-else if (notChecked > 0)
-  console.log(`no failures, but ${notChecked} not checked: the viewer resource destination`)
 else console.log('all passed')
 process.exit(fails === 0 ? 0 : 1)

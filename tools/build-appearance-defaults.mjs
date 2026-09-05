@@ -162,6 +162,49 @@ function assertRegistryReaderWorks(ids, registry) {
   return { control, forbiddenRules: forbidden.length }
 }
 
+/**
+ * The id assertion, as one function rather than a loop inside `build()`.
+ *
+ * It was a loop, and that made it unreachable from anywhere but a real build.
+ * `CLASS_MODEL_IDS` is empty today - the registry admits only scenery, so no
+ * class may point at anything - which meant the assertion examined nothing on
+ * every run and the suite honestly said so:
+ *
+ *     NOT CHECKED: no class points at an id, so the "every id exists"
+ *                  assertion examined nothing.
+ *
+ * A branch nobody can execute on purpose is a branch nobody can prove works,
+ * and this one is the only thing standing between a typo and a mesh that
+ * silently never loads. So the loop moved here, `build()` calls it with the
+ * real table, and `--check` calls the *same* function with a synthetic pair:
+ * an id the registry certainly contains, which must be accepted, and one it
+ * certainly does not, which must be refused. Not a second copy written to be
+ * checkable - the one implementation, aimed at inputs a real build cannot
+ * currently supply.
+ *
+ * @param entries [className, id|null] pairs, exactly as Object.entries gives them
+ * @param known   every legal weapon or armour class name
+ * @param ids     every selections[].id the registry admits
+ * @returns       the {className, id} pairs that resolved; throws on anything else
+ */
+function resolveClassModelIds(entries, known, ids) {
+  const emitted = []
+  for (const [className, id] of entries) {
+    if (!known.has(className)) {
+      throw new Error(`CLASS_MODEL_IDS names "${className}", which is not a weapon or armour class.`)
+    }
+    if (id === null) continue
+    if (!ids.has(id)) {
+      throw new Error(
+        `CLASS_MODEL_IDS["${className}"] = "${id}", which is not a selections[].id in ${REGISTRY_PATH}. ` +
+          `An id that resolves to nothing is a mesh that silently never loads. Known ids: ${[...ids].join(', ')}`
+      )
+    }
+    emitted.push({ className, id })
+  }
+  return emitted
+}
+
 function build() {
   const registry = JSON.parse(readFileSync(join(ROOT, REGISTRY_PATH), 'utf8'))
   const ids = registryIds(registry)
@@ -182,20 +225,7 @@ function build() {
   }
 
   const known = new Set([...weaponClasses, ...armorClasses])
-  const emitted = []
-  for (const [className, id] of Object.entries(CLASS_MODEL_IDS)) {
-    if (!known.has(className)) {
-      throw new Error(`CLASS_MODEL_IDS names "${className}", which is not a weapon or armour class.`)
-    }
-    if (id === null) continue
-    if (!ids.has(id)) {
-      throw new Error(
-        `CLASS_MODEL_IDS["${className}"] = "${id}", which is not a selections[].id in ${REGISTRY_PATH}. ` +
-          `An id that resolves to nothing is a mesh that silently never loads. Known ids: ${[...ids].join(', ')}`
-      )
-    }
-    emitted.push({ className, id })
-  }
+  const emitted = resolveClassModelIds(Object.entries(CLASS_MODEL_IDS), known, ids)
 
   const nouns = {}
   for (const [className, list] of Object.entries(WEAPON_NOUNS)) {
@@ -261,8 +291,9 @@ function summary(built) {
   ]
   if (emitted.length === 0) {
     lines.push(
-      'NOT CHECKED: no class points at an id, so the "every id exists" assertion examined nothing. ' +
-        'The positive control above is the only evidence the assertion works at all.'
+      'no class points at an id today, so the real table exercises the "every id exists" assertion ' +
+        'zero times. The assertion itself is exercised below against a synthetic accept/refuse pair ' +
+        'through the same resolveClassModelIds() this build used - see the two "synthetic" checks.'
     )
   }
   return lines
@@ -316,12 +347,65 @@ ok('every armour class is an ARMOR_COVERAGE location',
   built.armorClasses.length === ARMOR_COVERAGE.length &&
     built.armorClasses.every((c) => ARMOR_COVERAGE.includes(c)),
   `${built.armorClasses.length} classes`)
-// Vacuous while nothing is admitted, and it says so rather than reading as a
-// pass it did not earn. build() throws before reaching here on a bad id, so
-// the real defence is that failure, not this line.
 ok('every emitted modelId exists in the registry',
   built.emitted.every((e) => built.ids.has(e.id)),
-  built.emitted.length === 0 ? '0 emitted - nothing to check' : `${built.emitted.length} checked`)
+  built.emitted.length === 0
+    ? '0 emitted by the real table - the synthetic pair below is what proves the assertion works'
+    : `${built.emitted.length} checked`)
+
+// The assertion above examines the real table, which is empty and will stay
+// empty until a mesh is admitted. That is the shape of a check that reports
+// success for work it never did, so the same function is run here against
+// inputs a real build cannot currently supply: one id the registry certainly
+// contains, one it certainly does not. Both directions, because a validator
+// that accepts everything and one that rejects everything are equally useless
+// and only the pair separates them.
+{
+  const knownClass = built.weaponClasses[0]
+  const realId = built.control.control
+  const fakeId = 'drc_no_such_asset_id_'
+  ok('synthetic: the class list under test is not empty (control)',
+    typeof knownClass === 'string' && knownClass.length > 0 && typeof realId === 'string',
+    `${knownClass} / ${realId}`)
+
+  let acceptedCount = -1
+  let acceptError = ''
+  try {
+    acceptedCount = resolveClassModelIds([[knownClass, realId]], new Set(built.weaponClasses), built.ids).length
+  } catch (error) {
+    acceptError = error.message
+  }
+  ok('synthetic: an id the registry admits is accepted',
+    acceptedCount === 1,
+    acceptedCount === 1 ? `1 of 1 entry resolved to "${realId}"` : `refused: ${acceptError}`)
+
+  let refused = false
+  let refusalReason = ''
+  try {
+    resolveClassModelIds([[knownClass, fakeId]], new Set(built.weaponClasses), built.ids)
+  } catch (error) {
+    refused = true
+    refusalReason = error.message
+  }
+  ok('synthetic: an id the registry does not admit is REFUSED naming it',
+    refused && refusalReason.includes(fakeId),
+    refused ? refusalReason.slice(0, 120) : `ALLOWED "${fakeId}" - the assertion cannot reject anything`)
+
+  let classRefused = false
+  try {
+    resolveClassModelIds([['Underwater Basketweaving', realId]], new Set(built.weaponClasses), built.ids)
+  } catch {
+    classRefused = true
+  }
+  ok('synthetic: a class name no vocabulary knows is REFUSED',
+    classRefused,
+    classRefused ? 'refused' : 'ALLOWED an invented class')
+
+  console.log(
+    `ids examined by the assertion: ${built.emitted.length} from the real table ` +
+      `+ 3 synthetic (1 accept, 2 refuse) = ${built.emitted.length + 3}`
+  )
+}
 
 let current = null
 try {

@@ -30,7 +30,7 @@
  */
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { findPython, pythonCandidates } from './find-python.mjs'
@@ -106,6 +106,91 @@ const E7_DRIVER = [
 const RUBY = findRuby()
 const PYTHON = findPython()
 const TSC = join(process.cwd(), 'node_modules', 'typescript', 'bin', 'tsc')
+
+const TS_RUNNER = join(process.cwd(), 'typescript', 'runner.ts')
+/** Where the contained TypeScript runner and its throwaway task tree live.
+ * Under ROOT so the suite's own `rmSync(ROOT)` takes it, and outside APP_DATA
+ * so the candidate-count denominator at the end never sees these files. */
+const TS_CONTAINMENT = join(ROOT, 'e7-ts')
+let tsContainmentRuns = 0
+
+/**
+ * E7 containment for TypeScript, without changing a line of shipped code.
+ *
+ * This used to be `not_checked`, on the grounds that `typescript/runner.ts`
+ * fixes `USER_DIR` at module scope (`const USER_DIR = join(__dirname, 'tasks',
+ * 'user')`) so a candidate could not be run outside the player's own task
+ * directory - unlike `python/runner.py`, whose module-level `USER_DIR` E7's
+ * driver simply reassigns.
+ *
+ * That reading was one step short. `__dirname` is not a fixed path, it is
+ * *this file's* directory - so copying the shipped runner into a scratch
+ * directory moves USER_DIR with it. The copy looks for tasks in the scratch
+ * tree, which holds the candidate and nothing of the player's, and the
+ * candidate is executed in a child process exactly as E7 requires. The runner
+ * under test is byte-identical to the one that ships, which is asserted rather
+ * than assumed: a divergent copy would be testing a runner nobody installs.
+ *
+ * A known-good fixture goes first, same as the Python driver and for the same
+ * reason: a driver that cannot run anything makes every candidate look broken,
+ * so its failure downgrades the whole result to `not_checked` rather than
+ * condemning the candidate.
+ */
+function typescriptContainment(candidatePath) {
+  const skip = (detail) => [{ name: 'E7 containment fixtures', status: 'not_checked', detail }]
+  if (!existsSync(TS_RUNNER)) {
+    return skip(`${TS_RUNNER} does not exist, so there is no runner to contain a candidate in. This is not a pass.`)
+  }
+
+  tsContainmentRuns += 1
+  const home = join(TS_CONTAINMENT, `run-${tsContainmentRuns}`)
+  const userDir = join(home, 'tasks', 'user')
+  mkdirSync(userDir, { recursive: true })
+  const runnerCopy = join(home, 'runner.ts')
+  copyFileSync(TS_RUNNER, runnerCopy)
+  if (md5(readFileSync(runnerCopy, 'utf8')) !== md5(readFileSync(TS_RUNNER, 'utf8'))) {
+    return skip('the contained runner is not byte-identical to typescript/runner.ts. This is not a pass.')
+  }
+
+  const drive = (taskId, timeout) =>
+    spawnSync(process.execPath, ['--experimental-strip-types', runnerCopy, 'run', taskId], {
+      encoding: 'utf8',
+      timeout,
+      // No cwd of the player's, and no environment pointing back at one.
+      cwd: home,
+    })
+
+  // The denominator: prove the driver can run something before letting it
+  // judge anything.
+  const goodStem = 'drc_fixture_good'
+  writeFileSync(
+    join(userDir, `${goodStem}.ts`),
+    '/** A task that behaves. */\nexport function main(): void {\n  console.log("fixture: finished")\n}\n',
+    'utf8'
+  )
+  const control = drive(`user.${goodStem}`, 60000)
+  if (control.status !== 0) {
+    return skip(
+      `the containment driver could not run its own known-good fixture: ` +
+        `${((control.stderr || '') + (control.stdout || '')).trim().slice(0, 200)}. This is not a pass.`
+    )
+  }
+
+  const stem = candidatePath.slice(dirname(candidatePath).length + 1).replace(/\.ts$/, '')
+  copyFileSync(candidatePath, join(userDir, `${stem}.ts`))
+  const r = drive(`user.${stem}`, 20000)
+  const timedOut = r.error && String(r.error.message).includes('ETIMEDOUT')
+  return [
+    {
+      name: 'E7 containment fixtures',
+      status: r.status === 0 && !timedOut ? 'pass' : 'fail',
+      detail: timedOut
+        ? 'the candidate did not finish within 20s under the containment driver'
+        : `ran out of process under a copy of typescript/runner.ts rooted at ${home}; ` +
+          `${((r.stdout || '') + (r.stderr || '')).trim().slice(0, 200)}`,
+    },
+  ]
+}
 
 /**
  * The port the worker is given. Real, on purpose - see the header.
@@ -189,20 +274,32 @@ function makePort(over = {}) {
       return { name: `syntax check for ${lang}`, status: 'not_checked', detail: `no syntax check is defined for ${lang}. This is not a pass.` }
     },
     fixtures(lang, candidatePath) {
-      // Only Python's runner accepts a redirected user directory, which is
-      // what E7's containment driver relies on. `typescript/runner.ts` fixes
-      // USER_DIR at module scope, and a Ruby script is a Lich script that only
-      // Lich runs - so both are honestly not checked rather than quietly
-      // skipped, and the reason names the thing that would have to change.
-      if (lang !== 'python') {
+      if (lang === 'typescript') return typescriptContainment(candidatePath)
+      if (lang === 'ruby') {
+        // Not "we could not be bothered": there is no out-of-process Ruby
+        // runner in this repository to contain anything with. A Ruby script
+        // here is a Lich `.lic`, and only Lich runs one. `assertRubySkipIsStillTrue`
+        // below checks that this is still the case rather than leaving the
+        // reason as a claim nobody re-derives - the day somebody adds
+        // ruby/runner.rb, the suite says so instead of skipping forever.
         return [
           {
             name: 'E7 containment fixtures',
             status: 'not_checked',
             detail:
-              lang === 'typescript'
-                ? 'typescript/runner.ts fixes USER_DIR at module scope, so a candidate cannot be run outside the player’s own task directory. This is not a pass.'
-                : 'a Ruby script is a Lich script and runs only inside Lich, so there is no out-of-process runner to contain it. This is not a pass.',
+              'a Ruby script is a Lich script and runs only inside Lich: this repo has no ruby/runner.rb ' +
+              'counterpart to python/runner.py, so there is no out-of-process runner to contain a candidate ' +
+              'in. Precondition to lift it: an out-of-process Ruby runner that takes its task directory as ' +
+              'an argument. This is not a pass.',
+          },
+        ]
+      }
+      if (lang !== 'python') {
+        return [
+          {
+            name: 'E7 containment fixtures',
+            status: 'not_checked',
+            detail: `no containment driver is defined for ${lang}. This is not a pass.`,
           },
         ]
       }
@@ -477,6 +574,37 @@ for (const [lang, name, source, diff] of [
   }
 }
 
+console.log('-- the reason Ruby containment is skipped is itself checked, not asserted --')
+{
+  // A skip whose reason nobody re-derives is a claim, and a claim rots. The
+  // Ruby fixture is skipped because this repository has no out-of-process Ruby
+  // runner - the counterpart to python/runner.py and typescript/runner.ts. If
+  // one ever appears, the skip above is stale and the fixture should be wired,
+  // so the precondition is measured rather than believed.
+  //
+  // The denominator is the pair: the two runners that DO exist must both be
+  // found, or this is measuring a broken path rather than an absent runner.
+  const runners = [
+    ['python/runner.py', existsSync(join(process.cwd(), 'python', 'runner.py'))],
+    ['typescript/runner.ts', existsSync(TS_RUNNER)],
+  ]
+  ok(
+    'both known task runners are where this check looks (positive control)',
+    runners.every(([, found]) => found),
+    runners.map(([p, found]) => `${p}=${found ? 'found' : 'MISSING'}`).join(' ')
+  )
+  const rubyRunners = ['ruby/runner.rb', 'ruby/runner.lic', 'lich/runner.rb'].filter((p) =>
+    existsSync(join(process.cwd(), ...p.split('/')))
+  )
+  ok(
+    'no out-of-process Ruby runner exists, so the Ruby skip above is still true',
+    rubyRunners.length === 0,
+    rubyRunners.length === 0
+      ? 'checked 3 candidate paths, none present'
+      : `${rubyRunners.join(', ')} now exists - the skip reason is STALE, wire the fixture`
+  )
+}
+
 console.log('-- a patch that breaks the file is still a candidate, with the failure recorded --')
 {
   const broken = '--- a/broken.rb\n+++ b/broken.rb\n@@ -1,4 +1,4 @@\n def harvest\n   puts "harvest"\n-  putz "done"\n+  puts "done\n end\n'
@@ -656,6 +784,12 @@ rmSync(ROOT, { recursive: true, force: true })
 console.log('')
 console.log(`interpreters: ruby=${RUBY ?? 'NOT FOUND'} python=${PYTHON ?? 'NOT FOUND'} tsc=${existsSync(TSC) ? TSC : 'NOT FOUND'}`)
 console.log(`${pass} passed, ${fail} failed, ${notChecked} not checked`)
-if (notChecked > 0) console.log(`NOT CHECKED is not a pass: ${notChecked} check(s) above did not run. See their reasons.`)
+// Deliberately does not contain the words the runner counts. `run-tests.mjs`
+// treats every line matching /\bNOT CHECKED\b/ as one thing that went
+// unchecked, and this line is a tally of the lines above it, not a further
+// skip - so while it said "NOT CHECKED" the suite reported one more skipped
+// thing than it had (three, for two). Each real skip is still printed above,
+// each with its reason; only the double count is gone.
+if (notChecked > 0) console.log(`A SKIP IS NOT A PASS: ${notChecked} check(s) above did not run - see their reasons.`)
 console.log(fail === 0 ? 'all passed' : 'FAILURES')
 process.exit(fail === 0 ? 0 : 1)
