@@ -16,7 +16,18 @@ globalThis.localStorage = {
 }
 
 const { EventJournal } = await import('../src/lib/aiEventJournal.ts')
-const { ingestLines, deriveAlerts } = await import('../src/lib/aiIngest.ts')
+const { AlertBroker } = await import('../src/lib/aiAlertBroker.ts')
+const { JobStore } = await import('../src/lib/aiJobStore.ts')
+const { ingestLines, deriveAlerts, runHostTick } = await import('../src/lib/aiIngest.ts')
+
+/**
+ * The host module is read as text, never imported: it pulls in useAppStore,
+ * which reaches src/bridge through a directory import Node refuses. The path
+ * is overridable so the source checks below can be aimed at a deliberately
+ * broken copy - a branch nobody can execute on purpose is a branch nobody can
+ * prove they fixed.
+ */
+const HOST_SRC = process.env.DRC_AI_HOST_SRC ?? 'src/lib/aiWorkerHost.ts'
 
 let pass = 0
 let fail = 0
@@ -120,10 +131,94 @@ console.log('\n-- alerts come from parsed state, with the startup case handled -
     deriveAlerts({ situation: undefined, bridgeConnected: true, everConnected: true }).length === 0)
 }
 
+console.log('\n-- a turn in flight is not disturbed by unrelated updates --')
+{
+  // The defect this guards: the tick effect used to depend on `character`,
+  // which is replaced on every status frame, so its cleanup ran about once a
+  // second and aborted whatever generation was in flight. Nothing errored -
+  // the worker recorded `cancelled`, which is a legitimate outcome - so a
+  // model that took longer than one frame to answer would simply never
+  // finish, forever, with an honest-looking status line.
+  const j = new EventJournal()
+  const broker = new AlertBroker()
+  const jobs = new JobStore()
+  const stuck = {
+    describe: () => ({ available: true, profile: 'never answers' }),
+    generate: () => new Promise(() => {}),
+  }
+
+  const buffer = [line('a'), line('b')]
+  ingestLines(j, buffer, 0)
+  const before = j.acknowledged()
+
+  const memory = { lastReviewAt: null, lastReviewedHash: null, ticks: 0, missedLines: 0 }
+  const controller = new AbortController()
+  let settled = false
+  const inFlight = runHostTick({
+    journal: j,
+    alerts: broker,
+    jobs,
+    provider: stuck,
+    app: { situation: [], roundtime: 0, bridgeConnected: true },
+    memory,
+    now: 10_000,
+    nowIso: '2026-09-05T00:00:00.000Z',
+    signal: controller.signal,
+  })
+  inFlight.then(
+    () => (settled = true),
+    () => (settled = true)
+  )
+
+  // Twenty updates of the kind a store change drives through this host.
+  for (let i = 0; i < 20; i++) {
+    buffer.push(line(`update-${i}`))
+    ingestLines(j, buffer, buffer.length - 1)
+  }
+  await new Promise((r) => setTimeout(r, 20))
+
+  ok('twenty updates during a turn do not abort the generation', controller.signal.aborted === false)
+  ok('the turn is still in flight rather than cancelled out from under itself', settled === false)
+  ok('and the cursor has not moved', j.acknowledged() === before, String(j.acknowledged()))
+  ok('the turn counted itself exactly once', memory.ticks === 1, String(memory.ticks))
+
+  controller.abort()
+  const outcome = await inFlight
+  ok('cancelling really does end the turn', settled === true)
+  ok('a cancelled turn still acknowledges nothing', j.acknowledged() === before, String(j.acknowledged()))
+  ok('and reports the failure rather than swallowing it',
+    /cancelled/.test(outcome.lastFailure ?? ''), String(outcome.lastFailure))
+}
+
+console.log('\n-- the tick effect does not depend on per-tick state --')
+{
+  const fs = await import('node:fs')
+  const src = fs.readFileSync(HOST_SRC, 'utf8')
+
+  // The property, not the mechanism: whatever owns the abort controller must
+  // not be rebuilt by ordinary state churn. That is decided entirely by the
+  // dependency array of the effect that calls runHostTick.
+  const effect = /runHostTick\(\{[\s\S]*?\n {2}\}, \[([^\]]*)\]\)/.exec(src)
+  ok('the tick effect and its dependency array were found in the source',
+    effect !== null, HOST_SRC)
+  const deps = effect?.[1] ?? ''
+  ok('the tick effect depends on enabled and provider', /enabled/.test(deps) && /provider/.test(deps), deps)
+  ok('and on nothing that changes every frame',
+    !/\b(character|bridgeConnected|version|status)\b/.test(deps), deps)
+
+  // A positive control on the regexp itself: the same shape with `character`
+  // present must be caught, or the check above is only reporting that its
+  // pattern did not match.
+  const sabotaged = src.replace(/(runHostTick\(\{[\s\S]*?\n {2}\}, \[)([^\]]*)(\]\))/, '$1$2, character$3')
+  const control = /runHostTick\(\{[\s\S]*?\n {2}\}, \[([^\]]*)\]\)/.exec(sabotaged)
+  ok('the same check catches character when it is present',
+    /\bcharacter\b/.test(control?.[1] ?? ''), control?.[1] ?? 'no match')
+}
+
 console.log('\n-- the host cannot reach the game command path --')
 {
   const fs = await import('node:fs')
-  const src = fs.readFileSync('src/lib/aiWorkerHost.ts', 'utf8')
+  const src = fs.readFileSync(HOST_SRC, 'utf8')
   ok('no import from gameActions or gameCommand',
     !/from '\.\/(gameActions|gameCommand)'/.test(src))
   ok('it reads the stream but never sends to it',
@@ -135,7 +230,7 @@ console.log('\n-- the host cannot reach the game command path --')
 
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 20
+const MIN_EXPECTED = 30
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

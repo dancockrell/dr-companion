@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "task_id": "a2-tick-survives-store-updates",
+  "agent": "claude-code",
+  "summary": "Extract the host turn into runHostTick so the timer effect no longer depends on state that changes every frame, and prove the dependency array by reading it",
+  "status": "completed",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "src/lib/aiIngest.ts",
+    "src/lib/aiWorkerHost.ts",
+    "tools/ai-worker-host-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a2-tick-survives-store-updates.json"
+  ],
+  "symbols": [
+    "runHostTick",
+    "HostAppState",
+    "HostMemory",
+    "AiWorkerStatus"
+  ],
+  "coordination": {
+    "depends_on": ["a1-host-at-app-root"],
+    "conflicts_with": [],
+    "notes": "The plan lists A2 as touching aiWorkerHost.ts alone. runHostTick had to go in aiIngest.ts instead, and the reason is measurable rather than stylistic: aiWorkerHost.ts imports useAppStore, which reaches src/bridge through a directory import Node refuses, so anything exported from that file cannot be called by a suite at all - the failure is 'Directory import ... is not supported'. aiIngest.ts is the existing module whose stated purpose is the host's testable half, and the plan already routes A3's reviewHash and A4's deriveActivity there, so the turn joins them rather than starting a third home for host logic. AiWorkerStatus moved with it and aiWorkerHost.ts re-exports the type, so no consumer changes. The runtime half of the plan's verify could not be run literally - 'fire 20 store updates' needs a store this suite cannot import - so it fires the twenty updates that a store change actually drives through this host, ingestion passes, and asserts the in-flight generation is neither aborted nor allowed to move the cursor. The property that really protects the invariant is the effect's dependency array, which is asserted by reading the source, with a positive control proving the same pattern catches character when present."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "node --experimental-strip-types tools/ai-worker-host-test.mjs: 36 checked, 0 failed (was 25)",
+      "decisive lines: 'OK twenty updates during a turn do not abort the generation', 'OK and the cursor has not moved 0', 'OK the tick effect depends on enabled and provider  enabled, provider', 'OK and on nothing that changes every frame  enabled, provider'",
+      "sabotage - a copy of aiWorkerHost.ts with character appended to the tick effect's dependency array, run through DRC_AI_HOST_SRC: 'FAIL and on nothing that changes every frame  enabled, provider, character', 35 checked 1 failed, exit 1",
+      "the sabotage refuses to run if the replacement changes nothing (exit 2 before the test), and it wrote a copy - md5sum of src/lib/aiWorkerHost.ts was 4092a71a90af653eedf0d9b1f0ebf7bc before and after",
+      "first sabotage attempt wrote the copy under /tmp and produced a loader error rather than a red test - trap 15 - and was redone with a path both Node and MSYS agree on",
+      "npx tsc -b: exit 0",
+      "node tools/run-tests.mjs (DRC_TEST_PORT=7971): all passed, 101 suites, 3050 checks - up 11, exactly the checks added",
+      "an unset DRC_TEST_PORT run failed test:link and skipped test:server on port 7893, held by a concurrent session; not caused by this change and green on the re-run"
+    ]
+  }
+}

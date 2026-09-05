@@ -61,32 +61,9 @@ import { AlertBroker } from './aiAlertBroker.ts'
 import { EventJournal } from './aiEventJournal.ts'
 import { JobStore } from './aiJobStore.ts'
 import { absentProvider, type ModelProvider } from './aiModelProvider.ts'
-import { deriveAlerts, ingestLines } from './aiIngest.ts'
-import type { Activity } from './aiReviewScheduler.ts'
-import { runWorkerOnce, type WorkerOutcome } from './aiWorker.ts'
+import { deriveAlerts, ingestLines, runHostTick, type AiWorkerStatus, type HostMemory } from './aiIngest.ts'
 
-export interface AiWorkerStatus {
-  /** What the provider says about itself. Absent is the ordinary case. */
-  available: boolean
-  providerReason?: string
-  journalPending: number
-  journalLost: number
-  /** Lines the display buffer dropped before they were journalled. */
-  missedLines: number
-  pendingAlerts: number
-  jobs: Record<string, number>
-  lastOutcome: string | null
-  lastFailure: string | null
-  /**
-   * Turns taken since the app started.
-   *
-   * The only field that proves the host is alive. Every other number here can
-   * legitimately sit at zero forever on an install with no model and a quiet
-   * game, so a status block of zeroes is indistinguishable from a host that
-   * was never mounted - which is exactly the state this file used to ship in.
-   */
-  ticks: number
-}
+export type { AiWorkerStatus } from './aiIngest.ts'
 
 const INITIAL_STATUS: AiWorkerStatus = {
   available: false,
@@ -176,12 +153,16 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
 
   const ingested = useRef(0)
   const seenDropped = useRef(0)
-  const missed = useRef(0)
   const everConnected = useRef(false)
-  const lastReviewAt = useRef<number | null>(null)
-  const lastHash = useRef<string | null>(null)
   const running = useRef(false)
-  const ticks = useRef(0)
+  // What the host remembers between turns. A ref rather than state: nothing
+  // here should cause a render, and `runHostTick` owns advancing it.
+  const memory = useRef<HostMemory>({
+    lastReviewAt: null,
+    lastReviewedHash: null,
+    ticks: 0,
+    missedLines: 0,
+  })
 
   // Ingestion. Keyed on the version counter; the buffer is read inside the
   // effect and never appears in the dependency array.
@@ -192,7 +173,7 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
     const result = ingestLines(journal.current, lines, ingested.current, dropped, seenDropped.current)
     ingested.current = result.ingested
     seenDropped.current = dropped
-    missed.current += result.missed
+    memory.current.missedLines += result.missed
   }, [enabled, version])
 
   // Alerts from parsed state. Subscribed to the store rather than selected
@@ -227,62 +208,29 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
       // same cursor and one of them acknowledge work the other did.
       if (running.current || cancelled) return
       running.current = true
-      ticks.current += 1
       try {
+        // Read once, here, and hand the turn a snapshot. The turn awaits a
+        // generation, and state read on the far side of that await would
+        // belong to a different world than the decision that started it.
         const { character, bridgeConnected } = useAppStore.getState()
-        const situation = character?.situation ?? []
-        const activity: Activity = !bridgeConnected
-          ? 'disconnected'
-          : situation.includes('in_combat')
-            ? 'combat'
-            : 'active'
-
-        const hash = JSON.stringify({ s: situation, r: character?.roundtime ?? 0 })
-        const outcome: WorkerOutcome = await runWorkerOnce(
-          {
-            journal: journal.current,
-            alerts: alerts.current,
-            jobs: jobs.current,
-            provider,
-            activity,
-            now: Date.now(),
-            nowIso: new Date().toISOString(),
-            lastReviewAt: lastReviewAt.current,
-            stateHash: hash,
-            lastReviewedHash: lastHash.current,
-            instructions: 'Review the recent event delta and report notable changes.',
+        const status = await runHostTick({
+          journal: journal.current,
+          alerts: alerts.current,
+          jobs: jobs.current,
+          provider,
+          app: {
+            situation: character?.situation,
+            roundtime: character?.roundtime,
+            bridgeConnected,
           },
-          controller.signal
-        )
-
-        if (outcome.did === 'review') {
-          lastReviewAt.current = Date.now()
-          if (outcome.result.ok) lastHash.current = hash
-        }
+          memory: memory.current,
+          now: Date.now(),
+          nowIso: new Date().toISOString(),
+          signal: controller.signal,
+        })
 
         if (cancelled) return
-        const health = provider.describe()
-        const byStatus: Record<string, number> = {}
-        for (const job of jobs.current.all()) byStatus[job.status] = (byStatus[job.status] ?? 0) + 1
-        const failure =
-          outcome.did === 'review' || outcome.did === 'background-job'
-            ? outcome.result.ok
-              ? null
-              : `${outcome.result.failure}: ${outcome.result.message}`
-            : null
-
-        publishStatus({
-          available: health.available,
-          providerReason: health.reason,
-          journalPending: journal.current.pending(),
-          journalLost: journal.current.stats().lost,
-          missedLines: missed.current,
-          pendingAlerts: alerts.current.pendingCount(),
-          jobs: byStatus,
-          lastOutcome: outcome.did,
-          lastFailure: failure,
-          ticks: ticks.current,
-        })
+        publishStatus(status)
       } finally {
         running.current = false
       }
