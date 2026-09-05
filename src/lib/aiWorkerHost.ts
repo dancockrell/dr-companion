@@ -141,6 +141,47 @@ function publishStatus(next: AiWorkerStatus): void {
   for (const listener of [...statusListeners]) listener()
 }
 
+/**
+ * The claim store the host built, for anything that needs to read or review
+ * candidates.
+ *
+ * Module-level and single, for the same reason the status store above is: a
+ * panel that built its own `ClaimStore` over the same key would be a second
+ * in-memory copy of one record set, and the two would disagree the moment
+ * either wrote. One store, one owner, and a subscription so a reviewer's
+ * Accept is visible without polling.
+ *
+ * Null until a host has mounted. A panel must render that as "not running
+ * yet" rather than as "no claims", because those are different facts.
+ */
+let claimStore: ClaimStore | null = null
+const claimListeners = new Set<() => void>()
+let claimRevision = 0
+
+export function getAiClaimStore(): ClaimStore | null {
+  return claimStore
+}
+
+/** Changes with every claim write, so `useSyncExternalStore` has a snapshot
+ * that is a primitive rather than a store whose identity never changes. */
+export function aiClaimRevision(): number {
+  return claimRevision
+}
+
+export function subscribeAiClaims(listener: () => void): () => void {
+  claimListeners.add(listener)
+  return () => {
+    claimListeners.delete(listener)
+  }
+}
+
+/** Say that the claims changed. Called by the host after a turn that produced
+ * any, and by a reviewer after Accept, Reject, Promote or Revert. */
+export function publishAiClaimsChanged(): void {
+  claimRevision += 1
+  for (const listener of [...claimListeners]) listener()
+}
+
 /** How often the host wakes to ask the scheduler. The scheduler, not this
  * timer, decides whether anything actually happens - so a short tick is cheap
  * and an unchanged world still costs no inference. */
@@ -336,6 +377,8 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
       storage: { read: readJSON, write: writeJSON },
     })
     claims.current.load()
+    claimStore = claims.current
+    publishAiClaimsChanged()
     // Anything left running belonged to a process that is gone. Resolving it
     // here, once, is what keeps a restart honest rather than leaving records
     // claiming a worker that does not exist.
@@ -460,6 +503,7 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
         // Read once, here, and hand the turn a snapshot. The turn awaits a
         // generation, and state read on the far side of that await would
         // belong to a different world than the decision that started it.
+        const claimsBefore = claims.current.all().length
         const { character, bridgeConnected } = useAppStore.getState()
         const status = await runHostTick({
           journal: journal.current,
@@ -492,6 +536,9 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
 
         if (cancelled) return
         publishStatus(status)
+        // Only when a turn actually wrote one. A revision bump every second
+        // would re-render the review panel forever on an idle client.
+        if (claimsBefore !== claims.current.all().length) publishAiClaimsChanged()
       } finally {
         running.current = false
       }

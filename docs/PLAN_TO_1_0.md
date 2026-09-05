@@ -997,7 +997,8 @@ whether it is embedded, docked or a separate window is D0.
   verify: absent → 1 claim + awaiting_review; failing → same; valid JSON → 2 claims; **adversarial**: invented destination → no claim, note names it; directionless exit → `boardAnchor` null; portal with proximity-only evidence → rejected; ferry without transport evidence → rejected.
   sabotage: skip the destination check → the invented-destination test red.
 
-- [ ] **G7  Claim review UI** (≈30)
+- [x] **G7  Claim review UI** (≈30)
+  commit: PENDING-G7 verified: 2026-09-05 minutes: 45
   touches: new:src/components/shared/AiClaimsPanel.tsx, src/components/layout/SettingsSheet.tsx
   depends-on: G5
   do: list candidates (subject, predicate, evidence count, producer, confidence); Accept/Reject change status only; evidence tooltip.

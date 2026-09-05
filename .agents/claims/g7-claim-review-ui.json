@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "g7-claim-review-ui",
+  "agent": "claude-code",
+  "summary": "The review surface for candidate claims: subject, predicate, evidence count with the refs in a tooltip, producer, confidence, and Accept/Reject that change a status and nothing else",
+  "status": "completed",
+  "claimed_at": "2026-09-05T22:00:00Z",
+  "updated_at": "2026-09-05T22:45:00Z",
+  "paths": [
+    "src/components/shared/AiClaimsPanel.tsx",
+    "src/components/layout/SettingsSheet.tsx",
+    "src/lib/aiWorkerHost.ts",
+    "docs/PLAYER_DATA.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g7-claim-review-ui.json"
+  ],
+  "symbols": ["AiClaimsPanel", "getAiClaimStore", "subscribeAiClaims", "publishAiClaimsChanged", "aiClaimRevision"],
+  "coordination": {
+    "depends_on": ["G5"],
+    "conflicts_with": ["A8", "E9", "E12", "H2"],
+    "notes": "The section is appended after the Godot bridge section and before Debug; nothing above it moved, and no other section was touched - the file's own diff is 15 added lines and no deletions. The panel reads the host's single ClaimStore through a module accessor rather than building its own over the same key: two in-memory copies of one record set would disagree the moment either wrote, which is the fork this repo's rules forbid. The subscription snapshot is a revision counter rather than the store, because the store's identity never changes and useSyncExternalStore compares by identity - the same trap useGameLines documents about the line buffer. A null store renders as 'the worker has not started yet' rather than as an empty list, because those are different facts.",
+    "deviations": "The plan's G7 text says status 'accepted'; the schema in docs/LOCAL_AI_BACKGROUND_WORKER.md section 7 says 'accepted-local', and the store implements that. Recorded in the G5 claim too."
+  },
+  "completion": {
+    "commit": "PENDING-G7",
+    "checks": [
+      "npx tsc -b: exit 0",
+      "verified in the running app at 127.0.0.1:1437 (vite dev, started and killed by pid) rather than by reading the source",
+      "a claim seeded into drc.ai-claims.v1 in devtools appears in Settings: headings list contains 'AI candidate claims'; the row reads 'room:142 exit_divergence / 1 piece of evidence / parser: aiJobProducers.detectExitDivergence / confidence 0.50 / candidate' with Accept and Reject buttons",
+      "clicking Accept: claim status accepted-local, reviewer 'you', reviewedAt 2026-09-05T12:43:37.147Z",
+      "byte-identical check across the 4 non-AI drc.* keys either side of the Accept: changedNonAiKeys [], pinsIdentical true - and drc.pins.v1 held a real pin at the time, so the comparison was not against a null",
+      "node tools/run-tests.mjs: 138 passed, 0 failed, 0 not run / all passed"
+    ]
+  }
+}
