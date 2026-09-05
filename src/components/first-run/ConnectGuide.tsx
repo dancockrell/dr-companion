@@ -19,10 +19,10 @@
  */
 import { useState } from 'react'
 import { Copy, Check, ExternalLink, Link2 } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { FRONTENDS, frontendById, bridgeCommand } from '../../lib/frontends'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { FRONTENDS, frontendById, bridgeCommand } from '../../lib/frontends.ts'
 import type { GameInstance } from '../../types'
-import { INSTANCES } from '../../data/instances'
+import { INSTANCES } from '../../data/instances.ts'
 
 
 function Line({ text }: { text: string }) {

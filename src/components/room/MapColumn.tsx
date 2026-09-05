@@ -1,4 +1,4 @@
-import { MapPanel } from '../shared/MapPanel'
+import { MapPanel } from '../shared/MapPanel.tsx'
 
 /**
  * The map, in a column of its own.

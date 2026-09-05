@@ -5,14 +5,14 @@ import {
   MAP_PINS_CHANGED_EVENT,
   MAP_PINS_STORAGE_KEY,
   type MapPin,
-} from './mapPins'
+} from './mapPins.ts'
 import {
   loadPlayerMarker,
   PLAYER_MARKER_CHANGED_EVENT,
   PLAYER_MARKER_STORAGE_KEY,
   type PlayerMarker,
-} from './playerMarker'
-import { subscribeStorageKey } from './subscribedStorage'
+} from './playerMarker.ts'
+import { subscribeStorageKey } from './subscribedStorage.ts'
 
 type Cached<T> = { signature: string; value: T }
 const pinCache = new Map<string, Cached<MapPin[]>>()

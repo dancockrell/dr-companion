@@ -1,9 +1,8 @@
 /**
- * A ratchet on relative imports that Node cannot resolve.
+ * Relative imports Node cannot resolve.
  *
  *   node tools/import-extension-test.mjs           check
  *   node tools/import-extension-test.mjs --fix     rewrite the violations
- *   node tools/import-extension-test.mjs --write   regenerate the allowlist
  *
  * # What this is for
  *
@@ -40,8 +39,7 @@
  * Deliberate. An extension on a specifier Node never resolves buys nothing a
  * check can see, and the 124 of them live in files six lanes are editing at
  * once, so the cost is real rebase conflicts against no defect. A check that
- * flags what cannot fail teaches its readers to regenerate the allowlist,
- * which is how a ratchet stops being one.
+ * flags what cannot fail teaches its readers to work around it.
  *
  * # Scope is all of `src/`, `.tsx` included
  *
@@ -50,14 +48,14 @@
  * at that point the fix is 527 specifiers deep in files everyone is editing.
  * Cheaper now, and the rule is easier to state with no exceptions in it.
  *
- * # Why entries are keyed on the specifier, not the line
+ * # There is no allowlist
  *
- * Same reason as `tools/color-token-test.mjs`, from which this borrows the
- * shape: a line-keyed entry goes red when somebody two hundred lines above
- * adds an import, and the fastest way out of that is to regenerate - which
- * turns the ratchet into a snapshot of whatever the code happens to contain.
- * An entry is `{ file, specifier, count }` and survives every edit that does
- * not change how many times that file imports that specifier.
+ * There was one for about an hour. It landed in C13 carrying all 704 existing
+ * violations, so the check could refuse *new* ones the moment it merged rather
+ * than waiting behind a 172-file diff while six lanes moved underneath it. C14
+ * emptied it with `--fix` and deleted it, which is what a ratchet reaching zero
+ * looks like: the rule is now absolute, and there is nowhere for the next
+ * violation to be parked and forgotten.
  */
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -70,12 +68,6 @@ import ts from 'typescript'
  * prove they fixed.
  */
 const ROOT = process.env.DRC_IMPORT_EXT_ROOT ?? 'src'
-
-/**
- * Overridable so the missing-allowlist branch can be executed on purpose. A
- * branch nobody can reach is a branch nobody can prove they fixed.
- */
-const ALLOWLIST = process.env.DRC_IMPORT_EXT_ALLOWLIST ?? 'tools/import-extension-allowlist.json'
 
 /**
  * Extensions a specifier may already carry. `.ts`/`.tsx` are what the fix
@@ -220,11 +212,6 @@ function tally(violations) {
   )
 }
 
-function loadAllowlist() {
-  if (!existsSync(ALLOWLIST)) return null
-  return JSON.parse(readFileSync(ALLOWLIST, 'utf8')).entries
-}
-
 function fix() {
   const { violations } = scan()
   const byFile = new Map()
@@ -296,6 +283,14 @@ function fix() {
   return refused === 0 ? 0 : 1
 }
 
+/** The lines one group of identical violations was found on. */
+function where(violations, entry) {
+  return violations
+    .filter((v) => v.file === entry.file && v.specifier === entry.specifier && v.kind === entry.kind)
+    .map((v) => v.line)
+    .join(', ')
+}
+
 function main() {
   const mode = process.argv[2]
   if (mode === '--fix') return process.exit(fix())
@@ -310,61 +305,17 @@ function main() {
     process.exit(1)
   }
 
-  const entries = tally(violations)
-
-  if (mode === '--write') {
-    writeFileSync(
-      ALLOWLIST,
-      `${JSON.stringify({ note: 'Shrinking allowlist. Entries may be removed, never added. See tools/import-extension-test.mjs.', entries }, null, 2)}\n`,
-    )
-    console.log(`wrote ${entries.length} entr(ies) to ${ALLOWLIST}`)
-    return
-  }
-
-  const allowed = loadAllowlist()
-  if (allowed === null) {
-    // Three states, not two: an allowlist that is absent is not an allowlist
-    // that is empty, and saying "passed" here would be the exact defect this
-    // file exists to prevent.
-    console.error(`import-extension-test: NOT CHECKED - allowlist ${ALLOWLIST} does not exist`)
-    process.exit(1)
-  }
-
-  const allowedBy = new Map(allowed.map((e) => [[e.file, e.specifier, e.kind].join(SEP), e.count]))
-  const failures = []
-
-  for (const entry of entries) {
-    const key = [entry.file, entry.specifier, entry.kind].join(SEP)
-    const budget = allowedBy.get(key)
-    if (budget === undefined) {
-      const where = violations
-        .filter((v) => v.file === entry.file && v.specifier === entry.specifier && v.kind === entry.kind)
-        .map((v) => v.line)
-        .join(', ')
-      failures.push({
-        file: entry.file,
-        message:
-          entry.kind === 'json-attributes'
-            ? `${entry.file}:${where} imports '${entry.specifier}' without with { type: 'json' }`
-            : `${entry.file}:${where} imports '${entry.specifier}' with no file extension`,
-      })
-    } else if (entry.count > budget) {
-      failures.push({
-        file: entry.file,
-        message: `${entry.file} imports '${entry.specifier}' ${entry.count} time(s), allowlist permits ${budget}`,
-      })
-    }
-    allowedBy.delete(key)
-  }
-
-  for (const stale of allowedBy.keys()) {
-    const [file, specifier] = stale.split(SEP)
-    failures.push({
-      file,
-      message: `allowlist entry ${file} -> '${specifier}' no longer matches anything; remove it`,
-    })
-  }
-
+  // No allowlist any more. C14 emptied it, so the rule is absolute: a relative
+  // specifier Node must resolve carries its extension, with no exceptions to
+  // keep in step. A ratchet that has reached zero is just a rule, and the
+  // allowlist that got it there would only be a place for the next one to hide.
+  const failures = tally(violations).map((entry) => ({
+    file: entry.file,
+    message:
+      entry.kind === 'json-attributes'
+        ? `${entry.file}:${where(violations, entry)} imports '${entry.specifier}' without with { type: 'json' }`
+        : `${entry.file}:${where(violations, entry)} imports '${entry.specifier}' with no file extension`,
+  }))
   // One line per file, because `run-tests.mjs` counts OK and FAIL lines and a
   // suite reporting zero checks is treated as NOT RUN however it exited. Files
   // is the right denominator: it is what goes to zero when the walk breaks,
@@ -377,7 +328,7 @@ function main() {
 
   console.log(
     `\nimport-extension-test: ${files.length} files, ${specifiers} relative specifiers, ` +
-      `${violations.length} unresolvable-by-node, ${allowed.length} allowlisted`,
+      `${violations.length} unresolvable-by-node`,
   )
 
   if (failures.length) {

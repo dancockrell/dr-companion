@@ -7,16 +7,40 @@ const dir = join('node_modules', '.drc-test')
 mkdirSync(dir, { recursive: true })
 const colorsOut = join(dir, 'mapPlaceColors.mjs')
 writeFileSync(colorsOut, ts.transpileModule(readFileSync('src/lib/mapPlaceColors.ts', 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+    // Deterministic output: every relative specifier comes out `.js` whatever
+    // the source wrote. The string patches below are stubbing work and can
+    // only stay correct if what they match does not follow src/'s import
+    // style. It used to, and C14 changing that style broke six suites at once.
+    rewriteRelativeImportExtensions: true,
+  },
 }).outputText)
 const landmarksOut = join(dir, 'mapLandmarks.mjs')
 writeFileSync(landmarksOut, ts.transpileModule(readFileSync('src/lib/mapLandmarks.ts', 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText.replace("'./mapPlaceColors'", "'./mapPlaceColors.mjs'"))
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+    // Deterministic output: every relative specifier comes out `.js` whatever
+    // the source wrote. The string patches below are stubbing work and can
+    // only stay correct if what they match does not follow src/'s import
+    // style. It used to, and C14 changing that style broke six suites at once.
+    rewriteRelativeImportExtensions: true,
+  },
+}).outputText.replace('./mapPlaceColors.js', './mapPlaceColors.mjs'))
 const out = join(dir, 'mapStamps.mjs')
 writeFileSync(out, ts.transpileModule(readFileSync('src/lib/mapStamps.ts', 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText.replace("'./mapLandmarks'", "'./mapLandmarks.mjs'"))
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+    // Deterministic output: every relative specifier comes out `.js` whatever
+    // the source wrote. The string patches below are stubbing work and can
+    // only stay correct if what they match does not follow src/'s import
+    // style. It used to, and C14 changing that style broke six suites at once.
+    rewriteRelativeImportExtensions: true,
+  },
+}).outputText.replace('./mapLandmarks.js', './mapLandmarks.mjs'))
 const { deriveMapStamps } = await import(`${pathToFileURL(out).href}?v=${Date.now()}`)
 
 let failures = 0

@@ -39,11 +39,11 @@ import {
   type NowPlaying,
   type Progress,
   type CrossfadeStyle,
-} from '../../lib/ambientSound'
-import { savePrefs } from '../../lib/persistence'
-import { isFavorited, toggleFavorite, onFavoritesChange } from '../../lib/favorites'
+} from '../../lib/ambientSound.ts'
+import { savePrefs } from '../../lib/persistence.ts'
+import { isFavorited, toggleFavorite, onFavoritesChange } from '../../lib/favorites.ts'
 import { useEffect, useState } from 'react'
-import { cn } from '../../lib/cn'
+import { cn } from '../../lib/cn.ts'
 
 /** cut -> standard -> long -> cut. Same three values SoundControls' own
  * picker offers - see CROSSFADE_STYLES in ambientSound.ts. */

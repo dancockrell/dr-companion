@@ -26,9 +26,9 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { Bookmark, Search, ListTree } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { Button } from './Button'
-import { cn } from '../../lib/cn'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { Button } from './Button.tsx'
+import { cn } from '../../lib/cn.ts'
 
 export type ScriptCategoryLookup = (name: string) => string | undefined
 export type ScriptFilter = (name: string) => boolean

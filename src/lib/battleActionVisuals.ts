@@ -1,6 +1,6 @@
 import * as Icons from 'lucide-react'
-import { MACROS } from '../data/macros'
-import { PIN_COLORS, type PinColor } from './mapPins'
+import { MACROS } from '../data/macros.ts'
+import { PIN_COLORS, type PinColor } from './mapPins.ts'
 
 /** One deliberate symbol for every basic game command variation. */
 const ACTION_ICONS: Record<string, Icons.LucideIcon> = {

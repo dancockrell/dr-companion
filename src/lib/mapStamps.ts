@@ -1,5 +1,5 @@
 import type { MapZone, MapZoneRoom } from '../bridge/types'
-import { landmarksFor, type LandmarkKind } from './mapLandmarks'
+import { landmarksFor, type LandmarkKind } from './mapLandmarks.ts'
 
 export type MapStampKind =
   | 'water'

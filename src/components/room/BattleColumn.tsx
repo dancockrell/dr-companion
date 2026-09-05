@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { RoomScene, sceneMaxWidthVh } from './RoomScene'
+import { RoomScene, sceneMaxWidthVh } from './RoomScene.tsx'
 
 /**
  * The scene's own height ceiling, in vh — exported so the outer column
@@ -13,25 +13,25 @@ export const BATTLE_SCENE_MAX_HEIGHT_VH = 52
 /** What `BATTLE_SCENE_MAX_HEIGHT_VH` actually costs in scene width, at the
  * landscape shape this column always uses. */
 export const BATTLE_SCENE_MAX_WIDTH_VH = sceneMaxWidthVh(BATTLE_SCENE_MAX_HEIGHT_VH, 'landscape')!
-import { CombatRadar } from '../shared/CombatRadar'
-import { BattleStatus } from './BattleStatus'
-import { BattleActionBar } from './BattleActionBar'
-import { ClassicRoomText } from './ClassicRoomText'
-import { FloorItems } from './FloorItems'
-import { PanelBoundary } from '../shared/PanelBoundary'
-import { InventoryPanel } from '../shared/InventoryPanel'
-import { cachedRoomText, resolveRoomPresentation, roomTextFor, type RoomText } from '../../lib/roomText'
-import { useAppStore } from '../../store/useAppStore'
-import { useHighlights } from '../../lib/useHighlights'
-import { useOffClasses } from '../../lib/offClasses'
-import { fromRoom } from '../../lib/room'
-import { vitalsFor } from '../../lib/vitals'
-import { situationFor } from '../../lib/situation'
-import { bridge } from '../../bridge'
-import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
-import { cn } from '../../lib/cn'
-import { useDragScroll } from '../../lib/useDragScroll'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { CombatRadar } from '../shared/CombatRadar.tsx'
+import { BattleStatus } from './BattleStatus.tsx'
+import { BattleActionBar } from './BattleActionBar.tsx'
+import { ClassicRoomText } from './ClassicRoomText.tsx'
+import { FloorItems } from './FloorItems.tsx'
+import { PanelBoundary } from '../shared/PanelBoundary.tsx'
+import { InventoryPanel } from '../shared/InventoryPanel.tsx'
+import { cachedRoomText, resolveRoomPresentation, roomTextFor, type RoomText } from '../../lib/roomText.ts'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { useHighlights } from '../../lib/useHighlights.ts'
+import { useOffClasses } from '../../lib/offClasses.ts'
+import { fromRoom } from '../../lib/room.ts'
+import { vitalsFor } from '../../lib/vitals.ts'
+import { situationFor } from '../../lib/situation.ts'
+import { bridge } from '../../bridge/index.ts'
+import { subscribeGame, streamCharacterState } from '../../lib/gameLink.ts'
+import { cn } from '../../lib/cn.ts'
+import { useDragScroll } from '../../lib/useDragScroll.ts'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
 
 /**
  * The battle system, in a pane of its own: where you are, and what is in the

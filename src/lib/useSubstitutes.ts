@@ -3,7 +3,7 @@
  * `useAliases`/`useMacros`.
  */
 import { useEffect, useState } from 'react'
-import { loadSubstituteConfig, type Substitute } from './substitutes'
+import { loadSubstituteConfig, type Substitute } from './substitutes.ts'
 
 let cached: Substitute[] | null = null
 let note = ''

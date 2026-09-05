@@ -35,8 +35,8 @@
  * all-clear, because none has been earned.
  */
 import { AlertTriangle } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { gearConflicts, conflictSubjects } from '../../data/gearConflicts'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { gearConflicts, conflictSubjects } from '../../data/gearConflicts.ts'
 
 export function GearNotice() {
   const character = useAppStore((s) => s.character)

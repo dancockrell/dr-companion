@@ -1,8 +1,8 @@
-import { MindstateBoard } from './MindstateBoard'
-import { useDragScroll } from '../../lib/useDragScroll'
-import { cn } from '../../lib/cn'
+import { MindstateBoard } from './MindstateBoard.tsx'
+import { useDragScroll } from '../../lib/useDragScroll.ts'
+import { cn } from '../../lib/cn.ts'
 import type { SkillState } from '../../data/skills'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
 
 /**
  * Experience, alone, all the way to the right, running the full height of

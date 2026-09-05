@@ -17,16 +17,16 @@
  * decided we are worth against the game window next to it. See §2.115.
  */
 import { useEffect, useRef } from 'react'
-import { LichLauncher } from '../shared/LichLauncher'
-import { useAppStore } from '../../store/useAppStore'
-import { useLayout } from '../../lib/useLayout'
+import { LichLauncher } from '../shared/LichLauncher.tsx'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { useLayout } from '../../lib/useLayout.ts'
 import type { PanelId } from '../../lib/layout'
-import { DashboardLayout } from './DashboardLayout'
-import { cn } from '../../lib/cn'
-import { PANEL_CONTENT, PANEL_TITLES } from './panels'
-import { FreeCanvas } from './FreeCanvas'
-import { useHiddenMiddlePanels, type MiddlePanelId } from '../../lib/panelVisibility'
-import { closePanelWindow, openPanelWindow, usePanelWindows } from '../../lib/panelWindows'
+import { DashboardLayout } from './DashboardLayout.tsx'
+import { cn } from '../../lib/cn.ts'
+import { PANEL_CONTENT, PANEL_TITLES } from './panels.tsx'
+import { FreeCanvas } from './FreeCanvas.tsx'
+import { useHiddenMiddlePanels, type MiddlePanelId } from '../../lib/panelVisibility.ts'
+import { closePanelWindow, openPanelWindow, usePanelWindows } from '../../lib/panelWindows.ts'
 
 /**
  * The ids that exist in both `PanelId` (freeform/pop-out/dock) and

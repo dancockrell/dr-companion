@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { cn } from '../../lib/cn'
-import { catalogue, choose, genericPortraitFor, loadPortraitManifest, portraitFor, portraitUrl, resetChoice } from '../../lib/portraits'
-import { readCustomPortrait, removeCustomPortrait } from '../../lib/customPortraits'
-import { CustomPortraitEditor } from './CustomPortraitEditor'
-import { useModalDialog } from '../../lib/useModalDialog'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { cn } from '../../lib/cn.ts'
+import { catalogue, choose, genericPortraitFor, loadPortraitManifest, portraitFor, portraitUrl, resetChoice } from '../../lib/portraits.ts'
+import { readCustomPortrait, removeCustomPortrait } from '../../lib/customPortraits.ts'
+import { CustomPortraitEditor } from './CustomPortraitEditor.tsx'
+import { useModalDialog } from '../../lib/useModalDialog.ts'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
 
 /**
  * The character's face.

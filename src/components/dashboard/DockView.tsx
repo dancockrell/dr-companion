@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { cn } from '../../lib/cn'
+import { cn } from '../../lib/cn.ts'
 import {
   foldCramped,
   measure,
   MIN_REGION,
   moveBoundary,
   type Dock,
-} from '../../lib/dock'
+} from '../../lib/dock.ts'
 import type { PanelId } from '../../lib/layout'
 
 /**

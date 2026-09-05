@@ -9,8 +9,8 @@
  * another's, and two characters sharing this machine should not see each
  * other's list.
  */
-import { readJSON, writeJSON } from './storage'
-import { profileKey } from './profiles'
+import { readJSON, writeJSON } from './storage.ts'
+import { profileKey } from './profiles.ts'
 import type { GameInstance } from '../types'
 
 const STORAGE_KEY = 'drc.watched-rooms.v1'

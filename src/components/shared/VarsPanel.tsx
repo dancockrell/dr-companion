@@ -1,5 +1,5 @@
-import { useAppStore } from '../../store/useAppStore'
-import { CheckPanel } from './CheckPanel'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { CheckPanel } from './CheckPanel.tsx'
 
 /**
  * `Lich::Common::Vars` for this character, listed rather than left to `;vars`.

@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
-import { useGameActionFailure } from '../../lib/gameActions'
+import { useGameActionFailure } from '../../lib/gameActions.ts'
 
 export function GameActionNotice() {
   const failure = useGameActionFailure()

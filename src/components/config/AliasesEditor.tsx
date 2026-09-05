@@ -7,12 +7,12 @@
  */
 import { useMemo, useState } from 'react'
 import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste } from 'lucide-react'
-import { parseAliases, expandAlias, type Alias } from '../../lib/aliases'
-import { LoadingNotice } from '../shared/LoadingNotice'
-import { reloadAliases } from '../../lib/useAliases'
-import { referencedVariables } from '../../lib/variables'
-import { useVariables } from '../../lib/useVariables'
-import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
+import { parseAliases, expandAlias, type Alias } from '../../lib/aliases.ts'
+import { LoadingNotice } from '../shared/LoadingNotice.tsx'
+import { reloadAliases } from '../../lib/useAliases.ts'
+import { referencedVariables } from '../../lib/variables.ts'
+import { useVariables } from '../../lib/useVariables.ts'
+import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor.ts'
 import {
   formatAliasLine,
   hasUnsafeBraces,
@@ -20,7 +20,7 @@ import {
   removeLine,
   appendUnderPlayerSection,
   isPlayerAddedLine,
-} from '../../lib/genieConfigEdit'
+} from '../../lib/genieConfigEdit.ts'
 
 interface DraftAlias {
   name: string

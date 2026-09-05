@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { FileWarning, FileCheck2, ChevronRight } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { CheckPanel } from './CheckPanel'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { CheckPanel } from './CheckPanel.tsx'
 
 /**
  * Which dr-scripts settings files are being read, in what order, and which one

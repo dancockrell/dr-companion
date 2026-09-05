@@ -1,5 +1,5 @@
 import { useId, useMemo } from 'react'
-import { roomArtUrl } from '../../lib/roomText'
+import { roomArtUrl } from '../../lib/roomText.ts'
 
 /**
  * The picture of the room, or something that stands in for it — pulled out of

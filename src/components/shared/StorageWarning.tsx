@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { retryStorageWrites, storageHealth, subscribeStorageHealth } from '../../lib/storage'
+import { retryStorageWrites, storageHealth, subscribeStorageHealth } from '../../lib/storage.ts'
 
 let snapshot = storageHealth()
 function currentSnapshot() {

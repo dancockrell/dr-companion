@@ -1,6 +1,6 @@
-import { useAppStore } from '../../store/useAppStore'
-import { RoomCards } from './RoomCards'
-import { fromRoom } from '../../lib/room'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { RoomCards } from './RoomCards.tsx'
+import { fromRoom } from '../../lib/room.ts'
 import type { Deck } from '../../lib/cards'
 import type { DeckPref } from '../../lib/layout'
 

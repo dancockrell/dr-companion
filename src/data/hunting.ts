@@ -5,7 +5,7 @@
  */
 
 import type { AccountTier, GameInstance } from '../types'
-import { capabilitiesFor } from '../lib/accountCapabilities'
+import { capabilitiesFor } from '../lib/accountCapabilities.ts'
 
 export type GuildId =
   | 'barbarian' | 'bard' | 'cleric' | 'empath' | 'moon_mage'

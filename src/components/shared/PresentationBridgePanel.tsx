@@ -9,8 +9,8 @@ import {
   type PresentationBridgeInfo,
   type ViewerStatus,
 } from '../../lib/viewerClient.ts'
-import { revealFile } from '../../lib/setup'
-import { isTauri } from '../../lib/tauri'
+import { revealFile } from '../../lib/setup.ts'
+import { isTauri } from '../../lib/tauri.ts'
 
 /**
  * The port and token file the Godot viewer needs to connect - see

@@ -18,9 +18,9 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react'
-import { cn } from '../../lib/cn'
-import { useScrollEdges } from '../../lib/useScrollEdges'
-import { MACROS, type Macro } from '../../data/macros'
+import { cn } from '../../lib/cn.ts'
+import { useScrollEdges } from '../../lib/useScrollEdges.ts'
+import { MACROS, type Macro } from '../../data/macros.ts'
 
 /**
  * The lucide component behind each macro's `icon` name.

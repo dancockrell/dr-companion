@@ -552,13 +552,18 @@ console.log('\n-- the host cannot reach the game command path --')
 {
   const fs = await import('node:fs')
   const src = fs.readFileSync(HOST_SRC, 'utf8')
+  // `(\.ts)?` because src/ now writes the extension (C14). The negative check
+  // is the one that matters here: anchored to a bare closing quote it would go
+  // quietly, permanently true the day the import it bans acquired an
+  // extension - passing while asserting nothing, which is worse than the
+  // positive one below simply going red.
   ok('no import from gameActions or gameCommand',
-    !/from '\.\/(gameActions|gameCommand)'/.test(src))
+    !/from '\.\/(gameActions|gameCommand)(\.ts)?'/.test(src))
   ok('it reads the stream but never sends to it',
     !/\b(sendGame|requestGameAction|game_send)\b/.test(src))
   // It legitimately reads gameLink for the buffer; the ban is on sending.
   ok('it does read the established stream owner rather than a second source',
-    /from '\.\/gameLink'/.test(src))
+    /from '\.\/gameLink(\.ts)?'/.test(src))
 }
 
 console.log('\n-- status changes: both directions, once each, in order --')

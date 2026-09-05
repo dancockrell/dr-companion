@@ -13,8 +13,8 @@
  */
 import type { IntentName } from '../../bridge/types'
 import { AlertTriangle, Heart, Swords, Skull, RotateCcw } from 'lucide-react'
-import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
-import { isLowHealth } from '../../lib/vitals'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore.ts'
+import { isLowHealth } from '../../lib/vitals.ts'
 
 export function SituationBanner() {
   const character = useAppStore((s) => s.character)

@@ -4,7 +4,7 @@
  */
 
 import type { AccountTier, GameInstance } from '../types'
-import { capabilitiesFor } from '../lib/accountCapabilities'
+import { capabilitiesFor } from '../lib/accountCapabilities.ts'
 
 export type TownStepId =
   | 'heal'

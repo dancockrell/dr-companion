@@ -1,4 +1,4 @@
-import { cn } from '../../lib/cn'
+import { cn } from '../../lib/cn.ts'
 import {
   BODY_PARTS,
   PRETTY,
@@ -6,7 +6,7 @@ import {
   type BodyPart,
   type Injury,
   type Severity,
-} from '../../lib/body'
+} from '../../lib/body.ts'
 
 export type { BodyPart, Injury, Severity } from '../../lib/body'
 

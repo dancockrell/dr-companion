@@ -13,11 +13,11 @@
  * each other's hangouts. Keyed with the same `profileKey` for exactly that
  * reason — one localStorage entry per character, not per zone or per pin.
  */
-import { readJSON, writeJSON } from './storage'
-import { profileKey } from './profiles'
+import { readJSON, writeJSON } from './storage.ts'
+import { profileKey } from './profiles.ts'
 import type { GameInstance } from '../types'
-import { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors'
-export { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors'
+import { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors.ts'
+export { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors.ts'
 
 /**
  * A small fixed palette rather than a colour picker. Six is enough to tell

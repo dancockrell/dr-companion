@@ -18,15 +18,15 @@
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Send, Search } from 'lucide-react'
-import { gameState, sendGame, subscribeGame } from '../../lib/gameLink'
-import { useAliases } from '../../lib/useAliases'
-import { expandAlias } from '../../lib/aliases'
-import { cn } from '../../lib/cn'
+import { gameState, sendGame, subscribeGame } from '../../lib/gameLink.ts'
+import { useAliases } from '../../lib/useAliases.ts'
+import { expandAlias } from '../../lib/aliases.ts'
+import { cn } from '../../lib/cn.ts'
 import {
   freshCommandHistoryCursor,
   historyNext,
   historyPrevious,
-} from '../../lib/commandHistory'
+} from '../../lib/commandHistory.ts'
 
 export function GameCommandBar({
   query,

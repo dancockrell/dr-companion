@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
 import { BookOpen, ChevronDown, ChevronRight, Package, Scale, Search, Sparkles } from 'lucide-react'
-import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
-import { capabilitiesForCharacter } from '../../lib/accountCapabilities'
-import { requestGameAction } from '../../lib/gameActions'
-import { fetchElanthipedia, type ElanthipediaPage } from '../../lib/elanthipedia'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore.ts'
+import { capabilitiesForCharacter } from '../../lib/accountCapabilities.ts'
+import { requestGameAction } from '../../lib/gameActions.ts'
+import { fetchElanthipedia, type ElanthipediaPage } from '../../lib/elanthipedia.ts'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
 
 const FILTERS = [
   ['All', 'list'], ['Weapons', 'weapons full'], ['Armor', 'armor full'],

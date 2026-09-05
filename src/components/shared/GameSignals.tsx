@@ -26,13 +26,13 @@
  * visible box was a layout change, not a feature deletion.
  */
 import { useEffect, useRef } from 'react'
-import { gameState, subscribeGame } from '../../lib/gameLink'
+import { gameState, subscribeGame } from '../../lib/gameLink.ts'
 import { useSyncExternalStore } from 'react'
-import { useGameLines } from '../../lib/useGameLines'
-import { paint } from '../../lib/highlights'
-import { useHighlights } from '../../lib/useHighlights'
-import { useOffClasses } from '../../lib/offClasses'
-import { playAlert, setAlertsVolume, setDangerVolume, setSpeechVolume } from '../../lib/alertSound'
+import { useGameLines } from '../../lib/useGameLines.ts'
+import { paint } from '../../lib/highlights.ts'
+import { useHighlights } from '../../lib/useHighlights.ts'
+import { useOffClasses } from '../../lib/offClasses.ts'
+import { playAlert, setAlertsVolume, setDangerVolume, setSpeechVolume } from '../../lib/alertSound.ts'
 import {
   setZone,
   setMusicVolume,
@@ -41,11 +41,11 @@ import {
   setPlaylist,
   initMediaSession,
   setCrossfadeStyle,
-} from '../../lib/ambientSound'
-import { loadPrefs, savePrefs } from '../../lib/persistence'
-import { getPlaylist } from '../../lib/playlists'
-import { setMasterMuted } from '../../lib/audioMaster'
-import { useAppStore } from '../../store/useAppStore'
+} from '../../lib/ambientSound.ts'
+import { loadPrefs, savePrefs } from '../../lib/persistence.ts'
+import { getPlaylist } from '../../lib/playlists.ts'
+import { setMasterMuted } from '../../lib/audioMaster.ts'
+import { useAppStore } from '../../store/useAppStore.ts'
 
 export function GameSignals() {
   // Kept for API parity with the effect this was copied from - not read

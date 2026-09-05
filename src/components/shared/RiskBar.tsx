@@ -9,7 +9,7 @@
  * See docs/DOMAIN.md sections 16 and 17.
  */
 import { HeartPulse, Users, Weight, ShieldCheck, ShieldAlert } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore } from '../../store/useAppStore.ts'
 
 function favorTone(n: number): { tone: string; note: string } {
   if (n <= 0)

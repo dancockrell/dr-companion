@@ -1,5 +1,5 @@
 import { Check, X, Minus } from 'lucide-react'
-import { cn } from '../../lib/cn'
+import { cn } from '../../lib/cn.ts'
 
 /**
  * What the check found, at a glance.

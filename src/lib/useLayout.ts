@@ -26,7 +26,7 @@ import {
   type Layout,
   type PanelId,
   type PanelState,
-} from './layout'
+} from './layout.ts'
 import type { Deck } from './cards'
 import type { Rect } from './freeLayout'
 import type { Dock } from './dock'

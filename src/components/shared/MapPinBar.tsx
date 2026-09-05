@@ -14,8 +14,8 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { MapPin as MapPinIcon, Pencil, Plus } from 'lucide-react'
-import { PIN_COLOR_HEX, savedPinsLabel, type MapPin } from '../../lib/mapPins'
-import { PinIconGlyph } from './PinIconGlyph'
+import { PIN_COLOR_HEX, savedPinsLabel, type MapPin } from '../../lib/mapPins.ts'
+import { PinIconGlyph } from './PinIconGlyph.tsx'
 
 export function MapPinBar({
   pins,

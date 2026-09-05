@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { useAppStore } from '../../store/useAppStore'
-import { canSendMacro } from '../../lib/canSendMacro'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { canSendMacro } from '../../lib/canSendMacro.ts'
 
 /**
  * Who's teaching nearby, and one click to join.

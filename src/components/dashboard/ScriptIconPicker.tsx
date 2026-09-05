@@ -10,10 +10,10 @@
  * against 200+ scripts this app never wrote and cannot read the intent of.
  * A wrong guess should cost one click to fix, not stay wrong forever.
  */
-import { SCRIPT_ICON_KEYS, type ScriptIconKey } from '../../lib/scriptIcons'
-import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
-import { cn } from '../../lib/cn'
-import { useModalDialog } from '../../lib/useModalDialog'
+import { SCRIPT_ICON_KEYS, type ScriptIconKey } from '../../lib/scriptIcons.ts'
+import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents.ts'
+import { cn } from '../../lib/cn.ts'
+import { useModalDialog } from '../../lib/useModalDialog.ts'
 
 export function ScriptIconPicker({
   title,

@@ -26,17 +26,33 @@ globalThis.__catalogDirs = () => impl.dirs()
 const dir = mkdtempSync(join(tmpdir(), 'task-catalog-status-'))
 const output = join(dir, 'taskCatalogStatus.mjs')
 writeFileSync(join(dir, 'asyncState.mjs'), ts.transpileModule(readFileSync('src/lib/asyncState.ts', 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+    // Deterministic output: every relative specifier comes out `.js` whatever
+    // the source wrote. The string patches below are stubbing work and can
+    // only stay correct if what they match does not follow src/'s import
+    // style. It used to, and C14 changing that style broke six suites at once.
+    rewriteRelativeImportExtensions: true,
+  },
 }).outputText)
 let source = ts.transpileModule(readFileSync('src/lib/taskCatalogStatus.ts', 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+    // Deterministic output: every relative specifier comes out `.js` whatever
+    // the source wrote. The string patches below are stubbing work and can
+    // only stay correct if what they match does not follow src/'s import
+    // style. It used to, and C14 changing that style broke six suites at once.
+    rewriteRelativeImportExtensions: true,
+  },
 }).outputText
 source = source
-  .replace("from './asyncState';", "from './asyncState.mjs';")
+  .replace('./asyncState.js', './asyncState.mjs')
   .replace("import { useSyncExternalStore } from 'react';", 'const useSyncExternalStore = () => {};')
-  .replace("import { nodeStatus } from './nodeTasks';", 'const nodeStatus = globalThis.__catalogNode;')
-  .replace("import { pythonStatus } from './pythonTasks';", 'const pythonStatus = globalThis.__catalogPython;')
-  .replace("import { listScripts, scriptDirs } from './scriptFiles';", 'const listScripts = globalThis.__catalogScripts; const scriptDirs = globalThis.__catalogDirs;')
+  .replace('import { nodeStatus } from "./nodeTasks.js";', 'const nodeStatus = globalThis.__catalogNode;')
+  .replace('import { pythonStatus } from "./pythonTasks.js";', 'const pythonStatus = globalThis.__catalogPython;')
+  .replace('import { listScripts, scriptDirs } from "./scriptFiles.js";', 'const listScripts = globalThis.__catalogScripts; const scriptDirs = globalThis.__catalogDirs;')
 writeFileSync(output, source)
 const store = await import(pathToFileURL(output))
 const off = store.subscribeTaskCatalogs(() => {})

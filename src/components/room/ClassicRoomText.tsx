@@ -1,9 +1,9 @@
-import { HighlightedText } from './HighlightedText'
-import { ExitButtons } from './ExitButtons'
-import { FloorItems } from './FloorItems'
-import { useDragScroll } from '../../lib/useDragScroll'
+import { HighlightedText } from './HighlightedText.tsx'
+import { ExitButtons } from './ExitButtons.tsx'
+import { FloorItems } from './FloorItems.tsx'
+import { useDragScroll } from '../../lib/useDragScroll.ts'
 import type { Highlight } from '../../lib/highlights'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
 
 /**
  * The room, read the way the game itself hands it to a player — a

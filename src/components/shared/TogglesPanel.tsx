@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { CheckPanel } from './CheckPanel'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { CheckPanel } from './CheckPanel.tsx'
 
 /**
  * BRIEF, INVBRIEF and ShowRoomID, read from the game rather than guessed.

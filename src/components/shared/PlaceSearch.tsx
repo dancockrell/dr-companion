@@ -18,9 +18,9 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw, Search, X } from 'lucide-react'
-import { searchPlaces, type Place, type PlaceHit } from '../../lib/placeSearch'
-import { loadPlaces } from '../../lib/placeIndex'
-import { ZONE_INDEX } from '../../lib/mapZoneIndex'
+import { searchPlaces, type Place, type PlaceHit } from '../../lib/placeSearch.ts'
+import { loadPlaces } from '../../lib/placeIndex.ts'
+import { ZONE_INDEX } from '../../lib/mapZoneIndex.ts'
 
 export function PlaceSearch({
   here,

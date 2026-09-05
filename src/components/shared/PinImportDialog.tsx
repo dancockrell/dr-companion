@@ -5,8 +5,8 @@ import {
   type PinImportChoice,
   type PinImportPreview,
   type PinImportResult,
-} from '../../lib/pinsFile'
-import { useModalDialog } from '../../lib/useModalDialog'
+} from '../../lib/pinsFile.ts'
+import { useModalDialog } from '../../lib/useModalDialog.ts'
 
 export function PinImportDialog({ preview, onClose, onResult }: {
   preview: PinImportPreview

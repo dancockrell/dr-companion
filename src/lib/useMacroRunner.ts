@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react'
-import { useAppStore } from '../store/useAppStore'
-import { canSendMacro } from './canSendMacro'
-import { macroInFlight, requestMacro, subscribeMacroFlight } from './macroFlight'
+import { useAppStore } from '../store/useAppStore.ts'
+import { canSendMacro } from './canSendMacro.ts'
+import { macroInFlight, requestMacro, subscribeMacroFlight } from './macroFlight.ts'
 
 /**
  * How long a sent macro is treated as still running.

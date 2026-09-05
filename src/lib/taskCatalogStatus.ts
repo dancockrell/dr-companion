@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from 'react'
-import { nodeStatus, type NodeStatus } from './nodeTasks'
-import { pythonStatus, type PythonStatus } from './pythonTasks'
-import { listScripts, scriptDirs, type ScriptDirs, type ScriptFile } from './scriptFiles'
-import { failedResource, fulfilledResource, loadingResource, type AsyncResource } from './asyncState'
+import { nodeStatus, type NodeStatus } from './nodeTasks.ts'
+import { pythonStatus, type PythonStatus } from './pythonTasks.ts'
+import { listScripts, scriptDirs, type ScriptDirs, type ScriptFile } from './scriptFiles.ts'
+import { failedResource, fulfilledResource, loadingResource, type AsyncResource } from './asyncState.ts'
 
 export type ResourceState<T> = AsyncResource<T>
 

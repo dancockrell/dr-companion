@@ -18,18 +18,18 @@
 import type { IntentName } from '../../bridge/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, CornerDownLeft } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { getScriptCatalogEntry } from '../../data/scriptCatalog'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { getScriptCatalogEntry } from '../../data/scriptCatalog.ts'
 import type { TaskInfo } from '../../lib/pythonTasks'
-import { refreshTaskCatalogs, useTaskCatalogs } from '../../lib/taskCatalogStatus'
+import { refreshTaskCatalogs, useTaskCatalogs } from '../../lib/taskCatalogStatus.ts'
 import {
   requestStopAll,
   requestPauseAll,
   requestResumeAll,
   requestStartFlow,
-} from '../../lib/flowStop'
-import { KEYBINDING_HELP } from '../../lib/keybindings'
-import { useModalDialog } from '../../lib/useModalDialog'
+} from '../../lib/flowStop.ts'
+import { KEYBINDING_HELP } from '../../lib/keybindings.ts'
+import { useModalDialog } from '../../lib/useModalDialog.ts'
 import {
   musicVolume,
   pauseMusic,
@@ -37,8 +37,8 @@ import {
   skipTrack,
   setRadioStation,
   RADIO_STATIONS,
-} from '../../lib/ambientSound'
-import { requestOpenSoundPanel } from '../../lib/soundPanelOpen'
+} from '../../lib/ambientSound.ts'
+import { requestOpenSoundPanel } from '../../lib/soundPanelOpen.ts'
 
 interface Command {
   id: string

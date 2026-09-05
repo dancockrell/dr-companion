@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
-import { DEFAULT_CHOICE } from '../data/macros'
-import { readJSON, writeJSON } from './storage'
+import { DEFAULT_CHOICE } from '../data/macros.ts'
+import { readJSON, writeJSON } from './storage.ts'
 
 const KEY = 'drc.macros.v1'
 

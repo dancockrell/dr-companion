@@ -23,13 +23,13 @@ import {
   gameState,
   lichNote,
   subscribeGame,
-} from '../../lib/gameLink'
+} from '../../lib/gameLink.ts'
 import { useSyncExternalStore } from 'react'
-import { isTauri } from '../../lib/tauri'
-import { useHighlights } from '../../lib/useHighlights'
-import { useAliases } from '../../lib/useAliases'
-import { cn } from '../../lib/cn'
-import { writeText } from '../../lib/storage'
+import { isTauri } from '../../lib/tauri.ts'
+import { useHighlights } from '../../lib/useHighlights.ts'
+import { useAliases } from '../../lib/useAliases.ts'
+import { cn } from '../../lib/cn.ts'
+import { writeText } from '../../lib/storage.ts'
 
 const DEFAULT_PORT = '11024'
 const PORT_KEY = 'drc.attach-port.v2'

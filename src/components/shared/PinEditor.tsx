@@ -18,9 +18,9 @@ import {
   type PinColor,
   type PinIcon,
   type MapPin,
-} from '../../lib/mapPins'
-import { PinIconGlyph } from './PinIconGlyph'
-import { useModalDialog } from '../../lib/useModalDialog'
+} from '../../lib/mapPins.ts'
+import { PinIconGlyph } from './PinIconGlyph.tsx'
+import { useModalDialog } from '../../lib/useModalDialog.ts'
 
 export function PinEditor({
   roomId,

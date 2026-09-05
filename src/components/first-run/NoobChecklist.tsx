@@ -1,4 +1,4 @@
-import { NOOB_CHECKLIST } from '../../data/noobChecklist'
+import { NOOB_CHECKLIST } from '../../data/noobChecklist.ts'
 
 export function NoobChecklist() {
   return (

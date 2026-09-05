@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { FolderOpen, RefreshCw } from 'lucide-react'
-import { scriptApiInfo, type ScriptApiInfo } from '../../lib/pythonTasks'
-import { revealFile } from '../../lib/setup'
-import { isTauri } from '../../lib/tauri'
+import { scriptApiInfo, type ScriptApiInfo } from '../../lib/pythonTasks.ts'
+import { revealFile } from '../../lib/setup.ts'
+import { isTauri } from '../../lib/tauri.ts'
 
 /**
  * The port and token file a player's own script needs to connect - see

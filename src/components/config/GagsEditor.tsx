@@ -8,10 +8,10 @@
  */
 import { useMemo, useState } from 'react'
 import { Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste } from 'lucide-react'
-import { parseGags, type Gag } from '../../lib/gags'
-import { LoadingNotice } from '../shared/LoadingNotice'
-import { reloadGags } from '../../lib/useGags'
-import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
+import { parseGags, type Gag } from '../../lib/gags.ts'
+import { LoadingNotice } from '../shared/LoadingNotice.tsx'
+import { reloadGags } from '../../lib/useGags.ts'
+import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor.ts'
 import {
   formatGagLine,
   hasUnsafeBraces,
@@ -19,7 +19,7 @@ import {
   removeLine,
   appendUnderPlayerSection,
   isPlayerAddedLine,
-} from '../../lib/genieConfigEdit'
+} from '../../lib/genieConfigEdit.ts'
 
 export function GagsEditor() {
   const editor = useGenieConfigEditor<Gag>('gags.cfg', parseGags)

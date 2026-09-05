@@ -11,10 +11,10 @@
  * busy room and stuttering.
  */
 import { memo } from 'react'
-import { paint, segments, type Highlight } from '../../lib/highlights'
+import { paint, segments, type Highlight } from '../../lib/highlights.ts'
 import type { GameLine } from '../../lib/gameLink'
-import { cn } from '../../lib/cn'
-import { formatGameDateTime, formatGameTime } from '../../lib/gameTime'
+import { cn } from '../../lib/cn.ts'
+import { formatGameDateTime, formatGameTime } from '../../lib/gameTime.ts'
 
 export const GameLineRow = memo(function GameLineRow({
   line,

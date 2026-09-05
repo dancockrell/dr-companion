@@ -7,12 +7,12 @@
  * while the small docked panel beside it could do both.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { loadZone, DEFAULT_ZONE } from './mapData'
+import { loadZone, DEFAULT_ZONE } from './mapData.ts'
 import type { MapZone } from '../bridge/types'
-import { bridge } from '../bridge'
+import { bridge } from '../bridge/index.ts'
 import type { PlaceHit } from './placeSearch'
-import { ZONE_INDEX } from './mapZoneIndex'
-import { createLatestRequestGate } from './recoverableLoad'
+import { ZONE_INDEX } from './mapZoneIndex.ts'
+import { createLatestRequestGate } from './recoverableLoad.ts'
 
 export interface ZoneLoadStatus {
   id: string

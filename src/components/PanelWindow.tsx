@@ -10,9 +10,9 @@
  * panel — chrome here would be space charged twice.
  */
 import { useEffect } from 'react'
-import { useAppStore } from '../store/useAppStore'
-import { PANEL_CONTENT, panelTitle } from './dashboard/panels'
-import { useLayout } from '../lib/useLayout'
+import { useAppStore } from '../store/useAppStore.ts'
+import { PANEL_CONTENT, panelTitle } from './dashboard/panels.tsx'
+import { useLayout } from '../lib/useLayout.ts'
 import type { PanelId } from '../lib/layout'
 
 export function PanelWindow({ id }: { id: PanelId }) {

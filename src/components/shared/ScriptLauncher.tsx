@@ -1,10 +1,10 @@
 /**
  * Activity launcher — Companion-owned intents only.
  */
-import { ACTIVITIES, activityToIntent } from '../../data/activities'
-import { listReachable } from '../../data/travelPath'
-import { describeEntryPlan, DEFAULT_HOUSE_ENTRY } from '../../data/houseEntry'
-import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
+import { ACTIVITIES, activityToIntent } from '../../data/activities.ts'
+import { listReachable } from '../../data/travelPath.ts'
+import { describeEntryPlan, DEFAULT_HOUSE_ENTRY } from '../../data/houseEntry.ts'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore.ts'
 
 export function ScriptLauncher({ compact = false }: { compact?: boolean }) {
   const requestIntent = useAppStore((s) => s.requestIntent)

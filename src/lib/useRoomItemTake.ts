@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { nounOf } from './room'
-import { useMacroRunner } from './useMacroRunner'
+import { nounOf } from './room.ts'
+import { useMacroRunner } from './useMacroRunner.ts'
 
 /**
  * "get X, stow X" for a room item, gated the same way everywhere it can be

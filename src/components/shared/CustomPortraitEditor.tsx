@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { decodePortraitFile, renderPortraitCrop, saveCustomPortrait } from '../../lib/customPortraits'
-import { Button } from './Button'
+import { decodePortraitFile, renderPortraitCrop, saveCustomPortrait } from '../../lib/customPortraits.ts'
+import { Button } from './Button.tsx'
 
 export function CustomPortraitEditor({ character, instance, initialUrl, onSaved, onCancel }: {
   character: string

@@ -10,7 +10,7 @@
  * that band — reading at desk distance, next to a game window they have already
  * had to size up. See docs/DESIGN.md §1.5.
  */
-import { loadPrefs, savePrefs } from './persistence'
+import { loadPrefs, savePrefs } from './persistence.ts'
 
 /** 16px is the browser default and the 1.0 case. */
 const BASE_PX = 16

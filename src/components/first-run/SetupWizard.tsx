@@ -21,17 +21,17 @@
  */
 // Counted from the data rather than typed into a label. The hardcoded figure
 // was wrong within a day of being written.
-import MAP_METADATA from '../../data/map-metadata.json'
+import MAP_METADATA from '../../data/map-metadata.json' with { type: 'json' }
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, FolderOpen } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { Button } from '../shared/Button'
-import { Preflight } from './Preflight'
-import { ComponentCard, type CardState } from './ComponentCard'
-import { NoobChecklist } from './NoobChecklist'
-import { ConnectGuide } from './ConnectGuide'
-import { DependencyStrip, type Dep } from './DependencyStrip'
-import { isTauri } from '../../lib/tauri'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { Button } from '../shared/Button.tsx'
+import { Preflight } from './Preflight.tsx'
+import { ComponentCard, type CardState } from './ComponentCard.tsx'
+import { NoobChecklist } from './NoobChecklist.tsx'
+import { ConnectGuide } from './ConnectGuide.tsx'
+import { DependencyStrip, type Dep } from './DependencyStrip.tsx'
+import { isTauri } from '../../lib/tauri.ts'
 import {
   planSetup,
   downloadComponent,
@@ -46,8 +46,8 @@ import {
   genieStatus,
   type SetupPlan,
   type DownloadOption,
-} from '../../lib/setup'
-import { wasChecked } from '../../lib/downloadVerification'
+} from '../../lib/setup.ts'
+import { wasChecked } from '../../lib/downloadVerification.ts'
 
 type Phase = 'checking' | 'plan' | 'browser'
 

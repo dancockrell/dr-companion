@@ -11,7 +11,7 @@
  * so this is a chunk of its own rather than weight every launch pays for.
  */
 import type { Place } from './placeSearch'
-import { createRetryableCache } from './recoverableLoad'
+import { createRetryableCache } from './recoverableLoad.ts'
 
 /**
  * What tools/build-places.mjs writes.

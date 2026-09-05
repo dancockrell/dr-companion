@@ -78,40 +78,40 @@ import {
   stopTask,
   taskState,
   type TaskInfo,
-} from '../../lib/pythonTasks'
+} from '../../lib/pythonTasks.ts'
 import {
   onNodeTaskLine,
   onNodeTaskState,
   startNodeTask,
   stopNodeTask,
   nodeTaskState,
-} from '../../lib/nodeTasks'
+} from '../../lib/nodeTasks.ts'
 import {
   canMoveTaskWithinCategory,
   groupTasksByCategory,
   moveTaskWithinCategory,
-} from '../../lib/taskGrouping'
+} from '../../lib/taskGrouping.ts'
 import {
   type ScriptLang,
-} from '../../lib/scriptFiles'
-import { refreshTaskCatalogs, useTaskCatalogs } from '../../lib/taskCatalogStatus'
-import { inferScriptIcon, type ScriptIconKey } from '../../lib/scriptIcons'
-import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents'
-import { iconOverrideFor, setIconOverride, clearIconOverride } from '../../lib/scriptIconOverrides'
-import { useDragScroll } from '../../lib/useDragScroll'
+} from '../../lib/scriptFiles.ts'
+import { refreshTaskCatalogs, useTaskCatalogs } from '../../lib/taskCatalogStatus.ts'
+import { inferScriptIcon, type ScriptIconKey } from '../../lib/scriptIcons.ts'
+import { SCRIPT_ICON_COMPONENT } from '../../lib/scriptIconComponents.ts'
+import { iconOverrideFor, setIconOverride, clearIconOverride } from '../../lib/scriptIconOverrides.ts'
+import { useDragScroll } from '../../lib/useDragScroll.ts'
 import type { EditorTarget } from './ScriptEditor'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
-import { ScriptIconPicker } from './ScriptIconPicker'
-import { onStartFlow } from '../../lib/flowStop'
-import { invokeTauri } from '../../lib/tauri'
-import { useAppStore } from '../../store/useAppStore'
-import { cn } from '../../lib/cn'
-import { readJSON, writeJSON } from '../../lib/storage'
-import { isPinned, taskActiveId, type QuickSwitchPin } from '../../lib/quickSwitch'
-import { accentForIndex } from '../../lib/battleActionVisuals'
-import { LazySurface } from '../shared/LazySurface'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
+import { ScriptIconPicker } from './ScriptIconPicker.tsx'
+import { onStartFlow } from '../../lib/flowStop.ts'
+import { invokeTauri } from '../../lib/tauri.ts'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { cn } from '../../lib/cn.ts'
+import { readJSON, writeJSON } from '../../lib/storage.ts'
+import { isPinned, taskActiveId, type QuickSwitchPin } from '../../lib/quickSwitch.ts'
+import { accentForIndex } from '../../lib/battleActionVisuals.ts'
+import { LazySurface } from '../shared/LazySurface.tsx'
 
-const ScriptEditor = lazy(() => import('./ScriptEditor').then((module) => ({ default: module.ScriptEditor })))
+const ScriptEditor = lazy(() => import('./ScriptEditor.tsx').then((module) => ({ default: module.ScriptEditor })))
 
 /** How many lines of task output the panel keeps. */
 const KEEP_LINES = 200

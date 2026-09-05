@@ -8,7 +8,7 @@
  */
 import { useMemo, useState } from 'react'
 import { RefreshCw, Search } from 'lucide-react'
-import { useVariables, reloadVariables } from '../../lib/useVariables'
+import { useVariables, reloadVariables } from '../../lib/useVariables.ts'
 
 export function VariablesEditor() {
   const { variables, note } = useVariables()

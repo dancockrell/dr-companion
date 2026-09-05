@@ -5,7 +5,7 @@
  * every fetch is a separate call the user triggered after seeing what it is.
  */
 
-import { isTauri, invokeTauri, listenTauri } from './tauri'
+import { isTauri, invokeTauri, listenTauri } from './tauri.ts'
 
 export type Presence = 'present' | 'outdated' | 'missing' | 'unknown'
 

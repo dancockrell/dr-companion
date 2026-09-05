@@ -46,7 +46,7 @@ import {
   speechVolume,
   missingSounds,
   resetAlerts,
-} from '../../lib/alertSound'
+} from '../../lib/alertSound.ts'
 import {
   setMusicVolume,
   musicVolume,
@@ -69,7 +69,7 @@ import {
   type CrossfadeStyle,
   type NowPlaying,
   type SearchableTrack,
-} from '../../lib/ambientSound'
+} from '../../lib/ambientSound.ts'
 import {
   playlists,
   onPlaylistsChange,
@@ -79,15 +79,15 @@ import {
   toggleTrackInPlaylist,
   removeTrackFromPlaylist,
   type Playlist,
-} from '../../lib/playlists'
-import { externalMediaAvailable, sendMediaKey, type MediaAction } from '../../lib/externalMedia'
-import { loadPrefs, savePrefs, type FavoriteStation } from '../../lib/persistence'
-import { favoriteStations, onFavoritesChange, toggleFavorite, removeFavorite } from '../../lib/favorites'
-import { onOpenSoundPanelRequest } from '../../lib/soundPanelOpen'
-import { cn } from '../../lib/cn'
-import { masterMuted, onMasterMuteChange, setMasterMuted } from '../../lib/audioMaster'
-import { alertPlaybackFailures, onAlertPlaybackFailuresChange } from '../../lib/alertPlaybackStatus'
-import { MusicTransport } from './MusicTransport'
+} from '../../lib/playlists.ts'
+import { externalMediaAvailable, sendMediaKey, type MediaAction } from '../../lib/externalMedia.ts'
+import { loadPrefs, savePrefs, type FavoriteStation } from '../../lib/persistence.ts'
+import { favoriteStations, onFavoritesChange, toggleFavorite, removeFavorite } from '../../lib/favorites.ts'
+import { onOpenSoundPanelRequest } from '../../lib/soundPanelOpen.ts'
+import { cn } from '../../lib/cn.ts'
+import { masterMuted, onMasterMuteChange, setMasterMuted } from '../../lib/audioMaster.ts'
+import { alertPlaybackFailures, onAlertPlaybackFailuresChange } from '../../lib/alertPlaybackStatus.ts'
+import { MusicTransport } from './MusicTransport.tsx'
 
 /** Search results cap - the pool is 178 tracks (29 Aug 2026: down from 217
  * after killing Salt and Sail and Silk Road, see docs/AUDIO.md - both were

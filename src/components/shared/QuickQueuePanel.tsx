@@ -11,10 +11,10 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { ListOrdered, Play, Square, Trash2, ArrowUp, ArrowDown, X } from 'lucide-react'
-import { QueueDriver, type QueueItem, type QueueState } from '../../lib/queueDriver'
-import { sendGame } from '../../lib/gameLink'
-import { useAppStore } from '../../store/useAppStore'
-import { cn } from '../../lib/cn'
+import { QueueDriver, type QueueItem, type QueueState } from '../../lib/queueDriver.ts'
+import { sendGame } from '../../lib/gameLink.ts'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { cn } from '../../lib/cn.ts'
 
 let nextId = 0
 const freshId = () => `q${Date.now().toString(36)}-${nextId++}`

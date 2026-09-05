@@ -21,14 +21,14 @@ import {
   ShieldCheck,
   ChevronDown,
 } from 'lucide-react'
-import { Button } from '../shared/Button'
+import { Button } from '../shared/Button.tsx'
 import {
   formatBytes,
   type ComponentPlan,
   type DownloadOption,
   type Progress,
-} from '../../lib/setup'
-import { wasChecked } from '../../lib/downloadVerification'
+} from '../../lib/setup.ts'
+import { wasChecked } from '../../lib/downloadVerification.ts'
 
 function Icon({ presence }: { presence: ComponentPlan['presence'] }) {
   if (presence === 'present')

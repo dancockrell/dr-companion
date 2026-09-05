@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from 'react'
-import { PanelBoundary } from './PanelBoundary'
+import { PanelBoundary } from './PanelBoundary.tsx'
 
 export function LazySurface({ label, children }: { label: string; children: ReactNode }) {
   return (

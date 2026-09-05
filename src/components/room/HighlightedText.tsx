@@ -1,4 +1,4 @@
-import { paint, segments, type Highlight } from '../../lib/highlights'
+import { paint, segments, type Highlight } from '../../lib/highlights.ts'
 
 /**
  * Room text, painted with the player's own highlight config.

@@ -15,9 +15,9 @@
  * What is left is the twelve macros, which are neither starting nor stopping.
  * They are the small things you send by hand between the two.
  */
-import { MacroBar } from './MacroBar'
-import { useMacroChoice } from '../../lib/useMacroChoice'
-import { useMacroRunner } from '../../lib/useMacroRunner'
+import { MacroBar } from './MacroBar.tsx'
+import { useMacroChoice } from '../../lib/useMacroChoice.ts'
+import { useMacroRunner } from '../../lib/useMacroRunner.ts'
 
 export function ActionsPanel({ dense: _dense = false }: { dense?: boolean }) {
   const { macroChoice, setMacroChoice } = useMacroChoice()

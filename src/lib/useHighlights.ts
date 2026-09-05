@@ -11,8 +11,8 @@
  * ceremony around a constant.
  */
 import { useEffect, useState } from 'react'
-import { parseHighlights, type Highlight } from './highlights'
-import { invokeTauri, isTauri } from './tauri'
+import { parseHighlights, type Highlight } from './highlights.ts'
+import { invokeTauri, isTauri } from './tauri.ts'
 
 let cached: Highlight[] | null = null
 let note = ''

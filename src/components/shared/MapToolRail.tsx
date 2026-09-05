@@ -1,12 +1,12 @@
 import type { PlayerMarker } from '../../lib/playerMarker'
 import type { MapPin } from '../../lib/mapPins'
-import { PinIconGlyph } from './PinIconGlyph'
-import { useDragScroll } from '../../lib/useDragScroll'
-import { MapPinBar } from './MapPinBar'
-import { QuickTravel } from './QuickTravel'
-import { PinPalette, type PinBrush } from './PinPalette'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
-import { useScrollEdges } from '../../lib/useScrollEdges'
+import { PinIconGlyph } from './PinIconGlyph.tsx'
+import { useDragScroll } from '../../lib/useDragScroll.ts'
+import { MapPinBar } from './MapPinBar.tsx'
+import { QuickTravel } from './QuickTravel.tsx'
+import { PinPalette, type PinBrush } from './PinPalette.tsx'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
+import { useScrollEdges } from '../../lib/useScrollEdges.ts'
 
 /**
  * The one map-tool rail used by both the docked map and the map window.

@@ -13,10 +13,10 @@
  */
 import { useState } from 'react'
 import { Landmark, HeartPulse, Shield, ShoppingBag, MapPin as MapPinIcon, type LucideIcon } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { bridge } from '../../bridge'
-import { PIN_DRAG_TYPE, PIN_COLOR_HEX, type PinIcon, type PinColor } from '../../lib/mapPins'
-import { COMMON_PLACE_PIN_COLORS } from '../../lib/mapPlaceColors'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { bridge } from '../../bridge/index.ts'
+import { PIN_DRAG_TYPE, PIN_COLOR_HEX, type PinIcon, type PinColor } from '../../lib/mapPins.ts'
+import { COMMON_PLACE_PIN_COLORS } from '../../lib/mapPlaceColors.ts'
 
 const PRESETS: { tag: string; label: string; icon: LucideIcon; pinIcon: PinIcon; color: PinColor }[] = [
   { tag: 'bank', label: 'Bank', icon: Landmark, pinIcon: 'landmark', color: COMMON_PLACE_PIN_COLORS.bank },

@@ -20,7 +20,7 @@
  * survives a reload.
  */
 import { useSyncExternalStore } from 'react'
-import { readJSON, writeJSON } from './storage'
+import { readJSON, writeJSON } from './storage.ts'
 
 const KEY = 'drc.map.v1'
 

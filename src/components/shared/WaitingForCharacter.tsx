@@ -1,5 +1,5 @@
-import { LichLauncher } from './LichLauncher'
-import { useAppStore } from '../../store/useAppStore'
+import { LichLauncher } from './LichLauncher.tsx'
+import { useAppStore } from '../../store/useAppStore.ts'
 
 /**
  * No character yet, which happens more often than it sounds: setup is

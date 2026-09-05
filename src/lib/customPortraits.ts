@@ -1,4 +1,4 @@
-import { invokeTauri, isTauri } from './tauri'
+import { invokeTauri, isTauri } from './tauri.ts'
 
 export const MAX_SOURCE_BYTES = 20_000_000
 export const MAX_SOURCE_DIMENSION = 12_000

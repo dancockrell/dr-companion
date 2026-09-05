@@ -1,8 +1,8 @@
-import { bridge } from '../bridge'
+import { bridge } from '../bridge/index.ts'
 import type { BridgeServerMessage } from '../bridge/types'
 import type { AppState, AuthMode } from '../types'
-import { APP_VERSION, EXPECTED_BRIDGE_VERSION, compareVersions } from '../lib/versions'
-import { visit } from '../lib/trail'
+import { APP_VERSION, EXPECTED_BRIDGE_VERSION, compareVersions } from '../lib/versions.ts'
+import { visit } from '../lib/trail.ts'
 import {
   addPin,
   clearCorpseMarker,
@@ -14,7 +14,7 @@ import {
   updatePin,
   type PinColor,
   type PinIcon,
-} from '../lib/mapPins'
+} from '../lib/mapPins.ts'
 export function handleBridgeMessage(
   msg: BridgeServerMessage,
   set: (

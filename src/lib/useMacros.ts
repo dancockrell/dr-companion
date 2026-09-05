@@ -5,7 +5,7 @@
  * editor is visible everywhere at once.
  */
 import { useEffect, useState } from 'react'
-import { loadMacroConfig, type Macro } from './macros'
+import { loadMacroConfig, type Macro } from './macros.ts'
 
 let cached: Macro[] | null = null
 let note = ''

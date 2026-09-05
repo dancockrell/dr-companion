@@ -13,7 +13,7 @@
  * than in Rust, because "how often" is a product decision about how the
  * feature gets used, not a property of the wiki call itself.
  */
-import { invokeTauri, isTauri } from './tauri'
+import { invokeTauri, isTauri } from './tauri.ts'
 
 export interface ElanthipediaPage {
   found: boolean

@@ -5,8 +5,8 @@ import {
   subscribeAiStatus,
   testProviderConnection,
   writeProviderUrl,
-} from '../../lib/aiWorkerHost'
-import { failureSentence } from '../../lib/aiModelProvider'
+} from '../../lib/aiWorkerHost.ts'
+import { failureSentence } from '../../lib/aiModelProvider.ts'
 
 /**
  * What the local AI worker is doing, and every way it is currently failing.
