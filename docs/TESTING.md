@@ -146,9 +146,15 @@ Ten assertions on the command layer: retrying past each of the three refusals,
 giving up cleanly, waiting out roundtime, surviving an exception.
 
 ```bash
-ruby lich-scripts/test/protocol_harness.rb lich-scripts/companion_bridge.lic 7419
-npm install ws --no-save && node tools/ws-client.mjs
+npm run test:protocol-harness
 ```
 
 Serves the real protocol to a real WebSocket client with the Lich runtime
-stubbed. This is how the framing was verified in the first place.
+stubbed. This is how the framing was verified in the first place, and it is
+now one command rather than two shells: it starts
+`lich-scripts/test/protocol_harness.rb`, drives it with `tools/ws-client.mjs`,
+checks nine properties of the exchange, and stops the process it started.
+
+It stays outside `tools/test-suites.json` because it needs Ruby and a free TCP
+port, so the build box cannot be relied on to run it — `npm run test:needs-env`
+is the list of suites in that position and why each is there.

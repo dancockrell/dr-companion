@@ -99,5 +99,6 @@
   "test:map-walk",
   "test:map-nearest",
   "test:verified-claim",
-  "test:test-controller"
+  "test:test-controller",
+  "test:needs-env"
 ]

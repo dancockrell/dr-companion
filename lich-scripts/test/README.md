@@ -32,14 +32,29 @@ Stubs the Lich runtime so the bridge can serve real WebSocket clients outside
 the game.
 
 ```bash
+npm run test:protocol-harness
+```
+
+That starts the harness, drives it with the independent client in
+`tools/ws-client.mjs`, asserts nine properties of the exchange, and stops the
+process it started. It prints NOT CHECKED rather than passing if Ruby cannot
+be found, and `DRC_HARNESS_PORT` moves it off 7419 when that port is busy.
+
+It is deliberately outside `tools/test-suites.json` because it needs Ruby and
+a free port; `npm run test:needs-env` lists it with that reason.
+
+The two-shell form still works and is what you want while poking at the
+protocol by hand:
+
+```bash
 ruby lich-scripts/test/protocol_harness.rb lich-scripts/companion_bridge.lic 7419
 # then, from another shell:
-npm install ws --no-save
 node tools/ws-client.mjs
 ```
 
 This is how the framing was verified in the first place: against an
-independent WebSocket implementation rather than against itself.
+independent WebSocket implementation rather than against itself. `ws` is a
+devDependency now, so the old `npm install ws --no-save` step is gone.
 
 ## What these cannot check
 

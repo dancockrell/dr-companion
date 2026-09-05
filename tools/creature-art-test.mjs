@@ -45,6 +45,15 @@ const check = (label, got, want) => {
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${label.padEnd(52)} ${JSON.stringify(got)}`)
 }
 
+// A check that could not run is a third state. Folding it into a pass is how
+// a suite ends "all passed" having verified nothing, so it is counted and
+// carried into the summary line rather than printed and forgotten.
+const skipped = []
+const notChecked = (label, why) => {
+  skipped.push(label)
+  console.log(`SKIP ${label.padEnd(52)} not checked: ${why}`)
+}
+
 console.log('-- the exact name is tried before the noun --')
 check('a snarling goblin', m.artKeys('a snarling goblin', 'goblin'), [
   'snarling goblin',
@@ -170,33 +179,42 @@ check('a load puts one back', m.artFor('a rock troll', 'troll').key, 'troll')
 
 console.log('\n-- the persistent curation registry is internally complete --')
 const curation = JSON.parse(readFileSync('data/art/creature-curation.json', 'utf8'))
-
 /**
  * The shipped pack manifest, or `null` when no pack is installed.
  *
- * Absence here means the same thing it means to creatureArt.ts itself: the pack
- * is generated separately and is not always present, so a missing manifest is
- * the expected answer, not a broken one. The two checks that cross-reference it
- * degrade to a no-op rather than crashing the whole suite over a file this repo
- * does not always carry.
+ * Absence means what it means to creatureArt.ts itself: the pack is generated
+ * separately and is not always present, so a missing manifest is the expected
+ * answer rather than a broken one, and it must not be the thing that turns the
+ * whole build red (PR #276 removes the pack outright).
+ *
+ * But an absent pack is not a pass either. With no manifest there is nothing
+ * to check the approvals against, and reporting "every approved file exists"
+ * would be a check that cannot fail. Three outcomes, never two: matched,
+ * mismatched, or not checked with the reason said out loud and carried into
+ * the summary line.
+ *
+ * Only the first of the two cross-checks actually needs the pack. "No approved
+ * file is also rejected" reads the curation registry on both sides, so it runs
+ * whether or not any art is installed.
  */
-const packManifest = (() => {
-  try {
-    return JSON.parse(readFileSync('public/creatures/manifest.json', 'utf8'))
-  } catch (error) {
-    if (error.code === 'ENOENT') return null
-    throw error
-  }
-})()
-
-if (packManifest) {
-  const pack = new Set(packManifest.map((file) => file.replace(/\.webp$/i, '')))
-  const approvedFiles = Object.values(curation.approvedVariants).flat()
-  check('every approved file exists in the pack manifest', approvedFiles.every((file) => pack.has(file)), true)
-  check('no approved file is also rejected', approvedFiles.some((file) => curation.rejected.includes(file)), false)
-} else {
-  console.log('OK   no installed pack, skipping the two manifest cross-checks')
+let packManifest = null
+try {
+  packManifest = readFileSync('public/creatures/manifest.json', 'utf8')
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error
 }
+
+const approvedFiles = Object.values(curation.approvedVariants).flat()
+if (packManifest === null) {
+  notChecked(
+    'every approved file exists in the pack manifest',
+    'public/creatures/manifest.json is absent, so there is no shipped art to compare the approvals against',
+  )
+} else {
+  const pack = new Set(JSON.parse(packManifest).map((file) => file.replace(/\.webp$/i, '')))
+  check('every approved file exists in the pack manifest', approvedFiles.every((file) => pack.has(file)), true)
+}
+check('no approved file is also rejected', approvedFiles.some((file) => curation.rejected.includes(file)), false)
 check(
   'every reviewed subject records candidates and a decision',
   Object.values(curation.variantReview).every((review) =>
@@ -215,5 +233,6 @@ check(
   true,
 )
 
-console.log(fails ? `\n${fails} failed` : '\nall passed')
+const skipNote = skipped.length ? `, but ${skipped.length} not checked: ${skipped.join('; ')}` : ''
+console.log(fails ? `\n${fails} failed${skipNote}` : `\nall passed${skipNote}`)
 process.exit(fails ? 1 : 0)

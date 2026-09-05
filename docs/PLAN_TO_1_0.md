@@ -390,7 +390,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   do: set each `completion.commit` to the squash sha (they currently name pre-squash shas that will not exist on main).
   verify: `node tools/plan-audit.mjs --claims` lists the four as `completed` with a sha that `git cat-file -e <sha>^{commit}` accepts on main.
 
-- [ ] **C3  `npm run worktree:init`** (≈15)
+- [x] **C3  `npm run worktree:init`** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 15
   touches: package.json, docs/ENGINE.md
   depends-on: none
   do: script = `node tools/vendor-fetch.mjs --stub && git submodule update --init --recursive`. ENGINE.md: one sentence naming the script in the paragraph that describes the `vendor\Ruby4Lich5.exe doesn't exist` failure (`grep -n "Ruby4Lich5.exe" docs/ENGINE.md`).
@@ -410,19 +411,22 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   verify: read the suite total before you start (`tail -1` of the run). After: `npx tsc -b` exit 0; total unchanged; `wc -l src/lib/presentationBridge.ts` < 500.
   pitfalls: 1, 17.
 
-- [ ] **C5  `protocol_harness.rb`: loader or deletion** (≈10)
+- [x] **C5  `protocol_harness.rb`: loader or deletion** (≈10)
+  commit: (this PR) verified: 2026-09-05 minutes: 35
   touches: lich-scripts/test/protocol_harness.rb
   depends-on: none
   do: `git log --oneline -S protocol_harness -- lich-scripts/ | head`. If no test ever required it, delete it (the commit says so); if one did and was removed, restore that test instead.
   verify: `grep -rn protocol_harness lich-scripts/ tools/ package.json docs/` → only lines you also updated.
 
-- [ ] **C6  Needs-environment test list** (≈10)
+- [x] **C6  Needs-environment test list** (≈10)
+  commit: (this PR) verified: 2026-09-05 minutes: 25
   touches: package.json, docs/ENGINE.md
   depends-on: none
   do: script `test:needs-env` prints the suites deliberately outside `test-suites.json` and their requirement: `test:godot-export` (submodule + Godot), `test:live-chain` (B4; the running app), `test:bridge` (Ruby). ENGINE.md gets the same list beside its testing section (`grep -n "run-tests" docs/ENGINE.md`).
   verify: `npm run test:needs-env` prints three names with requirements.
 
-- [ ] **C7  Decide `rewrite/remove-2d` and merge PR #276** (≈30; decision + one merge)
+- [x] **C7  Decide `rewrite/remove-2d` and merge PR #276** (≈30; decision + one merge)
+  commit: (this PR) verified: 2026-09-05 minutes: 30
   touches: none
   depends-on: none
   do: facts as of 5 Sep: `remove-2d` is 4 commits, 80 behind main, no PR, and its own `docs/ADAPTERS.md` opens "PROPOSAL, for review… nothing imports them". PR #276 (creature art pack removal, −797, CI green, claim present) is the mergeable subset. Steps: (a) `gh pr merge 276 --squash --delete-branch`; verify `git ls-tree origin/main public/creatures | wc -l` → 0. (b) Post in the ledger (a claim `c7-remove-2d-decision`, status blocked) the question for the branch owner: rebase and PR the deletion half now, keep `src/domain/` as a separate proposal PR? (c) Put the decision in section 10 for Dan. Lane K waits on this; Lane D does not (their `App.tsx` overlap is zero — checked with `git diff --stat origin/main...origin/rewrite/remove-2d -- src/App.tsx` → empty).

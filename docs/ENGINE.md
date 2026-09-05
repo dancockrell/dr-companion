@@ -288,6 +288,11 @@ doesn't exist`, gating 59 Rust unit tests behind a 65 MB download none of them
 use. Measured: two placeholder files, four and fourteen bytes, are enough for
 all 59 to run green.
 
+`npm run worktree:init` is the one command that clears this in a new clone or
+worktree: it writes the placeholders and initialises the submodules, which are
+the two things a fresh checkout lacks and neither of which the Rust error
+mentions.
+
 So `tools/vendor-fetch.mjs --stub` writes those placeholders (`npm run
 vendor:stub`), and `--require-real` refuses them, wired into `tauri:build`
 after the fetch. The guard is what makes the convenience safe: a placeholder
@@ -326,6 +331,31 @@ dr-companion's own UI for the bundled copy - the installer itself has its own
 license page, but that is Ruby4Lich5's disclosure, not this app's. Worth a
 line in an About screen before this ships in dr-companion's own release,
 not before.
+
+## Tests the build cannot run, and tests it simply does not
+
+`node tools/run-tests.mjs` runs what is listed in `tools/test-suites.json`.
+Everything else is invisible, and two very different absences look identical
+from outside it: a suite deliberately left out because it needs an environment
+the build box has not got, and a suite nobody ever registered.
+
+`npm run test:needs-env` separates them and fails if either list has drifted.
+
+Needing an environment:
+
+- `test:godot-export` - the `godot/shared-assets` submodule and a Godot 4
+  binary on PATH.
+- `test:live-chain` - the app running with the viewer attached. Not written
+  yet; it arrives with increment B4.
+- `test:protocol-harness` - Ruby, and a free TCP port: it starts
+  `lich-scripts/test/protocol_harness.rb` and talks to it over a real socket.
+
+The second list is a backlog rather than a design. As of 5 Sep 2026 there are
+21 `test:` scripts that exist, need nothing special, and are reached by neither
+`test-suites.json` nor any registered script that composes others - so they
+have not run since the day they were written. `test:needs-env` names them all,
+and refuses to let a new one appear unlisted or a listed one stay behind after
+it is wired in.
 
 ## What is not decided
 
