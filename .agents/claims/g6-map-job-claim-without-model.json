@@ -24,7 +24,7 @@
     "deviations": "The authoritative-snapshot rule means a non-null destination is refused until something journals a `snapshot` event; today the journal carries `line` events, so in the running app every model-proposed destination is refused. That is the safe direction to be wrong in and is why the rule is a requirement on the evidence rather than on the proposal - it is recorded here rather than softened."
   },
   "completion": {
-    "commit": "PENDING-G6",
+    "commit": "fa5301dd",
     "checks": [
       "node --experimental-strip-types tools/ai-worker-test.mjs: 81 checked, 0 failed / all passed",
       "verify absent -> 1 claim + awaiting_review: claim:1, confidence 0.5, producer aiJobProducers.detectExitDivergence, note 'parser claim claim:1; absent: No local model is installed.; no model is installed; the parser claim stands alone'",

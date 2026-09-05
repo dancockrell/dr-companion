@@ -26,7 +26,7 @@
     "deviations": "Two files outside the increment's touches list. `expandCompassDirection` went into src/lib/isometric-board-layout.mjs (plus its .d.mts) rather than into the new module, because that file already owns COMPASS_ANCHORS and a second copy of the compass vocabulary beside a consumer would be free to drift from the anchors. Lane L also edits that file; the addition is an appended export, so a conflict resolves by keeping both."
   },
   "completion": {
-    "commit": "PENDING-G1",
+    "commit": "77849376",
     "checks": [
       "node --experimental-strip-types tools/ai-job-producers-test.mjs: 34 checked, 0 failed / all passed",
       "verify - divergent -> 1 job: 'a job was created' (1 direction(s) disagree), scope.roomId room:142, inputRefs event:3, allowedTools flag_conflict",
