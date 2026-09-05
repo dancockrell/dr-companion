@@ -791,13 +791,15 @@ whether it is embedded, docked or a separate window is D0.
   verify: `node tools/set-version.mjs --check` exit 0 today.
   sabotage: bump one file by hand → exit 1 naming it.
 
-- [ ] **F3  Signing decision** (≈15)
+- [x] **F3  Signing decision** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 20
   touches: new:docs/RELEASE.md
   depends-on: E4
   do: OV certificate (annual cost; SmartScreen still warns until reputation builds) vs unsigned with a download-page note. Recommend unsigned for beta. Section 10 for Dan.
   verify: "Decided:" line.
 
-- [ ] **F4  Update-check decision** (≈15)
+- [x] **F4  Update-check decision** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 15
   touches: F3>docs/RELEASE.md
   depends-on: F3
   do: the app already fetches Ruby4Lich5 from GitHub releases (`tools/vendor-fetch.mjs`, `setup.rs`). Reuse for a "newer version available" link (no auto-install) or rely on the page. Recommend the link. Section 10.
