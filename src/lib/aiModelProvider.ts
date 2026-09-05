@@ -144,6 +144,45 @@ export function scanForSecrets(text: string): SecretScan {
 }
 
 /**
+ * Replace anything credential-shaped with a note naming the kind.
+ *
+ * Built from the same patterns as the scan, deliberately: a redactor with its
+ * own private list would eventually disagree with the gate, and the half
+ * nobody re-read would be the half that leaks.
+ */
+export function redactSecrets(text: string): string {
+  let out = text
+  for (const p of SECRET_PATTERNS) {
+    const flags = p.re.flags.includes('g') ? p.re.flags : p.re.flags + 'g'
+    out = out.replace(new RegExp(p.re.source, flags), `[redacted ${p.name}]`)
+  }
+  return out
+}
+
+/**
+ * The only way anything under `src/lib/ai*.ts` writes a diagnostic.
+ *
+ * Section 2 rule 9 says credentials "never enter prompts, training corpora,
+ * logs, or published datasets", and a log is the easiest of those four to
+ * forget. A bare `console.warn(error.message)` in a provider is one upstream
+ * error away from printing a request body. So every AI log line goes through
+ * here and is redacted first, and `tools/ai-worker-test.mjs` fails the build
+ * if any `ai*.ts` module calls `console` directly - the rule is a check
+ * rather than a promise to remember.
+ *
+ * Prefixed so these lines stay findable in a console full of the game's own
+ * noise.
+ */
+export function aiLog(level: 'info' | 'warn' | 'error', message: string, detail?: unknown): void {
+  const line = `[ai] ${redactSecrets(message)}`
+  const extra = detail === undefined ? [] : [redactSecrets(String(detail))]
+  // The one permitted console call in this directory, which is why the source
+  // check allows exactly this file and this function.
+  const write = globalThis.console?.[level]
+  if (typeof write === 'function') write.call(globalThis.console, line, ...extra)
+}
+
+/**
  * Refuse to build a prompt that carries a credential.
  *
  * Throws, and this is the one place in this module that does: a caller cannot
