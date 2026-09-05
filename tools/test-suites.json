@@ -8,6 +8,7 @@
   "test:third-party",
   "test:appearance-defaults",
   "test:appearance",
+  "test:privacy",
   "test:plan",
   "test:panel-data-contracts",
   "test:safety",

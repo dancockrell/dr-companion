@@ -845,11 +845,14 @@ whether it is embedded, docked or a separate window is D0.
   do: the app already fetches Ruby4Lich5 from GitHub releases (`tools/vendor-fetch.mjs`, `setup.rs`). Reuse for a "newer version available" link (no auto-install) or rely on the page. Recommend the link. Section 10.
   verify: "Decided:" line.
 
-- [ ] **F5  Privacy statement** (≈20)
-  touches: new:docs/PRIVACY.md, src/components/layout/SettingsSheet.tsx
+- [x] **F5  Privacy statement** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 45
+  touches: new:docs/PRIVACY.md, new:tools/build-privacy-doc.mjs, src/components/layout/SettingsSheet.tsx, package.json, tools/test-suites.json
   depends-on: E9
   do: `grep -rn "fetch(\|reqwest\|https://" src/ src-tauri/src/ | grep -v -E "test|127\.0\.0\.1|localhost"` → one line per destination (Elanthipedia, GitHub releases). State: no telemetry, no analytics, local model on loopback only.
-  verify: the grep's destination count equals the doc's line count.
+  result: the doc is generated, not written, for the reason F6 and E6 are: a privacy statement that has quietly stopped being true reads exactly like one that has not, and it is the document where that matters most. Six hosts — `elanthipedia.play.net`, `api.github.com`, `github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`, `rubyinstaller.org`. Five are contacted by the app; `rubyinstaller.org` is a link the player's own browser opens, and the scan cannot tell those apart, so the classification is by hand against each call site and the doc says so. Elanthipedia's entry states that the wiki runs on Simutronics' own infrastructure, which is why the fetch goes through the sanctioned `api.php`, carries a user agent naming this app, and is limited to watched rooms at `MIN_INTERVAL_MS = 60_000` (`src/lib/elanthipedia.ts:27`, read rather than assumed).
+  verify: `node tools/build-privacy-doc.mjs --check` exit 0, `6 checked, 0 failed`. The generator reproduces the increment's grep in node so it runs on a CI runner too, and the two were compared: both find 56 lines and the same six hosts on the tree before this increment (57 lines after, because the Settings link to the new doc is itself an `https://` the scan sees). `--check` asserts every scanned host is described **and** every described host is still in the source; the second direction is what catches a promise outliving the code.
+  sabotage: (A) a new `https://example.invalid/telemetry` in `src/lib/bugReport.ts` → exit 1, `FAIL every host the scan found is described   example.invalid`; (B) a described host renamed so the code no longer has it → exit 1, `FAIL every host described is still in the source   gone.example.invalid`; (C) the scan pattern replaced with one that matches nothing → exit 1, `Error: only 0 lines matched; refusing to publish.`, which is the case that matters — a broken scan must abort rather than publish an empty and flattering promise. All restored; md5 `07d39c67fdf44ebed13e2400a1475bd2` and `8700d2de5de9184deb60daa4d8e2d74a` matched.
 
 - [x] **F6  Third-party licences, generated** (≈25)
   commit: 21df5812 verified: 2026-09-05 minutes: 50

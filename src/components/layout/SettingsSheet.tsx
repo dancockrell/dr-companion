@@ -533,8 +533,30 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               drift into disagreeing. */}
           <section className="space-y-2">
             <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
-              Licences
+              Licences and privacy
             </h3>
+            {/* F5. The claim a player most wants, and is least able to check
+                for themselves, is "what does this send?". Stating it here
+                without somewhere to look would be asking them to take it on
+                trust. docs/PRIVACY.md is generated from a scan of the source
+                and fails the build the day a destination appears that it does
+                not name, which is the part worth linking to. */}
+            <p className="text-xs text-ink-faint leading-snug">
+              No telemetry and no analytics. Nothing about your character, your
+              game text or your account leaves this machine, and your password
+              never reaches this app at all - it goes to Lich&apos;s own login.
+              The wiki lookup on a watched room asks Elanthipedia about that
+              room and nothing else.{' '}
+              <a
+                href="https://github.com/dancockrell/dr-companion/blob/main/docs/PRIVACY.md"
+                target="_blank"
+                rel="noreferrer"
+                className="text-info hover:underline"
+              >
+                Every destination, and what is sent
+              </a>
+              .
+            </p>
             <p className="text-xs text-ink-faint leading-snug">
               DR Companion is MIT. It installs and talks to{' '}
               <a
