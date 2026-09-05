@@ -185,6 +185,7 @@
     "test:ai-worker": "node --experimental-strip-types tools/ai-worker-test.mjs",
     "test:ai-worker-host": "node --experimental-strip-types tools/ai-worker-host-test.mjs",
     "test:ai-script-repair": "node --experimental-strip-types tools/ai-script-repair-test.mjs",
+    "test:ai-suggestions": "node --experimental-strip-types tools/ai-suggestions-test.mjs",
     "test:escapes": "node tools/escape-check.mjs",
     "test:subscribe": "node tools/subscribe-test.mjs",
     "test:verified-claim": "node tools/verified-claim-test.mjs",

@@ -72,11 +72,47 @@ const OWNERS = [
  *
  * A number here changing is a real event: it means a kill-switch owner grew a
  * dependency. Update it deliberately and say why in the commit.
+ *
+ * # G11 added a consumer and these numbers did not move, which is the point
+ *
+ * Stop now also has to reach the confirmation gate in `src/lib/aiSuggestions.ts`
+ * and reject every suggestion a player has not confirmed. The obvious way to
+ * write that is for `flowStop.ts` to import the gate and call it, and it would
+ * be wrong: it would put an `ai*` module in a kill switch's closure, which is
+ * the exact thing the checks below exist to forbid, and it would mean Stop
+ * could not load on the evening the AI subsystem is what went wrong.
+ *
+ * So the dependency runs the other way. `flowStop.ts` publishes an `onStopAll`
+ * signal; the gate subscribes to it. The closure numbers above are therefore
+ * still 1 and 5, and that is a property, not an oversight.
+ *
+ * The denominator that *does* move is `EXPECTED_STOP_CONSUMERS` below: the
+ * exact list of modules that subscribe. Adding a consumer changes that list,
+ * and a consumer that stops subscribing - which is how this whole guarantee
+ * would die quietly - changes it too.
  */
 const EXPECTED_CLOSURE = {
   'src/lib/stopAllTasks.ts': 1,
   'src/lib/flowStop.ts': 5,
 }
+
+/**
+ * Every module that subscribes to `onStopAll`, stated exactly.
+ *
+ * This is the denominator for "Stop reaches everything it has to reach". A
+ * module that quietly stops subscribing is the failure this guarantee has, and
+ * it is invisible from `flowStop.ts` - the signal fires either way and nothing
+ * errors. Only counting the subscribers can tell a Stop that reached two
+ * things from a Stop that reached one.
+ *
+ * Add a row when you add a consumer, and say in the commit what Stop now
+ * cancels.
+ */
+const EXPECTED_STOP_CONSUMERS = [
+  // G11: rejects every suggestion the player has not confirmed, so a proposed
+  // command on screen when Stop is pressed cannot be confirmed afterwards.
+  'src/lib/aiSuggestions.ts',
+]
 
 /* ------------------------------------------------------------------ */
 /* Part 1 - the controls work with isTauri() false                     */
@@ -392,6 +428,79 @@ console.log('\n-- task-runner coupling is pinned, not assumed --')
     `task-runner imports are exactly the two flowStop.ts exists to stop (found: ${sorted.join(', ') || 'none'})`)
   ok(!found.some((f) => f.startsWith('src/lib/stopAllTasks.ts')),
     'src/lib/stopAllTasks.ts: the safety core imports no runner at all')
+}
+
+/* ------------------------------------------------------------------ */
+/* Part 3 - Stop reaches what holds state, not only what holds a pid   */
+/* ------------------------------------------------------------------ */
+
+console.log('\n-- every subscriber to Stop is declared --')
+{
+  // The sweep first, so a zero here is a claim about the world rather than
+  // about a walker that found no files.
+  const walked = []
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`
+      if (entry.isDirectory()) walk(full)
+      else if (/\.tsx?$/.test(entry.name)) walked.push(full)
+    }
+  }
+  walk('src')
+  ok(walked.length >= 100, `the src sweep read a believable number of files (${walked.length})`)
+  ok(walked.includes('src/lib/flowStop.ts'), 'and it includes the file that publishes the signal')
+
+  const subscribers = walked
+    .filter((f) => f !== 'src/lib/flowStop.ts')
+    .filter((f) => /\bonStopAll\b/.test(readFileSync(f, 'utf8')))
+    .sort()
+  ok(subscribers.join(' | ') === [...EXPECTED_STOP_CONSUMERS].sort().join(' | '),
+    `Stop's subscribers are exactly the declared list (found: ${subscribers.join(', ') || 'none'})`)
+
+  const flowStop = readFileSync('src/lib/flowStop.ts', 'utf8')
+  ok(/export const onStopAll = stopAll\.on/.test(flowStop),
+    'src/lib/flowStop.ts: Stop is subscribable')
+  ok(/stopAll\.request\(\)/.test(flowStop),
+    'src/lib/flowStop.ts: requestStopAll actually fires it')
+}
+
+console.log('\n-- Stop rejects a pending AI suggestion, with no shell --')
+{
+  // The behavioural half. The source check above says the gate subscribes;
+  // this says pressing Stop reaches it, through the real singleton, the real
+  // signal and the real `requestStopAll` - and that doing so sends nothing.
+  const { suggestionStore } = await import('../src/lib/aiSuggestions.ts')
+  const { currentStateVersion } = await import('../src/lib/stateVersion.ts')
+  const store = suggestionStore()
+  const created = store.create({
+    exactCommand: 'look chest',
+    commandType: 'look',
+    basedOnStateVersion: currentStateVersion(),
+    expiresAt: Date.now() + 60_000,
+    evidenceRefs: ['event:1'],
+  })
+  ok(created.ok === true, `a suggestion could be proposed to be cancelled (${created.reason ?? ''})`)
+  ok(store.get(created.suggestion.id).status === 'pending',
+    'src/lib/aiSuggestions.ts: it is pending before Stop')
+
+  invoked.length = 0
+  flowStop.requestStopAll()
+  await settle()
+
+  ok(store.get(created.suggestion.id).status === 'rejected',
+    'src/lib/flowStop.ts: Stop rejected the pending suggestion')
+  ok(!invoked.includes('game_send'),
+    'src/lib/aiSuggestions.ts: cancelling it sent nothing to the game')
+  ok(invoked.includes('stop_python_task') && invoked.includes('stop_node_task'),
+    'src/lib/flowStop.ts: and Stop still reached both task backends')
+
+  const after = store.requestExecution(created.suggestion.id, {
+    suggestionId: created.suggestion.id, commandText: 'look chest',
+  })
+  ok(after.ok === false, 'src/lib/aiSuggestions.ts: confirming it after Stop is refused')
+  ok(!invoked.includes('game_send'),
+    'src/lib/aiSuggestions.ts: and that refusal reached no outbound write either')
+  ok(rejections.length === 0, 'no unhandled rejection came out of any of this')
 }
 
 ok(checks >= 30, `enough was checked for a pass to mean something (${checks} checks)`)

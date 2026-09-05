@@ -282,6 +282,7 @@ PRs per lane, squash-merged.
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
 | F | F8 | `lane-f/f8-uninstall` | `dev/wt-f8` | 5 Sep 2026 |
+| G | G11 | `lane-g/g11-confirmation-gate` | `dev/wt-g11` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12, F7 and F8 in PR #315, which emptied the
@@ -316,10 +317,15 @@ worked around: #323 (`npm run tauri:build` cannot run in any worktree prepared
 by `worktree:init`) and #324 (`run-tests` counts a suite's honest NOT CHECKED
 as a pass).
 
-**Lane G is finished** (G0, G1, G2–G10 and G12; PRs #317, #322 and this one),
-with **G11 deliberately not started**: it is the one increment that gives
-model output a path to a real game command, and section 10 requires Dan's
-approval before it merges. Nothing in G0–G12 can reach `gameActions.ts`, no
+**Lane G is finished except G11** (G0, G1, G2–G10 and G12; PRs #317, #322 and
+the one that carried this line). The sentence that stood here said G11 was
+"deliberately not started"; it is started now, and split so that the half that
+gives model output a path to a real game command is the half that has not
+merged. Commit 1 is the data model, the gate and its adversarial tests, with no
+producer and no UI — a suggestion cannot be created by anything the app runs,
+so nothing is reachable. Commit 2 is the panel that makes one confirmable and
+therefore sendable, and it is held open unmerged for Dan, per section 10 and
+gate 4. Nothing in G0–G12 can reach `gameActions.ts`, no
 model ships (`absentProvider` is still the only provider in `src/`), and the
 only path from a candidate into canonical data is G9's promotion, which is
 explicit, records the pin id it created, and reverts by that id. One
@@ -1073,8 +1079,9 @@ whether it is embedded, docked or a separate window is D0.
   do: on `situation` transitions for stunned/webbed/immobilized (on and off) publish `PresentationEvent{kind:'status-change', authoritativeText:<flag>, roomId}` — derived from already-parsed flags, no text parsing. Godot's `event_player.gd` consumes ordered events.
   verify: `[]→['stunned']→[]` → exactly two events, increasing `sequence`; unchanged flags → none. The callerless-command sweep now lists only `extract_lich` and `bridge_install_status`.
 
-- [ ] **G11  Live suggestion through the confirmation gate** (≈40; two commits)
-  touches: new:src/lib/aiSuggestions.ts, new:tools/ai-suggestions-test.mjs, C1>src/lib/aiWorker.ts, C1>src/components/shared/AiWorkerPanel.tsx, package.json, tools/test-suites.json
+- [~] **G11  Live suggestion through the confirmation gate** (≈40; two commits)
+  owner: claude-lane-g claim: g11-confirmation-gate since: 2026-09-05
+  touches: src/lib/aiSuggestions.ts, tools/ai-suggestions-test.mjs, src/lib/stateVersion.ts, src/lib/flowStop.ts, src/store/useAppStore.ts, src/types/index.ts, tools/kill-switch-test.mjs, docs/PLAYER_DATA.md, docs/PRIVACY.md, C1>src/lib/aiWorker.ts, C1>src/components/shared/AiWorkerPanel.tsx, package.json, tools/test-suites.json
   depends-on: H3, G0
   do: the handoff's §36, exactly. A suggestion is data: `{id, exactCommand, commandType, basedOnStateVersion, expiresAt, status:'pending'|'confirmed'|'expired'|'rejected'|'awaiting_result'|'resolved', evidenceRefs}`. `requestExecution(id, confirmation)` REQUIREs: status pending; not expired; `confirmation.commandText === exactCommand` (the player confirms the literal command, not a summary); `useAppStore.getState()` version equals `basedOnStateVersion` (find the store's version counter — `grep -n "version" src/store/useAppStore.ts`; if none exists, add one incremented on every character/room write); at most one suggestion in `awaiting_result`. Only then `requestGameAction` from `gameActions.ts` — the **only** import of it in any `ai*.ts`, and a source test asserts it is the only one. The authoritative result (next snapshot/state) resolves the suggestion; the model never marks its own proposal successful. Panel: one card with Confirm/Dismiss, the exact command in monospace, and the expiry.
   verify: tests — stale state version → refused; altered command → refused; expired → refused; second pending while one awaits → refused; happy path sends exactly `exactCommand` once (spy on `requestGameAction`).

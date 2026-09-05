@@ -11,6 +11,7 @@ import {
 } from '../lib/versions.ts'
 import { loadProfiles } from '../lib/profiles.ts'
 import { emptyTrail } from '../lib/trail.ts'
+import { bumpStateVersion } from '../lib/stateVersion.ts'
 import { loadPins as loadQuickSwitchPins, togglePin, MAX_SLOTS } from '../lib/quickSwitch.ts'
 import {
   copySettingsFrom,
@@ -74,7 +75,54 @@ const defaultSetup: SetupComponent[] = [
 let seqCounter = 0
 const nextSeq = () => ++seqCounter
 
-export const useAppStore = create<AppState>((set, get) => ({
+/**
+ * The keys that make a write *authoritative* — a new statement by the game
+ * about where the character is and what state they are in.
+ *
+ * Anything that reasons about the game and then proposes to act on it has to
+ * be able to ask "is the world I reasoned about still the world in front of
+ * me", and a timestamp cannot answer that: two pushes can land in the same
+ * millisecond, and an unchanged push is not a new statement. A counter can.
+ * `src/lib/aiSuggestions.ts` is the first consumer, and it refuses to send a
+ * proposed command whose `basedOnStateVersion` is no longer `stateVersion`.
+ */
+const AUTHORITATIVE_KEYS: readonly (keyof AppState)[] = ['character', 'mapHere']
+
+/**
+ * Wrap `set` so the version is bumped by the *shape of the write*, not by the
+ * writer remembering to.
+ *
+ * Five places write `character` or `mapHere`, in three files, and two of them
+ * are disconnect paths. A convention — "bump it when you write these" — holds
+ * until the sixth write site, and the failure when it stops holding is silent
+ * and exactly the wrong way round: a stale suggestion passes the freshness
+ * check because the counter never moved.
+ *
+ * Every store helper takes `set` as an argument (`bridgeMessageHandler`,
+ * `bridgeLifecycle`, `profilePersistence`), so wrapping it once here covers
+ * all of them, including write sites nobody has written yet.
+ */
+function versioned(
+  raw: (partial: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void,
+  read: () => AppState
+): (partial: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void {
+  return (partial) => {
+    const patch = typeof partial === 'function' ? partial(read()) : partial
+    if (AUTHORITATIVE_KEYS.some((key) => key in patch)) {
+      // One expression writes both the owner in `stateVersion.ts` and the
+      // mirror components render from, so they cannot report different
+      // numbers.
+      raw({ ...patch, stateVersion: bumpStateVersion() })
+      return
+    }
+    raw(patch)
+  }
+}
+
+export const useAppStore = create<AppState>((rawSet, get) => {
+  const set = versioned(rawSet, get)
+  return {
+  stateVersion: 0,
   mapHere: null,
   mapTrail: emptyTrail(),
   mapdbInstall: null,
@@ -333,7 +381,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ houseEntryHide: v })
     get().patchActiveProfile({ houseEntryHide: v })
   },
-}))
+  }
+})
 
 // A handle on the store while developing, so the app can be driven from the
 // console without a game attached. Stripped from production builds by the
