@@ -544,6 +544,68 @@ console.log('\n-- exactly one store is constructed in the app --')
     sendingComponents.length === 0, sendingComponents.join(', '))
 }
 
+console.log('\n-- the card confirms the record, not what is on the screen --')
+{
+  const PANEL = 'src/components/shared/AiWorkerPanel.tsx'
+  ok(existsSync(PANEL), `${PANEL} exists`)
+  const panel = readFileSync(PANEL, 'utf8')
+
+  ok('it reads the one store rather than building another',
+    /suggestionStore\(\)/.test(panel) && !/new SuggestionStore\(/.test(panel))
+  ok('the command is rendered in monospace, unwrapped and untidied',
+    /font-mono/.test(panel) && /whitespace-pre/.test(panel) &&
+    /\{suggestion\.exactCommand\}/.test(panel))
+  // The confirmation carries the string from the record. If it were read back
+  // out of the DOM, or retyped here, the player could be confirming something
+  // other than what they read - and the gate's byte comparison would be
+  // comparing the panel against itself.
+  // Terminated on purpose. `/commandText: suggestion\.exactCommand/` alone is
+  // a prefix match, so it stays green against
+  // `suggestion.exactCommand.trim().replace(...)` - a panel that tidies the
+  // string before confirming it, which is precisely the defect this line
+  // exists to catch. Found by sabotaging it; the check went green and the
+  // sabotage proved the check, not the code.
+  ok('Confirm hands back the command text from the record, untouched',
+    /commandText: suggestion\.exactCommand,\s*\r?\n/.test(panel))
+  ok('and it names the suggestion it is confirming',
+    /suggestionId: suggestion\.id/.test(panel))
+  ok('Dismiss goes through the store too', /store\.dismiss\(suggestion\.id/.test(panel))
+  ok('the expiry is on screen', /expiresAt - Date\.now\(\)/.test(panel))
+  ok('and a refusal is shown rather than swallowed',
+    /Not sent:/.test(panel) && /result\.ok \? null : /.test(panel))
+
+  // The panel must not decide anything the gate decides. If it compared the
+  // state version or the clock itself, a green panel would stop meaning the
+  // gate agreed - and the checks in this file, which render nothing, would
+  // have stopped covering what a player actually experiences.
+  ok('the panel does not compare state versions itself',
+    !/basedOnStateVersion/.test(panel))
+  ok('and it names no command policy of its own',
+    !/OBSERVATION_COMMAND_TYPES|commandPolicy|defaultCommandPolicy/.test(panel))
+}
+
+console.log('\n-- the worker can record a proposal and cannot send one --')
+{
+  const worker = readFileSync('src/lib/aiWorker.ts', 'utf8')
+  ok('the live-review schema carries at most one command',
+    /suggestion\?: \{/.test(worker))
+  ok('the worker holds a structural port, not the store',
+    !/from '\.\/aiSuggestions/.test(worker))
+  ok('and the port admits only create',
+    /suggestions\?: \{\s*create\(/.test(worker))
+  ok('a proposal is pinned to the version the caller handed in',
+    /basedOnStateVersion: deps\.stateVersion \?\? 0/.test(worker))
+  ok('with ?? rather than ||, because version 0 is a real value',
+    !/deps\.stateVersion \|\| /.test(worker))
+
+  const host = readFileSync('src/lib/aiWorkerHost.ts', 'utf8')
+  ok('the host wires the one store into the turn', /suggestions: suggestionStore\(\)/.test(host))
+  ok('and reads the version from its owner rather than the mirror',
+    /stateVersion: currentStateVersion\(\)/.test(host))
+  ok('the host still names no send surface',
+    !/\b(sendGame|requestGameAction|game_send)\b/.test(host))
+}
+
 console.log('\n-- the store bumps the version by the shape of the write --')
 {
   const src = readFileSync('src/store/useAppStore.ts', 'utf8')
