@@ -228,7 +228,51 @@ console.log('-- one source for what a bank looks like --')
   )
 }
 
-ok('enough was checked for a pass to mean something', checked >= 20, `${checked} assertions`)
+{
+  // Every pin written before `provenance` existed was made by a person, and a
+  // pin the app cannot attribute is one that cannot be safely undone by
+  // "remove what the worker added". The migration runs on read rather than
+  // once, so a store restored from a backup arrives migrated too - which is
+  // what this writes straight into localStorage to check.
+  store.clear()
+  store.set(
+    'drc.pins.v1',
+    JSON.stringify({
+      'DR:erathi': [
+        { id: 'old-1', roomId: 7, zone: '1', label: 'Written before provenance', color: 'blue', createdAt: 1 },
+      ],
+    })
+  )
+  const migrated = loadPins(...HERO)
+  ok('an old pin still loads', migrated.length === 1, `${migrated.length}`)
+  ok('and is attributed to the player', migrated[0].provenance === 'player', String(migrated[0].provenance))
+
+  store.clear()
+  const made = addPin(...HERO, { roomId: 8, zone: '1', label: 'By hand', color: 'gold' })
+  ok('a new pin with nothing said is the player’s', made[0].provenance === 'player', String(made[0].provenance))
+
+  const promoted = addPin(...HERO, {
+    roomId: 9,
+    zone: '1',
+    label: 'From a claim',
+    color: 'purple',
+    provenance: 'ai-candidate',
+  })
+  ok('and one that says otherwise keeps what it said', promoted[1].provenance === 'ai-candidate', String(promoted[1].provenance))
+  ok('without changing the pin beside it', promoted[0].provenance === 'player')
+
+  const corpse = setCorpseMarker(...HERO, 10, '1')
+  const marker = corpse.find((pin) => pin.system === true)
+  ok(
+    'the corpse marker the app drops is still the player’s map',
+    marker !== undefined && marker.provenance === 'player',
+    String(marker && marker.provenance)
+  )
+  clearCorpseMarker(...HERO)
+  store.clear()
+}
+
+ok('enough was checked for a pass to mean something', checked >= 26, `${checked} assertions`)
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

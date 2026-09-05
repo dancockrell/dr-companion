@@ -86,7 +86,7 @@ grep -rn "fetch(\|reqwest\|https://" src/ src-tauri/src/ | grep -v -E "test|127\
 direction is the one that matters for a privacy statement: it is what stops
 the document describing an app that no longer exists.
 
-The scan currently matches 57 lines across 327 source
+The scan currently matches 57 lines across 328 source
 files and finds 6 hosts, which is the number of sections above. It
 cannot tell a request from a link - both are an `https://` in a file - so
 that distinction is recorded by hand against each call site, and is the part a

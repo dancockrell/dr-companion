@@ -14,6 +14,7 @@ import { TogglesPanel } from '../shared/TogglesPanel'
 import { VarsPanel } from '../shared/VarsPanel'
 import { LinksPanel } from '../shared/LinksPanel'
 import { ScriptApiPanel } from '../shared/ScriptApiPanel'
+import { AiClaimsPanel } from '../shared/AiClaimsPanel'
 import { PresentationBridgePanel } from '../shared/PresentationBridgePanel'
 import { HuntingGroundsPanel } from '../shared/HuntingGroundsPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
@@ -467,6 +468,20 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               Diagnostics
             </h3>
             <DiagnosticsPanel />
+          </section>
+
+          {/* The review queue for what the background worker believes.
+              Its own section, appended rather than inserted, so nothing
+              above it moves. Deliberately not beside the worker's status
+              panel in the context rail: a status line is glanced at, and
+              accepting a claim is a decision, which belongs where a person
+              has gone looking for settings rather than where their eye
+              lands mid-fight. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              AI candidate claims
+            </h3>
+            <AiClaimsPanel />
           </section>
 
           <section className="space-y-2">

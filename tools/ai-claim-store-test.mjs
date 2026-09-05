@@ -348,9 +348,80 @@ console.log('\n-- corroboration needs evidence the claim does not already rest o
 }
 
 
+console.log('\n-- promotion is the one path out, and reverting it is exact --')
+{
+  // A pin list with a hand-made pin either side of the promoted one. The
+  // failure this section exists to catch is a revert that removes the wrong
+  // record, so the population has to contain records that could be removed by
+  // mistake - a single-pin fixture would pass whatever the revert did.
+  const pins = [
+    { id: 'pin-a', roomId: 1, label: 'Home', provenance: 'player' },
+    { id: 'pin-b', roomId: 2, label: 'Bank', provenance: 'player' },
+  ]
+  const createPin = (claim) => {
+    const id = `pin-ai-${claim.claimId.replace(':', '-')}`
+    pins.push({ id, roomId: 142, label: claim.predicate, provenance: 'ai-candidate' })
+    return id
+  }
+  const deletePin = (pinId) => {
+    const before = pins.length
+    const at = pins.findIndex((pin) => pin.id === pinId)
+    if (at >= 0) pins.splice(at, 1)
+    return pins.length === before - 1
+  }
+
+  const { claims } = fresh()
+  const claim = claims.create(base()).claim
+
+  const tooEarly = claims.promote(claim.claimId, { now: LATER, createPin })
+  ok('a candidate cannot be promoted', tooEarly.ok === false, tooEarly.ok ? 'promoted' : tooEarly.reason)
+  ok('and nothing was created', pins.length === 2, String(pins.length))
+
+  claims.transition(claim.claimId, 'accepted-local', { now: LATER, reviewer: 'Dan' })
+  const before = JSON.stringify(pins)
+
+  const promoted = claims.promote(claim.claimId, { now: LATER, createPin })
+  ok('an accepted claim promotes', promoted.ok === true, promoted.ok ? '' : promoted.reason)
+  ok('exactly one pin was added', pins.length === 3, String(pins.length))
+  ok('marked as an AI candidate', pins[2].provenance === 'ai-candidate', pins[2].provenance)
+  ok('and the claim records which pin', promoted.claim.promotedPinId === pins[2].id, String(promoted.claim.promotedPinId))
+
+  const twice = claims.promote(claim.claimId, { now: LATER, createPin })
+  ok('it cannot be promoted twice', twice.ok === false, twice.ok ? 'promoted again' : twice.reason)
+  ok('and no second pin appeared', pins.length === 3, String(pins.length))
+
+  const reverted = claims.revertPromotion(claim.claimId, { now: LATER, deletePin })
+  ok('reverting works', reverted.ok === true, reverted.ok ? '' : reverted.reason)
+  ok('the count is restored', pins.length === 2, String(pins.length))
+  ok('the other pins are byte-identical', JSON.stringify(pins) === before, JSON.stringify(pins))
+  ok('the claim is accepted again, not back to candidate', claims.get(claim.claimId).status === 'accepted-local')
+  ok('and no longer names a pin', claims.get(claim.claimId).promotedPinId === null)
+
+  const again = claims.revertPromotion(claim.claimId, { now: LATER, deletePin })
+  ok('reverting twice is refused', again.ok === false, again.ok ? 'reverted again' : again.reason)
+
+  // A promotion whose pin could not be made is a refusal, not a claim that
+  // silently believes it has one.
+  const second = claims.create(base({ value: { diff: 'other' } })).claim
+  claims.transition(second.claimId, 'accepted-local', { now: LATER, reviewer: 'Dan' })
+  const refused = claims.promote(second.claimId, { now: LATER, createPin: () => null })
+  ok('a createPin that refuses leaves the claim unpromoted', refused.ok === false, refused.ok ? 'promoted' : refused.reason)
+  ok('and the claim names no pin', claims.get(second.claimId).promotedPinId === undefined || claims.get(second.claimId).promotedPinId === null)
+
+  // And a deletePin that removed nothing must not clear the link, or the
+  // record would claim a revert that put nothing back.
+  const third = claims.create(base({ value: { diff: 'third' } })).claim
+  claims.transition(third.claimId, 'accepted-local', { now: LATER, reviewer: 'Dan' })
+  claims.promote(third.claimId, { now: LATER, createPin })
+  const failedRevert = claims.revertPromotion(third.claimId, { now: LATER, deletePin: () => false })
+  ok('a delete that removed nothing is a refusal', failedRevert.ok === false, failedRevert.ok ? 'reverted' : failedRevert.reason)
+  ok('and the record still points at the pin', claims.get(third.claimId).promotedPinId !== null)
+}
+
+
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 78
+const MIN_EXPECTED = 92
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

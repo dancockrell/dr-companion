@@ -158,13 +158,16 @@ ok('a valid empty file parses successfully', validEmpty.ok)
 ok('a valid empty file is identified as empty', validEmpty.ok && validEmpty.empty)
 
 console.log('\n-- staged merge, explicit replace, system preservation, and undo --')
+// `provenance` is an authored field of MapPin since G9, and loadAllPins fills
+// it in on read for anything written before it existed - so a fixture without
+// it would make this comparison fail on the migration rather than on the undo.
 const local = {
   hero: [
-    { id: 'local-1', roomId: 1, zone: '1', label: 'Home', color: 'blue', note: 'mine', createdAt: 1 },
-    { id: 'local-2', roomId: 2, zone: '1', label: 'Keep me', color: 'gold', createdAt: 2 },
-    { id: 'corpse', roomId: 99, zone: '1', label: 'Your corpse', color: 'red', system: true, createdAt: 3 },
+    { id: 'local-1', roomId: 1, zone: '1', label: 'Home', color: 'blue', note: 'mine', provenance: 'player', createdAt: 1 },
+    { id: 'local-2', roomId: 2, zone: '1', label: 'Keep me', color: 'gold', provenance: 'player', createdAt: 2 },
+    { id: 'corpse', roomId: 99, zone: '1', label: 'Your corpse', color: 'red', system: true, provenance: 'player', createdAt: 3 },
   ],
-  untouched: [{ id: 'u', roomId: 8, zone: '', label: 'Other', color: 'green', createdAt: 1 }],
+  untouched: [{ id: 'u', roomId: 8, zone: '', label: 'Other', color: 'green', provenance: 'player', createdAt: 1 }],
 }
 const incoming = {
   hero: [

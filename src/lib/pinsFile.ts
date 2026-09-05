@@ -76,6 +76,9 @@ function fromRecord(rec: unknown, id: string): MapPin | null {
   const note = typeof r.story === 'string' && r.story.trim() ? r.story : undefined
   return {
     id,
+    // A pin read out of a shared Genie config was drawn by a person -
+    // theirs or somebody else's - and never by this client's worker.
+    provenance: 'player' as const,
     roomId: room,
     zone: typeof r.zone === 'string' ? r.zone : '',
     label,

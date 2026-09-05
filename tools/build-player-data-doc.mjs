@@ -148,6 +148,7 @@ const DESCRIBES = {
   'drc.ai-provider.v1': 'The address of a model server on this machine, if the player has chosen to run one. Absent on every install that has not. One URL and nothing else: no key, no token, no game text - the provider refuses any address that is not 127.0.0.1 or localhost, so this cannot name somewhere off the machine.',
   'drc.appearance.v1': 'Which 3D model the player picked for an item, overriding the compiled default for its class. Item names and asset ids only; no game text.',
   'drc.ai-jobs.v1': 'Background AI jobs and their status. Absent unless the optional local model has been used.',
+  'drc.ai-share-sources.v1': 'Game channels whose private messages you have chosen to let a local model read. Empty unless you set it: whispers, thoughts and group chat are excluded from every prompt by default.',
   'drc.ai-claims.v1': 'Candidate claims the AI worker proposed, with their evidence references, producer and review state. Candidates only: nothing here is map, pin or bestiary data until a person promotes it.',
   'drc.ai-evidence.v1': 'Journal events an AI job or candidate claim cites, copied so the evidence outlives the journal that recorded it. Game text only where an event already carried it; nothing new is captured for this.',
   'drc.ai-cursor.v1': 'How far the AI worker had read when its window was last rebuilt, tagged with the run that wrote it so a later run ignores it. Two numbers and a tag; no game text.',

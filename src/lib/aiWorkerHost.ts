@@ -70,11 +70,14 @@ import { EvidenceStore } from './aiEvidenceStore.ts'
 import { detectExitDivergence, proposeMapReconciliation } from './aiJobProducers.ts'
 import { JobStore } from './aiJobStore.ts'
 import { readJSON, writeJSON } from './storage.ts'
+import { publishPresentationEvent } from './viewerClient.ts'
 import { absentProvider, type ModelHealth, type ModelProvider } from './aiModelProvider.ts'
 import { localProvider, type LocalModelProvider } from './aiLocalProvider.ts'
 import {
   deriveAlerts,
   ingestLines,
+  situationChanges,
+  readPrivacyOptIn,
   runHostTick,
   sameStatus,
   type AiWorkerStatus,
@@ -139,6 +142,47 @@ function publishStatus(next: AiWorkerStatus): void {
   // Copied before iterating: a listener that unsubscribes while being notified
   // would otherwise mutate the set mid-loop.
   for (const listener of [...statusListeners]) listener()
+}
+
+/**
+ * The claim store the host built, for anything that needs to read or review
+ * candidates.
+ *
+ * Module-level and single, for the same reason the status store above is: a
+ * panel that built its own `ClaimStore` over the same key would be a second
+ * in-memory copy of one record set, and the two would disagree the moment
+ * either wrote. One store, one owner, and a subscription so a reviewer's
+ * Accept is visible without polling.
+ *
+ * Null until a host has mounted. A panel must render that as "not running
+ * yet" rather than as "no claims", because those are different facts.
+ */
+let claimStore: ClaimStore | null = null
+const claimListeners = new Set<() => void>()
+let claimRevision = 0
+
+export function getAiClaimStore(): ClaimStore | null {
+  return claimStore
+}
+
+/** Changes with every claim write, so `useSyncExternalStore` has a snapshot
+ * that is a primitive rather than a store whose identity never changes. */
+export function aiClaimRevision(): number {
+  return claimRevision
+}
+
+export function subscribeAiClaims(listener: () => void): () => void {
+  claimListeners.add(listener)
+  return () => {
+    claimListeners.delete(listener)
+  }
+}
+
+/** Say that the claims changed. Called by the host after a turn that produced
+ * any, and by a reviewer after Accept, Reject, Promote or Revert. */
+export function publishAiClaimsChanged(): void {
+  claimRevision += 1
+  for (const listener of [...claimListeners]) listener()
 }
 
 /** How often the host wakes to ask the scheduler. The scheduler, not this
@@ -336,6 +380,8 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
       storage: { read: readJSON, write: writeJSON },
     })
     claims.current.load()
+    claimStore = claims.current
+    publishAiClaimsChanged()
     // Anything left running belonged to a process that is gone. Resolving it
     // here, once, is what keeps a restart honest rather than leaving records
     // claiming a worker that does not exist.
@@ -357,6 +403,10 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
     lastAppendAt: null,
   })
   const lastRoomId = useRef<number | null>(null)
+  /** The situation flags the viewer has already been told about. Compared
+   * rather than re-published, because an event stream that repeated itself
+   * every pass would be a status change per store update. */
+  const lastSituation = useRef<readonly string[]>([])
   /** The room-and-compass pair the exit check last saw. Its only job is to
    * keep that check off the hot path of a store subscription that fires
    * several times a second. */
@@ -396,6 +446,22 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
         if (lastRoomId.current !== null) memory.current.roomChangedAt = now
         lastRoomId.current = roomId
       }
+
+      // What the viewer is told, from the same already-parsed flags the alerts
+      // come from. `publish_presentation_event` has existed on the Rust side
+      // since the bridge was written and nothing called it; this is the
+      // caller. Fire-and-forget on purpose: a viewer that is not running
+      // makes the native call throw, and a status change nobody can see must
+      // not break the host's pass over the alerts.
+      const situation = character?.situation ?? []
+      for (const change of situationChanges(lastSituation.current, situation)) {
+        void publishPresentationEvent({
+          kind: 'status-change',
+          roomId: roomId === null ? '' : `room:${roomId}`,
+          authoritativeText: change.flag,
+        }).catch(() => {})
+      }
+      lastSituation.current = situation
 
       const derived = deriveAlerts({
         situation: character?.situation,
@@ -460,6 +526,7 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
         // Read once, here, and hand the turn a snapshot. The turn awaits a
         // generation, and state read on the far side of that await would
         // belong to a different world than the decision that started it.
+        const claimsBefore = claims.current.all().length
         const { character, bridgeConnected } = useAppStore.getState()
         const status = await runHostTick({
           journal: journal.current,
@@ -474,6 +541,9 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
             roomCombatants: character?.roomCombatants,
             isTown: character?.location.isTown,
           },
+          // Read per turn rather than once: a person turning a source on
+          // should not have to restart the client to see it take effect.
+          privacyOptIn: readPrivacyOptIn(),
           claims: claims.current,
           evidence: evidence.current,
           // The map's own answer to "is this a room", read at the moment the
@@ -492,6 +562,9 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
 
         if (cancelled) return
         publishStatus(status)
+        // Only when a turn actually wrote one. A revision bump every second
+        // would re-render the review panel forever on an idle client.
+        if (claimsBefore !== claims.current.all().length) publishAiClaimsChanged()
       } finally {
         running.current = false
       }

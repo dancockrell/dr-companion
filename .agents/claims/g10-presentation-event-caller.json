@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "task_id": "g10-presentation-event-caller",
+  "agent": "claude-code",
+  "summary": "publish_presentation_event gets the caller it has never had: status changes for stunned, webbed and immobilized, on and off, derived from already-parsed flags",
+  "status": "completed",
+  "claimed_at": "2026-09-05T23:45:00Z",
+  "updated_at": "2026-09-06T00:20:00Z",
+  "paths": [
+    "src/lib/aiIngest.ts",
+    "src/lib/viewerClient.ts",
+    "src/lib/aiWorkerHost.ts",
+    "tools/ai-worker-host-test.mjs",
+    "docs/PLAYER_DATA.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g10-presentation-event-caller.json"
+  ],
+  "symbols": [
+    "situationChanges",
+    "publishPresentationEvent",
+    "PresentationEvent",
+    "presentationEventSequence"
+  ],
+  "coordination": {
+    "depends_on": ["C4"],
+    "conflicts_with": ["K3"],
+    "notes": "No text is parsed: the changes come from comparing two already-parsed CharacterStatus.situation lists, so the bridge's one opinion about what stunned means stays the only one. Both directions are published, because a viewer told only about the onset leaves the character helpless on screen forever. The event sequence is its own counter, separate from presentationBridge.ts's snapshot sequence - two streams sharing one counter would make a gap in either look like a dropped message in the other - and it advances only after Rust accepted the publish, the same rule publishWorldSnapshotIfChanged follows. dying is deliberately not published: it is in the alert set because it needs a person's attention, and it is not a pose.",
+    "deviations": "The plan predicts the callerless-command sweep will then list only extract_lich and bridge_install_status. It lists three: those two plus install_bundled_ruby. publish_presentation_event has gone from the list, which is what this increment was for; the third is outside this lane and is reported rather than rounded away."
+  },
+  "completion": {
+    "commit": "5feb5236",
+    "checks": [
+      "node --experimental-strip-types tools/ai-worker-host-test.mjs: 141 checked, 0 failed / all passed",
+      "verify - [] to ['stunned'] to []: 'the round trip is exactly two events' [{\"flag\":\"stunned\",\"on\":true},{\"flag\":\"stunned\",\"on\":false}]",
+      "verify - unchanged flags produce nothing; a flag order change is not a status change; the order is stable across runs (stunned,immobilized either way in)",
+      "verify - all three presented states covered, and 'and nothing else is' [] for dying/bleeding/in_combat",
+      "verify - the host really is the caller: it imports publishPresentationEvent, calls situationChanges, uses kind 'status-change' and authoritativeText: change.flag; viewerClient invokes 'publish_presentation_event' and advances eventSequence only after that call returns",
+      "callerless-command sweep over all 46 tauri commands: NO CALLER: bridge_install_status, extract_lich, install_bundled_ruby - publish_presentation_event no longer among them"
+    ]
+  }
+}

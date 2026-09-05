@@ -81,6 +81,19 @@ export interface Claim {
   privacy: ClaimPrivacy
   /** Null only when the claim rests on nothing third-party. */
   licence: string | null
+  /**
+   * The pin this claim was promoted into, or null.
+   *
+   * The whole record of the one path from a candidate into canonical data.
+   * Reverting deletes exactly this pin and nothing else, which is only
+   * possible because the id is written down at the moment of promotion - an
+   * index or a position would name a different pin the moment anything else
+   * was added or removed.
+   *
+   * Absent on records written before promotion existed, which reads the same
+   * as "never promoted" and is the honest default.
+   */
+  promotedPinId?: string | null
 }
 
 /**
@@ -436,6 +449,84 @@ export class ClaimStore {
       current = this.claims.get(current)?.supersedes ?? null
     }
     return null
+  }
+
+  /**
+   * Turn an accepted claim into a pin on the map.
+   *
+   * The only path from a candidate into a canonical store, and every part of
+   * it is deliberate:
+   *
+   * - **Only from `accepted-local`.** A candidate is a proposal and a
+   *   corroborated candidate is a well-supported proposal; neither is a
+   *   decision, and promotion is the decision.
+   * - **The pin is made by the caller, not here.** This module imports nothing
+   *   canonical and its test enforces that, so `createPin` is handed in - by
+   *   the review panel, which is where the person doing the promoting is.
+   * - **The pin id is recorded.** That is what makes the revert exact.
+   *
+   * A `createPin` that returns null is a refusal, not a silent success: the
+   * claim stays unpromoted and says so.
+   */
+  promote(
+    claimId: string,
+    deps: { now: string; createPin(claim: Claim): string | null }
+  ): ClaimResult {
+    const claim = this.claims.get(claimId)
+    if (!claim) return { ok: false, reason: `No such claim: ${claimId}` }
+    if (claim.status !== 'accepted-local') {
+      return { ok: false, claim, reason: `Refused: ${claimId} is ${claim.status}, not accepted-local` }
+    }
+    if (claim.promotedPinId) {
+      return { ok: false, claim, reason: `Refused: ${claimId} is already promoted as ${claim.promotedPinId}` }
+    }
+
+    const pinId = deps.createPin(claim)
+    if (!pinId) return { ok: false, claim, reason: `Refused: nothing was created for ${claimId}` }
+
+    claim.promotedPinId = pinId
+    this.persist()
+    return { ok: true, claim }
+  }
+
+  /**
+   * Undo a promotion, exactly.
+   *
+   * `deletePin` is given the recorded id and nothing else - not a position,
+   * not a room, not a predicate - because those all name whatever happens to
+   * be there now rather than the thing that was created. A revert that
+   * removed the wrong pin would be this feature destroying somebody's own map
+   * while reporting success.
+   *
+   * The claim returns to `accepted-local` rather than to `candidate`: the
+   * person's decision to accept it still stands, and only the pin is undone.
+   */
+  revertPromotion(
+    claimId: string,
+    deps: { now: string; deletePin(pinId: string): boolean }
+  ): ClaimResult {
+    const claim = this.claims.get(claimId)
+    if (!claim) return { ok: false, reason: `No such claim: ${claimId}` }
+    if (!claim.promotedPinId) {
+      return { ok: false, claim, reason: `Refused: ${claimId} was never promoted` }
+    }
+
+    const removed = deps.deletePin(claim.promotedPinId)
+    if (!removed) {
+      // The pin is gone already, or the id no longer matches anything. Saying
+      // so is the point: silently clearing the link would leave the record
+      // claiming a revert that removed nothing.
+      return {
+        ok: false,
+        claim,
+        reason: `Refused: no pin ${claim.promotedPinId} was removed, so the record still points at it`,
+      }
+    }
+
+    claim.promotedPinId = null
+    claim.status = 'accepted-local'
+    this.persist()
+    return { ok: true, claim }
   }
 
   /** Test and reset hook. Clears memory and storage together so the two cannot

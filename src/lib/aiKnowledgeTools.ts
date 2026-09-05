@@ -82,6 +82,10 @@ export interface ToolContext {
     }
     acknowledged(): number
   } | null
+  /** Stream ids whose private communications the player has opted into.
+   * Empty by default; a tool result is not a back door around the same
+   * rule a prompt follows. */
+  privacyOptIn?: readonly string[]
   /** Wall clock, injected so a trace is deterministic under test. */
   now?: number
 }
@@ -237,12 +241,15 @@ const TOOLS: Record<string, ReadOnlyTool> = {
       const ack = journal.acknowledged()
       const from = Math.max(0, ack - n)
       const read = journal.readFrom(from, n)
-      return read.events.map((event) => ({
-        seq: event.seq,
-        kind: event.kind,
-        at: event.at,
-        privacy: privacyOf(event.payload),
-      }))
+      const optIn = context.privacyOptIn ?? []
+      return read.events
+        .filter((event) => privacyOf(event.payload) !== 'private-comms' || optedIn(event.payload, optIn))
+        .map((event) => ({
+          seq: event.seq,
+          kind: event.kind,
+          at: event.at,
+          privacy: privacyOf(event.payload),
+        }))
     },
   },
 }
@@ -254,6 +261,17 @@ const TOOLS: Record<string, ReadOnlyTool> = {
  * the stream id the bridge already labelled, and a second opinion computed
  * here would be a second parser of game text, which section 2 forbids.
  */
+/** Whether the player has opted this event's own source into sharing. Read
+ * off the payload's stream id, which the bridge labelled and the ingest step
+ * carried through - not re-derived here. */
+function optedIn(payload: unknown, optIn: readonly string[]): boolean {
+  if (payload && typeof payload === 'object' && 'stream' in payload) {
+    const stream = (payload as { stream: unknown }).stream
+    return typeof stream === 'string' && optIn.includes(stream)
+  }
+  return false
+}
+
 function privacyOf(payload: unknown): string | null {
   if (payload && typeof payload === 'object' && 'privacy' in payload) {
     const value = (payload as { privacy: unknown }).privacy

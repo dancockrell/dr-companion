@@ -18,7 +18,8 @@ globalThis.localStorage = {
 const { EventJournal } = await import('../src/lib/aiEventJournal.ts')
 const { AlertBroker } = await import('../src/lib/aiAlertBroker.ts')
 const { JobStore } = await import('../src/lib/aiJobStore.ts')
-const { ingestLines, deriveAlerts, runHostTick, reviewHash, deriveActivity, sameStatus } = await import('../src/lib/aiIngest.ts')
+const { ingestLines, deriveAlerts, runHostTick, reviewHash, deriveActivity, sameStatus, situationChanges, classifyStream, allowedInPrompt } = await import('../src/lib/aiIngest.ts')
+const { absentProvider } = await import('../src/lib/aiModelProvider.ts')
 
 /**
  * The host module is read as text, never imported: it pulls in useAppStore,
@@ -560,9 +561,152 @@ console.log('\n-- the host cannot reach the game command path --')
     /from '\.\/gameLink'/.test(src))
 }
 
+console.log('\n-- status changes: both directions, once each, in order --')
+{
+  // The failure a one-direction version has is invisible: a viewer told only
+  // that a stun started leaves the character helpless on screen forever.
+  const on = situationChanges([], ['stunned'])
+  ok('a stun starting is one change', on.length === 1 && on[0].flag === 'stunned' && on[0].on === true, JSON.stringify(on))
+  const off = situationChanges(['stunned'], [])
+  ok('a stun ending is one change too', off.length === 1 && off[0].flag === 'stunned' && off[0].on === false, JSON.stringify(off))
+
+  ok('unchanged flags produce nothing', situationChanges(['stunned'], ['stunned']).length === 0)
+  ok('nothing to nothing produces nothing', situationChanges([], []).length === 0)
+  ok('undefined either side produces nothing', situationChanges(undefined, undefined).length === 0)
+
+  // [] -> ['stunned'] -> [] is exactly two events across the pair of steps.
+  const roundTrip = [...situationChanges([], ['stunned']), ...situationChanges(['stunned'], [])]
+  ok('the round trip is exactly two events', roundTrip.length === 2, JSON.stringify(roundTrip))
+
+  ok('all three presented states are covered',
+    situationChanges([], ['stunned', 'webbed', 'immobilized']).length === 3)
+  ok('and nothing else is',
+    situationChanges([], ['dying', 'bleeding', 'in_combat']).length === 0,
+    JSON.stringify(situationChanges([], ['dying', 'bleeding', 'in_combat'])))
+  ok('a flag order change is not a status change',
+    situationChanges(['webbed', 'stunned'], ['stunned', 'webbed']).length === 0)
+  ok('the order is stable across runs',
+    situationChanges([], ['immobilized', 'stunned']).map((c) => c.flag).join(',') ===
+      situationChanges([], ['stunned', 'immobilized']).map((c) => c.flag).join(','),
+    situationChanges([], ['immobilized', 'stunned']).map((c) => c.flag).join(','))
+}
+
+console.log('\n-- the host is the caller publish_presentation_event never had --')
+{
+  const { readFileSync } = await import('node:fs')
+  const src = readFileSync(HOST_SRC, 'utf8')
+  ok('the host imports the publisher', src.includes('publishPresentationEvent'), '')
+  ok('and calls it on a status change', /situationChanges\(/.test(src))
+  ok("with kind 'status-change'", src.includes("kind: 'status-change'"))
+  ok('carrying the flag as the authoritative text', src.includes('authoritativeText: change.flag'))
+  const client = readFileSync('src/lib/viewerClient.ts', 'utf8')
+  ok('and the publisher really invokes the Rust command',
+    client.includes("invokeTauri('publish_presentation_event'"), '')
+  ok('with a sequence that only advances after Rust accepted it',
+    client.indexOf('eventSequence = sequence') > client.indexOf("invokeTauri('publish_presentation_event'"))
+}
+
+console.log('\n-- privacy: a class at capture, from the label the bridge already put on it --')
+{
+  ok('a whisper is private-comms', classifyStream('whispers') === 'private-comms')
+  ok('so are thoughts', classifyStream('thoughts') === 'private-comms')
+  ok('a room line is public game text', classifyStream('room') === 'public-game')
+  ok('so is the main window', classifyStream('') === 'public-game')
+  ok('inventory is the character’s own business', classifyStream('inv') === 'private-player')
+  // The default is the cautious one. A channel nobody has decided about is not
+  // publishable just because nobody got round to it.
+  ok('an unknown channel defaults to private-player', classifyStream('some-new-channel') === 'private-player')
+
+  const journal = new EventJournal()
+  ingestLines(journal, [
+    { text: 'You see a guard.', stream: '', at: 1 },
+    { text: 'Someone whispers, "meet me"', stream: 'whispers', at: 2 },
+  ], 0)
+  const events = journal.readFrom(0).events
+  ok('the class is on the event at capture', events[0].payload.privacy === 'public-game', String(events[0].payload.privacy))
+  ok('and the whisper is labelled', events[1].payload.privacy === 'private-comms', String(events[1].payload.privacy))
+  ok('capture is continuous: the whisper IS journalled', events.length === 2, String(events.length))
+
+  ok('a public line may enter a prompt', allowedInPrompt(events[0]) === true)
+  ok('a whisper may not', allowedInPrompt(events[1]) === false)
+  ok('unless its own source is opted in', allowedInPrompt(events[1], ['whispers']) === true)
+  ok('and another source does not lift it', allowedInPrompt(events[1], ['thoughts']) === false)
+}
+
+console.log('\n-- the live request carries neither the whisper nor its sequence --')
+{
+  const journal = new EventJournal()
+  ingestLines(journal, [
+    { text: 'You see a guard.', stream: '', at: 1 },
+    { text: 'Someone whispers, "meet me"', stream: 'whispers', at: 2 },
+    { text: 'The guard nods.', stream: '', at: 3 },
+  ], 0)
+
+  // A provider that records what it was asked, so the assertion is about the
+  // request that was actually built rather than about the code that builds it.
+  let seen = null
+  const spy = {
+    describe: () => ({ available: true }),
+    generate: async (request) => {
+      seen = request
+      return { ok: true, text: '{}', tokens: 1 }
+    },
+  }
+
+  const memory = { lastReviewAt: null, lastReviewedHash: null, ticks: 0, missedLines: 0, roomChangedAt: null, lastAppendAt: Date.now() }
+  await runHostTick({
+    journal,
+    alerts: new AlertBroker(),
+    jobs: (() => { const j = new JobStore(); j.load(); return j })(),
+    provider: spy,
+    app: { situation: [], roundtime: 0, bridgeConnected: true, roomId: '1', roomCombatants: [], isTown: false },
+    memory,
+    now: Date.now(),
+    nowIso: '2026-09-05T12:00:00Z',
+  })
+
+  ok('a request was built', seen !== null, '')
+  const state = seen ? seen.state : ''
+  ok('it does not carry the whispered words', !state.includes('meet me'), state)
+  ok('nor the whisper’s sequence', !JSON.parse(state).events.some((e) => e.seq === 2), state)
+  ok('it does carry the public lines', JSON.parse(state).events.map((e) => e.seq).join(',') === '1,3', state)
+
+  // Opted in, the same journal produces a request that does carry it - the
+  // positive control, without which the exclusion above could be a request
+  // builder that drops everything.
+  const journal2 = new EventJournal()
+  ingestLines(journal2, [
+    { text: 'You see a guard.', stream: '', at: 1 },
+    { text: 'Someone whispers, "meet me"', stream: 'whispers', at: 2 },
+    { text: 'The guard nods.', stream: '', at: 3 },
+  ], 0)
+  let seen2 = null
+  const spy2 = {
+    describe: () => ({ available: true }),
+    generate: async (request) => {
+      seen2 = request
+      return { ok: true, text: '{}', tokens: 1 }
+    },
+  }
+  await runHostTick({
+    journal: journal2,
+    alerts: new AlertBroker(),
+    jobs: (() => { const j = new JobStore(); j.load(); return j })(),
+    provider: spy2,
+    app: { situation: [], roundtime: 0, bridgeConnected: true, roomId: '1', roomCombatants: [], isTown: false },
+    memory: { lastReviewAt: null, lastReviewedHash: null, ticks: 0, missedLines: 0, roomChangedAt: null, lastAppendAt: Date.now() },
+    now: Date.now(),
+    nowIso: '2026-09-05T12:00:00Z',
+    privacyOptIn: ['whispers'],
+  })
+  ok('opted in, the sequence is there', JSON.parse(seen2.state).events.map((e) => e.seq).join(',') === '1,2,3', seen2 ? seen2.state : '')
+  ok('and the words still are not', !seen2.state.includes('meet me'), seen2 ? seen2.state : '')
+}
+
+
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 75
+const MIN_EXPECTED = 105
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)
