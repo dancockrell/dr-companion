@@ -22,13 +22,36 @@
  *
  *     node tools/build-release-config.mjs            # writes the config
  *     node tools/build-release-config.mjs --check    # verify only, no write
+ *     node tools/build-release-config.mjs --out PATH # write somewhere else
+ *
+ * # The two seams, and why they exist
+ *
+ * `DRC_VIEWER_EXE` overrides *where this file looks* for the exported viewer,
+ * and nothing else: `VIEWER_SRC` and `VIEWER_DEST` below are untouched, so the
+ * emitted map is the one that ships either way. `--out` writes the result
+ * somewhere other than `src-tauri/tauri.release.conf.json`.
+ *
+ * Both are there for `tools/bundle-test.mjs`. Without them the whole
+ * viewer-destination branch is unreachable on any machine that has not run a
+ * Godot export, which is every developer machine, and it skipped rather than
+ * ran on every CI job that did not build one - so the check that stops the
+ * installer bundling a viewer to a path `viewer.rs` does not look in was, in
+ * practice, never executed. A branch nobody can execute on purpose is a branch
+ * nobody can prove works. Together they let the test aim the existence probe
+ * at a stand-in file and read the resulting map out of a temporary path,
+ * without a fabricated .exe appearing in `godot/build/` where another session
+ * or a real `tauri build` could find it.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
 const BASE = resolve(root, 'src-tauri', 'tauri.conf.json')
-const OUT = resolve(root, 'src-tauri', 'tauri.release.conf.json')
+const outFlag = process.argv.indexOf('--out')
+const OUT =
+  outFlag !== -1 && process.argv[outFlag + 1]
+    ? resolve(process.argv[outFlag + 1])
+    : resolve(root, 'src-tauri', 'tauri.release.conf.json')
 const VIEWER_SRC = '../godot/build/DRCompanionWorldViewer.exe'
 /** Must match one of `viewer_candidates` in src-tauri/src/viewer.rs. The app
  * looks in `<resources>/viewer/` first; a different destination here would
@@ -94,11 +117,20 @@ if (existsSync(viewerRs)) {
  * `--require-viewer` is for the build that is supposed to have one: it refuses
  * rather than silently producing the smaller installer.
  */
-const viewerBuilt = existsSync(resolve(root, 'godot', 'build', 'DRCompanionWorldViewer.exe'))
+const VIEWER_PROBE = process.env.DRC_VIEWER_EXE || resolve(root, 'godot', 'build', 'DRCompanionWorldViewer.exe')
+const viewerBuilt = existsSync(VIEWER_PROBE)
+if (process.env.DRC_VIEWER_EXE) {
+  // Say so, every time. An override that changes the answer silently is the
+  // thing this repository keeps paying for.
+  console.log(
+    `DRC_VIEWER_EXE is set: looking for the viewer at ${VIEWER_PROBE} instead of godot/build/. ` +
+      `${viewerBuilt ? 'It is there.' : 'It is NOT there.'} The emitted map is unaffected by this.`
+  )
+}
 const requireViewer = process.argv.includes('--require-viewer')
 if (requireViewer && !viewerBuilt) {
   console.error(
-    'FAILED: --require-viewer was given but godot/build/DRCompanionWorldViewer.exe does not exist.\n' +
+    `FAILED: --require-viewer was given but ${VIEWER_PROBE} does not exist.\n` +
       '        Export it with `npm run godot:export` (needs the shared-assets submodule and Godot),\n' +
       '        or drop the flag to build an installer that honestly carries no viewer.'
   )

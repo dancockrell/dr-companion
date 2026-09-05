@@ -7,6 +7,28 @@ import { CELL_BLOCK_METRES } from '../src/lib/isometric-board-layout.mjs'
 const fail = (message) => { console.error(`FAIL ${message}`); process.exitCode = 1 }
 const pass = (message) => console.log(`OK   ${message}`)
 
+/**
+ * Room pairs the Crossing mapdb genuinely records twice, at identical map
+ * coordinates, under two node ids.
+ *
+ * Verified in `data/art/out/geometric-room-briefs.json`, which is where these
+ * coordinates come from: 804 and 866 are both "Paladins' Guild, Sentinel's
+ * Way" at (347, -586), and 805 and 867 are both "Paladins' Guild, Sentinel's
+ * Rest" at (367, -586). Each twin differs only in the wording of one `go` exit
+ * ("go path" against "go pebbled path") and in which twin it links onward to,
+ * which is the signature of a room re-surveyed under a new node rather than of
+ * anything this repository generates. No scale separates two rooms at one
+ * coordinate, so the gutter check above cannot speak to them and does not try.
+ *
+ * This list may only shrink. Removing a pair means the mapdb was fixed
+ * upstream; adding one means somebody decided a *new* overlap is acceptable,
+ * which needs the same evidence this comment carries.
+ */
+const KNOWN_COINCIDENT = [
+  ['1-804', '1-866'],
+  ['1-805', '1-867'],
+]
+
 execFileSync(process.execPath, ['tools/build-primitive-world-manifest.mjs', '1'], { stdio: 'inherit' })
 const outputPath = 'data/world/out/1-primitive-world.json'
 if (!existsSync(outputPath)) fail('primitive world manifest is generated')
@@ -62,13 +84,40 @@ else {
     else if (closest > block) pass(`every block leaves a gutter: closest neighbours are ${closest.toFixed(2)}m apart, blocks are ${block}m`)
     else fail(`blocks touch or overlap: closest neighbours are ${closest.toFixed(2)}m apart but blocks are ${block}m wide`)
 
-    // Named, counted, and not folded into the check above. Silence here would
-    // read as "no rooms share a coordinate", which is not true.
-    if (coincident.length === 0) pass('no two rooms share a map coordinate')
+    // Named, counted, and judged against a written-down list. This printed
+    // `NOT CHECKED  2 pair(s) of rooms share exact map coordinates` and left
+    // it there, which is the worst of the three states: the pairs *were*
+    // found, so nothing went unchecked - what the suite declined to do was
+    // decide whether two was the right number. An open-ended skip cannot tell
+    // the two known pairs from a third that appears tomorrow, and a third
+    // would print in the same shape and read as harmlessly.
+    //
+    // So the two are accepted debt, named with their cause, and anything else
+    // fails. The list is diffed both ways: a pair that stops being coincident
+    // fails too, because an allowlist that outlives its reason hides the next
+    // real one.
+    const key = ([a, b]) => [a, b].sort().join('/')
+    const found = new Set(coincident.map(key))
+    const allowed = new Set(KNOWN_COINCIDENT.map(key))
+    const unexpected = [...found].filter((p) => !allowed.has(p))
+    const stale = [...allowed].filter((p) => !found.has(p))
+
+    const comparisons = (positioned.length * (positioned.length - 1)) / 2
+    console.log(`   ${comparisons} same-storey room pairs compared for coincidence; ${found.size} coincident`)
+    if (unexpected.length === 0)
+      pass(`no room pair shares a map coordinate except the ${allowed.size} known duplicate mapdb nodes (${[...allowed].join(', ')})`)
     else
-      console.log(
-        `NOT CHECKED  ${coincident.length} pair(s) of rooms share exact map coordinates and will always overlap: ` +
-          `${coincident.map(([a, b]) => `${a}/${b}`).join(', ')}. That is a map-data defect, not a scale one.`
+      fail(
+        `${unexpected.length} NEW pair(s) of rooms share exact map coordinates and will always overlap: ` +
+          `${unexpected.join(', ')}. Either the mapdb gained another duplicate node or the manifest ` +
+          `dropped a coordinate; neither is a scale problem and neither may be waved through.`
+      )
+    if (stale.length === 0)
+      pass(`every allowlisted duplicate pair is still coincident, so the list has not gone stale (${allowed.size} entries)`)
+    else
+      fail(
+        `KNOWN_COINCIDENT lists ${stale.join(', ')}, which no longer share a coordinate. ` +
+          `Remove the entry - a stale allowlist is a hole nobody sees.`
       )
   }
   if (townGreenNorth?.exits.every((exit) => typeof exit.tetherKind === 'string') && townGreenNorth?.exits.find((exit) => exit.direction === 'north')?.boardAnchor?.z === -2.5) pass('true exits carry typed tethers and camera-stable edge anchors')
