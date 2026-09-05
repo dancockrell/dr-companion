@@ -1010,7 +1010,7 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: skip the destination check → the invented-destination test red.
 
 - [x] **G7  Claim review UI** (≈30)
-  commit: 00dd6be2 verified: 2026-09-05 minutes: 45
+  commit: 89439b6a verified: 2026-09-05 minutes: 45
   touches: new:src/components/shared/AiClaimsPanel.tsx, src/components/layout/SettingsSheet.tsx
   depends-on: G5
   do: list candidates (subject, predicate, evidence count, producer, confidence); Accept/Reject change status only; evidence tooltip.
@@ -1024,7 +1024,7 @@ whether it is embedded, docked or a separate window is D0.
   verify: test; sabotage: count the same ref twice → red.
 
 - [x] **G9  Reversible promotion** (≈30)
-  commit: d4325f75 verified: 2026-09-05 minutes: 50
+  commit: 89439b6a verified: 2026-09-05 minutes: 50
   touches: G5>src/lib/aiClaimStore.ts, src/lib/mapPins.ts, G7>src/components/shared/AiClaimsPanel.tsx, G5>tools/ai-claim-store-test.mjs
   depends-on: G7
   do: read `mapPins.ts`'s pin shape first; if pins lack a `provenance` field add one defaulting to `'player'` with a migration check. Promote (only from `accepted`) creates a pin `provenance:'ai-candidate'` and records `{claimId, pinId}`; Revert deletes exactly that pin and returns the claim to `accepted`.
@@ -1032,7 +1032,7 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: revert by index → "other pins identical" red.
 
 - [x] **G10  `publish_presentation_event` gets its caller** (≈20)
-  commit: 5feb5236 verified: 2026-09-05 minutes: 35
+  commit: 89439b6a verified: 2026-09-05 minutes: 35
   touches: C1>src/lib/aiIngest.ts, C4>src/lib/viewerClient.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: C4
   do: on `situation` transitions for stunned/webbed/immobilized (on and off) publish `PresentationEvent{kind:'status-change', authoritativeText:<flag>, roomId}` — derived from already-parsed flags, no text parsing. Godot's `event_player.gd` consumes ordered events.
@@ -1047,7 +1047,7 @@ whether it is embedded, docked or a separate window is D0.
   pitfalls: this is the one increment that gives model output a path to the game. Dan's approval is required before merge (section 10).
 
 - [x] **G12  Privacy class at ingest** (≈25)
-  commit: 5feb5236 verified: 2026-09-05 minutes: 45
+  commit: 89439b6a verified: 2026-09-05 minutes: 45
   touches: C1>src/lib/aiIngest.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: A4
   do: the handoff's §37 table. Each journalled event gets `privacy ∈ 'public-game' | 'private-player' | 'private-comms' | 'third-party'` derived from the already-parsed `stream` id (`grep -n "stream" src/types/stream.ts` for the vocabulary — whispers, thoughts, private messages are already labelled by the bridge). `private-comms` events are journalled (capture is continuous) but **excluded from every model request and every tool result by default**; a per-source opt-in setting lifts it. Credentials never have a class: they are refused by the scanner before they exist as events (A11).
