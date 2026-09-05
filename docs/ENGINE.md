@@ -288,6 +288,11 @@ doesn't exist`, gating 59 Rust unit tests behind a 65 MB download none of them
 use. Measured: two placeholder files, four and fourteen bytes, are enough for
 all 59 to run green.
 
+`npm run worktree:init` is the one command that clears this in a new clone or
+worktree: it writes the placeholders and initialises the submodules, which are
+the two things a fresh checkout lacks and neither of which the Rust error
+mentions.
+
 So `tools/vendor-fetch.mjs --stub` writes those placeholders (`npm run
 vendor:stub`), and `--require-real` refuses them, wired into `tauri:build`
 after the fetch. The guard is what makes the convenience safe: a placeholder

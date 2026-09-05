@@ -172,6 +172,7 @@
     "test:live-room-presentation": "node --experimental-strip-types tools/live-room-presentation-test.ts",
     "test:framing": "node tools/python-test.mjs python/test_framing.py",
     "vendor:stub": "node tools/vendor-fetch.mjs --stub",
+    "worktree:init": "node tools/vendor-fetch.mjs --stub && git submodule update --init --recursive",
     "test:vendor": "node tools/vendor-stub-test.mjs",
     "test:audio-master": "node tools/audio-master-test.mjs",
     "test:async-state": "node --experimental-strip-types tools/async-state-test.ts",

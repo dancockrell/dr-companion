@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "task_id": "c3-worktree-init",
+  "agent": "claude-code",
+  "summary": "One command (npm run worktree:init) makes a fresh worktree able to build and test the Rust side, and ENGINE.md names it beside the failure it cures",
+  "status": "completed",
+  "claimed_at": "2026-09-05T12:00:00Z",
+  "updated_at": "2026-09-05T12:40:00Z",
+  "paths": [
+    "package.json",
+    "docs/ENGINE.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/c3-worktree-init.json"
+  ],
+  "symbols": [
+    "worktree:init"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Extends the existing vendor:stub script rather than adding a second stubbing path: worktree:init composes vendor-fetch.mjs --stub with the submodule init that a fresh worktree also lacks. package.json scripts are appended beside the related vendor entries; rebase on conflict, per section 3's rule for that file."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "fresh throwaway worktree at origin/main + npm run worktree:init: exit 0, wrote the two vendor placeholders and checked out godot/shared-assets at e44ad95f",
+      "cd src-tauri && cargo test --lib: exit: 0 -- test result: ok. 108 passed; 0 failed; 0 ignored",
+      "positive control (the check can fail): moved src-tauri/vendor aside and re-ran cargo test --lib -> exit 101, \"resource path `vendor\\Ruby4Lich5.exe` doesn't exist\"; vendor restored",
+      "grep -n Ruby4Lich5.exe docs/ENGINE.md: the new sentence naming worktree:init sits in that same paragraph",
+      "node tools/plan-audit.mjs: plan ok: 108 increments, 123 paths checked",
+      "node tools/run-tests.mjs: all passed, 101 suites, 3039 checks (unchanged from baseline)"
+    ]
+  }
+}

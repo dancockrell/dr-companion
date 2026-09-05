@@ -390,7 +390,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   do: set each `completion.commit` to the squash sha (they currently name pre-squash shas that will not exist on main).
   verify: `node tools/plan-audit.mjs --claims` lists the four as `completed` with a sha that `git cat-file -e <sha>^{commit}` accepts on main.
 
-- [ ] **C3  `npm run worktree:init`** (≈15)
+- [x] **C3  `npm run worktree:init`** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 15
   touches: package.json, docs/ENGINE.md
   depends-on: none
   do: script = `node tools/vendor-fetch.mjs --stub && git submodule update --init --recursive`. ENGINE.md: one sentence naming the script in the paragraph that describes the `vendor\Ruby4Lich5.exe doesn't exist` failure (`grep -n "Ruby4Lich5.exe" docs/ENGINE.md`).
