@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "task_id": "c4-split-presentation-bridge",
+  "agent": "claude-code",
+  "summary": "presentationBridge.ts splits into the types it declares, the viewer client it happened to contain, and the compiler that is actually its job",
+  "status": "completed",
+  "claimed_at": "2026-09-05T14:40:00Z",
+  "updated_at": "2026-09-05T15:20:00Z",
+  "paths": [
+    "src/lib/presentationBridge.ts",
+    "src/lib/presentationTypes.ts",
+    "src/lib/viewerClient.ts",
+    "src/components/shared/PresentationBridgePanel.tsx",
+    "src/lib/presentationIntents.ts",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/c4-split-presentation-bridge.json"
+  ],
+  "symbols": [
+    "viewerStatus",
+    "launchViewer",
+    "presentationBridgeInfo",
+    "ViewerStatus",
+    "PresentationBridgeInfo"
+  ],
+  "coordination": {
+    "depends_on": ["c1"],
+    "conflicts_with": [],
+    "notes": "Section 3's conflict matrix gives C4 sole ownership of presentationBridge.ts, with G10 and K3 waiting behind it, so this landed as its own PR rather than being held. Nothing was copied: every moved declaration and function exists once, in one module, and the re-exports left behind by the first commit were deleted by the second once no importer needed them. src/lib/presentationIntents.ts now takes PresentationIntentEvent from presentationTypes.ts, and PresentationBridgePanel.tsx takes all four viewer names from viewerClient.ts, so no caller reaches a type through the compiler any more."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "suite total read before starting: 3062 checks across 102 suites. After: 3062 checks across 102 suites, all passed — unchanged, which is the point of the increment.",
+      "npx tsc -b exit 0 after each of the two commits",
+      "wc -l src/lib/presentationBridge.ts: 404 (was 668; the increment asked for under 500). presentationTypes.ts 236, viewerClient.ts 61.",
+      "grep -rn \"presentationBridge.ts'\" src tools: four importers remain and every one takes a function only — gameCommandForIntent, justReconnected, publishWorldSnapshotIfChanged, cannotAct, compileWorldSnapshot, projectionKey, shouldPublish. No type is imported through the bridge any more, so the re-export block was deleted rather than left as a second way to name the same thing.",
+      "the move was line-addressed with both boundaries of all four blocks asserted before anything was written, per trap 17, and the throwaway script deleted afterwards",
+      "checked the index blobs rather than the working tree: all three files store LF-only, so the CRLF the working copy shows is autocrlf and not a line-ending change riding along in the diff"
+    ]
+  }
+}

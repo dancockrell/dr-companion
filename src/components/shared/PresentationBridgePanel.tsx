@@ -6,7 +6,7 @@ import {
   viewerStatus,
   type PresentationBridgeInfo,
   type ViewerStatus,
-} from '../../lib/presentationBridge.ts'
+} from '../../lib/viewerClient.ts'
 import { revealFile } from '../../lib/setup'
 import { isTauri } from '../../lib/tauri'
 

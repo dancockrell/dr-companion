@@ -234,31 +234,3 @@ export interface IntentGameCommand {
   command: string
   label: string
 }
-
-/** What a Godot client needs to connect: the port it should dial, and where
- * its token lives. Same shape as `pythonTasks.ts`'s `ScriptApiInfo` - the
- * Rust command was written mirroring `script_api_info` for exactly this use
- * (a settings panel confirming the socket is up, or pointing a non-Godot
- * client at it by hand) and had no caller until now. */
-export type PresentationBridgeInfo = {
-  /** `null` before `presentation_bridge::start` has bound the listener. */
-  port: number | null
-  tokenPath: string
-}
-
-/**
- * Whether the Godot world viewer can be started, and whether it is up.
- *
- * `runningKnown` is false when the process list could not be read at all -
- * never collapse that into `running: false`, because "no viewer" and "could
- * not look" send a person to two different places. Same three-state contract
- * as the Rust side and as `lich.rs` before it.
- */
-export type ViewerStatus = {
-  installed: boolean
-  /** Where the executable is, so a person can confirm which build they are
-   * about to run. Null when none was found. */
-  path: string | null
-  running: boolean
-  runningKnown: boolean
-}

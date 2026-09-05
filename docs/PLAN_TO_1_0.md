@@ -404,7 +404,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   → `exit: 0` and `test result: ok`.
   pitfalls: 8, 11.
 
-- [ ] **C4  Split `presentationBridge.ts`** (≈40; two commits)
+- [x] **C4  Split `presentationBridge.ts`** (≈40; two commits)
+  commit: (this PR) verified: 2026-09-05 minutes: 40
   touches: src/lib/presentationBridge.ts, new:src/lib/presentationTypes.ts, new:src/lib/viewerClient.ts, src/components/shared/PresentationBridgePanel.tsx
   depends-on: C1
   do: commit 1 moves every `export interface|type` into `presentationTypes.ts` with re-exports left behind. Commit 2 moves `viewerStatus`, `launchViewer`, `presentationBridgeInfo`, `ViewerStatus`, `PresentationBridgeInfo` into `viewerClient.ts`, updates `PresentationBridgePanel.tsx`, deletes the re-exports nothing uses (`grep -rn "from './presentationBridge'" src tools` → each importer either imports a type from `presentationTypes.ts` or a function still in the bridge). Leave `compileWorldSnapshot`, `shouldPublish`, `justReconnected`, `gameCommandForIntent`, `cannotAct`, `publishWorldSnapshotIfChanged` where they are.

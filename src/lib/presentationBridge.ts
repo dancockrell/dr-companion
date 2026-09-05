@@ -77,8 +77,6 @@ import type {
   PlayerSnapshot,
   PresentationIntentEvent,
   IntentGameCommand,
-  PresentationBridgeInfo,
-  ViewerStatus,
 } from './presentationTypes.ts'
 
 /** Matches the Godot-side manifest compiler's own convention
@@ -89,23 +87,6 @@ import type {
  * this whole bridge exists to prevent. */
 const MAP_UNIT_TO_METRES = 0.25
 const LEVEL_HEIGHT_METRES = 5
-
-// The declarations moved to presentationTypes.ts; the names stay exported
-// here because this is the module every caller already imports them from.
-export type {
-  Vec3,
-  WorldExit,
-  WorldCell,
-  EntitySnapshot,
-  TacticalSnapshot,
-  GroundItemSnapshot,
-  WorldSnapshot,
-  PlayerSnapshot,
-  PresentationIntentEvent,
-  IntentGameCommand,
-  PresentationBridgeInfo,
-  ViewerStatus,
-} from './presentationTypes.ts'
 
 /** Flags that mean the character cannot act at all.
  *
@@ -420,28 +401,4 @@ export function resetPresentationBridgePublishState(): void {
   lastPublishedZone = null
   sequence = 0
   publishQueue = Promise.resolve()
-}
-
-
-export async function viewerStatus(): Promise<ViewerStatus> {
-  const raw = (await invokeTauri('viewer_status')) as Partial<ViewerStatus> | undefined
-  return {
-    installed: raw?.installed ?? false,
-    path: raw?.path ?? null,
-    running: raw?.running ?? false,
-    runningKnown: raw?.runningKnown ?? false,
-  }
-}
-
-/** Starts the viewer. Rejects with a readable reason when there is nothing to
- * start or one is already open; the caller shows it rather than swallowing it. */
-export async function launchViewer(): Promise<string> {
-  return (await invokeTauri('launch_viewer')) as string
-}
-
-export async function presentationBridgeInfo(): Promise<PresentationBridgeInfo> {
-  const raw = (await invokeTauri('presentation_bridge_info')) as
-    | { port?: number | null; tokenPath?: string }
-    | undefined
-  return { port: raw?.port ?? null, tokenPath: raw?.tokenPath ?? '' }
 }

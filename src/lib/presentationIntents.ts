@@ -35,7 +35,8 @@
  * beside this bridge's other pure decisions, so it stays testable without a
  * Tauri event loop. This file is only the wiring.
  */
-import { gameCommandForIntent, type PresentationIntentEvent } from './presentationBridge.ts'
+import { gameCommandForIntent } from './presentationBridge.ts'
+import type { PresentationIntentEvent } from './presentationTypes.ts'
 import { requestGameAction } from './gameActions.ts'
 import { listenTauri } from './tauri.ts'
 
