@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "task_id": "creature-art-pack-removal",
+  "agent": "Claude Code (PR #276)",
+  "summary": "Delete the generated creature art pack, fix the manifest-read break it caused, and reconcile with the repository's newly adopted AGENTS.md/.agents standard",
+  "status": "completed",
+  "claimed_at": "2026-09-03T12:41:00Z",
+  "updated_at": "2026-09-03T14:33:30Z",
+  "paths": [
+    "public/creatures/",
+    "tools/creature-art-test.mjs"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Independently added a full CLAUDE.md plus a banner in every docs/*.md before origin/main gained AGENTS.md, .github/copilot-instructions.md and this .agents/ ledger for the same no-fork policy. On merging main into this branch, adopted the existing/stronger AGENTS.md + .agents/ standard: took main's short CLAUDE.md stub as-is, and reverted every docs/*.md and README.md banner back to its pre-banner content (AGENTS.md rule 5: keep instructions local, do not scatter). No functional files touched by that reconciliation, verified against the pre-banner git blob for every file that had no unrelated concurrent edits."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "grep for banner marker across docs/*.md and README.md: none remain",
+      "diff against pre-banner blob for each reverted file: byte-identical except where an unrelated concurrent edit from main legitimately changed the file"
+    ]
+  }
+}
