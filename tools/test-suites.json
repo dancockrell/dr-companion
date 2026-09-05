@@ -7,6 +7,7 @@
   "test:panel-data-contracts",
   "test:safety",
   "test:flow-stop",
+  "test:kill-switch",
   "test:game-command-boundary",
   "test:gear",
   "test:skills-empty",

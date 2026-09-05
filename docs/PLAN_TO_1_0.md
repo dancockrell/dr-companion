@@ -681,8 +681,9 @@ whether it is embedded, docked or a separate window is D0.
   do: `Get-AuthenticodeSignature .\DRCompanion*.exe | Format-List` → record `Status` verbatim (`NotSigned` expected).
   verify: the doc has it.
 
-- [ ] **E5  Kill-switch suite** (≈40; may split)
-  touches: new:tools/kill-switch-test.mjs, package.json, tools/test-suites.json
+- [x] **E5  Kill-switch suite** (≈40; may split)
+  commit: TBD verified: 2026-09-05 minutes: 55
+  touches: new:tools/kill-switch-test.mjs, package.json, tools/test-suites.json, src/lib/flowStop.ts, src/lib/pythonTasks.ts, src/lib/nodeTasks.ts
   depends-on: none
   do: owners: `src/lib/stopAllTasks.ts`, `src/lib/flowStop.ts`, and whatever `grep -rn "runaway\|cancelCommand" src/lib/*.ts` finds. For each: a check that it works with `isTauri()` false, and a source check that the owner imports no `ai*`, viewer, python or node-runner module. An owner that does is a finding: file it, do not paper over.
   verify: suite green, each check naming its owner file.

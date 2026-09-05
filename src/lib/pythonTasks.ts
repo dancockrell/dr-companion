@@ -35,7 +35,7 @@
  * `taskState()`. A cached "running" flag that has gone stale looks exactly
  * like a live one, and this app has paid for that mistake before.
  */
-import { invokeTauri, listenTauri, isTauri } from './tauri'
+import { invokeTauri, listenTauri, isTauri } from './tauri.ts'
 
 /** One runnable task, as `python/runner.py` describes it. */
 export type TaskInfo = {

@@ -101,6 +101,7 @@
     "test:trail": "node tools/trail-test.mjs",
     "test:safety": "node tools/safety-test.mjs",
     "test:flow-stop": "node --experimental-strip-types tools/flow-stop-test.ts",
+    "test:kill-switch": "node --experimental-test-module-mocks tools/kill-switch-test.mjs",
     "test:queue-driver": "node tools/queue-driver-test.mjs",
     "test:editor-safety": "node tools/editor-safety-test.mjs",
     "test:command-history": "node tools/command-history-test.mjs",
