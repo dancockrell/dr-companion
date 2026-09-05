@@ -285,12 +285,55 @@ fn lich_running() -> Option<bool> {
         .output()
         .ok()?;
     let listed = String::from_utf8_lossy(&out.stdout);
+    any_image_listed(&listed, &["rubyw.exe"])
+}
+
+/// The three states of "is this image in `tasklist`'s output", separated from
+/// the process spawn so both callers share one answer and either can be tested
+/// without a process to find.
+///
+/// `None` means the question was not answered. tasklist prints an
+/// informational line when a filter matches nothing ("INFO: No tasks are
+/// running which match the specified criteria."), so entirely empty stdout is
+/// more likely a call that failed than a clean no - and "we could not ask" and
+/// "nothing is running" lead to opposite actions.
+///
+/// Extracted from `lich_running` rather than copied for `genie_running` (E11).
+/// Two functions deciding what an empty tasklist means would eventually decide
+/// it differently, and the one that got it wrong would be the one that reports
+/// a frontend is absent while it holds the port.
+fn any_image_listed(listed: &str, images: &[&str]) -> Option<bool> {
     if listed.trim().is_empty() {
-        // tasklist prints an informational line when nothing matches, so an
-        // entirely empty stdout is more likely a broken call than a clean no.
         return None;
     }
-    Some(listed.to_lowercase().contains("rubyw.exe"))
+    let haystack = listed.to_lowercase();
+    Some(images.iter().any(|i| haystack.contains(&i.to_lowercase())))
+}
+
+/// Is Genie running, and therefore possibly holding the frontend port?
+///
+/// The same hazard as `lich_running` and the one that has actually bitten on
+/// this machine: starting a second frontend took the connection the first was
+/// holding, twice, and nothing errored either time - the live window simply
+/// went to "Not connected".
+///
+/// So this reports and never acts. Nothing in this app may close Genie: it may
+/// be a session someone is playing, and the wizard's job is to say so and let
+/// them decide.
+///
+/// One unfiltered `tasklist` rather than one call per candidate name. Genie has
+/// shipped under four names and `lich_status` is already slow enough to have
+/// frozen the window (see `lich_status`'s own note); four extra process spawns
+/// to answer one question is not a trade worth making. It also makes the `None`
+/// branch mean something: an unfiltered tasklist that returns nothing at all is
+/// a broken call, whereas a filtered one returning nothing is ambiguous.
+fn genie_running() -> Option<bool> {
+    let out = Command::new("tasklist")
+        .args(["/FO", "CSV", "/NH"])
+        .output()
+        .ok()?;
+    let listed = String::from_utf8_lossy(&out.stdout);
+    any_image_listed(&listed, crate::setup::GENIE_IMAGE_NAMES)
 }
 
 /// A character name that is safe to put on a command line.
@@ -347,6 +390,40 @@ fn valid_character_name(name: &str) -> bool {
 ///
 /// The cost itself is still worth reducing - this makes it not freeze the
 /// app, which is a different thing from making it fast.
+/// Whether a Genie frontend is running, in the three answers that has (E11).
+///
+/// Its own command rather than a field on `LichStatus`, for one measured
+/// reason: `lich_status` takes about five seconds (see its note) because it
+/// probes the filesystem, and this is one `tasklist` call. Hanging a question
+/// worth milliseconds off a command worth seconds would mean the wizard could
+/// only ask it as often as it could afford the slow one.
+///
+/// `known: false` is not `running: false`. The wizard must say "could not
+/// tell" in that case, because the action a player takes differs: one is
+/// "close it or continue at your own risk", the other is "we do not know
+/// whether anything holds the port".
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct GenieStatus {
+    pub running: bool,
+    pub known: bool,
+}
+
+#[tauri::command]
+pub async fn genie_status() -> GenieStatus {
+    tokio::task::spawn_blocking(|| match genie_running() {
+        Some(running) => GenieStatus {
+            running,
+            known: true,
+        },
+        None => GenieStatus::default(),
+    })
+    .await
+    // A panic in the probe must not take the command with it, and the default
+    // is the honest one: not known.
+    .unwrap_or_default()
+}
+
 #[tauri::command]
 pub async fn lich_status() -> LichStatus {
     tokio::task::spawn_blocking(lich_status_blocking)
@@ -744,5 +821,77 @@ mod tests {
         assert!(windowed_ruby(&ruby.to_string_lossy()).ends_with("rubyw.exe"));
 
         let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+    }
+
+    /// E11. Three states, not two, and the third is the one worth having.
+    ///
+    /// A frontend that is running and a check that could not run look identical
+    /// to a caller that only has a bool, and they lead to opposite actions:
+    /// one says "warn them, they may lose a live session", the other says
+    /// "say we could not tell". Folding "could not ask" into `false` is how a
+    /// wizard cheerfully reports that nothing holds the port while something
+    /// does.
+    ///
+    /// Parsed rather than spawned, so all three can be produced on demand.
+    /// Genie was not running on this machine when this was written, which is
+    /// exactly why the running case cannot be left to whatever happens to be
+    /// on the developer's desktop.
+    #[test]
+    fn tasklist_output_has_three_answers_not_two() {
+        // tasklist's real CSV, /NH, as it looks with a Genie present.
+        let running = "\"Genie5.exe\",\"9312\",\"Console\",\"1\",\"84,120 K\"\r\n\
+                       \"explorer.exe\",\"5120\",\"Console\",\"1\",\"180,004 K\"\r\n";
+        assert_eq!(
+            any_image_listed(running, crate::setup::GENIE_IMAGE_NAMES),
+            Some(true)
+        );
+
+        // A populated list with no Genie in it is a real no, not an unknown.
+        let not_running = "\"explorer.exe\",\"5120\",\"Console\",\"1\",\"180,004 K\"\r\n\
+                           \"rubyw.exe\",\"7744\",\"Console\",\"1\",\"52,300 K\"\r\n";
+        assert_eq!(
+            any_image_listed(not_running, crate::setup::GENIE_IMAGE_NAMES),
+            Some(false)
+        );
+
+        // Nothing at all on stdout: the call failed. Never `Some(false)`.
+        assert_eq!(any_image_listed("", crate::setup::GENIE_IMAGE_NAMES), None);
+        assert_eq!(
+            any_image_listed("   \r\n  ", crate::setup::GENIE_IMAGE_NAMES),
+            None
+        );
+
+        // Case is Windows', not ours: tasklist has reported both.
+        assert_eq!(
+            any_image_listed(
+                "\"GENIE.EXE\",\"1\",\"Console\",\"1\",\"1 K\"\r\n",
+                crate::setup::GENIE_IMAGE_NAMES
+            ),
+            Some(true)
+        );
+
+        // The same parser answers for Lich, which is the point of sharing it.
+        assert_eq!(any_image_listed(not_running, &["rubyw.exe"]), Some(true));
+        assert_eq!(any_image_listed(running, &["rubyw.exe"]), Some(false));
+
+        // A chooser tested where the wrong answer is available: every name
+        // Genie has shipped under must be found, and a plausible near-miss
+        // must not be. Without this the list could shrink to one entry and
+        // every assertion above would still pass.
+        for name in crate::setup::GENIE_IMAGE_NAMES {
+            let line = format!("\"{name}\",\"1\",\"Console\",\"1\",\"1 K\"\r\n");
+            assert_eq!(
+                any_image_listed(&line, crate::setup::GENIE_IMAGE_NAMES),
+                Some(true),
+                "{name} is in GENIE_IMAGE_NAMES but was not matched"
+            );
+        }
+        assert_eq!(
+            any_image_listed(
+                "\"GenieLauncher.exe.bak\",\"1\",\"Console\",\"1\",\"1 K\"\r\n",
+                crate::setup::GENIE_IMAGE_NAMES
+            ),
+            Some(false)
+        );
     }
 }

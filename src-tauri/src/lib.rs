@@ -163,6 +163,7 @@ pub fn run() {
             game_link::game_detach,
             game_link::game_backlog,
             lich::lich_status,
+            lich::genie_status,
             lich::launch_lich,
             lich_health::lich_health,
             setup::plan_setup,

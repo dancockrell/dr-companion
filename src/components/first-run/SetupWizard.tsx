@@ -43,6 +43,7 @@ import {
   revealFile,
   onSetupProgress,
   appDataPath,
+  genieStatus,
   type SetupPlan,
   type DownloadOption,
 } from '../../lib/setup'
@@ -82,6 +83,12 @@ export function SetupWizard() {
   // Why the check failed, when it did. An empty plan and a clean bill of
   // health are not the same thing and must never render the same.
   const [checkError, setCheckError] = useState<string | null>(null)
+  // E11. Whether Genie is up, and whether we could tell. Starts not-known,
+  // which is the honest state before the check has run.
+  const [genie, setGenie] = useState<{ running: boolean; known: boolean }>({
+    running: false,
+    known: false,
+  })
   // Stamped when the check starts, not during render.
   const startedAt = useRef(0)
 
@@ -102,6 +109,10 @@ export function SetupWizard() {
       const p = await planSetup()
       setPlan(p)
       setDataDir(await appDataPath())
+      // E11. One tasklist call, so it rides along with the check rather than
+      // getting its own button. Its own command, not a field on lich_status,
+      // because that one takes about five seconds.
+      setGenie(await genieStatus())
 
       // Do not flash the title screen. If the check was instant, let it be
       // seen for a beat rather than blinking past.
@@ -387,6 +398,35 @@ export function SetupWizard() {
       {/* Both installed is not the same as both talking to each other. */}
       {/* Shown once Lich exists. The frontend does not have to be Genie: this
           app is a panel for Lich, and Lich works with whatever you use. */}
+      {/* E11. Genie and Lich both want the frontend port, and the accident
+          this prevents has happened on this machine twice: starting a second
+          frontend took the connection the first was holding, with no error
+          either time - the live window simply went to "Not connected".
+        *
+        * So this reports and offers, and never closes anything. It may be a
+        * session someone is playing, and which of "close it" or "carry on" is
+        * right is theirs to decide, not ours. There is deliberately no button
+        * here.
+        *
+        * Shown only when the answer is yes. `known: false` is not rendered as
+        * "Genie is not running" - it says so, quietly, because a player about
+        * to lose a live connection is owed better than a confident wrong
+        * answer, and because a warning shown on every run for a machine with
+        * no Genie at all would be furniture inside a week. */}
+      {phase !== 'browser' && genie.known && genie.running && (
+        <p className="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-ink-muted">
+          Genie is running and may hold the frontend port. Close it or
+          continue — this app will not close it for you, in case you are
+          playing.
+        </p>
+      )}
+      {phase !== 'browser' && lichPresent && !genie.known && (
+        <p className="text-xs text-ink-faint">
+          Whether Genie is already running could not be checked, so this is
+          unknown rather than no. If a frontend is up, it may hold the port.
+        </p>
+      )}
+
       {phase !== 'browser' && lichPresent && (
         <ConnectGuide lichPath={lichRbwPath} />
       )}
