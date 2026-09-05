@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "task_id": "g0-evidence-outlives-journal",
+  "agent": "claude-code",
+  "summary": "Pin the events a job or claim cites, so evidence survives the journal's 5000-event bound and a candidate reviewed an hour later can still be read",
+  "status": "completed",
+  "claimed_at": "2026-09-05T18:00:00Z",
+  "updated_at": "2026-09-05T18:40:00Z",
+  "paths": [
+    "src/lib/aiEvidenceStore.ts",
+    "tools/ai-evidence-store-test.mjs",
+    "src/lib/aiJobStore.ts",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g0-evidence-outlives-journal.json"
+  ],
+  "symbols": [
+    "EvidenceStore",
+    "EvidencePinner",
+    "eventRef",
+    "refSeq",
+    "JobStore.create"
+  ],
+  "coordination": {
+    "depends_on": ["A5"],
+    "conflicts_with": [],
+    "notes": "Extends the established owners rather than adding a parallel one. The journal (aiEventJournal.ts) keeps its bound and its cursor unchanged - nothing here re-reads game text or opens a second capture path; the store copies out of the journal through the same readFrom query a consumer uses. JobStore gains an optional evidence pinner on its constructor, so every existing `new JobStore()` call site and test keeps working and this module has no opinion about where evidence lives. Deviation from the plan's pseudocode, recorded rather than silent: `pin(refs, citedBy)` holds its source on the store instead of taking the journal per call, because JobStore.create would otherwise need a journal reference it has no other use for. The source is structural (EvidenceSource), so the store can be fed a fixture without building a journal."
+  },
+  "completion": {
+    "commit": "e82330d1",
+    "checks": [
+      "node --experimental-strip-types tools/ai-evidence-store-test.mjs: 41 checked, 0 failed / all passed",
+      "verify - pin then evict the journal past capacity: 'the journal itself no longer holds event 2' (oldest retained is 21) and 'the evidence store still resolves both' with payload {\"text\":\"line 2\"}",
+      "verify - a ref never pinned is listed in missing: 'the unpinned one is listed in missing' OK",
+      "verify - eviction skips cited entries: 'the cited entry survived' OK, 'the oldest uncited entry went' OK",
+      "sabotage - eviction filter changed from `e.citedBy.length === 0` to `() => true`: 5 red, named - 'the oldest uncited entry went', 'the cited entry survived', 'no cited entry was discarded' (missing event:1), 'the overrun is reported' (0), 'and nothing was counted as evicted'; exit 1",
+      "restore: md5sum -c → src/lib/aiEvidenceStore.ts: OK, suite back to 41 checked, 0 failed"
+    ]
+  }
+}

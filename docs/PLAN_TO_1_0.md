@@ -272,6 +272,7 @@ PRs per lane, squash-merged.
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
 | K | K1–K5 | `lane-k/appearance` | `dev/wt-k` | 5 Sep 2026 |
+| G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295), **I** (I1–I11, PRs #303 and #300) and **L**
@@ -888,7 +889,8 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane G — AI slices 5–7 (after Lane A)
 
-- [ ] **G0  Evidence outlives the journal** (≈25)
+- [x] **G0  Evidence outlives the journal** (≈25)
+  commit: e82330d1 verified: 2026-09-05 minutes: 40
   touches: new:src/lib/aiEvidenceStore.ts, new:tools/ai-evidence-store-test.mjs, C1>src/lib/aiJobStore.ts, package.json, tools/test-suites.json
   depends-on: A5
   do: a claim's `evidenceRefs` are `event:<seq>` strings, and the journal evicts at 5000 events, so a candidate reviewed an hour later can cite evidence nobody can read. The handoff's `observations.read(refs)` presumes durable observations. Minimum honest version: `pin(refs, journal)` copies the referenced events' `{seq, at, kind, payload}` into `drc.ai-evidence.v1` at the moment a job or claim cites them; `resolve(refs)` returns them or `{missing:[…]}` — never a silent partial. `JobStore.create` pins `inputRefs`; G5's store refuses a claim whose refs do not resolve. Bounded by count with the oldest **unreferenced** entries evicted first; an entry cited by a live claim is never evicted.
@@ -902,26 +904,30 @@ whether it is embedded, docked or a separate window is D0.
   verify: divergent → 1 job; again → still 1; other room → 2.
   sabotage: remove the dedupe → red.
 
-- [ ] **G2  Tool registry + `room_by_id`** (≈15)
+- [x] **G2  Tool registry + `room_by_id`** (≈15)
+  commit: 26dfd050 verified: 2026-09-05 minutes: 35
   touches: new:src/lib/aiKnowledgeTools.ts, new:tools/ai-knowledge-tools-test.mjs, package.json, tools/test-suites.json
   depends-on: A4
   do: `callTool(name, args, allowedTools, trace)` returns `{ok:false, reason}` for a disallowed or unknown name — never throws. Every tool declares `{id, validate(args), maxResultBytes}`; an over-size result is truncated with `truncated:true`, never silently cut. Every call is appended to `trace` as `{tool, argsSummary, bytes, at}` (no payloads, no secrets) so a job's tool use is inspectable. Text fields returned to a model are wrapped as `{untrusted:true, text}` so the prompt builder can label them "data, not instructions" (the handoff's injection rule). `room_by_id(zone, id)` → `{id, title, exits:[{move,to}], tags}` from the same `MapZone` data `compileWorldSnapshot` reads.
   verify: allowed → result; disallowed → refusal naming the tool; unknown → refusal; a 1 MB fixture result → truncated flag and `bytes <= maxResultBytes`; trace has one entry per call.
   sabotage: skip the allowlist → red; skip the size cap → red.
 
-- [ ] **G3  Tool `lore_for`** (≈10)
+- [x] **G3  Tool `lore_for`** (≈10)
+  commit: 026050a7 verified: 2026-09-05 minutes: 15
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
   depends-on: G2
   do: wraps `bestiary.ts` `loreFor`/`isApproximate` → `{lore, approximate} | null`.
   verify: known creature → lore; unknown → null; approximate flagged.
 
-- [ ] **G4  Tool `recent_events`** (≈10)
+- [x] **G4  Tool `recent_events`** (≈10)
+  commit: bf863754 verified: 2026-09-05 minutes: 20
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
   depends-on: G2
   do: `journal.readFrom(max(0, ack-n))` limited to n; returns kinds, seqs and the G12 privacy class only — never `text` (it may hold player speech).
   verify: a check asserts no returned object has a `text` key.
 
-- [ ] **G5  Candidate-claim store** (≈35; two commits)
+- [x] **G5  Candidate-claim store** (≈35; two commits)
+  commit: f23cc92a verified: 2026-09-05 minutes: 55
   touches: new:src/lib/aiClaimStore.ts, new:tools/ai-claim-store-test.mjs, package.json, tools/test-suites.json
   depends-on: A5
   do: the schema is the handoff's §28 (adopted whole — see section 11): `schemaVersion:1, claimId, subject, predicate, value, status ∈ candidate|corroborated|accepted-local|published|rejected|retracted|superseded, evidenceRefs[] (non-empty and resolvable via G0), producer {kind:'human'|'parser'|'model'|'import', identity, model?, adapter?, softwareVersion?}, confidence: number|null, createdAt, reviewedAt, reviewer, supersedes, privacy ∈ private|group|public-candidate (default private), licence: string|null`. Transitions: candidate→corroborated→accepted-local; candidate|corroborated→rejected; accepted-local→published only when `privacy !== 'private'` and `licence` is set (and only once G11-era sharing exists — refused until then); any non-terminal→retracted; supersession appends a new claim naming the old, never edits it (§31). `drc.ai-claims.v1`. **Imports nothing from mapData, mapPins, bestiary or any canonical store** — a source check in the test enforces it.

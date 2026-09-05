@@ -38,6 +38,7 @@
  * cannot accidentally leave a command in flight - this layer has no way to
  * issue one.
  */
+import type { EvidencePinner } from './aiEvidenceStore.ts'
 import { readJSON, writeJSON } from './storage.ts'
 
 export type JobStatus =
@@ -100,6 +101,15 @@ export interface BackgroundJob {
   /** Why a job ended the way it did. Required for terminal failure states so
    * a failed job can be acted on rather than only observed. */
   note?: string
+  /**
+   * Input refs the evidence store could not pin when this job was created.
+   *
+   * Absent means nothing was lost. Present means the journal had already
+   * evicted those events before anything cited them, so this job's provenance
+   * is incomplete and a reviewer must be told rather than shown a shorter list
+   * that looks whole.
+   */
+  unpinnedInputRefs?: string[]
 }
 
 /**
@@ -159,6 +169,20 @@ export interface TransitionResult {
 export class JobStore {
   private jobs = new Map<string, BackgroundJob>()
   private nextId = 1
+  /**
+   * Where `inputRefs` are pinned, when there is one.
+   *
+   * Optional so every existing caller and test keeps working with
+   * `new JobStore()`, and so this module has no opinion about where evidence
+   * lives. Without a pinner a job's refs are strings that may dangle later,
+   * which is the state this store shipped in; with one they are copied out of
+   * the journal at the moment the job cites them.
+   */
+  private readonly evidence: EvidencePinner | null
+
+  constructor(options: { evidence?: EvidencePinner } = {}) {
+    this.evidence = options.evidence ?? null
+  }
 
   /** Loads persisted jobs. Does not itself resolve interrupted ones - see
    * `recoverInterrupted`, which is separate so recovery is an explicit act
@@ -201,6 +225,15 @@ export class JobStore {
       createdAt: params.now,
       updatedAt: params.now,
     }
+    // Pin before the record is saved, so a job never reaches storage claiming
+    // inputs whose evidence was already gone. What could not be pinned is
+    // recorded on the job rather than dropped: a shorter list that looks whole
+    // is the failure the evidence store exists to prevent.
+    if (this.evidence && job.inputRefs.length > 0) {
+      const { missing } = this.evidence.pin(job.inputRefs, job.jobId)
+      if (missing.length > 0) job.unpinnedInputRefs = missing
+    }
+
     this.jobs.set(job.jobId, job)
     this.persist()
     return job

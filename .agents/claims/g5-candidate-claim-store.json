@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "task_id": "g5-candidate-claim-store",
+  "agent": "claude-code",
+  "summary": "The candidate-claim store: section 7's record whole, with evidence as a precondition, an explicit transition table, appending supersession, and a source check that it cannot reach canonical data",
+  "status": "completed",
+  "claimed_at": "2026-09-05T19:21:00Z",
+  "updated_at": "2026-09-05T19:55:00Z",
+  "paths": [
+    "src/lib/aiClaimStore.ts",
+    "tools/ai-claim-store-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "tools/build-player-data-doc.mjs",
+    "docs/PLAYER_DATA.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g5-candidate-claim-store.json"
+  ],
+  "symbols": ["ClaimStore", "Claim", "ClaimStatus", "canTransitionClaim", "isTerminalClaim", "CLAIM_KEY"],
+  "coordination": {
+    "depends_on": ["A5", "G0"],
+    "conflicts_with": [],
+    "notes": "Imports exactly one module and it is a type import: ResolveResult from aiEvidenceStore.ts. The evidence resolver and the storage functions are injected rather than imported, which is not about testability - a store that reached for a module by name could reach for any module by name, and the source check would then be checking a convention instead of a fact. The check parses this file's own import list, asserts a positive control (it can see the one import that is there) so a clean result is a fact about the file rather than about the regex, and caps the list at three so a future import cannot slip in unremarked.",
+    "deviations": "The plan's G7/G9 text says 'accepted'; the schema in docs/LOCAL_AI_BACKGROUND_WORKER.md section 7 says 'accepted-local'. The schema wins - it is the normative half - and G7/G9 will use accepted-local. accepted-local -> published stays in the table because it is in the contract, its two conditions (privacy not private, licence set) are checked, and then it is refused anyway with a reason naming the missing sharing path: a published status on a machine with nowhere to publish to would be a record of something that never happened."
+  },
+  "completion": {
+    "commit": "f23cc92a",
+    "checks": [
+      "node --experimental-strip-types tools/ai-claim-store-test.mjs: 86 checked, 0 failed / all passed",
+      "verify - transitions: candidate->corroborated->accepted-local all ok, reviewer 'Dan' and reviewedAt recorded; 'the refusal names the pair' Refused accepted-local -> rejected",
+      "verify - empty evidence refused ('a claim must cite at least one piece of evidence'); unresolvable refused ('evidence does not resolve: event:9999'); no resolver attached refused ('cannot be checked')",
+      "verify - published refused for private, for missing licence, and finally 'Refused: publication is not built: no sharing path exists yet'; byStatus('published') is empty",
+      "verify - supersession: old record status superseded, still addressable, still carrying its own unedited value {\"diff\":\"one\"} and its own evidence; two records exist, not one edited",
+      "verify - cycle refused: 'Refused: that supersession would make a cycle (claim:5 -> claim:3 -> claim:4 -> claim:3)' and nothing was left behind",
+      "verify - source check green: 9 forbidden module names absent, positive control finds aiEvidenceStore, import list length <= 3",
+      "sabotage A - empty-evidence guard returns null: 3 red - 'an empty evidence list is refused', 'and the refusal says why', 'nothing was stored for either' (1); exit 1; restore md5 OK",
+      "sabotage B - supersessionCycle result replaced with null: 3 red - 'the cycle is caught' (created anyway), 'and the refusal draws the loop', 'and nothing was left behind'; exit 1; restore md5 OK",
+      "node tools/run-tests.mjs: 121 passed, 0 failed, 0 not run | 3785 checks across 121 suites / all passed"
+    ]
+  }
+}
