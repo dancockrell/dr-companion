@@ -170,6 +170,7 @@
     "test:ai-event-journal": "node --experimental-strip-types tools/ai-event-journal-test.mjs",
     "test:ai-evidence-store": "node --experimental-strip-types tools/ai-evidence-store-test.mjs",
     "test:ai-knowledge-tools": "node --experimental-strip-types tools/ai-knowledge-tools-test.mjs",
+    "test:ai-claim-store": "node --experimental-strip-types tools/ai-claim-store-test.mjs",
     "test:ai-alert-broker": "node --experimental-strip-types tools/ai-alert-broker-test.mjs",
     "test:ai-job-store": "node --experimental-strip-types tools/ai-job-store-test.mjs",
     "test:ai-review-scheduler": "node --experimental-strip-types tools/ai-review-scheduler-test.mjs",
