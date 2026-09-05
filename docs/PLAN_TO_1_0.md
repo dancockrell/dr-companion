@@ -570,7 +570,26 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   do: shallow-compare against the last published status; publish `ticks` every 5th tick only.
   verify: temporary `console.count('AiWorkerPanel render')` in the panel; with nothing happening it must not fire each second; remove before commit.
 
-- [ ] **A7  Rust suite green in a fresh worktree** (≈10)
+- [x] **A7  Rust suite green in a fresh worktree** (≈10)
+  done: 2026-09-05 minutes: 35 — `dev/wt-a7` off `origin/main` at `113ef294`, no
+  build state of any kind: `src-tauri/target` absent, no `CARGO_TARGET_DIR`, no
+  `.cargo/config.toml` at user or repo level. After `npm run worktree:init`
+  (exit 0), `cargo test --lib` compiled 289 crates into a new 2.0 GB target
+  directory and printed `test result: ok. 117 passed; 0 failed; 0 ignored;
+  0 measured; 0 filtered out`, exit 0. The whole `cargo test` CI runs gives the
+  same three lines it does: lib **117 passed**, `src/main.rs` 0, doc-tests 0,
+  0 failed throughout; `cargo fmt --check` exit 0. CI's `tauri` job for this
+  exact base commit (run 33973123694, job 101325042758) reports **117 passed**,
+  and so does the previous green run on main (33972082431), so the equality
+  `verify:` requires holds against a number that is not an artefact of one run.
+  Sabotage, because a green suite that cannot go red proves nothing: deleting
+  the `"mute"` arm of `vk_for` in `src-tauri/src/media_keys.rs` — the sabotage
+  that module's own comment names — still compiled, so it reached the line
+  (§1 trap 15), and gave `test result: FAILED. 116 passed; 1 failed`, exit 101,
+  naming `every_documented_action_resolves_to_a_distinct_vk` and the real
+  `unknown media action: mute`. Restored by `git checkout --`, with
+  `git status --porcelain` empty (byte-identity with HEAD) and 117 green again.
+  claim: `.agents/claims/a7-rust-suite-fresh-worktree.json`.
   touches: none
   depends-on: C3
   do: `npm run worktree:init && cd src-tauri && cargo test --lib`.
