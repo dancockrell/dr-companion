@@ -271,13 +271,18 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
-| C | C3–C8 | `lane-c/hygiene` | `dev/wt-c` | 5 Sep 2026 |
-| E/F | E5–E8, F2, F6 | `lane-ef/tests-and-release-prep` | `dev/wt-ef` | 5 Sep 2026 |
+| I | I1–I11 | `lane-i/color-tokens` | `dev/wt-i` | 5 Sep 2026 |
 
-Free to claim now: **I** (design tokens, no dependencies), **K1–K2**
-(appearance defaults, needs C7 recorded only), **L1** (contract ownership,
-after B3). **D** waits on A1 `[x]`. **G** waits on Lane A finishing and on C4.
-**J** waits on D6.
+Finished and released: **C** (C3–C8, PRs #291 and #296) and **E/F** (E5–E8,
+F2, F6, PRs #293 and #295). Their rows are gone from the table above, which is
+what finishing a lane looks like here.
+
+Free to claim now: **K1** (the appearance design note) — but C7 recorded
+`rewrite/remove-2d` as an open question for that branch's owner, and K3 onward
+depends on the answer, so K can be started and not finished. **L1** is free now
+that B3 is done. **D** waits on A1 `[x]`. **G** waits on Lane A finishing; C4
+has landed, so `presentationBridge.ts` is split and no longer blocks it. **J**
+waits on D6.
 
 **When two lanes touch one file**, §3's conflict matrix decides who goes first;
 where it is silent, the earlier `Since` wins and the other rebases. Conflicts in
@@ -999,7 +1004,8 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane I — Design tokens (#176, #179)
 
-- [ ] **I1  Token test with a ratchet** (≈30)
+- [x] **I1  Token test with a ratchet** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 45
   touches: new:tools/color-token-test.mjs, new:tools/color-token-allowlist.json, package.json, tools/test-suites.json
   depends-on: none
   do: scan `src/components/**/*.tsx` for `#[0-9a-fA-F]{3,8}\b`, `rgba?\(`, `hsl\(`, and Tailwind arbitrary colours `\[(#|rgb|hsl)`; every hit today goes into the allowlist. **Key each entry on `file` + `literal` + a count, never on a line number**: several lanes edit these files concurrently, so line numbers shift under an allowlist that has not changed meaning, and a ratchet that fails on an unrelated edit teaches everyone to regenerate it, which is the one thing that must never become routine. So an entry is `{file, literal, count}`; the test fails when a `(file, literal)` pair appears more times than the allowlist permits, when a pair is absent from the allowlist entirely, or when an allowlisted pair no longer appears at all (it can only shrink). It still reports the offending line numbers in the failure message, because that is what a person needs in order to go and fix it. Print `remaining: N` and a per-directory breakdown (`config, dashboard, first-run, game, layout, room, shared` plus the two root files).
