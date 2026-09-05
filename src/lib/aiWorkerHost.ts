@@ -69,6 +69,8 @@ import { ClaimStore } from './aiClaimStore.ts'
 import { EvidenceStore } from './aiEvidenceStore.ts'
 import { detectExitDivergence, proposeMapReconciliation } from './aiJobProducers.ts'
 import { JobStore } from './aiJobStore.ts'
+import { suggestionStore } from './aiSuggestions.ts'
+import { currentStateVersion } from './stateVersion.ts'
 import { readJSON, writeJSON } from './storage.ts'
 import { publishPresentationEvent } from './viewerClient.ts'
 import { absentProvider, type ModelHealth, type ModelProvider } from './aiModelProvider.ts'
@@ -546,6 +548,14 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
           privacyOptIn: readPrivacyOptIn(),
           claims: claims.current,
           evidence: evidence.current,
+          // The gate. Handed the whole store, but `WorkerDeps` narrows it to
+          // `create` — the worker has no way to spell `requestExecution`, so
+          // the only thing it can do with a proposed command is write it down.
+          suggestions: suggestionStore(),
+          // Read in the same breath as `character` above, so the version a
+          // proposal is pinned to is the version of the world the turn
+          // actually reasoned about.
+          stateVersion: currentStateVersion(),
           // The map's own answer to "is this a room", read at the moment the
           // turn starts. A model proposing a tether from a room the
           // cartographer has never heard of is proposing about nothing.

@@ -476,6 +476,17 @@ export interface HostTickInput {
   claims?: WorkerDeps['claims']
   evidence?: WorkerDeps['evidence']
   knownRoom?: WorkerDeps['knownRoom']
+  /**
+   * Where a proposed command goes, and the state version it is pinned to.
+   *
+   * Threaded through for the same reason `claims` is: a turn must not be able
+   * to acquire a store the caller did not hand it. The version travels beside
+   * it because the two are one fact — a proposal that does not record which
+   * world it was made about cannot be refused when that world moves, and the
+   * gate reads the version again at the moment of confirmation.
+   */
+  suggestions?: WorkerDeps['suggestions']
+  stateVersion?: number
   app: HostAppState
   memory: HostMemory
   now: number
@@ -537,6 +548,8 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
       claims: input.claims,
       evidence: input.evidence,
       knownRoom: input.knownRoom,
+      suggestions: input.suggestions,
+      stateVersion: input.stateVersion,
     },
     signal
   )
