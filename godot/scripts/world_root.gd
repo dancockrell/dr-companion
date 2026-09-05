@@ -12,6 +12,11 @@ const MOCK_FIXTURE_PATH := "res://mock/crossing_mock_world.json"
 const MOCK_WORLD_ID := "crossing-mock"
 const MOCK_STARTING_ROOM := "1-14"  # Town Green North
 const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
+## The script rather than the `ContentRegistry` autoload, for the reason
+## `exit_anchor_layer.gd` records: a test that `preload`s this file compiles it
+## before the SceneTree's autoloads exist, so naming the singleton would be a
+## compile error there and nowhere else.
+const ContentRegistryScript := preload("res://scripts/content_registry.gd")
 ## The flag the host passes after `--`. Spelled identically in
 ## `src-tauri/src/viewer.rs::LIVE_FLAG`, which has a test that reads this file
 ## and compares them, because nothing else can: a disagreement between the two
@@ -112,11 +117,18 @@ func _prepare_all_cells() -> void:
 		# shapes exist. Codex's content later adds its own collision where a
 		# specific mesh needs finer picking; this is the always-present
 		# fallback the contract needs for slice 0's acceptance gate.
+		#
+		# Its size is the cell's own `board.selectionBounds`, asked for through
+		# ContentRegistry like every other board dimension. It was a hand-typed
+		# `Vector3(4.5, 1.0, 4.5)` until issue #366 - 5 cm proud of the block on
+		# every side, so a click in the gutter between two rooms silently picked
+		# one of them, and 1 m tall on an interior cutaway the manifest publishes
+		# at 3, so most of that room's block could not be clicked at all.
 		var body := StaticBody3D.new()
 		body.name = "ClickTarget"
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
-		box.size = Vector3(4.5, 1.0, 4.5)
+		box.size = ContentRegistryScript.selection_size_metres(cell)
 		shape.shape = box
 		body.add_child(shape)
 		body.input_event.connect(_on_cell_clicked.bind(cell_id))

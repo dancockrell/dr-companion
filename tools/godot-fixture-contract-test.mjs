@@ -101,6 +101,17 @@ const contractViolations = (manifest) => {
       violations.push(`board-footprint: ${cell.id} is ${footprint.width}x${footprint.depth}, not the ${CELL_BLOCK_METRES} m block src/lib/isometric-board-layout.mjs publishes`)
     }
 
+    // And the box a click has to land in, which `world_root.gd` sizes one
+    // BoxShape3D per cell from. It typed `Vector3(4.5, 1.0, 4.5)` instead until
+    // issue #366, while this field sat published on every cell and read by
+    // nothing. All three parts are required, height included: a click box that
+    // does not know how tall the block is left two thirds of an interior
+    // cutaway unclickable.
+    const selection = cell.board?.selectionBounds
+    if (!selection || ['width', 'depth', 'height'].some((field) => typeof selection[field] !== 'number')) {
+      violations.push(`board-selection: ${cell.id} carries no board.selectionBounds with a numeric width, depth and height`)
+    }
+
     const seenMoves = new Map()
     for (const exit of cell.exits) {
       // A null target is the honest form and the whole signal: the room is
@@ -172,12 +183,18 @@ for (const subject of subjects) {
   const withFootprint = manifest.cells.filter((cell) => typeof cell.board?.footprint?.width === 'number').length
   ok(`${name}: every cell carries the footprint the viewer sizes its block from`, withFootprint === manifest.cells.length, `${withFootprint} of ${manifest.cells.length} cells`)
 
+  // The same count for the other box, and for the same reason: it was 19 of 19
+  // when issue #366 was found, and the viewer read none of them.
+  const withSelection = manifest.cells.filter((cell) => typeof cell.board?.selectionBounds?.height === 'number').length
+  ok(`${name}: every cell carries the selection box the viewer sizes its click target from`, withSelection === manifest.cells.length, `${withSelection} of ${manifest.cells.length} cells`)
+
   const violations = contractViolations(manifest)
   const of = (rule) => violations.filter((v) => v.startsWith(`${rule}:`))
   ok(`${name}: every exit targets a cell here, or is null-targeted`, of('exit-resolves').length === 0, of('exit-resolves')[0] ?? `${exits.length} exits checked, ${nullTargeted.length} of them null-targeted`)
   ok(`${name}: no cell has two exits with the same move`, of('unique-move').length === 0, of('unique-move')[0] ?? `${manifest.cells.length} cells checked`)
   ok(`${name}: the current room is one of the cells`, of('current-room-present').length === 0, of('current-room-present')[0] ?? manifest.currentRoomId)
   ok(`${name}: every cell publishes the block size the board layout states`, of('board-footprint').length === 0, of('board-footprint')[0] ?? `${manifest.cells.length} cells at ${CELL_BLOCK_METRES} m`)
+  ok(`${name}: every cell publishes a complete selection box`, of('board-selection').length === 0, of('board-selection')[0] ?? `${manifest.cells.length} cells`)
   ok(`${name}: satisfies the whole contract`, violations.length === 0, violations.length ? `${violations.length} violations` : 'no violations')
 
   // Each rule, shown able to fire against THIS subject. The broken manifests
@@ -204,6 +221,9 @@ for (const subject of subjects) {
   })
   firesOn('a footprint that has drifted from the published block size', 'board-footprint', (m) => {
     m.cells[0].board.footprint.width = CELL_BLOCK_METRES + 1
+  })
+  firesOn('a selection box with no height, which is what made #366 invisible', 'board-selection', (m) => {
+    delete m.cells[0].board.selectionBounds.height
   })
 
   if (subject.derived) {
