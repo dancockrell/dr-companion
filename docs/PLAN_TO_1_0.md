@@ -544,7 +544,8 @@ when `--live-presentation` is on the command line, and
 app-launched viewer has therefore always started in mock mode. Everything else
 in the chain (token/port files, auth, reconnect) is already written.
 
-- [ ] **B1  Export a viewer locally** (≈15 + download)
+- [x] **B1  Export a viewer locally** (≈15 + download)
+  commit: (this PR) verified: 2026-09-05 minutes: 25
   touches: none
   depends-on: none
   do: Godot 4.3 (`grep -n "config/features" godot/project.godot`); the release workflow names the exact zip (`grep -n Godot_v4 .github/workflows/release.yml`) — download the same by hand outside the repo. `git submodule update --init --recursive`; `GODOT4=<path> npm run godot:export`.
