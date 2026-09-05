@@ -58,22 +58,68 @@ func build(cell: Dictionary, primitive: Dictionary) -> Node3D:
 ## tiles meet exactly, the board reads as one continuous surface, and the exits
 ## - which live at the edges - have no edge to live on).
 ##
-## The fallback is only for a cell whose manifest predates the field. It is
-## deliberately the gutter-inclusive size rather than the pitch, so an old
-## manifest degrades to a visible seam rather than to blocks that touch.
-const FALLBACK_BLOCK_METRES := 4.4
+## A `FALLBACK_BLOCK_METRES := 4.4` stood here next, described as being only for
+## a cell whose manifest predates the field. It was a fourth copy of the same
+## dimension: 4.4 is CELL_PITCH_METRES - CELL_GAP_METRES typed out again,
+## agreeing with its source by hand rather than deriving from it. And it was not
+## the legacy path - `tools/build-godot-mock-fixture.mjs` stripped `board` from
+## every cell, so the checked-in mock world took this branch in 19 cells out of
+## 19 and the real one never ran. Nothing on screen could show it, because the
+## typed number happened to be right (issue #345).
+##
+## The generator carries `board` through verbatim now, so both worlds publish
+## their own footprint and there is no number here to disagree with theirs.
+##
+## A cell that still arrives without one is a broken contract rather than an old
+## manifest, so it says so on the console and gets the marker below. The marker
+## is deliberately not a plausible block size: a cube that is obviously wrong is
+## a bug report, and one that looks about right is the silent guess this whole
+## comment is about.
+const MISSING_FOOTPRINT_MARKER_METRES := 1.0
+const MISSING_FOOTPRINT_MARKER_COLOR := Color(1.0, 0.0, 1.0, 1.0)
+
+## How thick a placeholder slab is drawn. Not a board dimension - the board
+## publishes width and depth, and this is the visual thickness of the stand-in
+## that sits between them. `exit_anchor_layer.gd` raises its chevrons clear of
+## this height.
+const PLACEHOLDER_SLAB_METRES := 0.3
+
+## The width and depth this cell published, in metres, or an empty Dictionary
+## when it published none.
+##
+## Empty is the third state on purpose: not "a block of some default size", but
+## "this cell did not say", which is the distinction the caller has to be able
+## to act on. Public so a test can ask both questions directly.
+func footprint_metres(cell: Dictionary) -> Dictionary:
+	var board_value = cell.get("board", {})
+	if not (board_value is Dictionary):
+		return {}
+	var footprint_value = (board_value as Dictionary).get("footprint", {})
+	if not (footprint_value is Dictionary):
+		return {}
+	var footprint: Dictionary = footprint_value
+	var width = footprint.get("width")
+	var depth = footprint.get("depth")
+	if not (width is float or width is int):
+		return {}
+	if not (depth is float or depth is int):
+		return {}
+	return {"width": float(width), "depth": float(depth)}
 
 func _placeholder(cell: Dictionary, primitive: Dictionary) -> Node3D:
 	var mesh_instance := MeshInstance3D.new()
 	var box := BoxMesh.new()
-	var board: Dictionary = cell.get("board", {})
-	var footprint: Dictionary = board.get("footprint", {})
-	var width: float = float(footprint.get("width", FALLBACK_BLOCK_METRES))
-	var depth: float = float(footprint.get("depth", FALLBACK_BLOCK_METRES))
-	box.size = Vector3(width, 0.3, depth)
+	var footprint := footprint_metres(cell)
+	var color := _placeholder_color(primitive.get("role", "base"))
+	if footprint.is_empty():
+		push_error("ContentRegistry: cell '%s' published no board.footprint, so its block size is unknown. Drawing the %s m missing-footprint marker rather than inventing one; the size belongs to the manifest (see src/lib/isometric-board-layout.mjs)." % [cell.get("id", "<unknown>"), MISSING_FOOTPRINT_MARKER_METRES])
+		box.size = Vector3(MISSING_FOOTPRINT_MARKER_METRES, PLACEHOLDER_SLAB_METRES, MISSING_FOOTPRINT_MARKER_METRES)
+		color = MISSING_FOOTPRINT_MARKER_COLOR
+	else:
+		box.size = Vector3(footprint["width"], PLACEHOLDER_SLAB_METRES, footprint["depth"])
 	mesh_instance.mesh = box
 	var material := StandardMaterial3D.new()
-	material.albedo_color = _placeholder_color(primitive.get("role", "base"))
+	material.albedo_color = color
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mesh_instance.material_override = material
 	mesh_instance.name = "Placeholder_%s" % primitive.get("kind", "unknown")

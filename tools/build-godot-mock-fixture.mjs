@@ -10,14 +10,28 @@
 // The projection is deliberately lossy, because mock mode exists to exercise
 // the viewer's loader and intent path, not to be a second world:
 //   - Town Green North (1-14) plus everything within two moves of it;
-//   - board layout and asset candidates dropped, since a mock scene composes
-//     its own and Codex owns that side;
+//   - asset candidates dropped, since a mock scene composes its own and Codex
+//     owns that side;
 //   - an exit whose target is outside the selection keeps its targetRoomId but
 //     is given targetCellId: null, so the viewer can render it as a real exit
 //     it cannot follow rather than pretending it does not exist. That null is
 //     the whole signal: it is what every .gd consumer branches on, and it is
 //     also what the live compiler (src/lib/presentationBridge.ts::exitsFor)
 //     emits for a zone-leaving exit, so mock and live carry the same shape.
+//
+// `board` used to be dropped here too, on the same "a mock scene composes its
+// own" reasoning. It does not: `godot/scripts/world_root.gd` hangs the cell's
+// `board` on the holder as metadata, `content_registry.gd` sizes a placeholder
+// block from `board.footprint`, and `entity_projection_layer.gd` places tokens
+// on `board.spawnPoints`. Dropping it meant the only checked-in world the
+// viewer loads took the no-board branch of all three, in 19 of 19 cells - so
+// what content_registry.gd documented as a fallback for a manifest predating
+// the field was in fact the entire mock path, and the size it guessed with was
+// a hand-typed copy of CELL_PITCH_METRES - CELL_GAP_METRES with nothing tying
+// it to that source (issue #345). The board is carried through verbatim now,
+// as the manifest published it and as `compileWorldSnapshot()` publishes it on
+// the live side, and `tools/godot-fixture-contract-test.mjs` asserts every
+// cell carries the footprint `src/lib/isometric-board-layout.mjs` states.
 //
 // Usage:
 //   node tools/build-godot-mock-fixture.mjs           write the fixture
@@ -67,7 +81,8 @@ const projectExit = (exit) => {
 }
 
 const projectCell = (cell) => {
-  const { board, primitives, exits, ...rest } = cell
+  // `board` stays in `rest` on purpose - see the note at the top of this file.
+  const { primitives, exits, ...rest } = cell
   return {
     ...rest,
     primitives: primitives.map((primitive) => ({ kind: primitive.kind, role: primitive.role })),

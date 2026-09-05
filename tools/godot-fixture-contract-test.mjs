@@ -31,11 +31,24 @@
  * one rule, per subject, where the answer must be that exact rule. Without
  * that half a green run here would be indistinguishable from a checker that
  * inspects nothing.
+ *
+ * # board-footprint
+ *
+ * The viewer sizes a placeholder block from `board.footprint` and places tokens
+ * on `board.spawnPoints`. The mock generator used to strip `board` from every
+ * cell, so the no-board branch of both was the whole of mock mode, and the size
+ * came from a hand-typed 4.4 in `godot/scripts/content_registry.gd` that
+ * nothing tied to `src/lib/isometric-board-layout.mjs` (issue #345). Asserting
+ * the footprint against CELL_BLOCK_METRES, imported rather than retyped, is
+ * what makes the board's geometry one value: change CELL_GAP_METRES and this
+ * goes red naming the number it now expects. Both subjects carry it - the live
+ * compiler publishes the same `boardLayoutFor()` output - so both are checked.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { compileWorldSnapshot } from '../src/lib/presentationBridge.ts'
+import { CELL_BLOCK_METRES } from '../src/lib/isometric-board-layout.mjs'
 import { LIVE_HERE, LIVE_ZONE } from './live-zone-fixture.mjs'
 
 const FIXTURE = 'godot/mock/crossing_mock_world.json'
@@ -79,6 +92,15 @@ const contractViolations = (manifest) => {
   }
 
   for (const cell of manifest.cells) {
+    // The viewer draws a block this wide. A cell that does not publish one
+    // leaves it guessing, which is the whole of issue #345.
+    const footprint = cell.board?.footprint
+    if (!footprint || typeof footprint.width !== 'number' || typeof footprint.depth !== 'number') {
+      violations.push(`board-footprint: ${cell.id} carries no board.footprint with a numeric width and depth`)
+    } else if (footprint.width !== CELL_BLOCK_METRES || footprint.depth !== CELL_BLOCK_METRES) {
+      violations.push(`board-footprint: ${cell.id} is ${footprint.width}x${footprint.depth}, not the ${CELL_BLOCK_METRES} m block src/lib/isometric-board-layout.mjs publishes`)
+    }
+
     const seenMoves = new Map()
     for (const exit of cell.exits) {
       // A null target is the honest form and the whole signal: the room is
@@ -144,11 +166,18 @@ for (const subject of subjects) {
   ok(`${name}: enough exits to be worth checking`, exits.length >= subject.minExits, `${exits.length} exits, floor ${subject.minExits}`)
   ok(`${name}: carries the null-targeted exits the rule turns on`, nullTargeted.length >= subject.minNullTargeted, `${nullTargeted.length} null-targeted, floor ${subject.minNullTargeted}`)
 
+  // Stated as N of N rather than as "no violations", because "no cell breaks
+  // the footprint rule" is also what a manifest with no cells says. This is the
+  // count that was 0 of 19 when issue #345 was found.
+  const withFootprint = manifest.cells.filter((cell) => typeof cell.board?.footprint?.width === 'number').length
+  ok(`${name}: every cell carries the footprint the viewer sizes its block from`, withFootprint === manifest.cells.length, `${withFootprint} of ${manifest.cells.length} cells`)
+
   const violations = contractViolations(manifest)
   const of = (rule) => violations.filter((v) => v.startsWith(`${rule}:`))
   ok(`${name}: every exit targets a cell here, or is null-targeted`, of('exit-resolves').length === 0, of('exit-resolves')[0] ?? `${exits.length} exits checked, ${nullTargeted.length} of them null-targeted`)
   ok(`${name}: no cell has two exits with the same move`, of('unique-move').length === 0, of('unique-move')[0] ?? `${manifest.cells.length} cells checked`)
   ok(`${name}: the current room is one of the cells`, of('current-room-present').length === 0, of('current-room-present')[0] ?? manifest.currentRoomId)
+  ok(`${name}: every cell publishes the block size the board layout states`, of('board-footprint').length === 0, of('board-footprint')[0] ?? `${manifest.cells.length} cells at ${CELL_BLOCK_METRES} m`)
   ok(`${name}: satisfies the whole contract`, violations.length === 0, violations.length ? `${violations.length} violations` : 'no violations')
 
   // Each rule, shown able to fire against THIS subject. The broken manifests
@@ -169,6 +198,12 @@ for (const subject of subjects) {
   })
   firesOn('a current room that is not in the manifest', 'current-room-present', (m) => {
     m.currentRoomId = '1-999999'
+  })
+  firesOn('a cell whose board was stripped, as the mock generator once stripped it', 'board-footprint', (m) => {
+    delete m.cells[0].board
+  })
+  firesOn('a footprint that has drifted from the published block size', 'board-footprint', (m) => {
+    m.cells[0].board.footprint.width = CELL_BLOCK_METRES + 1
   })
 
   if (subject.derived) {

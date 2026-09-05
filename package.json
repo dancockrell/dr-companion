@@ -94,6 +94,7 @@
     "world:primitive-registry": "node tools/build-crossing-primitive-registry.mjs",
     "world:godot-mock": "node tools/build-godot-mock-fixture.mjs",
     "test:godot-fixture-contract": "node tools/godot-fixture-contract-test.mjs",
+    "test:board-geometry-drift": "node tools/board-geometry-drift-test.mjs",
     "godot:export": "node tools/export-godot-viewer.mjs",
     "test:godot": "node tools/godot-tests.mjs",
     "release:config": "node tools/build-release-config.mjs",

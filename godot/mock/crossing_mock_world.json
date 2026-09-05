@@ -34,6 +34,98 @@
       ],
       "spatialMode": "waterfront",
       "palette": "river-blue-green",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -126,6 +218,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -178,6 +362,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -230,6 +506,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -303,6 +671,98 @@
       ],
       "spatialMode": "interior-cutaway",
       "palette": "warm-interior",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 3,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 3
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "interior-floor-5m",
@@ -387,6 +847,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -463,6 +1015,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -515,6 +1159,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -578,6 +1314,98 @@
       ],
       "spatialMode": "unresolved",
       "palette": "neutral-unresolved",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -625,6 +1453,98 @@
       ],
       "spatialMode": "unresolved",
       "palette": "neutral-unresolved",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -685,6 +1605,98 @@
       ],
       "spatialMode": "interior-cutaway",
       "palette": "warm-interior",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 3,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 3
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "interior-floor-5m",
@@ -728,6 +1740,98 @@
       ],
       "spatialMode": "interior-cutaway",
       "palette": "warm-interior",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 3,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 3
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "interior-floor-5m",
@@ -780,6 +1884,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -851,6 +2047,98 @@
       ],
       "spatialMode": "waterfront",
       "palette": "river-blue-green",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -907,6 +2195,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -959,6 +2339,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -1012,6 +2484,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -1079,6 +2643,98 @@
       ],
       "spatialMode": "unresolved",
       "palette": "neutral-unresolved",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
@@ -1121,6 +2777,98 @@
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.52,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.42,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root"
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.42,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root"
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.08,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root"
+          }
+        ]
+      },
       "primitives": [
         {
           "kind": "terrain-cell-5m",
