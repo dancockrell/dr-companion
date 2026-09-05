@@ -25,6 +25,13 @@
 #   * the dr-companion.exe and msedgewebview2.exe processes alive at each step,
 #     which is what tells a handle race from a logic error.
 #
+# -HoldSeconds N makes the WebView2 handle race happen on purpose: a second
+# process opens one real file in the profile with FileShare.None for N seconds,
+# which is what a shutting-down msedgewebview2.exe does to its LevelDB LOCK
+# files. A race that does not happen on the day you look proves nothing, and
+# this is the injection point that lets the unhappy path be run deliberately
+# rather than waited for. It asserts the handle actually took.
+#
 # -Condition says how the app dies before the uninstall runs:
 #   closed  - WM_CLOSE to its own window, then wait, the way a person quits
 #   running - left running, so the uninstaller's own prompt kills it
@@ -38,6 +45,10 @@ param(
   [switch]$TickDeleteAppData,
   # How long to leave the app closed/killed before starting the uninstaller.
   [int]$SettleMs = 0,
+  # Seconds to hold a deliberate exclusive handle on one file inside the
+  # WebView2 profile, from just before the uninstaller starts. 0 injects
+  # nothing. See "the injected handle" below.
+  [int]$HoldSeconds = 0,
   [int]$TimeoutSec = 300
 )
 
@@ -170,6 +181,65 @@ if ($SettleMs -gt 0) {
 }
 Show-Processes -When 'before-uninstall'
 
+# --- the injected handle ----------------------------------------------------
+#
+# The race this script was written to look for is a race, and a race that does
+# not happen today proves nothing about the one that happened on 5 September.
+# So the mechanism can also be produced on demand: a second process opens one
+# real file inside the WebView2 profile with FileShare.None for N seconds,
+# which is what `msedgewebview2.exe` is doing to the LevelDB LOCK files while
+# it shuts down. `RmDir /r` then cannot delete that file, skips it silently,
+# and the uninstaller reports success over a profile that is still there.
+#
+# -HoldSeconds 0 (the default) injects nothing, so the natural conditions above
+# are measured as they are.
+if ($HoldSeconds -gt 0) {
+  $prof = Join-Path $env:LOCALAPPDATA 'io.github.dancockrell.dr-companion'
+  if (-not (Test-Path -LiteralPath $prof)) { throw "No WebView2 profile at $prof to hold a handle in." }
+  # A file of our own, planted deep in the profile, rather than one of
+  # WebView2's. The first version of this picked the LevelDB `LOCK` file, which
+  # is precisely the file the running msedgewebview2.exe already holds - so the
+  # holder could not open it exclusively either, and the run aborted on its own
+  # assertion rather than measuring anything (19:28:49Z, 5 Sep). The mechanism
+  # under test is "RmDir /r skips a file it cannot delete and says nothing", and
+  # a file this script locks reproduces that exactly, without having to win a
+  # race against Chrome for a handle.
+  $dir = Join-Path $prof 'EBWebView\Default'
+  if (-not (Test-Path -LiteralPath $dir)) { $dir = $prof }
+  $path = Join-Path $dir 'drc-handle-injection.bin'
+  Set-Content -LiteralPath $path -Value 'held open on purpose; see vm-uninstall-drive.ps1 -HoldSeconds'
+  $target = Get-Item -LiteralPath $path
+  if ($null -eq $target) { throw "Could not plant a file to hold a handle on." }
+  Say ("holding an exclusive handle on '{0}' for {1}s" -f $target.FullName, $HoldSeconds)
+  # Through a script file with parameters, not `-Command` with the code inline.
+  # The inline form went through Start-Process's own quoting, arrived at
+  # powershell.exe mangled, and the holder simply never opened anything - which
+  # the assertion below caught (19:44:45Z, 5 Sep: "file is locked against us =
+  # False" on a file this script had just created and nothing else could have
+  # been holding).
+  $holderScript = Join-Path $env:TEMP 'drc-hold-handle.ps1'
+  @(
+    'param([string]$Path, [int]$Seconds)',
+    '$f = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)',
+    'Start-Sleep -Seconds $Seconds',
+    '$f.Close()'
+  ) | Set-Content -LiteralPath $holderScript
+  $holder = Start-Process -FilePath 'powershell.exe' -PassThru -WindowStyle Hidden -ArgumentList @(
+    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $holderScript, '-Path', $target.FullName, '-Seconds', $HoldSeconds
+  )
+  Start-Sleep -Seconds 2
+  # The assertion, because an injection that did not land turns this run into
+  # an ordinary one wearing a label that says otherwise.
+  $held = $false
+  try {
+    $probe = [System.IO.File]::Open($target.FullName, 'Open', 'ReadWrite', 'None')
+    $probe.Close()
+  } catch { $held = $true }
+  Say ("handle holder pid={0}, file is locked against us = {1}" -f $holder.Id, $held)
+  if (-not $held) { throw 'The injected handle did not take. This run would measure nothing.' }
+  $script:heldPath = $target.FullName
+}
+
 # --- run it -----------------------------------------------------------------
 Say 'starting the uninstaller'
 $started = Start-Process -FilePath $uninstaller -PassThru
@@ -273,6 +343,10 @@ if ($sawFinish -and $closeHandle -ne [IntPtr]::Zero) {
 Say ("RESULT confirm-page={0} ticked={1} running-prompt={2} clicked-ok={3} finished={4}" -f `
   $sawConfirm, $tickedOk, $sawRunningPrompt, $clickedOk, $sawFinish)
 Say ("RESULT running-prompt-text='" + ($runningPromptText -replace "`r?`n", ' / ') + "'")
+if ($HoldSeconds -gt 0) {
+  Say ("RESULT held-file='" + $script:heldPath + "' for ${HoldSeconds}s; still on disk = " +
+       (Test-Path -LiteralPath $script:heldPath))
+}
 
 # A run that never reached the confirm page drove nothing at all, and saying so
 # here is the difference between "the uninstall left nothing" and "no uninstall
