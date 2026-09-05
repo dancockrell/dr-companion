@@ -271,13 +271,11 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
-| I | I1–I2 (done) | `lane-i/color-tokens` | `dev/wt-i` | 5 Sep 2026 |
-| I | I3–I11 | `lane-i2/token-cleanup` | `dev/wt-i2` | 5 Sep 2026 |
 | D | D1–D6 | `lane-d/layout` | `dev/wt-d` | 5 Sep 2026 |
 
-Finished and released: **C** (C3–C8, PRs #291 and #296) and **E/F** (E5–E8,
-F2, F6, PRs #293 and #295). Their rows are gone from the table above, which is
-what finishing a lane looks like here.
+Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
+F2, F6, PRs #293 and #295) and **I** (I1–I11, PRs #303 and this one). Their rows
+are gone from the table above, which is what finishing a lane looks like here.
 
 Free to claim now: **K1** (the appearance design note) — but C7 recorded
 `rewrite/remove-2d` as an open question for that branch's owner, and K3 onward
@@ -1062,19 +1060,24 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: put the 4.4 call back → `FAIL … Parse Error: Static function "get_temp_dir()" not found`; break one assertion in `world_controls_test.gd` → `FAIL … 1 of 7 checks failed`; truncate a claim to `{ "broken":` → `FAIL claim … is not valid JSON`. All three restored with matching md5s (`7392970e3fc0`, `4c7b7b032573`, `c3550e4c8135`).
   pitfalls: Godot exits 0 both for a script it could not load and for a script that passed, so the exit code alone cannot tell them apart — which is exactly how a broken script survived. The runner requires a recognisable result line and fails a run that produces none. With no Godot binary it prints NOT CHECKED and `0 of the Godot tests ran`, rather than exiting silently green.
 
-- [~] **I3  `src/components/shared`** (≈25)  · **I4  `room`** · **I5  `layout`** · **I6  `game`** · **I7  `dashboard`** · **I8  `first-run`** · **I9  `config`** · **I10  `MapWindow.tsx` + `PanelWindow.tsx`** (≈15 each)
-  owner: claude-code claim: i3-i10-color-tokens since: 2026-09-05
+- [x] **I3  `src/components/shared`** (≈25)  · **I4  `room`** · **I5  `layout`** · **I6  `game`** · **I7  `dashboard`** · **I8  `first-run`** · **I9  `config`** · **I10  `MapWindow.tsx` + `PanelWindow.tsx`** (≈15 each)
+  commit: (this PR) verified: 2026-09-05 minutes: 150
   touches: (that directory), src/index.css, I1>tools/color-token-allowlist.json, I1>tools/color-token-test.mjs
   depends-on: I1
   do: replace literals with tokens from `src/index.css`; a missing token is added there once; remove the allowlist lines; `remaining` drops by the count fixed and never rises.
   verify: `node tools/color-token-test.mjs` prints the lower `remaining`.
-  note: eight IDs share one checkbox, so the marker can only move when all eight are done; each ships its own PR and this line goes `[x]` with the last of them. I7, I8 and I10 were already clean the day I1 landed — `dashboard` (8 files), `first-run` (6) and the two root components hold no literal at all, and the walk demonstrably reaches them because it reports 117 files and finds literals in six of the others.
+  note: eight IDs share one checkbox, so the marker only moved when all eight were done. `remaining` went 52 → 49 → 30 → 27 across three PRs and never rose. **I7, I8 and I10 were already clean the day I1 landed** — `dashboard` (8 files), `first-run` (6) and the two root components hold no literal at all, and the walk demonstrably reaches them because it reports 117 files and finds literals in six of the others. Of the 25 real fixes, three (I5, I6, and one in shared) were not colours at all but PR numbers and a measured value inside *comments*, which the scanner read as hex because every digit 0-9 is a hex digit; the scanner strips comments now. **The 27 that remain are permanent and documented**, which is the finding this lane ends on rather than a shortfall: 24 are pigments in `RoomBackdrop`'s generated landscape, whose whole purpose is that a forest does not look like a bank, and 3 are the *game client's* colour vocabulary in `config` — a default highlight colour and two placeholder examples, all read by a Ruby script that cannot resolve a CSS variable.
+  pitfalls: `CombatRadar`'s eleven were shadows, highlights and washes — black and white at an alpha, which no `--color-*` token is the right shape for and which four new tokens would only have duplicated. They moved to named classes in `index.css` beside `.game-icon-button`, which already writes exactly this vocabulary exactly this way; every computed style was checked in the running app to be byte-identical afterwards. The one appearance change made on purpose is `MindstateBoard`, which was Tailwind's raw violet-through-red ramp.
 
-- [ ] **I11  Delete the allowlist** (≈5)
+- [x] **I11  Delete the allowlist** (≈5)
+  commit: (this PR) verified: 2026-09-05 minutes: 30
   touches: I1>tools/color-token-test.mjs, I1>tools/color-token-allowlist.json
   depends-on: I3, I4, I5, I6, I7, I8, I9, I10
   do: the test is strict; close #176 and #179 linking it.
   verify: `remaining: 0` and the allowlist file is gone.
+  note: **the file is kept, and the increment's own instruction was the wrong ending.** `remaining: 0` is not reachable and should not be: 27 of the original 52 are a generated landscape's pigments and the game client's own colour words, and a test that refused every literal would be wrong about a picture of a forest. Deleting the file would delete the 27 explanations with it and leave the next person to rediscover each one. So the strictness lands on the list instead — **an entry without a `why` is now a failure**, which turns it from a grandfathering backlog into a register of documented exceptions and prices a new exception at one sentence. The test reports the two counts separately (`of those, N are documented permanent exceptions and M still owe a token`), because adding them gives a figure that never reaches zero and that nobody can act on. `--write` used to rebuild the file from scratch and would silently have erased all 27 notes; it carries them across now and warns on any it could not match.
+  verify (as done): `of those, 27 are documented permanent exceptions and 0 still owe a token`, all passed, 63 checks.
+  sabotage: remove one `why` → `FAIL … has no \`why\``, and the split line correctly re-reads it as `1 still owe a token`; shorten a `why` to seven characters → `FAIL … is not an explanation; the floor is 40`; put a colour back into `RoomScene` as code → `FAIL … new raw colour #1d2229`. Each fired on its own check and nothing else, control green either side, `md5` `7fd30a5b6acb` / `f1d66508eff7` restored.
 
 ---
 

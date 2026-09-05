@@ -204,21 +204,35 @@ for (const file of files) {
 }
 
 if (process.argv.includes('--write')) {
+  // Carry every `why` across. Regenerating used to rebuild the file from what
+  // the code currently contains, which would have thrown away all thirty
+  // explanations and left thirty bare entries - and the run after that would
+  // have been green, because a bare entry was legal when this flag was
+  // written. That is the shape of every silent regression in this repo: the
+  // destructive path is the convenient one and nothing downstream disagrees.
+  // Now the check below refuses an entry with no `why`, so a regenerate that
+  // dropped them goes red instead.
+  const existing = JSON.parse(readFileSync(ALLOWLIST, 'utf8'))
+  const whyFor = new Map(existing.entries.map((e) => [`${e.file}\u0000${e.literal}`, e.why]))
   const entries = found
-    .map(({ file, literal, count }) => ({ file, literal, count }))
+    .map(({ file, literal, count }) => {
+      const why = whyFor.get(`${file}\u0000${literal}`)
+      return why ? { file, literal, count, why } : { file, literal, count }
+    })
     .sort((a, b) => a.file.localeCompare(b.file) || a.literal.localeCompare(b.literal))
+  const kept = entries.filter((e) => e.why).length
   writeFileSync(
     ALLOWLIST,
-    JSON.stringify(
-      {
-        note: 'Raw colour literals present when the ratchet was installed. This list may only shrink: tools/color-token-test.mjs fails on a new literal and on an entry that no longer matches. Do not regenerate it to make a failure go away - that is the one move it exists to prevent.',
-        entries,
-      },
-      null,
-      2
-    ) + '\n'
+    JSON.stringify({ note: existing.note, entries }, null, 2) + '\n'
   )
-  console.log(`wrote ${entries.length} entries covering ${entries.reduce((n, e) => n + e.count, 0)} literals`)
+  console.log(
+    `wrote ${entries.length} entries covering ${entries.reduce((n, e) => n + e.count, 0)} literals, ${kept} with a why carried over`
+  )
+  if (kept < whyFor.size) {
+    console.error(
+      `WARNING: ${whyFor.size - kept} explanation(s) had no matching literal and were dropped; check the diff before committing`
+    )
+  }
   process.exit(0)
 }
 
@@ -295,6 +309,47 @@ for (const [key, entry] of permitted) {
   if (!seen.has(key)) {
     fail(`${entry.file} — allowlist still lists ${entry.literal}, which is gone; remove the entry (the list only shrinks)`)
   }
+}
+
+/**
+ * The third direction, and the one that changes what this file *is*.
+ *
+ * The allowlist began as a grandfathering list: fifty-two literals that
+ * existed the day the ratchet went in, allowed because refusing them would
+ * have blocked everybody. Twenty-five of those have since become tokens and
+ * three turned out to be prose. What is left is twenty-seven pigments in a
+ * generated landscape and three values belonging to the game client's
+ * vocabulary rather than this app's - decisions somebody made and wrote down,
+ * not work nobody has done.
+ *
+ * So the list stops being a backlog and becomes a register of exceptions, and
+ * the rule that makes that stick is this one: an entry without a `why` is a
+ * failure. Nobody can quietly park a new literal here; the cost of an
+ * exception is now a sentence explaining it to the next person, which is the
+ * right price and the one thing a bare `{file, literal, count}` never charged.
+ *
+ * The plan's I11 said to delete this file. It is kept because deleting it
+ * would delete the twenty-seven explanations with it, and a test that simply
+ * refused every literal would then be wrong about a picture of a forest. The
+ * strictness lands here instead, which is the same guarantee with the reasons
+ * still attached.
+ */
+const WHY_FLOOR = 40
+for (const entry of allow.entries) {
+  if (!entry.why) {
+    fail(
+      `${entry.file} — ${entry.literal} has no \`why\`. The allowlist is a register of documented exceptions, not a backlog: use a token from src/index.css, or add a \`why\` saying what this is and why no token fits it.`
+    )
+  } else if (entry.why.length < WHY_FLOOR) {
+    fail(
+      `${entry.file} — ${entry.literal} has a \`why\` of ${entry.why.length} characters, which is not an explanation; the floor is ${WHY_FLOOR}.`
+    )
+  }
+  // No `ok++` on the pass side. Every entry that reaches here already printed
+  // its own OK line above carrying its `why`, and `run-tests.mjs` counts the
+  // printed OK and FAIL lines - so incrementing here made this suite report 63
+  // checks while showing 36 of them. A number that disagrees with its own
+  // evidence is the exact defect this file exists to remove.
 }
 
 const remaining = found.reduce((n, h) => n + h.count, 0)
