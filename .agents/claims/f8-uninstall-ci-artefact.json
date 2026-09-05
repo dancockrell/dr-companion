@@ -3,20 +3,40 @@
   "task_id": "f8-uninstall-ci-artefact",
   "agent": "claude-code",
   "summary": "F8 - install the CI-built NSIS installer on the clean VM and uninstall it, recording what is left against what was there before",
-  "status": "in_progress",
+  "status": "completed",
   "claimed_at": "2026-09-05T15:05:00Z",
-  "updated_at": "2026-09-05T15:05:00Z",
+  "updated_at": "2026-09-05T17:00:00Z",
   "paths": [
     ".github/workflows/ci.yml",
+    "src-tauri/installer-hooks.nsh",
+    "src-tauri/tauri.conf.json",
+    "tools/bundle-test.mjs",
+    "tools/vm-inventory.ps1",
     "docs/verification/uninstall-2026-09-05.md",
     "docs/verification/first-run-2026-09-05.md",
     "docs/PLAN_TO_1_0.md",
     ".agents/claims/f8-uninstall-ci-artefact.json"
   ],
-  "symbols": [],
+  "symbols": ["NSIS_HOOK_POSTUNINSTALL", "app_data_dir"],
   "coordination": {
     "depends_on": [],
     "conflicts_with": [],
-    "notes": "F8's blocked-on line named E3, which merged in PR #335 along with E2 and E10, so the stated blocker is gone. A different one was found in its place and is fixed here rather than worked around: the ci.yml `tauri` job built the installer and discarded it, so the artefact F8 and F9 both name had never existed on any run. `gh api repos/dancockrell/dr-companion/actions/runs/33972082431/artifacts` printed nothing for a run whose tauri job is success. This lane adds the upload to the existing job - it does not add a second build workflow beside it, and release.yml keeps its own tag-triggered publish, which answers a different question (a signed-off release, not a per-commit build). E3 in docs/verification/first-run-2026-09-05.md exercised a LOCALLY built installer; F8 repeats it on the CI one and records the differences."
+    "notes": "F8's blocked-on named E3, which merged in PR #335 with E2 and E10, so the stated blocker was gone. A different one was found in its place and fixed rather than worked around: ci.yml's tauri job built the installer and discarded it, so the artefact F8 and F9 both name had never existed on any run. PR #338 added the upload to the existing job - not a second build workflow beside it, and release.yml keeps its own tag-triggered publish, which answers a different question. tools/vm-inventory.ps1 replaces the inv.ps1 that E3 typed into the guest and left only as prose in an appendix; the E2 document is edited to point at the committed script rather than keeping a second, narrower transcription of it."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "clean-machine control inventory on the restored snapshot: probes=15 present=1 absent=14, the one present being the control probe",
+      "run A (build 3c7cd265, checkbox unticked): DR Companion Data files=5 bytes=68583698 before AND after; install dir, HKCU uninstall entry and both shortcuts gone; denominators fell 6->5 entries and 47->45 shortcuts",
+      "run B (same build, checkbox TICKED): webview profile ABSENT, DR Companion Data still files=5 bytes=68583698 - so no path removed the two bearer tokens",
+      "cause read out of the generated installer.nsi: the checkbox reaches $APPDATA/${BUNDLEID} and $LOCALAPPDATA/${BUNDLEID} only",
+      "run C (build cb18daad, with installer-hooks.nsh, unticked): all four port/token files ABSENT, downloads kept, DR Companion Data files=1 bytes=68583560",
+      "run D (same build, TICKED): DR Companion Data ABSENT entirely",
+      "chain of custody on both installers: CI's own sha256 == sha256sum on the host after gh run download == Get-FileHash inside the guest",
+      "node tools/run-tests.mjs: 142 passed, 0 failed, 0 not run, 4 partial | 4838 checks across 142 suites (4827 before)",
+      "npx tsc -b exit 0; node tools/plan-audit.mjs: plan ok, 118 increments, 304 paths checked",
+      "five sabotages on the new bundle-test checks, each reddening its own named check and no other; a sixth aborted rather than reporting a pass; all three damaged files restored byte-identical by md5"
+    ],
+    "issues": ["#352"]
   }
 }
