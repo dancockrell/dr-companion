@@ -99,9 +99,17 @@ console.log('\n-- acknowledgement --')
     b.acknowledge('stop') === false)
 
   // After acknowledgement the same condition can legitimately recur.
+  //
+  // This used to assert `deduplicated === false && occurrences === 1`, which
+  // was the mechanism of the day rather than the property in the name. A
+  // handled critical now keeps its record and comes back with occurrences 2 -
+  // strictly more information, since "the bridge has dropped twice" is worth
+  // more than "the bridge has dropped". What the name actually promises is
+  // that the key becomes actionable again, and that is what is checked.
   const again = b.raise('critical', 'stop', {}, 2)
   ok('the same key can be raised again later as a new alert',
-    again.deduplicated === false && again.alert.occurrences === 1)
+    b.pendingCount() === 1 && again.preempts === true && b.next()?.key === 'stop',
+    `pending=${b.pendingCount()} occurrences=${again.alert.occurrences}`)
 }
 
 console.log('\n-- peeking does not consume --')
@@ -125,9 +133,67 @@ console.log('\n-- malformed input is refused --')
   ok('and neither left anything pending', b.pendingCount() === 0, String(b.pendingCount()))
 }
 
+console.log('\n-- a handled condition stays handled until it actually clears --')
+{
+  // The defect: acknowledge deleted the key, and the host re-derives
+  // situation flags from character state on every update, so a stun lasting
+  // four rounds became four urgent reviews - one a second with a real
+  // provider, each answering a question already answered.
+  const b = new AlertBroker()
+  b.raise('urgent', 'situation:stunned', { flag: 'stunned' }, 1)
+  ok('the first occurrence is pending', b.pendingCount() === 1, String(b.pendingCount()))
+
+  b.acknowledge('situation:stunned')
+  ok('acknowledging clears the queue', b.pendingCount() === 0, String(b.pendingCount()))
+
+  const again = b.raise('urgent', 'situation:stunned', { flag: 'stunned' }, 2)
+  ok('the same condition next round does not re-enter the queue',
+    b.pendingCount() === 0, String(b.pendingCount()))
+  ok('but it is still counted, because four rounds stunned is worth more than one',
+    again.alert.occurrences === 2, String(again.alert.occurrences))
+  ok('and it does not claim to preempt background work a second time', again.preempts === false)
+
+  // The condition ends. Nothing is reported this pass, so the handled record
+  // is dropped and the next stun is a new alert rather than a suppressed one.
+  const cleared = b.reconcile([])
+  ok('reconcile forgets a handled condition that is no longer reported',
+    cleared.includes('situation:stunned'), cleared.join(','))
+  ok('and nothing is left held', b.handledCount() === 0, String(b.handledCount()))
+
+  const returned = b.raise('urgent', 'situation:stunned', { flag: 'stunned' }, 3)
+  ok('a condition that ended and came back is a fresh alert',
+    b.pendingCount() === 1, String(b.pendingCount()))
+  ok('with a fresh count', returned.alert.occurrences === 1, String(returned.alert.occurrences))
+
+  // Still being reported: reconcile must NOT forget it.
+  b.acknowledge('situation:stunned')
+  b.reconcile(['situation:stunned'])
+  ok('a handled condition still being reported is kept, not forgotten',
+    b.handledCount() === 1, String(b.handledCount()))
+  b.raise('urgent', 'situation:stunned', { flag: 'stunned' }, 4)
+  ok('so it stays out of the queue while it lasts', b.pendingCount() === 0, String(b.pendingCount()))
+}
+
+console.log('\n-- critical is exempt: a disconnect always re-alerts --')
+{
+  const b = new AlertBroker()
+  b.raise('critical', 'bridge-disconnected', {}, 1)
+  b.acknowledge('bridge-disconnected')
+  ok('acknowledged, so nothing is queued', b.pendingCount() === 0, String(b.pendingCount()))
+
+  const again = b.raise('critical', 'bridge-disconnected', {}, 2)
+  ok('a repeated critical re-enters the queue even though it was handled',
+    b.pendingCount() === 1, String(b.pendingCount()))
+  ok('and says so, so background work stops again', again.preempts === true)
+  ok('its count carries across the acknowledgement', again.alert.occurrences === 2,
+    String(again.alert.occurrences))
+  ok('it is the alert the worker would take next', b.next()?.key === 'bridge-disconnected',
+    String(b.next()?.key))
+}
+
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 20
+const MIN_EXPECTED = 34
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

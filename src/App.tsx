@@ -20,6 +20,7 @@ import { CommandPalette } from './components/shared/CommandPalette'
 import { useMapDock } from './lib/mapDock'
 import { usePresentationBridgePublisher } from './lib/usePresentationBridgePublisher.ts'
 import { subscribePresentationIntents } from './lib/presentationIntents.ts'
+import { useAiWorkerHost } from './lib/aiWorkerHost.ts'
 import {
   combatBattleWant,
   combatRoomWant,
@@ -153,6 +154,11 @@ export default function App() {
   const connectBridge = useAppStore((s) => s.connectBridge)
   const hostRef = useRef<HTMLElement | null>(null)
   usePresentationBridgePublisher(v.kind === 'app')
+  // Same shape and the same reason: one window hosts it. Here rather than in
+  // the Settings panel because a background worker that stops when you close
+  // its status page is not a background worker - it publishes to the store in
+  // aiWorkerHost.ts, which is what the panel reads.
+  useAiWorkerHost(v.kind === 'app')
 
   /*
    * The other direction of the same bridge: Godot asks, Rust validates

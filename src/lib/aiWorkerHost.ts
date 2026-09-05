@@ -8,6 +8,27 @@
  * orphaned modules, speculative adapters ... without a current caller and an
  * explicit product purpose". This is the current caller.
  *
+ * # The host runs at the app root, and the panel only watches
+ *
+ * The first version of this hook was called by `AiWorkerPanel`, which lives
+ * inside the Settings sheet. So the worker existed only while Settings was
+ * open: opening the sheet started a journal, a job store and a one-second
+ * loop, and closing it destroyed all three and abandoned the cursor. A
+ * background worker that only runs while you are looking at its status page
+ * is not a background worker.
+ *
+ * So `App.tsx` calls the hook once, beside `usePresentationBridgePublisher`
+ * and for the same reason - one window hosts it - and the status is published
+ * to the module-level store below. `AiWorkerPanel` subscribes to that store
+ * and never calls the hook.
+ *
+ * Nothing here reads app state through a selector hook. At the root a selector
+ * subscription re-renders the whole tree every time it fires, and `character`
+ * is replaced on every status frame, so that would be a re-render of the
+ * entire app roughly once a second. State is read inside the effects through
+ * `useAppStore.getState()`, which is also what keeps the tick effect from
+ * restarting on every unrelated update (trap 6).
+ *
  * # Ingestion follows useGameLines.ts's rule rather than working around it
  *
  * `gameLines()` returns the live buffer and `push` mutates it in place, so its
@@ -33,29 +54,78 @@
  * which is the defect this whole architecture is arranged to avoid. Disconnect
  * comes from `bridgeConnected` for the same reason.
  */
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { gameDropped, gameLines, gameVersion, subscribeGame } from './gameLink'
 import { useAppStore } from '../store/useAppStore'
 import { AlertBroker } from './aiAlertBroker.ts'
-import { EventJournal } from './aiEventJournal.ts'
+import { EventJournal, seedJournalCursor } from './aiEventJournal.ts'
 import { JobStore } from './aiJobStore.ts'
 import { absentProvider, type ModelProvider } from './aiModelProvider.ts'
-import { deriveAlerts, ingestLines } from './aiIngest.ts'
-import type { Activity } from './aiReviewScheduler.ts'
-import { runWorkerOnce, type WorkerOutcome } from './aiWorker.ts'
+import {
+  deriveAlerts,
+  ingestLines,
+  runHostTick,
+  sameStatus,
+  type AiWorkerStatus,
+  type HostMemory,
+} from './aiIngest.ts'
 
-export interface AiWorkerStatus {
-  /** What the provider says about itself. Absent is the ordinary case. */
-  available: boolean
-  providerReason?: string
-  journalPending: number
-  journalLost: number
-  /** Lines the display buffer dropped before they were journalled. */
-  missedLines: number
-  pendingAlerts: number
-  jobs: Record<string, number>
-  lastOutcome: string | null
-  lastFailure: string | null
+export type { AiWorkerStatus } from './aiIngest.ts'
+
+const INITIAL_STATUS: AiWorkerStatus = {
+  available: false,
+  journalPending: 0,
+  journalLost: 0,
+  missedLines: 0,
+  pendingAlerts: 0,
+  jobs: {},
+  lastOutcome: null,
+  lastFailure: null,
+  ticks: 0,
+  unreviewedWithoutModel: 0,
+}
+
+let currentStatus: AiWorkerStatus = INITIAL_STATUS
+const statusListeners = new Set<() => void>()
+
+/**
+ * Watch the host's status.
+ *
+ * Shaped for `useSyncExternalStore`, and module-level rather than React
+ * context so a panel mounting long after the host started sees the current
+ * status immediately instead of a freshly zeroed one.
+ */
+export function subscribeAiStatus(listener: () => void): () => void {
+  statusListeners.add(listener)
+  return () => {
+    statusListeners.delete(listener)
+  }
+}
+
+/** The current status. A stable reference between publications, which is what
+ * `useSyncExternalStore` requires of a snapshot. */
+export function getAiStatus(): AiWorkerStatus {
+  return currentStatus
+}
+
+/**
+ * How often a tick count alone is worth telling anybody about.
+ *
+ * `ticks` changes every second by definition, so publishing it unconditionally
+ * would re-render every watcher once a second forever on a client with nothing
+ * happening - which is the ordinary state. It is still published periodically
+ * because it is the only field that can distinguish a live host from a dead
+ * one, and a number that stopped moving is exactly what somebody debugging
+ * this needs to see.
+ */
+const TICKS_PER_IDLE_PUBLISH = 5
+
+function publishStatus(next: AiWorkerStatus): void {
+  if (sameStatus(currentStatus, next) && next.ticks % TICKS_PER_IDLE_PUBLISH !== 0) return
+  currentStatus = next
+  // Copied before iterating: a listener that unsubscribes while being notified
+  // would otherwise mutate the set mid-loop.
+  for (const listener of [...statusListeners]) listener()
 }
 
 /** How often the host wakes to ask the scheduler. The scheduler, not this
@@ -64,25 +134,39 @@ export interface AiWorkerStatus {
 const TICK_MS = 1000
 
 /**
- * Run the worker for as long as the component is mounted.
+ * The default provider, created once.
+ *
+ * A default parameter of `absentProvider()` builds a new object on every
+ * render, and the tick effect depends on the provider, so the effect tore down
+ * and rebuilt itself - aborting any generation in flight - every time the
+ * hosting component rendered. Trap 6 arriving through a default argument
+ * rather than through a dependency array.
+ */
+const DEFAULT_PROVIDER: ModelProvider = absentProvider()
+
+/**
+ * Run the worker for as long as the hosting component is mounted.
  *
  * `enabled` rather than a conditional call, for the same reason
  * `usePresentationBridgePublisher` takes one: hooks cannot be called
  * conditionally, and only one window should host the worker.
+ *
+ * Returns nothing. Status goes to the module store above, which is the read
+ * path for every consumer; returning it here would re-render the root on
+ * every tick to deliver a number only the Settings panel reads.
  */
-export function useAiWorkerHost(
-  enabled: boolean,
-  provider: ModelProvider = absentProvider()
-): AiWorkerStatus {
+export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFAULT_PROVIDER): void {
   const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
-  const character = useAppStore((s) => s.character)
-  const bridgeConnected = useAppStore((s) => s.bridgeConnected)
 
   const journal = useRef<EventJournal>(null as unknown as EventJournal)
   const alerts = useRef<AlertBroker>(null as unknown as AlertBroker)
   const jobs = useRef<JobStore>(null as unknown as JobStore)
   if (journal.current === null) {
     journal.current = new EventJournal()
+    // A remount inside one run must not re-review everything already seen.
+    // Ignored outright when the stored cursor belongs to a previous process,
+    // because sequence numbers restart and that cursor names other events.
+    seedJournalCursor(journal.current)
     alerts.current = new AlertBroker()
     jobs.current = new JobStore()
     jobs.current.load()
@@ -94,24 +178,19 @@ export function useAiWorkerHost(
 
   const ingested = useRef(0)
   const seenDropped = useRef(0)
-  const missed = useRef(0)
   const everConnected = useRef(false)
-  const lastReviewAt = useRef<number | null>(null)
-  const lastHash = useRef<string | null>(null)
   const running = useRef(false)
-  const [status, setStatus] = useState<AiWorkerStatus>({
-    available: provider.describe().available,
-    providerReason: provider.describe().reason,
-    journalPending: 0,
-    journalLost: 0,
+  // What the host remembers between turns. A ref rather than state: nothing
+  // here should cause a render, and `runHostTick` owns advancing it.
+  const memory = useRef<HostMemory>({
+    lastReviewAt: null,
+    lastReviewedHash: null,
+    ticks: 0,
     missedLines: 0,
-    pendingAlerts: 0,
-    jobs: {},
-    lastOutcome: null,
-    lastFailure: null,
+    roomChangedAt: null,
+    lastAppendAt: null,
   })
-
-  if (bridgeConnected) everConnected.current = true
+  const lastRoomId = useRef<number | null>(null)
 
   // Ingestion. Keyed on the version counter; the buffer is read inside the
   // effect and never appears in the dependency array.
@@ -122,21 +201,48 @@ export function useAiWorkerHost(
     const result = ingestLines(journal.current, lines, ingested.current, dropped, seenDropped.current)
     ingested.current = result.ingested
     seenDropped.current = dropped
-    missed.current += result.missed
+    memory.current.missedLines += result.missed
+    // Only a real append counts. A version bump with nothing new in it is a
+    // buffer that trimmed or a stream that reconnected, and treating either
+    // as activity would keep a dead session out of `idle` forever.
+    if (result.appended > 0) memory.current.lastAppendAt = Date.now()
   }, [enabled, version])
 
-  // Alerts from parsed state.
+  // Alerts from parsed state. Subscribed to the store rather than selected
+  // out of it: this runs at the app root, where a selector would re-render the
+  // whole tree on every status frame.
   useEffect(() => {
     if (!enabled) return
-    const now = Date.now()
-    for (const a of deriveAlerts({
-      situation: character?.situation,
-      bridgeConnected,
-      everConnected: everConnected.current,
-    })) {
-      alerts.current.raise(a.priority, a.key, a.detail, now)
+    const pass = () => {
+      const { character, bridgeConnected, mapHere } = useAppStore.getState()
+      if (bridgeConnected) everConnected.current = true
+      const now = Date.now()
+
+      // The map is the honest source for "somewhere else": location.roomId can
+      // be absent on rooms the map does not know, and a null-to-null step
+      // would then read as movement. First sighting is not a change.
+      const roomId = mapHere?.id ?? null
+      if (roomId !== lastRoomId.current) {
+        if (lastRoomId.current !== null) memory.current.roomChangedAt = now
+        lastRoomId.current = roomId
+      }
+
+      const derived = deriveAlerts({
+        situation: character?.situation,
+        bridgeConnected,
+        everConnected: everConnected.current,
+      })
+      for (const a of derived) {
+        alerts.current.raise(a.priority, a.key, a.detail, now)
+      }
+      // What is still true, told to the broker on every pass. Without this a
+      // handled condition stays suppressed after it has ended, so its next
+      // occurrence - a second stun, minutes later - would never be raised.
+      alerts.current.reconcile(derived.map((a) => a.key))
     }
-  }, [enabled, character, bridgeConnected])
+    pass()
+    return useAppStore.subscribe(pass)
+  }, [enabled])
 
   // The turn loop.
   useEffect(() => {
@@ -150,58 +256,31 @@ export function useAiWorkerHost(
       if (running.current || cancelled) return
       running.current = true
       try {
-        const situation = character?.situation ?? []
-        const activity: Activity = !bridgeConnected
-          ? 'disconnected'
-          : situation.includes('in_combat')
-            ? 'combat'
-            : 'active'
-
-        const hash = JSON.stringify({ s: situation, r: character?.roundtime ?? 0 })
-        const outcome: WorkerOutcome = await runWorkerOnce(
-          {
-            journal: journal.current,
-            alerts: alerts.current,
-            jobs: jobs.current,
-            provider,
-            activity,
-            now: Date.now(),
-            nowIso: new Date().toISOString(),
-            lastReviewAt: lastReviewAt.current,
-            stateHash: hash,
-            lastReviewedHash: lastHash.current,
-            instructions: 'Review the recent event delta and report notable changes.',
+        // Read once, here, and hand the turn a snapshot. The turn awaits a
+        // generation, and state read on the far side of that await would
+        // belong to a different world than the decision that started it.
+        const { character, bridgeConnected } = useAppStore.getState()
+        const status = await runHostTick({
+          journal: journal.current,
+          alerts: alerts.current,
+          jobs: jobs.current,
+          provider,
+          app: {
+            situation: character?.situation,
+            roundtime: character?.roundtime,
+            bridgeConnected,
+            roomId: character?.location.roomId,
+            roomCombatants: character?.roomCombatants,
+            isTown: character?.location.isTown,
           },
-          controller.signal
-        )
-
-        if (outcome.did === 'review') {
-          lastReviewAt.current = Date.now()
-          if (outcome.result.ok) lastHash.current = hash
-        }
+          memory: memory.current,
+          now: Date.now(),
+          nowIso: new Date().toISOString(),
+          signal: controller.signal,
+        })
 
         if (cancelled) return
-        const health = provider.describe()
-        const byStatus: Record<string, number> = {}
-        for (const job of jobs.current.all()) byStatus[job.status] = (byStatus[job.status] ?? 0) + 1
-        const failure =
-          outcome.did === 'review' || outcome.did === 'background-job'
-            ? outcome.result.ok
-              ? null
-              : `${outcome.result.failure}: ${outcome.result.message}`
-            : null
-
-        setStatus({
-          available: health.available,
-          providerReason: health.reason,
-          journalPending: journal.current.pending(),
-          journalLost: journal.current.stats().lost,
-          missedLines: missed.current,
-          pendingAlerts: alerts.current.pendingCount(),
-          jobs: byStatus,
-          lastOutcome: outcome.did,
-          lastFailure: failure,
-        })
+        publishStatus(status)
       } finally {
         running.current = false
       }
@@ -215,7 +294,5 @@ export function useAiWorkerHost(
       controller.abort()
       clearInterval(timer)
     }
-  }, [enabled, provider, character, bridgeConnected])
-
-  return status
+  }, [enabled, provider])
 }

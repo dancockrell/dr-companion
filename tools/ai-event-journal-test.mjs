@@ -7,7 +7,15 @@
  * cancellation, crash between read and acknowledge. A journal that only works
  * when the consumer succeeds is a queue with extra steps.
  */
-import { BEFORE_FIRST_EVENT, EventJournal } from '../src/lib/aiEventJournal.ts'
+const kv = new Map()
+globalThis.localStorage = {
+  getItem: (k) => (kv.has(k) ? kv.get(k) : null),
+  setItem: (k, v) => kv.set(k, String(v)),
+  removeItem: (k) => kv.delete(k),
+}
+
+const { BEFORE_FIRST_EVENT, EventJournal, JOURNAL_SESSION_ID, saveJournalCursor, seedJournalCursor } =
+  await import('../src/lib/aiEventJournal.ts')
 
 let pass = 0
 let fail = 0
@@ -138,9 +146,57 @@ console.log('\n-- construction rejects a nonsense bound --')
   }
 }
 
+console.log('\n-- a cursor survives a remount, and refuses to survive a restart --')
+{
+  // The defect: a remount built a fresh journal at cursor 0, so everything
+  // still in the display buffer was reviewed a second time - silently, since
+  // re-reviewing looks exactly like a busy game.
+  const first = new EventJournal()
+  for (const n of [1, 2, 3, 4, 5]) first.append('line', { n }, n)
+  first.acknowledge(5)
+  saveJournalCursor(first)
+  ok('the cursor was stored at 5', first.acknowledged() === 5, String(first.acknowledged()))
+
+  const remounted = new EventJournal()
+  ok('a new journal in the same session is seeded', seedJournalCursor(remounted) === true)
+  ok('and starts from the stored cursor', remounted.acknowledged() === 5, String(remounted.acknowledged()))
+
+  remounted.append('line', { n: 6 }, 6)
+  ok('exactly one event is pending after the seed', remounted.pending() === 1, String(remounted.pending()))
+  const read = remounted.readFrom(remounted.acknowledged())
+  ok('and the read returns only the new event',
+    read.events.length === 1 && read.events[0].payload.n === 6,
+    JSON.stringify(read.events.map((e) => e.payload)))
+  ok('the seeded journal reports no loss', read.lost === 0, String(read.lost))
+
+  // The restart case: the same stored record with a different process id.
+  // Read back through the real storage key rather than a copy, so a renamed
+  // key cannot leave this check quietly passing against nothing.
+  const raw = JSON.parse(globalThis.localStorage.getItem('drc.ai-cursor.v1'))
+  ok('the stored record names this session', raw.sessionId === JOURNAL_SESSION_ID, raw.sessionId)
+  globalThis.localStorage.setItem(
+    'drc.ai-cursor.v1',
+    JSON.stringify({ sessionId: 'an-earlier-run', acknowledged: 5 })
+  )
+  const afterRestart = new EventJournal()
+  ok('a cursor from a previous run is refused', seedJournalCursor(afterRestart) === false)
+  ok('so a new process reviews from the beginning rather than skipping five events it never saw',
+    afterRestart.acknowledged() === BEFORE_FIRST_EVENT, String(afterRestart.acknowledged()))
+
+  let threw = false
+  try {
+    const used = new EventJournal()
+    used.append('line', {}, 1)
+    used.seedAcknowledged(3)
+  } catch {
+    threw = true
+  }
+  ok('seeding a journal that has already taken events is refused', threw)
+}
+
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 20
+const MIN_EXPECTED = 28
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

@@ -44,6 +44,10 @@ export type ProviderFailure =
   | 'cancelled'
   | 'invalid_output'
   | 'out_of_memory'
+  /** The prompt carried something that matches a credential, so the call was
+   * refused before it left this process. A working gate, not a broken model,
+   * and named separately so it does not read as one. */
+  | 'privacy_gate'
   | 'error'
 
 export interface ModelHealth {
@@ -147,18 +151,36 @@ export function scanForSecrets(text: string): SecretScan {
  * failure so the client keeps working, but a leak must stop the call, not
  * produce a value somebody might log.
  */
+/**
+ * Thrown by the gate below, and the only error this module raises.
+ *
+ * A distinct type so a caller can turn it into a visible failure without
+ * swallowing genuine bugs alongside it: catching Error would also catch a
+ * typo in the provider, and report it to the player as a privacy refusal.
+ * `patterns` names the kinds that matched and never the text that matched
+ * them - a diagnostic quoting the secret would be the leak it exists to
+ * prevent.
+ */
+export class PrivacyGateError extends Error {
+  readonly patterns: string[]
+
+  constructor(field: string, patterns: string[]) {
+    super(
+      `Refusing to send a prompt: request.${field} matched ${patterns.join(', ')}. ` +
+        `Credentials must never enter a model prompt.`
+    )
+    this.name = 'PrivacyGateError'
+    this.patterns = patterns
+  }
+}
+
 export function assertPromptCarriesNoSecrets(request: ModelRequest): void {
   for (const [field, text] of [
     ['instructions', request.instructions],
     ['state', request.state],
   ] as const) {
     const scan = scanForSecrets(text)
-    if (!scan.safe) {
-      throw new Error(
-        `Refusing to send a prompt: request.${field} matched ${scan.found.join(', ')}. ` +
-          `Credentials must never enter a model prompt.`
-      )
-    }
+    if (!scan.safe) throw new PrivacyGateError(field, scan.found)
   }
 }
 

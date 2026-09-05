@@ -33,8 +33,8 @@
 import type { AlertBroker } from './aiAlertBroker.ts'
 import type { EventJournal } from './aiEventJournal.ts'
 import type { JobStore } from './aiJobStore.ts'
-import type { ModelProvider, ModelResult } from './aiModelProvider.ts'
-import { generateWithinBudget } from './aiModelProvider.ts'
+import type { ModelProvider, ModelRequest, ModelResult } from './aiModelProvider.ts'
+import { generateWithinBudget, PrivacyGateError } from './aiModelProvider.ts'
 import type { Activity } from './aiReviewScheduler.ts'
 import { decideReview } from './aiReviewScheduler.ts'
 
@@ -78,6 +78,45 @@ export type WorkerOutcome =
       result: ModelResult
       status: string
     }
+
+/**
+ * Generate, turning a refused prompt into a reportable failure.
+ *
+ * `assertPromptCarriesNoSecrets` throws, correctly - a leak has to stop the
+ * call rather than produce a value somebody might log - and it throws from
+ * outside `generateWithinBudget`'s try, so nothing converted it. This module
+ * did not catch it and the host's tick had a try/finally with no catch, so
+ * the rejection went unhandled and the turn reported nothing at all: the one
+ * failure that means the privacy rules are working was also the only one
+ * invisible to the player.
+ *
+ * Unreachable today, because a live request carries only sequence numbers and
+ * event kinds. Reachable the moment anything puts game text in a request,
+ * which is what the knowledge and evidence slices are for.
+ *
+ * Only this error is caught. Anything else is a real bug and must keep
+ * travelling rather than be relabelled as a privacy refusal.
+ */
+async function generateOrRefuse(
+  provider: ModelProvider,
+  request: ModelRequest,
+  signal?: AbortSignal
+): Promise<ModelResult> {
+  try {
+    return await generateWithinBudget(provider, request, signal)
+  } catch (error) {
+    if (error instanceof PrivacyGateError) {
+      // Pattern names only. The value that matched never appears here, in a
+      // job note, or on screen.
+      return {
+        ok: false,
+        failure: 'privacy_gate',
+        message: `withheld: ${error.patterns.join(', ')}`,
+      }
+    }
+    throw error
+  }
+}
 
 /**
  * Run one turn. Returns rather than loops: the caller owns the timer, which
@@ -125,7 +164,7 @@ export async function runWorkerOnce(
     }
 
     const read = journal.readFrom(decision.fromCursor)
-    const result = await generateWithinBudget(
+    const result = await generateOrRefuse(
       provider,
       {
         instructions: deps.instructions,
@@ -171,7 +210,7 @@ export async function runWorkerOnce(
     return { did: 'background-idle', reason: started.reason ?? 'could not start the job' }
   }
 
-  const result = await generateWithinBudget(
+  const result = await generateOrRefuse(
     provider,
     {
       instructions: deps.instructions,

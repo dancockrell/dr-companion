@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "a6-publish-status-on-change",
+  "agent": "claude-code",
+  "summary": "Publish the worker status when something changed, and the tick count only every fifth turn",
+  "status": "completed",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "src/lib/aiWorkerHost.ts",
+    "src/lib/aiIngest.ts",
+    "tools/ai-worker-host-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a6-publish-status-on-change.json"
+  ],
+  "symbols": ["sameStatus", "publishStatus", "TICKS_PER_IDLE_PUBLISH"],
+  "coordination": {
+    "depends_on": ["a1-host-at-app-root"],
+    "conflicts_with": [],
+    "notes": "The comparison lives in aiIngest.ts for the reason A2 established - anything exported from aiWorkerHost.ts cannot be called by a suite - and publishStatus in the host calls it. The plan's verify is a temporary console.count in the panel; that instrument was replaced by a stronger one rather than skipped, because a render count needs the Settings sheet open and only proves a render happened, while subscribing to the store from devtools counts publications directly. Both halves are checked: the browser run measures how often it publishes with nothing happening, and the suite checks that every field except ticks is compared, driven off the status object's own keys so a field added later is covered without anybody remembering."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "in the running app on a freshly started dev server, nothing happening, Settings closed: 10 ticks elapsed and exactly 2 publications - one per fifth turn instead of ten",
+      "the same run confirmed the served module was the edited one by fetching it and grepping for TICKS_PER_IDLE_PUBLISH before measuring",
+      "node --experimental-strip-types tools/ai-worker-host-test.mjs: 70 checked, 0 failed (was 55)",
+      "decisive lines: 'OK a different tick count alone is not a change - it moves every second by design', 'OK every field of the status except ticks has a changed value to test with  all covered', and one 'a change to X is a change' per field",
+      "sabotage - drop journalPending from the comparison: 'FAIL a change to journalPending is a change  3', 69 checked 1 failed, exit 1; restored and md5sum 75c64976754d9315b6eab7a0d4864c44 matched",
+      "npx tsc -b: exit 0",
+      "node tools/run-tests.mjs (DRC_TEST_PORT=7971): all passed, 101 suites, 3094 checks",
+      "an earlier measurement on the long-running dev server read 0 ticks and 0 publications. That was the instrument, not the code: the page was holding a broken mid-edit HMR state whose console still carried 'runWorkerOnce is not defined' from an older build. A restarted server on a clean port gave the numbers above."
+    ]
+  }
+}

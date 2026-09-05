@@ -9,7 +9,7 @@ this app. None of it is sent anywhere. Nothing here is a password, a
 credential or a game session secret: the app never sees the player's
 password, which goes to Lich's own login (plan section 5, bar 2).
 
-23 keys, owned by 19 files, found by scanning
+24 keys, owned by 20 files, found by scanning
 295 source files.
 
 ## The keys
@@ -19,6 +19,7 @@ password, which goes to Lich's own login (plan section 5, bar 2).
 | `dr-companion-prefs-v1` | UI preferences: mode, theme, sound volumes, and the other settings in `PersistedPrefs`. Explicitly not credentials or session secrets. | `src/lib/persistence.ts` |
 | `dr-companion-profiles-v1` | One record per character (last seen, per-character toggles), keyed by profile. | `src/lib/profiles.ts` |
 | `dr-companion:task-tile-order` | The order the task tiles are arranged in on the Tasks panel. | `src/components/dashboard/TaskFlowPanel.tsx` |
+| `drc.ai-cursor.v1` | How far the AI worker had read when its window was last rebuilt, tagged with the run that wrote it so a later run ignores it. Two numbers and a tag; no game text. | `src/lib/aiEventJournal.ts` |
 | `drc.ai-jobs.v1` | Background AI jobs and their status. Absent unless the optional local model has been used. | `src/lib/aiJobStore.ts` |
 | `drc.armor-loadouts.v1` | A character's corrections to the derived armour coverage, which the live inventory feed cannot supply. | `src/lib/armorLoadout.ts` |
 | `drc.attach-port.v2` | The last port the player typed into the game connection bar. A number, not JSON. | `src/components/game/GameConnectionBar.tsx` |

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "task_id": "a1-host-at-app-root",
+  "agent": "claude-code",
+  "summary": "Host the AI worker at the app root and let the panel read a module-level status store, so the worker runs whether or not Settings is open",
+  "status": "completed",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "src/App.tsx",
+    "src/lib/aiWorkerHost.ts",
+    "src/components/shared/AiWorkerPanel.tsx",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a1-host-at-app-root.json"
+  ],
+  "symbols": [
+    "useAiWorkerHost",
+    "subscribeAiStatus",
+    "getAiStatus",
+    "AiWorkerPanel"
+  ],
+  "coordination": {
+    "depends_on": ["local-ai-host-wiring"],
+    "conflicts_with": [],
+    "notes": "Extends the existing owner aiWorkerHost.ts rather than adding a second host: the hook keeps its name, its refs and its three effects, and only the publication path changes from component state to a module-level store beside it. AiWorkerPanel stops calling the hook and reads that store, which is the whole defect - the worker only existed while the Settings sheet was mounted. App.tsx gains one line beside usePresentationBridgePublisher, the established precedent for a single-window root hook. Two judgment calls recorded here rather than asked: (1) the hook now returns void instead of AiWorkerStatus, because a root hook that returned live status would re-render the whole app once per tick - the store is the read path for everyone; (2) the hook reads character and bridgeConnected through useAppStore.getState() and useAppStore.subscribe rather than selector hooks, for the same reason - a selector subscription at the root re-renders the entire tree on every status frame, roughly once a second. That also removes the per-tick effect restart that trap 6 describes, and the default absent provider is now a module singleton rather than a fresh object per render, which was restarting the tick effect on every render."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "npx tsc -b: exit 0",
+      "node tools/run-tests.mjs: all passed (101 suites, 3039 checks; unchanged from baseline)",
+      "node tools/plan-audit.mjs: plan ok, 108 increments, 123 paths checked",
+      "dev server from this worktree at 127.0.0.1:1437, Settings closed, devtools: const m = await import('/src/lib/aiWorkerHost.ts'); getAiStatus().ticks read twice 3s apart returned first 4, second 7 - the host runs with the panel unmounted, which it could not do before",
+      "same page: subscribeAiStatus received 3 notifications in 2.5s and the snapshot read available false, providerReason 'No local model is installed.', lastOutcome 'background-idle', ticks 26 - the panel's read path is live",
+      "git diff --cached --check: whitespace clean"
+    ]
+  }
+}

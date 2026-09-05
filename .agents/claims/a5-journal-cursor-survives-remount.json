@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "a5-journal-cursor-survives-remount",
+  "agent": "claude-code",
+  "summary": "Seed a remounted journal from this session's stored cursor, and refuse a cursor written by a previous process",
+  "status": "completed",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "src/lib/aiEventJournal.ts",
+    "src/lib/aiIngest.ts",
+    "src/lib/aiWorkerHost.ts",
+    "tools/ai-event-journal-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a5-journal-cursor-survives-remount.json"
+  ],
+  "symbols": ["seedAcknowledged", "saveJournalCursor", "seedJournalCursor", "JOURNAL_SESSION_ID"],
+  "coordination": {
+    "depends_on": ["a1-host-at-app-root"],
+    "conflicts_with": [],
+    "notes": "The persistence lives in aiEventJournal.ts rather than in the host, because that module already owns cursors and putting the record anywhere else would mean two places deciding what a cursor means. The host calls it; the plan's wording is satisfied and there is still one owner. The session id is generated at load and never persisted as a stable identity, which is what makes the restart check safe without anybody having to remember to clear anything: a record from a previous run cannot match, so it is ignored. The save happens inside runHostTick and only when the cursor actually moved, so a quiet session does not write to storage once a second. Note what this does not do, and the doc comment says so: sequence numbers restart per process, so this survives a remount and deliberately not a restart - JobStore.recoverInterrupted is the restart-side answer."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "node --experimental-strip-types tools/ai-event-journal-test.mjs: 38 checked, 0 failed (was 27)",
+      "decisive lines: 'OK and starts from the stored cursor  5', 'OK exactly one event is pending after the seed  1', 'OK and the read returns only the new event  [{\"n\":6}]'",
+      "the restart half: 'OK a cursor from a previous run is refused' and 'OK so a new process reviews from the beginning rather than skipping five events it never saw  0'",
+      "sabotage - delete the body of seedAcknowledged so it is a no-op: 'FAIL and starts from the stored cursor  0', 37 checked 1 failed, exit 1; restored and md5sum a1eb3713bca976e9e97ba30576b77f14 matched",
+      "npx tsc -b: exit 0",
+      "node tools/run-tests.mjs (DRC_TEST_PORT=7971): all passed, 101 suites, 3079 checks - up 10",
+      "the gitleaks pre-commit hook passed with no bypass despite the new storage-key literal"
+    ]
+  }
+}

@@ -207,20 +207,35 @@ change to either that is not made to both fails the build. Edit them together.
 |---|---|
 | `queued` | `running`, `cancelled` |
 | `running` | `checkpointed`, `awaiting_review`, `completed`, `failed`, `cancelled`, `queued` |
-| `checkpointed` | `running`, `cancelled`, `failed` |
+| `checkpointed` | `running`, `queued`, `cancelled` |
 | `awaiting_review` | `completed`, `failed`, `cancelled` |
-| `completed` | — |
-| `failed` | — |
-| `cancelled` | — |
+| `completed` | - |
+| `failed` | - |
+| `cancelled` | - |
 
-Two changes are pending and deliberately not written above, because the table
-must describe the code as it stands rather than as it is about to be.
-Increment A12 of `PLAN_TO_1_0.md` will require a `resultRef` on
-`running → completed`, so a job cannot reach a terminal success without
-naming what it produced, and will add `checkpointed → queued` so a resumable
-job can be handed back to the queue instead of only forward to `running`. The
-implementation handoff of 5 Sep 2026 records both; neither is true of the code
-today.
+The two changes this section previously recorded as pending are now true of
+the code, and each is worth its explanation.
+
+**`running` to `completed` is legal only when the transition carries a
+`resultRef`.** The rule it bends exists because that transition is exactly the
+one a crash or a bug can forge. The real case it keeps is a job that finished
+with nothing to review - evaluation mining that found no cases - which has
+genuinely completed and has nothing to hand a reviewer. A `resultRef` is
+something only a job that actually ran can supply, so the exception cannot be
+reached by the accident the rule guards against. Anything with a candidate
+still goes through `awaiting_review`.
+
+**`checkpointed` to `failed` is no longer legal.** A job holding a checkpoint
+has somewhere to resume from, and declaring it failed throws that away while
+recording something untrue about it. If the checkpoint itself is unusable, the
+honest route is `running` and then `failed`, which says the resume was
+attempted. `checkpointed` to `queued` is the new entry, so a resumable job can
+be handed back to the queue rather than only forward into `running`.
+
+`completed`, `failed` and `cancelled` are terminal and have no outgoing
+transitions: a completed job that could be moved again would make its own
+status meaningless.
+
 
 Initial job families:
 

@@ -91,6 +91,20 @@ export function preemptsBackgroundWork(priority: AlertPriority): boolean {
 
 export class AlertBroker {
   private pending = new Map<string, Alert>()
+  /**
+   * Conditions that have been dealt with and have not yet gone away.
+   *
+   * `acknowledge` used to delete the key outright, and the host re-derives
+   * `situation:stunned` from character state on every update - so a stun
+   * lasting four rounds became four urgent reviews, one a second with a real
+   * provider, each answering a question already answered.
+   *
+   * A map rather than the set of keys the design called for, because the
+   * point of keeping the record is `occurrences`: "stunned four rounds
+   * running" is worth more than "stunned", and a set would throw that away at
+   * exactly the moment it began to matter.
+   */
+  private handled = new Map<string, Alert>()
   private nextSeq = 1
   private raisedCount = 0
   private acknowledgedCount = 0
@@ -122,9 +136,60 @@ export class AlertBroker {
       }
     }
 
+    const alreadyHandled = this.handled.get(key)
+    if (alreadyHandled) {
+      alreadyHandled.occurrences += 1
+      alreadyHandled.at = at
+      alreadyHandled.detail = detail
+
+      // Critical is exempt, and deliberately so. A disconnect that has been
+      // looked at once and is still happening is not noise to be filed away;
+      // the one priority that must never be suppressed must not be
+      // suppressible by having been acknowledged.
+      if (priority !== 'critical') {
+        return { alert: alreadyHandled, deduplicated: true, preempts: false }
+      }
+      this.handled.delete(key)
+      alreadyHandled.priority = priority
+      this.pending.set(key, alreadyHandled)
+      return { alert: alreadyHandled, deduplicated: true, preempts: true }
+    }
+
     const alert: Alert = { seq: this.nextSeq++, priority, key, at, detail, occurrences: 1 }
     this.pending.set(key, alert)
     return { alert, deduplicated: false, preempts: preemptsBackgroundWork(priority) }
+  }
+
+  /**
+   * Tell the broker which conditions are still true.
+   *
+   * This is what separates "handled" from "over". A handled key stays
+   * suppressed only while its condition is still being reported; once it
+   * stops appearing here it is forgotten, so the next occurrence is a fresh
+   * alert with a fresh count rather than a suppressed repeat of something
+   * that ended minutes ago.
+   *
+   * Called by the host with the keys `deriveAlerts` produced this pass, so
+   * the definition of "still true" stays with the code that decides what an
+   * alert is, not with the broker.
+   */
+  reconcile(activeKeys: Iterable<string>): string[] {
+    const active = new Set(activeKeys)
+    const cleared: string[] = []
+    for (const key of this.handled.keys()) {
+      if (!active.has(key)) {
+        this.handled.delete(key)
+        cleared.push(key)
+      }
+    }
+    return cleared
+  }
+
+  /** How many handled conditions are still being reported. Exposed because a
+   * number that only ever goes up is the first sign `reconcile` is not being
+   * called. */
+  handledCount(): number {
+    return this.handled.size
   }
 
   /**
@@ -158,9 +223,15 @@ export class AlertBroker {
    * double-acknowledge is visible rather than looking like success.
    */
   acknowledge(key: string): boolean {
-    const had = this.pending.delete(key)
-    if (had) this.acknowledgedCount += 1
-    return had
+    const alert = this.pending.get(key)
+    if (!alert) return false
+    this.pending.delete(key)
+    // Retired from the queue, remembered as handled. Forgetting it here is
+    // what made a four-round stun four separate urgent reviews; `reconcile`
+    // is what eventually forgets it, once the condition has actually stopped.
+    this.handled.set(key, alert)
+    this.acknowledgedCount += 1
+    return true
   }
 
   /** Does anything pending require background work to stop? */

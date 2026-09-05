@@ -32,6 +32,8 @@
  * events under load would be indistinguishable from one that was working.
  */
 
+import { readJSON, writeJSON } from './storage.ts'
+
 /** Monotonic, stable, never reused within a session. `0` is "before the first
  * event", which is why sequence numbers start at 1: a cursor of 0 is a
  * meaningful "nothing acknowledged yet" rather than an ambiguous default. */
@@ -185,6 +187,36 @@ export class EventJournal {
     return this.committed
   }
 
+  /**
+   * Start a fresh journal from a cursor an earlier instance had reached.
+   *
+   * Only meaningful within one process. Sequence numbers restart at 1 in a new
+   * one, so a cursor from a previous run names events this journal has never
+   * held and would silently skip everything up to that number. `acknowledge`
+   * therefore keeps its refusal to move past what has been appended, and this
+   * is the one deliberate way around it - refused outright once anything has
+   * been appended, because seeding is a construction step and not an edit.
+   *
+   * What this recovers is a remount: the host being torn down and rebuilt
+   * while the app keeps running, which used to abandon the cursor and review
+   * everything already seen a second time. A restart is a different problem
+   * with a different answer - see `JobStore.recoverInterrupted`, which
+   * resolves work that outlived its process rather than pretending it did not.
+   */
+  seedAcknowledged(cursor: Cursor): void {
+    if (!Number.isInteger(cursor) || cursor < 0) {
+      throw new Error(`Cursor must be a non-negative integer, got ${cursor}`)
+    }
+    if (this.appendedCount > 0) {
+      throw new Error(`Cannot seed a journal that has already taken ${this.appendedCount} events.`)
+    }
+    this.committed = cursor
+    // Sequencing continues after the seeded cursor. Without this the first
+    // append would be seq 1, already behind the cursor, so pending() would go
+    // negative and readFrom would hand back nothing at all.
+    this.nextSeq = Math.max(this.nextSeq, cursor + 1)
+  }
+
   /** The last successfully consumed cursor. Survives failed reads untouched. */
   acknowledged(): Cursor {
     return this.committed
@@ -205,4 +237,66 @@ export class EventJournal {
       newestAppended: this.nextSeq - 1,
     }
   }
+}
+
+/**
+ * This process, as far as any stored cursor is concerned.
+ *
+ * Generated once at load and never persisted as a stable identity: that is
+ * exactly what makes the check below safe. A cursor written by a previous run
+ * carries that run's id, cannot match this one, and is therefore ignored -
+ * without anybody having to remember to clear it, and without a stale value
+ * from last week being able to skip a session's first thousand events.
+ */
+export const JOURNAL_SESSION_ID = `${Date.now().toString(36)}-${randomTag()}`
+
+/**
+ * Eight random bytes as hex.
+ *
+ * `Math.random` would do the job this value actually has, which is telling one
+ * run apart from the next. CodeQL reads any identifier ending in SESSION_ID as
+ * a security context and flags it high severity: right that the pattern is
+ * dangerous, wrong about this instance. The safe primitive costs nothing, so
+ * this uses it rather than leaving a suppression comment nobody will
+ * re-examine. `getRandomValues` and not `randomUUID`, because the latter needs
+ * a secure context and this has to work in the WebView the app ships in.
+ */
+function randomTag(): string {
+  const bytes = new Uint8Array(8)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+const CURSOR_KEY = 'drc.ai-cursor.v1'
+
+interface StoredCursor {
+  sessionId: string
+  acknowledged: Cursor
+}
+
+/**
+ * Remember how far this session's consumer has got.
+ *
+ * Cheap enough to call whenever the cursor moves, and deliberately not called
+ * when it has not: a write per tick would be a storage write per second for a
+ * value that had not changed.
+ */
+export function saveJournalCursor(journal: EventJournal): void {
+  writeJSON(CURSOR_KEY, { sessionId: JOURNAL_SESSION_ID, acknowledged: journal.acknowledged() })
+}
+
+/**
+ * Seed a new journal from this session's stored cursor, if there is one.
+ *
+ * Returns whether it seeded, rather than nothing, so a caller can tell "there
+ * was nothing to restore" from "this cursor belonged to a previous run" - the
+ * two look identical from the journal afterwards, and only one of them is
+ * evidence that the mechanism is working.
+ */
+export function seedJournalCursor(journal: EventJournal): boolean {
+  const stored = readJSON<StoredCursor | null>(CURSOR_KEY, null)
+  if (!stored || stored.sessionId !== JOURNAL_SESSION_ID) return false
+  if (!Number.isInteger(stored.acknowledged) || stored.acknowledged < 0) return false
+  journal.seedAcknowledged(stored.acknowledged)
+  return true
 }
