@@ -56,7 +56,14 @@ check('crowded rooms summarize people without replacing the clickable floor rail
 check('inventory is permanently visible beside the room description', /aria-label="Inventory"/.test(battle) && /<InventoryPanel/.test(battle))
 check('combat controls use the complete grouped macro catalog', /MACROS\.filter/.test(actions) && /'combat'/.test(actions) && /'goods'/.test(actions) && /'magic'/.test(actions))
 check('every combat variation is a directly wired compact icon button', /macro\.variations\.map/.test(actions) && /onClick=\{\(\) => run\(variation\.commands\)\}/.test(actions) && /h-9 w-9/.test(actions))
-check('game and multiple taskflows permanently share an equal overflow-safe workspace', /grid-cols-\[minmax\(0,1fr\)_minmax\(0,1fr\)\]/.test(chat) && /gap-1 p-1/.test(chat) && /Game and automation workspace/.test(chat) && /title="Functions & scripts"/.test(chat) && /<StreamTabs/.test(chat) && /<TaskFlowPanel/.test(chat) && !/paneMode/.test(chat))
+// The property is that the transcript and the scripts pane are BOTH always on
+// screen - never tabbed, never switched - so a running workflow can never hide
+// the game text a player is supervising it by. D4 moved where that is
+// arranged: it used to be a two-column grid inside GameChatColumn, and it is
+// now the console row in App.tsx, whose left cell holds the scripts pane and
+// whose middle holds the transcript. Same guarantee, one level out, so the
+// check follows it rather than being deleted along with the grid it named.
+check('game and taskflows are permanently both on screen, never switched', /title="Functions & scripts"/.test(app) && /<TaskFlowPanel/.test(app) && /<GameChatColumn/.test(app) && /aria-label="Console"/.test(app) && /<StreamTabs/.test(chat) && /<GameCommandBar/.test(chat) && !/paneMode/.test(app) && !/paneMode/.test(chat))
 check('the functions title and global catalog controls share one toolbar', /title\?: string/.test(taskflows) && /h-10 shrink-0 items-center/.test(taskflows) && /Filter tasks and scripts/.test(taskflows) && !/A filter across everything/.test(taskflows))
 check('the game title and channel filters share one toolbar', /heading=\{<>/.test(chat) && /heading\?: ReactNode/.test(readFileSync(new URL('../src/components/game/StreamTabs.tsx', import.meta.url), 'utf8')) && !/h-10 shrink-0 items-center.*Game/.test(chat))
 check('inventory title, search, and load share one toolbar', /flex min-w-0 items-center gap-2 text-xs/.test(inventory) && /shrink-0 \$\{pressureColor\}/.test(inventory))
@@ -96,7 +103,14 @@ check('existing command hotbar pins remain removable and executable after launch
 check('hotbar commands keep their exact icon, color, tooltip, and macro execution path', /actionIcon\(pin\.actionKey\)/.test(hotbar) && /actionAccent\(pin\.actionKey\)/.test(hotbar) && /variation\.commands\.join/.test(hotbar) && /macro\.run\(variation\.commands\)/.test(hotbar))
 check('map title, character, search and controls share one compact header line', /search=\{<PlaceSearch/.test(map) && /<header className="flex min-w-0 items-start gap-2"/.test(map) && !/gives is a place on the map/.test(map))
 check('room title, hands and statuses own a dedicated line above the art', /aria-label="Battle room and status"/.test(battle) && /<BattleStatus/.test(battle) && /framed=\{false\}/.test(battle) && !/absolute inset-x-0 top-0 z-30 flex/.test(scene))
-check('combat pressure yields width to Battle without erasing saved workspace preferences', /battleActive \? 220/.test(app) && /roomWantVisible/.test(app) && /battleWantVisible/.test(app) && /combatRoomWant/.test(app) && /combatBattleWant/.test(app) && /dashGrowthMax/.test(app) && /dashGrowthMax/.test(readFileSync(new URL('../src/lib/columns.ts', import.meta.url), 'utf8')))
+// Unchanged property, changed mechanism. Combat still hands width to the
+// primary play surface and still does it as a display-time request that never
+// rewrites a stored width - the surface is now the board slot rather than a
+// Battle column, and `combatRoomWant` is gone (columns.ts carries a note
+// where it was: the frame has no "left workspace" for it to cap). What must
+// stay true is that the growth is computed at render time from the live
+// combat flag and that nothing calls a setter for it.
+check('combat pressure yields width to the board without erasing saved preferences', /combatBattleWant\(boardW, hostW, battleActive\)/.test(app) && /roomWant: boardWantVisible/.test(app) && /mapGrowthMax: leftRailWantVisible/.test(app) && /dashGrowthMax: rightRailW/.test(app) && /dashGrowthMax/.test(readFileSync(new URL('../src/lib/columns.ts', import.meta.url), 'utf8')) && !/combatRoomWant/.test(app))
 check('the urgent combat banner is one line and does not repeat its primary state', /titleFlags/.test(situationBanner) && /filter\(\(f\) => !titleFlags\.has\(f\)\)/.test(situationBanner) && /items-baseline/.test(situationBanner))
 check('the room header suppresses duplicate combat and non-tactical race/guild identity', /<StatusBoard hideInCombat/.test(battleStatus) && /hideInCombat && r\.flag === 'in_combat'/.test(statusBoard) && /character\.hands/.test(handsRow) && !/character\.race/.test(handsRow) && !/character\.guild/.test(handsRow) && !/character\.circle/.test(handsRow))
 check('tested equipment conflicts are mounted beside the live hands and announced without claiming an all-clear', /<GearNotice/.test(battleStatus) && /role="status"/.test(gearNotice) && /aria-live="polite"/.test(gearNotice) && /if \(!conflicts\.length \|\| !hands \|\| !worn\) return null/.test(gearNotice))

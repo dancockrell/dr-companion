@@ -7,6 +7,12 @@ import { BattleColumn } from './components/room/BattleColumn'
 import { GameChatColumn } from './components/room/GameChatColumn'
 import { MapColumn } from './components/room/MapColumn'
 import { Splitter } from './components/layout/Splitter'
+import { TopBar } from './components/layout/TopBar'
+import { TaskFlowPanel } from './components/dashboard/TaskFlowPanel'
+import { StatsPanel } from './components/shared/StatsPanel'
+import { RiskBar } from './components/shared/RiskBar'
+import { ActionsPanel } from './components/shared/ActionsPanel'
+import { AiWorkerPanel } from './components/shared/AiWorkerPanel'
 import { AppControls } from './components/layout/AppControls'
 import { SafetyFooter } from './components/layout/SafetyFooter'
 import { SituationBanner } from './components/layout/SituationBanner'
@@ -23,17 +29,18 @@ import { subscribePresentationIntents } from './lib/presentationIntents.ts'
 import { useAiWorkerHost } from './lib/aiWorkerHost.ts'
 import {
   combatBattleWant,
-  combatRoomWant,
   fitColumns,
   pickReset,
-  DEFAULT_ROOM_W,
-  DEFAULT_MAP_W,
-  DEFAULT_DASH_W,
   pixelsForSizeShare,
   sizeShareForPixels,
   storedSizeShare,
+  frameFits,
+  SIDE_LEFT_W,
+  SIDE_RIGHT_W,
+  BOARD_MIN_W,
+  CONSOLE_H,
+  TOPBAR_H,
 } from './lib/columns'
-import { BATTLE_SCENE_MAX_WIDTH_VH } from './components/room/BattleColumn'
 import type { PanelId } from './lib/layout'
 import { useAppStore } from './store/useAppStore'
 import { installKeybindings } from './lib/keybindings'
@@ -90,21 +97,41 @@ function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app
   return { kind: 'app' }
 }
 
-/** Room - map + chat/functions, stacked - now a real stored preference
- * rather than whatever fitColumns had left over, so it is a genuine third
- * column alongside Battle and Experience. See columns.ts's own doc comment
- * on why an unclaimed leftover still goes here by default. */
-const ROOM_KEY = 'drc.room-width.v2'
-const BATTLE_KEY = 'drc.battle-width.v3'
-/** Was `drc.dash-width.v1` - the same stored preference, same fitColumns
- * slot, now spent on the Experience strip instead of the middle dashboard
- * that no longer exists. Renamed rather than reused under its old name so a
- * stale 420px "dashboard" width from before this change reads as exactly
- * what it now is - and because DEFAULT_DASH_W/DASH_EMPTY_WANT in columns.ts
- * were sized for a two-column panel grid, not a single scrolling board; see
- * the width picked below. */
-const EXPERIENCE_KEY = 'drc.experience-width.v2'
-const MAP_HEIGHT_KEY = 'drc.map-height.v3'
+/*
+ * The three widths of the approved frame's workspace row.
+ *
+ * `docs/mockups/dr-companion-isometric-mvp.html` is
+ * `228px | minmax(620px, 1fr) | 250px`: character side, board slot, context
+ * side. Those are this app's three columns now, and they are the same three
+ * `fitColumns` has always resolved - see the mapping written out at the
+ * `fitColumns` call below, which is the one place that knows it.
+ * So the frame is the existing arithmetic with the mockup's numbers as its
+ * defaults, not a second layout engine beside it: the squeeze banner, the
+ * floors, "Reset widths" and the share-not-pixels persistence all keep
+ * working, and the rails stay draggable rather than becoming three hard
+ * numbers a player cannot argue with.
+ *
+ * Every key is bumped, because each slot now holds different content at a
+ * different size and a stored share is just a number. A v2 "room" share of
+ * 0.34 meant a third of the window for map-plus-transcript; read as the new
+ * left rail it would be a 460px column of vitals. That is exactly the "old
+ * data under a new meaning" failure - silent, plausible, and wrong - so the
+ * bump makes every existing install fall back to the mockup's defaults once,
+ * the same way RIGHT_RAIL_KEY's own earlier rename already handled a
+ * meaning-change to this family of settings.
+ */
+const LEFT_RAIL_KEY = 'drc.left-rail-width.v1'
+const BOARD_KEY = 'drc.board-slot-width.v1'
+/** The context side. Two renames back this was `drc.dash-width.v1`, the
+ * dashboard column; then the Experience strip. It is the mockup's right rail
+ * now - alerts, actions and the AI worker - and the Experience strip has
+ * moved to the console row's own right cell, so the old name would describe
+ * neither the slot nor its contents. */
+const RIGHT_RAIL_KEY = 'drc.right-rail-width.v1'
+/** How the board slot divides between the map above and the battle picture
+ * below. `.v4` because the slot changed: v3 measured the map against the
+ * game transcript, which now lives in the console row instead. */
+const MAP_HEIGHT_KEY = 'drc.map-height.v4'
 const LEGACY_MAP_HEIGHT_KEY = 'drc.map-height.v1'
 
 /**
@@ -126,7 +153,7 @@ const LEGACY_MAP_HEIGHT_KEY = 'drc.map-height.v1'
  * count are both just numbers, and reading an old 460 (px) as 460 (a share,
  * i.e. 46000%) would be silent, wrong, and exactly the "old data under a
  * new meaning" trap. A bumped key simply falls back to the default once,
- * the same way `EXPERIENCE_KEY`'s own rename above already handled a prior
+ * the same way `RIGHT_RAIL_KEY`'s own rename above already handled a prior
  * meaning-change to this exact family of settings.
  *
  * The rescue path in fitColumns still matters and is untouched: a share
@@ -162,7 +189,7 @@ const MIN_PX = 80
  * the horizontal axis). 240px holds the header, a handful of game lines and
  * the input row without feeling cramped.
  */
-const MIN_GAME_CHAT_H = 240
+const MIN_BATTLE_H = 240
 /** The map is watched continuously; game/chat remains open below it. */
 const DEFAULT_MAP_SHARE = 0.58
 
@@ -248,12 +275,12 @@ export default function App() {
    * measurement below lands on the next layout pass - close enough for one
    * frame, and self-correcting the moment `hostW` is real.
    */
-  const [roomShare, setRoomShare] = useState<number>(() =>
-    readShare(ROOM_KEY, window.innerWidth, DEFAULT_ROOM_W)
+  const [leftRailShare, setRoomShare] = useState<number>(() =>
+    readShare(LEFT_RAIL_KEY, window.innerWidth, SIDE_LEFT_W)
   )
 
-  const [battleShare, setBattleShare] = useState<number>(() =>
-    readShare(BATTLE_KEY, window.innerWidth, DEFAULT_MAP_W)
+  const [boardShare, setBattleShare] = useState<number>(() =>
+    readShare(BOARD_KEY, window.innerWidth, BOARD_MIN_W)
   )
 
   /** Experience, all the way to the right - see ExperienceStrip.tsx. A
@@ -263,8 +290,8 @@ export default function App() {
    * two-digit mindstate number, the longest real combination) rather than
    * guessed, with the scrollbar hidden (ExperienceStrip's own `no-scrollbar`)
    * so it never eats into that measurement. */
-  const [experienceShare, setExperienceShare] = useState<number>(() =>
-    readShare(EXPERIENCE_KEY, window.innerWidth, DEFAULT_DASH_W)
+  const [rightRailShare, setRightRailShare] = useState<number>(() =>
+    readShare(RIGHT_RAIL_KEY, window.innerWidth, SIDE_RIGHT_W)
   )
 
   /**
@@ -322,25 +349,25 @@ export default function App() {
   // running window keeps the player's proportions while it is resized.
   const widthReference = hostW || window.innerWidth
   const heightReference = hostH || window.innerHeight
-  const roomW = pixelsForSizeShare(roomShare, widthReference, MIN_PX)
-  const battleW = pixelsForSizeShare(battleShare, widthReference, MIN_PX)
-  const experienceW = pixelsForSizeShare(experienceShare, widthReference, MIN_PX)
+  const leftRailW = pixelsForSizeShare(leftRailShare, widthReference, MIN_PX)
+  const boardW = pixelsForSizeShare(boardShare, widthReference, MIN_PX)
+  const rightRailW = pixelsForSizeShare(rightRailShare, widthReference, MIN_PX)
   const mapH = pixelsForSizeShare(mapHShare, heightReference, MIN_MAP_H)
 
-  const setRoomW = (px: number) => {
+  const setLeftRailW = (px: number) => {
     const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
     setRoomShare(share)
-    writeShare(ROOM_KEY, share)
+    writeShare(LEFT_RAIL_KEY, share)
   }
-  const setBattleW = (px: number) => {
+  const setBoardW = (px: number) => {
     const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
     setBattleShare(share)
-    writeShare(BATTLE_KEY, share)
+    writeShare(BOARD_KEY, share)
   }
-  const setExperienceW = (px: number) => {
+  const setRightRailW = (px: number) => {
     const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
-    setExperienceShare(share)
-    writeShare(EXPERIENCE_KEY, share)
+    setRightRailShare(share)
+    writeShare(RIGHT_RAIL_KEY, share)
   }
   const setMapH = (px: number) => {
     const share = sizeShareForPixels(Math.max(MIN_MAP_H, Math.round(px)), heightReference)
@@ -349,90 +376,147 @@ export default function App() {
   }
 
   const character = useAppStore((s) => s.character)
-  const experienceEmpty = !character
   const battleActive = character?.situation.includes('in_combat') ?? false
-  const roomWantVisible = combatRoomWant(roomW, hostW, battleActive)
-  const battleWantVisible = combatBattleWant(battleW, hostW, battleActive)
+  const leftRailWantVisible = leftRailW
+  /* In combat the board becomes the primary surface and the rails pay for it
+   * - `fitColumns` squeezes them toward their floors to fund the growth. A
+   * display-time request only: the stored widths are untouched and return
+   * the instant combat ends. */
+  const boardWantVisible = combatBattleWant(boardW, hostW, battleActive)
   // When both minimum panes physically cannot fit, preserve the primary game
   // surface and temporarily collapse the supplementary map. This is a view
   // adaptation only: mapH is not rewritten and returns with a taller window.
   const mapCanShareHeight =
-    hostH <= 0 || hostH >= MIN_MAP_H + MIN_GAME_CHAT_H + SPLIT_W
+    hostH <= 0 || hostH >= MIN_MAP_H + MIN_BATTLE_H + SPLIT_W
 
   /*
-   * `fitColumns`/`pickReset` (lib/columns.ts) still speak of "map" and
-   * "dash" — they were written for the dashboard this app no longer has,
-   * but the arithmetic never actually depended on which physical column
-   * played which part. Battle plays the part `mapWant`/`map` used to play
-   * (a fixed, player-set width, non-poppable); Experience now plays the
-   * part `dashWant`/`dash` used to play (a fixed width with an "empty"
-   * allowance for when there is nothing to show); Room (`roomWant`/`room`)
-   * is the map + chat/functions stack, a real preference now rather than
-   * whatever was left. Only the call site needs to know that; the module
-   * itself never has to change or care.
+   * `fitColumns`/`pickReset` (lib/columns.ts) still speak of "room", "map"
+   * and "dash". They were named for a dashboard this app has not had for a
+   * long time, and the arithmetic never depended on which physical column
+   * played which part - which is exactly why the approved frame could be
+   * built on it rather than beside it. The mapping now:
+   *
+   *   room  -> the board slot in the middle (BOARD_MIN_W and up)
+   *   map   -> the left rail, the character side (SIDE_LEFT_W)
+   *   dash  -> the right rail, the context side (SIDE_RIGHT_W)
+   *
+   * The board takes `room`'s part rather than `map`'s, which is the reverse
+   * of what the names suggest and is the point. `room` is the slot that
+   * absorbs width nobody claimed - "any width nobody asked for still goes
+   * here by default", per the module's own header - and on this frame the
+   * column that should grow into a wide window is the board. The rails are
+   * 228 and 250 because that is what their content needs; a 431px column of
+   * vitals on a large monitor is not a feature.
+   *
+   * That number is measured rather than imagined. With the mapping the other
+   * way round, the left rail came out **431px at 1366x768** instead of 228,
+   * because it was sitting in `room`'s slot being handed the surplus. Turning
+   * the mapping around fixed it without touching `columns.ts` at all, which
+   * is the argument for having built the frame on this module rather than
+   * beside it.
+   *
+   * Three peer columns with floors, a fair squeeze when they do not fit, and
+   * a "Reset widths" escape - all of which the frame needs and none of which
+   * had to be rewritten to get it. Only this call site knows the mapping;
+   * the module neither knows nor cares.
    */
+
+  /**
+   * Which rails the window is too narrow to draw at all - D2's `frameFits`,
+   * doing the job it was added for. Decided before `fitColumns` runs,
+   * because a rail that is not drawn must not be given a width either.
+   *
+   * The mockup answers this question with `body { min-width: 1120px;
+   * overflow: hidden }`, which is the one thing from it this client must not
+   * copy: clipping is precisely the failure `columns.ts` exists to prevent,
+   * and a control off the edge with no scrollbar to reach it by is not a
+   * small layout problem, it is a button nobody can press. Dropping a rail
+   * is the honest version of the same adaptation - the player loses a panel
+   * and can see that they have, instead of losing a control silently.
+   */
+  const frame = frameFits(hostW || window.innerWidth, hostH || window.innerHeight)
+  const showLeftRail = !frame.mustCollapse.includes('left')
+  const showRightRail = !frame.mustCollapse.includes('right')
+
   const fit = fitColumns({
     hostW,
-    roomWant: roomWantVisible,
-    mapWant: battleWantVisible,
-    dashWant: experienceW,
-    mapDocked: true,
+    roomWant: boardWantVisible,
+    mapWant: leftRailWantVisible,
+    dashWant: rightRailW,
+    mapDocked: showLeftRail,
     splitW: SPLIT_W,
-    dashEmpty: experienceEmpty,
-    // The scene is height-limited and landscape (8:5), so its own width cap
-    // is a fixed share of `hostH` — `BATTLE_SCENE_MAX_WIDTH_VH`, the same
-    // number `RoomScene`'s `min(100%, …vh)` uses to size the DOM (see
-    // `BattleColumn`'s export of it). Grow Battle automatically only while
-    // that width can become visible scene; explicit divider choices above
-    // this remain untouched inside fitColumns.
-    //
-    // This used to be a second, independently-guessed constant (0.62) that
-    // was tighter than the scene's real ceiling (0.832), so Battle plateaued
-    // well short of the width `RoomScene` would actually have used — on a
-    // wide-but-not-equally-tall window the column stopped growing at ~62% of
-    // the window's height no matter how much wider the window got. Sharing
-    // the one real number instead of carrying a second approximation of it
-    // fixes that class of drift outright rather than re-tuning the guess.
-    mapGrowthMax: hostH > 0 ? Math.max(battleW, hostH * (BATTLE_SCENE_MAX_WIDTH_VH / 100)) : undefined,
-    // A single-column skill rail stops gaining information once its labels,
-    // numbers and useful bar length fit. In combat, return any width beyond
-    // that to the two active play surfaces. This is a display-time ceiling:
-    // the player's saved Experience width returns as soon as combat ends.
-    dashGrowthMax: battleActive ? 220 : undefined,
+    // The rails do not have an "empty" width. `dashEmpty`/`MAP_EMPTY_WANT`
+    // exist so a column with nothing in it stops holding a player's stored
+    // width hostage; these two hold vitals and context cards, which are the
+    // same size whether or not there is a character to put in them.
+    dashEmpty: false,
+    // Cap each rail's growth at the width it actually asked for, so the
+    // surplus-sharing in fitColumns has nothing to give them and every spare
+    // pixel reaches the board. Without this the left rail takes half of any
+    // unclaimed width, which is the 431px above.
+    mapGrowthMax: leftRailWantVisible,
+    dashGrowthMax: rightRailW,
   })
-  const battleWFit = fit.map
-  const experienceWFit = fit.dash
-  const leftWFit = fit.room
+  const rightRailWFit = fit.dash
+  const leftRailWFit = fit.map
+  // `fit.room` - the board's fitted width - is deliberately not read. The two
+  // rails are the only columns given an explicit width; the board is
+  // `flex-1` and takes exactly what they leave, which is the same number by
+  // construction and one that cannot round to a pixel more than the row has.
+  // Setting both would be two authorities on one width, and the loser of
+  // that argument is a horizontal scrollbar.
 
+  /* The same slot mapping as the `fitColumns` call above - room is the board,
+   * map is the left rail, dash is the right rail. Written out twice would be
+   * two mappings to keep in step, so if you change one, change both; they are
+   * adjacent for exactly that reason. */
   const resetWidths = () => {
     const plan = pickReset({
       hostW,
-      mapDocked: true,
-      roomWant: roomW,
-      mapWant: battleW,
-      dashWant: experienceW,
+      mapDocked: showLeftRail,
+      roomWant: boardW,
+      mapWant: leftRailW,
+      dashWant: rightRailW,
       splitW: SPLIT_W,
     })
-    if (plan.room !== null) setRoomW(plan.room)
-    if (plan.map !== null) setBattleW(plan.map)
-    if (plan.dash !== null) setExperienceW(plan.dash)
+    if (plan.room !== null) setBoardW(plan.room)
+    if (plan.map !== null) setLeftRailW(plan.map)
+    if (plan.dash !== null) setRightRailW(plan.dash)
   }
 
   /** Small enough to keep a column grabbable, and no opinion beyond that. */
   const atLeastVisible = (px: number) => Math.max(MIN_PX, px)
 
   /**
-   * Two dividers, three real columns - Room, Battle, Experience, each with
-   * its own stored width now (see `roomW` above). Each divider sets the
-   * width of the column on its *near* side directly, the same "distance
-   * from an edge" shape either way: the first measures Room from the left
-   * edge, the second measures Experience from the right edge, and Battle -
-   * the one column with a divider on both sides - is left to whatever
-   * `fitColumns` gives it from its own stored width and the other two's.
+   * Two dividers, three columns. Each divider sets the width of the column
+   * on its *near* side directly, the same "distance from an edge" shape
+   * either way: the first measures the left rail from the left edge, the
+   * second measures the right rail from the right edge, and the board slot -
+   * the one column with a divider on both sides - takes whatever
+   * `fitColumns` leaves it.
    */
-  const moveLeftBattleEdge = (share: number) => setRoomW(atLeastVisible(hostW * share))
-  const moveBattleExperienceEdge = (share: number) =>
-    setExperienceW(atLeastVisible(hostW * (1 - share)))
+  const moveLeftRailEdge = (share: number) => setLeftRailW(atLeastVisible(hostW * share))
+  const moveRightRailEdge = (share: number) =>
+    setRightRailW(atLeastVisible(hostW * (1 - share)))
+
+  /*
+   * The workspace and the console row are the same track list in the mockup,
+   * and they are the same two numbers here: `leftRailWFit` and
+   * `rightRailWFit`, fitted once above. The workspace puts a `Splitter`
+   * between its columns so the rails can be dragged; the console row does
+   * not, because dragging it would be a second, independent way to set one
+   * width. Two renderings, one source - the alternative is two track lists
+   * that agree today and disagree the first time somebody drags anything.
+   *
+   * Note what is deliberately *not* copied from the mockup: its middle
+   * column is `minmax(620px, 1fr)`, and a hard 620px floor here would push
+   * the total past a narrow window and put the right rail off the edge -
+   * the clipping bug again, wearing a track list. `fitColumns` guarantees
+   * the board its share and `frameFits` has already decided whether both
+   * rails can be afforded, so the floor lives in the arithmetic rather than
+   * being asserted twice in two places that can drift.
+   */
+  const railStyle = (px: number) => ({ width: Math.round(px) })
 
   if (v.kind === 'map') {
     return (
@@ -468,11 +552,17 @@ export default function App() {
           mount. */}
       {setupComplete && <GameSignals />}
 
+      {setupComplete && character && (
+        <div className="shrink-0" style={{ height: TOPBAR_H }}>
+          <TopBar />
+        </div>
+      )}
+
       {setupComplete && fit.squeezed && (
         <div className="flex shrink-0 items-center gap-2 border-b border-border bg-surface-raised px-2 py-1 text-xs text-ink-faint">
           <span>
-            Not enough width for the stored column sizes — Battle and Experience
-            are being scaled down to keep the game pane usable.
+            Not enough width for the stored column sizes — the side rails are
+            being scaled down to keep the board usable.
           </span>
           <button
             type="button"
@@ -484,6 +574,10 @@ export default function App() {
         </div>
       )}
 
+      {/*
+        The workspace row: the mockup's `228px | minmax(620px,1fr) | 250px`.
+        Character side, board slot, context side.
+      */}
       <main ref={hostRef} className="flex min-h-0 flex-1 overflow-hidden">
         {!setupComplete ? (
           <div className="flex-1 overflow-y-auto">
@@ -493,12 +587,43 @@ export default function App() {
           </div>
         ) : !character ? (
           /* Nothing else here has anything real to show without a
-           * character either - map, chat, battle and experience are all
-           * readings of a live character, not independent tools. */
+           * character either - map, board and context are all readings of a
+           * live character, not independent tools. */
           <WaitingForCharacter />
         ) : (
           <>
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            {showLeftRail && (
+              <div
+                className="flex min-w-0 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border p-1"
+                style={railStyle(leftRailWFit)}
+                aria-label="Character side"
+              >
+                <PanelBoundary label="Vitals">
+                  <StatsPanel dense />
+                </PanelBoundary>
+                <PanelBoundary label="Risk">
+                  <RiskBar />
+                </PanelBoundary>
+              </div>
+            )}
+
+            {showLeftRail && (
+              <Splitter
+                label="Resize the character side and the board"
+                value={hostW > 0 ? leftRailWFit / hostW : 0.17}
+                onChange={moveLeftRailEdge}
+                min={0}
+                max={1}
+              />
+            )}
+
+            {/*
+              The board slot. D0 chose a separate Godot window for 1.0, so
+              until that window is up this holds the surfaces the board is
+              made of: the zone map, and the battle picture under it. The
+              divider between them is the same stored share it always was.
+            */}
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Board">
               {dock.docked && mapCanShareHeight && (
                 <>
                   <div
@@ -506,7 +631,7 @@ export default function App() {
                     style={{
                       height:
                         hostH > 0
-                          ? Math.max(0, Math.min(mapH, hostH - MIN_GAME_CHAT_H - SPLIT_W))
+                          ? Math.max(0, Math.min(mapH, hostH - MIN_BATTLE_H - SPLIT_W))
                           : mapH,
                     }}
                   >
@@ -515,12 +640,12 @@ export default function App() {
                     </PanelBoundary>
                   </div>
                   <Splitter
-                    label="Resize map and game chat"
+                    label="Resize the map and the battle picture"
                     orientation="horizontal"
                     value={hostH > 0 ? mapH / hostH : DEFAULT_MAP_SHARE}
                     onChange={(share) => setMapH(hostH * share)}
                     min={MIN_MAP_H / Math.max(hostH, 1)}
-                    max={hostH > 0 ? 1 - (MIN_GAME_CHAT_H + SPLIT_W) / hostH : 0.8}
+                    max={hostH > 0 ? 1 - (MIN_BATTLE_H + SPLIT_W) / hostH : 0.8}
                     defaultValue={DEFAULT_MAP_SHARE}
                   />
                 </>
@@ -530,50 +655,103 @@ export default function App() {
                   Map hidden while the window is this short. Enlarge it to restore your saved map height.
                 </div>
               )}
-              <div className="min-h-0 flex-1 overflow-auto">
-                <PanelBoundary label="Game and chat">
-                  <GameChatColumn />
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <PanelBoundary label="Battle">
+                  <BattleColumn />
                 </PanelBoundary>
               </div>
             </div>
 
-            <Splitter
-              label="Resize room and battle columns"
-              value={hostW > 0 ? leftWFit / hostW : 0.34}
-              onChange={moveLeftBattleEdge}
-              min={0}
-              max={1}
-            />
+            {showRightRail && (
+              <Splitter
+                label="Resize the board and the context side"
+                value={hostW > 0 ? 1 - rightRailWFit / hostW : 0.85}
+                onChange={moveRightRailEdge}
+                min={0}
+                max={1}
+              />
+            )}
 
+            {/*
+              The context side: what you consult rather than what you watch.
+              `AiWorkerPanel` lives here now, not in Settings. It reports what
+              the background worker is doing, and a status display that only
+              exists while a settings sheet is open reports it to nobody -
+              see its own header. It *moved*: Settings no longer mounts it,
+              because one component with two mounts is two panels pretending
+              to be one, and they drift.
+            */}
+            {showRightRail && (
+              <div
+                className="flex min-w-0 shrink-0 flex-col gap-1 overflow-y-auto border-l border-border p-1"
+                style={railStyle(rightRailWFit)}
+                aria-label="Context side"
+              >
+                <PanelBoundary label="Actions">
+                  <ActionsPanel dense />
+                </PanelBoundary>
+                <PanelBoundary label="Local AI worker">
+                  <AiWorkerPanel />
+                </PanelBoundary>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      {/*
+        The console row: the mockup's third `.app` row, `224px` tall and
+        spanning the width, tracked `228px | 1fr | 250px` to line up with the
+        workspace above it. Context actions, the transcript, the recent-state
+        strip.
+
+        The transcript is here rather than in the board slot, and that is a
+        decision worth naming because D0(a) can be read as putting it in the
+        slot: it lives in exactly one place, and the mockup's own console row
+        is built around it (`.transcript` is `30px | 1fr | 38px`, a heading, a
+        scroll, and a command line). Two mounts of the transcript would be a
+        fork whichever slot won.
+      */}
+      {setupComplete && character && (
+        <div
+          className="flex shrink-0 overflow-hidden border-t border-border bg-surface-raised"
+          style={{ height: CONSOLE_H }}
+          aria-label="Console"
+        >
+          {showLeftRail && (
             <div
-              className="min-w-0 shrink-0 overflow-hidden border-l border-border"
-              style={{ width: battleWFit }}
+              className="min-w-0 shrink-0 overflow-hidden border-r border-border"
+              style={railStyle(leftRailWFit + SPLIT_W)}
             >
-              <PanelBoundary label="Battle">
-                <BattleColumn />
+              <PanelBoundary label="Functions and scripts">
+                <TaskFlowPanel title="Functions & scripts" dense />
               </PanelBoundary>
             </div>
+          )}
 
-            <Splitter
-              label="Resize battle and experience columns"
-              value={hostW > 0 ? 1 - experienceWFit / hostW : 0.85}
-              onChange={moveBattleExperienceEdge}
-              min={0}
-              max={1}
-            />
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <PanelBoundary label="Game and chat">
+              <GameChatColumn />
+            </PanelBoundary>
+          </div>
 
-            {/* No PanelBoundary border/header here on purpose - see
-                ExperienceStrip.tsx: "we don't need borders and padding." A
-                crash inside it would still be worth catching, so the
-                boundary stays, just without Box's chrome around it. */}
-            <div className="min-w-0 shrink-0 overflow-hidden" style={{ width: experienceWFit }}>
+          {/* No PanelBoundary chrome around the strip - see
+              ExperienceStrip.tsx: "we don't need borders and padding." A
+              crash inside it is still worth catching, so the boundary stays,
+              just without Box's frame around it. */}
+          {showRightRail && (
+            <div
+              className="min-w-0 shrink-0 overflow-hidden border-l border-border"
+              style={railStyle(rightRailWFit + SPLIT_W)}
+            >
               <PanelBoundary label="Experience">
                 <ExperienceStrip skills={character?.skills ?? []} />
               </PanelBoundary>
             </div>
-          </>
-        )}
-      </main>
+          )}
+        </div>
+      )}
+
       {setupComplete && <GameActionNotice />}
       {setupComplete && <Console />}
       {setupComplete && <QuickSwitchBar />}

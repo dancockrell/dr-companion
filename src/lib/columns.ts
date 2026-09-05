@@ -59,6 +59,30 @@
  * this is applied at the point of use, so dragging the window narrow and wide
  * again returns the layout they set rather than a souvenir of the narrowest
  * moment.
+ *
+ * # Which columns these are now
+ *
+ * Everything above is still exactly how the arithmetic behaves, but the
+ * physical columns it is describing have been renamed twice and moved once,
+ * and the history is kept because the bugs in it are the reason for the
+ * rules. Since D4 the three slots are the approved frame's
+ * (`docs/mockups/dr-companion-isometric-mvp.html`, transcribed further down):
+ *
+ *     room  ->  the board slot in the middle - the map and the battle
+ *               picture. It is `room` because `room` is the slot that
+ *               absorbs width nobody claimed, and the board is what should
+ *               grow into a wide window.
+ *     map   ->  the left rail, the character side, 228px.
+ *     dash  ->  the right rail, the context side, 250px.
+ *
+ * The mapping lives at the `fitColumns` call in `App.tsx` and nowhere else;
+ * this module has never needed to know which physical column plays which
+ * part, which is exactly why the frame could be built on it instead of
+ * beside it. So read "Room and Battle share the surplus" above as "the board
+ * takes the surplus": both rails are capped at their own ask by
+ * `mapGrowthMax`/`dashGrowthMax`, because a 431px column of vitals on a
+ * large monitor is not a feature - and 431px is what it measured before that
+ * cap existed.
  */
 
 /** Enough for the game header, the input and the channel tabs to be usable. */
@@ -105,6 +129,106 @@ export const MAP_EMPTY_WANT = 220
 /** Same reasoning, for the dashboard's "waiting for a character" state. */
 export const DASH_EMPTY_WANT = 300
 
+/* ------------------------------------------------------------------------ *
+ * The approved frame
+ *
+ * Everything above resolves three *player-dragged* columns against a window.
+ * What follows is the fixed outer frame those columns live inside, and it is
+ * a different kind of number: nobody drags it, and it is not a preference.
+ * It is a transcription.
+ *
+ * Source: `docs/mockups/dr-companion-isometric-mvp.html` (Codex, 4 Sep 2026,
+ * "the approved client direction"). Read its CSS rather than eyeballing its
+ * render - `.app` is `grid-template-rows: 48px minmax(0,1fr) 224px`,
+ * `.workspace` and `.console` are both
+ * `grid-template-columns: 228px minmax(620px,1fr) 250px`, and `body` carries
+ * `min-width: 1120px; min-height: 720px`. Each constant below is one of those
+ * declarations and nothing else; if the mockup changes, these change with it
+ * and the comment says where to look.
+ *
+ * They live here, beside `fitColumns` and the share helpers, because
+ * `columns.ts` is already the module that answers "how wide is that". A
+ * second module holding the other half of the same question would drift from
+ * this one, and then both would be wrong.
+ * ------------------------------------------------------------------------ */
+
+/** `.workspace`/`.console` column 1 - the character side. */
+export const SIDE_LEFT_W = 228
+/** `.workspace`/`.console` column 3 - the context side. */
+export const SIDE_RIGHT_W = 250
+/** The `minmax(620px, 1fr)` floor of the middle board slot. */
+export const BOARD_MIN_W = 620
+/** `.app` row 3 - the console row, spanning the full width. */
+export const CONSOLE_H = 224
+/** `.app` row 1 - the top bar. */
+export const TOPBAR_H = 48
+/** `body { min-width }`. */
+export const FRAME_MIN_W = 1120
+/** `body { min-height }`. Not in D2's named list, but `frameFits` is given a
+ * height and a function that ignores half its arguments is a function that
+ * cannot answer half the question. */
+export const FRAME_MIN_H = 720
+
+/**
+ * What the frame minimum spends on something other than the three columns.
+ *
+ * 1120 - (228 + 620 + 250) = 22. Derived rather than typed, so it cannot
+ * disagree with the four constants it is made of: the mockup's `body`
+ * min-width and its column track list are two separate declarations, and a
+ * hand-copied 22 here would go stale the moment either moved.
+ */
+export const FRAME_CHROME_W = FRAME_MIN_W - (SIDE_LEFT_W + BOARD_MIN_W + SIDE_RIGHT_W)
+
+export interface FrameFit {
+  /** Both minimums met: every part of the mockup frame can be drawn. */
+  fits: boolean
+  /**
+   * The side rails that cannot be drawn at this width, in the order they
+   * have to go. Empty while the frame fits.
+   *
+   * Right before left. The right rail is context - alerts, AI, the things
+   * you consult; the left rail is vitals and room, which you read
+   * continuously while playing. Width-only: a short window shrinks the
+   * board slot vertically, it does not remove a column, so `fits` can be
+   * false with nothing in here.
+   */
+  mustCollapse: readonly ('right' | 'left')[]
+  /** How many px short of `FRAME_MIN_W` / `FRAME_MIN_H`. 0 when it fits. */
+  shortW: number
+  shortH: number
+  /** What the board slot gets once the surviving rails have taken theirs. */
+  boardW: number
+}
+
+/**
+ * Does the approved frame fit this window, and if not, what goes first?
+ *
+ * Answering "which column collapses first" as data rather than as a media
+ * query means the answer is testable at a width nobody has a monitor for,
+ * and that the CSS and the test cannot disagree about it - the mockup's own
+ * `@media (max-width: 1250px)` rule narrows all three tracks at once, which
+ * is a fine thing for a static page to do and no use at all to a client that
+ * has to say *why* a panel vanished.
+ */
+export function frameFits(innerWidth: number, innerHeight: number): FrameFit {
+  const mustCollapse: ('right' | 'left')[] = []
+  let available = Math.max(0, innerWidth) - FRAME_CHROME_W - BOARD_MIN_W
+
+  if (available < SIDE_LEFT_W + SIDE_RIGHT_W) mustCollapse.push('right')
+  if (available < SIDE_LEFT_W) mustCollapse.push('left')
+
+  if (!mustCollapse.includes('right')) available -= SIDE_RIGHT_W
+  if (!mustCollapse.includes('left')) available -= SIDE_LEFT_W
+
+  return {
+    fits: innerWidth >= FRAME_MIN_W && innerHeight >= FRAME_MIN_H,
+    mustCollapse,
+    shortW: Math.max(0, FRAME_MIN_W - innerWidth),
+    shortH: Math.max(0, FRAME_MIN_H - innerHeight),
+    boardW: BOARD_MIN_W + Math.max(0, available),
+  }
+}
+
 /**
  * The widths the app ships with, for both a fresh install (App.tsx's
  * `useState` fallback) and the "Reset widths" button (`pickReset` below) -
@@ -121,20 +245,31 @@ export const DASH_EMPTY_WANT = 300
  * comfortably (460+620+150+16 = 1246px, well under 1366px) with real margin
  * left for `fitColumns`' surplus-sharing to spend on Room and Battle.
  *
- * `DEFAULT_MAP_W`'s name is `fitColumns`' own "map" slot, which this app's
- * call site spends on Battle (see the doc comment on `fitColumns` in
- * `App.tsx`) - unrelated to `mapDock.ts`'s own `DEFAULT.width`, the *real*
- * Map panel's docked width inside Room. The two constants sharing the same
- * name and, before this comment, the same numeric value was a coincidence
- * left over from before that rename, not a live relationship - don't change
+ * `DEFAULT_MAP_W`'s name is `fitColumns`' own "map" slot - unrelated to
+ * `mapDock.ts`'s own `DEFAULT.width`, the *real* Map panel's docked width.
+ * The two constants sharing a name and, at one point, a value was a
+ * coincidence left over from a rename, not a live relationship: don't change
  * one expecting it to affect the other.
+ *
+ * Since D4 these three ARE the approved frame's three widths, expressed once.
+ * `App.tsx` maps the frame onto this module's slots as room -> the board,
+ * map -> the left rail, dash -> the right rail (the mapping is written out
+ * at its `fitColumns` call, which is the only place that knows it), so the
+ * defaults have to follow the same mapping or "Reset widths" and a fresh
+ * install stop being the same layout - which is the exact drift the first
+ * paragraph of this comment is about, and it very nearly happened again:
+ * with the frame in place and these still at 460/620/150, Reset would have
+ * given the vitals rail 620px.
+ *
+ * Defined *as* the frame constants rather than as copies of their values,
+ * so there is one number per column and no pair to keep in step.
  */
-export const DEFAULT_MAP_W = 620
-export const DEFAULT_DASH_W = 150
-/** Room's own default - enough over `ROOM_MIN` to not look like a floor the
- * moment the app opens, matched to what the map + chat/functions stack
- * actually asked for in practice before room had a stored width of its own. */
-export const DEFAULT_ROOM_W = 460
+export const DEFAULT_MAP_W = SIDE_LEFT_W
+export const DEFAULT_DASH_W = SIDE_RIGHT_W
+/** The board's default is its floor: it is the slot that grows into whatever
+ * the window has spare, so it does not need a starting width above the
+ * minimum the mockup gives it. */
+export const DEFAULT_ROOM_W = BOARD_MIN_W
 
 /** Resolve persisted proportional preferences without mixing shares and pixels. */
 export function storedSizeShare(raw: string | null, reference: number, fallbackPx: number): number {
@@ -153,22 +288,27 @@ export function sizeShareForPixels(px: number, reference: number): number {
   return reference > 0 ? Math.max(0, px) / reference : 0
 }
 
-/**
- * The left workspace (map plus game/functions) is important, but in combat it
- * must not be allowed to spend most of the window while the actual room,
- * actors, armor, floor pile and commands collapse into the middle. This is a
- * display-only request: it never rewrites the divider position the player
- * chose, and the complete preference returns the instant combat ends.
+/*
+ * `combatRoomWant` was here.
  *
- * Thirty-six percent keeps map labels and the two lower work panes useful at
- * ordinary laptop widths while leaving Battle visibly larger. The normal
- * room default is the floor so entering combat never makes an already narrow
- * left workspace narrower still.
+ * It capped "the left workspace - map plus game and functions" at 36% of the
+ * window during combat, so that column could not spend most of the screen
+ * while the battle column stayed cramped. That was the right rule for a
+ * layout with a left workspace and a battle column arguing over one window.
+ *
+ * The approved frame has neither. There is one board in the middle holding
+ * the map and the battle picture together, and two side rails at 228 and 250
+ * that are already the width their content needs - so there is nothing left
+ * for the cap to be about, and applied to a 228px rail it was arithmetically
+ * a no-op (`min(228, max(620, 36%))`). `combatBattleWant` below still does
+ * the useful half of the same job from the other side: it grows the board in
+ * combat, and `fitColumns` squeezes the rails to pay for it.
+ *
+ * Deleted rather than left exported with no caller. It also read
+ * `DEFAULT_ROOM_W`, which now means the board's default width, so leaving it
+ * would have been a function quietly computing the wrong number for anyone
+ * who called it next.
  */
-export function combatRoomWant(roomWant: number, hostW: number, inCombat: boolean): number {
-  if (!inCombat || hostW <= 0) return roomWant
-  return Math.min(roomWant, Math.max(DEFAULT_ROOM_W, Math.floor(hostW * 0.36)))
-}
 
 /** Battle's matching combat-only floor. A historic narrow divider choice is
  * still the right preference outside combat, but preserving it while eighteen
@@ -389,105 +529,5 @@ export function fitColumns({
     // close.
     room: Math.max(0, forColumns - mapRounded - dashRounded),
     squeezed: true,
-  }
-}
-
-/* ------------------------------------------------------------------------ *
- * The approved frame
- *
- * Everything above resolves three *player-dragged* columns against a window.
- * What follows is the fixed outer frame those columns live inside, and it is
- * a different kind of number: nobody drags it, and it is not a preference.
- * It is a transcription.
- *
- * Source: `docs/mockups/dr-companion-isometric-mvp.html` (Codex, 4 Sep 2026,
- * "the approved client direction"). Read its CSS rather than eyeballing its
- * render - `.app` is `grid-template-rows: 48px minmax(0,1fr) 224px`,
- * `.workspace` and `.console` are both
- * `grid-template-columns: 228px minmax(620px,1fr) 250px`, and `body` carries
- * `min-width: 1120px; min-height: 720px`. Each constant below is one of those
- * declarations and nothing else; if the mockup changes, these change with it
- * and the comment says where to look.
- *
- * They live here, beside `fitColumns` and the share helpers, because
- * `columns.ts` is already the module that answers "how wide is that". A
- * second module holding the other half of the same question would drift from
- * this one, and then both would be wrong.
- * ------------------------------------------------------------------------ */
-
-/** `.workspace`/`.console` column 1 - the character side. */
-export const SIDE_LEFT_W = 228
-/** `.workspace`/`.console` column 3 - the context side. */
-export const SIDE_RIGHT_W = 250
-/** The `minmax(620px, 1fr)` floor of the middle board slot. */
-export const BOARD_MIN_W = 620
-/** `.app` row 3 - the console row, spanning the full width. */
-export const CONSOLE_H = 224
-/** `.app` row 1 - the top bar. */
-export const TOPBAR_H = 48
-/** `body { min-width }`. */
-export const FRAME_MIN_W = 1120
-/** `body { min-height }`. Not in D2's named list, but `frameFits` is given a
- * height and a function that ignores half its arguments is a function that
- * cannot answer half the question. */
-export const FRAME_MIN_H = 720
-
-/**
- * What the frame minimum spends on something other than the three columns.
- *
- * 1120 - (228 + 620 + 250) = 22. Derived rather than typed, so it cannot
- * disagree with the four constants it is made of: the mockup's `body`
- * min-width and its column track list are two separate declarations, and a
- * hand-copied 22 here would go stale the moment either moved.
- */
-export const FRAME_CHROME_W = FRAME_MIN_W - (SIDE_LEFT_W + BOARD_MIN_W + SIDE_RIGHT_W)
-
-export interface FrameFit {
-  /** Both minimums met: every part of the mockup frame can be drawn. */
-  fits: boolean
-  /**
-   * The side rails that cannot be drawn at this width, in the order they
-   * have to go. Empty while the frame fits.
-   *
-   * Right before left. The right rail is context - alerts, AI, the things
-   * you consult; the left rail is vitals and room, which you read
-   * continuously while playing. Width-only: a short window shrinks the
-   * board slot vertically, it does not remove a column, so `fits` can be
-   * false with nothing in here.
-   */
-  mustCollapse: readonly ('right' | 'left')[]
-  /** How many px short of `FRAME_MIN_W` / `FRAME_MIN_H`. 0 when it fits. */
-  shortW: number
-  shortH: number
-  /** What the board slot gets once the surviving rails have taken theirs. */
-  boardW: number
-}
-
-/**
- * Does the approved frame fit this window, and if not, what goes first?
- *
- * Answering "which column collapses first" as data rather than as a media
- * query means the answer is testable at a width nobody has a monitor for,
- * and that the CSS and the test cannot disagree about it - the mockup's own
- * `@media (max-width: 1250px)` rule narrows all three tracks at once, which
- * is a fine thing for a static page to do and no use at all to a client that
- * has to say *why* a panel vanished.
- */
-export function frameFits(innerWidth: number, innerHeight: number): FrameFit {
-  const mustCollapse: ('right' | 'left')[] = []
-  let available = Math.max(0, innerWidth) - FRAME_CHROME_W - BOARD_MIN_W
-
-  if (available < SIDE_LEFT_W + SIDE_RIGHT_W) mustCollapse.push('right')
-  if (available < SIDE_LEFT_W) mustCollapse.push('left')
-
-  if (!mustCollapse.includes('right')) available -= SIDE_RIGHT_W
-  if (!mustCollapse.includes('left')) available -= SIDE_LEFT_W
-
-  return {
-    fits: innerWidth >= FRAME_MIN_W && innerHeight >= FRAME_MIN_H,
-    mustCollapse,
-    shortW: Math.max(0, FRAME_MIN_W - innerWidth),
-    shortH: Math.max(0, FRAME_MIN_H - innerHeight),
-    boardW: BOARD_MIN_W + Math.max(0, available),
   }
 }

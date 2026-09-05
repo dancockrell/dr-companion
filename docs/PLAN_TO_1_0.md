@@ -672,20 +672,25 @@ whether it is embedded, docked or a separate window is D0.
   do: `const MAP_WINDOW_ENABLED = false` beside `view()` (`src/App.tsx:58`); `if (q.get('view') === 'map' && MAP_WINDOW_ENABLED)`. Gate every opener: `grep -rn "view=map" src/` → each behind the same constant.
   verify: dev server; `?view=map` renders the main app; `grep -rn "view=map" src/ | grep -v MAP_WINDOW_ENABLED` → empty.
 
-- [ ] **D4  Console row and side columns** (≈40; two commits)
+- [x] **D4  Console row and side columns** (≈40; two commits)
+  commit: (this PR) verified: 5 Sep 2026 minutes: 165
   touches: src/App.tsx, src/components/room/GameChatColumn.tsx, src/lib/columns.ts
   depends-on: D3
   do: commit 1: move the game transcript + command line into a bottom row of `CONSOLE_H` spanning the workspace, per the mockup's `.console` grid `228px | 1fr | 250px`; the existing `GameConnectionBar` stays mounted inside it (`tools/game-connection-owner-test.mjs` enforces this). Commit 2: left side = vitals/room/mindstate stack; right side = context/alerts/AI (the `AiWorkerPanel` moves here from Settings — one component, two possible mounts is a fork, so it *moves*; Settings keeps only the provider URL field from H2). Existing panel ids stay; only their placement changes. Three hard rules from the handoff's §9 apply to whatever renders in the top bar and the board slot: the location line carries freshness and confirmation state ("Room 998 · confirmed 3 s ago", never a bare name); an unresolved location says "unresolved", never the last known town; nothing in the slot is a second minimap.
   verify: D5's measurement passes at 1366×768 and 1920×1080; `node tools/game-connection-owner-test.mjs` green; a test renders the top bar with `mapHere = null` and asserts the text contains "unresolved" and not "Crossing".
 
-- [ ] **D5  Measure three resolutions** (≈25)
+- [x] **D5  Measure three resolutions** (≈25)
+  commit: (this PR) verified: 5 Sep 2026 minutes: 45
   touches: none
   depends-on: D4
   do: browser `resize_window` 1366×768, 1920×1080, 2560×1440; `javascript_tool`: for every element in the workspace, `getBoundingClientRect().right <= innerWidth`, and `document.body.scrollWidth <= document.body.clientWidth`, and at 1366×768 `document.body.scrollHeight <= innerHeight + 2`. Print violation counts.
   verify: zero at all three, printed as counts; fix clips in the column CSS and re-measure.
   pitfalls: screenshots lie about pixels — read the DOM numbers.
 
-- [ ] **D6  Delete the map-window path** (≈25)
+- [!] **D6  Delete the map-window path** (≈25)
+  blocked-on: its own `depends-on` — D5 has not survived a real play session. Every D5 measurement was taken against the mock bridge; there is no live Lich/DragonRealms session available to this worktree, so the dependency is unmet by construction rather than by omission. The map window is already unreachable (D3's `MAP_WINDOW_ENABLED = false`), so nothing user-visible is waiting on this: it is a deletion, and deleting on an unmet dependency buys nothing.
+  note: a second, separable problem was found while sizing this. The `do:` says to remove `'map'` from `PanelId` and `PANEL_DATA_CONTRACTS`, but that entry's own `purpose` reads "Retiring from this wrapper once Godot owns world/route presentation — kept here only as the current, still-live fallback until that migration slice lands", and that slice has not landed: D0 chose a separate Godot window for 1.0, and after D4 the map still renders in the board slot and still pops out through `?view=panel&id=map`, which is a different path from the `?view=map` window this increment is about. Removing the id would delete a live panel. Deleting `MapWindow.tsx` is safe and separable; removing the panel id belongs with Lane J's map audit or the Godot migration, and wants a line in section 10 first.
+  also: `MapWindow.tsx` is read by five tests outside this increment's `touches:` — `aux-window-boundary-test`, `battlespace-test`, `gateway-test`, `map-loading-test` and `map-state-sync-test` (the last asserts properties of "both map surfaces"). They all go red on the deletion, correctly; whoever takes D6 should expect to update them and should say so in the commit.
   touches: src/App.tsx, src/components/MapWindow.tsx, src/lib/layout.ts, src/lib/panelDataContracts.ts, tools/panel-data-contracts-test.mjs, tools/mapdock-test.mjs
   depends-on: D5 survived one real play session (date in the claim)
   do: remove the `kind: 'map'` branch and `MAP_WINDOW_ENABLED`; delete `MapWindow.tsx`; remove `'map'` from `PanelId` (`src/lib/layout.ts:28`) and both default `order` arrays (`:120`, `:129`) and from `PANEL_DATA_CONTRACTS`; the contracts test fails on the missing id — update it; `grep -rn "MapWindow\|'map'" src/ tools/` → resolve every hit.

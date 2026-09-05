@@ -55,6 +55,7 @@
   "test:cards",
   "test:layout",
   "test:columns",
+  "test:location-line",
   "test:freelayout",
   "test:dock",
   "test:mapdock",

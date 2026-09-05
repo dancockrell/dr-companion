@@ -27,7 +27,6 @@
 import { readFileSync } from 'node:fs'
 import {
   combatBattleWant,
-  combatRoomWant,
   fitColumns,
   pickReset,
   ROOM_MIN,
@@ -75,15 +74,20 @@ console.log('-- proportional persistence remains proportional during live resize
   ok('invalid stored data falls back to the requested pixel default', storedSizeShare('460', 1440, DEFAULT_ROOM_W) === DEFAULT_ROOM_W / 1440)
 
   const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  // The names changed in D4 when the three columns became the approved
+  // frame's left rail, board slot and right rail. The property these two
+  // assert did not: every dimension a player can drag is held as a share of
+  // the window rather than a pixel count, and resolved against the measured
+  // host on every render.
   ok(
     'App keeps every adjustable dimension as live share state',
-    ['roomShare', 'battleShare', 'experienceShare', 'mapHShare'].every((name) =>
+    ['leftRailShare', 'boardShare', 'rightRailShare', 'mapHShare'].every((name) =>
       appSource.includes(`const [${name}, set`),
     ),
   )
   ok(
     'App resolves live shares against the current host dimensions',
-    appSource.includes('pixelsForSizeShare(roomShare, widthReference') &&
+    appSource.includes('pixelsForSizeShare(leftRailShare, widthReference') &&
       appSource.includes('pixelsForSizeShare(mapHShare, heightReference'),
   )
 }
@@ -139,24 +143,31 @@ console.log('\n-- combat can reclaim an oversized Experience rail without rewrit
   ok('the combat layout no longer reports a squeeze', f.squeezed === false, String(f.squeezed))
 }
 
-console.log('\n-- combat makes the battlespace the primary visual surface --')
+console.log('\n-- combat makes the board the primary visual surface --')
 {
-  ok('ordinary room width is unchanged outside combat', combatRoomWant(900, 1412, false) === 900, String(combatRoomWant(900, 1412, false)))
-  ok('combat caps an oversized left workspace contextually', combatRoomWant(900, 1412, true) === 508, String(combatRoomWant(900, 1412, true)))
-  ok('combat preserves a deliberately narrow left workspace', combatRoomWant(430, 1412, true) === 430, String(combatRoomWant(430, 1412, true)))
-  ok('first paint does not invent a width before measurement', combatRoomWant(900, 0, true) === 900, String(combatRoomWant(900, 0, true)))
-  ok('ordinary Battle width is unchanged outside combat', combatBattleWant(502, 1412, false) === 502, String(combatBattleWant(502, 1412, false)))
-  ok('combat expands a stale narrow Battle preference contextually', combatBattleWant(502, 1412, true) === 691, String(combatBattleWant(502, 1412, true)))
-  ok('combat preserves an already generous Battle preference', combatBattleWant(820, 1412, true) === 820, String(combatBattleWant(820, 1412, true)))
+  // `combatRoomWant` was deleted in D4 - see columns.ts, where the note in
+  // its place says why: the frame has no "left workspace" for it to cap, and
+  // against a 228px rail it was a no-op. Its four assertions went with it.
+  // What remains is the half that still has a referent: in combat the board
+  // grows, and the rails are squeezed to pay for it.
+  ok('ordinary board width is unchanged outside combat', combatBattleWant(502, 1412, false) === 502, String(combatBattleWant(502, 1412, false)))
+  ok('combat expands a stale narrow board preference contextually', combatBattleWant(502, 1412, true) === 691, String(combatBattleWant(502, 1412, true)))
+  ok('combat preserves an already generous board preference', combatBattleWant(820, 1412, true) === 820, String(combatBattleWant(820, 1412, true)))
+  ok('first paint does not invent a width before measurement', combatBattleWant(502, 0, true) === 502, String(combatBattleWant(502, 0, true)))
 
-  const roomWant = combatRoomWant(900, 1412, true)
-  const battleWant = combatBattleWant(502, 1412, true)
+  // The frame's own mapping, which is what App.tsx passes: room is the board,
+  // map is the left rail, dash is the right rail. Both rails are capped at
+  // what they asked for, so every spare pixel reaches the board.
+  const boardWant = combatBattleWant(502, 1412, true)
   const f = fitColumns({
-    hostW: 1412, roomWant, mapWant: battleWant, dashWant: 510,
-    mapDocked: true, splitW: SPLIT, dashGrowthMax: 220,
+    hostW: 1412, roomWant: boardWant, mapWant: SIDE_LEFT_W, dashWant: SIDE_RIGHT_W,
+    mapDocked: true, splitW: SPLIT, dashEmpty: false,
+    mapGrowthMax: SIDE_LEFT_W, dashGrowthMax: SIDE_RIGHT_W,
   })
-  ok('Battle is wider than the left workspace in the laptop combat layout', f.map > f.room, `${f.map} > ${f.room}`)
-  ok('Battle receives a materially useful landscape width', f.map >= 650, `${f.map} >= 650`)
+  ok('the rails stay at the widths their content needs', f.map === SIDE_LEFT_W && f.dash === SIDE_RIGHT_W, `${f.map} / ${f.dash}`)
+  ok('the board is wider than both rails together', f.room > f.map + f.dash, `${f.room} > ${f.map + f.dash}`)
+  ok('the board receives a materially useful landscape width', f.room >= 650, `${f.room} >= 650`)
+  ok('every pixel of the row is accounted for', f.room + f.map + f.dash + SPLIT * 2 === 1412, String(f.room + f.map + f.dash + SPLIT * 2))
 }
 
 console.log('\n-- the regression: a squeeze must not hide the dashboard --')
@@ -259,29 +270,44 @@ console.log('\n-- a window too narrow for anything still returns sane numbers --
   ok('dash never negative', f.dash >= 0, String(f.dash))
 }
 
-console.log('\n-- pickReset: issue #63 exact scenario - cascades to the second-biggest overshoot --')
+console.log('\n-- pickReset: issue #63 exact scenario - only the offender resets --')
 {
   // Dan's own live measurement: 1518px window, stored map 1728.8px, stored
   // dash 510px, room at its own default.
   //
-  // Used to need only one reset: DEFAULT_MAP_W was 300 then, and
-  // 300 + DEFAULT_ROOM_W + 510 fit inside 1518px on its own. DEFAULT_MAP_W
-  // is now 620 (see its own doc comment - the old 300/420 pair had drifted
-  // from what a fresh install actually opened with), and 620 no longer
-  // leaves room for a stored 510px dash alongside it at this exact window
-  // width. Dash was never "the offender" - map's 1728.8px overshoot is
-  // still the only stored width that didn't fit its own ask - but with the
-  // bigger default, resetting map alone isn't enough to fit anymore, so the
-  // cascade (biggest overshoot, then the next, per this function's own doc
-  // comment) correctly reaches for dash too. Room, which asked for exactly
-  // its own default and never overshot anything, is still left alone -
-  // that half of the original regression this test protects still holds.
+  // This assertion has now been right, then wrong, then right again, and the
+  // reason is worth keeping because it is the whole argument for deriving
+  // these defaults instead of typing them.
+  //
+  // Issue #63 was that "Reset widths" reset *both* columns when only one had
+  // overshot, throwing away a deliberately-dragged dash for a drag made on
+  // the other divider. The fix was the cascade: reset the biggest overshoot,
+  // and only reach for the next if one is not enough.
+  //
+  // Then DEFAULT_MAP_W moved from 300 to 620, and at this exact window width
+  // 620 + DEFAULT_ROOM_W + 510 no longer fit - so the cascade correctly
+  // reached for dash as well, and this test was updated to expect that.
+  //
+  // D4 made DEFAULT_MAP_W the left rail's width (228, from the mockup), and
+  // the scenario fits in one reset again, so the original property returns:
+  // map is the only stored width that overshot its own ask, and map is the
+  // only one that resets. Dash and room are left exactly as the player set
+  // them, which is what issue #63 was about.
   const plan = pickReset({
     hostW: 1518, mapDocked: true, roomWant: DEFAULT_ROOM_W, mapWant: 1728.8, dashWant: 510, splitW: SPLIT,
   })
   ok('map resets to default', plan.map === DEFAULT_MAP_W, String(plan.map))
-  ok('dash also resets - one reset alone no longer fits at the bigger default', plan.dash === DEFAULT_DASH_W, String(plan.dash))
+  ok('dash is left alone - resetting the offender alone fits again', plan.dash === null, String(plan.dash))
   ok("room is left alone - it never overshot anything", plan.room === null, String(plan.room))
+  // The reason the cascade did not fire, asserted rather than asserted-by-
+  // absence: the one reset genuinely fits, so a future change to any of the
+  // three defaults that broke this would fail here naming the arithmetic
+  // rather than leaving `plan.dash === null` looking like a coincidence.
+  ok(
+    'and it fits because it fits, not by luck',
+    DEFAULT_ROOM_W + DEFAULT_MAP_W + 510 + SPLIT * 2 <= 1518,
+    `${DEFAULT_ROOM_W + DEFAULT_MAP_W + 510 + SPLIT * 2} <= 1518`,
+  )
 }
 
 console.log('\n-- pickReset: only the offender resets, at a window wide enough that one reset is still enough --')

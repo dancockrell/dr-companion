@@ -92,7 +92,19 @@ console.log('\n-- widths that fit are not touched --')
   const f = fit(1600, 300, 420)
   ok('experience stays put while Battle receives surplus', f.map > 300 && f.dash === 420, JSON.stringify(f))
   ok('nothing is reported as squeezed', f.squeezed === false)
-  ok('room and Battle split the available surplus', Math.abs(f.room - f.map) <= 160, JSON.stringify(f))
+  // Assert the split, not the proximity. This used to read
+  // `Math.abs(f.room - f.map) <= 160`, which is a claim about where the two
+  // columns end up and only holds while their asks start close together - it
+  // went red the moment DEFAULT_ROOM_W moved from 460 to 620 in D4, without
+  // anything about surplus-sharing having changed. What the rule actually
+  // says is that unclaimed width is divided evenly between the two visual
+  // surfaces, so measure the division instead of the outcome.
+  const surplus = 1600 - SPLIT * 2 - DEFAULT_ROOM_W - 300 - 420
+  ok(
+    'room and Battle split the available surplus',
+    f.map === 300 + Math.floor(surplus / 2) && f.room === DEFAULT_ROOM_W + Math.ceil(surplus / 2),
+    `${JSON.stringify(f)} surplus ${surplus}`,
+  )
 }
 
 console.log('\n-- a big map is still allowed, because that was the point --')

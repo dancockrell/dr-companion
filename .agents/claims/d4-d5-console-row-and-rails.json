@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "task_id": "d4-d5-console-row-and-rails",
+  "agent": "claude-code",
+  "summary": "D4: rebuild the main window as the approved frame - a 48px top bar, a 228|board|250 workspace, and a 224px console row holding the transcript. The AiWorkerPanel moves from Settings to the context rail. D5: measure it at three resolutions from the DOM.",
+  "status": "completed",
+  "claimed_at": "2026-09-05T13:00:00Z",
+  "updated_at": "2026-09-05T16:10:00Z",
+  "paths": [
+    "src/App.tsx",
+    "src/components/layout/TopBar.tsx",
+    "src/components/layout/SettingsSheet.tsx",
+    "src/components/room/GameChatColumn.tsx",
+    "src/lib/columns.ts",
+    "src/lib/locationLine.ts",
+    "tools/location-line-test.mjs",
+    "tools/columns-test.mjs",
+    "tools/battlespace-test.mjs",
+    "tools/mapdock-test.mjs",
+    "tools/build-player-data-doc.mjs",
+    "docs/PLAYER_DATA.md",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/d4-d5-console-row-and-rails.json"
+  ],
+  "symbols": ["TopBar", "locationLine", "ago", "frameFits", "GameChatColumn"],
+  "coordination": {
+    "depends_on": ["D3"],
+    "conflicts_with": [],
+    "notes": "Built ON columns.ts rather than beside it. fitColumns' three slots map onto the frame - room to the board, map to the left rail, dash to the right rail - so the squeeze banner, the floors, Reset widths and the share-not-pixels persistence all keep working and no second layout engine was written. The AiWorkerPanel MOVED: Settings no longer mounts it and no longer imports it (grep confirms one mount in src/). combatRoomWant was deleted rather than left exported with no caller. Files edited outside D4's declared touches, each because a guard correctly caught the change: tools/battlespace-test.mjs, tools/mapdock-test.mjs, tools/build-player-data-doc.mjs + docs/PLAYER_DATA.md, package.json and tools/test-suites.json (registering the new suite in both, per trap 2)."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "DESIGN DECISION, recorded because the plan did not make it: the mockup has three slots and the app has five surfaces. Placement chosen - left rail: vitals (StatsPanel) and risk; board slot: the map above the battle picture, divider and stored share unchanged; right rail: actions and the AiWorkerPanel; console row: scripts | transcript | experience strip. Nothing was dropped and no surface gained a second mount.",
+      "DESIGN DECISION: the transcript lives in the console row, not the board slot. D0(a) can be read as putting it in the slot, and the mockup's console row is built around it (.transcript is 30px|1fr|38px - a heading, a scroll, a command line). Two mounts of the transcript would be a fork whichever slot won, so it has exactly one.",
+      "BUG FOUND AND FIXED BY MEASURING: with fitColumns' slots mapped the obvious way (left rail -> room), the left rail rendered 431px wide at 1366x768 instead of 228, because `room` is the slot that absorbs unclaimed width. Turning the mapping around - board -> room, rails -> map/dash, each rail capped at its own want via mapGrowthMax/dashGrowthMax - fixed it without touching columns.ts.",
+      "BUG FOUND: pickReset resets to columns.ts's DEFAULT_*, which were the pre-frame numbers, so Reset widths would have given the vitals rail 620px. DEFAULT_MAP_W/DASH_W/ROOM_W are now defined AS SIDE_LEFT_W/SIDE_RIGHT_W/BOARD_MIN_W rather than as copies of their values, so there is one number per column. That required moving the frame-constant block above them in columns.ts - a const used before its declaration is a temporal-dead-zone ReferenceError at module load, and the mover asserts every constant now precedes its use.",
+      "Storage keys bumped, not reused: drc.left-rail-width.v1, drc.board-slot-width.v1, drc.right-rail-width.v1, drc.map-height.v4. Each slot holds different content at a different size and a stored share is only a number; a v2 'room' share of 0.34 read as the new left rail is a 460px column of vitals. tools/build-player-data-doc.mjs caught the rename in both directions (undescribed keys AND orphaned descriptions) and its descriptions were updated.",
+      "D4 verify (the top bar with mapHere = null): `node tools/location-line-test.mjs` -> 22 checks, 0 failed, all 22 ran. locationLine(null, null) -> {unresolved:true, text:'Location unresolved'}; the text matches /unresolved/i and does NOT match /Crossing/i. Also covered: a room whose id is gone but whose title still names the last town reads unresolved and does not show that title, which is the actual failure mode rule 2 exists for.",
+      "D4 sabotage: locationLine's null branch changed to `return { unresolved: false, text: here?.title ?? 'Crossing' }`. Exit 1, six named failures, all six in the rule-2 block and none elsewhere: `FAIL a null room is reported unresolved {\"unresolved\":false,\"text\":\"Crossing\"}`, `FAIL the text does not name a town  Crossing`, `FAIL a room whose id is gone is unresolved even with a title`. A value change, so it compiled and the assertions went red rather than a loader error. Restored; md5sum -c OK on 101e37293bfca4c59dd78bad696cda3d.",
+      "D4 verify: `node tools/game-connection-owner-test.mjs` green (GameConnectionBar still has exactly one owner, inside the transcript).",
+      "INSTRUMENT DEFECT FOUND, and it invalidates the obvious way to do D5: ResizeObserver does not fire under the browser pane's viewport emulation. Proved rather than assumed - a freshly attached ResizeObserver of my own on <main> logged nothing (`roHits: []`) while main genuinely went 900 -> 1500 and innerWidth agreed. App.tsx reads hostW/hostH from a ResizeObserver, so resizing an already-loaded page leaves the component measuring a frozen width, and every rail number taken that way describes the size the page was LOADED at. The first three measurements were taken by resizing after loading at 1366 and were therefore unsound (they happened to give the same answer). All D5 numbers below were retaken by setting the viewport FIRST and loading the page fresh at each size. Whether a real OS window resize fires RO in WebView2 is untested here and is listed as not-checked, not as working.",
+      "D5 measurement, fresh load at each size, from getBoundingClientRect and scrollWidth/clientWidth. 1366x768: top bar 0,1366x48; left rail 0,228; board 236,872; right rail 1116,250; console row 0,1366x224; 1407 controls checked; 0 off-right; 0 off-bottom; body horizontal scroll 0; scrollHeight 768 == innerHeight.",
+      "D5 measurement 1920x1080: left rail 0,228; board 236,1426; right rail 1670,250; console row 0,1920x224; top bar 48 tall; 1407 controls checked; 0 off-right; 0 off-bottom; hscroll 0; scrollHeight 1080.",
+      "D5 measurement 2560x1440: left rail 0,228; board 236,2066; right rail 2310,250; console row 0,2560x224; top bar 48 tall; 1407 controls checked; 0 off-right; 0 off-bottom; hscroll 0; scrollHeight 1440. The rails hold at exactly the mockup's 228 and 250 at every size while the board takes all the surplus, which is the mapping fix above working.",
+      "D5's criterion was narrowed, and the reason is the point: 'every element's right <= innerWidth' counts anything inside a scroll container, and at 1366x768 the UNCHANGED pre-D4 layout produced 431 such 'violations' while being perfectly usable - a check that fires on a healthy layout says nothing about a broken one. The question columns.ts was actually written for is whether a CONTROL is off the edge with no scrollbar to reach it by, so the probe counts controls whose rect leaves the viewport AND which have no scrollable ancestor. 1407 controls is the denominator and it is printed every time.",
+      "The probe carries a positive control on every single run: a button positioned at innerWidth+60 in a non-scrolling parent is injected, measured, and removed. It was detected every time (offRight 1, worst entry 'CONTROL'), so each reported 0 is a fact about the layout rather than about a probe that stopped looking.",
+      "Pre-D4 baseline for comparison, same probe, same three sizes: 1389 controls checked, 0 unreachable at all three. So D4 did not introduce an unreachable control; it went from clean to clean.",
+      "frameFits is wired to the render and does collapse rails, verified live: fresh load at 800x700 -> both rails absent, board takes the full 800, hscroll 0. Fresh load at 1366 -> both rails present at 228/250. Importing the served module directly, frameFits(800,283) returns mustCollapse ['right','left'].",
+      "The dev server was serving my code, checked rather than assumed: fetched /src/App.tsx from the running server and confirmed it contains the new splitter label 'Resize the character side and the board' and does NOT contain the old 'Resize room and battle columns'.",
+      "npx tsc -b exit 0. node tools/run-tests.mjs -> 117 passed, 0 failed, 0 not run | 3564 checks across 117 suites, `all passed` (baseline was 116 suites / 3469 checks). node tools/plan-audit.mjs -> plan ok."
+    ]
+  }
+}
