@@ -1,9 +1,16 @@
 /**
  * The cartography that ships with the app.
  *
- * 90 zones, 18,490 rooms, 44,864 exits, built by tools/build-map.mjs from the
+ * 85 zones, 17,750 rooms, 42,866 exits, built by tools/build-map.mjs from the
  * map files already on disk. Real coordinates and real connections, not a
  * placeholder diagram.
+ *
+ * Those three numbers said 90, 18,490 and 44,864 until 5 Sep 2026, and had
+ * been wrong for long enough that nobody knew when they stopped being right -
+ * a docstring is read far more often than it is checked. `tools/map-data-test`
+ * now parses them out of this comment and compares them to the shipped data,
+ * so the next time the map is rebuilt this paragraph fails the build rather
+ * than quietly becoming fiction.
  *
  * This is the fallback, not the primary. When Lich is connected its own zone
  * data wins, because it is authoritative about where the character actually is
@@ -12,7 +19,7 @@
  * this.
  *
  * Loaded a zone at a time. Crossing alone is 1,060 rooms and a character is
- * only ever in one zone, so pulling all 18,490 to draw thirty of them would be
+ * only ever in one zone, so pulling all 17,750 to draw thirty of them would be
  * waste with no upside.
  */
 import type { MapZone, MapZoneRoom } from '../bridge/types'
