@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "task_id": "l2-mock-fixture-derived",
+  "agent": "claude-code",
+  "summary": "Turn godot/mock/crossing_mock_world.json into a derived artefact with a generator and a drift check",
+  "status": "completed",
+  "claimed_at": "2026-09-05T16:50:00Z",
+  "updated_at": "2026-09-05T17:20:00Z",
+  "paths": [
+    "tools/build-godot-mock-fixture.mjs",
+    "godot/mock/crossing_mock_world.json",
+    "package.json",
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": ["world:godot-mock"],
+  "coordination": {
+    "depends_on": ["l1-name-what-i-own"],
+    "conflicts_with": [],
+    "notes": "git grep -ln crossing_mock_world found only consumers (godot/README.md, world_root.gd, four godot/tests/*.gd) and no generator, so this is a new tool rather than an edit to one. The manifest builder tools/build-primitive-world-manifest.mjs is the upstream source; this tool runs it exactly the way tools/primitive-world-manifest-test.mjs does rather than reimplementing any of it, because data/world/out is gitignored and absent in a fresh worktree. The plan's draft named data/world/out/crossing-primitive-registry.json; the file the cells actually come from is 1-primitive-world.json, which the registry is an input to. No godot/*.gd or *.tscn was touched: the fixture is data, and plan-audit --claims shows no open claim on any godot/ path."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "node tools/build-godot-mock-fixture.mjs --check exit 0: OK godot/mock/crossing_mock_world.json matches a fresh generation (19 cells, root 1-14)",
+      "content proof: the regenerated fixture parsed, cells sorted by roomId and generatedFrom removed, is byte-identical to the committed blob at HEAD~1 - so the diff is cell order, the trailing newline, and a generator field, and no cell datum changed",
+      "cell set proof: BFS depth 2 from 1-14 over the full 1060-cell manifest yields exactly the 19 ids the fixture already had, neither more nor fewer",
+      "all eleven godot/tests/*.gd under Godot 4.3 against the regenerated fixture: 117 checks, 0 failed. live_bridge_transport_test.gd has no summary because it does not parse under 4.3 (OS.get_temp_dir does not exist there) - a pre-existing defect recorded in docs/verification/live-chain-2026-09-05.md, unchanged by this work.",
+      "sabotage: cell 1-13 deleted from the fixture -> foundation_test.gd 31 checked, 2 failed, and --check exit 1 naming line 160 as the first difference. Regenerated; md5sum -c matched. Without this the green run could not be distinguished from tests that never read the file.",
+      "npx tsc -b exit 0; node tools/run-tests.mjs all passed; node tools/plan-audit.mjs plan ok"
+    ]
+  }
+}
