@@ -44,6 +44,7 @@
   "test:room-occupants",
   "test:storage",
   "test:ai-event-journal",
+  "test:ai-evidence-store",
   "test:ai-alert-broker",
   "test:ai-job-store",
   "test:ai-review-scheduler",

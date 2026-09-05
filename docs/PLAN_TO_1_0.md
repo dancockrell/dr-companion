@@ -272,6 +272,7 @@ PRs per lane, squash-merged.
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
 | K | K1–K5 | `lane-k/appearance` | `dev/wt-k` | 5 Sep 2026 |
+| G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295), **I** (I1–I11, PRs #303 and #300) and **L**
@@ -888,7 +889,8 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane G — AI slices 5–7 (after Lane A)
 
-- [ ] **G0  Evidence outlives the journal** (≈25)
+- [x] **G0  Evidence outlives the journal** (≈25)
+  commit: d5b7ac53 verified: 2026-09-05 minutes: 40
   touches: new:src/lib/aiEvidenceStore.ts, new:tools/ai-evidence-store-test.mjs, C1>src/lib/aiJobStore.ts, package.json, tools/test-suites.json
   depends-on: A5
   do: a claim's `evidenceRefs` are `event:<seq>` strings, and the journal evicts at 5000 events, so a candidate reviewed an hour later can cite evidence nobody can read. The handoff's `observations.read(refs)` presumes durable observations. Minimum honest version: `pin(refs, journal)` copies the referenced events' `{seq, at, kind, payload}` into `drc.ai-evidence.v1` at the moment a job or claim cites them; `resolve(refs)` returns them or `{missing:[…]}` — never a silent partial. `JobStore.create` pins `inputRefs`; G5's store refuses a claim whose refs do not resolve. Bounded by count with the oldest **unreferenced** entries evicted first; an entry cited by a live claim is never evicted.

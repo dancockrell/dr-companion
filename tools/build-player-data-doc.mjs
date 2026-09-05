@@ -146,6 +146,7 @@ const DESCRIBES = {
   'drc.watched-rooms.v1': 'Rooms the player is watching, per profile.',
   'drc.armor-loadouts.v1': "A character's corrections to the derived armour coverage, which the live inventory feed cannot supply.",
   'drc.ai-jobs.v1': 'Background AI jobs and their status. Absent unless the optional local model has been used.',
+  'drc.ai-evidence.v1': 'Journal events an AI job or candidate claim cites, copied so the evidence outlives the journal that recorded it. Game text only where an event already carried it; nothing new is captured for this.',
   'drc.ai-cursor.v1': 'How far the AI worker had read when its window was last rebuilt, tagged with the run that wrote it so a later run ignores it. Two numbers and a tag; no game text.',
   'drc.nudge.v1': 'Visit counts behind the "you keep coming back here, pin it?" nudge, per profile.',
 }
