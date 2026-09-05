@@ -9,6 +9,9 @@
     "url": "git+https://github.com/dancockrell/dr-companion.git"
   },
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "vite",
     "build": "node tools/intent-drift-test.mjs && node tools/bridge-version-drift-test.mjs && node tools/gamelines-test.mjs && node tools/escape-check.mjs && node tools/contrast-test.mjs && tsc -b && vite build",

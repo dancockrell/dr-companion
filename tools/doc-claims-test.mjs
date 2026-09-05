@@ -255,6 +255,93 @@ const pkg = JSON.parse(read('package.json'))
   ok('TESTING no longer claims nothing has ever talked to DragonRealms', !/Nothing in this app has ever talked to DragonRealms/.test(testing))
 }
 
+// --------------------------------------------------------------------------
+// I. One Node version, in one place.
+// --------------------------------------------------------------------------
+// Three statements of the same fact: package.json's `engines.node`, README's
+// prose, and whatever every workflow hands actions/setup-node. Before 6 Sep
+// 2026 there was no `engines` field at all, so the README's "Node 24 or newer"
+// had nothing to be checked against, and elanthipedia.yml sat on 22 - a
+// difference nobody intended and therefore nobody was testing. `engines` is now
+// the authority and no workflow may hand-type a version.
+{
+  const engines = pkg.engines?.node
+  ok('package.json declares engines.node', typeof engines === 'string', engines ?? '(absent)')
+  const engineMajor = engines?.match(/(\d+)/)?.[1]
+  ok('engines.node names a major version', Boolean(engineMajor), engineMajor ?? '')
+
+  const readme = read('README.md')
+  const claim = readme.match(/Node (\d+) or newer is the supported JavaScript runtime/)
+  if (!claim) {
+    notChecked('README Node version claim', 'the document no longer states one in the expected shape')
+  } else {
+    ok('README’s Node claim matches engines.node', claim[1] === engineMajor, `README ${claim[1]}, engines ${engines}`)
+  }
+
+  // The workflows. The denominator first: if the glob or the regexp breaks,
+  // "no hand-typed pins" is exactly what a broken extractor says.
+  const wfDir = '.github/workflows'
+  const wfs = readdirSync(wfDir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
+  ok('the workflow scan found workflows', wfs.length >= 3, `${wfs.length} file(s)`)
+  let setupNodeSteps = 0
+  const handTyped = []
+  for (const f of wfs) {
+    const src = read(join(wfDir, f))
+    setupNodeSteps += src.match(/actions\/setup-node@/g)?.length ?? 0
+    for (const m of src.matchAll(/^\s*node-version:\s*'?([^'\s#]+)'?/gm)) handTyped.push(`${f}:${m[1]}`)
+  }
+  ok('the workflows still call setup-node', setupNodeSteps >= 5, `${setupNodeSteps} step(s)`)
+  ok('no workflow hand-types a node-version', handTyped.length === 0, handTyped.join(', ') || 'all read node-version-file')
+
+  // And the other direction: reading the file is only a single source if every
+  // setup-node step actually does it. A step with neither key would silently
+  // take the runner's default.
+  let fromFile = 0
+  for (const f of wfs) fromFile += read(join(wfDir, f)).match(/^\s*node-version-file:\s*package\.json\s*$/gm)?.length ?? 0
+  ok('every setup-node step reads package.json', fromFile === setupNodeSteps, `${fromFile} of ${setupNodeSteps}`)
+}
+
+// --------------------------------------------------------------------------
+// J. docs/TESTING.md's problem-kind table, derived from the exported set.
+// --------------------------------------------------------------------------
+// The table used to be a fourth copy of a list that already existed twice in
+// the source (src/lib/bugReport.ts had four kinds, Console.tsx five). The set
+// is now exported from the lib and imported by the component, and the expected
+// rows of the table come from that same export - so the doc cannot describe a
+// filter the app does not have, in either direction.
+{
+  const { PROBLEM_KINDS } = await import('../src/lib/bugReport.ts')
+  const expected = [...PROBLEM_KINDS].sort()
+  ok('the exported problem-kind set is non-empty', expected.length >= 4, expected.join(', '))
+
+  const testing = read('docs/TESTING.md')
+  // The table under the "problems filter" sentence: its rows, in file order,
+  // until the first line that is not a row.
+  const start = testing.indexOf('The **problems** filter shows only the rows')
+  ok('TESTING still introduces the problems table', start >= 0)
+  const rows = []
+  if (start >= 0) {
+    for (const line of testing.slice(start).split('\n')) {
+      const m = line.match(/^\|\s*`([a-z_]+)`\s*\|/)
+      if (m) rows.push(m[1])
+      else if (rows.length) break
+    }
+  }
+  const documented = [...new Set(rows)].sort()
+  const missing = expected.filter((k) => !documented.includes(k))
+  const extra = documented.filter((k) => !expected.includes(k))
+  ok(
+    'TESTING’s problem table equals PROBLEM_KINDS',
+    missing.length === 0 && extra.length === 0 && documented.length === expected.length,
+    `doc [${documented.join(', ')}] vs code [${expected.join(', ')}]${missing.length ? ` - missing ${missing.join(', ')}` : ''}${extra.length ? ` - extra ${extra.join(', ')}` : ''}`,
+  )
+
+  // The fork this replaced: a second literal list in the component would pass
+  // every check above while drifting again the moment somebody edited one.
+  const console_ = read('src/components/layout/Console.tsx')
+  ok('Console.tsx imports the set rather than redeclaring it', /import \{[^}]*PROBLEM_KINDS[^}]*\} from '\.\.\/\.\.\/lib\/bugReport\.ts'/.test(console_) && !/^\s*const PROBLEM_KINDS\s*=/m.test(console_))
+}
+
 console.log(`\n${checked} checked, ${failed} failed` + (skipped.length ? `, ${skipped.length} not checked` : ''))
 if (checked < 12) {
   console.log('REFUSING TO REPORT A RESULT: too few checks ran for a pass to mean anything.')

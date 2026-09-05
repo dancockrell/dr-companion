@@ -122,7 +122,31 @@ export interface BuiltReport {
   problems: TraceRow[]
 }
 
-const PROBLEM_KINDS = new Set(['no_match', 'refused', 'gave_up', 'error'])
+/**
+ * Trace-row kinds that mean something went wrong.
+ *
+ * The one definition. `Console.tsx` imports it for its **problems** filter and
+ * its problem count, and this module leads the bug report with the same rows,
+ * so the console and the report a tester attaches to an issue cannot disagree
+ * about what a problem is. They did: this set was missing `log_error` while the
+ * console had it, so a bridge line that arrived flagged as an error was shown
+ * in red on screen and then silently dropped from the report about it.
+ *
+ * `log_error` is in the set because the bridge marks its own lines with a level
+ * and the store threw that away, so "this settings file will not parse at line
+ * 41" rendered in the same grey as "pong". A line whose sender took the trouble
+ * to call it an error should not depend on somebody spotting it in a scroll.
+ *
+ * docs/TESTING.md tabulates these, and tools/doc-claims-test.mjs derives the
+ * expected rows of that table from this export rather than from a second list.
+ */
+export const PROBLEM_KINDS: ReadonlySet<string> = new Set([
+  'no_match',
+  'refused',
+  'gave_up',
+  'error',
+  'log_error',
+])
 
 /** GitHub rejects very long URLs. Keep the prefilled body well under it. */
 const MAX_BODY = 5500

@@ -108,7 +108,8 @@ jobs:
             exit 1
           fi
 
-      # 24, matching ci.yml and scene-art.yml. This file sat on 22 while the
+      # From package.json's `engines.node`, like every other setup-node here,
+      # so this file cannot drift again. It sat on 22 while the
       # comment in ci.yml said "Node 24 everywhere, matching what this repo is
       # developed and typed against" - and it is the one workflow that ships
       # the artefact, so `npm run build` and `npm run tauri:build` were the two
@@ -117,7 +118,7 @@ jobs:
       # a difference nobody is testing.
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: package.json
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
