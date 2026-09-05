@@ -36,7 +36,13 @@ import type { BackgroundJob, JobStore } from './aiJobStore.ts'
 import type { ModelProvider, ModelRequest, ModelResult } from './aiModelProvider.ts'
 import { generateWithinBudget, parseStructured, PrivacyGateError } from './aiModelProvider.ts'
 import type { ClaimStore } from './aiClaimStore.ts'
-import { validateTetherCandidate, type TetherCandidate } from './aiJobProducers.ts'
+import {
+  applyUnifiedDiff,
+  validatePatchTarget,
+  validateTetherCandidate,
+  type TetherCandidate,
+} from './aiJobProducers.ts'
+import { callTool, type ScriptSource, type ToolTraceEntry } from './aiKnowledgeTools.ts'
 import { allowedInPrompt } from './aiIngest.ts'
 import type { Activity } from './aiReviewScheduler.ts'
 import { decideReview } from './aiReviewScheduler.ts'
@@ -130,6 +136,64 @@ export interface WorkerDeps {
   /** Whether the map knows a room. Injected so the validator cannot read
    * anything else out of the map. */
   knownRoom?: (roomId: string) => boolean
+  /**
+   * Somewhere to put a proposed patch, and something able to check it.
+   *
+   * Optional, and absent means a repair job reports that it had nowhere to
+   * work rather than quietly doing nothing - a job that failed for a stated
+   * reason and a job that silently produced no patch look identical to a
+   * reviewer, and only one of them is true.
+   */
+  scriptRepair?: ScriptRepairPort | null
+}
+
+/**
+ * One check that was run against a candidate, or honestly was not.
+ *
+ * `not_checked` is a third state rather than a lenient `pass`, because this
+ * machine cannot run every interpreter and a missing one must not read as a
+ * clean bill of health. Section 10 wants syntax checks and a recorded-event
+ * simulation before a patch is even reviewable; a claim that recorded
+ * "ruby -c: pass" on a machine with no Ruby would be the exact lie the rest
+ * of this codebase keeps writing tests about.
+ */
+export interface ScriptCheck {
+  name: string
+  status: 'pass' | 'fail' | 'not_checked'
+  detail: string
+}
+
+/**
+ * Everything the repair job is allowed to do to a filesystem.
+ *
+ * One port rather than four, so there is one place to read when asking what
+ * this job can reach. Note the asymmetry, which is the design: it can read
+ * any script, and it can write exactly one thing - a candidate, into a
+ * directory it does not choose. There is no method here that names an
+ * existing script and takes text.
+ */
+export interface ScriptRepairPort extends ScriptSource {
+  /** Where candidates go. Never a script directory. */
+  appDataDir: string
+  /** A content hash of a file on disk, or null when it cannot be read. Used
+   * on both sides of the job to prove the original was never touched. */
+  hash(path: string): string | null
+  /**
+   * Where this job's candidate would go, asked before anything is written.
+   *
+   * Separate from `writeCandidate` so the destination can be refused while it
+   * is still only a string. Rollback material "exists by construction" only
+   * if the original is never written to at all, and a check that runs after
+   * the write can report the harm but cannot prevent it.
+   */
+  candidatePathFor(jobId: string, lang: string, name: string): string
+  /** Write the candidate copy and answer with the path it went to. */
+  writeCandidate(jobId: string, lang: string, name: string, text: string): string
+  /** The syntax or type check for this language, `not_checked` when its
+   * interpreter is absent, with the reason. */
+  languageCheck(lang: string, candidatePath: string): ScriptCheck
+  /** E7's containment fixtures, run against the candidate out of process. */
+  fixtures(lang: string, candidatePath: string): ScriptCheck[]
 }
 
 export type WorkerOutcome =
@@ -333,6 +397,223 @@ function recordModelTethers(
 }
 
 /**
+ * What a repair job is allowed to answer with.
+ *
+ * A diff and, optionally, why. Note what is absent again: no path, no
+ * filename, no "apply this" flag and no confidence the worker would act on.
+ * The model can describe a change to the file it was shown and can express
+ * nothing else, which is section 10's "never edits a running script" written
+ * into the contract rather than enforced after the fact.
+ */
+export interface ScriptPatchProposal {
+  diff: string
+  rationale?: string
+}
+
+const SCRIPT_PATCH_SCHEMA = `
+
+Reply with one JSON object and nothing else:
+{ "diff": string, "rationale"?: string }
+"diff" is a unified diff against the script shown above, with @@ hunk headers
+and unchanged context lines. Every context line must match the file exactly.
+"rationale" is optional and holds one short sentence.`
+
+function isScriptPatchProposal(value: unknown): value is ScriptPatchProposal {
+  if (typeof value !== 'object' || value === null) return false
+  const v = value as { diff?: unknown; rationale?: unknown }
+  if (typeof v.diff !== 'string' || v.diff.length === 0) return false
+  if (v.rationale !== undefined && typeof v.rationale !== 'string') return false
+  return true
+}
+
+/** What one repair turn produced, whatever it produced. */
+interface RepairOutcome {
+  result: ModelResult
+  status: 'awaiting_review' | 'failed' | 'cancelled'
+  note: string
+  claimIds: string[]
+}
+
+function repairFailed(result: ModelResult, note: string): RepairOutcome {
+  return { result, status: 'failed', note, claimIds: [] }
+}
+
+/** A refusal shaped like a provider result, so a step that fails before the
+ * model is asked reports through the same field as one that fails after. */
+function refusal(message: string): ModelResult {
+  return { ok: false, failure: 'invalid_output', message }
+}
+
+/**
+ * Draft a repair, check it, and hand a reviewer something to say no to.
+ *
+ * The order below is the increment. Every step that could touch the original
+ * is either read-only or refused before it happens, and the hash is taken
+ * before anything else and compared after everything else, so "the script was
+ * not modified" is a measurement rather than a property of how carefully this
+ * was written.
+ *
+ * Nothing here activates anything. There is no branch, no flag and no
+ * confidence threshold that leads to the patched text replacing the script:
+ * the claim is `candidate`, the job is `awaiting_review`, and the only thing
+ * that exists afterwards is a second file somewhere a runner does not look.
+ */
+async function runScriptRepair(
+  deps: WorkerDeps,
+  job: BackgroundJob,
+  nowIso: string,
+  signal?: AbortSignal
+): Promise<RepairOutcome> {
+  const port = deps.scriptRepair
+  if (!port) {
+    return repairFailed(refusal('no script workspace'), 'no script workspace is attached, so no patch could be drafted or checked')
+  }
+
+  const scriptId = typeof job.scope.scriptId === 'string' ? job.scope.scriptId : ''
+  const split = scriptId.indexOf(':')
+  if (split <= 0) {
+    return repairFailed(refusal('bad scriptId'), `the job's scriptId ${JSON.stringify(job.scope.scriptId)} is not "<lang>:<name>"`)
+  }
+  const lang = scriptId.slice(0, split)
+  const name = scriptId.slice(split + 1)
+
+  // Through the registry, not around it. The tool is where the size ceiling,
+  // the untrusted label and the audit trail live, and a job that read the file
+  // directly would have none of the three while looking identical here.
+  const trace: ToolTraceEntry[] = []
+  const read = callTool('read_script', { id: scriptId }, job.allowedTools, trace, {
+    scripts: port,
+    now: deps.now,
+  })
+  if (!read.ok) return repairFailed(refusal(read.reason), `read_script refused: ${read.reason}`)
+  const script = read.value as {
+    path?: string
+    source?: { untrusted: true; text: string }
+  } | null
+  if (!script || typeof script.path !== 'string' || !script.source) {
+    return repairFailed(refusal('script not found'), `no script is stored as ${scriptId}`)
+  }
+
+  const hashBefore = port.hash(script.path)
+  if (!hashBefore) {
+    return repairFailed(refusal('unhashable original'), `${script.path} could not be hashed, so this job could not prove it left the script alone`)
+  }
+
+  const generated = await generateOrRefuse(
+    deps.provider,
+    {
+      instructions: deps.instructions + SCRIPT_PATCH_SCHEMA,
+      // The source travels wrapped, so the prompt says which half of this is
+      // the player's code and which half is the app talking.
+      state: JSON.stringify({
+        jobId: job.jobId,
+        kind: job.kind,
+        scope: job.scope,
+        script: { id: scriptId, source: script.source },
+      }),
+      allowedTools: job.allowedTools,
+      budget: job.budget,
+    },
+    signal
+  )
+
+  const toolNote = `tools: ${trace.map((t) => `${t.tool}${t.ok ? '' : ' refused'}`).join(', ') || 'none'}`
+
+  if (!generated.ok) {
+    if (generated.failure === 'cancelled') {
+      return { result: generated, status: 'cancelled', note: `${toolNote}; cancelled`, claimIds: [] }
+    }
+    return repairFailed(generated, `${toolNote}; ${generated.failure}: ${generated.message}`)
+  }
+
+  const parsed = parseStructured(generated.text, isScriptPatchProposal)
+  if (!parsed.ok) {
+    return repairFailed(refusal(parsed.reason), `${toolNote}; invalid_output: ${parsed.reason}`)
+  }
+
+  const applied = applyUnifiedDiff(script.source.text, parsed.value.diff)
+  if (!applied.ok) {
+    // A patch that does not apply is a fact about the model, not about the
+    // script, and there is nothing for a reviewer to look at.
+    return repairFailed(refusal(applied.reason), `${toolNote}; the patch does not apply: ${applied.reason}`)
+  }
+
+  const intended = port.candidatePathFor(job.jobId, lang, name)
+  const target = validatePatchTarget({
+    originalPath: script.path,
+    candidatePath: intended,
+    appDataDir: port.appDataDir,
+  })
+  if (!target.ok) {
+    return repairFailed(refusal(target.reason), `${toolNote}; refused to write the candidate: ${target.reason}`)
+  }
+
+  const candidatePath = port.writeCandidate(job.jobId, lang, name, applied.text)
+  // The workspace answered with a path; it is not taken on trust. A port that
+  // proposed one destination and used another would otherwise be the one way
+  // past the check above.
+  const written = validatePatchTarget({
+    originalPath: script.path,
+    candidatePath,
+    appDataDir: port.appDataDir,
+  })
+  if (!written.ok) {
+    return repairFailed(refusal(written.reason), `${toolNote}; the candidate was written somewhere it may not be: ${written.reason}`)
+  }
+
+  const hashAfter = port.hash(script.path)
+  if (hashAfter !== hashBefore) {
+    // The invariant, measured. Nothing downstream runs: a job that modified
+    // the script has not produced a proposal, it has produced damage, and
+    // recording a reviewable claim for it would bury that under a diff.
+    return repairFailed(
+      refusal('the original changed'),
+      `${toolNote}; ABORTED: ${script.path} changed during this job (${hashBefore} then ${hashAfter}); no claim was recorded`
+    )
+  }
+
+  const checks: ScriptCheck[] = [port.languageCheck(lang, candidatePath), ...port.fixtures(lang, candidatePath)]
+
+  if (!deps.claims) {
+    return { result: generated, status: 'awaiting_review', note: `${toolNote}; no claim store is attached, so nothing was recorded`, claimIds: [] }
+  }
+
+  // A failing check does not stop the claim. A candidate that does not compile
+  // is exactly what a reviewer should see and reject, and hiding it would
+  // leave the job reporting nothing while the model kept producing the same
+  // broken patch. The checks travel with the diff so the verdict is visible
+  // rather than inferred from the claim existing.
+  const created = deps.claims.create({
+    subject: scriptId,
+    predicate: 'script_patch',
+    value: {
+      scriptId,
+      originalPath: script.path,
+      originalHash: hashBefore,
+      candidatePath,
+      diff: parsed.value.diff,
+      rationale: parsed.value.rationale ?? null,
+      checks,
+    },
+    evidenceRefs: job.inputRefs,
+    producer: { kind: 'model', identity: 'local-worker' },
+    confidence: null,
+    now: nowIso,
+  })
+  if (!created.ok || !created.claim) {
+    return repairFailed(refusal(created.reason ?? 'the claim store refused it'), `${toolNote}; the patch claim was refused: ${created.reason ?? 'unknown'}`)
+  }
+
+  const summary = checks.map((c) => `${c.name}=${c.status}`).join(' ')
+  return {
+    result: generated,
+    status: 'awaiting_review',
+    note: `${toolNote}; candidate ${candidatePath}; ${summary}; claim ${created.claim.claimId}; the script itself is unchanged`,
+    claimIds: [created.claim.claimId],
+  }
+}
+
+/**
  * Run one turn. Returns rather than loops: the caller owns the timer, which
  * keeps this testable without one and means a stuck turn cannot wedge a loop
  * nobody can see into.
@@ -444,6 +725,23 @@ export async function runWorkerOnce(
   const started = jobs.transition(next.jobId, 'running', { now: nowIso })
   if (!started.ok) {
     return { did: 'background-idle', reason: started.reason ?? 'could not start the job' }
+  }
+
+  // A repair job takes its own path because its request carries the script
+  // itself, which no other job's does. It returns here rather than falling
+  // through to the generic request below, so there is no route by which a
+  // repair reaches the model without having been read through the tool.
+  if (next.kind === 'script_repair') {
+    const repair = await runScriptRepair(deps, next, nowIso, signal)
+    jobs.transition(next.jobId, repair.status, { now: nowIso, note: repair.note })
+    return {
+      did: 'background-job',
+      reason: decision.reason,
+      jobId: next.jobId,
+      result: repair.result,
+      status: jobs.get(next.jobId)?.status ?? 'unknown',
+      claimIds: repair.claimIds,
+    }
   }
 
   // A map reconciliation has an answer before any model is asked, so it takes

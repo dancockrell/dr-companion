@@ -70,10 +70,28 @@ export interface ToolTraceEntry {
   ok: boolean
 }
 
+/**
+ * Read access to the player's own scripts, and nothing else.
+ *
+ * A port rather than an import of `scriptFiles.ts`, for the reason this
+ * file's header already gives about `mapData.ts`: that module reaches Tauri,
+ * so importing it would make this untestable outside the app, and a tool
+ * layer that can reach a backend on its own has whatever scope it can see
+ * rather than the one it was given. Note what the shape refuses to offer -
+ * there is no write, no delete and no path argument, so a job holding only
+ * this has no expressible way to modify a script.
+ */
+export interface ScriptSource {
+  read(lang: string, name: string): { path: string; text: string } | null
+}
+
 export interface ToolContext {
   /** The zone the caller has already loaded. Null when none is available,
    * which is a refusal rather than an empty answer. */
   zone?: MapZone | null
+  /** Read-only script access for `read_script`. Null when none is attached,
+   * which is a refusal rather than an empty script. */
+  scripts?: ScriptSource | null
   /** Journal reader for `recent_events`. Structural, so a test needs no
    * journal and this module needs no import from one. */
   journal?: {
@@ -165,6 +183,16 @@ function exitsOf(room: MapZoneRoom): Array<{ move: string | null; to: number | n
   return out
 }
 
+/**
+ * The only shape a script id may take.
+ *
+ * The language list is `ScriptLang` in `scriptFiles.ts` - the three engines
+ * that actually run something here - and the name charset holds no separator,
+ * no colon and no leading dot, so an id cannot name a file in another
+ * directory however it is assembled.
+ */
+const SCRIPT_ID = /^(python|typescript|ruby):[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$/
+
 const TOOLS: Record<string, ReadOnlyTool> = {
   room_by_id: {
     id: 'room_by_id',
@@ -191,6 +219,51 @@ const TOOLS: Record<string, ReadOnlyTool> = {
     },
   },
 
+
+  /**
+   * One of the player's own scripts, read and never written.
+   *
+   * The id is `<lang>:<name>` rather than a path, and that is the whole of the
+   * argument validation's job: a name drawn from a character set with no
+   * separator in it cannot address anything outside the directory its language
+   * owns, so traversal is refused by the shape of the id instead of by a check
+   * somebody has to remember to keep correct.
+   *
+   * The source comes back `untrusted`. A script is the player's own code, but
+   * it is still text a model is about to be shown, and section 2's rule that
+   * model input is data rather than authority does not make an exception for
+   * text the player wrote - a comment in a script saying "ignore your
+   * instructions" is exactly as much of a prompt injection as one in a room
+   * description.
+   *
+   * The 64 KB ceiling refuses rather than shortens, because `capResult` only
+   * shortens arrays: half a script is not a smaller script, it is a different
+   * one, and a patch proposed against half a file would apply to the wrong
+   * lines.
+   */
+  read_script: {
+    id: 'read_script',
+    maxResultBytes: 65536,
+    validate(args) {
+      if (typeof args.id !== 'string' || args.id.length === 0) return 'id must be a non-empty string'
+      if (!SCRIPT_ID.test(args.id)) {
+        return 'id must be "<python|typescript|ruby>:<name>", with no path separators'
+      }
+      if ((args.id as string).includes('..')) return 'id may not contain ".."'
+      return null
+    },
+    execute(args, context) {
+      const source = context.scripts
+      if (!source) return null
+      const id = args.id as string
+      const split = id.indexOf(':')
+      const lang = id.slice(0, split)
+      const name = id.slice(split + 1)
+      const found = source.read(lang, name)
+      if (!found) return null
+      return { id, lang, name, path: found.path, source: untrusted(found.text) }
+    },
+  },
 
   /**
    * What the bestiary already knows about a creature.

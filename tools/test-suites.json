@@ -59,6 +59,7 @@
   "test:ai-local-provider",
   "test:ai-worker",
   "test:ai-worker-host",
+  "test:ai-script-repair",
   "test:link",
   "test:eval",
   "test:contrast",
