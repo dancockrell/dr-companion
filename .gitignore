@@ -89,3 +89,7 @@ data/art/comfy-manual*.log
 # Account credentials for tools/save-lich-entry.rb. Never committed, never
 # printed by that script, and deletable the moment the Lich entry is saved.
 tools/lich-credentials.txt
+
+# Agent worktree scratch created by the Claude Code harness (hundreds of MB,
+# one checkout per agent). Never committed; .claude/launch.json stays tracked.
+.claude/worktrees/
