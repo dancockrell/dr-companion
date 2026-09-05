@@ -89,14 +89,46 @@ DR Companion implementation:
   dossier has stronger evidence; no clutter that hides a route, miniature,
   item, or command result.
 
-### Claude's delivered contribution
+### Claude — the data contract, its fixtures, and the acceptance record
+
+Claude owns the shapes the two sides exchange and the checks that hold them
+true. Nothing in this list renders anything; everything in it decides what
+"correct" means for something Codex renders.
+
+- The `WorldSnapshot`, `RoomSnapshot`, `EntitySnapshot`, `GroundItemSnapshot`,
+  `PresentationEvent` and `PresentationIntent` shapes as the app publishes
+  them, and the tests that hold them.
+- The mock fixture **generator**, `tools/build-godot-mock-fixture.mjs`, and
+  through it `godot/mock/crossing_mock_world.json`. That file is a derived
+  artefact — a projection of the primitive world manifest, not source. Edit it
+  by editing the generator; `--check` fails the build on drift.
+- The data-contract tests that read the fixture from the Node side,
+  `tools/godot-fixture-contract-test.mjs`, which say what any manifest handed
+  to the viewer must satisfy, whether it is the mock or a live snapshot.
+- `tools/live-chain-check.mjs`, the needs-environment check that asks the
+  running app over its real bridge socket whether the chain works end to end.
+- The acceptance checklist in §9 and the records under `docs/verification/`
+  that fill its slots.
+
+Codex owns every `.tscn`, every content `.gd`, every GLB, every material, and
+the composition recipes that turn manifest cells into a scene. Where the two
+meet — a `.gd` that reads the fixture — Codex owns the reading and Claude owns
+what the file contains. A change Claude needs on the Godot side is a request,
+not an edit: the smallest possible change, coordinated through a claim note
+under `.agents/claims/`, and only after `node tools/plan-audit.mjs --claims`
+shows no open claim naming that path.
+
+The boundary exists so that neither side quietly becomes the other's source of
+truth. Claude must not add a renderer, a second room truth, or a second asset
+registry; Codex must not hand-author topology, exits, or room identity into a
+scene, because the generator and its tests would then be describing a world the
+viewer no longer draws.
 
 Claude delivered the reviewed slice-0 Godot foundation in PR #267: mock
 fixture, manifest loader, content registry, mock bridge, intent validation,
 ordered event player, camera director, and headless acceptance test. Codex
 integrated that additive foundation into this branch and owns all follow-on
-changes. Any future contribution should work through the same contracts and
-must not create a duplicate renderer, room truth, or asset registry.
+changes to the renderer itself.
 
 ## 3. Runtime and port plan: Godot without porting the client
 

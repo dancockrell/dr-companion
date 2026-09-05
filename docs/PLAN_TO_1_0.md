@@ -273,6 +273,7 @@ PRs per lane, squash-merged.
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
 | I | I1–I11 | `lane-i/color-tokens` | `dev/wt-i` | 5 Sep 2026 |
 | D | D1–D6 | `lane-d/layout` | `dev/wt-d` | 5 Sep 2026 |
+| L | L1–L6 | `lane-l/viewer-contract` | `dev/wt-l` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296) and **E/F** (E5–E8,
 F2, F6, PRs #293 and #295). Their rows are gone from the table above, which is
@@ -1143,7 +1144,8 @@ receives. No portraits, no images in the client.
 
 ### Lane L — Codex contract for the Crossing slice
 
-- [ ] **L1  Name what I own** (≈15)
+- [x] **L1  Name what I own** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 20
   touches: docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: B3
   do: §2 lists: snapshot/event/intent shapes and their tests; the mock fixture generator; `tools/live-chain-check.mjs`; the acceptance checklist (L4). Codex owns every `.tscn`, content `.gd`, GLB and material.
