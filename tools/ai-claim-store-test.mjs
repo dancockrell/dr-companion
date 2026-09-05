@@ -255,7 +255,18 @@ console.log('\n-- claims survive a reload --')
 console.log('\n-- the source check: this store cannot reach canonical data --')
 {
   const source = readFileSync(new URL('../src/lib/aiClaimStore.ts', import.meta.url), 'utf8')
-  const imports = [...source.matchAll(/^import[^\n]*?from\s+'([^']+)'/gm)].map((m) => m[1])
+  // Matched on the specifier, not anchored at the `import` keyword. The
+  // earlier pattern was `/^import[^\n]*?from\s+'([^']+)'/gm`, which required
+  // the whole statement to sit on one line - so a Prettier-wrapped import was
+  // invisible to it, and the FORBIDDEN sweep below reported clean about a
+  // module the file genuinely imports. Demonstrated: appending
+  // `import {\n  loreFor,\n} from './bestiary.ts'` to aiClaimStore.ts left
+  // this suite printing `OK nothing imports bestiary`, 117 checked, 0 failed.
+  // The positive control did not save it - the one import there is happens to
+  // be single-line, so the control was measuring the population that already
+  // worked. `imports.length <= 3` did not either: an unseen import raises no
+  // count. Same correction as tools/kill-switch-test.mjs, same day.
+  const imports = [...source.matchAll(/(?:from|import)\s+'([^']+)'/g)].map((m) => m[1])
   ok('the source was actually read', source.length > 1000, `${source.length} bytes`)
   ok('at least one import was parsed, so the matcher works', imports.length >= 1, imports.join(', '))
 

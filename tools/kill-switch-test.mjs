@@ -31,7 +31,7 @@
  * Run: node --experimental-test-module-mocks tools/kill-switch-test.mjs
  */
 import { mock } from 'node:test'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { dirname, resolve as resolvePath, relative, basename } from 'node:path'
 
 let checks = 0
@@ -226,14 +226,36 @@ console.log('\n-- the classifier can see what it is looking for --')
   }
 }
 
-/** Every relative import in a source file, resolved to a repo-relative path. */
+/**
+ * Every relative import in a source file, resolved to a repo-relative path.
+ *
+ * Matched on the specifier rather than on the whole statement. The earlier
+ * pattern anchored at the `import`/`export` keyword and forbade a newline
+ * before `from` (`[^\n;]*?`), so it could only see an import written on one
+ * line - and Prettier wraps a long specifier list across several. `src/lib`
+ * held 46 such imports on the day this was corrected, none of them yet inside
+ * a kill-switch owner's closure, which is why nothing had gone wrong and why
+ * nothing would have said so when it did.
+ *
+ * Demonstrated before the change: appending a wrapped
+ * `import {\n  viewerStateLabel,\n} from './viewerClient.ts'` to
+ * `src/lib/pythonTasks.ts` put a viewer module inside `flowStop.ts`'s real
+ * runtime closure, and this file still printed `all kill-switch checks
+ * passed` and exited 0. The pinned `EXPECTED_CLOSURE` did not catch it
+ * either: an import the walker cannot see does not change the count it
+ * compares against, so the closure read 5 both ways.
+ *
+ * Static imports and re-exports only, and the specifier is now the whole
+ * signal, so no amount of wrapping hides one. A dynamic import would be a way
+ * to reach an optional subsystem without appearing here, so it is asserted
+ * against separately below. The shape is the one
+ * `tools/ai-script-repair-test.mjs` already uses, reused rather than a third
+ * parser being invented.
+ */
 function relativeImports(file) {
   const source = readFileSync(file, 'utf8')
   const out = []
-  // Static imports and re-exports only. A dynamic import would be a way to
-  // reach an optional subsystem without appearing here, so it is asserted
-  // against separately below.
-  for (const match of source.matchAll(/(?:^|\n)\s*(?:import|export)[^\n;]*?from\s+'(\.[^']+)'/g)) {
+  for (const match of source.matchAll(/(?:from|import)\s+'(\.[^']+)'/g)) {
     const spec = match[1]
     const base = resolvePath(dirname(file), spec)
     const candidate = [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`].find((p) => existsSync(p))
@@ -276,6 +298,41 @@ console.log('\n-- the import parser itself, before trusting anything it says --'
     `the import parser reads real imports: ${CONTROL} has ${direct.length}`,
     direct.join(', ')
   )
+
+  // And the population the old parser could not see at all. Every owner's
+  // imports happen to be single-line, so `flowStop.ts` above is a control on
+  // the wrong population: a wrapped import would have been absent from it too.
+  // This one is aimed at the case that was broken - a real file in the tree
+  // whose `from` sits on a later line than its `import` - so that the fix
+  // cannot silently revert.
+  const wrapped = /(?:^|\n)[ \t]*import\b[^;'"]*?\n[^;]*?from\s+'(\.[^']+)'/
+  let sample = null
+  for (const name of readdirSync('src/lib')) {
+    if (!/\.tsx?$/.test(name)) continue
+    const hit = wrapped.exec(readFileSync(`src/lib/${name}`, 'utf8'))
+    if (hit) {
+      sample = { file: `src/lib/${name}`, spec: hit[1] }
+      break
+    }
+  }
+  if (!sample) {
+    // Three states, not two. No wrapped import in the tree means this control
+    // examined nothing, which is not the same as the parser being right.
+    console.log(
+      'NOT CHECKED  no wrapped import exists in src/lib today, so the multi-line case could not be exercised'
+    )
+  } else {
+    const seen = relativeImports(sample.file)
+    const target = resolvePath(dirname(sample.file), sample.spec)
+    const resolved = [target, `${target}.ts`, `${target}.tsx`, `${target}/index.ts`]
+      .filter((p) => existsSync(p))
+      .map((p) => relative(process.cwd(), p).split('\\').join('/'))
+    ok(
+      resolved.length > 0 && seen.includes(resolved[0]),
+      `the import parser reads an import wrapped across lines: ${sample.file} -> ${sample.spec}`,
+      seen.join(', ')
+    )
+  }
 }
 
 console.log('\n-- what each kill-switch owner can reach --')
