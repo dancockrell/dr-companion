@@ -123,6 +123,46 @@ console.log('\n-- onRoute is checked by id, not by reference or truthiness --')
     roomKind(room({ id: null }), 99, onRoute) === 'route')
 }
 
+// --- the docstring's own numbers, checked against the shipped data ----------
+//
+// `mapData.ts` opens by saying how much cartography ships. It said 90 zones,
+// 18,490 rooms and 44,864 exits; the data holds 85, 17,750 and 42,866, and had
+// for long enough that nobody knows when it stopped being true. A docstring is
+// read far more often than it is verified, which is what makes a stale one
+// worse than none: it spends the reader's attention and teaches them the file
+// lies.
+//
+// The claim is parsed out of the comment and compared to the files. Written
+// this way round deliberately - the prose stays the thing a person reads, and
+// this is what stops it drifting, rather than replacing it with a generated
+// line nobody would read at all.
+{
+  const { readFileSync, readdirSync } = await import('node:fs')
+  const source = readFileSync('src/lib/mapData.ts', 'utf8')
+  const claim = /(\d[\d,]*) zones, (\d[\d,]*) rooms, (\d[\d,]*) exits/.exec(source)
+  const num = (s) => Number(String(s).replace(/,/g, ''))
+
+  ok('the module still states how much cartography ships', claim !== null)
+  if (claim) {
+    const files = readdirSync('src/data/map').filter((f) => f.endsWith('.json') && f !== 'index.json')
+    let rooms = 0
+    let exits = 0
+    for (const f of files) {
+      const zone = JSON.parse(readFileSync(`src/data/map/${f}`, 'utf8'))
+      const raw = zone.rooms ?? zone
+      const list = Array.isArray(raw) ? raw : Object.values(raw)
+      rooms += list.length
+      for (const r of list) exits += (r.moves ?? r.exits ?? []).length
+    }
+    // A floor first. An empty data directory would make the walk silent, and
+    // silence would read as a measurement rather than as a broken instrument.
+    ok('there is cartography to count', files.length > 50 && rooms > 1000, `${files.length} zones, ${rooms} rooms`)
+    ok('the zone count in the docstring is real', num(claim[1]) === files.length, `says ${claim[1]}, is ${files.length}`)
+    ok('the room count in the docstring is real', num(claim[2]) === rooms, `says ${claim[2]}, is ${rooms}`)
+    ok('the exit count in the docstring is real', num(claim[3]) === exits, `says ${claim[3]}, is ${exits}`)
+  }
+}
+
 const ran = checked
 ok('enough was checked for a pass to mean something', ran >= 10, `${ran} assertions`)
 
