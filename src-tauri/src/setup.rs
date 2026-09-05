@@ -56,6 +56,18 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 /// Lich's `.ruby-version`. Anything older is not merely untested, it will fail.
 const REQUIRED_RUBY_MAJOR: u32 = 4;
 const LICH_REPO: &str = "elanthia-online/lich-5";
+/// Every name Genie's executable has shipped under.
+///
+/// One list, because two places deciding what Genie is called would eventually
+/// disagree, and the half that got it wrong would be the half reporting that
+/// no frontend is present while one holds the port. `find_genie` looks for
+/// these on disk; `lich::genie_running` looks for them in `tasklist` (E11).
+///
+/// Wrayth and StormFront are deliberately not here. They are other frontends,
+/// not other names for this one, and `find_genie` appends them itself.
+pub const GENIE_IMAGE_NAMES: &[&str] =
+    &["Genie.exe", "Genie4.exe", "Genie5.exe", "GenieClient.exe"];
+
 pub const GENIE4_REPO: &str = "GenieClient/Genie4";
 pub const GENIE5_REPO: &str = "GenieClient/Genie5";
 pub const GENIE_PLUGINS_REPO: &str = "GenieClient/Plugins";
@@ -784,14 +796,11 @@ fn detect_genie() -> (Option<String>, String) {
     dirs.push(app_data_dir().join("genie"));
     dirs.retain(|p| p.exists());
 
-    for exe in [
-        "Genie.exe",
-        "Genie4.exe",
-        "Genie5.exe",
-        "GenieClient.exe",
-        "Wrayth.exe",
-        "StormFront.exe",
-    ] {
+    for exe in GENIE_IMAGE_NAMES
+        .iter()
+        .copied()
+        .chain(["Wrayth.exe", "StormFront.exe"])
+    {
         if let Some(p) = first_existing(&dirs, exe) {
             return (
                 Some(p.to_string_lossy().into_owned()),

@@ -182,3 +182,23 @@ export async function installBundle(
 ): Promise<string> {
   return (await invokeTauri('install_bundle', { id, files, target })) as string
 }
+
+/**
+ * Is a Genie frontend running, and could we tell? (E11)
+ *
+ * Three answers, not two. `known: false` means the process list could not be
+ * read at all, which must never be rendered as "Genie is not running": a
+ * player whose live session is about to lose its connection deserves better
+ * than a confident wrong answer.
+ *
+ * Nothing in this app closes Genie. It may be a session someone is playing,
+ * and taking the port out from under a running client is precisely the
+ * accident this warning exists to prevent.
+ */
+export async function genieStatus(): Promise<{ running: boolean; known: boolean }> {
+  if (!isTauri()) return { running: false, known: false }
+  const res = (await invokeTauri('genie_status')) as
+    | { running?: boolean; known?: boolean }
+    | null
+  return { running: res?.running ?? false, known: res?.known ?? false }
+}

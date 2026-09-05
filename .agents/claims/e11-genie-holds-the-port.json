@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "task_id": "e11-genie-holds-the-port",
+  "agent": "claude-code",
+  "summary": "The wizard says when Genie is running and may hold the frontend port, in three states, and never closes it",
+  "status": "completed",
+  "claimed_at": "2026-09-05T19:30:00Z",
+  "updated_at": "2026-09-05T20:10:00Z",
+  "paths": [
+    "src-tauri/src/lich.rs",
+    "src-tauri/src/setup.rs",
+    "src-tauri/src/lib.rs",
+    "src/lib/setup.ts",
+    "src/components/first-run/SetupWizard.tsx",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/e11-genie-holds-the-port.json"
+  ],
+  "symbols": ["any_image_listed", "genie_running", "genie_status", "GenieStatus", "GENIE_IMAGE_NAMES", "genieStatus"],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Extends two existing owners rather than adding siblings. lich_running's inline tasklist parse is lifted into any_image_listed(listed, images) and both callers use it, so the rule that empty stdout means 'could not ask' rather than 'no' exists once; two copies of that rule would eventually disagree, and the copy that got it wrong would be the one reporting no frontend while one holds the port. The candidate executable names come from setup::GENIE_IMAGE_NAMES, extracted from the list find_genie was already iterating, so the disk probe and the process probe cannot come to disagree about what Genie is called; Wrayth and StormFront stay out of that const and find_genie appends them itself, because they are other frontends rather than other names for this one. Exposed as its own genie_status command rather than a field on LichStatus: lich_status is measured at about five seconds, this is one tasklist call, and a field nobody could afford to read is the same as no field. Nothing here closes Genie and there is deliberately no button - CLAUDE.md section 4 records this exact accident happening twice on this machine, silently, with the live window simply going to 'Not connected'."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "cargo test --lib lich: ok, 15 passed, 0 failed, including tasklist_output_has_three_answers_not_two",
+      "cargo test --lib: ok, 117 passed, 0 failed",
+      "cargo fmt -- --check: exit 0",
+      "npx tsc -b: exit 0",
+      "the image name could NOT be confirmed the way the increment says. `tasklist | findstr /I genie` returned nothing because Genie was not running here - a zero about the instrument, not about the name. Second instrument used instead: src-tauri/src/setup.rs already probed for Genie.exe, Genie4.exe, Genie5.exe and GenieClient.exe on disk, so the repo already held the answer, and those four are now the shared const.",
+      "sabotage A, empty stdout returning Some(false) instead of None: exit 101, 'assertion `left == right` failed, left: Some(false), right: None' at lich.rs:839. This is the whole point of the increment - folding 'could not ask' into 'not running' is how a wizard cheerfully reports nothing holds the port while something does.",
+      "sabotage B, GENIE_IMAGE_NAMES cut from four names to one: exit 101 at the name loop, naming the missing entry. Without that loop the list could silently shrink and every other assertion would still pass.",
+      "restored: md5 src-tauri/src/lich.rs c575862fc3cb16a8e6ca7f0fce51ce67 and src-tauri/src/setup.rs e3b9618ba1a33debcac715016fa7f561, both matching pre-sabotage",
+      "a sabotage that did not land, recorded because it produced a green run: the first attempt at A was a perl -0pi whose pattern matched nothing. cargo reported 'ok'. It was caught only because the replacement count was printed and read 0, which is why that count is printed."
+    ]
+  }
+}

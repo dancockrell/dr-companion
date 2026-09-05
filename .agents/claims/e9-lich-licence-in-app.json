@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "task_id": "e9-lich-licence-in-app",
+  "agent": "claude-code",
+  "summary": "Lich's BSD-3-Clause licence reaches a player: one verbatim copy in src/data/lichLicense.ts, rendered by the Settings sheet and by THIRD_PARTY.md's generator",
+  "status": "completed",
+  "claimed_at": "2026-09-05T18:00:00Z",
+  "updated_at": "2026-09-05T18:40:00Z",
+  "paths": [
+    "src/data/lichLicense.ts",
+    "src/components/layout/SettingsSheet.tsx",
+    "tools/build-third-party.mjs",
+    "THIRD_PARTY.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/e9-lich-licence-in-app.json"
+  ],
+  "symbols": ["LICH_LICENSE", "SettingsSheet"],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "SettingsSheet.tsx is shared with Lane G (G7) and Lane H (H2) per the conflict matrix. This adds one new <section> immediately before the existing version-numbers section, reorders nothing, and touches no other section. Extends rather than duplicates on two counts. First, tools/build-third-party.mjs (F6, already [x]) held Lich's three copyright lines in a local const; that const is deleted and the file now imports the same module the app renders, so THIRD_PARTY.md and the Settings sheet cannot come to disagree - a licence is the one document where a stale copy is a legal problem, not an untidiness. Second, src/components/first-run/ComponentCard.tsx already discloses that Ruby4Lich5 is BSD-3-Clause software at the moment a player installs it; that stays as it is and is not duplicated. It is a disclosure with a link, and BSD-3 condition 2 asks for the notice, the conditions and the disclaimer to travel with the distribution, which a wizard screen a returning player never sees again does not do. Node 24 strips types by default, so the .mjs generator imports the .ts module directly; verified with a throwaway pair before relying on it."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "the licence was read, not assumed: `cat C:/Ruby4Lich5/Lich5/LICENSE` is the BSD 3-Clause License, copyright Murray Miron 2005-2006, Matt Lowe (Tillmen) 2006-2020, Elanthia Online 2021-present",
+      "node tools/build-third-party.mjs --check: exit 0, 'all third-party licence checks passed'",
+      "the Lich block's new lines: 'OK ...and the grant the app shows is the installed one', conditions 1, 2 and 3 each 'OK ...the app shows is the installed one', 'OK ...and the disclaimer the app shows is the installed one'",
+      "the new Settings block: 'OK the Settings sheet imports the licence rather than keeping a copy' plus OK on each of LICH_LICENSE.holders, .grant, .conditions, .disclaimer",
+      "npx tsc -b: exit 0",
+      "node tools/run-tests.mjs: all passed (see the plan entry for counts)",
+      "sabotage 1, the module paraphrased ('must retain' -> 'must keep'): exit 1, one line, 'FAIL ...and condition 1 the app shows is the installed one'. Nothing else went red, so the checks are not entangled.",
+      "sabotage 2, the sheet stops rendering ({LICH_LICENSE.disclaimer} -> {null}): exit 1, one line, 'FAIL ...and renders LICH_LICENSE.disclaimer'. This is the branch that matters - without it the module could hold a perfect licence that no player ever sees, and every other check would stay green.",
+      "restored: md5 src/data/lichLicense.ts 86ce1299cfb2e7c57207a0b14678c211 and src/components/layout/SettingsSheet.tsx 26cb139010cb5f174b5a75bd7544048c, both matching the pre-sabotage hashes",
+      "the plan's original verify line (grep 'Redistribution and use' in SettingsSheet.tsx >= 1) is deliberately not satisfied and the plan entry says why: it asserts that the text was typed into the component, which is the second copy this increment exists to avoid. grep -c 'Redistribution and use' src/data/lichLicense.ts -> 1."
+    ]
+  }
+}

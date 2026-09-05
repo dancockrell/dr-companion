@@ -18,10 +18,12 @@ installer fetches Ruby4Lich5. Lich is **BSD-3-Clause**:
 >
 > Copyright (c) 2021-present, Elanthia Online
 
-> Redistribution and use in source and binary forms, with or without
-> modification, are permitted provided that the conditions of the
-> BSD 3-Clause License are met. The full text ships with Lich itself, at
-> `Lich5/LICENSE` in a Ruby4Lich5 install.
+> Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+The full text is in the app, under Settings, and in
+`src/data/lichLicense.ts`, which is where this section's copyright lines and
+the app's licence screen both come from. It also ships with Lich itself, at
+`Lich5/LICENSE` in a Ruby4Lich5 install.
 
 ## Godot
 

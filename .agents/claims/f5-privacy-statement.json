@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "f5-privacy-statement",
+  "agent": "claude-code",
+  "summary": "docs/PRIVACY.md, generated from a scan of every outbound destination in the source, with a check that fails the build when the code grows a host the document does not name",
+  "status": "completed",
+  "claimed_at": "2026-09-05T18:45:00Z",
+  "updated_at": "2026-09-05T19:20:00Z",
+  "paths": [
+    "docs/PRIVACY.md",
+    "tools/build-privacy-doc.mjs",
+    "src/components/layout/SettingsSheet.tsx",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/f5-privacy-statement.json"
+  ],
+  "symbols": ["DESTINATIONS"],
+  "coordination": {
+    "depends_on": ["e9-lich-licence-in-app"],
+    "conflicts_with": [],
+    "notes": "SettingsSheet.tsx is shared with Lane G (G7) and Lane H (H2). This adds no section: it extends the Licences section E9 created in the commit before it, renaming that heading to 'Licences and privacy'. Nothing is reordered and no other section is touched. The generator follows tools/build-player-data-doc.mjs and tools/build-third-party.mjs rather than inventing a shape - same --check contract, same normalised line-ending comparison, same refuse-to-publish floor on a scan that looks truncated. The increment's grep is reproduced in node rather than shelled out, because CI runs on a runner whose grep is not this machine's; the two were compared once and agree (56 lines, six hosts), and that comparison is recorded in the generator's header so the next reader can redo it."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "the increment's grep, run as written: 56 lines, hosts elanthipedia.play.net (19), github.com (15), raw.githubusercontent.com (3), api.github.com (3), rubyinstaller.org (1), objects.githubusercontent.com (1)",
+      "node tools/build-privacy-doc.mjs: 'docs/PRIVACY.md: 6 hosts (5 contacted), 57 lines, 319 source files scanned' - 57 rather than 56 because the Settings link to the new doc is itself an https:// the scan sees, which is the scan working",
+      "node tools/build-privacy-doc.mjs --check: exit 0, '6 checked, 0 failed'",
+      "the rate limit was read, not assumed: src/lib/elanthipedia.ts:27 MIN_INTERVAL_MS = 60_000, and src-tauri/src/elanthipedia.rs's header states the api.php and user-agent decisions the doc reports",
+      "no telemetry claim checked rather than asserted: grep -rniE 'telemetry|analytics|sentry|posthog|mixpanel|amplitude|google-analytics|gtag' over src/ and src-tauri/src/ returns only VarsEntry identifiers, no reporting code",
+      "npx tsc -b: exit 0; node tools/run-tests.mjs: all passed",
+      "sabotage A, a new undescribed host in src/lib/bugReport.ts: exit 1, 'FAIL every host the scan found is described   example.invalid'",
+      "sabotage B, a described host renamed so the source no longer has it: exit 1, 'FAIL every host described is still in the source   gone.example.invalid'. This is the direction that matters for a privacy statement - it is what stops the document describing an app that no longer exists - and it is the one an enumerate-what-is-present check cannot do.",
+      "sabotage C, the scan pattern replaced with one matching nothing: exit 1, 'Error: only 0 lines matched; refusing to publish.' A scan that silently matched nothing would otherwise publish the most flattering possible privacy document.",
+      "restored: md5 src/lib/bugReport.ts 07d39c67fdf44ebed13e2400a1475bd2 and tools/build-privacy-doc.mjs 8700d2de5de9184deb60daa4d8e2d74a, both matching pre-sabotage"
+    ]
+  }
+}

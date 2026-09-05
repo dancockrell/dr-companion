@@ -283,6 +283,7 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
+| E | E9, E11, E12, F5, then E1–E3, E10 | `lane-e/first-run` | `dev/wt-e` | 5 Sep 2026 |
 | G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
@@ -726,19 +727,24 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane E — First run and setup
 
-- [ ] **E1  A clean Windows VM** (≈30 + download)
-  touches: none
+- [x] **E1  A clean Windows VM** (≈30 + download)
+  commit: (this PR) verified: 2026-09-05 minutes: 70
+  touches: new:docs/verification/vm.md
   depends-on: none
   do: this machine is Windows 11 **Home**: no Windows Sandbox, no Hyper-V. Use VirtualBox with Microsoft's Windows 11 Enterprise evaluation ISO (90-day), 4 GB RAM, 60 GB disk, no shared folders; snapshot `clean` before installing anything. Record build number and snapshot name in `docs/verification/vm.md`.
-  verify: the file exists with both.
+  result: `drc-clean-win11`, Windows 11 Enterprise LTSC Evaluation build **26100.1742**, EFI + TPM 2.0 (Windows 11 refuses to install without both), 4 GB, 2 CPUs, 60 GB VDI, NAT, no shared folders, clipboard and drag-and-drop disabled. Snapshot **`clean`**, UUID `f3d11570-c6a9-46d2-99c1-77e300027040`, taken powered off with the install ISO detached. VirtualBox 7.0.18 was already on this machine and was not installed by this increment. The ISO came from Microsoft's own CDN via `go.microsoft.com/fwlink/p/?linkid=2289029`, 5,112,850,432 bytes matching the server's `Content-Length`; it lives outside the repository at `C:\Users\Admin\dev\_scratch\vm\win11-ltsc-eval.iso`.
+  verify: the file exists with both — `docs/verification/vm.md`, build and snapshot name in the table at the top. It also records that `ver` could **not** be run inside the guest (`VBoxManage guestcontrol` returned "the guest execution service is not ready", twice), so the build is what VirtualBox read off the ISO and what the desktop watermark shows, and says so rather than implying an in-guest reading.
+  note: the unattended install appeared to run for twenty-five minutes and had in fact done nothing — it was parked on `Press any key to boot from CD or DVD` and had fallen through to `No bootable option or device was found`. `VMState="running"` said nothing about that. Caught by taking a screenshot instead of trusting the state field; the fix and three other traps are in the doc.
 
-- [ ] **E2  Installer on the clean VM** (≈20)
+- [!] **E2  Installer on the clean VM** (≈20)
+  blocked-on: no working way to drive the guest — `VBoxManage guestcontrol` returns "the guest execution service is not ready (yet)" or hangs, on four attempts across two boots, with Guest Additions 7.0.18 reporting RunLevel 3. E1 is **not** the blocker: the VM exists and `clean` is snapshotted, and an installer exists too — `DR Companion_0.1.1_x64-setup.exe`, 217,297,383 bytes, SHA-256 1F813B6F…0BE09E, bundling the real Ruby4Lich5 v5.20.1, staged at `C:/Users/Admin/dev/_scratch/vm/payload/`. What is left is getting it into the guest and screenshotting each prompt through the GUI. `docs/verification/vm.md` §"State when E1 was signed off" lists the three remaining routes and says which to prefer and why.
   touches: none
   depends-on: E1, F1
   do: copy in the NSIS `.exe`; run; screenshot every prompt including SmartScreen; note admin elevation; run the app; screenshot the first screen. Write `docs/verification/first-run-<date>.md`.
   verify: the doc lists every prompt in order.
 
-- [ ] **E3  Uninstall on the clean VM** (≈10)
+- [!] **E3  Uninstall on the clean VM** (≈10)
+  blocked-on: E2
   touches: none
   depends-on: E2
   do: Settings → Apps → uninstall; list what remains under `%APPDATA%` and `%LOCALAPPDATA%` (user data should; program files should not).
@@ -781,31 +787,43 @@ whether it is embedded, docked or a separate window is D0.
   do: these two already exercise `attachGame`/`detachGame`/`backfill` (`grep -ln "detachGame\|backfill" tools/*.mjs`). Add: socket dropped mid-stream → pane says disconnected; `sendGame` refused with a reason; reconnect → backfill runs (`gameLink.ts` `backfill()`).
   verify: both suites green with the three named checks.
 
-- [ ] **E9  Lich's BSD-3 licence in the app** (≈15)
-  touches: src/components/layout/SettingsSheet.tsx
+- [x] **E9  Lich's BSD-3 licence in the app** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 45
+  touches: new:src/data/lichLicense.ts, src/components/layout/SettingsSheet.tsx, tools/build-third-party.mjs, THIRD_PARTY.md, docs/PLAYER_DATA.md
   depends-on: none
+  result: `C:/Ruby4Lich5/Lich5/LICENSE` read rather than trusted — it is the BSD 3-Clause License, holders Murray Miron (2005-2006), Matt Lowe/Tillmen (2006-2020) and Elanthia Online (2021-present). A Licences section in the Settings sheet shows the grant, all three conditions and the disclaimer, collapsed behind a button.
   do: read `<lich>/LICENSE` head (ENGINE.md says verify, not trust); an About section with the licence text and copyright lines; Godot's MIT joins in F6.
-  verify: renders; `grep -c "Redistribution and use" src/components/layout/SettingsSheet.tsx` ≥ 1.
+  verify: the original line here was `grep -c "Redistribution and use" src/components/layout/SettingsSheet.tsx` ≥ 1, which asserts the mechanism — the text typed into the component — rather than the property. F6 already held those copyright lines in `tools/build-third-party.mjs`, so typing the text into the sheet as well would have been a second copy of a licence, which is the one document where two versions drifting is not merely untidy (§1 trap 17). The text lives once, in `src/data/lichLicense.ts`; the sheet and THIRD_PARTY.md both render from it. So the property is checked instead, and by command: `node tools/build-third-party.mjs --check` exit 0, whose Lich block now compares the module's grant, all three conditions and the disclaimer against the installed `LICENSE` (whitespace-flattened, since the file is hard-wrapped and the module is not), and whose new Settings block asserts the sheet imports the module and renders all four fields. `grep -c "Redistribution and use" src/data/lichLicense.ts` → 1. On a machine with no Lich the comparison still says NOT CHECKED rather than passing.
+  sabotage: (1) `must retain` → `must keep` in the module → `FAIL ...and condition 1 the app shows is the installed one`, exit 1, that one check only; (2) `{LICH_LICENSE.disclaimer}` → `{null}` in the sheet → `FAIL ...and renders LICH_LICENSE.disclaimer`, exit 1, that one check only. Both restored; md5 `86ce1299cfb2e7c57207a0b14678c211` and `26cb139010cb5f174b5a75bd7544048c` matched their pre-sabotage values.
 
-- [ ] **E10  Walk the wizard on the VM** (≈30)
+- [!] **E10  Walk the wizard on the VM** (≈30)
+  blocked-on: E2
   touches: none
   depends-on: E2
   do: from `clean` plus the installer: every wizard step screenshotted (`src/components/first-run/`), a note per step "did a program need me here?", total elapsed time in the doc.
   verify: the doc has the elapsed time.
 
-- [ ] **E11  Detect Genie holding the port** (≈20)
-  touches: src-tauri/src/lich.rs, src/components/first-run/SetupWizard.tsx
+- [x] **E11  Detect Genie holding the port** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 50
+  touches: src-tauri/src/lich.rs, src-tauri/src/setup.rs, src-tauri/src/lib.rs, src/lib/setup.ts, src/components/first-run/SetupWizard.tsx
   depends-on: none
+  result: `genie_running()` shares `lich_running()`'s parser rather than copying it — the empty-stdout-is-unknown rule now lives in one `any_image_listed(listed, images)`, because two functions deciding what an empty `tasklist` means would eventually decide it differently, and the one that got it wrong would be the one reporting no frontend while one holds the port. The image names come from `setup::GENIE_IMAGE_NAMES`, extracted from the list `find_genie` was already using, for the same reason. Exposed as its own cheap `genie_status` command rather than a field on `LichStatus`: that command measures about five seconds (its own doc comment records the measurements), and this is one `tasklist` call. It reports and never acts — there is deliberately no button, because the process may be a session someone is playing.
   do: `genie_running()` mirrors `lich_running()` (`src-tauri/src/lich.rs`, `fn lich_running`) with the image name confirmed by `tasklist | findstr /I genie`; wizard text "Genie is running and may hold the frontend port; close it or continue" — never kill it. If the wizard file has a different name, `ls src/components/first-run/`.
-  verify: `cargo test --lib lich` green with a three-state parser test on `tasklist` output.
+  note: the image name could **not** be confirmed the way this increment says. `tasklist | findstr /I genie` returned nothing, because Genie was not running on this machine at the time — a zero about the instrument, not about the name. Confirmed from a second source instead: `src-tauri/src/setup.rs` already probes for `Genie.exe`, `Genie4.exe`, `Genie5.exe` and `GenieClient.exe` on disk, so the repo already knew the answer and the two now share one list.
+  do: `genie_running()` mirrors `lich_running()` (`src-tauri/src/lich.rs`, `fn lich_running`) with the image name confirmed by `tasklist | findstr /I genie`; wizard text "Genie is running and may hold the frontend port; close it or continue" — never kill it. If the wizard file has a different name, `ls src/components/first-run/`.
+  verify: `cargo test --lib lich` green with a three-state parser test on `tasklist` output — `tasklist_output_has_three_answers_not_two`, 15 passed 0 failed. It asserts `Some(true)` on a real CSV line, `Some(false)` on a populated list with no Genie, and `None` on empty and whitespace-only stdout; that the same parser answers for Lich; that every name in `GENIE_IMAGE_NAMES` is matched (a chooser tested where the wrong answer is available — without it the list could shrink to one entry and every other assertion would still pass); and that `GenieLauncher.exe.bak` is not a match. `cargo fmt -- --check` exit 0; `cargo test --lib` 117 passed.
+  sabotage: (A) `return None` → `return Some(false)` on empty stdout → exit 101, `assertion left == right failed, left: Some(false), right: None`; (B) `GENIE_IMAGE_NAMES` cut to one entry → exit 101 at the name loop. Restored; md5 `c575862fc3cb16a8e6ca7f0fce51ce67` and `e3b9618ba1a33debcac715016fa7f561` matched. Worth recording: the first attempt at sabotage A was a `perl -0pi` that matched nothing and the suite reported `ok`, which is exactly the pass a sabotage that never landed produces. It was caught only because the replacement count was printed and was 0.
 
-- [ ] **E12  Diagnostics panel + bug bundle** (≈40; two commits)
-  touches: new:src/components/shared/DiagnosticsPanel.tsx, src/components/layout/SettingsSheet.tsx, new:src/lib/bugBundle.ts, new:tools/bug-bundle-test.mjs, package.json, tools/test-suites.json
+- [x] **E12  Diagnostics panel + bug bundle** (≈40; two commits)
+  commit: (this PR) verified: 2026-09-05 minutes: 60
+  touches: new:src/components/shared/DiagnosticsPanel.tsx, src/components/layout/SettingsSheet.tsx, new:src/lib/bugBundle.ts, new:tools/bug-bundle-test.mjs, package.json, tools/test-suites.json, docs/PLAYER_DATA.md, docs/PRIVACY.md
   depends-on: A1, B6
+  result: one Diagnostics section in Settings, six rows, each `present | absent | could not check`, and "Copy bug bundle". It refuses rather than redacts: a redacting bundle hands back something that looks safe, and the one time the redaction was imperfect nobody would be looking. Two privacy rules are reused rather than rewritten — the activity log goes through `bugReport.ts`'s own `scrub`, so there is one set of private-speech patterns, and the finished text goes through `aiModelProvider.ts`'s `scanForSecrets`, so there is one list of what a credential looks like. The scan runs on the serialised artefact rather than per field, because a credential can be split across fields and reassembled by serialisation, and because the artefact is the thing that leaves. Outside the desktop app every row reads `could not check` with a reason, never six absences. The token row reports the token's *length* and never the token.
+  note: the first version of the panel had the plan's own trap 6 in it — the gather callback depended on `ai.ticks` and `ai.journalPending`, which move every second, so a five-second `lich_status` probe would have restarted on every tick of an unrelated worker. Fixed by reading `getAiStatus()` inside the callback. The subscription left behind then had no consumer and was removed rather than kept as furniture.
   do: one panel: Ruby, Lich, bridge port, token file, viewer, model — each `present | absent | could not check`. "Copy bug bundle" = JSON of that plus the existing activity log (`grep -rn "activity" src/lib/*.ts | head`), passed through `scanForSecrets` from `aiModelProvider.ts`; refuse with the pattern name on a hit.
-  verify: test — a bundle with a runtime-assembled `pass`+`word: x` is refused naming the pattern, not the value.
-  sabotage: skip the scan → red.
-  pitfalls: 3.
+  verify: `npm run test:bug-bundle` → `19 checked, 0 failed`. A bundle whose log carries a runtime-assembled `pass`+`word`+`: hunter2` is refused, `patterns` is `['account password']`, and the refusal message and pattern list are asserted **not** to contain the value. Also: an `api_key=` shape refused; a credential in a *diagnostic detail* rather than the log refused, which is what proves the scan is on the finished artefact and not scoped to one field; a bundle missing rows still builds but names them in `diagnosticsNotGathered`, so an incomplete bundle cannot be read as a complete one; a tell in the log is scrubbed by the shared scrubber; and a positive control that fails loudly with `THE GATE DID NOT FIRE` if the scanner is not running.
+  sabotage: skip the scan → red. `const scan = scanForSecrets(text)` replaced with `{ safe: true, found: [] }` → exit 1, `15 checked, 4 failed`, the four being the three refusals and the control, which named itself. Restored; md5 `606dec7bb69258cf1d12e2b306a492c1` matched.
+  pitfalls: 3. All three met: gitleaks (fixtures assembled at runtime, `['pass','word',': ','hunter','2'].join('')`); `.ts` import extensions in `src/lib` (`./bugReport.ts`, `./aiModelProvider.ts`); and registration in both `package.json` and `tools/test-suites.json`, with the total rising by exactly the new suite's 19 checks.
 
 ---
 
@@ -841,11 +859,14 @@ whether it is embedded, docked or a separate window is D0.
   do: the app already fetches Ruby4Lich5 from GitHub releases (`tools/vendor-fetch.mjs`, `setup.rs`). Reuse for a "newer version available" link (no auto-install) or rely on the page. Recommend the link. Section 10.
   verify: "Decided:" line.
 
-- [ ] **F5  Privacy statement** (≈20)
-  touches: new:docs/PRIVACY.md, src/components/layout/SettingsSheet.tsx
+- [x] **F5  Privacy statement** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 45
+  touches: new:docs/PRIVACY.md, new:tools/build-privacy-doc.mjs, src/components/layout/SettingsSheet.tsx, package.json, tools/test-suites.json
   depends-on: E9
   do: `grep -rn "fetch(\|reqwest\|https://" src/ src-tauri/src/ | grep -v -E "test|127\.0\.0\.1|localhost"` → one line per destination (Elanthipedia, GitHub releases). State: no telemetry, no analytics, local model on loopback only.
-  verify: the grep's destination count equals the doc's line count.
+  result: the doc is generated, not written, for the reason F6 and E6 are: a privacy statement that has quietly stopped being true reads exactly like one that has not, and it is the document where that matters most. Six hosts — `elanthipedia.play.net`, `api.github.com`, `github.com`, `objects.githubusercontent.com`, `raw.githubusercontent.com`, `rubyinstaller.org`. Five are contacted by the app; `rubyinstaller.org` is a link the player's own browser opens, and the scan cannot tell those apart, so the classification is by hand against each call site and the doc says so. Elanthipedia's entry states that the wiki runs on Simutronics' own infrastructure, which is why the fetch goes through the sanctioned `api.php`, carries a user agent naming this app, and is limited to watched rooms at `MIN_INTERVAL_MS = 60_000` (`src/lib/elanthipedia.ts:27`, read rather than assumed).
+  verify: `node tools/build-privacy-doc.mjs --check` exit 0, `6 checked, 0 failed`. The generator reproduces the increment's grep in node so it runs on a CI runner too, and the two were compared: both find 56 lines and the same six hosts on the tree before this increment (57 lines after, because the Settings link to the new doc is itself an `https://` the scan sees). `--check` asserts every scanned host is described **and** every described host is still in the source; the second direction is what catches a promise outliving the code.
+  sabotage: (A) a new `https://example.invalid/telemetry` in `src/lib/bugReport.ts` → exit 1, `FAIL every host the scan found is described   example.invalid`; (B) a described host renamed so the code no longer has it → exit 1, `FAIL every host described is still in the source   gone.example.invalid`; (C) the scan pattern replaced with one that matches nothing → exit 1, `Error: only 0 lines matched; refusing to publish.`, which is the case that matters — a broken scan must abort rather than publish an empty and flattering promise. All restored; md5 `07d39c67fdf44ebed13e2400a1475bd2` and `8700d2de5de9184deb60daa4d8e2d74a` matched.
 
 - [x] **F6  Third-party licences, generated** (≈25)
   commit: 21df5812 verified: 2026-09-05 minutes: 50
