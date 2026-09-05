@@ -21,6 +21,14 @@ const LIVE_FLAG := "--live-presentation"
 ## bridge's own reconnect timer only exists once a connection has been made, so
 ## the case where DR Companion is not running yet has nothing else driving it.
 const LIVE_RETRY_SECONDS := 2.0
+## Banner text for a host that answered on an open socket and refused what the
+## viewer said. Named constants rather than literals because
+## `godot/tests/live_status_states_test.gd` asserts these two are different
+## strings: a server error swept up by the unrecognised-state arm would leave
+## its own arm deletable with nothing going red, which is the shape of the bug
+## that made this necessary.
+const LIVE_STATUS_SERVER_ERROR := "DR Companion rejected a viewer message."
+const LIVE_STATUS_UNRECOGNISED := "DR Companion reported an unrecognised state (%s)."
 
 @onready var camera: Camera3D = $CameraDirector
 @onready var cell_root: Node3D = $CellRoot
@@ -248,12 +256,28 @@ func _on_live_connection_changed(state: String) -> void:
 		"configuration-unavailable", "configuration-invalid", "connection-failed":
 			_show_live_status("Bridge unavailable — is DR Companion running?")
 			_begin_live_retry()
+		"server-error":
+			# The host answered over a socket that is still open and refused
+			# something the viewer sent, so the connection is not the problem
+			# and reopening it would not help: no retry from here. Until this
+			# arm existed the state matched nothing at all and the previous
+			# banner stayed up, so a server error after "connecting" read as
+			# "Connecting to DR Companion…" indefinitely (issue #341).
+			_show_live_status(LIVE_STATUS_SERVER_ERROR)
 		_:
 			if state.begins_with("failed:"):
 				_show_live_status("Bridge unavailable — is DR Companion running?")
 				_begin_live_retry()
 			elif state.begins_with("reconnecting-"):
 				_show_live_status("Reconnecting to DR Companion…")
+			else:
+				# Every arm above is a state BridgeClient emits today. One it
+				# grows tomorrow must not fall through in silence: the banner
+				# would then describe a condition that has already passed,
+				# which `_show_live_status` says below cannot happen. Saying
+				# something imprecise is the lesser failure.
+				push_warning("WorldRoot: unhandled live connection state '%s'" % state)
+				_show_live_status(LIVE_STATUS_UNRECOGNISED % state)
 
 func _project_snapshot_tokens(snapshot: Dictionary) -> void:
 	# The projection layer owns only visual, deterministic room-local slots.
