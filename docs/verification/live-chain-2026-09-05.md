@@ -122,10 +122,28 @@ finding about the app.
 
 **Two smaller things**, neither in Lane B's way:
 
-- `godot/tests/live_bridge_transport_test.gd` does not parse under Godot 4.3 —
+- ~~`godot/tests/live_bridge_transport_test.gd` does not parse under Godot 4.3 —
   `OS.get_temp_dir()` does not exist in that version — so it fails to load on
   every export. The export still succeeds and the file ships as a broken
-  script.
+  script.~~
+
+  **Corrected 5 Sep 2026 by a later review pass.** This was true when it was
+  observed and had already been fixed by the time this page reached `main`,
+  and it was left standing in the present tense — the one stale claim in this
+  directory not corrected in place, beside two sibling pages that do correct
+  themselves. `c8c3bb77` ("test(godot): run the Godot tests, one of which
+  could not parse [C11]", #301) is the fix. The check, which stays right
+  whatever else changes:
+
+  ```
+  $ grep -n "get_temp_dir" godot/tests/live_bridge_transport_test.gd
+  22:	# Not OS.get_temp_dir(): that arrived in Godot 4.4 and this project is 4.3
+  ```
+
+  The only surviving occurrence is the comment explaining why it is *not*
+  used. Where that command and this paragraph disagree, the command is right.
+  Positive control: `grep -c "func " ` on the same file returns 10, so a zero
+  would have been a claim about the file and not about the grep.
 - The export warns `Could not start rcedit executable` and skips the
   executable's version resources. `rcedit` is not on this machine; CI installs
   it with Godot's own tooling.
