@@ -1677,6 +1677,12 @@
     },
     {
       "file": "src/components/layout/SettingsSheet.tsx",
+      "specifier": "../shared/AiClaimsPanel",
+      "kind": "extension",
+      "count": 1
+    },
+    {
+      "file": "src/components/layout/SettingsSheet.tsx",
       "specifier": "../shared/DiagnosticsPanel",
       "kind": "extension",
       "count": 1
@@ -2248,6 +2254,18 @@
     {
       "file": "src/components/shared/ActionsPanel.tsx",
       "specifier": "./MacroBar",
+      "kind": "extension",
+      "count": 1
+    },
+    {
+      "file": "src/components/shared/AiClaimsPanel.tsx",
+      "specifier": "../../lib/mapPins",
+      "kind": "extension",
+      "count": 1
+    },
+    {
+      "file": "src/components/shared/AiClaimsPanel.tsx",
+      "specifier": "../../store/useAppStore",
       "kind": "extension",
       "count": 1
     },
