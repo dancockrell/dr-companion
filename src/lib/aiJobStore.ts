@@ -88,6 +88,15 @@ export interface BackgroundJob {
   checkpointRef: string | null
   createdAt: string
   updatedAt: string
+  /**
+   * What a finished job actually produced.
+   *
+   * A reference, never the output itself - the same rule as `inputRefs`.
+   * Required to reach `completed` from `running`: a job that finished with
+   * nothing to point at either has not finished or produced nothing, and
+   * both of those have honest states of their own.
+   */
+  resultRef?: string
   /** Why a job ended the way it did. Required for terminal failure states so
    * a failed job can be acted on rather than only observed. */
   note?: string
@@ -98,13 +107,30 @@ export interface BackgroundJob {
  *
  * `running -> queued` exists so a preempted-but-retryable job can go back in
  * line without pretending it failed. `checkpointed -> running` is the resume
- * path. Terminal states have no outgoing transitions at all: a completed job
- * that could be moved again would make its own status meaningless.
+ * path, and `checkpointed -> queued` puts a resumable job back in line when
+ * something else should go first. Terminal states have no outgoing
+ * transitions at all: a completed job that could be moved again would make
+ * its own status meaningless.
+ *
+ * `checkpointed -> failed` is deliberately absent, and this table is now the
+ * authority where the code and the architecture document disagreed - section
+ * 6 carries the same table. A job holding a checkpoint has somewhere to
+ * resume from, and declaring it failed throws that away while recording
+ * something untrue. If the checkpoint itself is bad, the honest route is
+ * `running` and then `failed`, which says the resume was attempted.
+ *
+ * `running -> completed` survives with a condition rather than being removed:
+ * it is legal only when the transition carries a `resultRef`. That keeps the
+ * one real case - a job that finished with nothing to review, evaluation
+ * mining that found no cases - without reopening the hole the rule exists to
+ * close, which is a crash or a bug turning `running` straight into success.
+ * The condition is enforced in `transition`, because this table answers which
+ * pairs are legal and that is a condition on one of them.
  */
 const ALLOWED: Record<JobStatus, readonly JobStatus[]> = {
   queued: ['running', 'cancelled'],
   running: ['checkpointed', 'awaiting_review', 'completed', 'failed', 'cancelled', 'queued'],
-  checkpointed: ['running', 'cancelled', 'failed'],
+  checkpointed: ['running', 'queued', 'cancelled'],
   awaiting_review: ['completed', 'failed', 'cancelled'],
   completed: [],
   failed: [],
@@ -202,7 +228,13 @@ export class JobStore {
   transition(
     jobId: string,
     to: JobStatus,
-    params: { now: string; checkpointRef?: string | null; cursor?: number | null; note?: string } = {
+    params: {
+      now: string
+      checkpointRef?: string | null
+      cursor?: number | null
+      note?: string
+      resultRef?: string
+    } = {
       now: new Date().toISOString(),
     }
   ): TransitionResult {
@@ -218,11 +250,23 @@ export class JobStore {
       }
     }
 
+    // A completion has to point at something. Without this, `running ->
+    // completed` is exactly the transition a crash or a bug can forge, which
+    // is the one thing section 6 forbids outright.
+    if (to === 'completed' && params.resultRef === undefined && job.resultRef === undefined) {
+      return {
+        ok: false,
+        job,
+        reason: `Refused ${job.status} -> completed for ${jobId}: a completion must carry a resultRef.`,
+      }
+    }
+
     job.status = to
     job.updatedAt = params.now
     if (params.checkpointRef !== undefined) job.checkpointRef = params.checkpointRef
     if (params.cursor !== undefined) job.cursor = params.cursor
     if (params.note !== undefined) job.note = params.note
+    if (params.resultRef !== undefined) job.resultRef = params.resultRef
 
     const written = this.persist()
     if (!written.ok) {

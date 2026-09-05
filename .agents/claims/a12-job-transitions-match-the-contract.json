@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "task_id": "a12-job-transitions-match-the-contract",
+  "agent": "claude-code",
+  "summary": "Reconcile the job transition table with the architecture document, keeping one exception that a crash cannot forge",
+  "status": "completed",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "src/lib/aiJobStore.ts",
+    "tools/ai-job-store-test.mjs",
+    "docs/LOCAL_AI_BACKGROUND_WORKER.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a12-job-transitions-match-the-contract.json"
+  ],
+  "symbols": ["BackgroundJob.resultRef", "ALLOWED", "canTransition"],
+  "coordination": {
+    "depends_on": ["local-ai-background-worker"],
+    "conflicts_with": [],
+    "notes": "The document and the code disagreed, so the table now lives in one place and the suite checks the other against it: section 6 carries the rows and tools/ai-job-store-test.mjs parses them, so a change to one without the other fails the build rather than leaving two records to drift. The resultRef requirement is applied to every completion, not only running -> completed, because the document's own wording refuses a completion without one and a narrower rule would leave the same hole one state further along. Two pre-existing checks needed adapting and neither encodes a bug: 'and only then to completed' is named for the ordering property, which is unchanged, and now passes a resultRef. Also worth recording: the first version of the document check searched the whole of section 6 for the banned pair and found the prose that explains why it is banned, concluding the opposite. It now reads the table rows only, and carries a positive control proving the same matcher does find a pair the table really lists."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "'OK completed without a resultRef is refused', 'OK the job is left running, not half-moved  running', 'OK completed with a resultRef is accepted', 'OK it survives a reload, so the record is durable rather than in-memory'",
+      "'OK checkpointed -> failed is refused - it would throw away a live resume point', 'OK checkpointed -> queued is accepted, so it can wait behind other work', 'OK running -> failed is the honest route, and still works'",
+      "'OK the transition table has rows to check  14', 'OK the table does not list checkpointed -> failed, and the code refuses it', 'OK a positive control: the same matcher does find a pair the table carries'",
+      "sabotage - drop the resultRef requirement: 6 checks red starting with 'FAIL completed without a resultRef is refused'; restored, md5sum 1cb031f7780df158b4cdcc27667611a4 matched",
+      "node --experimental-strip-types tools/ai-job-store-test.mjs: 52 checked, 0 failed (was 31)",
+      "npx tsc -b: exit 0"
+    ]
+  }
+}

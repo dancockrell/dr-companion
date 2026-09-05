@@ -136,7 +136,11 @@ console.log('\n-- a resumed job continues from its checkpoint --')
     s.get(job.jobId).checkpointRef === 'ckpt:1', s.get(job.jobId).checkpointRef)
   const done = s.transition(job.jobId, 'awaiting_review', { now: LATER })
   ok('finished work goes to awaiting_review, not straight to completed', done.ok === true)
-  ok('and only then to completed', s.transition(job.jobId, 'completed', { now: LATER }).ok === true)
+  // The resultRef is new (A12): a completion has to point at what it
+  // produced. The property this check is named for is the ordering - only
+  // reachable after awaiting_review - and that is unchanged.
+  ok('and only then to completed',
+    s.transition(job.jobId, 'completed', { now: LATER, resultRef: 'candidate:1' }).ok === true)
 }
 
 console.log('\n-- a failed save is reported, never swallowed --')
@@ -152,6 +156,88 @@ console.log('\n-- a failed save is reported, never swallowed --')
   ok('a transition that could not be persisted reports failure', result.ok === false, result.reason)
   ok('and says it is only in memory, so a caller cannot trust the checkpoint',
     /not saved/.test(result.reason || ''), result.reason)
+}
+
+console.log('\n-- a completion has to point at what it produced --')
+{
+  // running -> completed is exactly the transition a crash or a bug can
+  // forge, which section 6 forbids. It stays legal for the one real case - a
+  // job that finished with nothing to review - and only when it carries a
+  // reference to the result, which a crash cannot invent.
+  const s = new JobStore()
+  s.reset()
+  const job = s.create({ kind: 'evaluation_case_mining', now: NOW })
+  s.transition(job.jobId, 'running', { now: NOW })
+
+  const bare = s.transition(job.jobId, 'completed', { now: LATER })
+  ok('completed without a resultRef is refused', bare.ok === false, bare.reason)
+  ok('and says why, rather than failing silently', /resultRef/.test(bare.reason || ''), bare.reason)
+  ok('the job is left running, not half-moved',
+    s.get(job.jobId).status === 'running', s.get(job.jobId).status)
+
+  const done = s.transition(job.jobId, 'completed', { now: LATER, resultRef: 'candidate:7' })
+  ok('completed with a resultRef is accepted', done.ok === true, done.reason)
+  ok('and the reference is kept', s.get(job.jobId).resultRef === 'candidate:7',
+    s.get(job.jobId).resultRef)
+  ok('it survives a reload, so the record is durable rather than in-memory',
+    (() => { const t = new JobStore(); t.load(); return t.get(job.jobId).resultRef === 'candidate:7' })())
+}
+
+console.log('\n-- a checkpointed job can go back in line, and cannot be declared failed --')
+{
+  // The architecture document's table allows neither running -> completed nor
+  // checkpointed -> failed, and adds checkpointed -> queued. This reconciles
+  // in favour of the stricter table, with the one exception above.
+  const s = new JobStore()
+  s.reset()
+  const job = s.create({ kind: 'map_reconciliation', now: NOW })
+  s.transition(job.jobId, 'running', { now: NOW, checkpointRef: 'ckpt:9' })
+  s.transition(job.jobId, 'checkpointed', { now: LATER })
+
+  const failed = s.transition(job.jobId, 'failed', { now: LATER, note: 'gave up' })
+  ok('checkpointed -> failed is refused - it would throw away a live resume point',
+    failed.ok === false, failed.reason)
+  ok('so the job keeps its checkpointed status',
+    s.get(job.jobId).status === 'checkpointed', s.get(job.jobId).status)
+  ok('and keeps the resume point itself', s.get(job.jobId).checkpointRef === 'ckpt:9',
+    s.get(job.jobId).checkpointRef)
+
+  const requeued = s.transition(job.jobId, 'queued', { now: LATER })
+  ok('checkpointed -> queued is accepted, so it can wait behind other work',
+    requeued.ok === true, requeued.reason)
+  ok('the resume point is still there after re-queueing',
+    s.get(job.jobId).checkpointRef === 'ckpt:9', s.get(job.jobId).checkpointRef)
+
+  // The honest route to failure: resume, then fail, which records that the
+  // resume was actually attempted.
+  s.transition(job.jobId, 'running', { now: LATER })
+  const honest = s.transition(job.jobId, 'failed', { now: LATER, note: 'the checkpoint was unusable' })
+  ok('running -> failed is the honest route, and still works', honest.ok === true, honest.reason)
+}
+
+/** Does the store actually refuse a completion with no resultRef? Asked as a
+  * function so the documentation check above asserts the code's behaviour
+  * rather than the presence of a word in a file. */
+function s6Refuses() {
+  const s = new JobStore()
+  s.reset()
+  const job = s.create({ kind: 'evaluation_case_mining', now: NOW })
+  s.transition(job.jobId, 'running', { now: NOW })
+  return s.transition(job.jobId, 'completed', { now: LATER }).ok === false
+}
+
+console.log('\n-- section 6.1 records the resultRef rule that the table cannot show --')
+{
+  // The table itself is checked against the code by the doc-vs-code block
+  // that C8 added below; duplicating that here would be two records of one
+  // fact, free to drift. What a from/to table cannot express is the
+  // condition on running -> completed, so that is what this checks.
+  const fs = await import('node:fs')
+  const doc = fs.readFileSync('docs/LOCAL_AI_BACKGROUND_WORKER.md', 'utf8')
+  const section = doc.slice(doc.indexOf('## 6.'), doc.indexOf('## 7.'))
+  ok('section 6 was found and is not empty', section.length > 200, String(section.length))
+  ok('it records that a completion must carry a resultRef', /resultRef/.test(section))
+  ok('and that the code enforces it', s6Refuses())
 }
 
 console.log('')
@@ -221,7 +307,7 @@ console.log("-- the doc's transition table and the code's rule are the same tabl
 
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 25
+const MIN_EXPECTED = 38
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)
