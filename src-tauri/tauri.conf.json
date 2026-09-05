@@ -47,8 +47,8 @@
         "displayLanguageSelector": false
       }
     },
-    "shortDescription": "Dragon Realms Companion control panel",
-    "longDescription": "Attended control panel for Genie + Lich automation. Runs as a small window beside the game.",
+    "shortDescription": "DragonRealms desktop client, built on Lich 5",
+    "longDescription": "An attended desktop client for the MUD DragonRealms, built on Lich 5. Game text, maps, character state, sound and scripting in one window. Lich and the frontend it connects through are installed separately.",
     "category": "Game",
     "resources": {
       "../lich-scripts/companion_bridge.lic": "lich-scripts/companion_bridge.lic",

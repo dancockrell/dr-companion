@@ -127,6 +127,20 @@ hash in the UI before agreeing.
 | Genie plugins: EXPTracker, SpellTimer, CircleCalc and the rest | Genie's `Plugins\` folder | about 0.4 MB |
 | The community map set, 90 files | Genie's `Maps\` folder | about 12 MB |
 
+Those two rows are counted from someone else's repository, so they go out of
+date without anybody here touching a file. The app itself asks GitHub at run
+time and shows you what it gets; if you want the same answer before you press
+anything:
+
+```bash
+gh api repos/GenieClient/Maps/contents/ \
+  --jq '[.[] | select(.name | endswith(".xml"))]
+        | "count=\(length) bytes=\([.[].size] | add)"'
+```
+
+`GenieClient/Plugins` with `.dll`/`.xml` gives the plugin row the same way.
+Where the command and this table disagree, the command is right.
+
 Genie 4 also ships `Lamp.exe`, its own updater, which does the same job. The
 app says so on the maps card rather than pretending it is the only route.
 

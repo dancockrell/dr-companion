@@ -1,8 +1,16 @@
 # Testing this against a live game
 
-Nothing in this app has ever talked to DragonRealms. Everything below the
-WebSocket has been tested against fakes, which proves the plumbing and proves
-nothing about the game.
+Almost nothing in this app has been exercised against DragonRealms. Every
+automated test runs against fakes, which proves the plumbing and proves nothing
+about the game.
+
+This page used to open by saying nothing here had *ever* talked to the game.
+That stopped being true: `docs/LIVE-SESSION-RUNBOOK.md` opens on "one so far
+tonight, a few minutes", and `docs/LIVE-STATE.md` has a section headed "For
+whoever gets the next live session". Those two are where live time and what it
+settled are recorded. Treat everything below as untested against a real account
+unless one of them says otherwise, and add to them rather than to this page
+when you get a session of your own.
 
 This document says what is likely to be wrong, how to find out, and what to
 send back. It is deliberately specific about where the weak points are, because
@@ -67,12 +75,24 @@ situation chips never appear, the indicator names are wrong.
 
 `State#instance` maps `XMLData.game` through `DR`/`DRX`/`DRF`/`DRT` to
 Prime/Platinum/Fallen/Test. If your instance reads Unknown in the header, that
-map is wrong for your game, and travel will refuse everything as a result.
+map is wrong for your game. What that costs is worth stating exactly rather than
+guessing at, because nothing refuses on it: `grep -rn "'Unknown'" src/` finds
+three uses, none of them a gate. Profiles, pins and nudges are keyed by
+character *and* instance, so an Unknown instance quietly gives you a second,
+empty set of them; and `install_mapdb` picks a different candidate order
+(`companion_bridge.lic`, `State.instance == 'Prime'`). Report it anyway — a
+wrong instance is a wrong `XMLData.game`, which is a fact about your connection
+worth knowing.
 
 ### 4. Vital maxima
 
-Vitals are reported as percentages with `healthMax: 100` hardcoded. If DR
-reports something other than a percentage, the bars will be nonsense.
+Health, mana, stamina and spirit come from DragonRealms as percentages.
+The bridge no longer hardcodes their maxima: `vital_max` in
+`companion_bridge.lic` reads `XMLData.max_*` and falls back to 100 only when
+the game has reported nothing yet. Concentration is the one that is *not* a
+percentage — Lich parses `330/330` out of the same attribute — so that is the
+bar to watch. If a maximum reads 100 on a pool where the game shows something
+else, `XMLData.max_*` is arriving empty and the fallback is what you are seeing.
 
 ### 5. Room and location
 
@@ -104,19 +124,35 @@ bug, but it is worth confirming it degrades quietly rather than throwing.
   eventually say the game clock has stopped rather than claiming to be
   connected.
 
-**Then the two intents that touch the game.**
+**Then the intents that touch the game.**
+
+Do not take a list here on trust; it went stale once already, when this page
+still said two. `node tools/intent-drift-test.mjs` prints the real numbers, and
+fails the build when the UI, the bridge and the mock disagree:
+
+```
+Declared intents (types.ts):        35
+Implemented in bridge (real):       26
+True unimplemented set:              9
+```
+
+The 26 come from the `HANDLERS` hash in `companion_bridge.lic` — a runtime
+enumeration, not a hand-kept list — and the bridge reports them on `hello` as
+`implementedIntents`. Two worth starting with, because they are the smallest:
 
 - `check_health` — read-only. Reports wounds and bleeders.
 - `stow_all` — puts what is in your hands away.
 
-Everything else refuses with `ok:false` and a reason. That is on purpose, not
-an error: an intent that is not implemented says so rather than silently doing
-nothing.
+An intent outside that set refuses with `ok:false` and a reason. That is on
+purpose, not an error: an intent that is not implemented says so rather than
+silently doing nothing.
 
 ## What is not implemented, so do not report it
 
-- Travel, hunting, town runs, buffs, looting, house entry. The bridge reads
-  state and stops scripts. It does not drive the game yet.
+- The nine intents `tools/intent-drift-test.mjs` reports as unimplemented, which
+  at the time of writing are `buffs`, `burgle`, `escape_heal`, `go_healer`,
+  `loot`, `start_combat`, `start_training`, `town_run` and `travel`. Run it
+  rather than trusting that list.
 - Vault, bank and container capacities. Inventory reports containers but not
   how full they are.
 - Wound severity per body part. `check_health` reports counts, not a chart.
