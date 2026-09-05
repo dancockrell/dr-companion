@@ -919,7 +919,8 @@ whether it is embedded, docked or a separate window is D0.
   do: wraps `bestiary.ts` `loreFor`/`isApproximate` → `{lore, approximate} | null`.
   verify: known creature → lore; unknown → null; approximate flagged.
 
-- [ ] **G4  Tool `recent_events`** (≈10)
+- [x] **G4  Tool `recent_events`** (≈10)
+  commit: PENDING-G4 verified: 2026-09-05 minutes: 20
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
   depends-on: G2
   do: `journal.readFrom(max(0, ack-n))` limited to n; returns kinds, seqs and the G12 privacy class only — never `text` (it may hold player speech).

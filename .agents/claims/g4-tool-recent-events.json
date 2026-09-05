@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "task_id": "g4-tool-recent-events",
+  "agent": "claude-code",
+  "summary": "recent_events hands a model the tail of the journal as sequences, kinds and a privacy class, and never a word of game text",
+  "status": "completed",
+  "claimed_at": "2026-09-05T19:06:00Z",
+  "updated_at": "2026-09-05T19:20:00Z",
+  "paths": [
+    "src/lib/aiKnowledgeTools.ts",
+    "tools/ai-knowledge-tools-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g4-tool-recent-events.json"
+  ],
+  "symbols": ["recent_events", "privacyOf"],
+  "coordination": {
+    "depends_on": ["G2"],
+    "conflicts_with": [],
+    "notes": "Reads the journal through the same readFrom query every other consumer uses, structurally typed so this module imports nothing from aiEventJournal.ts and a test needs no journal. The privacy class is read off the payload rather than re-derived here: G12 classifies at ingest from the stream id the bridge already labelled, and a second opinion computed in a tool would be a second parser of game text. The fixture deliberately carries text on every payload, including a whisper, so the check runs against a population where the wrong answer is available - a tool that dropped text only because its fixture had none would pass a test that proves nothing. The private-comms exclusion itself is G12; this increment carries the class so G12 has something to filter on."
+  },
+  "completion": {
+    "commit": "PENDING-G4",
+    "checks": [
+      "node --experimental-strip-types tools/ai-knowledge-tools-test.mjs: 66 checked, 0 failed / all passed",
+      "verify - 'not one returned object has a text key' OK against {\"seq\":11,\"kind\":\"line\",\"at\":101,\"privacy\":\"private-comms\"}",
+      "verify - 'and no returned value contains the whispered words anywhere' OK",
+      "verify - n bounds the window and it is the tail (seq 11), n of 0 and n of 5000 both refused",
+      "sabotage - a text field added to the mapped result: 2 red - 'not one returned object has a text key' (showing the whisper verbatim) and 'and no returned value contains the whispered words anywhere'; exit 1; restore md5 OK"
+    ]
+  }
+}

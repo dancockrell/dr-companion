@@ -74,6 +74,14 @@ export interface ToolContext {
   /** The zone the caller has already loaded. Null when none is available,
    * which is a refusal rather than an empty answer. */
   zone?: MapZone | null
+  /** Journal reader for `recent_events`. Structural, so a test needs no
+   * journal and this module needs no import from one. */
+  journal?: {
+    readFrom(cursor: number, limit?: number): {
+      events: Array<{ seq: number; at: number; kind: string; payload: unknown }>
+    }
+    acknowledged(): number
+  } | null
   /** Wall clock, injected so a trace is deterministic under test. */
   now?: number
 }
@@ -204,6 +212,54 @@ const TOOLS: Record<string, ReadOnlyTool> = {
       return { lore, approximate: isApproximate(name, noun) }
     },
   },
+
+  /**
+   * The tail of the journal, as kinds and sequence numbers.
+   *
+   * Never `text`. A journalled line's payload holds whatever the game sent,
+   * including player speech, and this tool exists to let a model ask "what has
+   * been happening" without that being a route by which a whisper reaches a
+   * prompt. The privacy class travels so a caller can filter further; the
+   * words never do.
+   */
+  recent_events: {
+    id: 'recent_events',
+    maxResultBytes: 8192,
+    validate(args) {
+      if (!Number.isInteger(args.n) || (args.n as number) < 1) return 'n must be a positive integer'
+      if ((args.n as number) > 200) return 'n may not exceed 200'
+      return null
+    },
+    execute(args, context) {
+      const journal = context.journal
+      if (!journal) return null
+      const n = args.n as number
+      const ack = journal.acknowledged()
+      const from = Math.max(0, ack - n)
+      const read = journal.readFrom(from, n)
+      return read.events.map((event) => ({
+        seq: event.seq,
+        kind: event.kind,
+        at: event.at,
+        privacy: privacyOf(event.payload),
+      }))
+    },
+  },
+}
+
+/**
+ * The privacy class an event already carries, or null when it has none.
+ *
+ * Read off the payload rather than re-derived: G12 classifies at ingest from
+ * the stream id the bridge already labelled, and a second opinion computed
+ * here would be a second parser of game text, which section 2 forbids.
+ */
+function privacyOf(payload: unknown): string | null {
+  if (payload && typeof payload === 'object' && 'privacy' in payload) {
+    const value = (payload as { privacy: unknown }).privacy
+    return typeof value === 'string' ? value : null
+  }
+  return null
 }
 
 /** Every tool that exists. Exported so a test can assert the registry rather

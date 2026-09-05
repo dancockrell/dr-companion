@@ -152,6 +152,55 @@ console.log('\n-- lore_for answers from the bestiary, and says when the match wa
   ok('every one of those is traced', trace.length === 4, String(trace.length))
 }
 
+console.log('\n-- recent_events returns sequences and kinds, and never a word of game text --')
+{
+  // A journal whose payloads carry text on purpose: this is the population
+  // where the wrong answer is available. A tool that dropped text only because
+  // its fixture had none would pass a test that proves nothing.
+  const events = [
+    { seq: 10, at: 100, kind: 'line', payload: { text: 'You see a guard.', stream: '', privacy: 'public-game' } },
+    { seq: 11, at: 101, kind: 'line', payload: { text: 'Someone whispers, "meet me"', stream: 'whispers', privacy: 'private-comms' } },
+    { seq: 12, at: 102, kind: 'line', payload: { text: 'The guard nods.', stream: '', privacy: 'public-game' } },
+  ]
+  const journal = {
+    acknowledged: () => 12,
+    readFrom: (cursor, limit) => ({ events: events.filter((e) => e.seq > cursor).slice(0, limit ?? events.length) }),
+  }
+
+  const trace = []
+  const r = callTool('recent_events', { n: 3 }, ALL, trace, { journal })
+  ok('the call succeeded', r.ok === true, r.ok ? '' : r.reason)
+  ok('three events came back', r.ok && r.value.length === 3, r.ok ? String(r.value.length) : '')
+  ok('sequences are present', r.ok && r.value[0].seq === 10)
+  ok('kinds are present', r.ok && r.value[0].kind === 'line')
+  ok(
+    'not one returned object has a text key',
+    r.ok && r.value.every((e) => !('text' in e)),
+    r.ok ? JSON.stringify(r.value[1]) : ''
+  )
+  ok(
+    'and no returned value contains the whispered words anywhere',
+    r.ok && !JSON.stringify(r.value).includes('meet me'),
+    r.ok ? JSON.stringify(r.value).slice(0, 80) : ''
+  )
+  ok('the privacy class travels', r.ok && r.value[1].privacy === 'private-comms', r.ok ? String(r.value[1].privacy) : '')
+  ok('an unclassified payload reports null rather than a guess',
+    callTool('recent_events', { n: 1 }, ALL, [], {
+      journal: { acknowledged: () => 1, readFrom: () => ({ events: [{ seq: 1, at: 0, kind: 'line', payload: { text: 'x' } }] }) },
+    }).value[0].privacy === null)
+
+  const window = callTool('recent_events', { n: 2 }, ALL, trace, { journal })
+  ok('n bounds the window', window.ok && window.value.length === 2, window.ok ? String(window.value.length) : '')
+  ok('and it is the tail, not the head', window.ok && window.value[0].seq === 11, window.ok ? String(window.value[0].seq) : '')
+
+  const bad = callTool('recent_events', { n: 0 }, ALL, trace, { journal })
+  ok('n of zero is refused', bad.ok === false && bad.reason.includes('positive integer'), bad.ok ? '' : bad.reason)
+  const huge = callTool('recent_events', { n: 5000 }, ALL, trace, { journal })
+  ok('an unbounded n is refused', huge.ok === false && huge.reason.includes('200'), huge.ok ? '' : huge.reason)
+  const none = callTool('recent_events', { n: 3 }, ALL, trace, {})
+  ok('no journal is null rather than an empty answer', none.ok === true && none.value === null)
+}
+
 console.log('\n-- an over-size result is flagged, never silently cut --')
 {
   // A megabyte of rooms. The ceiling is 4 KB, so this must come back marked.
@@ -225,7 +274,7 @@ console.log('\n-- the trace has one entry per call, in order --')
 
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 46
+const MIN_EXPECTED = 58
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)
