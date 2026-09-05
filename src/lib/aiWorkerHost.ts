@@ -61,7 +61,14 @@ import { AlertBroker } from './aiAlertBroker.ts'
 import { EventJournal, seedJournalCursor } from './aiEventJournal.ts'
 import { JobStore } from './aiJobStore.ts'
 import { absentProvider, type ModelProvider } from './aiModelProvider.ts'
-import { deriveAlerts, ingestLines, runHostTick, type AiWorkerStatus, type HostMemory } from './aiIngest.ts'
+import {
+  deriveAlerts,
+  ingestLines,
+  runHostTick,
+  sameStatus,
+  type AiWorkerStatus,
+  type HostMemory,
+} from './aiIngest.ts'
 
 export type { AiWorkerStatus } from './aiIngest.ts'
 
@@ -100,7 +107,20 @@ export function getAiStatus(): AiWorkerStatus {
   return currentStatus
 }
 
+/**
+ * How often a tick count alone is worth telling anybody about.
+ *
+ * `ticks` changes every second by definition, so publishing it unconditionally
+ * would re-render every watcher once a second forever on a client with nothing
+ * happening - which is the ordinary state. It is still published periodically
+ * because it is the only field that can distinguish a live host from a dead
+ * one, and a number that stopped moving is exactly what somebody debugging
+ * this needs to see.
+ */
+const TICKS_PER_IDLE_PUBLISH = 5
+
 function publishStatus(next: AiWorkerStatus): void {
+  if (sameStatus(currentStatus, next) && next.ticks % TICKS_PER_IDLE_PUBLISH !== 0) return
   currentStatus = next
   // Copied before iterating: a listener that unsubscribes while being notified
   // would otherwise mutate the set mid-loop.

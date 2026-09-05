@@ -119,6 +119,39 @@ export interface AiWorkerStatus {
 }
 
 /**
+ * Whether two statuses say the same thing, ignoring the tick count.
+ *
+ * The host publishes on a change rather than on every turn, so this decides
+ * how often anybody watching re-renders. Getting it wrong in the strict
+ * direction costs a render a second forever on an idle client; getting it
+ * wrong in the loose direction hides a real change, which is worse, so
+ * anything not compared here has to be a field that genuinely does not matter
+ * - `ticks` is the only one, and it has its own schedule.
+ */
+export function sameStatus(a: AiWorkerStatus, b: AiWorkerStatus): boolean {
+  if (
+    a.available !== b.available ||
+    a.providerReason !== b.providerReason ||
+    a.journalPending !== b.journalPending ||
+    a.journalLost !== b.journalLost ||
+    a.missedLines !== b.missedLines ||
+    a.pendingAlerts !== b.pendingAlerts ||
+    a.lastOutcome !== b.lastOutcome ||
+    a.lastFailure !== b.lastFailure
+  ) {
+    return false
+  }
+  // `jobs` is rebuilt every turn, so its reference always differs and only its
+  // contents mean anything. Over the union of both key sets: a status gaining
+  // a job and a status losing one are both changes, and iterating one side
+  // would see only half of that.
+  for (const key of new Set([...Object.keys(a.jobs), ...Object.keys(b.jobs)])) {
+    if (a.jobs[key] !== b.jobs[key]) return false
+  }
+  return true
+}
+
+/**
  * The already-parsed app state one turn needs, read by the caller.
  *
  * Passed in rather than read from the store here for two reasons that point

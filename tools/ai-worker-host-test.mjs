@@ -18,7 +18,7 @@ globalThis.localStorage = {
 const { EventJournal } = await import('../src/lib/aiEventJournal.ts')
 const { AlertBroker } = await import('../src/lib/aiAlertBroker.ts')
 const { JobStore } = await import('../src/lib/aiJobStore.ts')
-const { ingestLines, deriveAlerts, runHostTick, reviewHash, deriveActivity } = await import('../src/lib/aiIngest.ts')
+const { ingestLines, deriveAlerts, runHostTick, reviewHash, deriveActivity, sameStatus } = await import('../src/lib/aiIngest.ts')
 
 /**
  * The host module is read as text, never imported: it pulls in useAppStore,
@@ -287,6 +287,56 @@ console.log('\n-- a turn in flight is not disturbed by unrelated updates --')
     /cancelled/.test(outcome.lastFailure ?? ''), String(outcome.lastFailure))
 }
 
+console.log('\n-- status is published on a change, and otherwise on a slow schedule --')
+{
+  const base = {
+    available: false,
+    providerReason: 'No local model is installed.',
+    journalPending: 0,
+    journalLost: 0,
+    missedLines: 0,
+    pendingAlerts: 0,
+    jobs: {},
+    lastOutcome: 'background-idle',
+    lastFailure: null,
+    ticks: 1,
+  }
+
+  ok('two identical statuses are the same', sameStatus(base, { ...base }))
+  ok('a different tick count alone is not a change - it moves every second by design',
+    sameStatus(base, { ...base, ticks: 99 }))
+
+  // Every field except ticks must be compared. Driven off the object's own
+  // keys so a field added later is covered without anybody remembering to add
+  // a case - the failure this replaces is a new field that silently never
+  // reaches the panel.
+  const changed = {
+    available: true,
+    providerReason: 'ready',
+    journalPending: 3,
+    journalLost: 7,
+    missedLines: 2,
+    pendingAlerts: 1,
+    jobs: { running: 1 },
+    lastOutcome: 'review',
+    lastFailure: 'timeout: too slow',
+  }
+  const fields = Object.keys(base).filter((k) => k !== 'ticks')
+  ok('every field of the status except ticks has a changed value to test with',
+    fields.every((f) => f in changed), fields.filter((f) => !(f in changed)).join(',') || 'all covered')
+  for (const field of fields) {
+    ok(`a change to ${field} is a change`, !sameStatus(base, { ...base, [field]: changed[field] }),
+      String(changed[field]))
+  }
+
+  ok('a job count changing is a change even though the record is rebuilt each turn',
+    !sameStatus({ ...base, jobs: { running: 1 } }, { ...base, jobs: { running: 2 } }))
+  ok('a job disappearing is a change too, not only one appearing',
+    !sameStatus({ ...base, jobs: { running: 1 } }, { ...base, jobs: {} }))
+  ok('an equal job record built separately is not a change',
+    sameStatus({ ...base, jobs: { running: 1 } }, { ...base, jobs: { running: 1 } }))
+}
+
 console.log('\n-- the tick effect does not depend on per-tick state --')
 {
   const fs = await import('node:fs')
@@ -327,7 +377,7 @@ console.log('\n-- the host cannot reach the game command path --')
 
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 50
+const MIN_EXPECTED = 65
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)
