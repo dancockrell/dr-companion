@@ -210,7 +210,8 @@ const fileKey = (f) => f.replace(/\.xml$/i, '').toLowerCase()
 const byFile = new Map(parsed.map(({ file, zone }) => [fileKey(file), zone]))
 
 let gateways = 0
-let unresolved = 0
+/** Destination filename -> the zones whose rooms name it. Printed at the end. */
+const unresolved = new Map()
 
 // Resolve every destination first. Arrival rooms are a property of the whole
 // graph, so computing them while files are still being visited makes the
@@ -227,7 +228,13 @@ for (const { zone } of parsed) {
       // The note names a map this install does not have. Counted rather than
       // dropped in silence, because it is the difference between "the data has
       // no gateways" and "this Genie install is missing files".
-      unresolved++
+      //
+      // It was counted and never printed, which is the same silence with one
+      // more step. #175 read zone 33a as a closed loop with no exits; 33a's
+      // two doors are right here, pointing at Map33 and Map34, neither of
+      // which is on this disk. Naming them costs three lines.
+      if (!unresolved.has(first)) unresolved.set(first, new Set())
+      unresolved.get(first).add(zone.id)
       continue
     }
     if (target.id === zone.id) continue
@@ -267,5 +274,17 @@ writeFileSync(join(OUT, '..', 'map-metadata.json'), JSON.stringify({ zones: inde
 
 console.log(`${index.length} zones, ${rooms.toLocaleString()} rooms, ${arcs.toLocaleString()} exits`)
 console.log(`${tagged.toLocaleString()} rooms carry a cartographer's label`)
+console.log(`${gateways.toLocaleString()} gateways resolved`)
 console.log('largest:')
 for (const z of index.slice(0, 5)) console.log(`  ${String(z.rooms).padStart(5)}  ${z.name}`)
+
+if (unresolved.size) {
+  console.log(`\n${unresolved.size} gateway notes name a map this install does not have:`)
+  for (const [file, zoneIds] of [...unresolved].sort()) {
+    console.log(`  ${file}  <- ${[...zoneIds].sort().join(', ')}`)
+  }
+  console.log('A zone listed here has visible doors that lead nowhere, which is')
+  console.log('a missing Genie map file and not a hole in the cartography.')
+} else {
+  console.log('\nevery gateway note resolved to a map file on this disk')
+}
