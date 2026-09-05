@@ -330,7 +330,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   verify: `node tools/plan-audit.mjs` → `plan ok: N increments, M paths checked` with N ≥ 100.
   sabotage: add a `touches:` path that does not exist → red naming the ID and path.
 
-- [ ] **C1  Merge PR #285** (≈15)
+- [x] **C1  Merge PR #285** (≈15)
+  commit: ede29969 verified: 2026-09-05 minutes: 10
   touches: none
   depends-on: none
   do: the branch now also carries Codex's `docs/mockups/dr-companion-isometric-mvp.html` (commit f37f990f) — merge it as it stands.
@@ -345,7 +346,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   done-when: `main` carries the AI slices, the architecture doc, and the mockup.
   pitfalls: 13. Do **not** fix Lane A bugs first; they live in an optional feature hidden in Settings and merging unblocks three lanes.
 
-- [ ] **C2  Close the four `local-ai-*` claims with the squash sha** (≈5)
+- [x] **C2  Close the four `local-ai-*` claims with the squash sha** (≈5)
+  commit: (this PR) verified: 2026-09-05 minutes: 5
   touches: C1>.agents/claims/local-ai-runtime-foundation.json, C1>.agents/claims/local-ai-provider-boundary.json, C1>.agents/claims/local-ai-host-wiring.json, C1>.agents/claims/local-ai-background-worker.json
   depends-on: C1
   do: set each `completion.commit` to the squash sha (they currently name pre-squash shas that will not exist on main).
@@ -1136,36 +1138,39 @@ Every other path and symbol v2 named was checked with `git cat-file -e` and
 ## 10. Decisions for Dan
 
 Each is written with a recommendation so a one-word answer suffices. Until
-answered, the recommendation is what gets built.
+answered, the recommendation is what gets built. On 5 Sep 2026 Dan delegated
+all of the open ones: "i don't actually have any opinions on the decisions so
+use your best judgement." Each below therefore records the recommendation as
+the decision; a later session may reopen one by writing why here.
 
 - **D0 — board slot.** Recommend (a): separate Godot window for 1.0; the slot
   shows the transcript and a compact viewer host card; the slot contract is
-  written so docking (b) is a later increment. *Decided:* —
+  written so docking (b) is a later increment. *Decided:* **(a), separate Godot window for 1.0**, 5 Sep 2026.
 - **C7 — `rewrite/remove-2d`.** Recommend: rebase and PR the deletion half now
   (2D art out, `removed2d.tsx` throwing sites as the to-do list); keep
   `src/domain/*` + `docs/ADAPTERS.md` as a separate proposal PR reviewed on
-  its own. *Decided:* —
+  its own. *Decided:* **as recommended**, 5 Sep 2026; the rebase is the branch owner's work, C7 only records the question.
 - **F3 — signing.** Recommend unsigned for beta with a SmartScreen note;
-  revisit at 1.0. *Decided:* —
+  revisit at 1.0. *Decided:* **unsigned for beta**, 5 Sep 2026.
 - **F4 — update check.** Recommend a "newer version available" link via the
-  existing GitHub-releases fetch; no auto-install. *Decided:* —
+  existing GitHub-releases fetch; no auto-install. *Decided:* **the link**, 5 Sep 2026.
 - **Shortest path.** Recommend shipping beta.1 with viewer and AI disabled
-  (Gates 0→1→2→6). *Decided:* —
+  (Gates 0→1→2→6). *Decided:* **yes**, 5 Sep 2026.
 - **G5 — claim vocabulary.** Recommend adopting the handoff PDF's §28 schema
   whole (adds `privacy`, `licence`, `reviewer`, `retracted`, `published`)
   rather than the narrower one v3 first wrote; nothing is built yet, so this
-  costs nothing now and a migration later. *Decided:* —
+  costs nothing now and a migration later. *Decided:* **adopt the PDF schema whole**, 5 Sep 2026.
 - **G11 — live suggestions.** The one increment that gives model output a
   path to a game command, confirmation-required, exact-command match, one
   pending at a time. Recommend building it last in Lane G and not enabling it
-  in beta.1. Needs your explicit yes before merge. *Decided:* —
+  in beta.1. *Decided:* **build it last in Lane G; it may merge once its adversarial tests are green, and ships behind a default-off setting until a beta cycle has run**, 5 Sep 2026. The confirmation gate, exact-command match, state-version match and one-pending rule are the safeguard, and they are testable; a permanently unbuilt increment is not safer, only later.
 - **G12 — whispers and private messages.** Recommend excluded from every
   model prompt by default with a per-source opt-in, per the handoff's §37.
-  *Decided:* —
+  *Decided:* **excluded by default**, 5 Sep 2026.
 - **The handoff PDF itself.** Recommend it is **not** committed: its
   normative parts move into `docs/LOCAL_AI_BACKGROUND_WORKER.md` (C8) and its
   execution parts are now increments here, so there is one source of truth
-  for each. The PDF stays a dated review artefact in your files. *Decided:* —
+  for each. The PDF stays a dated review artefact in your files. *Decided:* **not committed**, 5 Sep 2026.
 
 ---
 

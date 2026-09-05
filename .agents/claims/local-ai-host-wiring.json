@@ -5,7 +5,7 @@
   "summary": "Give the AI worker a real caller: ingest the live stream into the journal, derive alerts from already-parsed state, and show honest status",
   "status": "completed",
   "claimed_at": "2026-09-04T14:00:00Z",
-  "updated_at": "2026-09-04T14:40:00Z",
+  "updated_at": "2026-09-05T05:30:00Z",
   "paths": [
     "src/lib/aiWorkerHost.ts",
     "src/components/shared/AiWorkerPanel.tsx",
@@ -30,7 +30,7 @@
     "notes": "Fixes a defect in my own previous two slices: aiEventJournal, aiAlertBroker, aiJobStore, aiReviewScheduler, aiModelProvider and aiWorker had no caller anywhere in src/, which AGENTS.md forbids outright - no unused scaffolds without a current caller and an explicit product purpose. This adds the caller and the visible surface, which is also acceptance criterion 14: model failure, absence, timeout and out-of-memory must be visible. Uses the established owners rather than new paths: ingestion subscribes to gameVersion through useSyncExternalStore exactly as useGameLines.ts documents, reads gameLines() only inside the effect body and never as a dependency, and tracks an ingested count so no line is journalled twice or skipped. tools/gamelines-test.mjs scopes its raw-accessor ban to src/components; this hook is in src/lib, which that check explicitly allows for non-component code, and it follows the version-counter rule the check exists to enforce. Alerts are derived from already-parsed state - CharacterStatus.situation flags and bridgeConnected - never from a second pass over game text, so no parser is duplicated. The panel follows PresentationBridgePanel's precedent in SettingsSheet. Still no model ships and still no path to the command boundary."
   },
   "completion": {
-    "commit": "70c08a5f",
+    "commit": "ede29969",
     "checks": [
       "node --experimental-strip-types tools/ai-worker-host-test.mjs: passed (25 checks)",
       "node tools/run-tests.mjs: passed (100 suites, 2938 checks; was 99/2913)",
@@ -40,7 +40,8 @@
       "adversarial control - ingest always from offset 0: 7 checks failed across duplication, replay and the trimmed-buffer case; restored and re-verified by md5",
       "adversarial control - disconnect raised before a connection ever existed: the startup case failed; restored and re-verified by md5",
       "git diff --check: caught a trailing blank line in the extracted module, fixed, then clean",
-      "Gitleaks pre-commit hook: passed with no bypass"
+      "Gitleaks pre-commit hook: passed with no bypass",
+      "merged to main as squash ede29969 (PR #285); pre-squash commit was 70c08a5f"
     ]
   }
 }
