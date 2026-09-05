@@ -36,7 +36,7 @@
     }
   ],
   "completion": {
-    "commit": "TBD",
+    "commit": "a9ac80bd",
     "checks": [
       "node tools/build-player-data-doc.mjs: docs/PLAYER_DATA.md: 23 keys, 19 owner files, 293 source files scanned",
       "node tools/build-player-data-doc.mjs --check: exit 0, '23 keys checked, 0 failed'",

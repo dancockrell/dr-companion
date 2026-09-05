@@ -40,7 +40,7 @@
     }
   ],
   "completion": {
-    "commit": "TBD",
+    "commit": "24ce4aae",
     "checks": [
       "node --experimental-test-module-mocks tools/kill-switch-test.mjs: all kill-switch checks passed, 37 checks, exit 0",
       "each check names its owner file, e.g. 'OK   src/lib/flowStop.ts: requestStopAll asked Rust to stop the Python task'",
