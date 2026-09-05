@@ -160,8 +160,45 @@ console.log('\n-- every zone is reachable through the map UI --')
     for (const next of neighbors.get(id) ?? []) stack.push(next)
   }
   ok('ordinary gateway graph covers the main world', seen.size >= 75, `${seen.size} of ${zones.size}`)
+
+  /**
+   * Every zone the gateway graph cannot reach from Crossing, and why.
+   *
+   * This used to be an INFO line, and #175 is what an INFO line costs. Its
+   * finding 2 read zone 33a's 48 rooms, found no exit out of any of them, and
+   * concluded the cartography had a hole in it. The cartography is fine.
+   * `Map33a_Road_to_Therenborough.xml` names two destinations in its notes -
+   * `Map33_Riverhaven_West_Gate.xml` and `Map34_Mistwood_Forest.xml` - and
+   * neither file is in this machine's Genie install, so `build-map.mjs` cannot
+   * turn either note into a gateway. A zone whose doors lead to maps nobody
+   * shipped and a zone with no doors at all produce the same silence here, and
+   * the difference is the difference between a missing download and a bug.
+   *
+   * So the reason is recorded per zone, and the set is asserted in both
+   * directions. Losing a route is the failure everyone expects; a zone
+   * quietly gaining one matters just as much, because it means this table has
+   * stopped describing the map and the next reader will trust it anyway.
+   */
+  const UNREACHABLE = {
+    '997': 'arena instance: the source sheet carries no cross-file note at all',
+    '999': 'teleport instance: the source sheet carries no cross-file note at all',
+    TF990: 'festival sheet: the source sheet carries no cross-file note at all',
+    '90e': 'closed in the source cartography: no cross-file note at all',
+    '99a': 'closed in the source cartography: no cross-file note at all',
+    '33a': 'doors exist; Map33_Riverhaven_West_Gate.xml and Map34_Mistwood_Forest.xml are not in this Genie install',
+    '14d': 'doors exist; Map7c_NTR_Part2.xml is not in this Genie install',
+  }
   const special = [...zones.keys()].filter((id) => !seen.has(id))
-  console.log(`INFO ${special.length} special or isolated maps use the all-zone browser: ${special.join(', ') || 'none'}`)
+  const expected = Object.keys(UNREACHABLE)
+  const newlyIsolated = special.filter((id) => !(id in UNREACHABLE))
+  const nowConnected = expected.filter((id) => !special.includes(id))
+  ok('no zone lost its way out of the world', newlyIsolated.length === 0,
+    `${special.length} unreachable, ${expected.length} expected${newlyIsolated.length ? '; new: ' + newlyIsolated.join(', ') : ''}`)
+  ok('every zone recorded as unreachable still is', nowConnected.length === 0,
+    nowConnected.length ? `now connected, drop from the table: ${nowConnected.join(', ')}` : `${expected.length} still unreachable`)
+  for (const id of expected.filter((x) => special.includes(x))) {
+    console.log(`INFO   ${id.padEnd(6)}${UNREACHABLE[id]}`)
+  }
 
   const mapIndex = readFileSync('src/lib/mapZoneIndex.ts', 'utf8')
   const search = readFileSync('src/components/shared/PlaceSearch.tsx', 'utf8')

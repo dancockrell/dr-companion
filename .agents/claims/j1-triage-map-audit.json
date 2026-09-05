@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "task_id": "j1-triage-map-audit",
+  "agent": "claude-code",
+  "summary": "Triage every finding in issue #175 into dies-with-map-window / moves-to-viewer-contract / still-real, each verdict decided by a measurement rather than by the issue text",
+  "status": "completed",
+  "claimed_at": "2026-09-05T20:00:00Z",
+  "updated_at": "2026-09-05T20:00:00Z",
+  "paths": [
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/j1-triage-map-audit.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "The plan says J1 depends-on D6. Relaxed deliberately: D6 is blocked on a live play session that has not happened, and triaging does not need the deletion - only the fact that MAP_WINDOW_ENABLED is already false, which is measurable today. No finding needed D6 to be judged, so nothing was deferred on that basis. Touches no source: the deliverable is an issue comment plus the J2a/J2b/J2c increment lines under J2."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "dev server from this worktree on 127.0.0.1:5211 (pid 27384, started and killed by this session)",
+      "?view=panel&id=map renders MapPanel live: location.href confirmed 5211, 1041 elements matching [id^=map-room-], 390 svg nodes",
+      "?view=map falls through to the whole app: 0 elements matching [id^=map-room-], dashboard present - MAP_WINDOW_ENABLED false in src/App.tsx:80 makes the window unreachable",
+      "finding 3 measured in the DOM at both counts: one pin -> aria-label '1 saved pin'; two pins -> '2 saved pins'. Already fixed on main at src/components/shared/MapPinBar.tsx:64, no regression test",
+      "finding 1 measured live in PinEditor: dragon -> 'Icon(1 of 373)' (fixed by fantasy-dragon), castle -> 1 (positive control), wyvern/goblin/tower/treasure -> 0. Parsing PIN_ICONS from source: 30 of 33 fantasy terms still zero",
+      "finding 2 re-diagnosed against the source cartography: Map33a's XML carries two gateway notes (Map33_Riverhaven_West_Gate.xml, Map34_Mistwood_Forest.xml) and neither file exists in C:/Genie4/Maps. 33a ships 3 rooms with leaves[] doors, so it is not a closed loop",
+      "8 distinct unresolvable gateway targets across the whole source set; tools/build-map.mjs counts them into `unresolved` and never prints it",
+      "finding 6: 90e and 99a carry zero gateway notes and zero leaves in the source too (genuinely closed upstream); 90a=1, 66=9, 40a=1, 98=4 gateways, so the outbound-connection half of that finding is refuted for those four",
+      "finding 5: 27 stamp kinds parsed from MapStampLayer.tsx - 22 have 2 images, 4 have 3, 1 has 4. stamp.variant is taken modulo images.length, so no kind renders a missing image",
+      "finding 4: 'Reserved for a priority panel' is absent from src/ and tools/map-viewport-test.mjs already asserts it stays absent"
+    ]
+  }
+}

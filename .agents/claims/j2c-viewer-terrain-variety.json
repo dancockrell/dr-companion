@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "task_id": "j2c-viewer-terrain-variety",
+  "agent": "claude-code",
+  "summary": "Hand #175's stamp-variety finding to the Godot viewer as a contract line rather than fixing it in a 2D layer that section 1 of the handoff retires",
+  "status": "completed",
+  "claimed_at": "2026-09-05T21:00:00Z",
+  "updated_at": "2026-09-05T21:00:00Z",
+  "paths": [
+    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/j2c-viewer-terrain-variety.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["j1-triage-map-audit"],
+    "conflicts_with": [],
+    "notes": "docs/THREE_D_REBUILD_HANDOFF.md is Lane L's primary file and Lane K also extended it (K1 added section 11). Neither lane holds a row in plan section 3.1 - L is finished with L6 blocked, K is finished with K6 blocked - so this appends section 12 at the end rather than editing any existing section. It cross-references section 11's forbidden-substitution rule instead of restating it, since a second copy of that rule is what section 1 trap 17 is about."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "grep -c '^## 12. Terrain and landmark variety' docs/THREE_D_REBUILD_HANDOFF.md -> 1",
+      "grep -c '22 of the 27 kinds have' docs/THREE_D_REBUILD_HANDOFF.md -> 1",
+      "the 27 kinds named in the section were parsed out of src/components/shared/MapStampLayer.tsx rather than transcribed: 12 terrain, 5 named landmarks, 10 services, and the image counts are 22 kinds with two, 4 with three, 1 with four",
+      "also checked while measuring, and reported in the #175 triage rather than left implicit: stamp.variant is hash(...) % 4 but is indexed images[variant % images.length], so no kind ever asks for an image that is not there"
+    ]
+  }
+}

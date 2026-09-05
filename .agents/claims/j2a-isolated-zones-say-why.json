@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "task_id": "j2a-isolated-zones-say-why",
+  "agent": "claude-code",
+  "summary": "A zone the gateway graph cannot reach says which kind of nothing it is: build-map.mjs names the gateway notes whose destination map file is not installed, and gateway-test.mjs asserts the unreachable set in both directions with a reason per zone",
+  "status": "completed",
+  "claimed_at": "2026-09-05T20:30:00Z",
+  "updated_at": "2026-09-05T20:30:00Z",
+  "paths": [
+    "tools/build-map.mjs",
+    "tools/gateway-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/j2a-isolated-zones-say-why.json"
+  ],
+  "symbols": ["unresolved", "UNREACHABLE"],
+  "coordination": {
+    "depends_on": ["j1-triage-map-audit"],
+    "conflicts_with": [],
+    "notes": "Extends the two existing owners rather than adding a map-connectivity checker beside them: gateway-test.mjs already computed the unreachable set and printed it as INFO, so the change is promoting that line to an assertion, and build-map.mjs already counted the unresolvable notes into a variable it never printed. No new suite, no new registration in package.json or tools/test-suites.json. Ships no data: the build was run to verify the output text and its two whitespace-only diffs on generated files were reverted, since src/data is outside this increment's touches."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "node tools/gateway-test.mjs: all passed, with 'no zone lost its way out of the world  7 unreachable, 7 expected' and 'every zone recorded as unreachable still is  7 still unreachable'",
+      "node tools/build-map.mjs: '8 gateway notes name a map this install does not have', each with the zones that point at it - Map33_Riverhaven_West_Gate.xml <- 30, 33a; Map34_Mistwood_Forest.xml <- 33a, 40; Map7c_NTR_Part2.xml <- 14d; Guild_Fest-2023.xml <- 40; Map114_Ain_Ghazal.xml <- 113, 150; Map150_The_Ways.xml <- 63; Map31a_Zaulfung.xml <- 31, 31b; Map516q_Temporal_Pocket.xml <- 1",
+      "the build reproduced all 86 committed zone files byte-identically; the only diff was a trailing newline on map-metadata.json and index.json, reverted with git checkout",
+      "sabotage 1: removed '33a' from UNREACHABLE -> FAIL no zone lost its way out of the world  7 unreachable, 6 expected; new: 33a. exit 1, that check only",
+      "sabotage 2: added '1' (Crossing) to UNREACHABLE -> FAIL every zone recorded as unreachable still is  now connected, drop from the table: 1. exit 1, that check only",
+      "sabotage 2's first attempt printed SABOTAGE B DID NOT MATCH and exited 9 rather than rewriting the file unchanged - the file is CRLF and the needle was not",
+      "restore: md5 23789e72c1ee8e1a4029775ab46559a6 matched after both sabotages",
+      "npx tsc -b: exit 0"
+    ]
+  }
+}

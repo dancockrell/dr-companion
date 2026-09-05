@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "task_id": "j2b-saved-pins-label",
+  "agent": "claude-code",
+  "summary": "Guard #175's saved-pin count label: the wording moves into savedPinsLabel() beside the rest of the pin vocabulary, MapPinBar reads it, and pins-test asserts the sentence a screen reader hears at 0, 1, 2 and 11",
+  "status": "completed",
+  "claimed_at": "2026-09-05T20:45:00Z",
+  "updated_at": "2026-09-05T20:45:00Z",
+  "paths": [
+    "src/lib/mapPins.ts",
+    "src/components/shared/MapPinBar.tsx",
+    "tools/pins-test.mjs",
+    "tools/sound-actions-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/j2b-saved-pins-label.json"
+  ],
+  "symbols": [
+    "savedPinsLabel",
+    "MapPinBar"
+  ],
+  "coordination": {
+    "depends_on": [
+      "j1-triage-map-audit"
+    ],
+    "conflicts_with": [],
+    "notes": "mapPins.ts already owns the pin vocabulary (PIN_COLORS, PIN_ICONS, PIN_PRESETS, PIN_DRAG_TYPE) and pins-test.mjs already owns mapPins.ts, so the helper and its test go to the existing owners; nothing new is created and no second copy of the wording remains. CORRECTION: this was claimed on the belief that no test covered the label. One did - tools/sound-actions-test.mjs:19, 'saved-pin count is grammatical in both its title and accessible name' - and I missed it by grepping 'saved pin' when the name is hyphenated. It asserted the literal ternary text rather than the grammar its name promises, so it went red on a change that makes that property more true; per the read-the-name-before-the-body rule the body was changed, not the name. It now asserts only that the title and the accessible name are one computed label, and the grammar is asserted by execution in pins-test.mjs. Two suites, two propositions, no duplication. The #175 triage comment carried the same wrong claim and has been corrected on the issue. MapPinBar.tsx is also read by tools/battlespace-test.mjs, which asserts nothing about the count label and stayed green."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "npm run test:pins: all passed, 72 assertions, five new checks - '0 saved pins', '1 saved pin', '2 saved pins', '11 saved pins', and 'MapPinBar announces the count through savedPinsLabel'",
+      "npm run test:sound-actions: all passed, including the reworked 'saved-pin count is grammatical in both its title and accessible name'",
+      "DOM, dev server from this worktree at 127.0.0.1:5211 ?view=panel&id=map: one pin placed through the palette -> aria-label '1 saved pin'; a second pin -> '2 saved pins'. Read off the live DOM, not a screenshot",
+      "sabotage 1: savedPinsLabel always plural -> FAIL one saved pin reads as singular: 1 saved pins. exit 1, that check only; the three plural checks stayed green, so a fix that hard-coded the singular would fail too",
+      "sabotage 2: MapPinBar types the wording itself again -> FAIL MapPinBar announces the count through savedPinsLabel. exit 1, that check only",
+      "restore: md5 9da03a5c1f3b84e6ef82c23cc619812a (mapPins.ts) and 89b3b4935fd29f033a86c98db2e1e146 (MapPinBar.tsx) matched after both",
+      "npx tsc -b: exit 0",
+      "sabotage 3: gave the title its own string so it can drift from the aria-label -> FAIL saved-pin count is grammatical in both its title and accessible name in sound-actions, exit 1; pins stayed green, confirming the two suites assert different propositions. Restored, md5 89b3b4935fd29f033a86c98db2e1e146 matched"
+    ]
+  }
+}

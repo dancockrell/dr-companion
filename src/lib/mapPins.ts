@@ -617,6 +617,22 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
  */
 export const PIN_DRAG_TYPE = 'application/x-drc-pin'
 
+/**
+ * How many saved pins there are, said out loud.
+ *
+ * This is the first thing a screen reader announces for the saved-pins
+ * control, and for a while it announced "1 saved pins". The bug was one
+ * missing branch, and it survived because nothing could see it: the label is
+ * a template literal inside a component, so no test read it and the count that
+ * exposes it is exactly one - the count a developer with a fresh profile is
+ * least likely to sit on. The fix was trivial. Having somewhere to test it was
+ * the part that was missing, so the wording lives here with the rest of the
+ * pin vocabulary and MapPinBar reads it, rather than the other way round.
+ */
+export function savedPinsLabel(count: number): string {
+  return `${count} saved ${count === 1 ? 'pin' : 'pins'}`
+}
+
 const STORAGE_KEY = 'drc.pins.v1'
 export type PinStore = Record<string, MapPin[]>
 

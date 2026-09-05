@@ -53,6 +53,7 @@ const {
   PIN_ICONS,
   PIN_PRESETS,
   COMMON_PLACE_PIN_COLORS,
+  savedPinsLabel,
 } = await import(pathToFileURL(pinsPath).href)
 
 let failed = 0
@@ -270,6 +271,31 @@ console.log('-- one source for what a bank looks like --')
   )
   clearCorpseMarker(...HERO)
   store.clear()
+}
+
+{
+  // #175 finding 3: the saved-pins control announced "1 saved pins".
+  //
+  // The property is the sentence a screen reader reads, so that is what is
+  // asserted - not that the source contains a ternary. One is the only count
+  // that can expose it and it is the count nobody sits on, which is how it
+  // shipped; the plural cases are here so a fix that hard-codes the singular
+  // fails too, rather than trading one wrong announcement for another.
+  ok('no saved pins reads as plural', savedPinsLabel(0) === '0 saved pins', savedPinsLabel(0))
+  ok('one saved pin reads as singular', savedPinsLabel(1) === '1 saved pin', savedPinsLabel(1))
+  ok('two saved pins read as plural', savedPinsLabel(2) === '2 saved pins', savedPinsLabel(2))
+  ok('eleven saved pins read as plural', savedPinsLabel(11) === '11 saved pins', savedPinsLabel(11))
+
+  // The label is only worth testing here if the control actually says it.
+  // Left as source inspection deliberately: MapPinBar is a component this
+  // suite has no renderer for, so this asserts the wiring and the DOM proof
+  // is in the increment's own verify line.
+  const bar = readFileSync('src/components/shared/MapPinBar.tsx', 'utf8')
+  ok(
+    'MapPinBar announces the count through savedPinsLabel',
+    /savedPinsLabel\(pins\.length\)/.test(bar) && !/saved \$\{/.test(bar) && !/saved pins`/.test(bar),
+    'no second copy of the wording in the component'
+  )
 }
 
 ok('enough was checked for a pass to mean something', checked >= 26, `${checked} assertions`)

@@ -14,7 +14,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { MapPin as MapPinIcon, Pencil, Plus } from 'lucide-react'
-import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
+import { PIN_COLOR_HEX, savedPinsLabel, type MapPin } from '../../lib/mapPins'
 import { PinIconGlyph } from './PinIconGlyph'
 
 export function MapPinBar({
@@ -61,7 +61,7 @@ export function MapPinBar({
   }, [open])
 
   if (pins.length === 0 && !onAddHere) return null
-  const savedPinCountLabel = `${pins.length} saved ${pins.length === 1 ? 'pin' : 'pins'}`
+  const savedPinCountLabel = savedPinsLabel(pins.length)
 
   // A fragment, not a rail of its own: MapPanel makes saved pins and pin-here
   // peers of every other fixed-square control in its shared two-row grid.
