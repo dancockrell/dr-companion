@@ -439,17 +439,29 @@ console.log('\n-- the panel promises only what this build can do --')
 {
   const fs = await import('node:fs')
   const panel = fs.readFileSync('src/components/shared/AiWorkerPanel.tsx', 'utf8')
-  const providerExists = fs.existsSync('src/lib/aiLocalProvider.ts')
+  /**
+   * Keyed on whether the host can actually build a local provider, not on
+   * whether a file called aiLocalProvider.ts exists.
+   *
+   * The original read `existsSync('src/lib/aiLocalProvider.ts')`, which is an
+   * existence check on the container standing in for a content check on the
+   * thing: the module can be committed, and tested, and still be reachable by
+   * nobody, at which point the panel would be made to promise a feature that
+   * has no way in. What decides the player's experience is whether the host
+   * imports it, so that is what the promise is held against.
+   */
+  const host = fs.readFileSync(HOST_SRC, 'utf8')
+  const providerReachable = /from '\.\/aiLocalProvider\.ts'/.test(host)
   const saysNotAvailable = /Local model support is not yet available in this build\./.test(panel)
-  const saysPointAtOne = /Point Settings . Local model at a running Ollama or LM Studio on 127\.0\.0\.1/.test(panel)
+  const saysPointAtOne = /a model server running on this machine/.test(panel)
 
   ok('the panel says exactly one of the two things', saysNotAvailable !== saysPointAtOne,
     `not-yet=${saysNotAvailable} point-at-one=${saysPointAtOne}`)
-  ok(providerExists
-    ? 'aiLocalProvider.ts exists, so the panel must tell the player where to point it'
-    : 'aiLocalProvider.ts is absent, so the panel must say support is not in this build',
-    providerExists ? saysPointAtOne : saysNotAvailable,
-    `aiLocalProvider.ts present: ${providerExists}`)
+  ok(providerReachable
+    ? 'the host can build a local provider, so the panel must tell the player how to connect one'
+    : 'nothing can build a local provider, so the panel must say support is not in this build',
+    providerReachable ? saysPointAtOne : saysNotAvailable,
+    `host imports aiLocalProvider: ${providerReachable}`)
   ok('a refused prompt is named rather than left to read as a generic failure',
     /Sensitive input withheld/.test(panel))
 }

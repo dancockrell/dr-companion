@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "task_id": "h1-loopback-adapter",
+  "agent": "claude-code",
+  "summary": "An OpenAI-compatible model provider that refuses any address off this machine, turns every failure into a value, keeps describe() synchronous for the render path, and routes every AI log line through the secret scanner (H1 + H6)",
+  "status": "completed",
+  "claimed_at": "2026-09-05T18:00:00Z",
+  "updated_at": "2026-09-05T19:10:00Z",
+  "paths": [
+    "src/lib/aiLocalProvider.ts",
+    "src/lib/aiModelProvider.ts",
+    "tools/ai-local-provider-test.mjs",
+    "tools/ai-worker-host-test.mjs",
+    "docs/PLAYER_DATA.md",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/h1-loopback-adapter.json"
+  ],
+  "symbols": [
+    "localProvider",
+    "isLoopbackHost",
+    "discoverLocalBaseUrl",
+    "redactSecrets",
+    "aiLog"
+  ],
+  "coordination": {
+    "depends_on": [
+      "A2"
+    ],
+    "conflicts_with": [],
+    "notes": "Extends the existing owners rather than adding siblings. The provider implements the ModelProvider interface aiModelProvider.ts already defines and adds no second one; the secret redactor is built from that module's own SECRET_PATTERNS rather than a private copy, because two lists answering one question drift and the half nobody re-reads is the half that leaks. aiLog is added there for the same reason and has a live caller in this commit (the think-retry notice), so it is not a scaffold. It touches nothing Lane G or Lane E holds: AiWorkerPanel.tsx and SettingsSheet.tsx are untouched by this increment. The one edit to another lane's test is A8's panel guard, whose property is unchanged and whose measured thing moved from a file existing to the host importing it. H6 lands here rather than in its own commit because this is the first module in src/lib with anything to log, and a redactor with no caller is exactly the scaffold AGENTS.md forbids. Rebased onto 19458ecf after Lane D merged and removed its own register row; my row is added below Lane B's rather than reinstating one its owner deleted."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "npm run test:ai-local-provider: 77 checked, 0 failed, all passed",
+      "decisive: 'a remote server that WOULD answer is still never contacted' with an injected fetch that records every call and returns a valid models list",
+      "decisive control: 'control: the same recorder does see a loopback request  http://127.0.0.1:11434/v1/models' - so a zero call count above is a refusal, not a broken recorder",
+      "verify per the plan: models list -> available (profile qwen3:4b-instruct); 500 'CUDA error: out of memory' -> out_of_memory; 200 HTML -> invalid_output; JSON with empty choices -> invalid_output; abort mid-request -> cancelled; remote host -> refused naming the host and 'Nothing was sent'",
+      "sabotage: `if (false && !options.allowRemote && !isLoopbackHost(parsed.hostname))` -> 72 checked, 5 failed, including 'so it cannot be reported as ready  somebody-elses-model' and 'and generating against it sends nothing  2'; restored, md5 2b0e482e81da7a904b4f28ad5c4475f9 either side",
+      "the first sabotage attempt produced only 2 failures and was rejected as too weak: against an unreachable remote address a dropped host check fails as ordinary absence and is indistinguishable from a refusal. The two decisive checks exist because of that, not before it.",
+      "Ollama is NOT installed on this machine, so the plan's instruction to record the installed version's thinking switch could not be followed: Get-Command ollama finds nothing; a recursive C:\\ search for ollama*.exe returns nothing while the same search finds node.exe (positive control); ~/.ollama/models is empty; nothing listens on 11434. The flag is self-correcting instead of guessed - a 400 mentioning 'think' is retried once without it, and that retry is a tested case.",
+      "npx tsc -b: exit 0",
+      "node tools/plan-audit.mjs: plan ok, 112 increments, 219 paths checked",
+      "docs/PLAYER_DATA.md regenerated: its scanned-source-file count moved 297 -> 298 because this commit adds a src file. Content otherwise unchanged; no new storage key.",
+      "rebased onto origin/main 19458ecf mid-branch; the only file main had changed was docs/PLAN_TO_1_0.md, and Lane D's register row was gone by its owner's choice, so my row was placed below Lane B's rather than restoring theirs"
+    ]
+  }
+}

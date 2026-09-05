@@ -271,6 +271,7 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
+| H | H1–H8 | `lane-h/local-provider` | `dev/wt-h` | 5 Sep 2026 |
 | K | K1–K5 | `lane-k/appearance` | `dev/wt-k` | 5 Sep 2026 |
 | G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
 
@@ -985,8 +986,9 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane H — Local model provider (after A2)
 
-- [ ] **H1  OpenAI-compatible loopback adapter** (≈40; two commits)
-  touches: new:src/lib/aiLocalProvider.ts, new:tools/ai-local-provider-test.mjs, package.json, tools/test-suites.json
+- [x] **H1  OpenAI-compatible loopback adapter** (≈40; two commits)
+  commit: (this PR) verified: 2026-09-05 minutes: 70
+  touches: new:src/lib/aiLocalProvider.ts, new:tools/ai-local-provider-test.mjs, package.json, tools/test-suites.json, src/lib/aiModelProvider.ts, tools/ai-worker-host-test.mjs
   depends-on: A2
   do:
   ```
@@ -1005,6 +1007,9 @@ whether it is embedded, docked or a separate window is D0.
   verify: local `http.createServer` double: models list → available; 500 "out of memory" → `out_of_memory`; garbage → `invalid_output`; abort → `cancelled`; remote host → refused with reason.
   sabotage: drop the host check → red.
   pitfalls: 1, 3.
+  note: **the thinking switch could not be checked as written, because Ollama is not installed on this machine.** `Get-Command ollama` finds nothing, a recursive `C:\` search for `ollama*.exe` returns nothing (positive control: the same search finds `node.exe`), `~/.ollama/models` is empty, and nothing listens on 11434. So rather than record a guess as a documented fact, the flag is made self-correcting: `think: false` is sent by default, and a `400` whose body mentions `think` is retried once without it, which is a case the test double exercises. `<think>…</think>` is stripped from the text regardless, so H3's "first `{…}` block" cannot pick up the model's reasoning instead of its answer. Two deviations from `touches:`, both forced and both narrower than they look. `aiModelProvider.ts` gains `redactSecrets` and `aiLog` — H6's helper, put in the module that already owns `scanForSecrets` rather than in a second file that would drift from it, and given a live caller here rather than left as a scaffold. And A8's panel guard keyed on `existsSync('src/lib/aiLocalProvider.ts')`, which is an existence check on a container standing in for a content check on the thing: this commit creates that file while nothing can yet reach it, so the guard would have forced the panel to promise a feature with no way in. It now keys on whether `aiWorkerHost.ts` imports the provider, which is what actually decides what a player can do. The check's name and property are unchanged; only the thing it measures moved, and it still fails if the two drift.
+  verify (as done): `npm run test:ai-local-provider` → `77 checked, 0 failed`, `all passed`; the decisive lines are `a remote server that WOULD answer is still never contacted`, `control: the same recorder does see a loopback request  http://127.0.0.1:11434/v1/models`, and `it fails as out_of_memory`.
+  sabotage (as done): `if (false && !options.allowRemote && !isLoopbackHost(...))` → `72 checked, 5 failed`, naming the harm rather than a generic red: `so it cannot be reported as ready  somebody-elses-model` and `and generating against it sends nothing  2`. Restored, md5 `2b0e482e81da` either side. A first version of the sabotage produced only **two** failures — pointed at an unreachable remote address, a dropped check fails as ordinary absence and reads exactly like a refusal — so the two decisive checks above were added, using a recorded `fetchImpl` that *answers*, plus a loopback positive control so a zero call count means a refusal rather than a broken recorder.
 
 - [ ] **H2  Settings: model server URL** (≈20)
   touches: C1>src/components/shared/AiWorkerPanel.tsx, C1>src/lib/aiWorkerHost.ts
@@ -1030,11 +1035,14 @@ whether it is embedded, docked or a separate window is D0.
   do: Qwen3-4B q4 on the RTX 4070: tokens/s and time-to-first-token over 20 live-review requests → `docs/verification/model-perf-<date>.md`; replace §11's targets with measured numbers.
   verify: §11 cites the file.
 
-- [ ] **H6  Scanner over every AI log line** (≈15)
-  touches: C1>src/lib/aiWorkerHost.ts, C1>src/lib/aiWorker.ts, C1>tools/ai-worker-test.mjs
+- [x] **H6  Scanner over every AI log line** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 20
+  touches: C1>src/lib/aiModelProvider.ts, new:tools/ai-local-provider-test.mjs
   depends-on: H1
   do: every `console.*`/activity write in `ai*.ts` passes `scanForSecrets`; a source check asserts no bare `console.` in those files.
   verify: source check green; a fixture line with a runtime-assembled key is redacted.
+  note: landed with H1 rather than after it, because H1 is the first module in this directory with anything to log and a redactor with no caller is exactly the scaffold `AGENTS.md` forbids. `redactSecrets` is built from `aiModelProvider.ts`'s own `SECRET_PATTERNS` - the list the prompt gate already uses - rather than a private copy, because two lists answering one question drift and the half nobody re-reads is the half that leaks. `aiLog` is the only permitted console call in the AI modules and the ratchet enforces it. Today **no** AI module logged anything at all, so the check's value is entirely in the next one; it therefore asserts its own population first (`the scan found the AI modules rather than an empty list  9 files`) so a broken walk reports itself instead of certifying an empty directory clean.
+  verify (as done): `npm run test:ai-local-provider` → `a key-shaped value is replaced  request failed: [redacted api or provider key] rejected`, `and the kind that matched is named, so the line is still diagnosable`, `aiLog writes exactly one line  1`, `no ai*.ts module writes to console except aiLog`. The fixture key is assembled at runtime (section 1 trap 3): a credential-shaped literal in a tracked file is blocked by gitleaks whether or not it is real.
 
 - [ ] **H7  OOM/timeout/absent are distinct on screen** (≈10)
   touches: C1>src/components/shared/AiWorkerPanel.tsx, C1>tools/ai-worker-host-test.mjs
