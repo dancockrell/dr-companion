@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "task_id": "d3-map-window-flag",
+  "agent": "claude-code",
+  "summary": "Put the standalone ?view=map window behind MAP_WINDOW_ENABLED = false, one increment ahead of deleting it in D6.",
+  "status": "completed",
+  "claimed_at": "2026-09-05T12:40:00Z",
+  "updated_at": "2026-09-05T12:55:00Z",
+  "paths": [
+    "src/App.tsx",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/d3-map-window-flag.json"
+  ],
+  "symbols": ["MAP_WINDOW_ENABLED", "view"],
+  "coordination": {
+    "depends_on": ["D2"],
+    "conflicts_with": [],
+    "notes": "A1 is [x], so App.tsx is Lane D's per the section 3 conflict matrix. The flag gates the existing branch in view(); it does not add a parallel router."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "Finding recorded rather than assumed: nothing in src/ opens ?view=map. `grep -rn \"view=map\" src/ src-tauri/ tools/` found only App.tsx's own doc comment and two tool files naming the route in prose. MapPanel's pop-out button calls openPanelWindow('map', 'Map'), which is the generic panel window (?view=panel&id=map) and is untouched by this flag. The gated branch was reachable only by typing the query string, so this increment closes a door that had already lost its handle - which is also why D6's deletion is smaller than it looks.",
+      "D3 verify as written (`grep -rn \"view=map\" src/ | grep -v MAP_WINDOW_ENABLED` -> empty) passes, but its positive control fails: `grep -rc \"view=map\" src/App.tsx` -> 0. Rewording the doc comment removed the last occurrence of that literal from src/, so the verify grep now has nothing to find and would pass just as readily if the branch were still ungated. Recorded rather than quietly accepted, and re-run against the thing that actually decides behaviour:",
+      "`grep -rn \"'view') === 'map'\" src/` -> one hit, `src/App.tsx:85:  if (MAP_WINDOW_ENABLED && q.get('view') === 'map') return { kind: 'map' }`. The same grep filtered through `grep -v MAP_WINDOW_ENABLED` -> empty. So the branch exists, there is exactly one of it, and it is gated.",
+      "npx tsc -b exit 0.",
+      "node tools/run-tests.mjs -> `116 passed, 0 failed, 0 not run | 3492 checks across 116 suites`, `all passed`."
+    ]
+  }
+}

@@ -391,3 +391,103 @@ export function fitColumns({
     squeezed: true,
   }
 }
+
+/* ------------------------------------------------------------------------ *
+ * The approved frame
+ *
+ * Everything above resolves three *player-dragged* columns against a window.
+ * What follows is the fixed outer frame those columns live inside, and it is
+ * a different kind of number: nobody drags it, and it is not a preference.
+ * It is a transcription.
+ *
+ * Source: `docs/mockups/dr-companion-isometric-mvp.html` (Codex, 4 Sep 2026,
+ * "the approved client direction"). Read its CSS rather than eyeballing its
+ * render - `.app` is `grid-template-rows: 48px minmax(0,1fr) 224px`,
+ * `.workspace` and `.console` are both
+ * `grid-template-columns: 228px minmax(620px,1fr) 250px`, and `body` carries
+ * `min-width: 1120px; min-height: 720px`. Each constant below is one of those
+ * declarations and nothing else; if the mockup changes, these change with it
+ * and the comment says where to look.
+ *
+ * They live here, beside `fitColumns` and the share helpers, because
+ * `columns.ts` is already the module that answers "how wide is that". A
+ * second module holding the other half of the same question would drift from
+ * this one, and then both would be wrong.
+ * ------------------------------------------------------------------------ */
+
+/** `.workspace`/`.console` column 1 - the character side. */
+export const SIDE_LEFT_W = 228
+/** `.workspace`/`.console` column 3 - the context side. */
+export const SIDE_RIGHT_W = 250
+/** The `minmax(620px, 1fr)` floor of the middle board slot. */
+export const BOARD_MIN_W = 620
+/** `.app` row 3 - the console row, spanning the full width. */
+export const CONSOLE_H = 224
+/** `.app` row 1 - the top bar. */
+export const TOPBAR_H = 48
+/** `body { min-width }`. */
+export const FRAME_MIN_W = 1120
+/** `body { min-height }`. Not in D2's named list, but `frameFits` is given a
+ * height and a function that ignores half its arguments is a function that
+ * cannot answer half the question. */
+export const FRAME_MIN_H = 720
+
+/**
+ * What the frame minimum spends on something other than the three columns.
+ *
+ * 1120 - (228 + 620 + 250) = 22. Derived rather than typed, so it cannot
+ * disagree with the four constants it is made of: the mockup's `body`
+ * min-width and its column track list are two separate declarations, and a
+ * hand-copied 22 here would go stale the moment either moved.
+ */
+export const FRAME_CHROME_W = FRAME_MIN_W - (SIDE_LEFT_W + BOARD_MIN_W + SIDE_RIGHT_W)
+
+export interface FrameFit {
+  /** Both minimums met: every part of the mockup frame can be drawn. */
+  fits: boolean
+  /**
+   * The side rails that cannot be drawn at this width, in the order they
+   * have to go. Empty while the frame fits.
+   *
+   * Right before left. The right rail is context - alerts, AI, the things
+   * you consult; the left rail is vitals and room, which you read
+   * continuously while playing. Width-only: a short window shrinks the
+   * board slot vertically, it does not remove a column, so `fits` can be
+   * false with nothing in here.
+   */
+  mustCollapse: readonly ('right' | 'left')[]
+  /** How many px short of `FRAME_MIN_W` / `FRAME_MIN_H`. 0 when it fits. */
+  shortW: number
+  shortH: number
+  /** What the board slot gets once the surviving rails have taken theirs. */
+  boardW: number
+}
+
+/**
+ * Does the approved frame fit this window, and if not, what goes first?
+ *
+ * Answering "which column collapses first" as data rather than as a media
+ * query means the answer is testable at a width nobody has a monitor for,
+ * and that the CSS and the test cannot disagree about it - the mockup's own
+ * `@media (max-width: 1250px)` rule narrows all three tracks at once, which
+ * is a fine thing for a static page to do and no use at all to a client that
+ * has to say *why* a panel vanished.
+ */
+export function frameFits(innerWidth: number, innerHeight: number): FrameFit {
+  const mustCollapse: ('right' | 'left')[] = []
+  let available = Math.max(0, innerWidth) - FRAME_CHROME_W - BOARD_MIN_W
+
+  if (available < SIDE_LEFT_W + SIDE_RIGHT_W) mustCollapse.push('right')
+  if (available < SIDE_LEFT_W) mustCollapse.push('left')
+
+  if (!mustCollapse.includes('right')) available -= SIDE_RIGHT_W
+  if (!mustCollapse.includes('left')) available -= SIDE_LEFT_W
+
+  return {
+    fits: innerWidth >= FRAME_MIN_W && innerHeight >= FRAME_MIN_H,
+    mustCollapse,
+    shortW: Math.max(0, FRAME_MIN_W - innerWidth),
+    shortH: Math.max(0, FRAME_MIN_H - innerHeight),
+    boardW: BOARD_MIN_W + Math.max(0, available),
+  }
+}

@@ -272,6 +272,7 @@ PRs per lane, squash-merged.
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
 | I | I1–I11 | `lane-i/color-tokens` | `dev/wt-i` | 5 Sep 2026 |
+| D | D1–D6 | `lane-d/layout` | `dev/wt-d` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296) and **E/F** (E5–E8,
 F2, F6, PRs #293 and #295). Their rows are gone from the table above, which is
@@ -640,26 +641,30 @@ context side; a 224 px console row spanning the width (context actions |
 transcript | recent-state strip); `min-width: 1120px`. The board is Godot's;
 whether it is embedded, docked or a separate window is D0.
 
-- [ ] **D0  Board-slot decision** (≈20, decision for section 10)
+- [x] **D0  Board-slot decision** (≈20, decision for section 10)
+  commit: (decided in section 10, no code) verified: 5 Sep 2026 minutes: 0
   touches: none
   depends-on: C1
   do: write the three options with what each costs: (a) separate Godot window as today, board slot shows the transcript expanded and a compact viewer host card; (b) docked window — Tauri reports the slot's screen rect on move/resize and the viewer window is positioned to it (no reparenting; Godot `DisplayServer.window_set_position`); (c) true embedding (HWND reparenting) — fragile on Windows, Godot does not support it officially. Recommend (a) for 1.0 with the slot contract written so (b) is a later increment. Record in section 10; Dan decides.
   verify: section 10 has a "Decided:" line for D0.
 
-- [ ] **D1  Confirm the `remove-2d` overlap is still zero** (≈5)
+- [x] **D1  Confirm the `remove-2d` overlap is still zero** (≈5)
+  commit: (this PR) verified: 5 Sep 2026 minutes: 5
   touches: none
   depends-on: none
   do: `git fetch origin; git diff --stat origin/main...origin/rewrite/remove-2d -- src/App.tsx src/lib/columns.ts src/lib/layout.ts src/lib/panelDataContracts.ts` → empty today. Paste the output into your D2 claim. If non-empty, stop and coordinate (C7).
   verify: the pasted output.
 
-- [ ] **D2  Frame as data: rows and columns from the mockup** (≈25)
+- [x] **D2  Frame as data: rows and columns from the mockup** (≈25)
+  commit: (this PR) verified: 5 Sep 2026 minutes: 30
   touches: src/lib/columns.ts, tools/columns-test.mjs
   depends-on: A1, D0, D1
   do: `columns.ts` holds the shipped defaults and the share helpers. Add the mockup's frame constants beside them (`SIDE_LEFT_W=228`, `SIDE_RIGHT_W=250`, `BOARD_MIN_W=620`, `CONSOLE_H=224`, `TOPBAR_H=48`, `FRAME_MIN_W=1120`) with a doc comment naming the mockup file as their source, and a `frameFits(innerWidth, innerHeight)` that returns which column must collapse first below the minimum. Do not add a second layout module.
   verify: `node tools/columns-test.mjs` → all passed plus: `frameFits(1366,768)` fits; `frameFits(1100,768)` names the right side as first to collapse.
   sabotage: change `FRAME_MIN_W` to 2000 → the 1366 check red.
 
-- [ ] **D3  Map window behind a flag** (≈15)
+- [x] **D3  Map window behind a flag** (≈15)
+  commit: (this PR) verified: 5 Sep 2026 minutes: 15
   touches: src/App.tsx
   depends-on: D2
   do: `const MAP_WINDOW_ENABLED = false` beside `view()` (`src/App.tsx:58`); `if (q.get('view') === 'map' && MAP_WINDOW_ENABLED)`. Gate every opener: `grep -rn "view=map" src/` → each behind the same constant.

@@ -49,17 +49,40 @@ import { LazySurface } from './components/shared/LazySurface'
 const SetupWizard = lazy(() => import('./components/first-run/SetupWizard').then((module) => ({ default: module.SetupWizard })))
 
 /**
+ * Is the standalone map window reachable at all?
+ *
+ * Off, on the way to being deleted in D6. The layout the app is moving to
+ * (`docs/mockups/dr-companion-isometric-mvp.html`) has one window with a
+ * board slot in it, and a second top-level window showing a second map is
+ * the thing that mockup exists to replace.
+ *
+ * A flag rather than a straight deletion because this is one increment of
+ * several: D4 rearranges what the main window shows, and turning the old
+ * route off first means that if the new layout is wrong, the difference
+ * between "the new layout is wrong" and "the map window is gone" is one
+ * constant rather than a revert. D6 removes the constant, the branch and
+ * `MapWindow.tsx` together, once D5's measurements have survived a real
+ * play session.
+ *
+ * Worth recording while turning it off: nothing in `src/` opens this route.
+ * `MapPanel`'s pop-out button calls `openPanelWindow('map', 'Map')`, which
+ * is the generic panel window (`?view=panel&id=map`) and is untouched by
+ * this flag. The only way to reach the branch below was to type the query
+ * string, so the flag removes an entry point that had already lost its door.
+ */
+const MAP_WINDOW_ENABLED = false
+
+/**
  * Which window this is.
  *
- * The map pops out into a window of its own, which Tauri opens on
- * `index.html?view=map`. A query parameter rather than a route path, because
- * the bundled app is served from a file, where a path would 404 while working
- * fine under the dev server.
+ * A query parameter rather than a route path, because the bundled app is
+ * served from a file, where a path would 404 while working fine under the
+ * dev server.
  */
 function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app' } {
   if (typeof window === 'undefined') return { kind: 'app' }
   const q = new URLSearchParams(window.location.search)
-  if (q.get('view') === 'map') return { kind: 'map' }
+  if (MAP_WINDOW_ENABLED && q.get('view') === 'map') return { kind: 'map' }
   if (q.get('view') === 'panel') {
     const id = q.get('id')
     if (id) return { kind: 'panel', id: id as PanelId }

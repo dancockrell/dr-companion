@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "task_id": "d1-d2-frame-as-data",
+  "agent": "claude-code",
+  "summary": "D1: re-confirm rewrite/remove-2d does not touch Lane D's files. D2: put the approved mockup's frame numbers in columns.ts as data, with frameFits() answering which side rail collapses first.",
+  "status": "completed",
+  "claimed_at": "2026-09-05T12:00:00Z",
+  "updated_at": "2026-09-05T12:40:00Z",
+  "paths": [
+    "src/lib/columns.ts",
+    "tools/columns-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/d1-d2-frame-as-data.json"
+  ],
+  "symbols": [
+    "SIDE_LEFT_W",
+    "SIDE_RIGHT_W",
+    "BOARD_MIN_W",
+    "CONSOLE_H",
+    "TOPBAR_H",
+    "FRAME_MIN_W",
+    "FRAME_MIN_H",
+    "FRAME_CHROME_W",
+    "frameFits",
+    "FrameFit"
+  ],
+  "coordination": {
+    "depends_on": ["A1", "D0", "D1"],
+    "conflicts_with": [],
+    "notes": "columns.ts is the existing owner of 'how wide is that' - fitColumns, the share helpers and the shipped defaults all live there - so the frame constants are added beside them rather than in a new module. layout.ts owns panel identity and order, which is a different question, so nothing there changes. Adding a src/lib/frame.ts would have been a second module answering columns.ts's question and would drift from it. FRAME_MIN_H is not in D2's named constant list; it is added because frameFits takes an innerHeight and a function that ignores half its arguments cannot answer half the question, and the mockup declares body{min-height:720px} right beside the min-width the list does name."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "D1: `git diff --stat origin/main...origin/rewrite/remove-2d -- src/App.tsx src/lib/columns.ts src/lib/layout.ts src/lib/panelDataContracts.ts` printed nothing (exit 0). Zero overlap, unchanged since the plan recorded it.",
+      "D1 positive control, because an empty diff and a broken diff invocation look identical: the same command against src/lib/portraits.ts and src/components/room/RoomScene.tsx printed `2 files changed, 1 insertion(+), 165 deletions(-)`. The instrument does produce output when files differ, so the empty result above is a fact about the branch and not about the command.",
+      "D2 verify: `node tools/columns-test.mjs` exit 0, `96 checks passed, 0 failed`, `all 96 assertions in the file ran`.",
+      "D2 verify: frameFits(1366,768) -> fits true, mustCollapse [], boardW 866, shortW 0, shortH 0.",
+      "D2 verify: frameFits(1100,768) -> fits false, mustCollapse[0] === 'right', left absent, shortW 20, boardW 850.",
+      "D2 sabotage: FRAME_MIN_W 1120 -> 2000. `node tools/columns-test.mjs` exit 1 with ten named failures including `FAIL 1366x768 fits the frame  [\"right\",\"left\"]` and `FAIL the frame width floor is the mockup's`. The sabotage is a value change, so it compiled and the assertions themselves went red rather than a loader error standing in for them.",
+      "D2 restore: `md5sum -c` on src/lib/columns.ts -> OK (e733642cb9a2b8bd6312dab04fd19512), suite green again at 96/0.",
+      "Suite accounting: test:columns 73 -> 96 checks, total 3469 -> 3492 across 116 suites, and a diff of the per-suite counts shows test:columns is the only line that moved. +23 is exactly the number of ok() calls added.",
+      "npx tsc -b exit 0; node tools/run-tests.mjs `all passed`."
+    ]
+  }
+}
