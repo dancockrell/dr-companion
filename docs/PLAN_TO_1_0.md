@@ -689,8 +689,9 @@ whether it is embedded, docked or a separate window is D0.
   verify: suite green, each check naming its owner file.
   sabotage: comment out the stop path in a copy → red.
 
-- [ ] **E6  Player-data inventory, generated** (≈25)
-  touches: new:tools/build-player-data-doc.mjs, new:docs/PLAYER_DATA.md, package.json
+- [x] **E6  Player-data inventory, generated** (≈25)
+  commit: TBD verified: 2026-09-05 minutes: 40
+  touches: new:tools/build-player-data-doc.mjs, new:docs/PLAYER_DATA.md, package.json, tools/test-suites.json
   depends-on: none
   do: `grep -rhoE "writeJSON\('[^']+'|readJSON<[^>]*>\('[^']+'|(KEY|STORAGE_KEY) = '[^']+'" src/ | sort -u` drives a table: key, what it holds, owner file, behaviour on quota failure (`storage.ts` reports; say what the UI shows). The generator asserts its key count equals the grep's count. Same pattern as `tools/build-crossing-build-list.mjs`.
   verify: `node tools/build-player-data-doc.mjs --check` exit 0 against the committed doc.
