@@ -13,6 +13,46 @@ var _projected_ids: Dictionary = {}
 var _target_links: Dictionary = {}
 const CombatPresentation := preload("res://scripts/combat_presentation.gd")
 
+## The registry that draws the block, so this layer asks the same question about
+## a cell's height that `exit_anchor_layer.gd` asks about the same cell.
+##
+## The script rather than the `ContentRegistry` autoload, for the reason that
+## file records: a `--script` run compiles a preloaded consumer before the
+## SceneTree's autoloads exist, so naming the singleton here is a compile error
+## in any test that preloads this file and nowhere else.
+const ContentRegistryScript := preload("res://scripts/content_registry.gd")
+
+## The lift given to a token whose cell published no spawn point for its role:
+## none at all, so the token's origin sits exactly on the block's top face and
+## the token is visibly half sunk into it.
+##
+## Deliberately not a plausible height. A cell with no spawn points has a broken
+## board contract, and a guess that looked about right here would be exactly the
+## invented number issue #373 is about - the same choice `content_registry.gd`
+## makes with its deliberately implausible 1 m missing-footprint marker cube.
+const UNPLACED_TOKEN_LIFT_METRES := 0.0
+
+## The hair of clearance between the range bands and the block's top face, so
+## the two do not z-fight where they meet. Not a board dimension: a cell's
+## height reaches this file only through ContentRegistry.block_top_y().
+const BAND_CLEARANCE_METRES := 0.015
+
+## How far below its own token the assessment-age ring is drawn, and how far
+## above it an engagement line is. Both are measured from the token rather than
+## from the board, so they follow it up a taller block without knowing there is
+## one - but they are named rather than typed, so that a bare height literal
+## appearing anywhere in this file is always a mistake.
+const ASSESSMENT_RING_DROP_METRES := 0.39
+const ENGAGEMENT_LINE_LIFT_METRES := 0.08
+
+## The ground-item token's own box. Its height is named for the same reason: a
+## token is centred on its anchor, so half of this is the lift
+## `src/lib/isometric-board-layout.mjs` publishes for the `item` role, and the
+## two want to be readable against each other rather than one being a bare
+## number inside a Vector3.
+const ITEM_TOKEN_PLAN_METRES := 0.28
+const ITEM_TOKEN_HEIGHT_METRES := 0.12
+
 signal inspect_entity_requested(entity_id: String)
 signal inspect_ground_item_requested(item_id: String)
 
@@ -75,7 +115,7 @@ func _project_entity(entity: Dictionary, room_holders: Dictionary) -> void:
 	token.material_override = _token_material(CombatPresentation.token_color(entity))
 	var tactical_value = entity.get("tactical")
 	var role := "hostile" if String(entity.get("deck", "")) == "hostile" else "occupant"
-	token.position = _slot_for(entity_id, _range_radius(entity)) if tactical_value is Dictionary else _board_slot(tether, role, entity_id, 1.50)
+	token.position = _token_slot(tether, role, entity_id, _range_radius(entity), tactical_value is Dictionary)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "entity")
 	token.set_meta("entityName", String(entity.get("name", "")))
@@ -102,7 +142,7 @@ func _project_player(snapshot: Dictionary, room_holders: Dictionary) -> void:
 	pawn.height = 0.94
 	token.mesh = pawn
 	token.material_override = _token_material(CombatPresentation.player_color(player_value))
-	token.position = _board_slot(tether, "player", "player:self", 0.0)
+	token.position = _token_slot(tether, "player", "player:self", 0.0, false)
 	var view := CombatPresentation.player_view(player_value)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "player")
@@ -125,7 +165,12 @@ func _add_range_bands(tether: Node3D) -> void:
 		torus.outer_radius = float(definition[1]) + 0.025
 		ring.mesh = torus
 		ring.material_override = _transparent_material(definition[2])
-		ring.position.y = 0.015
+		# On the block's top face, like the tokens the bands are there to
+		# measure. They were drawn at the tether origin, which is the block's
+		# centre - inside it for a room and 1.5 m inside it for an interior
+		# cutaway, so the rings a player reads a hostile's range off were buried
+		# in the same solid the tokens were (issue #373).
+		ring.position.y = _block_top(tether) + BAND_CLEARANCE_METRES
 		bands.add_child(ring)
 	tether.add_child(bands)
 
@@ -137,7 +182,7 @@ func _add_assessment_ring(token: MeshInstance3D, state: String) -> void:
 	torus.outer_radius = 0.46
 	ring.mesh = torus
 	ring.material_override = _token_material(CombatPresentation.assessment_color(state))
-	ring.position.y = -0.39
+	ring.position.y = -ASSESSMENT_RING_DROP_METRES
 	token.add_child(ring)
 
 func _project_ground_item(item: Dictionary, room_holders: Dictionary) -> void:
@@ -152,10 +197,10 @@ func _project_ground_item(item: Dictionary, room_holders: Dictionary) -> void:
 	var token := MeshInstance3D.new()
 	token.name = "GroundItem_%s" % item_id
 	var mesh := BoxMesh.new()
-	mesh.size = Vector3(0.28, 0.12, 0.28)
+	mesh.size = Vector3(ITEM_TOKEN_PLAN_METRES, ITEM_TOKEN_HEIGHT_METRES, ITEM_TOKEN_PLAN_METRES)
 	token.mesh = mesh
 	token.material_override = _token_material(Color(0.94, 0.71, 0.18))
-	token.position = _board_slot(tether, "item", item_id, 1.55)
+	token.position = _token_slot(tether, "item", item_id, 1.55, false)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "ground-item")
 	token.set_meta("itemName", String(item.get("name", "")))
@@ -199,8 +244,8 @@ func _add_target_link(source_id: String, target_id: String, color: Color) -> voi
 		return
 	var line_mesh := ImmediateMesh.new()
 	line_mesh.surface_begin(Mesh.PRIMITIVE_LINES, _transparent_material(Color(color.r, color.g, color.b, 0.68)))
-	line_mesh.surface_add_vertex(source.position + Vector3(0.0, 0.08, 0.0))
-	line_mesh.surface_add_vertex(target.position + Vector3(0.0, 0.08, 0.0))
+	line_mesh.surface_add_vertex(source.position + Vector3(0.0, ENGAGEMENT_LINE_LIFT_METRES, 0.0))
+	line_mesh.surface_add_vertex(target.position + Vector3(0.0, ENGAGEMENT_LINE_LIFT_METRES, 0.0))
 	line_mesh.surface_end()
 	var line := MeshInstance3D.new()
 	line.name = "Target_%s_to_%s" % [source_id, target_id]
@@ -277,25 +322,83 @@ func _range_radius(entity: Dictionary) -> float:
 		"missile": return 1.72
 		_: return 1.50
 
-func _slot_for(stable_id: String, radius: float) -> Vector3:
+## How high the top face of this room's block is, in the tether's own frame.
+##
+## The tether is parented to the cell holder, whose position is the manifest's,
+## and the block is a BoxMesh centred on that origin - so the registry's
+## `block_top_y()` is measured in exactly the frame a token's `position` is
+## written in. Asked through the registry that draws the block rather than
+## worked out here, so a token cannot go on being right about a height the
+## viewer has stopped drawing.
+func _block_top(tether: Node3D) -> float:
+	return ContentRegistryScript.block_top_y({"id": String(tether.get_meta("roomId", "")), "board": tether.get_meta("board", {})})
+
+## The spawn point this cell publishes for `role`, chosen deterministically from
+## the ones it has, or an empty Dictionary when it publishes none for that role.
+func _spawn_point_for(tether: Node3D, role: String, stable_id: String) -> Dictionary:
+	var board_value = tether.get_meta("board", {})
+	if not (board_value is Dictionary):
+		return {}
+	var matches: Array = []
+	for point in (board_value as Dictionary).get("spawnPoints", []):
+		if point is Dictionary and str(point.get("role", "")) == role:
+			matches.append(point)
+	if matches.is_empty():
+		return {}
+	return matches[_stable_hash(stable_id) % matches.size()]
+
+## The deterministic ring a token is staged on when the board does not place it:
+## an angle and a distance from one stable hash, in the horizontal plane only.
+## It has no opinion about height, which is the point - height has one source
+## and this is not it.
+func _ring_offset(stable_id: String, radius: float) -> Vector2:
 	var hash_value := _stable_hash(stable_id)
 	var angle := TAU * float(hash_value % 360) / 360.0
 	var distance := radius * (0.94 + float((hash_value / 360) % 13) / 100.0)
-	return Vector3(cos(angle) * distance, 0.4, sin(angle) * distance)
+	return Vector2(cos(angle) * distance, sin(angle) * distance)
 
-func _board_slot(tether: Node3D, role: String, stable_id: String, fallback_radius: float) -> Vector3:
-	var board_value = tether.get_meta("board", {})
-	if board_value is Dictionary:
-		var matches: Array = []
-		for point in board_value.get("spawnPoints", []):
-			if point is Dictionary and str(point.get("role", "")) == role:
-				matches.append(point)
-		if not matches.is_empty():
-			var point: Dictionary = matches[_stable_hash(stable_id) % matches.size()]
-			var anchor: Dictionary = point.get("anchor", {})
-			return Vector3(float(anchor.get("x", 0.0)), float(anchor.get("y", 0.4)), float(anchor.get("z", 0.0)))
-	var fallback := _slot_for(stable_id, fallback_radius)
-	return fallback + Vector3(0.0, -0.32, 0.0) if role == "item" else fallback
+## Where a token stands, in its room tether's frame. Every token in this layer
+## comes through here, and this is the only line in the file that decides a
+## height.
+##
+## One rule: x and z are the board's, and y is the top face of the block this
+## cell published plus how far above that surface this kind of thing stands.
+## `src/lib/isometric-board-layout.mjs` publishes the second half as each spawn
+## point's `anchor.y`, measured from the top face rather than from the cell
+## origin, so a room and a 3 m interior cutaway need no different answer here.
+##
+## `prefer_ring` is the tactical case, and it is why the anchors are published
+## relative rather than absolute. A confirmed tactical entity is staged on the
+## range band its assessed range names, so its x and z come from the ring above
+## and never from a spawn point - but its height does not, and that is the half
+## this file used to get wrong. It stands on the same face as everything else,
+## at the lift the board publishes for its role.
+##
+## Three numbers stood here instead: `0.4` in the ring, `0.4` again as the
+## default for a missing anchor y, and `-0.32` subtracted for an item. All three
+## were right against a placeholder block that was a 0.3 m slab with its top
+## face at 0.15. #365 gave the placeholder the cell's published footprint, the
+## top face moved to 0.5 for a room and 1.5 for a cutaway, and none of the three
+## moved with it: 117 of 133 anchors in the checked-in world ended up below the
+## top of the block their own cell publishes, and on the three cutaway cells all
+## 21 were 1.0 to 1.4 m inside it (issue #373). There is no height typed into
+## this file now, so there is nothing left here for the manifest to disagree
+## with.
+func _token_slot(tether: Node3D, role: String, stable_id: String, ring_radius: float, prefer_ring: bool) -> Vector3:
+	var point := _spawn_point_for(tether, role, stable_id)
+	var lift := UNPLACED_TOKEN_LIFT_METRES
+	var ground := Vector2.ZERO
+	var placed := false
+	if not point.is_empty():
+		var anchor_value = point.get("anchor", {})
+		if anchor_value is Dictionary:
+			var anchor: Dictionary = anchor_value
+			lift = float(anchor.get("y", UNPLACED_TOKEN_LIFT_METRES))
+			ground = Vector2(float(anchor.get("x", 0.0)), float(anchor.get("z", 0.0)))
+			placed = true
+	if prefer_ring or not placed:
+		ground = _ring_offset(stable_id, ring_radius)
+	return Vector3(ground.x, _block_top(tether) + lift, ground.y)
 
 func _stable_hash(value: String) -> int:
 	var result := 17
