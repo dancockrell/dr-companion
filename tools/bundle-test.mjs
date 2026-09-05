@@ -20,7 +20,7 @@
  * output gets read directly.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
@@ -159,8 +159,22 @@ const RELEASE_CONF = 'src-tauri/tauri.release.conf.json'
 // viewer exists, the release config carries it to `viewer/`.
 const realViewer = existsSync(VIEWER_BUILD)
 const scratch = realViewer ? null : mkdtempSync(join(tmpdir(), 'drc-bundle-'))
-const standIn = scratch ? join(scratch, 'DRCompanionWorldViewer.exe') : VIEWER_BUILD
-if (scratch) writeFileSync(standIn, 'not a real viewer; a stand-in for the existence probe\n')
+// `standIn` is null when a real export is present, rather than aliasing
+// VIEWER_BUILD: an alias makes this an `existsSync(p)` followed by a write to
+// the same `p`, which is check-then-act on a path somebody else could have
+// created in between, and CodeQL flagged exactly that (js/file-system-race,
+// high). It is written with an exclusive-create descriptor for the same
+// reason - `mkdtempSync` has just made the directory, so an EEXIST here means
+// something is wrong and should throw rather than be overwritten.
+const standIn = scratch ? join(scratch, 'DRCompanionWorldViewer.exe') : null
+if (standIn) {
+  const fd = openSync(standIn, 'wx')
+  try {
+    writeFileSync(fd, 'not a real viewer; a stand-in for the existence probe\n')
+  } finally {
+    closeSync(fd)
+  }
+}
 const generatedConf = scratch ? join(scratch, 'tauri.release.conf.json') : RELEASE_CONF
 
 // The generator already refuses to emit a config whose destination viewer.rs
