@@ -23,21 +23,14 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { LazySurface } from '../shared/LazySurface.tsx'
+import { PROBLEM_KINDS } from '../../lib/bugReport.ts'
 
 const ReportDialog = lazy(() => import('./ReportDialog.tsx').then((module) => ({ default: module.ReportDialog })))
 
 type Filter = 'all' | 'problems' | 'game'
 
-/**
- * Kinds that mean something went wrong.
- *
- * `log_error` is here because the bridge marks its own lines with a level and
- * the store threw that away, so "this settings file will not parse at line 41"
- * arrived flagged as an error and rendered in the same grey as "pong". A line
- * whose sender took the trouble to call it an error should not depend on
- * somebody spotting it in a scroll.
- */
-const PROBLEM_KINDS = new Set(['no_match', 'refused', 'gave_up', 'error', 'log_error'])
+// The definition lives in src/lib/bugReport.ts, which leads the bug report with
+// the same rows this filter shows. A copy here is how the two came to disagree.
 
 const KIND_STYLE: Record<string, string> = {
   send: 'text-info',

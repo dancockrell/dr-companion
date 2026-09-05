@@ -44,6 +44,11 @@ The **problems** filter shows only the rows that mean something went wrong:
 | `refused` | The game said `...wait`, `still stunned` or `Sorry, you may only`. Retried automatically; only a problem if it repeats. |
 | `gave_up` | Refused three times running. |
 | `error` | An exception. Should not happen; if it does, that is a bug in the bridge. |
+| `log_error` | A line the bridge itself flagged as an error, such as "this settings file will not parse at line 41". Its sender took the trouble to call it an error, so it does not depend on somebody spotting it in a scroll. |
+
+The rows of that table are `PROBLEM_KINDS` in `src/lib/bugReport.ts`, and
+`tools/doc-claims-test.mjs` fails the build if the two lists stop matching in
+either direction.
 
 **Copy** puts the whole console on the clipboard, oldest first, ready to paste
 into an issue.

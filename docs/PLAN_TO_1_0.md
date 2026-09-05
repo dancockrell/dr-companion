@@ -281,7 +281,7 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
-| G | G11 | `lane-g/g11-confirmation-gate` | `dev/wt-g11` | 5 Sep 2026 |
+| G | G11 | `lane-g/g11-ui` | `dev/wt-g11` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12 and F7 in PR #315, which emptied the

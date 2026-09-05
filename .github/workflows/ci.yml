@@ -49,6 +49,16 @@ concurrency:
 # `namedExports` on 22 and `exports` on 24, so test:backlog linked fine
 # locally and failed to instantiate on the runner. Testing on a runtime nobody
 # develops on finds problems that are not in the code.
+#
+# The version is not written here. Every setup-node in this repository says
+# `node-version-file: package.json`, which resolves `engines.node` (">=24"), so
+# there is exactly one hand-typed number on the machine and no workflow can
+# drift from it the way elanthipedia.yml sat on 22 until 6 Sep 2026. An `env:`
+# per workflow would have been the alternative and would have left five numbers
+# to keep in step rather than one. `engines` is the better home besides: it is
+# the field npm, nvm and every reader already look at, so the pin and the
+# README's "Node 24 or newer" claim now have a common authority -
+# tools/doc-claims-test.mjs checks all three against each other.
 
 jobs:
   # Everything that does not need Rust.
@@ -78,7 +88,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: package.json
           cache: npm
 
       - uses: actions/setup-python@v6
@@ -135,7 +145,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: package.json
           cache: npm
 
       # godot/project.godot is the authority on which engine this project is.
@@ -189,7 +199,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: package.json
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
@@ -332,7 +342,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: package.json
           cache: npm
 
       # ws, for the round-trip test below.
