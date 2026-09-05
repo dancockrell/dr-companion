@@ -317,11 +317,75 @@ if (existsSync(HOOKS_NSH)) {
   // own portraits and whole Lich and Genie installs (custom_portraits.rs:21,
   // setup.rs:406 and :796), which is the entire reason app_data_dir() is not
   // the install directory in the first place.
-  const recursive = new RegExp(`RMDir\\s+/r\\s+"\\$LOCALAPPDATA/${folder ?? 'DR Companion Data'}"`, 'i')
+  //
+  // Checked as a class rather than as the one path that was on somebody's mind.
+  // The first version of this matched a single literal - `RMDir /r` on the data
+  // folder itself - and a `RMDir /r` aimed one level down, at
+  // `.../DR Companion Data/portraits`, went straight through it green. So did
+  // `.../DR Companion Data/lich`, `.../DR Companion Data/*`, and the same exact
+  // path written with a trailing separator. Every one of those destroys exactly
+  // the user data the check exists to protect, and each was invisible to a
+  // check written against the instance.
+  //
+  // The property is the other way round: every recursive delete in this file
+  // must name the one directory the app owns as replaceable cache. That is
+  // `downloads_dir()` in setup.rs - `app_data_dir().join("downloads")` - read
+  // out of the Rust for the same reason the folder name above is, so a rename
+  // there cannot leave a stale permission sitting here. Anything else is
+  // reported by name.
+  const cacheDir = /fn downloads_dir\(\)[\s\S]{0,200}?app_data_dir\(\)\.join\("([^"]+)"\)/.exec(setupRs)?.[1]
   check(
-    'and it never recursively deletes the data folder itself',
-    !recursive.test(nsh),
-    recursive.test(nsh) ? "RMDir /r there takes the user's portraits, Lich and Genie with it" : '',
+    'setup.rs still names the one directory a recursive delete may target',
+    Boolean(cacheDir),
+    cacheDir ?? 'no downloads_dir() -> app_data_dir().join("...") found in setup.rs',
+  )
+
+  const dataRoot = `$LOCALAPPDATA/${folder ?? 'DR Companion Data'}`
+  /**
+   * Every path a `RMDir /r` in this text is aimed at, with any trailing
+   * separator dropped so `"…/DR Companion Data/"` cannot read as a different
+   * path from `"…/DR Companion Data"`.
+   *
+   * Takes already-normalised text (forward slashes), so no separator has to
+   * survive JS escaping and a regex on its way into this file.
+   */
+  const recursiveTargets = (text) =>
+    [...text.matchAll(/RMDir\s+\/r\s+"([^"]*)"/gi)].map((m) => m[1].replace(/\/+$/, ''))
+
+  const allowed = cacheDir ? `${dataRoot}/${cacheDir}` : null
+  const strayRecursive = (text) => recursiveTargets(text).filter((p) => p !== allowed)
+
+  // The instrument before it is trusted to clear the real file. A matcher that
+  // stopped matching would report an empty stray list, which is the same output
+  // as a hook that is clean.
+  const admitted = `RMDir /r "${allowed}"`
+  const refusals = [
+    ['the data folder itself', `RMDir /r "${dataRoot}"`],
+    ['the data folder with a trailing separator', `RMDir /r "${dataRoot}/"`],
+    ["the player's own portraits", `RMDir /r "${dataRoot}/portraits"`],
+    ['a whole Lich install', `RMDir /r "${dataRoot}/lich"`],
+    ['everything in the data folder', `RMDir /r "${dataRoot}/*"`],
+  ]
+  check(
+    'the recursive-delete matcher finds the one delete the hook is allowed',
+    cacheDir ? recursiveTargets(admitted).length === 1 && strayRecursive(admitted).length === 0 : false,
+    cacheDir ? `positive control: ${allowed}` : 'skipped: no cache directory was read out of setup.rs',
+  )
+  for (const [what, line] of refusals) {
+    check(
+      `and it refuses a recursive delete of ${what}`,
+      strayRecursive(line).length === 1,
+      `negative control: ${line}`,
+    )
+  }
+
+  const stray = strayRecursive(nsh)
+  check(
+    'and the hook recursively deletes nothing but that cache directory',
+    stray.length === 0,
+    stray.length
+      ? `${stray.join(', ')} - RMDir /r there takes the user's portraits, Lich and Genie with it`
+      : `${recursiveTargets(nsh).length} recursive delete(s), all of them ${allowed}`,
   )
 }
 
