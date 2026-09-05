@@ -22,7 +22,7 @@
     "notes": "The behaviour goes in tools/backlog-test.mjs, which already owns the Tauri double, the game:line handler and freshLink(); it gains a game:state deliverer and a game_send refusal beside them rather than a second harness. E8 named tools/mounted-test.mjs as the second file, but mounted-test's stake in this is one source check that GameConnectionBar calls attachGame/detachGame, and the check that was actually missing is the consuming side: that the bar reads link.note when disconnected instead of only the flag. That belongs in tools/game-connection-owner-test.mjs, which already owns every claim about that component, so the touches list was corrected to name it. mounted-test.mjs is unchanged."
   },
   "completion": {
-    "commit": "5dedb9e6",
+    "commit": "9eef5356",
     "checks": [
       "npm run test:backlog: 33 checks, 0 failed (was 25)",
       "the three named checks: 'a socket dropped mid-stream leaves the pane saying disconnected', 'sendGame is refused with the backend's own reason', 'reconnecting runs the backfill, so the pane gets what it missed'",

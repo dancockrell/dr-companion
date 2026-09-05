@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "task_id": "f2-one-version",
+  "agent": "claude-code",
+  "summary": "tools/set-version.mjs sets the app version in package.json, tauri.conf.json, Cargo.toml and Cargo.lock from one argument, and --check exits 1 naming the file that disagrees",
+  "status": "completed",
+  "claimed_at": "2026-09-05T15:20:00Z",
+  "updated_at": "2026-09-05T15:50:00Z",
+  "paths": [
+    "tools/set-version.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/f2-one-version.json"
+  ],
+  "symbols": [
+    "readVersions",
+    "writeVersion",
+    "replaceOnce"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "No existing owner of the version: nothing in the tree derives any of the three declarations from the others, so this is a new single owner rather than a sibling of one. Registered as test:version in both package.json and tools/test-suites.json so the check runs in the suite; tools/test-suites.json joins the touches list for that reason (a suite registered in one place never runs)."
+  },
+  "findings": [
+    {
+      "what": "src-tauri/Cargo.lock carries the app's version too",
+      "judgement": "Included as a fourth file. Leaving it out is worse than not touching it: the next cargo build rewrites the entry to match Cargo.toml, so a bump commit is followed by a stray lockfile diff in whichever worktree builds first. Its reader is anchored to the dr-companion [[package]] block rather than the first `version = ` in the file, which would report a dependency's version and be right about nothing."
+    }
+  ],
+  "completion": {
+    "commit": "48f6f3af",
+    "checks": [
+      "node tools/set-version.mjs --check: exit 0, 'OK   all 4 files declare 0.1.1', one line per file",
+      "round trip: set 9.9.9, --check exit 0 at 9.9.9, set 0.1.1 -> all four files byte-identical to before (md5 unchanged on all four)",
+      "sabotage, run four times, once per file: replaced 0.1.1 with 0.9.9 by hand -> exit 1 each time, naming the file. 'FAIL the version disagrees. src-tauri/tauri.conf.json says 0.9.9, where the others say 0.1.1.' and the same for Cargo.toml, Cargo.lock and package.json; each restored and the md5 set matched the pre-sabotage set",
+      "the sabotage script aborts with exit 9 if its own edit changes nothing, so a sabotage that failed to land cannot read as a check that failed to fire",
+      "denominator: a reader that stops matching returns null, and four nulls agree perfectly, so --check fails on an unreadable file before it compares anything",
+      "replaceOnce refuses on zero or multiple matches: a string edit that finds no anchor and writes the file unchanged is exactly the silent no-op this script exists to prevent",
+      "the writer reads all four files back after writing rather than trusting four string edits"
+    ]
+  }
+}
