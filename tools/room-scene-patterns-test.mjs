@@ -51,7 +51,30 @@ check(baskets.reviewedPlaceAssignments?.['6::Brambles']?.arts?.length === 4, 'Br
 check(/magnific-art\/room-scenes\/brambles-route/.test(roomScenePattern('6', 275) ?? ''), 'Brambles selects its exact Magnific family instead of generic forest art')
 
 const coverage = JSON.parse(readFileSync('data/art/scene-basket-coverage.json', 'utf8'))
-const audit = JSON.parse(readFileSync('data/art/out/scene-basket-audit.json', 'utf8'))
+// The audit is generated into the gitignored data/art/out, so a fresh worktree
+// does not have it and this line threw ENOENT after 74 passing checks. Under
+// the runner that is NOT RUN, which is why this suite was never registered.
+// The builder reads tracked inputs only and takes a fifth of a second, so the
+// dependency is satisfied here rather than declared unavailable - the same
+// shape geometric-room-briefs-test.mjs already uses for its own input.
+const AUDIT = 'data/art/out/scene-basket-audit.json'
+if (!existsSync(AUDIT)) {
+  // The builder also rewrites two *tracked* files it happens to own. Running a
+  // test must not leave the tree dirty, and it must especially not quietly
+  // regenerate a committed file that has drifted - that would repair the very
+  // disagreement the coverage checks below exist to report. So their bytes are
+  // put back exactly as found; `coverage` above was already read from the
+  // committed copy, so the comparison is still committed-against-freshly-derived.
+  const tracked = ['src/data/roomScenePatterns.ts', 'data/art/scene-basket-coverage.json']
+  const before = tracked.map((path) => [path, readFileSync(path)])
+  try {
+    execFileSync(process.execPath, ['tools/build-room-scene-patterns.mjs'], { stdio: 'inherit' })
+  } finally {
+    for (const [path, bytes] of before) writeFileSync(path, bytes)
+  }
+}
+check(existsSync(AUDIT), 'the generated scene-basket audit is available')
+const audit = JSON.parse(readFileSync(AUDIT, 'utf8'))
 check(coverage.roomCount >= 1700, `generic patterns cover ${coverage.roomCount} rooms without swallowing protected landmarks`)
 check(coverage.assignmentCount === audit.assignments.length, 'coverage assignment count matches full audit')
 check(coverage.unresolvedCount === audit.unresolved.length, 'coverage unresolved count matches full audit')
@@ -89,8 +112,20 @@ const context = semanticPromptContext(wilderness)
 check(!/stone and timber architecture|torchlight|candlelight/.test(context), 'semantic prompt context does not inject settlement architecture or artificial light into wilderness')
 check(wilderness.traits.civilization !== 'urban', 'wilderness is not promoted to an urban scene without evidence')
 
-execFileSync(process.execPath, ['tools/art-archetypes.mjs'], { stdio: 'ignore' })
-const archetypes = JSON.parse(readFileSync('data/art/archetype-prompts.json', 'utf8'))
+// Regenerated on purpose - these checks are about what the generator produces
+// today, not about what was committed. But data/art/archetype-prompts.json is
+// tracked, so it is put back afterwards: this suite was unregistered until now,
+// and registering a test that leaves a modified file behind on every full run
+// would hand every lane a dirty tree to explain.
+const ARCHETYPES = 'data/art/archetype-prompts.json'
+const archetypesCommitted = readFileSync(ARCHETYPES)
+let archetypes
+try {
+  execFileSync(process.execPath, ['tools/art-archetypes.mjs'], { stdio: 'ignore' })
+  archetypes = JSON.parse(readFileSync(ARCHETYPES, 'utf8'))
+} finally {
+  writeFileSync(ARCHETYPES, archetypesCommitted)
+}
 const forestPrompt = archetypes['archetype-deep-forest-0']?.prompt ?? ''
 const templePrompt = archetypes['archetype-temple-0']?.prompt ?? ''
 check(!/stone and timber architecture|torchlight|candlelight/.test(forestPrompt), 'generated wilderness archetype has no settlement architecture or forced artificial light')

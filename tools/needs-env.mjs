@@ -55,21 +55,17 @@ const NEEDS_ENVIRONMENT = [
 // backlog, not a design: each one is a test that has not run since it was
 // written. Removing a name from here without registering the suite is how the
 // list would start lying, so the check below refuses that too.
-const UNWIRED = [
-  'test:geometric-briefs',
-  'test:primitive-world',
-  'test:node-projection',
-  'test:geometric-kit',
-  'test:primitive-registry',
-  'test:room-scene-patterns',
-  'test:portrait-art',
-  'test:dead-produced-values',
-  'test:panel-window-lifecycle',
-  'test:task-catalog-status',
-  'test:game-connection-owner',
-  'test:map-keyboard',
-  'test:sound-actions',
-]
+//
+// It is empty as of 5 Sep 2026, and the empty state is the finding rather than
+// a tidy-up: C6 counted 21 of these, C10 wired eight, C12 the last thirteen.
+// Three of the thirteen were not merely unregistered but broken, and nothing
+// said so for as long as they sat here - `room-scene-patterns` threw ENOENT on
+// a gitignored generated input after 74 passing checks, `task-catalog-status`
+// had been red since 9d92b5ef against a message that had got *better*, and
+// `map-keyboard` printed a summary line rather than per-check results, which
+// the runner correctly calls NOT RUN. A name added below is a promise to come
+// back for it, not a place to leave one.
+const UNWIRED = []
 
 // Not suites: the runner itself, and this list.
 const NOT_A_SUITE = new Set(['test:all', 'test:needs-env'])

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "task_id": "c12-dead-test-suites",
+  "agent": "claude-code",
+  "summary": "the last thirteen UNWIRED suites run in the full suite; three were broken and nobody could see it; test:crossing-build-list no longer steps over its own denominator floor; F7 checks the viewer resource destination and says NOT CHECKED when there is none",
+  "status": "completed",
+  "claimed_at": "2026-09-05T17:58:00Z",
+  "updated_at": "2026-09-05T19:40:00Z",
+  "paths": [
+    "tools/crossing-build-list-test.mjs",
+    "tools/room-scene-patterns-test.mjs",
+    "tools/task-catalog-status-test.mjs",
+    "tools/map-keyboard-test.ts",
+    "tools/bundle-test.mjs",
+    "tools/needs-env.mjs",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/c12-dead-test-suites.json"
+  ],
+  "symbols": [
+    "UNWIRED",
+    "MIN_EXPECTED",
+    "VIEWER_DEST",
+    "nextMapRoomId"
+  ],
+  "coordination": {
+    "depends_on": ["C10", "F1"],
+    "notes": "Extends the owners rather than adding siblings. The viewer destination is read out of the config tools/build-release-config.mjs emits, and that file's existing viewer.rs contract check is invoked and its refusal reported, not re-implemented in bundle-test.mjs. The two suites that lacked a generated input build it the way tools/geometric-room-briefs-test.mjs already does for its own. No new tool file. package.json is untouched: every one of the thirteen scripts already existed, which was the whole complaint. portrait-art and room-scene-patterns read files rewrite/remove-2d proposes to delete (section 3 matrix, C7 undecided) - registering a passing test does not touch them, but that branch now owns two more suites and should, rather than have them stay unregistered."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "baseline on a fresh worktree at origin/main ef6ea69a: '118 passed, 0 failed, 0 not run | 3569 checks across 118 suites', all passed",
+      "after, with data/art/out and data/world/out deleted first: '131 passed, 0 failed, 0 not run | 3814 checks across 131 suites', all passed (DRC_TEST_PORT=7961; the default 7893 was held by another lane, which is C9's guard working)",
+      "test:crossing-build-list 1 -> 21 checks with the 62MB briefs absent; test:needs-env 17 -> 4 listed entries, exit 0, UNWIRED empty",
+      "npx tsc -b exit 0; node tools/plan-audit.mjs -> plan ok",
+      "room-scene-patterns: ENOENT crash after 74 OK lines -> 111 checks. Sabotage: builder made to exit before writing -> 'FAIL the generated scene-basket audit is available'; md5 54751699bc84 either side",
+      "task-catalog-status: red since 9d92b5ef on a stale literal, the code having got better (the message now names which catalog failed). Sabotage: strip ${catalog.error} from QuickSwitchBar -> 'FAIL and a failed lookup names the source and carries its reason', sibling check stays green; md5 0eed5c04dc1f either side",
+      "map-keyboard: 8 bare asserts and a summary line, so the runner called it 'asserted nothing'. Sabotage: direction === 'right' ? dx -> -dx gives 'FAIL right moves east'; md5 2142372820e1 either side. The FIRST sabotage did not go red - it changed the 'right' inside the MapDirection type alias, which strip-types erases before anything runs. Trap 15, and only the sabotage failing said so",
+      "F7 with no viewer exported: 'no failures, but 1 not checked: the viewer resource destination', exit 0, never 'all passed'",
+      "F7 with a one-byte placeholder at godot/build/DRCompanionWorldViewer.exe (gitignored): 'OK and it is bundled to the viewer/ folder the app searches first: viewer/DRCompanionWorldViewer.exe', all passed",
+      "F7 sabotage 1: VIEWER_SRC -> Sabotaged.exe gives 'FAIL the exported viewer is a bundled resource: no entry in the release config'; md5 38cc398ffe46 either side",
+      "F7 sabotage 2: dir.join(\"viewer\") -> dir.join(\"vieweeer\") in viewer.rs gives 'FAIL the release config can be derived at all: Error: viewer.rs does not look for the viewer under a viewer folder...'; md5 20f85970347e either side",
+      "F8 marked [!]: it needs a CI-built installer and E3, which is [ ] and itself waits on E2 - a clean VM and a person at the keyboard. src-tauri/target/release/bundle does not exist on this machine",
+      "room-scene-patterns invokes two builders that also rewrite tracked files (src/data/roomScenePatterns.ts, data/art/scene-basket-coverage.json, data/art/archetype-prompts.json). Their bytes are snapshotted and restored, so git status is empty after the suite - it was not before. coverage is read before the build, so the committed-against-freshly-derived comparison is unchanged",
+      "for other lanes: with UNWIRED empty, adding a test: script to package.json without registering it now fails test:needs-env immediately rather than joining a backlog"
+    ]
+  }
+}
