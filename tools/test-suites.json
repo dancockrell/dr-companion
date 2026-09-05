@@ -130,6 +130,7 @@
   "test:command-history",
   "test:editor-safety",
   "test:godot-fixture-contract",
+  "test:board-geometry-drift",
   "test:geometric-briefs",
   "test:primitive-world",
   "test:node-projection",
