@@ -1200,7 +1200,8 @@ receives. No portraits, no images in the client.
   do: `appearance.ts`: `appearanceFor(kind, name)` = override (`readJSON('drc.appearance.v1')`) ?? default ?? null; `setOverride`, `resetOverride`. `compileWorldSnapshot` attaches `appearance` to each entity and to `player` (wielded items from `CharacterStatus` — `grep -n "wield\|worn\|armor" src/types/index.ts`). Rust passes entities through opaquely already; `player` is `Option<Value>` — nothing to change there.
   verify: presentation-bridge test: a fixture with a bastard sword → `appearance.modelId` equals the Large Edged default; an override wins; unknown → absent field, not null-string.
 
-- [ ] **K4  Godot maps `modelId`** (≈Codex; contract only here)
+- [x] **K4  Godot maps `modelId`** (≈Codex; contract only here)
+  commit: (this PR) verified: 2026-09-05 minutes: 15
   touches: docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: K3
   do: §11 states the field, the fallback order, and the test Godot must add (`entity_projection_test.gd`: unknown id → class default; missing field → neutral token). File the content task in the ledger for Codex.

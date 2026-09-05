@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "k4-godot-appearance-mapping",
+  "agent": "claude-code",
+  "summary": "K4 - the contract for Godot mapping appearance.modelId to a GLB, and the test the viewer side must add. Content task filed for Codex; no viewer code is written here.",
+  "status": "filed",
+  "claimed_at": "2026-09-05T21:45:00Z",
+  "updated_at": "2026-09-05T21:55:00Z",
+  "paths": [
+    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/k4-godot-appearance-mapping.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["K3"],
+    "conflicts_with": [],
+    "notes": "Under the section 2 boundary, Claude owns what the field contains and Codex owns the reading of it. This claim exists so a Godot-side session can find the request before touching entity projection, and so nobody writes a second mesh-resolution rule on the client side. Claude must not add the .gd test itself.",
+    "request_for_codex": "Add entity_projection_test.gd covering the five cases listed in section 11's 'The test Godot must add'. Map appearance.modelId to a GLB through godot/assets/shared_asset_selections.json's selections[].paths. Fallback order is section 11's, and every rung ends in a neutral token or in nothing - never a mesh borrowed from another class. A modelId the registry does not know is a client bug: fall back AND log it, do not swallow it."
+  },
+  "evidence": {
+    "field_is_live": "K3 attached appearance to EntitySnapshot, GroundItemSnapshot and PlayerSnapshot; tools/presentation-bridge-test.mjs asserts all three, including that the field is absent rather than null-filled when a noun resolves to no class.",
+    "what_the_viewer_will_see_today": "Every class resolves to modelId: null, because the registry admits two ids and both are scenery. So the correct present-day behaviour of the whole feature is 'neutral token everywhere', and a viewer implementation that only looks right once art exists has not been tested against the state it will actually ship in.",
+    "trap_named_in_the_doc": "Section 11 now says explicitly that rung 2's 'class default' means the neutral token for that class, not the nearest mesh from another one. That sentence exists because 'fall back to the class default' reads as permission to substitute, which is the one thing admission.forbiddenSubstitutions forbids."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "verify: claim filed -> this file, discoverable by node tools/plan-audit.mjs --claims",
+      "verify: section 11 names the test -> 'entity_projection_test.gd' appears in docs/THREE_D_REBUILD_HANDOFF.md under 'The test Godot must add', with five cases",
+      "verify: section 11 states the field and the fallback order -> the three-place TypeScript block and the four-rung 'What Godot does with it' list",
+      "node tools/plan-audit.mjs -> plan ok"
+    ]
+  }
+}
