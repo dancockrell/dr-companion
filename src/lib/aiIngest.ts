@@ -18,7 +18,7 @@
  * a failed generation loses events with nothing to show for it.
  */
 import type { AlertBroker } from './aiAlertBroker.ts'
-import type { EventJournal } from './aiEventJournal.ts'
+import { saveJournalCursor, type EventJournal } from './aiEventJournal.ts'
 import type { JobStore } from './aiJobStore.ts'
 import type { ModelProvider } from './aiModelProvider.ts'
 import type { Activity } from './aiReviewScheduler.ts'
@@ -289,6 +289,7 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
   })
 
   const hash = reviewHash(app)
+  const cursorBefore = journal.acknowledged()
 
   const outcome: WorkerOutcome = await runWorkerOnce(
     {
@@ -314,6 +315,11 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
     // which is the one thing the scheduler's hash rule must never do.
     if (outcome.result.ok) memory.lastReviewedHash = hash
   }
+
+  // Only when it actually moved. A write every tick would be a storage write
+  // per second for a number that had not changed, and the cursor moving is
+  // the only event this record exists to survive.
+  if (journal.acknowledged() !== cursorBefore) saveJournalCursor(journal)
 
   const health = provider.describe()
   const byStatus: Record<string, number> = {}

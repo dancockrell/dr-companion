@@ -58,7 +58,7 @@ import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { gameDropped, gameLines, gameVersion, subscribeGame } from './gameLink'
 import { useAppStore } from '../store/useAppStore'
 import { AlertBroker } from './aiAlertBroker.ts'
-import { EventJournal } from './aiEventJournal.ts'
+import { EventJournal, seedJournalCursor } from './aiEventJournal.ts'
 import { JobStore } from './aiJobStore.ts'
 import { absentProvider, type ModelProvider } from './aiModelProvider.ts'
 import { deriveAlerts, ingestLines, runHostTick, type AiWorkerStatus, type HostMemory } from './aiIngest.ts'
@@ -142,6 +142,10 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
   const jobs = useRef<JobStore>(null as unknown as JobStore)
   if (journal.current === null) {
     journal.current = new EventJournal()
+    // A remount inside one run must not re-review everything already seen.
+    // Ignored outright when the stored cursor belongs to a previous process,
+    // because sequence numbers restart and that cursor names other events.
+    seedJournalCursor(journal.current)
     alerts.current = new AlertBroker()
     jobs.current = new JobStore()
     jobs.current.load()
