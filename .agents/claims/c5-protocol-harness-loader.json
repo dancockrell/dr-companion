@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "c5-protocol-harness-loader",
+  "agent": "claude-code",
+  "summary": "protocol_harness.rb gets the loader rather than the deletion: one command runs it, drives it with the independent WebSocket client, and asserts the exchange",
+  "status": "completed",
+  "claimed_at": "2026-09-05T12:45:00Z",
+  "updated_at": "2026-09-05T13:20:00Z",
+  "paths": [
+    "lich-scripts/test/protocol_harness.rb",
+    "lich-scripts/test/README.md",
+    "docs/TESTING.md",
+    "tools/ws-client.mjs",
+    "tools/protocol-harness-test.mjs",
+    "package.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/c5-protocol-harness-loader.json"
+  ],
+  "symbols": [
+    "runProtocolClient",
+    "EXPECTED_TYPES",
+    "test:protocol-harness"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "The increment offered two branches, loader or deletion, and the facts fit neither as written: the harness is not dead. It was introduced by 04ebd18e, is documented in lich-scripts/test/README.md and docs/TESTING.md as a manual two-shell procedure, its counterpart client tools/ws-client.mjs exists and is tracked, and both were run today against the current bridge and worked end to end. Deleting a working verification tool because nothing automated calls it is the wrong half of the choice, so this is the loader. tools/ws-client.mjs was extended in place rather than copied into a test-shaped sibling: it now exports runProtocolClient and keeps its command-line behaviour. It was also a check that could not fail - it called process.exit(0) on close whatever frames it had received, so a bridge that accepted the socket and said nothing passed exactly like a working one."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "npm run test:protocol-harness (DRC_HARNESS_PORT=7431): exit 0, 'checked 9 properties against 7 frame types', all passed; HELLO protocol=1 bridge=0.12.0 lich=5.20.1-harness",
+      "sabotage: renamed the bridge's two `type: 'inventory'` sends to 'inventoree' in lich-scripts/companion_bridge.lic -> exit 1, 'FAIL bridge sent a \"inventory\" frame', '1 failed'",
+      "restore: md5sum lich-scripts/companion_bridge.lic 147e20af325cb31d7a5925e8596bd757 before and after; git status --short lich-scripts/ empty",
+      "grep -rn protocol_harness lich-scripts/ tools/ package.json docs/: every hit is a line this increment wrote or updated (test/README.md, docs/TESTING.md, tools/protocol-harness-test.mjs, docs/PLAN_TO_1_0.md)",
+      "the harness itself is unchanged: it needed no edit, only a caller"
+    ]
+  }
+}

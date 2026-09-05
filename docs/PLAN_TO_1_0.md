@@ -411,7 +411,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   verify: read the suite total before you start (`tail -1` of the run). After: `npx tsc -b` exit 0; total unchanged; `wc -l src/lib/presentationBridge.ts` < 500.
   pitfalls: 1, 17.
 
-- [ ] **C5  `protocol_harness.rb`: loader or deletion** (≈10)
+- [x] **C5  `protocol_harness.rb`: loader or deletion** (≈10)
+  commit: (this PR) verified: 2026-09-05 minutes: 35
   touches: lich-scripts/test/protocol_harness.rb
   depends-on: none
   do: `git log --oneline -S protocol_harness -- lich-scripts/ | head`. If no test ever required it, delete it (the commit says so); if one did and was removed, restore that test instead.
