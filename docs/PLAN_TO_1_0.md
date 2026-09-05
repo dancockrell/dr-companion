@@ -437,7 +437,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
 
 ### Lane A — AI host repair (on `main` after C1)
 
-- [ ] **A1  Host at the app root; panel reads a store** (≈20)
+- [x] **A1  Host at the app root; panel reads a store** (≈20)
+  commit: c15f1bc1 verified: 2026-09-05 minutes: 35
   touches: src/App.tsx, C1>src/lib/aiWorkerHost.ts, C1>src/components/shared/AiWorkerPanel.tsx
   depends-on: C1
   do:
