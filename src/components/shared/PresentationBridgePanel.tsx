@@ -4,6 +4,7 @@ import {
   launchViewer,
   presentationBridgeInfo,
   viewerExitNote,
+  viewerStateLabel,
   viewerStatus,
   type PresentationBridgeInfo,
   type ViewerStatus,
@@ -97,19 +98,7 @@ export function PresentationBridgePanel() {
       <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
         <span className="text-xs text-ink-faint">World viewer</span>
         <span className="text-xs text-ink">
-          {viewer === null
-            ? checking
-              ? 'checking…'
-              : '—'
-            : !viewer.installed
-              ? 'not built yet'
-              : !viewer.runningKnown
-                ? 'installed, cannot tell if open'
-                : viewer.running
-                  ? 'open'
-                  : exitNote
-                    ? 'exited'
-                    : 'ready'}
+          {viewerStateLabel(viewer, checking)}
         </span>
       </div>
 

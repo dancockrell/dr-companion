@@ -142,3 +142,53 @@ powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='DR
 # the app is publishing a real snapshot to the bridge (B4 automates this)
 node tools/live-chain-check.mjs
 ```
+
+---
+
+# Appendix: the reconnect contract (B7), same day
+
+Same worktree, `test:viewer-absent` and B5/B6 commits in the tree, the app
+attached to `node tools/fake-lich.mjs --port 11141`. A second authenticated
+client watched the bridge throughout and logged every frame.
+
+## Godot is killed and relaunched: it gets the held snapshot on auth
+
+The app published `sequence 5` for room `1-308` on attach, and published
+nothing afterwards — the watcher's whole log for the episode is three lines:
+
+```
+07:04:49.906 hello -> auth sent
+07:04:49.907 auth_ok
+07:04:49.924 snapshot sequence 5 room 1-308
+```
+
+That watcher connected minutes *after* the publish, which is the contract
+itself: a client that arrives between publishes is sent the last one on auth.
+
+Then the viewer proper: opened from Settings (pid 36204), killed by that pid,
+Recheck, Relaunch (pid 35100 — a genuinely new process). The relaunched
+viewer's window is `live-chain-2026-09-05-relaunch.png` beside this file, and
+it reads **Empaths' Guild, 1-308** with its southwest exit, the same as before.
+The watcher logged no further snapshot in that window, so the room on screen
+came from the held snapshot handed over at auth and from nothing else.
+
+## Lich dropped and reattached: no forced publish, and the reason is not a bug
+
+Detach pressed, then Attach — `fake-lich` logged `client detached` then
+`client attached from 127.0.0.1`, and `game_status` came back
+`{"connected":true,"port":11141,"lines":16}`. **No new snapshot reached the
+bridge.**
+
+`justReconnected` is driven by `bridgeConnected`, and `bridgeConnected` is the
+*companion bridge* — the Lich plugin socket on 7415 — not the game socket that
+Attach opens. `tools/fake-lich.mjs` provides only the game socket, so
+`bridgeConnected` was false throughout and the forced-publish path could not
+have fired whatever happened. The increment's phrase "drop and reattach Lich"
+names an event this fixture cannot produce.
+
+Nothing here is evidence of a defect: the room did not change across the
+reattach, so `shouldPublish` deduplicating is correct behaviour. What it is
+evidence of is that **the forced-publish path remains unexercised**, and the
+setup that would exercise it needs the companion bridge plugin running in a
+real Lich, not this fixture. Whoever has that should watch for a second
+snapshot with a higher `sequence` for an unchanged room.

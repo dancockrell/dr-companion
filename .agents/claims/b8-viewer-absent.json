@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "task_id": "b8-viewer-absent",
+  "agent": "claude-code",
+  "summary": "A suite for the states a machine with a working viewer can never produce",
+  "status": "completed",
+  "claimed_at": "2026-09-05T08:35:00Z",
+  "updated_at": "2026-09-05T09:05:00Z",
+  "paths": [
+    "tools/viewer-absent-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "src/lib/viewerClient.ts",
+    "src/components/shared/PresentationBridgePanel.tsx",
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": [
+    "viewerStateLabel",
+    "test:viewer-absent"
+  ],
+  "coordination": {
+    "depends_on": [
+      "b5-app-exit-closes-viewer"
+    ],
+    "conflicts_with": [],
+    "notes": "Written against src/lib/presentationBridge.ts and moved to src/lib/viewerClient.ts on rebase: C4 (PR #296) landed mid-review and split that file, which is exactly the move the earlier note predicted. viewerStateLabel is an extraction of the panel's own nested ternary, not a second implementation - the panel calls it and keeps no copy. The suite loads both modules, because 'nothing throws with no backend' is a claim about both halves."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "node tools/viewer-absent-test.mjs -> 24 checks, all passed",
+      "registered in BOTH package.json and tools/test-suites.json; full run went from 102 suites / 3062 checks to 103 suites / 3086 checks, a rise of exactly the 24 this suite reports",
+      "sabotage: viewerStateLabel's 'not built yet' branch changed to return 'ready' -> 2 of 24 FAILED, naming both the panel-string check and the label check. Restored; md5sum -c matched.",
+      "the loader is the real module graph, recursively transpiled - presentationBridge -> room -> bestiary -> data/bestiary.json - so an import that only resolves under Vite fails here rather than in the app. Only src/lib/tauri.ts is replaced, because it is both the seam under test and the one module that cannot resolve @tauri-apps outside the app.",
+      "not covered, and said so in the suite's header and in the plan: the component is not rendered. There is no component-render harness in this repository."
+    ]
+  }
+}

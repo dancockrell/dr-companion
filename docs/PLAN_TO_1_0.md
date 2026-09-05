@@ -592,19 +592,23 @@ in the chain (token/port files, auth, reconnect) is already written.
 
 - [x] **B6  Viewer crash visible within a tick** (≈15)
   commit: (this PR) verified: 2026-09-05 minutes: 25
-  touches: src-tauri/src/viewer.rs, src/components/shared/PresentationBridgePanel.tsx, src/lib/presentationBridge.ts
+  touches: src-tauri/src/viewer.rs, src/components/shared/PresentationBridgePanel.tsx, src/lib/viewerClient.ts
   depends-on: B5
   do: `viewer_status` returns `exitCode: Option<i32>` when the held child exited; panel shows "viewer exited (code N)" and a Relaunch button.
   verify: kill the viewer by PID while the app runs; Recheck shows the line.
 
-- [ ] **B7  Reconnect contract end to end** (≈15)
+- [x] **B7  Reconnect contract end to end** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 25
+  note: the Godot half is recorded and proven; the Lich half cannot be reached with `tools/fake-lich.mjs`, because `justReconnected` follows `bridgeConnected` (the companion-bridge plugin socket), which the fixture does not provide. Recorded in the appendix as unexercised rather than passed.
   touches: none
   depends-on: B3
   do: kill and relaunch Godot → it receives the held snapshot on auth; drop and reattach Lich → forced publish (`justReconnected`). Append both log lines to the B3 record.
   verify: appended section with log lines.
 
-- [ ] **B8  Viewer absent → every path degrades** (≈20)
-  touches: new:tools/viewer-absent-test.mjs, package.json, tools/test-suites.json
+- [x] **B8  Viewer absent → every path degrades** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 40
+  note: the component itself is not rendered — this repository has no component-render harness and adding one is bigger than this increment. The strings the panel shows are checked at the functions it calls for them, which is why `viewerStateLabel` was lifted out of its ternary; the JSX is the remaining gap and the suite's own header says so.
+  touches: new:tools/viewer-absent-test.mjs, package.json, tools/test-suites.json, src/lib/viewerClient.ts, src/components/shared/PresentationBridgePanel.tsx
   depends-on: B5
   do: with `invokeTauri` mocked to reject and to return `{installed:false}`: `PresentationBridgePanel` renders the "not built yet" string and the rejection message; nothing throws. Test the pure mapping functions in `viewerClient.ts` (after C4) or `presentationBridge.ts` (before).
   verify: suite appears in the full run with its count.
