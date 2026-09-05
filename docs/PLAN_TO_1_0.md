@@ -1185,13 +1185,16 @@ receives. No portraits, no images in the client.
   do: §9: Town Green North renders; every real exit clickable; click → `intent_accepted` → confirmed room change → token moves; a fabricated exit is refused; a stun flips `cannotAct` and the scene reacts; an assessed creature's confidence visibly ages. Each line has a "recorded in docs/verification/… on <date>" slot.
   verify: six lines with empty slots.
 
-- [ ] **L5  Record the slice** (≈30)
+- [x] **L5  Record the slice** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 90
+  note: two of the six lines are recorded (1 and 4); four are written into `docs/verification/crossing-slice-2026-09-05.md` as unproven with what was tried, per L4's own rule. Lines 3, 5 and 6 need a live character, which `tools/fake-lich.mjs` cannot be. Line 2 needs a person to click once: a synthesised click did move the mock room, so the binding is not dead, but the rig could not say which button it pressed.
   touches: none
   depends-on: L4, B4
   do: run L4 live against Codex's current content; fill the slots; file gaps as ledger tasks for the content side.
   verify: slots filled or gaps filed.
 
-- [ ] **L6  Playable-slice gate** (≈5)
+- [!] **L6  Playable-slice gate** (≈5)
+  blocked-on: four of the six §9 slots are still empty. Lines 3, 5 and 6 need a live DragonRealms character; line 2 needs one human click on an exit button in the viewer. None is a code change, and no fixture on this machine can substitute.
   touches: none
   depends-on: L5
   do: all six L4 lines recorded. Gate 3's content half.
