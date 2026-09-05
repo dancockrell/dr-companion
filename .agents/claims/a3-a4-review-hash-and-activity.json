@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "task_id": "a3-a4-review-hash-and-activity",
+  "agent": "claude-code",
+  "summary": "Hash the state that actually deserves a review, and derive all six activities in priority order instead of three",
+  "status": "completed",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "src/lib/aiIngest.ts",
+    "src/lib/aiWorkerHost.ts",
+    "tools/ai-worker-host-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a3-a4-review-hash-and-activity.json"
+  ],
+  "symbols": ["reviewHash", "deriveActivity", "HostAppState", "HostMemory"],
+  "coordination": {
+    "depends_on": ["a2-tick-survives-store-updates"],
+    "conflicts_with": [],
+    "notes": "Both functions extend aiIngest.ts, the module the plan already names for this, and both replace inline logic in runHostTick rather than sitting beside it - there is one hash and one activity decision in the codebase. Two judgment calls. roomChangedAt is tracked from mapHere.id rather than location.roomId: the map id is the honest source for 'somewhere else', location.roomId is absent on rooms the map does not know, and a null-to-null step would then read as movement; first sighting is deliberately not a change. A journal that has never appended is idle by an explicit branch rather than by arithmetic, because now minus null is now, which would be the right answer for the wrong reason. isTown undefined reads as not-a-town, which costs a faster cadence rather than a slower one on a bridge too old to report the field."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "node --experimental-strip-types tools/ai-worker-host-test.mjs: 55 checked, 0 failed (was 36)",
+      "A3 decisive lines: 'OK walking into another room is a change', 'OK health 84 to 83 is not - vitals are not in the hash at all', 'OK roundtime counting 9 down to 4 is not a change', 'OK but roundtime reaching 0 is - you can act again'",
+      "A3 sabotage - remove the roomId field from reviewHash: 'FAIL walking into another room is a change  {\"situation\":[\"in_combat\"],\"inRoundtime\":false,\"hostiles\":1}', 44 checked 1 failed; restored and md5sum b13d5dbf223963db3528c796ad3ca29a matched",
+      "A4 decisive line: 'OK every activity the scheduler knows about is produced by some case  disconnected,combat,travel,active,idle,quiet' - the denominator, so a table that stopped covering an activity cannot pass quietly",
+      "A4 sabotage - swap the combat and travel branches: 'FAIL combat outranks a room you just walked into  travel (wanted combat)', 54 checked 1 failed; restored and md5sum e15a4a2a3610e9fd8771d5988a909d57 matched",
+      "the first A3 sabotage attempt aborted with 'SABOTAGE DID NOT LAND' because the anchor used a bare newline against a CRLF working copy - trap 17 - and was redone with a CRLF-tolerant pattern rather than being reported as a pass",
+      "npx tsc -b: exit 0 (it caught MapRoom.id being number, not string, in the room-change tracker)",
+      "node tools/run-tests.mjs (DRC_TEST_PORT=7971): all passed, 101 suites, 3069 checks - up 19",
+      "an earlier run showed test:bundle red; it runs npm run build, which was failing on the type error above, and it is green in isolation and in the suite once tsc passes"
+    ]
+  }
+}

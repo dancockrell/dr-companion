@@ -130,6 +130,97 @@ export interface HostAppState {
   situation: readonly string[] | undefined
   roundtime: number | undefined
   bridgeConnected: boolean
+  /** `CharacterStatus.location.roomId` - where the character is, as Lich
+   * reports it rather than as the map guessed it. */
+  roomId: string | null | undefined
+  /** `CharacterStatus.roomCombatants`. Only the two fields the hash counts
+   * are required, so a test does not have to build a whole combatant. */
+  roomCombatants: ReadonlyArray<{ hostile: boolean; dead: boolean }> | undefined
+  /** `CharacterStatus.location.isTown`. Undefined on a bridge that predates
+   * the field, which reads the same as "not a town" - the cautious way round,
+   * since it costs a faster cadence rather than a slower one. */
+  isTown: boolean | undefined
+}
+
+/**
+ * The state the scheduler compares between turns.
+ *
+ * The scheduler's rule is absolute - equal hashes mean no inference at all,
+ * however long it has been - so what goes in here decides both what wakes the
+ * model and what can never wake it. Four fields, each for a reason:
+ *
+ * - `roomId`, because a new room is the single most review-worthy change and
+ *   nothing else in this list moves when you walk through a door;
+ * - `situation`, sorted, because the bridge's flag order is not stable and an
+ *   unsorted array would make an identical world hash differently;
+ * - `inRoundtime` as a boolean, not the number: roundtime counts down every
+ *   second, so hashing the number meant every second of every swing was a
+ *   fresh review of an unchanged world. What matters is whether you can act;
+ * - `hostiles`, living and hostile only, because a corpse in the room is not
+ *   a threat and a count that included one would keep the model busy after a
+ *   fight had ended.
+ *
+ * Vitals are deliberately absent. Health ticking 84 to 83 is not a change
+ * worth a model call; the situation flags carry the states that are.
+ */
+export function reviewHash(state: {
+  roomId: string | null | undefined
+  situation: readonly string[] | undefined
+  roundtime: number | undefined
+  roomCombatants: ReadonlyArray<{ hostile: boolean; dead: boolean }> | undefined
+}): string {
+  return JSON.stringify({
+    roomId: state.roomId ?? null,
+    situation: [...(state.situation ?? [])].sort(),
+    // `??` rather than `||`: a roundtime of 0 is a real value and the reason
+    // this field exists, so it must not be replaced by the default.
+    inRoundtime: (state.roundtime ?? 0) > 0,
+    hostiles: (state.roomCombatants ?? []).filter((c) => c.hostile && !c.dead).length,
+  })
+}
+
+/** A room counts as newly entered for this long. Long enough to cover the
+ * pause between two moves at a walk, short enough that standing still in a
+ * new room returns to the ordinary cadence rather than staying urgent. */
+const TRAVEL_WINDOW_MS = 10_000
+
+/** Silence this long is a character nobody is playing. Live review is
+ * suspended entirely at that point, not merely slowed. */
+const IDLE_AFTER_MS = 120_000
+
+/**
+ * Which cadence the scheduler should be running at.
+ *
+ * The order is the whole of it, and it is a priority list rather than a set
+ * of independent tests - every frame satisfies several of these at once. A
+ * character fighting in a doorway is in combat *and* has just changed room;
+ * calling that travel would review at a travel cadence while something was
+ * trying to kill them. So combat outranks travel, and disconnection outranks
+ * both, because a client with no bridge has no state worth reviewing at all.
+ *
+ * `isTown` is the only field here that is not about time, and it is last for
+ * the same reason: a safe town is quiet only when nothing else is happening.
+ */
+export function deriveActivity(state: {
+  bridgeConnected: boolean
+  situation: readonly string[] | undefined
+  /** When the character last entered a different room, or null if never. */
+  roomChangedAt: number | null
+  /** When the journal last actually took a line, or null if it never has. */
+  lastAppendAt: number | null
+  isTown: boolean | undefined
+  now: number
+}): Activity {
+  if (!state.bridgeConnected) return 'disconnected'
+  if ((state.situation ?? []).includes('in_combat')) return 'combat'
+  if (state.roomChangedAt !== null && state.now - state.roomChangedAt < TRAVEL_WINDOW_MS) {
+    return 'travel'
+  }
+  // A journal that has never taken a line is idle by definition rather than
+  // by arithmetic: `now - null` is `now`, which would be a silent accident
+  // producing the right answer for the wrong reason.
+  if (state.lastAppendAt === null || state.now - state.lastAppendAt > IDLE_AFTER_MS) return 'idle'
+  return state.isTown === true ? 'quiet' : 'active'
 }
 
 /**
@@ -146,6 +237,13 @@ export interface HostMemory {
   /** Lines the display buffer discarded before the host could journal them.
    * Accumulated by the caller's ingestion pass, reported by every turn. */
   missedLines: number
+  /** When the character last entered a different room. Maintained by the
+   * caller, which is the only side that can see the map change. */
+  roomChangedAt: number | null
+  /** When ingestion last actually appended something. Maintained by the
+   * caller's ingestion pass; the difference between a quiet game and a dead
+   * one is entirely in this number. */
+  lastAppendAt: number | null
 }
 
 export interface HostTickInput {
@@ -181,14 +279,16 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
   const { journal, alerts, jobs, provider, app, memory, now, nowIso, signal } = input
   memory.ticks += 1
 
-  const situation = app.situation ?? []
-  const activity: Activity = !app.bridgeConnected
-    ? 'disconnected'
-    : situation.includes('in_combat')
-      ? 'combat'
-      : 'active'
+  const activity = deriveActivity({
+    bridgeConnected: app.bridgeConnected,
+    situation: app.situation,
+    roomChangedAt: memory.roomChangedAt,
+    lastAppendAt: memory.lastAppendAt,
+    isTown: app.isTown,
+    now,
+  })
 
-  const hash = JSON.stringify({ s: situation, r: app.roundtime ?? 0 })
+  const hash = reviewHash(app)
 
   const outcome: WorkerOutcome = await runWorkerOnce(
     {

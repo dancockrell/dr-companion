@@ -18,7 +18,7 @@ globalThis.localStorage = {
 const { EventJournal } = await import('../src/lib/aiEventJournal.ts')
 const { AlertBroker } = await import('../src/lib/aiAlertBroker.ts')
 const { JobStore } = await import('../src/lib/aiJobStore.ts')
-const { ingestLines, deriveAlerts, runHostTick } = await import('../src/lib/aiIngest.ts')
+const { ingestLines, deriveAlerts, runHostTick, reviewHash, deriveActivity } = await import('../src/lib/aiIngest.ts')
 
 /**
  * The host module is read as text, never imported: it pulls in useAppStore,
@@ -131,6 +131,103 @@ console.log('\n-- alerts come from parsed state, with the startup case handled -
     deriveAlerts({ situation: undefined, bridgeConnected: true, everConnected: true }).length === 0)
 }
 
+console.log('\n-- the review hash wakes the model for changes that matter, and only those --')
+{
+  // Equal hashes suppress inference entirely, so this function decides both
+  // what gets reviewed and what never can be. Each case below is a real
+  // frame-to-frame change from a live session.
+  const base = {
+    roomId: 'room-1',
+    situation: ['in_combat'],
+    roundtime: 0,
+    roomCombatants: [{ hostile: true, dead: false }],
+  }
+  const h = (over) => reviewHash({ ...base, ...over })
+
+  ok('walking into another room is a change', h({}) !== h({ roomId: 'room-2' }), h({ roomId: 'room-2' }))
+  ok('health 84 to 83 is not - vitals are not in the hash at all',
+    h({ health: 84 }) === h({ health: 83 }))
+  ok('roundtime counting 9 down to 4 is not a change',
+    h({ roundtime: 9 }) === h({ roundtime: 4 }))
+  ok('but roundtime reaching 0 is - you can act again',
+    h({ roundtime: 4 }) !== h({ roundtime: 0 }))
+  ok('a killed hostile is a change', h({}) !== h({ roomCombatants: [{ hostile: true, dead: true }] }))
+  ok('a corpse and an empty room hash the same - a corpse is not a threat',
+    h({ roomCombatants: [{ hostile: true, dead: true }] }) === h({ roomCombatants: [] }))
+  ok('flag order from the bridge does not invent a change',
+    reviewHash({ ...base, situation: ['stunned', 'in_combat'] }) ===
+      reviewHash({ ...base, situation: ['in_combat', 'stunned'] }))
+  ok('gaining a situation flag is a change', h({}) !== h({ situation: ['in_combat', 'stunned'] }))
+  ok('absent state does not throw and hashes stably',
+    reviewHash({ roomId: undefined, situation: undefined, roundtime: undefined, roomCombatants: undefined }) ===
+      reviewHash({ roomId: null, situation: [], roundtime: 0, roomCombatants: [] }))
+}
+
+console.log('\n-- activity is decided in priority order, not by independent tests --')
+{
+  // Every frame satisfies several of these at once, so the table is written
+  // as cases that each match more than one rule: what is being checked is
+  // which rule wins, not whether the rule exists.
+  const NOW = 1_000_000
+  const cases = [
+    {
+      what: 'no bridge outranks everything, including combat',
+      state: { bridgeConnected: false, situation: ['in_combat'], roomChangedAt: NOW - 1, lastAppendAt: NOW, isTown: true },
+      want: 'disconnected',
+    },
+    {
+      what: 'combat outranks a room you just walked into',
+      state: { bridgeConnected: true, situation: ['in_combat'], roomChangedAt: NOW - 1000, lastAppendAt: NOW, isTown: true },
+      want: 'combat',
+    },
+    {
+      what: 'a room entered 3s ago is travel, even in a safe town',
+      state: { bridgeConnected: true, situation: [], roomChangedAt: NOW - 3000, lastAppendAt: NOW, isTown: true },
+      want: 'travel',
+    },
+    {
+      what: 'travel lapses after ten seconds',
+      state: { bridgeConnected: true, situation: [], roomChangedAt: NOW - 10_001, lastAppendAt: NOW, isTown: false },
+      want: 'active',
+    },
+    {
+      what: 'silence for over two minutes is idle, wherever you are standing',
+      state: { bridgeConnected: true, situation: [], roomChangedAt: NOW - 60_000, lastAppendAt: NOW - 120_001, isTown: true },
+      want: 'idle',
+    },
+    {
+      what: 'a town with a live stream is quiet',
+      state: { bridgeConnected: true, situation: [], roomChangedAt: NOW - 60_000, lastAppendAt: NOW - 5000, isTown: true },
+      want: 'quiet',
+    },
+    {
+      what: 'anywhere else with a live stream is active',
+      state: { bridgeConnected: true, situation: [], roomChangedAt: NOW - 60_000, lastAppendAt: NOW - 5000, isTown: false },
+      want: 'active',
+    },
+    {
+      what: 'a journal that has never taken a line is idle, not active',
+      state: { bridgeConnected: true, situation: [], roomChangedAt: null, lastAppendAt: null, isTown: false },
+      want: 'idle',
+    },
+    {
+      what: 'a bridge too old to report isTown reads as not a town',
+      state: { bridgeConnected: true, situation: [], roomChangedAt: null, lastAppendAt: NOW - 5000, isTown: undefined },
+      want: 'active',
+    },
+  ]
+
+  for (const c of cases) {
+    const got = deriveActivity({ ...c.state, now: NOW })
+    ok(c.what, got === c.want, `${got} (wanted ${c.want})`)
+  }
+
+  const covered = new Set(cases.map((c) => c.want))
+  ok('every activity the scheduler knows about is produced by some case',
+    ['combat', 'travel', 'active', 'quiet', 'idle', 'disconnected'].every((a) => covered.has(a)),
+    [...covered].join(','))
+}
+
 console.log('\n-- a turn in flight is not disturbed by unrelated updates --')
 {
   // The defect this guards: the tick effect used to depend on `character`,
@@ -151,7 +248,7 @@ console.log('\n-- a turn in flight is not disturbed by unrelated updates --')
   ingestLines(j, buffer, 0)
   const before = j.acknowledged()
 
-  const memory = { lastReviewAt: null, lastReviewedHash: null, ticks: 0, missedLines: 0 }
+  const memory = { lastReviewAt: null, lastReviewedHash: null, ticks: 0, missedLines: 0, roomChangedAt: null, lastAppendAt: 9_990 }
   const controller = new AbortController()
   let settled = false
   const inFlight = runHostTick({
@@ -230,7 +327,7 @@ console.log('\n-- the host cannot reach the game command path --')
 
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 30
+const MIN_EXPECTED = 50
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

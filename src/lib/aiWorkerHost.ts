@@ -162,7 +162,10 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
     lastReviewedHash: null,
     ticks: 0,
     missedLines: 0,
+    roomChangedAt: null,
+    lastAppendAt: null,
   })
+  const lastRoomId = useRef<number | null>(null)
 
   // Ingestion. Keyed on the version counter; the buffer is read inside the
   // effect and never appears in the dependency array.
@@ -174,6 +177,10 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
     ingested.current = result.ingested
     seenDropped.current = dropped
     memory.current.missedLines += result.missed
+    // Only a real append counts. A version bump with nothing new in it is a
+    // buffer that trimmed or a stream that reconnected, and treating either
+    // as activity would keep a dead session out of `idle` forever.
+    if (result.appended > 0) memory.current.lastAppendAt = Date.now()
   }, [enabled, version])
 
   // Alerts from parsed state. Subscribed to the store rather than selected
@@ -182,9 +189,19 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
   useEffect(() => {
     if (!enabled) return
     const pass = () => {
-      const { character, bridgeConnected } = useAppStore.getState()
+      const { character, bridgeConnected, mapHere } = useAppStore.getState()
       if (bridgeConnected) everConnected.current = true
       const now = Date.now()
+
+      // The map is the honest source for "somewhere else": location.roomId can
+      // be absent on rooms the map does not know, and a null-to-null step
+      // would then read as movement. First sighting is not a change.
+      const roomId = mapHere?.id ?? null
+      if (roomId !== lastRoomId.current) {
+        if (lastRoomId.current !== null) memory.current.roomChangedAt = now
+        lastRoomId.current = roomId
+      }
+
       for (const a of deriveAlerts({
         situation: character?.situation,
         bridgeConnected,
@@ -222,6 +239,9 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
             situation: character?.situation,
             roundtime: character?.roundtime,
             bridgeConnected,
+            roomId: character?.location.roomId,
+            roomCombatants: character?.roomCombatants,
+            isTown: character?.location.isTown,
           },
           memory: memory.current,
           now: Date.now(),
