@@ -142,6 +142,40 @@ const contractViolations = (manifest) => {
       violations.push(`board-ground: ${cell.id} publishes ${ground.width}x${ground.depth} m of ground, which is not larger than its ${CELL_BLOCK_METRES} m block, so there is no gutter to draw a room's outline`)
     }
 
+    // And where things stand on that block.
+    //
+    // `entity_projection_layer.gd` places every token at
+    // `ContentRegistry.block_top_y(cell)` plus its spawn point's `anchor.y`, so
+    // an anchor y is a lift above the block's top face and a negative one puts
+    // a token inside the solid the cell drew. That is issue #373 in its
+    // published form: the anchors used to be measured from the cell origin, and
+    // when #365 gave the placeholder block the cell's full footprint they
+    // stayed where they were - 117 of 133 anchors below the top face they were
+    // meant to stand on, and all 21 on the three interior cutaways more than a
+    // metre inside it.
+    //
+    // Written as the viewer's own arithmetic rather than as `anchor.y >= 0`,
+    // though the two are the same test today: what has to be true is that a
+    // token ends up at or above the top of its own cell's block, and saying it
+    // that way keeps this rule pointed at the right thing if the frame moves
+    // again.
+    const spawnPoints = cell.board?.spawnPoints
+    if (!Array.isArray(spawnPoints) || spawnPoints.length === 0) {
+      violations.push(`board-spawn: ${cell.id} carries no board.spawnPoints for the viewer to place tokens on`)
+    } else if (typeof footprint?.height === 'number') {
+      const blockTop = footprint.height / 2
+      for (const point of spawnPoints) {
+        const anchor = point?.anchor
+        if (!anchor || ['x', 'y', 'z'].some((axis) => typeof anchor[axis] !== 'number')) {
+          violations.push(`board-spawn: ${cell.id} spawn point "${point?.id}" has no complete numeric anchor`)
+        } else if (blockTop + anchor.y < blockTop) {
+          violations.push(
+            `board-spawn: ${cell.id} spawn point "${point.id}" stands at ${(blockTop + anchor.y).toFixed(2)} m, ${(-anchor.y).toFixed(2)} m inside the top of its own ${footprint.height} m block`,
+          )
+        }
+      }
+    }
+
     const seenMoves = new Map()
     for (const exit of cell.exits) {
       // A null target is the honest form and the whole signal: the room is
@@ -189,8 +223,8 @@ if (live === null) process.exit(1)
  * null-targeted exit - the exact shape the old, mock-only rule got wrong.
  */
 const subjects = [
-  { name: 'mock fixture', manifest: fixture, minCells: 15, minExits: 40, minNullTargeted: 5, derived: true },
-  { name: 'live snapshot', manifest: live, minCells: 2, minExits: 3, minNullTargeted: 1, derived: false },
+  { name: 'mock fixture', manifest: fixture, minCells: 15, minExits: 40, minNullTargeted: 5, minAnchors: 100, derived: true },
+  { name: 'live snapshot', manifest: live, minCells: 2, minExits: 3, minNullTargeted: 1, minAnchors: 14, derived: false },
 ]
 
 for (const subject of subjects) {
@@ -224,6 +258,19 @@ for (const subject of subjects) {
   const withGround = manifest.cells.filter((cell) => typeof cell.board?.ground?.width === 'number').length
   ok(`${name}: every cell carries the ground the viewer sizes its terrain from`, withGround === manifest.cells.length, `${withGround} of ${manifest.cells.length} cells`)
 
+  // And the anchors, counted rather than summarised. Two denominators, because
+  // "no anchor is inside a block" is also what a manifest with no anchors says,
+  // and because the count that was 117 of 133 when issue #373 was found is the
+  // one worth printing every run.
+  const allAnchors = manifest.cells.flatMap((cell) =>
+    (cell.board?.spawnPoints ?? []).map((point) => ({ cell, y: point?.anchor?.y })),
+  )
+  const clearAnchors = allAnchors.filter(
+    ({ cell, y }) => typeof y === 'number' && typeof cell.board?.footprint?.height === 'number' && cell.board.footprint.height / 2 + y >= cell.board.footprint.height / 2,
+  ).length
+  ok(`${name}: carries the spawn anchors the token-height rule turns on`, allAnchors.length >= subject.minAnchors, `${allAnchors.length} anchors, floor ${subject.minAnchors}`)
+  ok(`${name}: every spawn anchor stands at or above its own cell's block top`, clearAnchors === allAnchors.length, `${clearAnchors} of ${allAnchors.length} anchors`)
+
   const violations = contractViolations(manifest)
   const of = (rule) => violations.filter((v) => v.startsWith(`${rule}:`))
   ok(`${name}: every exit targets a cell here, or is null-targeted`, of('exit-resolves').length === 0, of('exit-resolves')[0] ?? `${exits.length} exits checked, ${nullTargeted.length} of them null-targeted`)
@@ -232,6 +279,7 @@ for (const subject of subjects) {
   ok(`${name}: every cell publishes the block size the board layout states`, of('board-footprint').length === 0, of('board-footprint')[0] ?? `${manifest.cells.length} cells at ${CELL_BLOCK_METRES} m`)
   ok(`${name}: every cell publishes a complete selection box`, of('board-selection').length === 0, of('board-selection')[0] ?? `${manifest.cells.length} cells`)
   ok(`${name}: every cell publishes ground wider than its block, which is the gutter`, of('board-ground').length === 0, of('board-ground')[0] ?? `${manifest.cells.length} cells, each larger than ${CELL_BLOCK_METRES} m`)
+  ok(`${name}: no cell places a token inside the block it publishes`, of('board-spawn').length === 0, of('board-spawn')[0] ?? `${allAnchors.length} anchors across ${manifest.cells.length} cells`)
   ok(`${name}: satisfies the whole contract`, violations.length === 0, violations.length ? `${violations.length} violations` : 'no violations')
 
   // Each rule, shown able to fire against THIS subject. The broken manifests
@@ -264,6 +312,18 @@ for (const subject of subjects) {
   })
   firesOn('a cell with no ground, which draws the terrain as a 1 m marker', 'board-ground', (m) => {
     delete m.cells[0].board.ground
+  })
+  firesOn('an anchor published below the top of its own block, which is #373', 'board-spawn', (m) => {
+    // Exactly the frame the anchors were in before this rule existed: a height
+    // measured from the cell origin rather than from the block's top face, so
+    // on a 1 m block the old 0.42 lands 0.08 m inside it.
+    m.cells[0].board.spawnPoints[0].anchor.y = 0.42 - m.cells[0].board.footprint.height / 2
+  })
+  firesOn('a cell that publishes no spawn points at all', 'board-spawn', (m) => {
+    m.cells[0].board.spawnPoints = []
+  })
+  firesOn('an anchor with no y, which the viewer would have to invent one for', 'board-spawn', (m) => {
+    delete m.cells[0].board.spawnPoints[0].anchor.y
   })
   firesOn('ground shrunk to the block, which leaves the board with no gutter', 'board-ground', (m) => {
     m.cells[0].board.ground.width = CELL_BLOCK_METRES

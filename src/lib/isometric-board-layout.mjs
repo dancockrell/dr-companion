@@ -131,14 +131,46 @@ export function boardLayoutFor(cell) {
     // the thing drawn means clicking the gap between two rooms silently picks
     // one of them, which makes an exit hard to hit as well as hard to see.
     selectionBounds: { width: CELL_BLOCK_METRES, depth: CELL_BLOCK_METRES, height: interior ? 3 : 1 },
+    // Where a thing stands on this cell. `anchor.y` is measured from the block's
+    // top face, not from the cell's origin.
+    //
+    // It used to be measured from the origin - 0.52, 0.42 and 0.08 were the only
+    // three heights across all 133 anchors in the checked-in world - and those
+    // were right when they were written, against a placeholder block that was a
+    // 0.3 m slab with its top face at 0.15. #365 gave the placeholder the full
+    // published footprint, so the top face moved to 0.5 for a room and 1.5 for
+    // an `interior-cutaway`, and every one of those anchors stayed where it was.
+    // Measured on the committed fixture before this change: 117 of 133 anchors
+    // sat below the top of the block their own cell publishes - 93 of the 105
+    // belonging to a cell that actually draws one, which is the count issue #373
+    // reported - and on the three cutaway cells all 21 were 1.0 to 1.4 m inside
+    // it.
+    //
+    // Relative rather than absolute, which is the decision #373 left open. The
+    // viewer has a placement path the board cannot reach: a tactical entity is
+    // staged on the range band its assessed range names, so its x and z come
+    // from a ring and never from a spawn point, and no absolute anchor published
+    // here could give it a height. The rule "a token stands on the block's top
+    // face" therefore has to exist in the viewer whatever this module publishes.
+    // Publishing absolute anchors would state the same rule here as well, and
+    // two statements of one rule drift - which is precisely how these numbers
+    // came to disagree with the block. So the viewer adds
+    // `ContentRegistry.block_top_y(cell)` once, in the single function every
+    // token's position goes through, and this module says only how far above
+    // that surface each kind of thing stands.
+    //
+    // A token is centred on its anchor, so each lift is half that token's own
+    // height: the player capsule is 0.94 tall, an occupant cylinder 0.8, a
+    // hostile sphere 0.68, a ground item's box 0.12. That is a presentation
+    // fact and it belongs beside `rigSocket`, which is the same kind of claim.
     spawnPoints: [
-      { id: 'player', role: 'player', anchor: { x: 0, y: 0.52, z: 0 }, yawDeg: 0, rigSocket: 'humanoid-root' },
-      { id: 'occupant-left', role: 'occupant', anchor: { x: -1.15, y: 0.42, z: 0.75 }, yawDeg: 45, rigSocket: 'humanoid-root' },
-      { id: 'occupant-right', role: 'occupant', anchor: { x: 1.15, y: 0.42, z: 0.75 }, yawDeg: -45, rigSocket: 'humanoid-root' },
-      { id: 'hostile-left', role: 'hostile', anchor: { x: -1.35, y: 0.42, z: -1.15 }, yawDeg: 135, rigSocket: 'creature-root' },
-      { id: 'hostile-right', role: 'hostile', anchor: { x: 1.35, y: 0.42, z: -1.15 }, yawDeg: -135, rigSocket: 'creature-root' },
-      { id: 'item-left', role: 'item', anchor: { x: -1.55, y: 0.08, z: 1.55 }, yawDeg: 0, rigSocket: 'item-root' },
-      { id: 'item-right', role: 'item', anchor: { x: 1.55, y: 0.08, z: 1.55 }, yawDeg: 0, rigSocket: 'item-root' },
+      { id: 'player', role: 'player', anchor: { x: 0, y: 0.47, z: 0 }, yawDeg: 0, rigSocket: 'humanoid-root' },
+      { id: 'occupant-left', role: 'occupant', anchor: { x: -1.15, y: 0.4, z: 0.75 }, yawDeg: 45, rigSocket: 'humanoid-root' },
+      { id: 'occupant-right', role: 'occupant', anchor: { x: 1.15, y: 0.4, z: 0.75 }, yawDeg: -45, rigSocket: 'humanoid-root' },
+      { id: 'hostile-left', role: 'hostile', anchor: { x: -1.35, y: 0.34, z: -1.15 }, yawDeg: 135, rigSocket: 'creature-root' },
+      { id: 'hostile-right', role: 'hostile', anchor: { x: 1.35, y: 0.34, z: -1.15 }, yawDeg: -135, rigSocket: 'creature-root' },
+      { id: 'item-left', role: 'item', anchor: { x: -1.55, y: 0.06, z: 1.55 }, yawDeg: 0, rigSocket: 'item-root' },
+      { id: 'item-right', role: 'item', anchor: { x: 1.55, y: 0.06, z: 1.55 }, yawDeg: 0, rigSocket: 'item-root' },
     ],
   }
 }

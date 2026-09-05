@@ -477,6 +477,163 @@ ok(
 )
 for (const offender of dimensionOffenders.slice(1)) console.log(`     also ${offender}`)
 
+// -- and no hand-typed height in a script that places something on a block --
+//
+// The value scan above cannot do heights and says so in the header: the
+// manifest publishes 1 and 3, which are also a clamp bound, a colour channel
+// and the marker cube, so a scan that refused them would fire on all of those
+// and be ignored. Issue #373 is what that hole cost.
+// `entity_projection_layer.gd` placed every token with `0.4`, `0.4` and
+// `-0.32`, correct against the 0.3 m placeholder slab they were written for;
+// once #365 gave the placeholder the cell's own footprint, 117 of the 133
+// anchors in the checked-in world sat below the top of the block they stood on,
+// and on the three interior cutaways every token was more than a metre inside
+// it. Nothing here could see that, and `cell_click_target_test.gd` - named in
+// the header as the cover for the height half - raycasts a click box, not a
+// token.
+//
+// So heights are scanned by *shape* rather than by value, which is what makes
+// scanning them possible at all. In a script that places something on a block a
+// height is never a bare number: it is the cell's, through
+// `ContentRegistry.block_top_y()`, plus a named constant that says what the
+// offset is for. `MARKER_THICKNESS_METRES` in the exit layer and
+// `BAND_CLEARANCE_METRES` in the token layer are that, and neither is a board
+// dimension.
+//
+// Two scope limits, stated rather than left to be discovered:
+//
+//   - It refuses a *literal*, so `const FOO := 0.4` used as a lift passes here.
+//     The cover for that is `godot/tests/entity_projection_test.gd`, which
+//     stands a token on a 0.3 m block and on a 3 m one and measures both: one
+//     typed height, named or not, can satisfy exactly one of them.
+//   - The middle argument of every `Vector3(` in these files is examined,
+//     including the ones that are sizes rather than positions. A mesh's own
+//     height is the same kind of claim, and both files already name it.
+//
+// The scanned set is derived rather than listed: every viewer script that
+// mentions `block_top_y(`, which is the two layers that place things on a block
+// plus the registry that answers them. A third layer added tomorrow is covered
+// by asking the question, which is the only way it could place anything right.
+const PLACEMENT_MARKER = 'block_top_y('
+
+/** 3 today: the two placement layers and the registry that defines the
+ * accessor. The number that goes to zero when the derivation stops finding
+ * files, rather than when the viewer is clean. */
+const MINIMUM_PLACEMENT_SCRIPTS = 2
+
+/** Top-level commas only, so `Vector3(max(a, b), 0.4, c)` still yields three
+ * arguments rather than four. */
+const splitArguments = (inner) => {
+  const parts = []
+  let depth = 0
+  let current = ''
+  for (const ch of inner) {
+    if (ch === '(' || ch === '[') depth += 1
+    if (ch === ')' || ch === ']') depth -= 1
+    if (ch === ',' && depth === 0) {
+      parts.push(current)
+      current = ''
+      continue
+    }
+    current += ch
+  }
+  parts.push(current)
+  return parts
+}
+
+/**
+ * A whole argument that is nothing but a number, and not zero.
+ *
+ * Zero is allowed on purpose: "no lift at all" is the honest answer for a thing
+ * the board did not place, and it is what `UNPLACED_TOKEN_LIFT_METRES` is.
+ */
+const BARE_NUMBER = /^-?\d+(?:\.\d+)?$/
+const isTypedHeight = (argument) => {
+  const text = argument.trim()
+  return BARE_NUMBER.test(text) && Number.parseFloat(text) !== 0
+}
+
+/**
+ * Every hand-typed height in one script's code: the y of a `Vector3(...)`, and
+ * the right-hand side of a `.position.y =`.
+ */
+const typedHeights = (text) => {
+  const hits = []
+  text.split('\n').forEach((line, index) => {
+    const code = codeOnly(line)
+    const report = (value, what) => hits.push({ line: index + 1, text: line.trim(), value, what })
+
+    const assigned = /\.position\.y\s*=\s*(.+)$/.exec(code)
+    if (assigned && isTypedHeight(assigned[1])) report(assigned[1].trim(), 'assigned straight to position.y')
+
+    let at = code.indexOf('Vector3(')
+    while (at !== -1) {
+      let depth = 0
+      let end = at + 'Vector3'.length
+      for (; end < code.length; end += 1) {
+        if (code[end] === '(') depth += 1
+        else if (code[end] === ')') {
+          depth -= 1
+          if (depth === 0) break
+        }
+      }
+      const args = splitArguments(code.slice(at + 'Vector3('.length, end))
+      if (args.length === 3 && isTypedHeight(args[1])) report(args[1].trim(), 'the y of a Vector3')
+      at = code.indexOf('Vector3(', end)
+    }
+  })
+  return hits
+}
+
+// The shape scanner before it is trusted to say anything, same as the value one
+// above: both halves shown firing on the lines issue #373 was filed about, and
+// shown not firing on the lines that are correct today.
+ok(
+  'the height scanner sees a token height typed into a Vector3',
+  typedHeights('\treturn Vector3(cos(angle) * distance, 0.4, sin(angle) * distance)').length === 1,
+  'positive control: entity_projection_layer.gd:284 as issue #373 found it',
+)
+ok(
+  'and one assigned straight to position.y',
+  typedHeights('\tring.position.y = -0.39').length === 1,
+  'positive control',
+)
+ok(
+  'and does not see a height derived from the cell',
+  typedHeights('\tmarker.position.y = block_top + MARKER_THICKNESS_METRES * 0.5 + MARKER_CLEARANCE_METRES').length === 0,
+  'negative control: exit_anchor_layer.gd, which is the shape #362 moved to',
+)
+ok(
+  'nor a named constant standing where a number would be',
+  typedHeights('\tmesh.size = Vector3(1.2, MARKER_THICKNESS_METRES, 0.9)').length === 0,
+  'negative control: a named offset is the allowed form',
+)
+ok(
+  'nor an expression, nor a zero, nor a comment',
+  typedHeights('\treturn Vector3(0.0, 1.2 + float(index) * 0.35, 0.0)\n\tvar a := Vector3(1.0, 0.0, 1.0)\n\t# it used to be Vector3(x, 0.4, z) here').length === 0,
+  'negative control: three lines, none of them a typed height',
+)
+
+const placementScripts = scriptFiles.filter((file) => readFileSync(file, 'utf8').includes(PLACEMENT_MARKER))
+ok(
+  'the placement scripts were derived by the question they have to ask',
+  placementScripts.length >= MINIMUM_PLACEMENT_SCRIPTS,
+  `${placementScripts.length} mention ${PLACEMENT_MARKER}, floor ${MINIMUM_PLACEMENT_SCRIPTS}: ${placementScripts.map((f) => f.split(SEPARATOR).pop()).join(', ')}`,
+)
+
+const heightOffenders = []
+for (const file of placementScripts) {
+  for (const hit of typedHeights(readFileSync(file, 'utf8'))) {
+    heightOffenders.push(`${file.split(SEPARATOR).join('/')}:${hit.line}  ${hit.text}   <- ${hit.value} is ${hit.what}`)
+  }
+}
+ok(
+  `no script that places something on a block types its height; it comes from the cell`,
+  heightOffenders.length === 0,
+  heightOffenders[0] ?? `${placementScripts.length} placement scripts scanned`,
+)
+for (const offender of heightOffenders.slice(1)) console.log(`     also ${offender}`)
+
 console.log(`\n${pass + fail} checked, ${fail} failed`)
 if (fail) process.exit(1)
 console.log('all passed')
