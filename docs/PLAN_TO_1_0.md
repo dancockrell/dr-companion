@@ -271,7 +271,6 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
-| H | H1–H8 | `lane-h/local-provider` | `dev/wt-h` | 5 Sep 2026 |
 | K | K1–K5 | `lane-k/appearance` | `dev/wt-k` | 5 Sep 2026 |
 | G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
 
@@ -280,7 +279,10 @@ F2, F6, PRs #293 and #295), **I** (I1–I11, PRs #303 and #300) and **L**
 (L1–L5, PRs #305 and this one; L6 is `[!]`, blocked on four acceptance lines
 that need a live character and one human click, neither of which is a code
 change). Their rows are gone from the table above, which is what finishing a
-lane looks like here.
+lane looks like here. **H** is finished too (H1–H4, H6, H7; PRs #316 and
+#318), with H5 and H8 left `[!]`: H5 needs a model runtime this machine does
+not have and no numbers were invented for it, and H8 depends on G6, which is
+not started. Both say what would unblock them.
 
 **K** is claimed (row above). C7 recorded `rewrite/remove-2d` as an open
 question for that branch's owner, and Lane K's dependency on it turned out to
@@ -1011,25 +1013,38 @@ whether it is embedded, docked or a separate window is D0.
   verify (as done): `npm run test:ai-local-provider` → `77 checked, 0 failed`, `all passed`; the decisive lines are `a remote server that WOULD answer is still never contacted`, `control: the same recorder does see a loopback request  http://127.0.0.1:11434/v1/models`, and `it fails as out_of_memory`.
   sabotage (as done): `if (false && !options.allowRemote && !isLoopbackHost(...))` → `72 checked, 5 failed`, naming the harm rather than a generic red: `so it cannot be reported as ready  somebody-elses-model` and `and generating against it sends nothing  2`. Restored, md5 `2b0e482e81da` either side. A first version of the sabotage produced only **two** failures — pointed at an unreachable remote address, a dropped check fails as ordinary absence and reads exactly like a refusal — so the two decisive checks above were added, using a recorded `fetchImpl` that *answers*, plus a loopback positive control so a zero call count means a refusal rather than a broken recorder.
 
-- [ ] **H2  Settings: model server URL** (≈20)
-  touches: C1>src/components/shared/AiWorkerPanel.tsx, C1>src/lib/aiWorkerHost.ts
+- [x] **H2  Settings: model server URL** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 45
+  touches: C1>src/components/shared/AiWorkerPanel.tsx, C1>src/lib/aiWorkerHost.ts, tools/ai-worker-host-test.mjs, tools/build-player-data-doc.mjs, docs/PLAYER_DATA.md
   depends-on: H1
   do: URL field + "Test connection" showing `describe()`; the host builds `localProvider` when a URL is stored under `drc.ai-provider.v1`, else `absentProvider()`.
   verify: with `ollama serve` running here → "ready: <model>"; stopped → the absent reason. (Killing `ollama app` kills the server — memory.)
+  note: **the field is in `AiWorkerPanel`, not in the Settings sheet**, because Lane D moved that panel into the right rail; the increment's own `touches:` already said so and only its title did not. The address commits on the button rather than on every keystroke - writing on each character would rebuild the provider, and open a probe, for every letter of a URL somebody is halfway through typing. "Test" probes `getActiveProvider()`, the object the worker is actually running, because a connection test that passes for a provider nobody uses is worse than no test. The new key needed a description in `tools/build-player-data-doc.mjs`, which refused the build until it had one - the tool working exactly as designed.
+  verify (as done): **Ollama is not installed on this machine** (see H1's note), so the check ran against a throwaway OpenAI-compatible server on 127.0.0.1:11437 with the app itself on 127.0.0.1:1437. Typing the address and pressing Test moved the panel's "Local model" line from `No local model is installed.` to `ready`; the stored setting read back as `http://127.0.0.1:11437`; `getAiStatus()` in the running app reported `available: true` at `ticks: 140`, so the host was live and had built the local provider from the stored value. Every process started for this was killed by the port it owned, and 1437, 11437 and 11129 were each confirmed closed afterwards.
+  sabotage: `buildProvider` passing `allowRemote: true` → `FAIL and the host never passes allowRemote, so a stored remote address is refused`, 99 checked 1 failed; restored, md5 `9aa2e82f1af5` either side. The first version of that check matched the bare word and flagged the *comment* explaining why it is never passed - a check failing on its own documentation - so it now matches the code form with the colon.
 
-- [ ] **H3  Structured output** (≈20)
+- [x] **H3  Structured output** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 40
   touches: C1>src/lib/aiWorker.ts, C1>src/lib/aiModelProvider.ts, C1>tools/ai-worker-test.mjs
   depends-on: H1
   do: `parseStructured<T>(text, validate)` takes the first `{...}` block; instructions end with the schema `{ "notable": string[], "question"?: string }`; failure → `invalid_output` and **no** acknowledge.
   verify: valid → ok; prose → invalid_output with cursor unchanged; extra keys → ok.
+  note: the extraction is **brace-matched, not regular-expression-matched**, and that is the whole of the increment's difficulty. A greedy pattern swallows a trailing object; a lazy one truncates at the first nested one; neither can describe balanced delimiters, and the input this exists for - a nested result inside a chatty sentence - breaks both. Strings are tracked too, so a closing brace inside a quoted value does not end the object early. The schema lives in `aiWorker.ts` beside the validator it describes rather than in `aiIngest.ts` with the rest of the prompt: a schema that has drifted from its validator produces `invalid_output` forever with nothing indicating why, and one file owning both is the only thing that prevents it. `LiveReview` has no field for a command, a destination or a target, so a model that wants the character to act has nowhere to put it - section 2's one command path enforced by the shape of the contract rather than by filtering afterwards.
+  verify (as done): `npm run test:ai-worker` → `65 checked, 0 failed`, `all passed`. Conforming object → ok and parsed; a json code fence inside two sentences → still found; nested object plus trailing prose → ok with extra keys kept; a closing brace inside a quoted string → does not close the object; prose → `invalid_output` with `and the cursor did NOT move  0`; valid JSON of the wrong shape → `invalid_output`, cursor `0`; a truncated object → `invalid_output` rather than a crash; and the request's instructions begin with the caller's own prompt and end with the schema the validator enforces.
+  sabotage: delete the demotion line so a non-conforming answer stays `ok` → `59 checked, 6 failed`, including `and the cursor did NOT move  1` - the exact harm, a cursor moved past events nothing ever reviewed and which cannot be moved back. Restored, md5 `eed5e2c6bab1` either side.
+  pitfall met: the suite's success double returned `'{}'`, which is no longer a review. The property those checks assert - a working model advances the cursor - is unchanged, so the fixture was updated rather than the contract loosened.
 
-- [ ] **H4  Live review v1 in the panel** (≈15)
-  touches: C1>src/components/shared/AiWorkerPanel.tsx
+- [x] **H4  Live review v1 in the panel** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 25
+  touches: C1>src/components/shared/AiWorkerPanel.tsx, C1>src/lib/aiIngest.ts, tools/ai-worker-host-test.mjs
   depends-on: H3
   do: show last `notable[]`, `question`, and time. Nothing else changes.
   verify: browser with a model: the list updates on a room change.
+  note: the review is **held between turns**, not replaced with null when a turn produces none. The host ticks once a second and almost every tick is idle, so a field that blanked each time would flicker faster than anybody could read it. An empty `notable` renders "Nothing notable." rather than an empty box, because a review that found nothing and no review at all are different states.
+  verify (as done, and **the increment's own verify could not be run as written**): it asks for a browser with a model, and this machine has neither - no Ollama (H1's note), and `attachGame` goes through Tauri, so in Chrome the game socket does not exist and the journal stays empty forever. `gameLines()` was `0` and the host sat on `lastOutcome: 'background-idle'` at `ticks: 95`, which is the honest reading of a client with nothing to review rather than a fault. So the chain was driven in the running app instead, against a real loopback HTTP model server: `runHostTick` with a journal holding two events returned `lastOutcome: 'review'`, `lastFailure: null`, `cursor: 2`, and a `lastReview` carrying the server's notable line, its question and a timestamp, with the server's own log confirming `completion 1`. That is every link from the socket to the parsed review; the one step not exercised in a browser is React drawing it, which six source checks in `tools/ai-worker-host-test.mjs` hold to shape - the list, the empty case, the question, the timestamp, and the hold-between-turns rule. **Somebody with the Tauri app and a real model should still watch the list change on a room change** before this is called finished on screen.
 
-- [ ] **H5  Measure** (≈30)
+- [!] **H5  Measure** (≈30)
+  blocked-on: no model runtime on this machine. Ollama is **not installed**: `Get-Command ollama` finds nothing; a recursive search of `C:` for `ollama*.exe` returns nothing while the same search finds `node.exe` (positive control, so the zero is about the machine and not the instrument); the Ollama home directory holds a config and an **empty** models directory, so it was installed once and removed; nothing listens on 11434. `nvidia-smi --query-gpu=memory.total --format=csv` does report `12282 MiB`, so the GPU half of the requirement is fine and only the runtime is missing. Installing one and pulling Qwen3-4B is a download and an install decision, which is Dan's rather than this lane's. **No numbers are written and section 11's targets are untouched**: a measured file is the entire point of this increment, and inventing figures or promoting the marketing ones would be worse than the gap. To unblock: install Ollama, `ollama pull qwen3:4b`, then re-run this increment.
   touches: C1>docs/LOCAL_AI_BACKGROUND_WORKER.md
   depends-on: H4
   do: Qwen3-4B q4 on the RTX 4070: tokens/s and time-to-first-token over 20 live-review requests → `docs/verification/model-perf-<date>.md`; replace §11's targets with measured numbers.
@@ -1044,13 +1059,18 @@ whether it is embedded, docked or a separate window is D0.
   note: landed with H1 rather than after it, because H1 is the first module in this directory with anything to log and a redactor with no caller is exactly the scaffold `AGENTS.md` forbids. `redactSecrets` is built from `aiModelProvider.ts`'s own `SECRET_PATTERNS` - the list the prompt gate already uses - rather than a private copy, because two lists answering one question drift and the half nobody re-reads is the half that leaks. `aiLog` is the only permitted console call in the AI modules and the ratchet enforces it. Today **no** AI module logged anything at all, so the check's value is entirely in the next one; it therefore asserts its own population first (`the scan found the AI modules rather than an empty list  9 files`) so a broken walk reports itself instead of certifying an empty directory clean.
   verify (as done): `npm run test:ai-local-provider` → `a key-shaped value is replaced  request failed: [redacted api or provider key] rejected`, `and the kind that matched is named, so the line is still diagnosable`, `aiLog writes exactly one line  1`, `no ai*.ts module writes to console except aiLog`. The fixture key is assembled at runtime (section 1 trap 3): a credential-shaped literal in a tracked file is blocked by gitleaks whether or not it is real.
 
-- [ ] **H7  OOM/timeout/absent are distinct on screen** (≈10)
-  touches: C1>src/components/shared/AiWorkerPanel.tsx, C1>tools/ai-worker-host-test.mjs
+- [x] **H7  OOM/timeout/absent are distinct on screen** (≈10)
+  commit: (this PR) verified: 2026-09-05 minutes: 25
+  touches: C1>src/components/shared/AiWorkerPanel.tsx, C1>tools/ai-worker-host-test.mjs, C1>src/lib/aiModelProvider.ts, C1>src/lib/aiIngest.ts
   depends-on: H2
   do: one string per `ProviderFailure` kind; a test maps each kind to a distinct string.
   verify: test green.
+  note: the status carried only `lastFailure`, which reads `"timeout: No result within the 5s budget."` - fine to read once, useless to branch on, and a panel wanting to say something different for out-of-memory had to match the prefix of a sentence somebody may later reword. So `lastFailureKind` travels beside it as the closed set it is. The table is a `Record` over the failure type, so a new kind fails to compile here rather than quietly inheriting somebody else's sentence. **Distinct is not the real bar**: the test also checks that each sentence names a *different next action*, because seven distinguishable strings that all mean "something went wrong" would pass a uniqueness check and help nobody.
+  verify (as done): `npm run test:ai-worker-host` → `106 checked, 0 failed`, `all passed`, including `and no two kinds share one  7 distinct of 7`, `out of memory sends you to a smaller model`, `timeout is about time, not about memory`, and `the panel reads the shared table rather than writing its own copy`.
+  sabotage: point `out_of_memory` at the `error` sentence → `FAIL and no two kinds share one  6 distinct of 7` **and** `FAIL out of memory sends you to a smaller model  The model server returned an error.`, 98 checked 2 failed; restored, md5 `2a9286427626` either side. It firing on both is what says the second check does work the uniqueness check alone would not.
 
-- [ ] **H8  Script-repair vertical job** (≈45; three commits)
+- [!] **H8  Script-repair vertical job** (≈45; three commits)
+  blocked-on: G6, which is `[ ]`. This increment's `depends-on` names G6 and H3; H3 is `[x]` and G6 has not been started, and section 0.3 requires every `depends-on` to be `[x]` before work begins. It also `touches:` two files Lane G creates, neither of which exists yet, so there is nothing here to extend and writing them from this lane would be the fork section 1 trap 17 forbids. Free to claim the moment Lane G reaches G6.
   touches: G1>src/lib/aiJobProducers.ts, C1>src/lib/aiWorker.ts, G2>src/lib/aiKnowledgeTools.ts, new:tools/ai-script-repair-test.mjs, package.json, tools/test-suites.json
   depends-on: G6, H3
   do: producer: a task failing twice with the same error → `script_repair`. Tool `read_script(id)` read-only. The job asks for a unified diff; the worker writes the patched copy **under the app data dir, never over the script**; runs `ruby -c` / `node --check` / `tsc --noEmit` on the copy and E7's fixtures; result → claim `{predicate:'script_patch', value:{diff, checks}}` awaiting review. Never activates.

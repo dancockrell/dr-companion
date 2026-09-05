@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "task_id": "h2-model-server-url",
+  "agent": "claude-code",
+  "summary": "A stored loopback address builds the local provider, the answer is parsed against a schema before anything is acknowledged, and each way a model can fail says something different on screen",
+  "status": "completed",
+  "claimed_at": "2026-09-05T19:15:00Z",
+  "updated_at": "2026-09-05T20:40:00Z",
+  "paths": [
+    "src/lib/aiWorkerHost.ts",
+    "src/lib/aiWorker.ts",
+    "src/lib/aiModelProvider.ts",
+    "src/lib/aiIngest.ts",
+    "src/components/shared/AiWorkerPanel.tsx",
+    "tools/ai-worker-test.mjs",
+    "tools/ai-worker-host-test.mjs",
+    "tools/build-player-data-doc.mjs",
+    "docs/PLAYER_DATA.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/h2-model-server-url.json"
+  ],
+  "symbols": [
+    "readProviderUrl",
+    "writeProviderUrl",
+    "buildProvider",
+    "getActiveProvider",
+    "testProviderConnection",
+    "parseStructured",
+    "failureSentence",
+    "LiveReview"
+  ],
+  "coordination": {
+    "depends_on": [
+      "H1 (PR #316)"
+    ],
+    "conflicts_with": [],
+    "notes": "AiWorkerPanel.tsx is edited by Lane G and SettingsSheet.tsx by Lane E. SettingsSheet.tsx is NOT touched at all here, and in the panel only the provider section changed: nothing was reordered, and the surrounding blocks (unreviewed events, alerts, loss, jobs, the closing paragraph) are byte-identical. absentProvider() remains the default and is what an install with no stored address gets. The failure vocabulary lives in aiModelProvider.ts, which owns ProviderFailure, so the panel reads one table rather than keeping a rival copy."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "npm run test:ai-worker: 65 checked, 0 failed, all passed (H3)",
+      "npm run test:ai-worker-host: 106 checked, 0 failed, all passed (H2, H4, H7)",
+      "node tools/run-tests.mjs: all passed, 119 suites, 3702 checks (was 118/3569 at baseline)",
+      "npx tsc -b --force: exit 0",
+      "node tools/plan-audit.mjs: plan ok, 112 increments, 225 paths checked",
+      "H2 in the running app at 127.0.0.1:1437 against a throwaway OpenAI-compatible server at 127.0.0.1:11437: entering the address and pressing Test moved the panel from 'No local model is installed.' to 'ready'; the stored setting read back correctly; getAiStatus() reported available:true at ticks:140",
+      "H4 in the running app: runHostTick against that same server returned lastOutcome:'review', lastFailure:null, cursor:2 and a parsed lastReview carrying the notable line, the question and a timestamp; the server logged 'completion 1'",
+      "H4 could NOT be verified as written (browser + model + room change): Ollama is not installed and attachGame goes through Tauri, so a browser has no game socket and gameLines() stayed 0. Six source checks hold the render to shape instead, and the plan says plainly that a Tauri run with a real model is still owed.",
+      "H3 sabotage: delete the invalid_output demotion -> 59 checked, 6 failed including 'and the cursor did NOT move  1'; restored, md5 eed5e2c6bab142bb645f957df168f25d",
+      "H7 sabotage: point out_of_memory at the error sentence -> 98 checked, 2 failed ('6 distinct of 7' and the next-action check); restored, md5 2a92864276263698484a9989c6b141de",
+      "H2 sabotage: buildProvider passing allowRemote:true -> 99 checked, 1 failed; restored, md5 9aa2e82f1af59fbfbb5820e8a790a50a",
+      "the first version of the allowRemote check matched the bare word and flagged the comment explaining why it is never passed - a check failing on its own documentation - and was narrowed to the code form",
+      "an existing guard in ai-worker-host-test.mjs correctly refused the two new status fields until they had changed values to compare with, which is the check doing its job rather than a defect",
+      "tools/build-player-data-doc.mjs refused to build until drc.ai-provider.v1 had a description; added, and test:player-data now reports 25 keys checked, 0 failed",
+      "every process started for the browser check was killed by the port it owned, and 1437, 11437 and 11129 were each confirmed closed afterwards",
+      "split from H1/H6, which shipped as PR #316; this branch was reset onto origin/main 19458ecf after Lane D merged, the PR 1 scope was committed first, and every file was then restored from a byte copy and verified by md5 against the pre-split state before this commit",
+      "test:server had been reported 'not run - port 7893 already in use, another session is probably running this suite' on an earlier full run. Re-run with DRC_TEST_PORT set to a free port it passes with 172 checks, so the suite is genuinely green rather than green-with-a-hole. The runner reporting it as NOT RUN rather than folding it into a pass is that guard working."
+    ]
+  }
+}

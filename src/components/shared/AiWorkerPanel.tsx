@@ -1,5 +1,12 @@
-import { useSyncExternalStore } from 'react'
-import { getAiStatus, subscribeAiStatus } from '../../lib/aiWorkerHost'
+import { useState, useSyncExternalStore } from 'react'
+import {
+  getAiStatus,
+  readProviderUrl,
+  subscribeAiStatus,
+  testProviderConnection,
+  writeProviderUrl,
+} from '../../lib/aiWorkerHost'
+import { failureSentence } from '../../lib/aiModelProvider'
 
 /**
  * What the local AI worker is doing, and every way it is currently failing.
@@ -26,9 +33,27 @@ import { getAiStatus, subscribeAiStatus } from '../../lib/aiWorkerHost'
  */
 export function AiWorkerPanel() {
   const status = useSyncExternalStore(subscribeAiStatus, getAiStatus, getAiStatus)
+  // Local draft, committed on Connect. Writing on every keystroke would
+  // rebuild the provider - and open a probe - for every character of a URL
+  // somebody is halfway through typing.
+  const [draft, setDraft] = useState(() => readProviderUrl() ?? '')
+  const [testing, setTesting] = useState(false)
 
   const jobRows = Object.entries(status.jobs).filter(([, n]) => n > 0)
   const lost = status.journalLost + status.missedLines
+
+  const connect = async () => {
+    writeProviderUrl(draft)
+    setTesting(true)
+    try {
+      // The button probes the provider the worker is actually using, not a
+      // second one built here: a connection test that passes for an object
+      // nobody runs is worse than no test.
+      await testProviderConnection()
+    } finally {
+      setTesting(false)
+    }
+  }
 
   return (
     <div className="space-y-1.5">
@@ -83,15 +108,77 @@ export function AiWorkerPanel() {
         </p>
       )}
 
-      {/* What is actually true today. There is no local provider in this
-          build, so the panel must not imply that pointing it at something
-          would help. tools/ai-worker-host-test.mjs holds this sentence to the
-          presence of src/lib/aiLocalProvider.ts, so the promise and the code
-          cannot drift apart. */}
-      {!status.available && (
+      {/* What is actually true today. tools/ai-worker-host-test.mjs holds this
+          sentence to whether aiWorkerHost.ts can build a local provider at
+          all, so the promise and the code cannot drift apart. */}
+      <div className="space-y-1 rounded border border-border bg-surface px-2 py-1.5">
+        <label className="block text-xs text-ink-faint" htmlFor="ai-provider-url">
+          Model server
+        </label>
+        <div className="flex gap-1.5">
+          <input
+            id="ai-provider-url"
+            type="text"
+            className="min-w-0 flex-1 rounded border border-border bg-canvas px-1.5 py-1 text-xs text-ink"
+            placeholder="http://127.0.0.1:11434"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            spellCheck={false}
+          />
+          <button
+            type="button"
+            className="rounded border border-border px-2 py-1 text-xs text-ink"
+            onClick={() => void connect()}
+            disabled={testing}
+          >
+            {testing ? 'Testing' : 'Test'}
+          </button>
+        </div>
         <p className="text-xs text-ink-faint leading-snug">
-          Local model support is not yet available in this build.
+          Optional. Point this at a model server running on this machine - Ollama on
+          11434, LM Studio on 1234, llama.cpp on 8080. An address anywhere else is
+          refused and nothing is sent to it. Leave it empty and the client works
+          exactly as it does now.
         </p>
+      </div>
+
+      {/* One sentence per failure kind, from aiModelProvider.ts. A single
+          "the model failed" would leave a person with no idea whether to
+          install something, choose a smaller model, or simply wait. */}
+      {status.lastFailureKind && status.lastFailureKind !== 'privacy_gate' && (
+        <p className="text-xs text-ink-muted leading-snug">
+          {failureSentence(status.lastFailureKind)}
+        </p>
+      )}
+
+      {/* The last thing the model actually said. Held between turns rather
+          than blanked on every idle tick, which at one tick a second would be
+          a flicker nobody could read. */}
+      {status.lastReview && (
+        <div className="rounded border border-border bg-surface px-2 py-1.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-xs text-ink-faint">Last review</span>
+            <span className="text-xs tabular-nums text-ink-faint">
+              {new Date(status.lastReview.at).toLocaleTimeString()}
+            </span>
+          </div>
+          {status.lastReview.notable.length > 0 ? (
+            <ul className="mt-1 space-y-0.5">
+              {status.lastReview.notable.map((note, i) => (
+                <li key={`${i}-${note}`} className="text-xs text-ink leading-snug">
+                  {note}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-xs text-ink-faint leading-snug">Nothing notable.</p>
+          )}
+          {status.lastReview.question && (
+            <p className="mt-1 text-xs text-ink-muted leading-snug">
+              {status.lastReview.question}
+            </p>
+          )}
+        </div>
       )}
 
       {jobRows.length > 0 && (
