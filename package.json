@@ -85,6 +85,8 @@
     "test:node-projection": "node tools/node-tethered-world-projection-test.mjs",
     "test:geometric-kit": "node tools/crossing-geometric-kit-test.mjs",
     "world:primitive-registry": "node tools/build-crossing-primitive-registry.mjs",
+    "world:godot-mock": "node tools/build-godot-mock-fixture.mjs",
+    "test:godot-fixture-contract": "node tools/godot-fixture-contract-test.mjs",
     "godot:export": "node tools/export-godot-viewer.mjs",
     "test:godot": "node tools/godot-tests.mjs",
     "release:config": "node tools/build-release-config.mjs",

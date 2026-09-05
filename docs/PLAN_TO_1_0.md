@@ -273,6 +273,7 @@ PRs per lane, squash-merged.
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
 | I | I1–I11 | `lane-i/color-tokens` | `dev/wt-i` | 5 Sep 2026 |
 | D | D1–D6 | `lane-d/layout` | `dev/wt-d` | 5 Sep 2026 |
+| L | L1–L6 | `lane-l/viewer-contract` | `dev/wt-l` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296) and **E/F** (E5–E8,
 F2, F6, PRs #293 and #295). Their rows are gone from the table above, which is
@@ -1143,25 +1144,30 @@ receives. No portraits, no images in the client.
 
 ### Lane L — Codex contract for the Crossing slice
 
-- [ ] **L1  Name what I own** (≈15)
+- [x] **L1  Name what I own** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 20
   touches: docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: B3
   do: §2 lists: snapshot/event/intent shapes and their tests; the mock fixture generator; `tools/live-chain-check.mjs`; the acceptance checklist (L4). Codex owns every `.tscn`, content `.gd`, GLB and material.
   verify: the list is in §2.
 
-- [ ] **L2  Mock fixture becomes a derived artefact** (≈20)
+- [x] **L2  Mock fixture becomes a derived artefact** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 40
+  note: the source is `data/world/out/1-primitive-world.json`, not the registry file the increment named — the registry is an input to it and carries assets, not cells. The fixture's original cell order matched no property of the data, so the generator states an order (focused room first, then room number) and the committed file was regenerated into it; content is byte-identical per cell.
   touches: new:tools/build-godot-mock-fixture.mjs, godot/mock/crossing_mock_world.json, package.json
   depends-on: L1
   do: `git grep -n crossing_mock_world tools/` — if no generator exists (none did on 5 Sep), write one extracting Town Green North + depth 2 from the primitive world manifest that `tools/build-primitive-world-manifest.mjs` writes (`data/world/out/crossing-primitive-registry.json` and its siblings — read that tool's `outputDir`). `--check` compares to the committed fixture.
   verify: `node tools/build-godot-mock-fixture.mjs --check` exit 0.
 
-- [ ] **L3  Data contract tests** (≈30)
+- [x] **L3  Data contract tests** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 35
   touches: new:tools/godot-fixture-contract-test.mjs, package.json, tools/test-suites.json, docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: L2
   do: every exit resolves to a cell or is `targetCellId:null`; no cell has two exits with the same `move`; the current room is in `cells`. §9 maps each requirement to a test name on both sides (`godot/tests/foundation_test.gd` already exists).
   verify: suite green in the full run.
 
-- [ ] **L4  Slice acceptance checklist** (≈15)
+- [x] **L4  Slice acceptance checklist** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 15
   touches: docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: L1
   do: §9: Town Green North renders; every real exit clickable; click → `intent_accepted` → confirmed room change → token moves; a fabricated exit is refused; a stun flips `cannotAct` and the scene reacts; an assessed creature's confidence visibly ages. Each line has a "recorded in docs/verification/… on <date>" slot.

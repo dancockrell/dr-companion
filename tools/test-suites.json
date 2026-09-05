@@ -114,5 +114,6 @@
   "test:map-viewport",
   "test:game-time",
   "test:command-history",
-  "test:editor-safety"
+  "test:editor-safety",
+  "test:godot-fixture-contract"
 ]

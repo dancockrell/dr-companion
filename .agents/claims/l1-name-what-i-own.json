@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "task_id": "l1-name-what-i-own",
+  "agent": "claude-code",
+  "summary": "Extend the handoff's ownership boundary with the contract half Claude keeps, so Codex's content work has one named counterparty",
+  "status": "completed",
+  "claimed_at": "2026-09-05T16:30:00Z",
+  "updated_at": "2026-09-05T16:45:00Z",
+  "paths": [
+    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["b3-record-the-proof"],
+    "conflicts_with": [],
+    "notes": "Section 2 of the handoff already describes a split, with a 'Codex' subsection and a 'Claude's delivered contribution' subsection. Extending the existing Claude subsection rather than adding a rival ownership section: the second heading is renamed from 'delivered contribution' (past tense, a one-off) to name the standing contract surface, and the delivered-slice paragraph is kept underneath it. No Codex bullet is altered. node tools/plan-audit.mjs --claims lists no non-completed claim naming a godot/ path."
+  },
+  "completion": {
+    "commit": null,
+    "checks": []
+  }
+}
