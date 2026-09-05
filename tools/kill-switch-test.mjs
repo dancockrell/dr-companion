@@ -60,6 +60,24 @@ const OWNERS = [
   'src/lib/flowStop.ts',
 ]
 
+/**
+ * What each owner's import closure should come to, including the file itself.
+ *
+ * Stated rather than floored, because the two owners are deliberately
+ * different shapes and a single floor cannot express that. `stopAllTasks.ts`
+ * imports nothing at all — it takes its backends as arguments, which is what
+ * lets the safety core load with the task runners absent — so its closure is
+ * exactly itself, and that 1 is a property to assert, not a number to clear.
+ * `flowStop.ts` is the wiring layer and reaches the two runners plus Tauri.
+ *
+ * A number here changing is a real event: it means a kill-switch owner grew a
+ * dependency. Update it deliberately and say why in the commit.
+ */
+const EXPECTED_CLOSURE = {
+  'src/lib/stopAllTasks.ts': 1,
+  'src/lib/flowStop.ts': 5,
+}
+
 /* ------------------------------------------------------------------ */
 /* Part 1 - the controls work with isTauri() false                     */
 /* ------------------------------------------------------------------ */
@@ -237,15 +255,43 @@ function closure(entry) {
   return [...seen]
 }
 
+console.log('\n-- the import parser itself, before trusting anything it says --')
+{
+  // This is the check the per-owner denominator below was trying and failing
+  // to be. `closure()` seeds itself with the entry file, so "reached at least
+  // one module" is true before a single import is parsed - the old floor
+  // (`reached.length >= 1`) permitted precisely the state its own comment said
+  // it existed to catch. An independent review demonstrated it by making
+  // `relativeImports()` return `[]`: four checks about a safety-critical
+  // control went vacuously green on an empty set, and the suite only went red
+  // through an unrelated check that happened to act as an accidental control.
+  //
+  // So the parser is now tested against a file known to import things, which
+  // no owner's own closure size can fake. If this line is red, nothing below
+  // it means anything.
+  const CONTROL = 'src/lib/flowStop.ts'
+  const direct = relativeImports(CONTROL)
+  ok(
+    direct.length >= 2,
+    `the import parser reads real imports: ${CONTROL} has ${direct.length}`,
+    direct.join(', ')
+  )
+}
+
 console.log('\n-- what each kill-switch owner can reach --')
 const found = []
 for (const owner of OWNERS) {
   ok(existsSync(owner), `owner ${owner} exists`)
   const reached = closure(owner)
-  // The denominator. An owner that reaches only itself means the import
-  // parser stopped working, and every category check below would pass on an
-  // empty set.
-  ok(reached.length >= 1, `${owner}: closure has ${reached.length} modules`)
+  // Each owner declares what it should reach, rather than clearing a floor.
+  // A blanket `>= 2` would be wrong: `stopAllTasks.ts` genuinely imports
+  // nothing, because it takes its backends as arguments, and that is a
+  // property worth stating rather than a bar to get over.
+  const expected = EXPECTED_CLOSURE[owner]
+  ok(
+    expected !== undefined && reached.length === expected,
+    `${owner}: closure has ${reached.length} modules, expected ${expected ?? '(undeclared owner)'}`
+  )
   console.log(`     ${owner} reaches: ${reached.join(', ')}`)
 
   const ai = reached.filter((m) => category(m) === 'ai')
