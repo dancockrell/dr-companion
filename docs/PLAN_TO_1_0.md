@@ -1,7 +1,7 @@
 # DR Companion — the working plan to 1.0
 
-Version 3, 5 Sep 2026, written against `main` @ `ae0e57a9` with PR #285 @
-`8299fe86` open and mergeable. Section 9 lists what the audit of version 2
+Version 3.1, 5 Sep 2026 (3.0 earlier the same day), written against `main` @ `ae0e57a9` with PR #285 @
+`8299fe86` open and mergeable. Section 11 evaluates the 5 Sep handoff PDF against this plan. Section 9 lists what the audit of version 2
 found wrong and how each was found. Section 10 lists the decisions only Dan
 can make.
 
@@ -155,6 +155,15 @@ Each has already been hit in this repository. None is hypothetical.
     `CreatureArt.tsx` and proposes `src/domain/*`. Version 2 of this plan
     proposed extending `portraits.ts`; one `git diff --stat` would have
     stopped it. Before touching a file, `git log --all --oneline -3 -- <file>`.
+20. **Do not batch-edit this file with `sed`.** Its tables are full of `|`,
+    and under `sed -E` an unescaped `|` inside the pattern is alternation: a
+    pattern that begins with `|` matches the empty string at the start of
+    every line, so the replacement is prepended to all 1,200 of them. That
+    happened while writing version 3.1 and was reversed only because the
+    injected text was byte-identical on every line. Use the Edit tool, or a
+    node script that asserts how many lines it changed and refuses on
+    surprise, and run `node tools/plan-audit.mjs` before committing —
+    "parsed only 0 increments" was the first sign.
 
 ---
 
@@ -214,7 +223,7 @@ Then `gh pr checks <n>`; merge when green with `gh pr merge <n> --squash
 | **D** | Layout toward the approved mockup | `App.tsx`, `columns.ts`, `layout.ts`, `MapWindow.tsx`, `panelDataContracts.ts` | D0 decided, A1 |
 | **E** | First run and setup | `first-run/*`, `lich.rs`, Settings Bridge section, `docs/verification/` | none |
 | **F** | Release engineering | `.github/workflows/release.yml`, versions, About/licences | none |
-| **G** | AI slices 5–7 | new `aiKnowledgeTools.ts`, `aiClaimStore.ts`, `aiJobProducers.ts` | Lane A complete |
+| **G** | AI slices 5–7 | new `aiEvidenceStore.ts`, `aiKnowledgeTools.ts`, `aiClaimStore.ts`, `aiJobProducers.ts`, `aiSuggestions.ts` | Lane A complete |
 | **H** | Local model provider | new `aiLocalProvider.ts`, Settings AI section | A2 |
 | **I** | Design tokens (#176, #179) | `src/components/**`, `src/index.css`, new `tools/color-token-test.mjs` | none |
 | **J** | Map audit (#175) | per finding | D5 |
@@ -249,7 +258,7 @@ passes.
 - **Gate 0 — Stable base:** C0–C3, A1–A6, B1–B3, E1–E4, F1.
   Check: fresh worktree → `npm run worktree:init && cd src-tauri && cargo test
   --lib` green; `docs/verification/live-chain-*.md` exists with a date.
-- **Gate 1 — Text client stands alone:** D0–D6, E5–E9, C4–C6, A7–A8.
+- **Gate 1 — Text client stands alone:** D0–D6, E5–E9, C4–C6, C8, A7–A12.
   Check: `grep -c "kind === 'map'" src/App.tsx` → `0`; kill-switch suite (E5)
   green; a full play session recorded with viewer and AI absent.
 - **Gate 2 — First run:** E10–E12, F2–F4.
@@ -258,7 +267,7 @@ passes.
 - **Gate 3 — Viewer optional:** B4–B8, L1–L6.
   Check: `node tools/live-chain-check.mjs` passes against the running app;
   Crossing slice walk/stun/decay recorded.
-- **Gate 4 — AI optional:** G1–G10, H1–H8.
+- **Gate 4 — AI optional:** G0–G10, G12, H1–H8 (G11 only with Dan's yes).
   Check: no model → panel honest, client unchanged; local Qwen → one map claim
   and one script proposal reach review with provenance; scanner tests green.
 - **Gate 5 — Public quality:** I1–I11, J complete, F5–F8.
@@ -454,6 +463,38 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   do: when `!available` and `src/lib/aiLocalProvider.ts` is absent from the build, show "Local model support is not yet available in this build."; once H1 lands, "Point Settings → Local model at a running Ollama or LM Studio on 127.0.0.1". A test reads the panel source and asserts the string matches the presence of `aiLocalProvider.ts`.
   verify: test green today (file absent → first string).
 
+The four increments below came out of reading the 5 Sep implementation
+handoff PDF against the code (section 11). Each is a defect visible in the
+PDF's own source appendices that its text did not call out.
+
+- [ ] **A9  No model means an idle worker, not a red loss counter** (≈20)
+  touches: C1>src/lib/aiWorkerHost.ts, C1>src/components/shared/AiWorkerPanel.tsx, C1>tools/ai-worker-host-test.mjs
+  depends-on: A1
+  do: today an install with no model still journals every line, never acknowledges (the absent provider never returns `ok`), fills the 5000-event bound, and then the panel prints "N events were discarded before review" in `text-danger` forever. The capture is correct; the framing is a lie. When `provider.describe().available` is false: the tick still ingests (capture is continuous), but the panel shows "No local model; N events captured, none reviewed" in ordinary ink and `journalLost` is reported as "unreviewed" not "discarded". Loss stays red only while a provider is available.
+  verify: test — absent provider, 6000 lines ingested → status has `unreviewedWithoutModel > 0` and `journalLost` is not surfaced as loss; available provider (scripted) with the same input → loss surfaced.
+  sabotage: remove the availability branch → the first check red.
+
+- [ ] **A10  A handled alert stays handled until its condition clears** (≈25)
+  touches: C1>src/lib/aiAlertBroker.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-alert-broker-test.mjs
+  depends-on: A2
+  do: `acknowledge(key)` deletes the key, and the host's alert effect re-derives `situation:stunned` on every character update, so a stun that lasts four rounds becomes four urgent reviews (one per second with a real provider). The handoff's alert lifecycle separates ACK from RESOLVE. Implement the minimum: the broker keeps a `handled: Set<key>`; `raise()` of a handled key increments `occurrences` but does not re-enter `pending`; `reconcile(activeKeys)` (called by the host after `deriveAlerts`) drops handled keys no longer present, so the next occurrence is a fresh alert. Critical priority is exempt: a repeated disconnect must always re-alert.
+  verify: tests — stunned raised, acked, raised again → `pendingCount()` 0 and `occurrences` 2; condition clears then returns → pending 1; a critical key re-enters pending after ack.
+  sabotage: skip the `handled` check in `raise` → first check red.
+
+- [ ] **A11  A privacy-gate refusal is a visible failure, not an unhandled rejection** (≈15)
+  touches: C1>src/lib/aiWorker.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-test.mjs
+  depends-on: A2
+  do: `assertPromptCarriesNoSecrets` throws (correctly — a leak must stop the call) from outside `generateWithinBudget`'s try; `runWorkerOnce` does not catch; the host's tick has `try/finally` with no `catch`, so the rejection is unhandled and the tick reports nothing. Today unreachable (the live request carries only seqs and kinds) and reachable the moment G4 or G6 puts text in a request. Catch in `runWorkerOnce`: the outcome becomes `{did:'review'|'background-job', result:{ok:false, failure:'privacy_gate', message:<pattern names only>}}`; cursor untouched; job → `failed` with the pattern name; panel shows "Sensitive input withheld". Add `'privacy_gate'` to `ProviderFailure`.
+  verify: test — a request whose `state` contains a runtime-assembled `pass`+`word: x` → outcome `privacy_gate`, cursor unchanged, no throw escapes.
+  sabotage: let the throw escape → the test's `await` rejects → red.
+
+- [ ] **A12  Job transitions match the contract: completed needs a result** (≈15)
+  touches: C1>src/lib/aiJobStore.ts, C1>tools/ai-job-store-test.mjs, C1>docs/LOCAL_AI_BACKGROUND_WORKER.md
+  depends-on: C1
+  do: code allows `running → completed` directly and `checkpointed → failed`; the handoff's table (§25) allows neither and adds `checkpointed → queued`. Reconcile in favour of the stricter table with one exception kept: `running → completed` stays legal **only** when the transition carries a `resultRef` (a job that finished with nothing to review, e.g. evaluation mining that found no cases). Add `resultRef?: string` to `BackgroundJob`; `transition(…, 'completed')` without it is refused. Add `checkpointed → queued`. Write the final table into `LOCAL_AI_BACKGROUND_WORKER.md` §6 so the doc and the code cannot disagree.
+  verify: tests — `completed` without `resultRef` refused; with it accepted; `checkpointed → queued` accepted; `checkpointed → failed` refused.
+  sabotage: drop the `resultRef` check → red.
+
 ---
 
 ### Lane B — Prove the live chain (day one, in parallel)
@@ -557,8 +598,8 @@ whether it is embedded, docked or a separate window is D0.
 - [ ] **D4  Console row and side columns** (≈40; two commits)
   touches: src/App.tsx, src/components/room/GameChatColumn.tsx, src/lib/columns.ts
   depends-on: D3
-  do: commit 1: move the game transcript + command line into a bottom row of `CONSOLE_H` spanning the workspace, per the mockup's `.console` grid `228px | 1fr | 250px`; the existing `GameConnectionBar` stays mounted inside it (`tools/game-connection-owner-test.mjs` enforces this). Commit 2: left side = vitals/room/mindstate stack; right side = context/alerts/AI (the `AiWorkerPanel` moves here from Settings — one component, two possible mounts is a fork, so it *moves*; Settings keeps only the provider URL field from H2). Existing panel ids stay; only their placement changes.
-  verify: D5's measurement passes at 1366×768 and 1920×1080; `node tools/game-connection-owner-test.mjs` green.
+  do: commit 1: move the game transcript + command line into a bottom row of `CONSOLE_H` spanning the workspace, per the mockup's `.console` grid `228px | 1fr | 250px`; the existing `GameConnectionBar` stays mounted inside it (`tools/game-connection-owner-test.mjs` enforces this). Commit 2: left side = vitals/room/mindstate stack; right side = context/alerts/AI (the `AiWorkerPanel` moves here from Settings — one component, two possible mounts is a fork, so it *moves*; Settings keeps only the provider URL field from H2). Existing panel ids stay; only their placement changes. Three hard rules from the handoff's §9 apply to whatever renders in the top bar and the board slot: the location line carries freshness and confirmation state ("Room 998 · confirmed 3 s ago", never a bare name); an unresolved location says "unresolved", never the last known town; nothing in the slot is a second minimap.
+  verify: D5's measurement passes at 1366×768 and 1920×1080; `node tools/game-connection-owner-test.mjs` green; a test renders the top bar with `mapHere = null` and asserts the text contains "unresolved" and not "Crossing".
 
 - [ ] **D5  Measure three resolutions** (≈25)
   touches: none
@@ -745,6 +786,13 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane G — AI slices 5–7 (after Lane A)
 
+- [ ] **G0  Evidence outlives the journal** (≈25)
+  touches: new:src/lib/aiEvidenceStore.ts, new:tools/ai-evidence-store-test.mjs, C1>src/lib/aiJobStore.ts, package.json, tools/test-suites.json
+  depends-on: A5
+  do: a claim's `evidenceRefs` are `event:<seq>` strings, and the journal evicts at 5000 events, so a candidate reviewed an hour later can cite evidence nobody can read. The handoff's `observations.read(refs)` presumes durable observations. Minimum honest version: `pin(refs, journal)` copies the referenced events' `{seq, at, kind, payload}` into `drc.ai-evidence.v1` at the moment a job or claim cites them; `resolve(refs)` returns them or `{missing:[…]}` — never a silent partial. `JobStore.create` pins `inputRefs`; G5's store refuses a claim whose refs do not resolve. Bounded by count with the oldest **unreferenced** entries evicted first; an entry cited by a live claim is never evicted.
+  verify: tests — pin, evict the journal past capacity, resolve → still returns the payload; a ref never pinned → listed in `missing`; eviction skips cited entries.
+  sabotage: evict cited entries → red.
+
 - [ ] **G1  Producer: divergent exits** (≈25)
   touches: new:src/lib/aiJobProducers.ts, C1>src/lib/aiWorkerHost.ts, new:tools/ai-job-producers-test.mjs, package.json, tools/test-suites.json
   depends-on: A4
@@ -755,9 +803,9 @@ whether it is embedded, docked or a separate window is D0.
 - [ ] **G2  Tool registry + `room_by_id`** (≈15)
   touches: new:src/lib/aiKnowledgeTools.ts, new:tools/ai-knowledge-tools-test.mjs, package.json, tools/test-suites.json
   depends-on: A4
-  do: `callTool(name, args, allowedTools)` returns `{ok:false, reason}` for a disallowed or unknown name — never throws. `room_by_id(zone, id)` → `{id, title, exits:[{move,to}], tags}` from the same `MapZone` data `compileWorldSnapshot` reads.
-  verify: allowed → result; disallowed → refusal naming the tool; unknown → refusal.
-  sabotage: skip the allowlist → red.
+  do: `callTool(name, args, allowedTools, trace)` returns `{ok:false, reason}` for a disallowed or unknown name — never throws. Every tool declares `{id, validate(args), maxResultBytes}`; an over-size result is truncated with `truncated:true`, never silently cut. Every call is appended to `trace` as `{tool, argsSummary, bytes, at}` (no payloads, no secrets) so a job's tool use is inspectable. Text fields returned to a model are wrapped as `{untrusted:true, text}` so the prompt builder can label them "data, not instructions" (the handoff's injection rule). `room_by_id(zone, id)` → `{id, title, exits:[{move,to}], tags}` from the same `MapZone` data `compileWorldSnapshot` reads.
+  verify: allowed → result; disallowed → refusal naming the tool; unknown → refusal; a 1 MB fixture result → truncated flag and `bytes <= maxResultBytes`; trace has one entry per call.
+  sabotage: skip the allowlist → red; skip the size cap → red.
 
 - [ ] **G3  Tool `lore_for`** (≈10)
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
@@ -768,21 +816,22 @@ whether it is embedded, docked or a separate window is D0.
 - [ ] **G4  Tool `recent_events`** (≈10)
   touches: G2>src/lib/aiKnowledgeTools.ts, G2>tools/ai-knowledge-tools-test.mjs
   depends-on: G2
-  do: `journal.readFrom(max(0, ack-n))` limited to n; returns kinds and seqs only — never `text` (it may hold player speech).
+  do: `journal.readFrom(max(0, ack-n))` limited to n; returns kinds, seqs and the G12 privacy class only — never `text` (it may hold player speech).
   verify: a check asserts no returned object has a `text` key.
 
 - [ ] **G5  Candidate-claim store** (≈35; two commits)
   touches: new:src/lib/aiClaimStore.ts, new:tools/ai-claim-store-test.mjs, package.json, tools/test-suites.json
   depends-on: A5
-  do: per `docs/LOCAL_AI_BACKGROUND_WORKER.md` §7: `claimId, subject, predicate, value, evidenceRefs[] (non-empty), confidence 0–1, status ∈ candidate|corroborated|accepted|rejected|superseded, producer {kind:'model'|'deterministic'|'player', model?, adapter?}, supersedes, timestamps`. Transition table like `aiJobStore.ts`. `drc.ai-claims.v1`. **Imports nothing from mapData, mapPins, bestiary or any canonical store** — a source check in the test enforces it.
-  verify: transitions; empty evidence refused; source check green.
-  sabotage: allow empty evidence → red.
+  do: the schema is the handoff's §28 (adopted whole — see section 11): `schemaVersion:1, claimId, subject, predicate, value, status ∈ candidate|corroborated|accepted-local|published|rejected|retracted|superseded, evidenceRefs[] (non-empty and resolvable via G0), producer {kind:'human'|'parser'|'model'|'import', identity, model?, adapter?, softwareVersion?}, confidence: number|null, createdAt, reviewedAt, reviewer, supersedes, privacy ∈ private|group|public-candidate (default private), licence: string|null`. Transitions: candidate→corroborated→accepted-local; candidate|corroborated→rejected; accepted-local→published only when `privacy !== 'private'` and `licence` is set (and only once G11-era sharing exists — refused until then); any non-terminal→retracted; supersession appends a new claim naming the old, never edits it (§31). `drc.ai-claims.v1`. **Imports nothing from mapData, mapPins, bestiary or any canonical store** — a source check in the test enforces it.
+  verify: transitions; empty or unresolvable evidence refused; `published` refused for `private`; supersession leaves the old record addressable; a supersession cycle (A supersedes B supersedes A) refused; source check green.
+  sabotage: allow empty evidence → red; allow the cycle → red.
 
 - [ ] **G6  Map job yields a claim even with no model** (≈25)
   touches: C1>src/lib/aiWorker.ts, G1>src/lib/aiJobProducers.ts, C1>tools/ai-worker-test.mjs
   depends-on: G1, G5
-  do: on `map_reconciliation` with provider absent or failing, emit the deterministic claim `{subject:'room:<id>', predicate:'exit_divergence', value:{diff}, confidence:0.5, producer:{kind:'deterministic'}}`, job → `awaiting_review`. A working provider's parsed JSON adds a second claim with `producer.kind:'model'`; malformed → `invalid_output` and the deterministic claim still stands.
-  verify: absent → 1 claim + awaiting_review; failing → same; valid JSON → 2 claims.
+  do: on `map_reconciliation` with provider absent or failing, emit the deterministic claim `{subject:'room:<id>', predicate:'exit_divergence', value:{diff}, confidence:0.5, producer:{kind:'parser', identity:'aiJobProducers.detectExitDivergence'}}`, job → `awaiting_review`. A working provider's parsed JSON adds a second claim with `producer.kind:'model'`; malformed → `invalid_output` and the deterministic claim still stands. Every model-proposed tether passes `validateTetherCandidate` (handoff §33) before it becomes a claim: `fromRoomId` known; a non-null `toRoomId` must appear as `currentRoomId` in a cited authoritative snapshot; a directionless exit gets `boardAnchor:null`, never a guessed one; kind `ferry` needs transport evidence; kinds `portal|warp` never infer adjacency from board proximity. A proposal that fails validation is recorded in the job note, not as a claim.
+  verify: absent → 1 claim + awaiting_review; failing → same; valid JSON → 2 claims; **adversarial**: invented destination → no claim, note names it; directionless exit → `boardAnchor` null; portal with proximity-only evidence → rejected; ferry without transport evidence → rejected.
+  sabotage: skip the destination check → the invented-destination test red.
 
 - [ ] **G7  Claim review UI** (≈30)
   touches: new:src/components/shared/AiClaimsPanel.tsx, src/components/layout/SettingsSheet.tsx
@@ -808,6 +857,21 @@ whether it is embedded, docked or a separate window is D0.
   depends-on: C4
   do: on `situation` transitions for stunned/webbed/immobilized (on and off) publish `PresentationEvent{kind:'status-change', authoritativeText:<flag>, roomId}` — derived from already-parsed flags, no text parsing. Godot's `event_player.gd` consumes ordered events.
   verify: `[]→['stunned']→[]` → exactly two events, increasing `sequence`; unchanged flags → none. The callerless-command sweep now lists only `extract_lich` and `bridge_install_status`.
+
+- [ ] **G11  Live suggestion through the confirmation gate** (≈40; two commits)
+  touches: new:src/lib/aiSuggestions.ts, new:tools/ai-suggestions-test.mjs, C1>src/lib/aiWorker.ts, C1>src/components/shared/AiWorkerPanel.tsx, package.json, tools/test-suites.json
+  depends-on: H3, G0
+  do: the handoff's §36, exactly. A suggestion is data: `{id, exactCommand, commandType, basedOnStateVersion, expiresAt, status:'pending'|'confirmed'|'expired'|'rejected'|'awaiting_result'|'resolved', evidenceRefs}`. `requestExecution(id, confirmation)` REQUIREs: status pending; not expired; `confirmation.commandText === exactCommand` (the player confirms the literal command, not a summary); `useAppStore.getState()` version equals `basedOnStateVersion` (find the store's version counter — `grep -n "version" src/store/useAppStore.ts`; if none exists, add one incremented on every character/room write); at most one suggestion in `awaiting_result`. Only then `requestGameAction` from `gameActions.ts` — the **only** import of it in any `ai*.ts`, and a source test asserts it is the only one. The authoritative result (next snapshot/state) resolves the suggestion; the model never marks its own proposal successful. Panel: one card with Confirm/Dismiss, the exact command in monospace, and the expiry.
+  verify: tests — stale state version → refused; altered command → refused; expired → refused; second pending while one awaits → refused; happy path sends exactly `exactCommand` once (spy on `requestGameAction`).
+  sabotage: skip the version check → red; skip the exact-command check → red.
+  pitfalls: this is the one increment that gives model output a path to the game. Dan's approval is required before merge (section 10).
+
+- [ ] **G12  Privacy class at ingest** (≈25)
+  touches: C1>src/lib/aiIngest.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-host-test.mjs
+  depends-on: A4
+  do: the handoff's §37 table. Each journalled event gets `privacy ∈ 'public-game' | 'private-player' | 'private-comms' | 'third-party'` derived from the already-parsed `stream` id (`grep -n "stream" src/types/stream.ts` for the vocabulary — whispers, thoughts, private messages are already labelled by the bridge). `private-comms` events are journalled (capture is continuous) but **excluded from every model request and every tool result by default**; a per-source opt-in setting lifts it. Credentials never have a class: they are refused by the scanner before they exist as events (A11).
+  verify: tests — a whisper line → `private-comms`; the live-review request built from a journal containing it carries neither its text nor its seq unless opted in; `recent_events` (G4) skips it; a room line → `public-game`.
+  sabotage: drop the exclusion filter → red.
 
 ---
 
@@ -1040,7 +1104,7 @@ F9 (gates 0–2) ──► F10 ──► F11 ──► F12 ──► F13 ──�
 ## 8. Estimate
 
 C 8 · A 8 · B 8 · D 7 · E 12 · F 14 · G 10 · H 8 · I 11 · J 2+ · K 6 · L 6 =
-**100 increments plus J's findings, ≈45 hours of unaided work**, plus waiting
+**108 increments plus J's findings, ≈50 hours of unaided work**, plus waiting
 on CI, downloads and the VM. Three sessions: Gate 0 in a day, Gate 2 in about
 a week, Gate 6 in about three weeks. Gate 7 depends on beta weeks, not code.
 Record actual `minutes:` on each `[x]`; the audit's `--tally` sums them so the
@@ -1087,3 +1151,85 @@ answered, the recommendation is what gets built.
   existing GitHub-releases fetch; no auto-install. *Decided:* —
 - **Shortest path.** Recommend shipping beta.1 with viewer and AI disabled
   (Gates 0→1→2→6). *Decided:* —
+- **G5 — claim vocabulary.** Recommend adopting the handoff PDF's §28 schema
+  whole (adds `privacy`, `licence`, `reviewer`, `retracted`, `published`)
+  rather than the narrower one v3 first wrote; nothing is built yet, so this
+  costs nothing now and a migration later. *Decided:* —
+- **G11 — live suggestions.** The one increment that gives model output a
+  path to a game command, confirmation-required, exact-command match, one
+  pending at a time. Recommend building it last in Lane G and not enabling it
+  in beta.1. Needs your explicit yes before merge. *Decided:* —
+- **G12 — whispers and private messages.** Recommend excluded from every
+  model prompt by default with a per-source opt-in, per the handoff's §37.
+  *Decided:* —
+- **The handoff PDF itself.** Recommend it is **not** committed: its
+  normative parts move into `docs/LOCAL_AI_BACKGROUND_WORKER.md` (C8) and its
+  execution parts are now increments here, so there is one source of truth
+  for each. The PDF stays a dated review artefact in your files. *Decided:* —
+
+---
+
+## 11. The 5 September implementation-handoff PDF, evaluated
+
+`DR-Companion-Claude-Implementation-Handoff.pdf` (84 pages, assembled from the
+PR #285 branch at `8299fe86`, the same commit as Codex's mockup ledger record)
+and this plan answer different questions and were written blind to each other.
+This section records what each is for, what the PDF added to this plan, and
+what it got wrong, so nobody has to read both again.
+
+**What it is.** A product and architecture contract: the player promise, ten
+non-negotiable rules, schemas (identity model, typed tethers, kits, candidate
+claims, tools, suggestions), state machines (cursor, jobs, alerts, model-result
+truth table), pseudocode for the four vertical slices, a privacy
+classification, a test-attack matrix, a milestone ladder M0–M9, and full
+source snapshots of the AI modules and the mockup. It says *what must be true
+and why*. It has no file-level steps, no commands, no expected outputs, no
+owner or claim mechanism, and no bookkeeping. This plan is the inverse: it
+says *what to type, in what order, by whom, and what the output must say*, and
+it leans on the repo docs for the why.
+
+**Adopted from it (now increments here):**
+
+| PDF section | Became | Why it was missing |
+|---|---|---|
+| §28 candidate-claim schema | G5 rewritten | v3's schema lacked privacy, licence, reviewer, retraction |
+| §29 tool registry rules (size cap, input validation, call trace, untrusted-text labelling) | G2 rewritten | v3 had only the allowlist |
+| §32–33 map job + tether validator (invented destination, null anchor, ferry, portal) | G6 adversarial tests | v3 tested only the happy path |
+| §36 suggestion → command boundary (exact command, state version, expiry, one pending) | G11 | v3 had no live-suggestion increment at all |
+| §37 data classification | G12 | v3 had only the credential scanner |
+| §26 alert ACK ≠ RESOLVE | A10 | found the re-raise loop while reading it |
+| §25 job table (`checkpointed→queued`; completed needs a result) | A12 | code and doc disagreed; neither plan had noticed |
+| §9 screen hard rules (freshness on location, "unresolved" not last town, no minimap) | D4 | v3 had geometry but not these rules |
+| `observations.read(refs)` presumes durable evidence | G0 | v3's `event:<seq>` refs dangle after journal eviction |
+
+**Found by reading its appendices against its text** — defects in code the PDF
+calls "Implemented" and "mounted and visually verified": the worker only runs
+while Settings is open (A1); the tick effect restarts on every character
+update (A2); a no-model install fills the journal and shows red "discarded"
+text forever (A9); a persistent stun re-raises an urgent review every second
+(A10); a privacy-gate throw is an unhandled rejection (A11). The PDF's baseline
+status table is therefore optimistic, and its M0 "refresh live state" would not
+have caught these because they are behavioural, not structural.
+
+**Where it is silent and this plan is not:** everything between "the AI slices
+work" and "a stranger can install and play" — installer, clean-VM first run,
+uninstall, signing, privacy statement, third-party licences, the never-run live
+viewer chain (B2), the `remove-2d` question (C7), the layout migration (D), and
+release engineering (F). Its "Definition of MVP complete" is a feature list; the
+bar in section 5 here is a player outcome.
+
+**Where they agree, independently:** do not install a model first; extend
+owners, never add siblings; the mockup approves hierarchy not art; model output
+is data; the text client must stand alone; deterministic safeguards never wait
+for a model; every generated fact is a candidate with provenance.
+
+**Ordering difference, resolved:** the PDF's M1→M2 (claims, then map vertical)
+before M3 (provider) matches Lane G before Lane H's *product* dependence, but it
+skips Lane A because it did not know Lane A's defects exist. Lane A stays first.
+
+- [ ] **C8  Fold the PDF's normative content into the architecture doc** (≈40)
+  touches: C1>docs/LOCAL_AI_BACKGROUND_WORKER.md
+  depends-on: C1
+  do: append as normative sections, rewritten in that document's voice and citing the PDF by date: the §28 claim schema, §29 tool rules, §33 tether validator, §36 suggestion gate, §37 classification table, and the §41 attack matrix as "required adversarial tests" beside §14's acceptance criteria. Reconcile the job table with A12's outcome. Do not paste the PDF; do not commit it. After this, the PDF has no content the repo lacks.
+  verify: `grep -c "privacy" docs/LOCAL_AI_BACKGROUND_WORKER.md` ≥ 3; `grep -c "validateTetherCandidate\|invented destination" docs/LOCAL_AI_BACKGROUND_WORKER.md` ≥ 1; the doc's §6 table equals `ALLOWED` in `aiJobStore.ts` (a test in `tools/ai-job-store-test.mjs` reads both and compares — write it).
+  sabotage: change one row of the doc table → the comparison test red.
