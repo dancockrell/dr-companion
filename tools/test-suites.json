@@ -106,5 +106,13 @@
   "test:map-nearest",
   "test:verified-claim",
   "test:test-controller",
-  "test:needs-env"
+  "test:needs-env",
+  "test:scrollable-region",
+  "test:map-landmarks",
+  "test:map-state-sync",
+  "test:splitter-range",
+  "test:map-viewport",
+  "test:game-time",
+  "test:command-history",
+  "test:editor-safety"
 ]

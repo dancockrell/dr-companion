@@ -51,8 +51,6 @@ const NEEDS_ENVIRONMENT = [
 // written. Removing a name from here without registering the suite is how the
 // list would start lying, so the check below refuses that too.
 const UNWIRED = [
-  'test:map-state-sync',
-  'test:splitter-range',
   'test:geometric-briefs',
   'test:primitive-world',
   'test:node-projection',
@@ -60,18 +58,12 @@ const UNWIRED = [
   'test:primitive-registry',
   'test:room-scene-patterns',
   'test:portrait-art',
-  'test:editor-safety',
-  'test:command-history',
   'test:dead-produced-values',
   'test:panel-window-lifecycle',
   'test:task-catalog-status',
   'test:game-connection-owner',
-  'test:map-landmarks',
-  'test:map-viewport',
   'test:map-keyboard',
   'test:sound-actions',
-  'test:game-time',
-  'test:scrollable-region',
 ]
 
 // Not suites: the runner itself, and this list.

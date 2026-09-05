@@ -522,17 +522,21 @@ export const PIN_PRESETS: { label: string; icon: PinIcon; color: PinColor }[] = 
   { label: 'Registry', icon: 'scroll-text', color: 'blue' },
   { label: 'Post Office', icon: 'scroll', color: 'blue' },
 
-  // Shops
+  // Shops. Every one of these is the shop category, so every one takes its
+  // colour from the same place rather than from a `'blue'` that happens to
+  // agree today. They were typed literals, which is only correct for as long
+  // as nobody edits COMMON_PLACE_PIN_COLORS - and the day somebody does, one
+  // shop pin would change colour and nine would not.
   { label: 'Shop', icon: 'shopping-bag', color: COMMON_PLACE_PIN_COLORS.shop },
-  { label: 'General Store', icon: 'backpack', color: 'blue' },
-  { label: 'Armor Shop', icon: 'shield', color: 'blue' },
-  { label: 'Weapon Shop', icon: 'sword', color: 'blue' },
-  { label: 'Alchemist', icon: 'flask-conical', color: 'blue' },
-  { label: 'Scribe', icon: 'scroll-text', color: 'blue' },
-  { label: 'Bookstore', icon: 'book-open', color: 'blue' },
-  { label: 'Jeweler', icon: 'gem', color: 'blue' },
-  { label: 'Bathhouse', icon: 'droplet', color: 'blue' },
-  { label: 'Library', icon: 'book-open', color: 'blue' },
+  { label: 'General Store', icon: 'backpack', color: COMMON_PLACE_PIN_COLORS.shop },
+  { label: 'Armor Shop', icon: 'shield', color: COMMON_PLACE_PIN_COLORS.shop },
+  { label: 'Weapon Shop', icon: 'sword', color: COMMON_PLACE_PIN_COLORS.shop },
+  { label: 'Alchemist', icon: 'flask-conical', color: COMMON_PLACE_PIN_COLORS.shop },
+  { label: 'Scribe', icon: 'scroll-text', color: COMMON_PLACE_PIN_COLORS.shop },
+  { label: 'Bookstore', icon: 'book-open', color: COMMON_PLACE_PIN_COLORS.shop },
+  { label: 'Jeweler', icon: 'gem', color: COMMON_PLACE_PIN_COLORS.shop },
+  { label: 'Bathhouse', icon: 'droplet', color: COMMON_PLACE_PIN_COLORS.shop },
+  { label: 'Library', icon: 'book-open', color: COMMON_PLACE_PIN_COLORS.shop },
   { label: 'Inn', icon: 'bed', color: 'gold' },
   { label: 'Tavern', icon: 'beer', color: 'gold' },
 

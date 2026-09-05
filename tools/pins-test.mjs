@@ -179,6 +179,55 @@ console.log('-- storage survives garbage already in it --')
 store.set('drc.pins.v1', '{not json')
 ok('a corrupted store degrades to empty rather than throwing', loadPins(...HERO).length === 0)
 
+console.log('')
+console.log('-- one source for what a bank looks like --')
+{
+  // Increment I2 went looking for a contradiction between the pin presets and
+  // the map's own place colours, and did not find one: `mapPlaceColors.ts`
+  // already holds the single table, and the pin presets, the automatic
+  // landmarks and Quick Travel all read it. So this is not a fix, it is the
+  // guard the fix never got. The contradiction is cheap to reintroduce by
+  // typing 'gold' in one of the three, and nothing would have said so.
+  const consumers = [
+    'src/lib/mapPins.ts',
+    'src/lib/mapLandmarks.ts',
+    'src/components/shared/QuickTravel.tsx',
+  ]
+  const table = readFileSync('src/lib/mapPlaceColors.ts', 'utf8')
+  const categories = [...table.matchAll(/^ {2}(\w+): '(\w+)'/gm)].map(([, key]) => key)
+  ok(
+    'the shared place-colour table still has entries to check',
+    categories.length >= 3,
+    `${categories.length} categories`
+  )
+  for (const file of consumers) {
+    const source = readFileSync(file, 'utf8')
+    ok(`${file} reads the shared place-colour table`, source.includes('COMMON_PLACE_PIN_COLORS'))
+    for (const category of categories) {
+      // One shape of second opinion: a competing `category: 'colour'` entry,
+      // i.e. somebody starting a rival table next to the real one.
+      const rivalTable = new RegExp(`\\b${category}\\b[^\\n]{0,24}: '(blue|gold|green|red|purple|slate)'`, 'i')
+      ok(`${file} starts no rival table for ${category}`, !rivalTable.test(source))
+    }
+  }
+
+  // The other shape, and the one that was actually here: presets that belong
+  // to a category but type the colour word instead of reading the table. Nine
+  // of the ten shop presets did, all of them 'blue', all correct until the day
+  // the table changes. A rival-table check cannot see these, because the line
+  // says `label: 'Jeweler'` and never says `shop` at all - so count the
+  // lookups instead. A sabotage that turns one back into a literal drops the
+  // count, which is the point: the number is what disappears when the
+  // mechanism breaks.
+  const presets = readFileSync('src/lib/mapPins.ts', 'utf8')
+  const shopLookups = (presets.match(/COMMON_PLACE_PIN_COLORS\.shop/g) ?? []).length
+  ok(
+    'every shop preset reads the shared colour rather than typing it',
+    shopLookups >= 10,
+    `${shopLookups} lookups`
+  )
+}
+
 ok('enough was checked for a pass to mean something', checked >= 20, `${checked} assertions`)
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
