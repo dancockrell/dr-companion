@@ -74,30 +74,61 @@ func _add_visuals(anchor: Node3D, move: String, resolved: bool) -> void:
 	var mesh := PrismMesh.new()
 	# Wide across the edge it sits on, shallow along the direction of travel,
 	# and thin: a chevron painted on the floor, not an object in the room.
-	mesh.size = Vector3(0.9, 0.12, 0.7)
+	mesh.size = Vector3(1.2, 0.12, 0.9)
 	marker.mesh = mesh
 	# The prism's point faces +Z. Turn it to face away from the room centre so
 	# it reads as an arrow out rather than a wedge lying at some angle.
 	var outward := Vector3(anchor.position.x, 0.0, anchor.position.z)
 	if outward.length_squared() > 0.0001:
 		marker.rotation.y = atan2(outward.x, outward.z)
+	# Cyan, not gold.
+	#
+	# The markers used to be Color(0.95, 0.85, 0.30), which is very nearly the
+	# gold of an ordinary street cell, so on the capture they read as part of
+	# the block they sat on - findable only once you knew where to look, which
+	# is the complaint. Cyan is far from every terrain colour the palette uses
+	# (gold street, green grass, brown earth) and matches the blue already
+	# outlining the current room, so an exit looks like it belongs to the
+	# selection language rather than to the ground.
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.95, 0.85, 0.30) if resolved else Color(0.52, 0.55, 0.58)
+	material.albedo_color = Color(0.45, 0.85, 1.0) if resolved else Color(0.52, 0.55, 0.58)
 	material.emission_enabled = resolved
-	material.emission = Color(0.45, 0.30, 0.04) if resolved else Color.BLACK
+	material.emission = Color(0.10, 0.35, 0.50) if resolved else Color.BLACK
 	marker.material_override = material
-	# Just clear of the ground plane: high enough not to z-fight the board,
-	# low enough to stay a floor marking.
-	marker.position.y = 0.08
+	# Clear of the block's top face, not inside it.
+	#
+	# The cell block is a BoxMesh 0.3 tall centred on its origin, so it occupies
+	# -0.15 to +0.15, and a marker at 0.08 was buried in its upper half - which
+	# is why the first capture showed the chevrons as small clipped slivers.
+	# 0.15 for the block's top, plus half this mesh's own 0.12, plus a hair to
+	# keep the two faces from z-fighting where they meet.
+	marker.position.y = 0.24
 	anchor.add_child(marker)
 
-	var label := Label3D.new()
-	label.text = move
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.outline_size = 4
-	label.font_size = 40
-	label.position.y = 0.95
-	anchor.add_child(label)
+	# A name only where the shape cannot say it.
+	#
+	# Every exit used to carry a floating billboard label, and with eight of
+	# them around one block the captured board showed "southwest", "go green
+	# pond", "west", "south", "north", "east", "southeast" and "go
+	# weaponsmith's" overlapping into an illegible crowd - which is the
+	# readability problem, not the fix for it.
+	#
+	# A compass chevron already says which way it points, so it needs no word.
+	# An exit like `go weaponsmith's` has no direction to draw and would be an
+	# unlabelled wedge at the room's edge meaning nothing, so it keeps its
+	# label. That leaves at most a couple of words on a board instead of eight.
+	#
+	# Nothing is lost for a player who wants the list: the viewer's own
+	# "Current exits" panel names every exit including the compass ones, and it
+	# is the accessible equivalent the contract requires.
+	if not _is_compass(move):
+		var label := Label3D.new()
+		label.text = move
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.outline_size = 4
+		label.font_size = 40
+		label.position.y = 0.95
+		anchor.add_child(label)
 
 	var body := StaticBody3D.new()
 	body.name = "WalkTarget"
@@ -139,3 +170,14 @@ func _clear() -> void:
 func _cell_position(cell: Dictionary) -> Vector3:
 	var p: Dictionary = cell.get("position", {})
 	return Vector3(p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0))
+
+## The eight directions a chevron can point. Anything else - `go door`,
+## `climb ladder`, `out` - has no compass bearing, so its wedge cannot say
+## what it is and it keeps a written name.
+const COMPASS_MOVES := [
+	"north", "northeast", "east", "southeast",
+	"south", "southwest", "west", "northwest",
+]
+
+func _is_compass(move: String) -> bool:
+	return COMPASS_MOVES.has(move.to_lower())
