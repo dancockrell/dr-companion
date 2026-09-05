@@ -164,7 +164,7 @@ export function RoomScene({
           <RoomBackdrop zone={zone} room={room} title={title} text={text} />
         ) : (
           <div
-            className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(124,132,142,0.22),transparent_42%),linear-gradient(155deg,#1d2229,#101318)]"
+            className="room-art-pending absolute inset-0"
             role="status"
             aria-label="Waiting for the current map zone"
           />

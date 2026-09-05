@@ -253,6 +253,22 @@ button:focus-visible {
   background: radial-gradient(circle at 50% 50%, var(--color-scrim) 0%, rgba(0, 0, 0, 0.7) 100%);
 }
 
+/* The room-art slot before the map zone is known.
+ *
+ * It stands in the same place RoomBackdrop will, so it has to read as "the
+ * picture is coming" rather than "the panel is broken" - a lit centre and a
+ * darker surround, the shape of a scene with nothing in it yet.
+ *
+ * It used to be #1d2229 over #101318, which is the cold blue-grey slate the
+ * theme comment at the top of this file describes discarding: "what every dark
+ * mode looks like", and a screen inside a screen next to everything else here.
+ * The app's own two surfaces do the same job and belong to the window. */
+.room-art-pending {
+  background:
+    radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--color-ink-faint) 22%, transparent), transparent 42%),
+    linear-gradient(155deg, var(--color-surface-raised), var(--color-surface));
+}
+
 /* Warm, tokenized scrollbar for WebView2 / Chromium. */
 ::-webkit-scrollbar {
   width: 8px;

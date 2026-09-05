@@ -282,7 +282,9 @@ for (const hit of found) {
     // treats a suite that prints neither as having asserted nothing - which is
     // exactly what it should do, and what this suite did on its first run.
     console.log(
-      `OK   ${hit.file}:${hit.lines[0]} ${hit.literal} within its allowance (${hit.count}/${entry.count})`
+      `OK   ${hit.file}:${hit.lines[0]} ${hit.literal} within its allowance (${hit.count}/${entry.count})${
+        entry.why ? ' — kept: ' + entry.why : ''
+      }`
     )
   }
 }
@@ -301,10 +303,27 @@ for (const hit of found) {
   const dir = hit.file.split('/').slice(0, 3).join('/')
   byDir.set(dir, (byDir.get(dir) ?? 0) + hit.count)
 }
+// Two different numbers, and reporting one of them would be a lie either way.
+// An entry with a `why` is a decision somebody made and wrote down - a value
+// that belongs to the game client's vocabulary rather than this app's, say -
+// and it is never going to become a token. An entry without one is work
+// nobody has done yet. Adding them together produces a figure that never
+// reaches zero and that nobody can act on, so the split is the honest report.
+const documented = found.filter((h) => permitted.get(`${h.file}\u0000${h.literal}`)?.why)
+const kept = documented.reduce((n, h) => n + h.count, 0)
+const owed = remaining - kept
+// The split is derived from a Map lookup, and a lookup that silently misses
+// reports every exception as outstanding work - a number that looks like a
+// backlog and is an instrument fault. If a `why` exists in the file, at least
+// one must have been found.
+if (allow.entries.some((e) => e.why) && kept === 0) {
+  fail('the allowlist carries `why` fields but none matched a hit; the documented/owed split is broken')
+}
 console.log(`\nremaining: ${remaining} raw colour literals in ${new Set(found.map((h) => h.file)).size} files`)
 for (const [dir, n] of [...byDir].sort((a, b) => b[1] - a[1])) {
   console.log(`  ${String(n).padStart(4)}  ${dir}`)
 }
+console.log(`  of those, ${kept} are documented permanent exceptions and ${owed} still owe a token`)
 console.log(`\n${ok} allowlisted literal group(s) checked across ${files.length} component files`)
 
 if (failed) {
