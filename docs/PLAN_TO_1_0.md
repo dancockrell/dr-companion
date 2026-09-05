@@ -284,7 +284,6 @@ PRs per lane, squash-merged.
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
 | C | C13, C14 | `chore/import-extensions` | `dev/wt-imports` | 5 Sep 2026 |
-| J | J1, J2a–J2c | `lane-j/map-audit` | `dev/wt-j` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12, F7 and F8 in PR #315, which emptied the
@@ -1234,8 +1233,8 @@ whether it is embedded, docked or a separate window is D0.
   result: posted at issue #175 comment `5552095979`, seven findings, one verdict each — 1 `still-real` (partly fixed), 2 `still-real` re-diagnosed, 3 `still-real` (already fixed, no guard), 4 not still-real, 5 `moves-to-viewer-contract`, 6 half refuted and half upstream, 7 `dies-with-map-window`. Fetched back through the API and grepped rather than trusted from the post.
   note: **`depends-on:` was D6 and is now `none`, deliberately.** D6 is blocked on a live play session that has not happened, and no finding needed the deletion to be judged — only that `MAP_WINDOW_ENABLED` is already `false`, which is measurable today. Measured rather than reasoned, because the window/panel distinction is what D6's original wording got wrong: from a dev server on this branch `?view=panel&id=map` returns 1041 elements matching `[id^="map-room-"]` and `?view=map` returns 0 and renders the dashboard instead.
 
-- [~] **J2  Each `still-real` finding** (≈20 each; add `J2a, J2b…` lines under this one as they are claimed)
-  owner: claude-code claim: j1-triage-map-audit since: 2026-09-05
+- [!] **J2  Each `still-real` finding** (≈20 each; add `J2a, J2b…` lines under this one as they are claimed)
+  blocked-on: #175 finding 1 only — the pin picker has no creature icon beyond `fantasy-dragon`, and closing it needs generated art no image generator on this fleet can produce. It is not a code change: `CUSTOM_PIN_ICONS` in `src/lib/mapPins.ts` already admits non-Lucide entries, so each admitted image is one array entry, one `public/pin-icons/<name>.png`, and one row in `data/art/pin-icons/curation.json`, which `tools/pin-art-test.mjs` already gates. J2a, J2b and J2c are `[x]` (PR #331); this is the whole of what remains, and #175 stays open on it.
   touches: per finding
   depends-on: J1
   do: fix with a DOM-measured verification; close #175 when the list is empty.
