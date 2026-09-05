@@ -1,4 +1,5 @@
-import { useAiWorkerHost } from '../../lib/aiWorkerHost'
+import { useSyncExternalStore } from 'react'
+import { getAiStatus, subscribeAiStatus } from '../../lib/aiWorkerHost'
 
 /**
  * What the local AI worker is doing, and every way it is currently failing.
@@ -18,9 +19,13 @@ import { useAiWorkerHost } from '../../lib/aiWorkerHost'
  * unreviewed events, and anything the journal or the display buffer lost.
  * Loss is the one failure this design cannot recover from, so it is never
  * folded into a general "healthy" indicator.
+ *
+ * This panel watches; it does not host. The worker is started once by
+ * `App.tsx` and publishes to the store in `aiWorkerHost.ts`, because a worker
+ * hosted by this component only existed while the Settings sheet was open.
  */
 export function AiWorkerPanel() {
-  const status = useAiWorkerHost(true)
+  const status = useSyncExternalStore(subscribeAiStatus, getAiStatus, getAiStatus)
 
   const jobRows = Object.entries(status.jobs).filter(([, n]) => n > 0)
   const lost = status.journalLost + status.missedLines
