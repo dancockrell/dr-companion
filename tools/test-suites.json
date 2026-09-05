@@ -4,6 +4,7 @@
   "test:presentation-intents",
   "test:crossing-build-list",
   "test:player-data",
+  "test:version",
   "test:plan",
   "test:panel-data-contracts",
   "test:safety",

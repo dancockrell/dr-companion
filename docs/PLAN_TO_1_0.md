@@ -754,8 +754,9 @@ whether it is embedded, docked or a separate window is D0.
   do: `git tag v0.0.0-ci-check origin/main && git push origin v0.0.0-ci-check`; `gh run watch`. The Godot install step (`release.yml` around line 60–69) has never executed. Each failure becomes `F1a…` here with its fix. Success = draft release with the installer and `release:verify` printing both resources. Delete the draft and the tag after.
   verify: `gh release view v0.0.0-ci-check --json assets --jq '.assets[].name'` lists the `.exe`, then both are deleted.
 
-- [ ] **F2  One version, three files** (≈15)
-  touches: new:tools/set-version.mjs, package.json
+- [x] **F2  One version, three files** (≈15)
+  commit: TBD verified: 2026-09-05 minutes: 30
+  touches: new:tools/set-version.mjs, package.json, tools/test-suites.json
   depends-on: none
   do: sets `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` from one argument; `--check` prints all three and exits 1 if they differ. Script `version:set`.
   verify: `node tools/set-version.mjs --check` exit 0 today.
