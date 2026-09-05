@@ -19,6 +19,7 @@
  */
 import type { AlertBroker } from './aiAlertBroker.ts'
 import { saveJournalCursor, type EventJournal } from './aiEventJournal.ts'
+import { readJSON } from './storage.ts'
 import type { JobStore } from './aiJobStore.ts'
 import type { ModelProvider, ProviderFailure } from './aiModelProvider.ts'
 import type { Activity } from './aiReviewScheduler.ts'
@@ -27,6 +28,101 @@ import { runWorkerOnce, type WorkerDeps, type WorkerOutcome } from './aiWorker.t
 /** Situation flags that mean something is wrong right now. Taken from the
  * game's own already-parsed indicator set, not inferred from text. */
 const URGENT_SITUATIONS = ['stunned', 'webbed', 'immobilized', 'dying'] as const
+
+/**
+ * How a piece of captured state may be handled.
+ *
+ * `docs/LOCAL_AI_BACKGROUND_WORKER.md` section 19's table, minus the
+ * credential row - credentials never reach a class, because the scanner
+ * refuses them before they exist as events (A11). A class is assigned to
+ * everything else, and `public-game` is not the default: a stream nobody has
+ * classified is treated as the character's own business rather than as
+ * publishable, because the cost of being wrong runs one way.
+ */
+export type PrivacyClass = 'public-game' | 'private-player' | 'private-comms' | 'third-party'
+
+/**
+ * The class each of the game's own channels carries.
+ *
+ * Derived from the stream id the bridge already labels (`gameLink.ts`'s
+ * `GameLine.stream` - "the game's own label, not our inference"), never from a
+ * second pass over the text. A regex hunting for the word "whispers" would be
+ * a second classifier free to disagree with the first, and the one it would
+ * disagree about is the one that must not leak.
+ *
+ * The empty string is the main window, which is public game text.
+ * `whispers`, `thoughts` and `group` are people talking to each other:
+ * DragonRealms' thought-net is a communication channel, not a broadcast, and
+ * treating it as public because it is loud would be exactly the mistake this
+ * table exists to prevent. `inv`, `assess`, `bounty`, `society` and
+ * `familiar` are the character's own business - not secret, and not anybody
+ * else's.
+ */
+const PRIVACY_BY_STREAM: Record<string, PrivacyClass> = {
+  '': 'public-game',
+  room: 'public-game',
+  talk: 'public-game',
+  logons: 'public-game',
+  death: 'public-game',
+  whispers: 'private-comms',
+  thoughts: 'private-comms',
+  group: 'private-comms',
+  inv: 'private-player',
+  assess: 'private-player',
+  bounty: 'private-player',
+  society: 'private-player',
+  familiar: 'private-player',
+}
+
+/**
+ * The class for one stream id.
+ *
+ * An unknown stream is `private-player`, not `public-game`. A channel this
+ * table has not seen is a channel nobody has decided about, and defaulting an
+ * undecided thing to the most shareable class is how a new private channel
+ * ends up in a prompt the day the game adds one.
+ */
+export function classifyStream(stream: string | undefined): PrivacyClass {
+  return PRIVACY_BY_STREAM[stream ?? ''] ?? 'private-player'
+}
+
+/**
+ * Whether an event may reach a prompt or a tool result.
+ *
+ * `private-comms` is excluded by default and lifted per source, never
+ * globally: "share my whispers" and "share my group chat" are not one
+ * decision, and a single switch would make them one. Everything else is
+ * allowed, because the classes below `private-comms` are already local-only
+ * by virtue of nothing here ever leaving the machine.
+ */
+export function allowedInPrompt(
+  event: { payload?: unknown },
+  optIn: readonly string[] = []
+): boolean {
+  const payload = event.payload as { privacy?: unknown; stream?: unknown } | undefined
+  if (payload?.privacy !== 'private-comms') return true
+  return typeof payload.stream === 'string' && optIn.includes(payload.stream)
+}
+
+/**
+ * Where the per-source opt-in is kept.
+ *
+ * A list of stream ids, empty by default. It is a stored value rather than a
+ * constant for one reason that matters more than configurability: without it
+ * the opt-in branch could not be executed in the running app at all, only in
+ * a test - and a branch nobody can trigger is a branch nobody can prove works.
+ * A Settings control belongs on top of this, and is not built yet.
+ */
+export const PRIVACY_OPTIN_KEY = 'drc.ai-share-sources.v1'
+
+/** The opted-in stream ids. Anything that is not an array of strings reads as
+ * nothing opted in, which is the safe direction for a value that decides what
+ * may reach a prompt. */
+export function readPrivacyOptIn(): string[] {
+  const stored = readJSON<unknown>(PRIVACY_OPTIN_KEY, [])
+  if (!Array.isArray(stored)) return []
+  return stored.filter((item): item is string => typeof item === 'string')
+}
 
 export interface IngestResult {
   appended: number
@@ -55,7 +151,14 @@ export function ingestLines(
   const start = Math.max(0, Math.min(alreadyIngested, lines.length))
   for (let i = start; i < lines.length; i++) {
     const line = lines[i]
-    journal.append('line', { text: line.text, stream: line.stream }, line.at ?? 0)
+    // Classified here, once, at the moment of capture. Everything downstream
+    // reads the class off the payload rather than re-deriving it, so there is
+    // exactly one opinion about whether a line is private.
+    journal.append(
+      'line',
+      { text: line.text, stream: line.stream, privacy: classifyStream(line.stream) },
+      line.at ?? 0
+    )
   }
   return { appended: lines.length - start, missed, ingested: lines.length }
 }
@@ -84,6 +187,52 @@ export function deriveAlerts(state: {
     if ((URGENT_SITUATIONS as readonly string[]).includes(flag)) {
       out.push({ priority: 'urgent', key: `situation:${flag}`, detail: { flag } })
     }
+  }
+  return out
+}
+
+/**
+ * The three states Godot is told about when they go on and when they go off.
+ *
+ * Not every situation flag: these are the ones that decide whether the
+ * character can act, which is what a presentation layer needs in order to
+ * show a person standing helpless rather than mid-swing. `dying` is
+ * deliberately absent - it is in the alert set above because it needs a
+ * person's attention, and it is not a pose.
+ */
+const PRESENTED_SITUATIONS = ['stunned', 'webbed', 'immobilized'] as const
+
+/**
+ * One status change to publish, in the order the flags changed.
+ *
+ * Derived by comparing two already-parsed flag lists. No text is read: the
+ * bridge decided what `stunned` means once, and a second opinion here could
+ * disagree with the icon the player is looking at.
+ */
+export interface StatusChange {
+  flag: string
+  on: boolean
+}
+
+/**
+ * What changed between two situations, among the states worth presenting.
+ *
+ * Both directions, because a stun ending is exactly as much of an event as a
+ * stun starting - a viewer told only about the onset would leave the character
+ * helpless on screen forever. Sorted by flag so two runs over the same pair
+ * produce the same order and a sequence number means something.
+ */
+export function situationChanges(
+  before: readonly string[] | undefined,
+  after: readonly string[] | undefined
+): StatusChange[] {
+  const was = new Set(before ?? [])
+  const now = new Set(after ?? [])
+  const out: StatusChange[] = []
+  for (const flag of PRESENTED_SITUATIONS) {
+    const wasOn = was.has(flag)
+    const isOn = now.has(flag)
+    if (wasOn !== isOn) out.push({ flag, on: isOn })
   }
   return out
 }
@@ -320,6 +469,10 @@ export interface HostTickInput {
    * without one produces no claims rather than crashing. The worker's own
    * deps document why these three travel together.
    */
+  /** Stream ids whose private communications the player has opted into
+   * sharing with a local model. Empty by default, and per source rather
+   * than one switch. */
+  privacyOptIn?: readonly string[]
   claims?: WorkerDeps['claims']
   evidence?: WorkerDeps['evidence']
   knownRoom?: WorkerDeps['knownRoom']
@@ -380,6 +533,7 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
       stateHash: hash,
       lastReviewedHash: memory.lastReviewedHash,
       instructions: INSTRUCTIONS,
+      privacyOptIn: input.privacyOptIn,
       claims: input.claims,
       evidence: input.evidence,
       knownRoom: input.knownRoom,

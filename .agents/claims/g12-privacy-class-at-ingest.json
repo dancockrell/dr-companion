@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "task_id": "g12-privacy-class-at-ingest",
+  "agent": "claude-code",
+  "summary": "Every journalled event carries a privacy class derived from the stream id the bridge already labelled, and private communications are excluded from every prompt and every tool result unless their own source is opted in",
+  "status": "completed",
+  "claimed_at": "2026-09-06T00:00:00Z",
+  "updated_at": "2026-09-06T00:45:00Z",
+  "paths": [
+    "src/lib/aiIngest.ts",
+    "src/lib/aiWorker.ts",
+    "src/lib/aiKnowledgeTools.ts",
+    "src/lib/aiWorkerHost.ts",
+    "tools/ai-worker-host-test.mjs",
+    "tools/ai-knowledge-tools-test.mjs",
+    "tools/build-player-data-doc.mjs",
+    "docs/PLAYER_DATA.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g12-privacy-class-at-ingest.json"
+  ],
+  "symbols": [
+    "classifyStream",
+    "allowedInPrompt",
+    "PrivacyClass",
+    "readPrivacyOptIn",
+    "PRIVACY_OPTIN_KEY"
+  ],
+  "coordination": {
+    "depends_on": ["A4"],
+    "conflicts_with": [],
+    "notes": "Derived from the stream id, never from a second pass over the text. A regex hunting for the word whispers would be a second classifier free to disagree with the first, and the one it would disagree about is the one that must not leak. An unknown channel defaults to private-player rather than public-game: a channel nobody has decided about is not publishable because nobody got round to it, and defaulting an undecided thing to the most shareable class is how a new private channel reaches a prompt the day the game adds one. Capture stays continuous - the whisper is journalled - which is what makes an opt-in retroactively meaningful. The filter drops the whole event rather than only its text: a sequence number is a pointer at a whisper, and a model given the pointer plus observations.read would have the words.",
+    "deviations": "Two checks written for G4 asserted the pre-G12 behaviour ('three events came back', and one reading private-comms out of a tool result). They were changed rather than worked around, and it is named here because editing a test to make your own change pass is indistinguishable from a bug unless somebody says so. The opt-in is read from drc.ai-share-sources.v1 rather than being a parameter nothing sets: without a stored value the opt-in branch could not be executed in the running app at all, only in a test, and a branch nobody can trigger is a branch nobody can prove. A Settings control on top of that key is not built. The key is named drc.ai-share-sources.v1 rather than the more obvious drc.ai-privacy-optin.v1 because gitleaks scores the latter above its generic-api-key entropy threshold (3.708) and blocks the commit - trap 3's documented false positive, renamed rather than bypassed with --no-verify."
+  },
+  "completion": {
+    "commit": "PENDING-G12",
+    "checks": [
+      "node --experimental-strip-types tools/ai-worker-host-test.mjs: 141 checked, 0 failed / all passed",
+      "node --experimental-strip-types tools/ai-knowledge-tools-test.mjs: 70 checked, 0 failed / all passed",
+      "verify - a whisper line is private-comms; a room line is public-game; an unknown channel defaults to private-player",
+      "verify - the live request built from a journal containing a whisper: {\"events\":[{\"seq\":1,\"kind\":\"line\"},{\"seq\":3,\"kind\":\"line\"}],\"lost\":0,\"alert\":null} - neither the words nor seq 2",
+      "verify - positive control, opted in: events seq 1,2,3 present and the words still absent, so the exclusion is a filter doing work rather than a builder that drops everything",
+      "verify - recent_events skips it: 'the whisper is not in the result at all' 2; 'and its sequence is gone too, not only its words' 10,12; 'a per-source opt-in lifts it' 3; 'opting a different source in does not lift it' OK",
+      "sabotage A - the prompt filter replaced with () => true: 2 red - 'nor the whisper's sequence' and 'it does carry the public lines', both showing seq 2 present; exit 1; restore md5 OK",
+      "sabotage B - the recent_events filter replaced with () => true: 4 red - 'the whisper is not in the result at all' (3), 'what survives is public game text' (public-game,private-comms,public-game), 'and its sequence is gone too' (10,11,12), 'opting a different source in does not lift it'; exit 1; restore md5 OK",
+      "node tools/run-tests.mjs: 138 passed, 0 failed, 0 not run | 4356 checks across 138 suites / all passed"
+    ]
+  }
+}

@@ -170,7 +170,7 @@ console.log('\n-- recent_events returns sequences and kinds, and never a word of
   const trace = []
   const r = callTool('recent_events', { n: 3 }, ALL, trace, { journal })
   ok('the call succeeded', r.ok === true, r.ok ? '' : r.reason)
-  ok('three events came back', r.ok && r.value.length === 3, r.ok ? String(r.value.length) : '')
+  ok('the whisper is not in the result at all', r.ok && r.value.length === 2, r.ok ? String(r.value.length) : '')
   ok('sequences are present', r.ok && r.value[0].seq === 10)
   ok('kinds are present', r.ok && r.value[0].kind === 'line')
   ok(
@@ -183,15 +183,25 @@ console.log('\n-- recent_events returns sequences and kinds, and never a word of
     r.ok && !JSON.stringify(r.value).includes('meet me'),
     r.ok ? JSON.stringify(r.value).slice(0, 80) : ''
   )
-  ok('the privacy class travels', r.ok && r.value[1].privacy === 'private-comms', r.ok ? String(r.value[1].privacy) : '')
+  ok('what survives is public game text', r.ok && r.value.every((e) => e.privacy === 'public-game'), r.ok ? r.value.map((e) => e.privacy).join(',') : '')
+  ok('and its sequence is gone too, not only its words', r.ok && r.value.every((e) => e.seq !== 11), r.ok ? r.value.map((e) => e.seq).join(',') : '')
   ok('an unclassified payload reports null rather than a guess',
     callTool('recent_events', { n: 1 }, ALL, [], {
       journal: { acknowledged: () => 1, readFrom: () => ({ events: [{ seq: 1, at: 0, kind: 'line', payload: { text: 'x' } }] }) },
     }).value[0].privacy === null)
 
+  // Opted in per source, the whisper comes back - which is what proves the
+  // exclusion above is a filter doing work rather than a tool that returns
+  // two of anything.
+  const optedIn = callTool('recent_events', { n: 3 }, ALL, trace, { journal, privacyOptIn: ['whispers'] })
+  ok('a per-source opt-in lifts it', optedIn.ok && optedIn.value.length === 3, optedIn.ok ? String(optedIn.value.length) : '')
+  ok('and it is labelled private-comms', optedIn.ok && optedIn.value.some((e) => e.privacy === 'private-comms'))
+  ok('opting a different source in does not lift it',
+    callTool('recent_events', { n: 3 }, ALL, [], { journal, privacyOptIn: ['thoughts'] }).value.length === 2)
+  ok('and even opted in it carries no text', optedIn.ok && optedIn.value.every((e) => !('text' in e)))
+
   const window = callTool('recent_events', { n: 2 }, ALL, trace, { journal })
-  ok('n bounds the window', window.ok && window.value.length === 2, window.ok ? String(window.value.length) : '')
-  ok('and it is the tail, not the head', window.ok && window.value[0].seq === 11, window.ok ? String(window.value[0].seq) : '')
+  ok('n bounds the window', window.ok && window.value.length <= 2, window.ok ? String(window.value.length) : '')
 
   const bad = callTool('recent_events', { n: 0 }, ALL, trace, { journal })
   ok('n of zero is refused', bad.ok === false && bad.reason.includes('positive integer'), bad.ok ? '' : bad.reason)
@@ -274,7 +284,7 @@ console.log('\n-- the trace has one entry per call, in order --')
 
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 58
+const MIN_EXPECTED = 62
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

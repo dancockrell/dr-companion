@@ -37,6 +37,7 @@ import type { ModelProvider, ModelRequest, ModelResult } from './aiModelProvider
 import { generateWithinBudget, parseStructured, PrivacyGateError } from './aiModelProvider.ts'
 import type { ClaimStore } from './aiClaimStore.ts'
 import { validateTetherCandidate, type TetherCandidate } from './aiJobProducers.ts'
+import { allowedInPrompt } from './aiIngest.ts'
 import type { Activity } from './aiReviewScheduler.ts'
 import { decideReview } from './aiReviewScheduler.ts'
 
@@ -115,6 +116,17 @@ export interface WorkerDeps {
       missing: string[]
     }
   } | null
+  /**
+   * Stream ids whose private communications the player has opted into
+   * sharing with a local model.
+   *
+   * Empty by default, and per source rather than one switch: "share my
+   * whispers" and "share my group chat" are not one decision. Nothing is
+   * excluded from *capture* by this - the journal keeps everything, which
+   * is what makes an opt-in retroactively meaningful - only from what a
+   * request may carry.
+   */
+  privacyOptIn?: readonly string[]
   /** Whether the map knows a room. Injected so the validator cannot read
    * anything else out of the map. */
   knownRoom?: (roomId: string) => boolean
@@ -372,8 +384,14 @@ export async function runWorkerOnce(
         // The schema travels with the request that has to satisfy it.
         instructions: deps.instructions + LIVE_REVIEW_SCHEMA,
         // Compact suffix, section 5. References and counts, never a transcript.
+        // Private communications are journalled and never prompted, by
+        // default. The filter drops the whole event rather than its text: a
+        // sequence number is a pointer at a whisper, and a model given the
+        // pointer plus `observations.read` would have the words.
         state: JSON.stringify({
-          events: read.events.map((e) => ({ seq: e.seq, kind: e.kind })),
+          events: read.events
+            .filter((e) => allowedInPrompt(e, deps.privacyOptIn ?? []))
+            .map((e) => ({ seq: e.seq, kind: e.kind })),
           lost: read.lost,
           alert: decision.alertKey,
         }),

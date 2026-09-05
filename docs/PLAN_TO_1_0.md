@@ -1019,7 +1019,8 @@ whether it is embedded, docked or a separate window is D0.
   verify: promote → +1 pin with provenance; revert → count restored, other pins byte-identical.
   sabotage: revert by index → "other pins identical" red.
 
-- [ ] **G10  `publish_presentation_event` gets its caller** (≈20)
+- [x] **G10  `publish_presentation_event` gets its caller** (≈20)
+  commit: PENDING-G10 verified: 2026-09-05 minutes: 35
   touches: C1>src/lib/aiIngest.ts, C4>src/lib/viewerClient.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: C4
   do: on `situation` transitions for stunned/webbed/immobilized (on and off) publish `PresentationEvent{kind:'status-change', authoritativeText:<flag>, roomId}` — derived from already-parsed flags, no text parsing. Godot's `event_player.gd` consumes ordered events.
@@ -1033,7 +1034,8 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: skip the version check → red; skip the exact-command check → red.
   pitfalls: this is the one increment that gives model output a path to the game. Dan's approval is required before merge (section 10).
 
-- [ ] **G12  Privacy class at ingest** (≈25)
+- [x] **G12  Privacy class at ingest** (≈25)
+  commit: PENDING-G12 verified: 2026-09-05 minutes: 45
   touches: C1>src/lib/aiIngest.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: A4
   do: the handoff's §37 table. Each journalled event gets `privacy ∈ 'public-game' | 'private-player' | 'private-comms' | 'third-party'` derived from the already-parsed `stream` id (`grep -n "stream" src/types/stream.ts` for the vocabulary — whispers, thoughts, private messages are already labelled by the bridge). `private-comms` events are journalled (capture is continuous) but **excluded from every model request and every tool result by default**; a per-source opt-in setting lifts it. Credentials never have a class: they are refused by the scanner before they exist as events (A11).

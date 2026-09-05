@@ -70,11 +70,14 @@ import { EvidenceStore } from './aiEvidenceStore.ts'
 import { detectExitDivergence, proposeMapReconciliation } from './aiJobProducers.ts'
 import { JobStore } from './aiJobStore.ts'
 import { readJSON, writeJSON } from './storage.ts'
+import { publishPresentationEvent } from './viewerClient.ts'
 import { absentProvider, type ModelHealth, type ModelProvider } from './aiModelProvider.ts'
 import { localProvider, type LocalModelProvider } from './aiLocalProvider.ts'
 import {
   deriveAlerts,
   ingestLines,
+  situationChanges,
+  readPrivacyOptIn,
   runHostTick,
   sameStatus,
   type AiWorkerStatus,
@@ -400,6 +403,10 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
     lastAppendAt: null,
   })
   const lastRoomId = useRef<number | null>(null)
+  /** The situation flags the viewer has already been told about. Compared
+   * rather than re-published, because an event stream that repeated itself
+   * every pass would be a status change per store update. */
+  const lastSituation = useRef<readonly string[]>([])
   /** The room-and-compass pair the exit check last saw. Its only job is to
    * keep that check off the hot path of a store subscription that fires
    * several times a second. */
@@ -439,6 +446,22 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
         if (lastRoomId.current !== null) memory.current.roomChangedAt = now
         lastRoomId.current = roomId
       }
+
+      // What the viewer is told, from the same already-parsed flags the alerts
+      // come from. `publish_presentation_event` has existed on the Rust side
+      // since the bridge was written and nothing called it; this is the
+      // caller. Fire-and-forget on purpose: a viewer that is not running
+      // makes the native call throw, and a status change nobody can see must
+      // not break the host's pass over the alerts.
+      const situation = character?.situation ?? []
+      for (const change of situationChanges(lastSituation.current, situation)) {
+        void publishPresentationEvent({
+          kind: 'status-change',
+          roomId: roomId === null ? '' : `room:${roomId}`,
+          authoritativeText: change.flag,
+        }).catch(() => {})
+      }
+      lastSituation.current = situation
 
       const derived = deriveAlerts({
         situation: character?.situation,
@@ -518,6 +541,9 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
             roomCombatants: character?.roomCombatants,
             isTown: character?.location.isTown,
           },
+          // Read per turn rather than once: a person turning a source on
+          // should not have to restart the client to see it take effect.
+          privacyOptIn: readPrivacyOptIn(),
           claims: claims.current,
           evidence: evidence.current,
           // The map's own answer to "is this a room", read at the moment the

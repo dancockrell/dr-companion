@@ -101,3 +101,63 @@ export async function presentationBridgeInfo(): Promise<PresentationBridgeInfo> 
     | undefined
   return { port: raw?.port ?? null, tokenPath: raw?.tokenPath ?? '' }
 }
+
+/**
+ * One confirmed thing that happened, for the ordered stream Godot's
+ * `event_player.gd` consumes.
+ *
+ * Mirrors the Rust `PresentationEvent` (`presentation_bridge.rs`), which
+ * serialises camelCase. `authoritativeText` is the name the contract gives it
+ * and it is not decoration: Godot presents what the game said, and never
+ * decides for itself whether something happened.
+ */
+export interface PresentationEvent {
+  protocol: 1
+  sequence: number
+  roomId: string
+  kind: string
+  sourceEntityId?: string
+  targetEntityId?: string
+  authoritativeText: string
+  range?: number
+}
+
+/**
+ * The sequence every published event carries.
+ *
+ * Module-level and monotonic, because the stream is ordered and a consumer
+ * that cannot tell two events apart cannot replay them. Separate from
+ * `presentationBridge.ts`'s snapshot sequence on purpose - snapshots and
+ * events are two streams, and sharing one counter would make a gap in either
+ * look like a dropped message in the other.
+ */
+let eventSequence = 0
+
+/** The next sequence, without publishing. For a test that needs to know where
+ * the counter is rather than inferring it from a publish. */
+export function presentationEventSequence(): number {
+  return eventSequence
+}
+
+/**
+ * Publish one event to every connected viewer.
+ *
+ * `publish_presentation_event` has existed on the Rust side since the bridge
+ * was written and nothing called it - the callerless-command sweep has been
+ * listing it ever since. This is the caller.
+ *
+ * The sequence only advances once Rust has accepted the publish, the same rule
+ * `publishWorldSnapshotIfChanged` follows: a failed native call throws, and a
+ * counter advanced before the failure would leave a permanent hole that looks
+ * to Godot like a message it never received.
+ */
+export async function publishPresentationEvent(
+  event: Omit<PresentationEvent, 'protocol' | 'sequence'>
+): Promise<number> {
+  const sequence = eventSequence + 1
+  await invokeTauri('publish_presentation_event', {
+    event: { protocol: 1, sequence, ...event },
+  })
+  eventSequence = sequence
+  return sequence
+}
