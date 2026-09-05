@@ -8,6 +8,25 @@ extends Node3D
 
 signal exit_requested(from_room_id: String, exit_move: String)
 
+## The script rather than the `ContentRegistry` autoload: the block geometry is
+## static, and naming the singleton here is a compile error in any test that
+## `preload`s this file, because a `--script` run compiles it before the
+## SceneTree's autoloads exist. Measured on exit_anchor_layer_test.gd:
+## "Compile Error: Identifier not found: ContentRegistry".
+const ContentRegistryScript := preload("res://scripts/content_registry.gd")
+
+## The chevron's own thickness, and the hair of clearance kept between its
+## underside and the block's top face so the two do not z-fight where they
+## meet. Neither is a board dimension - the board's dimensions belong to the
+## manifest and reach this file through ContentRegistry.block_top_y().
+const MARKER_THICKNESS_METRES := 0.12
+const MARKER_CLEARANCE_METRES := 0.03
+
+## How far a written exit label floats above its own chevron. Measured from the
+## marker rather than from the ground, so a label rises with the block for the
+## same reason the chevron does.
+const LABEL_LIFT_METRES := 0.71
+
 var _current_room_id := ""
 var _visible_moves: Dictionary = {}
 var _position_states: Dictionary = {}
@@ -19,6 +38,10 @@ func render_exits(room_id: String, cells: Dictionary) -> void:
 		return
 	var source: Dictionary = cells[room_id]
 	var base := _cell_position(source)
+	# Asked once per room, from the registry that draws the block, so every
+	# chevron clears the block this room actually has rather than the one the
+	# viewer had when this line was written.
+	var block_top := ContentRegistryScript.block_top_y(source)
 	var exits: Array = source.get("exits", [])
 	for index in range(exits.size()):
 		var exit: Dictionary = exits[index]
@@ -35,7 +58,7 @@ func render_exits(room_id: String, cells: Dictionary) -> void:
 		add_child(anchor)
 		_visible_moves[move] = true
 		_position_states[move] = placement["state"]
-		_add_visuals(anchor, move, placement["state"] == "resolved")
+		_add_visuals(anchor, move, placement["state"] == "resolved", block_top)
 
 func request_exit(from_room_id: String, exit_move: String) -> bool:
 	if from_room_id != _current_room_id or not _visible_moves.has(exit_move):
@@ -69,12 +92,12 @@ func position_state_for(exit_move: String) -> String:
 ## src/lib/isometric-board-layout.mjs), so a marker there competes with
 ## nothing, and a mark drawn between two tiles is what a doorway between two
 ## rooms actually is.
-func _add_visuals(anchor: Node3D, move: String, resolved: bool) -> void:
+func _add_visuals(anchor: Node3D, move: String, resolved: bool, block_top: float) -> void:
 	var marker := MeshInstance3D.new()
 	var mesh := PrismMesh.new()
 	# Wide across the edge it sits on, shallow along the direction of travel,
 	# and thin: a chevron painted on the floor, not an object in the room.
-	mesh.size = Vector3(1.2, 0.12, 0.9)
+	mesh.size = Vector3(1.2, MARKER_THICKNESS_METRES, 0.9)
 	marker.mesh = mesh
 	# The prism's point faces +Z. Turn it to face away from the room centre so
 	# it reads as an arrow out rather than a wedge lying at some angle.
@@ -97,12 +120,21 @@ func _add_visuals(anchor: Node3D, move: String, resolved: bool) -> void:
 	marker.material_override = material
 	# Clear of the block's top face, not inside it.
 	#
-	# The cell block is a BoxMesh 0.3 tall centred on its origin, so it occupies
-	# -0.15 to +0.15, and a marker at 0.08 was buried in its upper half - which
-	# is why the first capture showed the chevrons as small clipped slivers.
-	# 0.15 for the block's top, plus half this mesh's own 0.12, plus a hair to
-	# keep the two faces from z-fighting where they meet.
-	marker.position.y = 0.24
+	# A marker at 0.08 was buried in the upper half of a block that spans -0.15
+	# to +0.15, which is why the first capture showed the chevrons as small
+	# clipped slivers. It was raised to a hand-typed 0.24: the block's top plus
+	# half this mesh's own thickness plus a hair against z-fighting, worked out
+	# on paper from a block height that was itself typed into
+	# content_registry.gd.
+	#
+	# Both halves of that have moved. The block's height is whatever the cell
+	# published (1 m for a room, 3 m for an interior cutaway), so there is no
+	# single right answer to type, and a chevron pinned at 0.24 would sit inside
+	# every block taller than a slab - the same burial, one manifest field
+	# later (issue #362). `block_top` is measured off the block the registry
+	# draws, so the arithmetic below is the only thing this file has to be
+	# right about.
+	marker.position.y = block_top + MARKER_THICKNESS_METRES * 0.5 + MARKER_CLEARANCE_METRES
 	anchor.add_child(marker)
 
 	# A name only where the shape cannot say it.
@@ -127,7 +159,7 @@ func _add_visuals(anchor: Node3D, move: String, resolved: bool) -> void:
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.outline_size = 4
 		label.font_size = 40
-		label.position.y = 0.95
+		label.position.y = marker.position.y + LABEL_LIFT_METRES
 		anchor.add_child(label)
 
 	var body := StaticBody3D.new()

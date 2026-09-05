@@ -108,6 +108,25 @@ export function boardLayoutFor(cell) {
   const interior = cell.classification?.spatialMode === 'interior-cutaway'
   return {
     footprint: { width: CELL_BLOCK_METRES, depth: CELL_BLOCK_METRES, height: interior ? 3 : 1, unit: 'metre' },
+    // The ground this cell owns: a full pitch square, so one room's ground meets
+    // the next room's and the board has no holes in it. Deliberately larger than
+    // the block above, and that difference is the gutter - seen from the fixed
+    // isometric camera it is the ground showing round the block's edge, which is
+    // what draws a room's outline.
+    //
+    // Measured, because the opposite is the obvious guess and it is wrong. The
+    // Godot viewer drew this at a hand-typed 5.0 with the cell discarded, and
+    // issue #362 read that as the ground ignoring CELL_GAP_METRES. Two captures
+    // of a board at the minimum pitch settled it
+    // (docs/verification/terrain-gutter-2026-09-05.md): with the ground shrunk
+    // to the block, neighbouring blocks have nothing between them but their own
+    // unshaded risers and merge into one mass with no room boundaries at all,
+    // while the pitch-sized ground keeps every room outlined. The gutter is a
+    // gap between *blocks*; it was never meant to be a hole in the world.
+    //
+    // Published rather than typed into the viewer so the number has one source,
+    // which is the whole of #345 and the other half of #362.
+    ground: { width: CELL_PITCH_METRES, depth: CELL_PITCH_METRES, unit: 'metre' },
     // The click target is the block, not the pitch. A selection box larger than
     // the thing drawn means clicking the gap between two rooms silently picks
     // one of them, which makes an exit hard to hit as well as hard to see.

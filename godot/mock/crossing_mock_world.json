@@ -41,6 +41,11 @@
           "height": 1,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -225,6 +230,11 @@
           "height": 1,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -369,6 +379,11 @@
           "height": 1,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -511,6 +526,11 @@
           "width": 4.4,
           "depth": 4.4,
           "height": 1,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
           "unit": "metre"
         },
         "selectionBounds": {
@@ -676,6 +696,11 @@
           "width": 4.4,
           "depth": 4.4,
           "height": 3,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
           "unit": "metre"
         },
         "selectionBounds": {
@@ -854,6 +879,11 @@
           "height": 1,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -1022,6 +1052,11 @@
           "height": 1,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -1164,6 +1199,11 @@
           "width": 4.4,
           "depth": 4.4,
           "height": 1,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
           "unit": "metre"
         },
         "selectionBounds": {
@@ -1321,6 +1361,11 @@
           "height": 1,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -1458,6 +1503,11 @@
           "width": 4.4,
           "depth": 4.4,
           "height": 1,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
           "unit": "metre"
         },
         "selectionBounds": {
@@ -1612,6 +1662,11 @@
           "height": 3,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -1745,6 +1800,11 @@
           "width": 4.4,
           "depth": 4.4,
           "height": 3,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
           "unit": "metre"
         },
         "selectionBounds": {
@@ -1889,6 +1949,11 @@
           "width": 4.4,
           "depth": 4.4,
           "height": 1,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
           "unit": "metre"
         },
         "selectionBounds": {
@@ -2054,6 +2119,11 @@
           "height": 1,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -2202,6 +2272,11 @@
           "height": 1,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -2344,6 +2419,11 @@
           "width": 4.4,
           "depth": 4.4,
           "height": 1,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
           "unit": "metre"
         },
         "selectionBounds": {
@@ -2489,6 +2569,11 @@
           "width": 4.4,
           "depth": 4.4,
           "height": 1,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
           "unit": "metre"
         },
         "selectionBounds": {
@@ -2650,6 +2735,11 @@
           "height": 1,
           "unit": "metre"
         },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
@@ -2782,6 +2872,11 @@
           "width": 4.4,
           "depth": 4.4,
           "height": 1,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
           "unit": "metre"
         },
         "selectionBounds": {

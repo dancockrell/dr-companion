@@ -11,6 +11,12 @@ extends Node
 ## still the sole topology source and its ClickTarget remains the fallback
 ## interaction surface.  Do not add collision, navigation, or move rules here.
 
+## The script, not the autoload. `ContentRegistry.register()` below needs the
+## live singleton; the block geometry is static and is asked for through the
+## script, so a test that preloads this file compiles before the autoloads exist
+## without a "Identifier not found: ContentRegistry" compile error.
+const ContentRegistryScript := preload("res://scripts/content_registry.gd")
+
 const SHARED_ROOT := "res://shared-assets/resource-packs"
 const ROCK_SMALL_A := SHARED_ROOT + "/geometry/geology/tabletop-weathered-stone-v1/models/rock_smallA.glb"
 const ROCK_SMALL_B := SHARED_ROOT + "/geometry/geology/tabletop-weathered-stone-v1/models/rock_smallB.glb"
@@ -52,16 +58,41 @@ func shared_asset_status() -> Dictionary:
 		"fallbackPolicy": "matte procedural geometry when the pinned shared submodule is unavailable",
 	}
 
-func _build_terrain(_cell: Dictionary, _primitive: Dictionary) -> Node3D:
-	return _plane_piece("TerrainCell", Color("#58724b"), 5.0, 5.0, 0.0)
+## The ground a cell stands on is the ground that cell published.
+##
+## These three read `5.0, 5.0` and discarded their cell argument. That number
+## was CELL_PITCH_METRES retyped, so the largest surface a player looks at could
+## not follow the manifest anywhere: a board compiled at a different spacing
+## would have kept drawing 5 m planes (issue #362, and the same defect #345 took
+## out of content_registry.gd).
+##
+## What it is *not* is a missing gutter, which is what the issue expected and
+## what the obvious fix - shrink the ground to the block - would have acted on.
+## Two captures of a board at the minimum pitch settled that by looking:
+## docs/verification/terrain-gutter-2026-09-05.md. With the ground cut down to
+## the block, neighbouring blocks have nothing between them but their own
+## unshaded risers, and at the fixed isometric camera they merge into one
+## unbroken mass with no room boundaries left. The pitch-sized ground is what
+## draws each room's outline - the gutter a player sees is the ground showing
+## round the block's edge, not a hole in the world.
+##
+## So the size still comes from the cell, through `board.ground`, which the
+## compiler publishes as one pitch square per room. The value is the same 5 m it
+## always was; the difference is that it is now the manifest's number rather
+## than this file's.
+func _build_terrain(cell: Dictionary, _primitive: Dictionary) -> Node3D:
+	var ground := ContentRegistryScript.ground_size_metres(cell)
+	return _plane_piece("TerrainCell", Color("#58724b"), ground.x, ground.y, 0.0)
 
-func _build_interior_floor(_cell: Dictionary, _primitive: Dictionary) -> Node3D:
+func _build_interior_floor(cell: Dictionary, _primitive: Dictionary) -> Node3D:
 	# An intentionally neutral floor: an interior remains a documented content
 	# slot until a room's description produces a reviewed composition recipe.
-	return _plane_piece("InteriorFloor", Color("#5a5046"), 5.0, 5.0, 0.015)
+	var ground := ContentRegistryScript.ground_size_metres(cell)
+	return _plane_piece("InteriorFloor", Color("#5a5046"), ground.x, ground.y, 0.015)
 
-func _build_water(_cell: Dictionary, _primitive: Dictionary) -> Node3D:
-	var water := _plane_piece("WaterRibbon", Color("#3b7699"), 5.0, 5.0, 0.03)
+func _build_water(cell: Dictionary, _primitive: Dictionary) -> Node3D:
+	var ground := ContentRegistryScript.ground_size_metres(cell)
+	var water := _plane_piece("WaterRibbon", Color("#3b7699"), ground.x, ground.y, 0.03)
 	var material := water.get_child(0).material_override as StandardMaterial3D
 	material.metallic = 0.08
 	material.roughness = 0.28
