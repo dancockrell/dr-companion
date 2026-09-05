@@ -112,6 +112,36 @@ const contractViolations = (manifest) => {
       violations.push(`board-selection: ${cell.id} carries no board.selectionBounds with a numeric width, depth and height`)
     }
 
+    // And the ground the cell owns - the third box `boardLayoutFor()` publishes,
+    // and the one the largest surface on screen is sized from:
+    // `shared_asset_content.gd` draws every terrain, floor and water plane at
+    // `ContentRegistry.ground_size_metres(cell)`, and a cell that publishes none
+    // gets the 1 m marker, so a whole board would come up as postage stamps.
+    //
+    // It was the only one of the three with no rule here. The mock fixture's
+    // ground is covered twice over - by the drift comparison further down, and
+    // by `godot/tests/content_registry_test.gd`, which reads a real cell out of
+    // the loaded world - and neither of those can see the live subject: Godot
+    // never loads a live snapshot, and a snapshot compiled in-process has no
+    // committed artefact to have drifted from. So `compileWorldSnapshot` could
+    // stop emitting `ground` with every Node suite green, which is #345's shape
+    // exactly: the mock exercising one branch and the live path the other.
+    //
+    // Width and depth only. `ground` is a plane and `boardLayoutFor()` publishes
+    // no height for it, so requiring one would be this file inventing a field
+    // rather than checking one.
+    const ground = cell.board?.ground
+    if (!ground || ['width', 'depth'].some((field) => typeof ground[field] !== 'number')) {
+      violations.push(`board-ground: ${cell.id} carries no board.ground with a numeric width and depth`)
+    } else if (ground.width <= CELL_BLOCK_METRES || ground.depth <= CELL_BLOCK_METRES) {
+      // Strictly larger than the block, because the difference *is* the gutter a
+      // player sees - the ground showing round the block's edge is what draws a
+      // room's outline (docs/verification/terrain-gutter-2026-09-05.md). Ground
+      // cut down to the block leaves neighbouring rooms merged into one unbroken
+      // mass, which is the state that measurement was taken to settle.
+      violations.push(`board-ground: ${cell.id} publishes ${ground.width}x${ground.depth} m of ground, which is not larger than its ${CELL_BLOCK_METRES} m block, so there is no gutter to draw a room's outline`)
+    }
+
     const seenMoves = new Map()
     for (const exit of cell.exits) {
       // A null target is the honest form and the whole signal: the room is
@@ -188,6 +218,12 @@ for (const subject of subjects) {
   const withSelection = manifest.cells.filter((cell) => typeof cell.board?.selectionBounds?.height === 'number').length
   ok(`${name}: every cell carries the selection box the viewer sizes its click target from`, withSelection === manifest.cells.length, `${withSelection} of ${manifest.cells.length} cells`)
 
+  // And the third box. The count that would have been 0 of 19 had the generator
+  // stripped `ground` the way it once stripped the whole board - and, on the
+  // live subject, the only thing that can see it at all.
+  const withGround = manifest.cells.filter((cell) => typeof cell.board?.ground?.width === 'number').length
+  ok(`${name}: every cell carries the ground the viewer sizes its terrain from`, withGround === manifest.cells.length, `${withGround} of ${manifest.cells.length} cells`)
+
   const violations = contractViolations(manifest)
   const of = (rule) => violations.filter((v) => v.startsWith(`${rule}:`))
   ok(`${name}: every exit targets a cell here, or is null-targeted`, of('exit-resolves').length === 0, of('exit-resolves')[0] ?? `${exits.length} exits checked, ${nullTargeted.length} of them null-targeted`)
@@ -195,6 +231,7 @@ for (const subject of subjects) {
   ok(`${name}: the current room is one of the cells`, of('current-room-present').length === 0, of('current-room-present')[0] ?? manifest.currentRoomId)
   ok(`${name}: every cell publishes the block size the board layout states`, of('board-footprint').length === 0, of('board-footprint')[0] ?? `${manifest.cells.length} cells at ${CELL_BLOCK_METRES} m`)
   ok(`${name}: every cell publishes a complete selection box`, of('board-selection').length === 0, of('board-selection')[0] ?? `${manifest.cells.length} cells`)
+  ok(`${name}: every cell publishes ground wider than its block, which is the gutter`, of('board-ground').length === 0, of('board-ground')[0] ?? `${manifest.cells.length} cells, each larger than ${CELL_BLOCK_METRES} m`)
   ok(`${name}: satisfies the whole contract`, violations.length === 0, violations.length ? `${violations.length} violations` : 'no violations')
 
   // Each rule, shown able to fire against THIS subject. The broken manifests
@@ -224,6 +261,13 @@ for (const subject of subjects) {
   })
   firesOn('a selection box with no height, which is what made #366 invisible', 'board-selection', (m) => {
     delete m.cells[0].board.selectionBounds.height
+  })
+  firesOn('a cell with no ground, which draws the terrain as a 1 m marker', 'board-ground', (m) => {
+    delete m.cells[0].board.ground
+  })
+  firesOn('ground shrunk to the block, which leaves the board with no gutter', 'board-ground', (m) => {
+    m.cells[0].board.ground.width = CELL_BLOCK_METRES
+    m.cells[0].board.ground.depth = CELL_BLOCK_METRES
   })
 
   if (subject.derived) {
