@@ -343,26 +343,39 @@ does not repeat the attempt from nothing.
 
 1. **Town Green North renders.** The viewer opens on `1-14`, shows its title,
    and draws primitive terrain rather than an empty scene.
-   recorded in ____________________ on __________
+   recorded in `docs/verification/crossing-slice-2026-09-05.md` on 5 Sep 2026
 2. **Every real exit is clickable, and clicking one moves the character.** Each
    of the room's true exits has a control; a person clicks one; the command
    reaches the game. Not the same claim as the intent path working — see line 3.
+   unproven — a synthesised click did move the mock room four times in five, so
+   the binding is not dead, but the rig could not establish which button it
+   pressed: PowerShell is DPI-unaware by default, and the shared cursor moved
+   between the position call and the press. See that record's line 2.
    recorded in ____________________ on __________
 3. **Click → `intent_accepted` → confirmed room change → the token moves.** The
    whole chain in one observation, with a real character, so the confirmation
    comes back from the game and not from a fixture.
+   unproven — `tools/fake-lich.mjs` cannot confirm a room change, so only a live
+   character closes this loop. The intent half is recorded in
+   `docs/verification/live-chain-2026-09-05.md`.
    recorded in ____________________ on __________
 4. **A fabricated exit is refused.** An intent naming a move the published
    snapshot does not carry comes back `intent_rejected`, and nothing reaches
    the game socket.
-   recorded in ____________________ on __________
+   recorded in `docs/verification/crossing-slice-2026-09-05.md` on 5 Sep 2026
 5. **A stun flips `cannotAct` and the scene reacts.** The app publishes the
    state change and the viewer shows it, rather than continuing to offer
    actions the character cannot take.
+   unproven — mock mode has no player state to flip, and nothing can publish a
+   chosen one to the bridge without a stunned character. Filed as a gap in
+   `docs/verification/crossing-slice-2026-09-05.md`.
    recorded in ____________________ on __________
 6. **An assessed creature's confidence visibly ages.** The viewer's
    presentation of an assessment weakens over time on its own, without a new
    event arriving to tell it to.
+   unproven — mock mode has no assessed creature to age; the same gap as line 5.
+   `godot/tests/combat_presentation_test.gd` covers the projection rule, so this
+   is unwatched rather than unwritten.
    recorded in ____________________ on __________
 
 ### What holds each side of the manifest contract

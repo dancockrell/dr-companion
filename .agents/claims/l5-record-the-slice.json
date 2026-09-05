@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "task_id": "l5-record-the-slice",
+  "agent": "claude-code",
+  "summary": "Run the six acceptance lines against the exported viewer and record what each one actually showed",
+  "status": "completed",
+  "claimed_at": "2026-09-05T18:05:00Z",
+  "updated_at": "2026-09-05T19:35:00Z",
+  "paths": [
+    "docs/verification/crossing-slice-2026-09-05.md",
+    "docs/verification/crossing-slice-2026-09-05-mock.png",
+    "tools/capture-godot-window.ps1",
+    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["l4-slice-acceptance-checklist", "b4-live-chain-check"],
+    "conflicts_with": [],
+    "notes": "The increment said touches: none, but a record has to live somewhere and the checklist slots are in the handoff. tools/capture-godot-window.ps1 is committed rather than left in the worktree because the record's re-run section names it: a claim about a technique nobody can re-run is the thing section 19 forbids. Processes started here were killed by their own pids (viewer 27044, app 31212, one fake-lich); no taskkill by image name."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "line 1 recorded: the viewer's own client area, captured whole, reads 'The Crossing, Town Green North / 1-14' and draws primitive terrain with eight exit anchors matching exactly the eight exits 1-14 carries in the fixture, in the fixture's order",
+      "line 4 recorded, both halves: npm run test:godot 11 of 11 scripts, 131 checks, all passed (foundation_test.gd refuses a fabricated intent) and, against the app started from this worktree, node tools/live-chain-check.mjs 6 of 6 steps passed including intent-rejected - intent's fromRoomId does not match the current room",
+      "lines 2, 3, 5, 6 unproven and written up as such rather than left blank. 3, 5 and 6 need a live character; fake-lich replays captured text and cannot confirm a room change, hold a stunned player state, or carry an assessed creature.",
+      "line 2 is the one worth reading: synthesised clicks moved the mock room 1-14 -> 1-17 -> 1-16 -> 1-15 -> 1-14, so the pressed connection into request_visible_exit is NOT dead, which the 5 September record could not establish. Which button was pressed could not be attributed, so nothing is claimed about it.",
+      "why not: PowerShell 5.1 is DPI-unaware by default - measured on one window seconds apart, IsProcessDPIAware False reported client 1024x576 origin 2048,271 and True reported 3840x2071 origin 0,29 - and in one run the cursor moved between SetCursorPos and the press (asked for screen 360,375; GetCursorPos reported 1515,19 a second later). A rig steering the shared cursor on this machine cannot tell its own click from anyone else's.",
+      "instrument finding worth more than the line it came from: Graphics.CopyFromScreen captures the GPU-composited Godot window that PrintWindow could not, which unblocks every visual check the 5 September record had to abandon. tools/capture-godot-window.ps1 aborts rather than shooting if the window is not foreground or the client rect is implausibly small.",
+      "npx tsc -b exit 0; node tools/run-tests.mjs all passed; node tools/plan-audit.mjs plan ok"
+    ]
+  }
+}
