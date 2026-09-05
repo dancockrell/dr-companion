@@ -561,7 +561,8 @@ in the chain (token/port files, auth, reconnect) is already written.
   done-when: Godot receives a `snapshot` with a numeric `sequence` from the app.
   pitfalls: 9. Read Codex's active claims on `world_root.gd` first.
 
-- [ ] **B3  Record the proof** (≈20)
+- [x] **B3  Record the proof** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 20
   touches: none
   depends-on: B2
   do: `docs/verification/live-chain-<date>.md`: commit sha, `godot --version`, commands, the Godot line, the Rust `intent_accepted` line for a clicked exit, the text pane showing the movement, one screenshot, and a non-empty "what did not work" section (or "nothing, first try" with the evidence).

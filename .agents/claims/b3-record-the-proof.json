@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "task_id": "b3-record-the-proof",
+  "agent": "claude-code",
+  "summary": "Record what was actually observed when the app drove the Godot viewer for the first time",
+  "status": "completed",
+  "claimed_at": "2026-09-05T07:00:00Z",
+  "updated_at": "2026-09-05T07:05:00Z",
+  "paths": [
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["b2-app-launches-viewer-live"],
+    "conflicts_with": [],
+    "notes": "New directory docs/verification/ with the record and its screenshot. The screenshot is the viewer window alone, captured with PrintWindow against that window handle: a first attempt captured the whole primary screen, which held unrelated personal content, and was deleted rather than cropped."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "docs/verification/live-chain-2026-09-05.md carries all six items: commit a7ea8414, godot --version 4.3.stable.official.77dcf97d8, the exact commands, the viewer's own reading (Empaths' Guild / 1-308), the intent_accepted line with the matching '> southwest' at the game end, the screenshot beside it, and a what-did-not-work section that is not empty",
+      "what did not work: a synthesised click on the viewer's own exit button produced no game command, three times, and the record says plainly that this is unresolved rather than picking the flattering reading",
+      "a confirmed room change could not be observed because tools/fake-lich.mjs replays captured text and answers southwest with '...wait, what?'"
+    ]
+  }
+}
