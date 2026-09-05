@@ -248,7 +248,24 @@ export class EventJournal {
  * without anybody having to remember to clear it, and without a stale value
  * from last week being able to skip a session's first thousand events.
  */
-export const JOURNAL_SESSION_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+export const JOURNAL_SESSION_ID = `${Date.now().toString(36)}-${randomTag()}`
+
+/**
+ * Eight random bytes as hex.
+ *
+ * `Math.random` would do the job this value actually has, which is telling one
+ * run apart from the next. CodeQL reads any identifier ending in SESSION_ID as
+ * a security context and flags it high severity: right that the pattern is
+ * dangerous, wrong about this instance. The safe primitive costs nothing, so
+ * this uses it rather than leaving a suppression comment nobody will
+ * re-examine. `getRandomValues` and not `randomUUID`, because the latter needs
+ * a secure context and this has to work in the WebView the app ships in.
+ */
+function randomTag(): string {
+  const bytes = new Uint8Array(8)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
 
 const CURSOR_KEY = 'drc.ai-cursor.v1'
 
