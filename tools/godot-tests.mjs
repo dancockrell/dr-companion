@@ -40,9 +40,35 @@ import { join } from 'node:path'
 const TESTS = 'godot/tests'
 const PROJECT = 'godot'
 
-/** Well below the twelve that exist, so it never needs touching and still
- * catches a walk that found nothing. */
-const MIN_TESTS = 6
+/** Well below the eleven that exist, so it never needs touching and still
+ * catches a walk that found nothing. Overridable only so the refusal below can
+ * be executed on purpose; a branch nobody can trigger is a branch nobody can
+ * prove they fixed. */
+const MIN_TESTS = Number(process.env.DRC_GODOT_MIN_TESTS ?? 6)
+
+/**
+ * And the number that actually goes to zero when the mechanism breaks.
+ *
+ * `MIN_TESTS` floors how many scripts were *found*, which is a different claim
+ * from how much was *asserted* - and a script that runs, prints
+ * `0 checked, 0 failed` and exits clean is accepted below as `OK — 0 checks`.
+ * Demonstrated by replacing `_checked += 1` with `_checked += 0` in all eleven
+ * scripts under `godot/tests` and running this file against a real Godot 4.3:
+ *
+ *   11 of 11 Godot test scripts passed, 0 checks
+ *   all passed                                       <- exit 0
+ *
+ * Every script was found, every script ran, every script parsed, nothing
+ * failed, and the run asserted nothing at all. `tools/run-tests.mjs` has
+ * `CHECK_FLOOR` for exactly this shape and cannot cover this one, because
+ * `test:godot` is deliberately outside `tools/test-suites.json` (it needs a
+ * Godot binary - see `tools/needs-env.mjs`). So the floor has to live here.
+ *
+ * 60 against a real 131, on the same reasoning as every other floor in this
+ * repo: far enough below that adding or removing a case never touches it, high
+ * enough that a suite gutted to nothing cannot clear it.
+ */
+const MIN_CHECKS = Number(process.env.DRC_GODOT_MIN_CHECKS ?? 60)
 
 /** Where a Godot 4.3 binary tends to be on this machine, after `GODOT4`. The
  * list is a convenience, not a contract: naming the binary explicitly is
@@ -151,4 +177,17 @@ if (failed) {
   console.error(`FAILED: ${failed} Godot test script(s)`)
   process.exit(1)
 }
+
+// The denominator, asserted rather than displayed, and checked before the
+// verdict so a run that asserted nothing cannot reach the words "all passed".
+if (checks < MIN_CHECKS) {
+  console.error(
+    `FAILED: ${files.length} script(s) ran and asserted only ${checks} checks (floor ${MIN_CHECKS}).`
+  )
+  console.error(
+    '  Every script can be found, parse and exit clean while checking nothing; that is not a pass.'
+  )
+  process.exit(1)
+}
+
 console.log('all passed')
