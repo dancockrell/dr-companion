@@ -184,6 +184,18 @@ Each has already been hit in this repository. None is hypothetical.
     and only then `gh pr merge <n> --squash --delete-branch`. Enabling branch
     protection would make the safe thing automatic; it is a repository setting
     and therefore Dan's to turn on (section 10).
+22. **This tree checks out CRLF, so a multi-line fragment built with `\n`
+    matches nothing.** It bites hardest in the tools that edit tracked files
+    on purpose — a sabotage harness, a codemod — because it fails silently in
+    the worst direction: the fragment is not found, the replacement changes
+    nothing, the file is rewritten identical, the guard stays green, and the
+    output reads exactly like proof that the guard caught something. Hit while
+    writing `tools/bridge-client-null-target-break-check.mjs`, and caught only
+    because that harness aborts on a fragment it cannot find rather than
+    falling through. Detect the ending from the file itself
+    (`text.includes('\r\n') ? '\r\n' : '\n'`), join your lines with it, and
+    make "fragment not found" a hard abort. A single-line `includes` is
+    unaffected, which is why this stays invisible until the day you need two.
 
 ---
 

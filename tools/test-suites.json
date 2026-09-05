@@ -133,6 +133,7 @@
   "test:editor-safety",
   "test:godot-fixture-contract",
   "test:board-geometry-drift",
+  "test:nullable-coercion",
   "test:geometric-briefs",
   "test:primitive-world",
   "test:node-projection",

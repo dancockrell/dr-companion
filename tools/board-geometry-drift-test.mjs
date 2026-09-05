@@ -91,9 +91,15 @@
  *
  * Run: node tools/board-geometry-drift-test.mjs
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, sep as SEPARATOR } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { sep as SEPARATOR } from 'node:path'
 import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES, boardLayoutFor } from '../src/lib/isometric-board-layout.mjs'
+// The walk, the submodule exclusion and the comment stripper used to live in
+// this file. They moved to `tools/godot-source-scan.mjs` when a second GDScript
+// scan (`tools/nullable-field-coercion-test.mjs`) needed the same three, rather
+// than being copied into it - see that module's header. Behaviour is unchanged;
+// the checks below still exercise all of it.
+import { codeOnly, gdFiles as gdFilesIn, submodulePaths } from './godot-source-scan.mjs'
 
 const LAYOUT_SOURCE = 'src/lib/isometric-board-layout.mjs'
 const GODOT_ROOT = 'godot'
@@ -144,32 +150,10 @@ const ok = (what, cond, detail = '') => {
   }
 }
 
-/**
- * The code half of one GDScript line: string literals blanked, then everything
- * from the first surviving `#` dropped.
- *
- * Blanking strings first is not tidiness. `Color("#58724b")` in
- * shared_asset_content.gd puts a `#` inside a string on a line that also
- * carries real numbers, so cutting at the first `#` would hide them and the
- * scan would report clean because it had stopped reading.
- */
-const codeOnly = (line) => {
-  let out = ''
-  let quote = ''
-  for (const ch of line) {
-    if (quote) {
-      if (ch === quote) quote = ''
-      continue
-    }
-    if (ch === '"' || ch === "'") {
-      quote = ch
-      continue
-    }
-    if (ch === '#') break
-    out += ch
-  }
-  return out
-}
+// `codeOnly` - the code half of one GDScript line, string literals blanked and
+// the comment dropped, in that order so a `#` inside `Color("#58724b")` cannot
+// hide the numbers after it - is imported from `./godot-source-scan.mjs`. The
+// controls below still fire on that exact line.
 
 /**
  * Every number written as a literal in that code, as `{ value, raw }`.
@@ -270,51 +254,16 @@ const refusedDimensions = () => {
 }
 
 /**
- * The repository-relative path of every git submodule, read out of
- * `.gitmodules`.
- *
- * Derived rather than listed so a second submodule is excluded without this
- * file being touched, and returned as a Set of forward-slash paths because that
- * is how `.gitmodules` spells them on every platform. `MODULE_PATHS.size` is
- * asserted below: an empty result would silently put the exclusion back to
- * scanning everything, which is the state this replaced.
+ * The submodule exclusion and the `.gd` walk that honours it, both imported.
+ * `MODULE_PATHS.size` is still asserted below before anything is concluded from
+ * a clean scan: an empty result would silently put the exclusion back to
+ * scanning another repository's setpieces, which is the state it replaced. See
+ * the header for why that matters here - one of them places props at
+ * coordinates that collide with a board dimension, and whether it has been
+ * cloned is not a fact about this viewer.
  */
-const submodulePaths = () => {
-  const found = new Set()
-  let text = ''
-  try {
-    text = readFileSync('.gitmodules', 'utf8')
-  } catch {
-    return found
-  }
-  for (const line of text.split('\n')) {
-    const match = /^\s*path\s*=\s*(.+?)\s*$/.exec(line)
-    if (match) found.add(match[1].split(SEPARATOR).join('/'))
-  }
-  return found
-}
-
 const MODULE_PATHS = submodulePaths()
-
-/**
- * Every `.gd` file under `dir` that belongs to this repository.
- *
- * A directory named by `.gitmodules` is another repository's checkout and is
- * skipped whole, initialised or not. See the header for why: one of them places
- * props at coordinates that collide with a board dimension, and whether it has
- * been cloned is not a fact about this viewer.
- */
-const gdFiles = (dir) => {
-  const out = []
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry)
-    const relative = full.split(SEPARATOR).join('/')
-    if (MODULE_PATHS.has(relative)) continue
-    if (statSync(full).isDirectory()) out.push(...gdFiles(full))
-    else if (entry.endsWith('.gd')) out.push(full)
-  }
-  return out
-}
+const gdFiles = (dir) => gdFilesIn(dir, MODULE_PATHS)
 
 /**
  * file:line for every code literal equal to `target`.
