@@ -350,27 +350,57 @@ if (existsSync(HOOKS_NSH)) {
    * Takes already-normalised text (forward slashes), so no separator has to
    * survive JS escaping and a regex on its way into this file.
    */
+  //
+  // Comment lines are dropped first. The hook explains itself by quoting the
+  // very line the generated installer.nsi runs, and a check that reads prose as
+  // code both miscounts (it reported three recursive deletes where the hook has
+  // two) and would go red the day somebody writes down, in a comment, the
+  // deletion they are explaining why they did not do.
   const recursiveTargets = (text) =>
-    [...text.matchAll(/RMDir\s+\/r\s+"([^"]*)"/gi)].map((m) => m[1].replace(/\/+$/, ''))
+    [...text
+      .split('\n')
+      .filter((line) => !/^\s*;/.test(line))
+      .join('\n')
+      .matchAll(/RMDir\s+\/r\s+"([^"]*)"/gi)].map((m) => m[1].replace(/\/+$/, ''))
 
-  const allowed = cacheDir ? `${dataRoot}/${cacheDir}` : null
-  const strayRecursive = (text) => recursiveTargets(text).filter((p) => p !== allowed)
+  // The second admissible target, added 6 Sep 2026. It is not under
+  // `DR Companion Data` at all: it is `$LOCALAPPDATA\<bundle id>`, the WebView2
+  // profile, which is the folder Tauri's own `Section Uninstall` already
+  // deletes under this checkbox and which the hook now re-deletes until it is
+  // actually gone (docs/verification/uninstall-2026-09-06.md). Nothing the user
+  // authored lives there - it is the browser profile the app creates on first
+  // start - and the delete is only reachable with the box ticked, which the
+  // structural walk further down is what actually proves.
+  //
+  // It is admitted as the NSIS define, spelled `${BUNDLEID}`, and never as the
+  // identifier itself. Writing the id out would be a second spelling of a value
+  // that already lives in tauri.conf.json, and a rename there would leave the
+  // hook recursively deleting a directory nobody writes to while the real
+  // profile survived - which is this whole section's failure mode wearing a new
+  // path. The literal form is a refusal below, so it cannot creep back in.
+  const bundleDirToken = '$LOCALAPPDATA/${BUNDLEID}'
+  const allowed = cacheDir ? [`${dataRoot}/${cacheDir}`, bundleDirToken] : []
+  const strayRecursive = (text) => recursiveTargets(text).filter((p) => !allowed.includes(p))
 
   // The instrument before it is trusted to clear the real file. A matcher that
   // stopped matching would report an empty stray list, which is the same output
   // as a hook that is clean.
-  const admitted = `RMDir /r "${allowed}"`
+  const admitted = allowed.map((p) => `RMDir /r "${p}"`).join('\n')
   const refusals = [
     ['the data folder itself', `RMDir /r "${dataRoot}"`],
     ['the data folder with a trailing separator', `RMDir /r "${dataRoot}/"`],
     ["the player's own portraits", `RMDir /r "${dataRoot}/portraits"`],
     ['a whole Lich install', `RMDir /r "${dataRoot}/lich"`],
     ['everything in the data folder', `RMDir /r "${dataRoot}/*"`],
+    // The bundle-id folder is admissible; these three spellings of it are not.
+    ['the bundle id written out instead of the define', `RMDir /r "$LOCALAPPDATA/${conf.identifier}"`],
+    ['the whole of LOCALAPPDATA', 'RMDir /r "$LOCALAPPDATA"'],
+    ['the roaming bundle-id folder, which Tauri already owns', 'RMDir /r "$APPDATA/${BUNDLEID}"'],
   ]
   check(
-    'the recursive-delete matcher finds the one delete the hook is allowed',
-    cacheDir ? recursiveTargets(admitted).length === 1 && strayRecursive(admitted).length === 0 : false,
-    cacheDir ? `positive control: ${allowed}` : 'skipped: no cache directory was read out of setup.rs',
+    'the recursive-delete matcher finds the deletes the hook is allowed',
+    cacheDir ? recursiveTargets(admitted).length === allowed.length && strayRecursive(admitted).length === 0 : false,
+    cacheDir ? `positive control: ${allowed.join(', ')}` : 'skipped: no cache directory was read out of setup.rs',
   )
   for (const [what, line] of refusals) {
     check(
@@ -382,11 +412,11 @@ if (existsSync(HOOKS_NSH)) {
 
   const stray = strayRecursive(nsh)
   check(
-    'and the hook recursively deletes nothing but that cache directory',
+    'and the hook recursively deletes nothing but those two',
     stray.length === 0,
     stray.length
       ? `${stray.join(', ')} - RMDir /r there takes the user's portraits, Lich and Genie with it`
-      : `${recursiveTargets(nsh).length} recursive delete(s), all of them ${allowed}`,
+      : `${recursiveTargets(nsh).length} recursive delete(s), all of them in ${allowed.join(' / ')}`,
   )
 
   // ---- the retry that makes the checkbox finish its own deletion ----------
