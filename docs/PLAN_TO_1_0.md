@@ -172,6 +172,18 @@ Each has already been hit in this repository. None is hypothetical.
     node script that asserts how many lines it changed and refuses on
     surprise, and run `node tools/plan-audit.mjs` before committing —
     "parsed only 0 increments" was the first sign.
+21. **`gh pr merge --auto` merges immediately here. It is not "merge when
+    green".** `main` has no branch protection and no rulesets
+    (`gh api repos/dancockrell/dr-companion/branches/main/protection` → 404,
+    `.../rulesets` → `[]`), and auto-merge has no rule to wait for, so it
+    merges on the spot. Measured on PR #318: merged 12:04:47, its `tauri` job
+    finished 12:07:41 — nearly three minutes later. It passed, so nothing
+    broke, and that is exactly why this is worth writing down: the mechanism
+    is invisible until the day a job fails. Always
+    `gh pr checks <n> --watch --fail-fast` first, confirm every row passes,
+    and only then `gh pr merge <n> --squash --delete-branch`. Enabling branch
+    protection would make the safe thing automatic; it is a repository setting
+    and therefore Dan's to turn on (section 10).
 
 ---
 
@@ -1374,6 +1386,16 @@ the decision; a later session may reopen one by writing why here.
   normative parts move into `docs/LOCAL_AI_BACKGROUND_WORKER.md` (C8) and its
   execution parts are now increments here, so there is one source of truth
   for each. The PDF stays a dated review artefact in your files. *Decided:* **not committed**, 5 Sep 2026.
+- **Branch protection on `main`** — the one item here that is not a
+  recommendation because it is not mine to make. `main` has no protection and
+  no rulesets, so nothing requires CI to pass before a merge and
+  `gh pr merge --auto` merges on the spot rather than waiting (trap 21; PR
+  #318 merged three minutes before its `tauri` job finished). Every lane is
+  told to watch the checks by hand, which works and depends on everyone
+  remembering. A protection rule requiring the existing `checks`, `tauri` and
+  `analyze` jobs would make the safe path the only path, at the cost of
+  needing a pull request for every change to `main`. Turning it on is a
+  repository setting and yours. *Decided:* —
 
 ---
 

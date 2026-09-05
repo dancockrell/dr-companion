@@ -123,8 +123,17 @@ jobs:
       # fails before compiling anything - clippy and cargo test included, not
       # only the packaging one. Fetch it up front. The script verifies the
       # download against GitHub's published sha256 and no-ops when current.
+      # The token is what stops this step flaking. Unauthenticated GitHub API
+      # calls are limited to 60 an hour per source address, and Actions runners
+      # share addresses across customers, so a run can land on a bucket
+      # somebody else has already emptied: this step failed with HTTP 403 three
+      # times on 5 Sep 2026 on three unrelated pull requests, each one fixed by
+      # an unchanged rerun. GITHUB_TOKEN raises the limit to 1,000 an hour for
+      # this repository and needs no permission beyond the default read.
       - name: Vendor Ruby4Lich5
         run: npm run vendor:fetch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Rust format
         working-directory: src-tauri

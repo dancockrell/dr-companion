@@ -137,5 +137,49 @@ function readExisting() {
   }
 }
 
+// --- the GitHub API failure path, which had never been executed -------------
+//
+// `Vendor Ruby4Lich5` failed with a bare `GitHub API: HTTP 403` three times on
+// 5 Sep 2026 across three unrelated pull requests, each fixed by an unchanged
+// rerun. A bare status code cannot say whether retrying could help, and the
+// answer decides everything: a rate limit clears on its own, a permissions
+// failure never does. These run that branch rather than reading it - a first
+// attempt to prove it by stubbing `fetch` and importing the CLI died in the
+// CLI's own startup and never reached the code under test.
+{
+  const { describeGithubFailure, githubHeaders } = await import('./vendor-fetch.mjs')
+  const reset = 1757100000
+  const resetIso = new Date(reset * 1000).toISOString()
+
+  const limitedAnon = describeGithubFailure(403, '0', String(reset), false)
+  check(
+    'a 403 with no requests left is reported as a rate limit, not a bare status',
+    limitedAnon.includes('rate limited') && limitedAnon.includes(resetIso),
+    limitedAnon.slice(0, 52)
+  )
+  check(
+    'and it names the unauthenticated limit, which is the fixable case',
+    limitedAnon.includes('No GITHUB_TOKEN') && limitedAnon.includes('60/hour')
+  )
+  check(
+    'the same failure with a token names the authenticated limit instead',
+    describeGithubFailure(403, '0', String(reset), true).includes('1,000/hour')
+  )
+  // The distinction is the point: a 403 that is not the rate limit must not be
+  // dressed as one, or somebody waits an hour on a permissions problem.
+  check(
+    'a 403 with requests remaining stays a plain status code',
+    describeGithubFailure(403, '57', String(reset), false) === 'GitHub API: HTTP 403'
+  )
+  check(
+    'an ordinary 404 is unchanged',
+    describeGithubFailure(404, null, null, false) === 'GitHub API: HTTP 404'
+  )
+
+  check('no token in the environment means no Authorization header', githubHeaders({}).Authorization === undefined)
+  check('a token is sent as a bearer credential', githubHeaders({ GITHUB_TOKEN: 'x' }).Authorization === 'Bearer x')
+  check('and GH_TOKEN works too, because gh sets that one', githubHeaders({ GH_TOKEN: 'y' }).Authorization === 'Bearer y')
+}
+
 console.log(`\n${fails === 0 ? 'all checks passed' : `${fails} FAILED`}`)
 process.exit(fails === 0 ? 0 : 1)

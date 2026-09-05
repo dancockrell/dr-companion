@@ -58,7 +58,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const VENDOR_DIR = join(__dirname, '..', 'src-tauri', 'vendor')
@@ -67,11 +67,68 @@ const MANIFEST_PATH = join(VENDOR_DIR, 'Ruby4Lich5.manifest.json')
 const REPO = 'elanthia-online/lich-5'
 const ASSET_NAME = 'Ruby4Lich5.exe'
 
+/**
+ * Headers for the GitHub API, with a token when one is on offer.
+ *
+ * Unauthenticated requests are limited to 60 an hour **per source address**,
+ * and every GitHub Actions runner shares a small pool of addresses with every
+ * other customer's jobs, so a CI run can arrive at a bucket somebody else
+ * already emptied. That is not a hypothesis: the `Vendor Ruby4Lich5` step
+ * failed with `GitHub API: HTTP 403` three times on 5 Sep 2026 across three
+ * different lanes, each time on an unrelated pull request, and each time an
+ * unchanged rerun passed. A flake that is fixed by pressing the button again
+ * teaches people to press the button again.
+ *
+ * `GITHUB_TOKEN` is present in every workflow run and raises the limit to
+ * 1,000 an hour for the repository. It is only ever read from the environment
+ * and never logged; the caller decides whether to supply one, and locally
+ * there usually is none, which is fine - 60 an hour is plenty for one person.
+ */
+export function githubHeaders(env = process.env) {
+  const headers = { 'User-Agent': 'dr-companion-vendor-fetch' }
+  const token = env.GITHUB_TOKEN || env.GH_TOKEN
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
+
+/**
+ * What a failing GitHub API response actually means.
+ *
+ * Exported and pure so the unhappy path can be *run* rather than reasoned
+ * about. A first attempt to prove it by stubbing `fetch` and importing this
+ * file died earlier in the CLI's own startup and never reached the branch,
+ * which is a check that proves nothing (plan trap 15). A function with
+ * arguments has no startup to die in.
+ */
+export function describeGithubFailure(status, remaining, reset, hasToken) {
+  if (status === 403 && remaining === '0') {
+    const when = reset ? new Date(Number(reset) * 1000).toISOString() : 'an unknown time'
+    return (
+      `GitHub API: rate limited (0 requests left, resets at ${when}). ` +
+      (hasToken
+        ? 'A token was sent, so this is the authenticated 1,000/hour limit.'
+        : 'No GITHUB_TOKEN was set, so this was the unauthenticated 60/hour limit, shared with every other job on this runner address.')
+    )
+  }
+  return `GitHub API: HTTP ${status}`
+}
+
 async function latestAsset() {
   const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-    headers: { 'User-Agent': 'dr-companion-vendor-fetch' },
+    headers: githubHeaders(),
   })
-  if (!res.ok) throw new Error(`GitHub API: HTTP ${res.status}`)
+  if (!res.ok) {
+    // 403 here is nearly always the rate limit rather than a permissions
+    // problem, and the difference decides whether retrying can possibly help.
+    throw new Error(
+      describeGithubFailure(
+        res.status,
+        res.headers.get('x-ratelimit-remaining'),
+        res.headers.get('x-ratelimit-reset'),
+        Boolean(process.env.GITHUB_TOKEN || process.env.GH_TOKEN)
+      )
+    )
+  }
   const rel = await res.json()
   const asset = rel.assets.find((a) => a.name === ASSET_NAME)
   if (!asset) throw new Error(`release ${rel.tag_name} has no asset named ${ASSET_NAME}`)
@@ -234,7 +291,19 @@ async function main() {
   console.log(`vendored ${latest.version}: ${EXE_PATH}`)
 }
 
-main().catch((e) => {
-  console.error(String(e.message ?? e))
-  process.exit(1)
-})
+// Only run when invoked as a command, not when imported.
+//
+// Without this guard, `import('./vendor-fetch.mjs')` to reach one exported
+// function also starts a download. That is how the first attempt to test the
+// rate-limit branch failed: the import ran `main()`, which died on an absent
+// manifest, and the error looked like the code under test rather than like the
+// harness starting a CLI by accident. `process.argv[1]` is the script node was
+// asked to run; comparing it to this module's own URL is the standard way to
+// tell the two apart, and it costs nothing.
+const invokedDirectly = process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url
+if (invokedDirectly) {
+  main().catch((e) => {
+    console.error(String(e.message ?? e))
+    process.exit(1)
+  })
+}
