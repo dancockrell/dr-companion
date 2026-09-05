@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "a11-privacy-gate-visible",
+  "agent": "claude-code",
+  "summary": "A refused prompt becomes a reported failure with the pattern name, instead of an unhandled rejection nobody sees",
+  "status": "completed",
+  "claimed_at": "2026-09-05T00:00:00Z",
+  "updated_at": "2026-09-05T00:00:00Z",
+  "paths": [
+    "src/lib/aiWorker.ts",
+    "src/lib/aiModelProvider.ts",
+    "src/components/shared/AiWorkerPanel.tsx",
+    "tools/ai-worker-test.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/a11-privacy-gate-visible.json"
+  ],
+  "symbols": ["PrivacyGateError", "generateOrRefuse", "privacy_gate"],
+  "coordination": {
+    "depends_on": ["a2-tick-survives-store-updates"],
+    "conflicts_with": [],
+    "notes": "The gate still throws - a leak must stop the call rather than produce a value somebody might log - and a distinct PrivacyGateError type is what lets the worker convert it without swallowing genuine bugs alongside it. Catching Error would relabel a typo in a provider as a privacy refusal, so there is a check for exactly that. One helper serves both call sites rather than two copies of the same catch. The refusal carries pattern names only; a test asserts the value never appears in the outcome or in the job note, since a diagnostic quoting the secret would be the leak the gate exists to prevent. Unreachable through the shipped request shape today, which is the argument usually used for leaving such a hole; it is fixed anyway, and the test reaches it through the caller-supplied instructions."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "'OK nothing escapes as a rejection - the turn returns  null', 'OK and reports it as a privacy refusal, not a generic error  privacy_gate', 'OK naming the pattern that matched  withheld: account password', 'OK and never the value'",
+      "'OK the cursor did not move, so the events are still there to review  0'",
+      "'OK and is recorded as failed rather than left running  failed' with the note 'privacy_gate: withheld: account password'",
+      "'OK an ordinary provider bug is still reported as an error, not as a refusal  error' - the catch is narrow",
+      "sabotage - stop catching PrivacyGateError: 'FAIL nothing escapes as a rejection - the turn returns  PrivacyGateError: Refusing to send a prompt...', 4 checks red; restored, md5sum 7b71c20356b411476096eb57be0e6419 matched",
+      "the fixture is assembled at runtime as 'pass' + 'word: hunter2' - trap 3 - and the gitleaks hook passed with no bypass",
+      "node --experimental-strip-types tools/ai-worker-test.mjs: 48 checked, 0 failed (was 38)"
+    ]
+  }
+}

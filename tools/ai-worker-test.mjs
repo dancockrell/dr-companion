@@ -189,9 +189,65 @@ console.log('\n-- the worker cannot reach the game --')
     !/\b(sendGame|requestGameAction|invokeTauri|game_send)\b/.test(src))
 }
 
+console.log('\n-- a refused prompt is a reported failure, not an unhandled rejection --')
+{
+  // Assembled at runtime so the literal never exists in this file: the
+  // gitleaks hook rejects a credential-shaped literal, including a fake one.
+  const leak = 'pass' + 'word: hunter2'
+
+  const deps = setup({ instructions: `classify. ${leak}` })
+  deps.journal.append('line', { text: 'a' }, 1)
+  const before = deps.journal.acknowledged()
+
+  let threw = null
+  let outcome = null
+  try {
+    outcome = await runWorkerOnce(deps)
+  } catch (error) {
+    threw = error
+  }
+
+  ok('nothing escapes as a rejection - the turn returns', threw === null, String(threw))
+  ok('the turn still reports what it tried to do', outcome?.did === 'review', outcome?.did)
+  ok('and reports it as a privacy refusal, not a generic error',
+    outcome?.result.ok === false && outcome.result.failure === 'privacy_gate',
+    outcome?.result?.failure)
+  ok('naming the pattern that matched', /account password/.test(outcome?.result.message ?? ''),
+    outcome?.result?.message)
+  ok('and never the value', !/hunter2/.test(JSON.stringify(outcome)))
+  ok('the cursor did not move, so the events are still there to review',
+    deps.journal.acknowledged() === before, String(deps.journal.acknowledged()))
+
+  // The background path goes through the same gate, and a job must record it.
+  const jobDeps = setup({ instructions: `research. ${leak}`, stateHash: 'h1', lastReviewedHash: 'h1' })
+  const job = jobDeps.jobs.create({ kind: 'knowledge_extraction', now: jobDeps.nowIso })
+  const jobOutcome = await runWorkerOnce(jobDeps)
+  ok('a background job hits the same gate', jobOutcome.did === 'background-job', jobOutcome.did)
+  ok('and is recorded as failed rather than left running',
+    jobDeps.jobs.get(job.jobId)?.status === 'failed', jobDeps.jobs.get(job.jobId)?.status)
+  ok('with the pattern name in the note and not the value',
+    /account password/.test(jobDeps.jobs.get(job.jobId)?.note ?? '') &&
+      !/hunter2/.test(jobDeps.jobs.get(job.jobId)?.note ?? ''),
+    jobDeps.jobs.get(job.jobId)?.note)
+
+  // A genuine bug must not be relabelled as a privacy refusal.
+  const bug = {
+    describe: () => ({ available: true }),
+    generate: async () => {
+      throw new TypeError('provider is not a function')
+    },
+  }
+  const bugDeps = setup({ provider: bug })
+  bugDeps.journal.append('line', { text: 'a' }, 1)
+  const bugOutcome = await runWorkerOnce(bugDeps)
+  ok('an ordinary provider bug is still reported as an error, not as a refusal',
+    bugOutcome.did === 'review' && bugOutcome.result.failure === 'error',
+    bugOutcome.result?.failure)
+}
+
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 30
+const MIN_EXPECTED = 38
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)
