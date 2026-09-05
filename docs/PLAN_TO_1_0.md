@@ -1197,6 +1197,15 @@ receives. No portraits, no images in the client.
   do: all six L4 lines recorded. Gate 3's content half.
   verify: no empty slot.
 
+- [x] **L7  The board overlapped itself, so the exits had no edge to sit on** (≈70)
+  commit: (this PR) verified: 2026-09-05 minutes: 70
+  touches: src/lib/isometric-board-layout.mjs, tools/build-primitive-world-manifest.mjs, godot/scripts/content_registry.gd, godot/scripts/exit_anchor_layer.gd, tools/primitive-world-manifest-test.mjs, tools/presentation-bridge-test.mjs
+  depends-on: B3
+  do: unplanned, from Dan playing the viewer — "the exits are sometimes hard to find… you should put a little bit of a gap between each block, good idea anyways actually, prevents clipping", then "some kind of shape randomly on the edge for directions… the 8 cardinal and sub cardinal… but not on the block itself, it won't be readable. it should be on the edge actually." Measuring the manifest found the cause was worse than a missing gap. Room positions were map units × 0.25, which put the **median** nearest neighbour 2.5 m away and the closest at 2.0 m, while every room drew a block 4.4–5 m wide: blocks overlapped by roughly their own width everywhere, and an exit anchor at the block edge landed inside the neighbour's geometry. Three numbers described one dimension and none derived from another — the manifest said 5, the selection box 4.5, Godot drew a hardcoded 4.5. Now `CELL_PITCH_METRES`, `CELL_GAP_METRES` and `CELL_BLOCK_METRES` are one source, Godot draws the published footprint, and the scale is 0.625 — derived rather than picked: 8 map units is the smallest gap the data contains, so `8 × scale ≥ block + gutter`. Exit markers became flat chevrons lying in the gutter and pointing out of the room, instead of upright cylinders standing on the block: at a fixed isometric camera a standing post is seen nearly end-on and hides behind room content, while a floor marking keeps its area toward the camera and can carry direction.
+  verify: minimum same-storey spacing 5.00 m against a 4.4 m block — a 0.60 m gutter everywhere; `npm run test:godot` 11 of 11, 131 checks; full suite `all passed`, 117 suites, 3563 checks.
+  sabotage: put the scale back to 0.25 → `FAIL blocks touch or overlap: closest neighbours are 2.00m apart but blocks are 4.4m wide`; restored, md5 `5938abc03a96` either side.
+  pitfalls: two rooms (Paladins' Guild `1-804`/`1-866` and `1-805`/`1-867`) share exact map coordinates and overlap at any scale. That is a map-data defect rather than a layout one, so the check names both pairs as NOT CHECKED instead of folding them into a failure it cannot fix. **Not verified on screen**: the Godot window is GPU-composited and would not screenshot for Lane B either, so this geometry is proved by measurement and by the tests, and the look still wants Dan's eye.
+
 ---
 
 ## 7. Dependency graph

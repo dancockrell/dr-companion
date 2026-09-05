@@ -47,10 +47,30 @@ func build(cell: Dictionary, primitive: Dictionary) -> Node3D:
 			return node
 	return _placeholder(cell, primitive)
 
+## The block is the size the manifest published for this cell, never a number
+## invented here.
+##
+## It used to be a hardcoded 4.5 while the manifest said 5 and the selection box
+## said 4.5 again - three numbers for one dimension, none derived from another,
+## so a change to the board's spacing could not reach the thing a player looks
+## at. The compiler now leaves a deliberate gutter between neighbouring blocks
+## (see CELL_GAP_METRES in src/lib/isometric-board-layout.mjs: without it the
+## tiles meet exactly, the board reads as one continuous surface, and the exits
+## - which live at the edges - have no edge to live on).
+##
+## The fallback is only for a cell whose manifest predates the field. It is
+## deliberately the gutter-inclusive size rather than the pitch, so an old
+## manifest degrades to a visible seam rather than to blocks that touch.
+const FALLBACK_BLOCK_METRES := 4.4
+
 func _placeholder(cell: Dictionary, primitive: Dictionary) -> Node3D:
 	var mesh_instance := MeshInstance3D.new()
 	var box := BoxMesh.new()
-	box.size = Vector3(4.5, 0.3, 4.5)
+	var board: Dictionary = cell.get("board", {})
+	var footprint: Dictionary = board.get("footprint", {})
+	var width: float = float(footprint.get("width", FALLBACK_BLOCK_METRES))
+	var depth: float = float(footprint.get("depth", FALLBACK_BLOCK_METRES))
+	box.size = Vector3(width, 0.3, depth)
 	mesh_instance.mesh = box
 	var material := StandardMaterial3D.new()
 	material.albedo_color = _placeholder_color(primitive.get("role", "base"))

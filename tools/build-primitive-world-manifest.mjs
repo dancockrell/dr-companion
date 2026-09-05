@@ -27,7 +27,32 @@ const minY = Math.min(...cellsForZone.map((cell) => cell.map.y))
 const maxX = Math.max(...cellsForZone.map((cell) => cell.map.x))
 const maxY = Math.max(...cellsForZone.map((cell) => cell.map.y))
 const localIds = new Set(cellsForZone.map((cell) => cell.id))
-const mapUnitToMetres = 0.25
+/**
+ * Map units to metres.
+ *
+ * This was 0.25, and at that scale the board was a pile of interpenetrating
+ * geometry. Measured across the 1,060-cell Crossing manifest: the *median*
+ * distance from a room to its nearest same-storey neighbour was 2.5 metres,
+ * and the closest pair was 2.0 - while every room drew a block 4.4 to 5 metres
+ * wide. Blocks did not merely touch, they overlapped by roughly their own
+ * width, everywhere, and an exit anchor placed at the block edge landed inside
+ * the neighbouring room's geometry. That is why exits were hard to find, and
+ * it is the clipping Dan reported.
+ *
+ * 8 map units is the smallest gap the data contains, so the scale has to make
+ * 8 units at least as wide as a block plus its gutter:
+ *
+ *     8 * scale >= CELL_BLOCK_METRES + CELL_GAP_METRES   ->   scale >= 0.625
+ *
+ * 0.625 exactly, which is also a clean 2.5x the old value. The relationship is
+ * asserted by tools/primitive-world-manifest-test.mjs against the generated
+ * manifest, so lowering this without shrinking the block fails the build
+ * rather than quietly producing overlap again.
+ *
+ * Distance on this board is framing, never game distance: the map's own
+ * coordinates are layout evidence and nothing here is metres of Elanthia.
+ */
+const mapUnitToMetres = 0.625
 
 const candidatesFor = (kind) => ({
   'terrain-cell-5m': ['G01', 'G02', 'G03', 'G14'],

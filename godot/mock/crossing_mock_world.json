@@ -15,9 +15,9 @@
       "roomId": 14,
       "title": "The Crossing, Town Green North",
       "position": {
-        "x": 142.75,
+        "x": 356.88,
         "y": 0,
-        "z": -113.5
+        "z": -283.75
       },
       "sourceGrid": {
         "x": 170,
@@ -108,9 +108,9 @@
       "roomId": 12,
       "title": "The Crossing, Via Iltesh",
       "position": {
-        "x": 142.75,
+        "x": 356.88,
         "y": 0,
-        "z": -93.5
+        "z": -233.75
       },
       "sourceGrid": {
         "x": 170,
@@ -161,9 +161,9 @@
       "roomId": 13,
       "title": "The Crossing, Via Iltesh",
       "position": {
-        "x": 142.75,
+        "x": 356.88,
         "y": 0,
-        "z": -103.5
+        "z": -258.75
       },
       "sourceGrid": {
         "x": 170,
@@ -213,9 +213,9 @@
       "roomId": 15,
       "title": "The Crossing, Town Green Southeast",
       "position": {
-        "x": 152.75,
+        "x": 381.88,
         "y": 0,
-        "z": -123.5
+        "z": -308.75
       },
       "sourceGrid": {
         "x": 210,
@@ -283,9 +283,9 @@
       "roomId": 16,
       "title": "The Crossing, Town Green South",
       "position": {
-        "x": 142.75,
+        "x": 356.88,
         "y": 0,
-        "z": -123.5
+        "z": -308.75
       },
       "sourceGrid": {
         "x": 170,
@@ -370,9 +370,9 @@
       "roomId": 17,
       "title": "The Crossing, Town Green Northeast",
       "position": {
-        "x": 152.75,
+        "x": 381.88,
         "y": 0,
-        "z": -113.5
+        "z": -283.75
       },
       "sourceGrid": {
         "x": 210,
@@ -446,9 +446,9 @@
       "roomId": 22,
       "title": "The Crossing, Manciple Cobble",
       "position": {
-        "x": 122.75,
+        "x": 306.88,
         "y": 0,
-        "z": -123.5
+        "z": -308.75
       },
       "sourceGrid": {
         "x": 90,
@@ -499,9 +499,9 @@
       "roomId": 23,
       "title": "The Crossing, Town Green Southwest",
       "position": {
-        "x": 132.75,
+        "x": 331.88,
         "y": 0,
-        "z": -123.5
+        "z": -308.75
       },
       "sourceGrid": {
         "x": 130,
@@ -563,9 +563,9 @@
       "roomId": 24,
       "title": "The Crossing, Puddle Path",
       "position": {
-        "x": 122.75,
+        "x": 306.88,
         "y": 0,
-        "z": -103.5
+        "z": -258.75
       },
       "sourceGrid": {
         "x": 90,
@@ -611,9 +611,9 @@
       "roomId": 40,
       "title": "The Crossing, Lunat Shade Road",
       "position": {
-        "x": 142.75,
+        "x": 356.88,
         "y": 0,
-        "z": -133.5
+        "z": -333.75
       },
       "sourceGrid": {
         "x": 170,
@@ -673,9 +673,9 @@
       "roomId": 191,
       "title": "Milgrym's Weapons, Showroom",
       "position": {
-        "x": 137.75,
+        "x": 344.38,
         "y": 0,
-        "z": -108.5
+        "z": -271.25
       },
       "sourceGrid": {
         "x": 150,
@@ -715,9 +715,9 @@
       "roomId": 192,
       "title": "Tembeg's Armory, Salesroom",
       "position": {
-        "x": 132.75,
+        "x": 331.88,
         "y": 0,
-        "z": -108.5
+        "z": -271.25
       },
       "sourceGrid": {
         "x": 130,
@@ -769,9 +769,9 @@
       "roomId": 225,
       "title": "The Crossing, Town Green Northwest",
       "position": {
-        "x": 132.75,
+        "x": 331.88,
         "y": 0,
-        "z": -113.5
+        "z": -283.75
       },
       "sourceGrid": {
         "x": 130,
@@ -839,9 +839,9 @@
       "roomId": 264,
       "title": "Crossing, Midton Circle",
       "position": {
-        "x": 157.75,
+        "x": 394.38,
         "y": 0,
-        "z": -113.5
+        "z": -283.75
       },
       "sourceGrid": {
         "x": 230,
@@ -897,9 +897,9 @@
       "roomId": 371,
       "title": "Behind the Amphitheater, Supply Stand",
       "position": {
-        "x": 152.75,
+        "x": 381.88,
         "y": 0,
-        "z": -128.5
+        "z": -321.25
       },
       "sourceGrid": {
         "x": 210,
@@ -950,9 +950,9 @@
       "roomId": 377,
       "title": "The Crossing Amphitheater, The Back Lawn",
       "position": {
-        "x": 157.75,
+        "x": 394.38,
         "y": 0,
-        "z": -121
+        "z": -302.5
       },
       "sourceGrid": {
         "x": 230,
@@ -1003,9 +1003,9 @@
       "roomId": 379,
       "title": "The Crossing, Mongers' Bazaar",
       "position": {
-        "x": 160.25,
+        "x": 400.63,
         "y": 0,
-        "z": -101
+        "z": -252.5
       },
       "sourceGrid": {
         "x": 240,
@@ -1075,9 +1075,9 @@
       "roomId": 467,
       "title": "The Crossing, Town Green Pond",
       "position": {
-        "x": 140.25,
+        "x": 350.63,
         "y": 0,
-        "z": -118.5
+        "z": -296.25
       },
       "sourceGrid": {
         "x": 160,
@@ -1116,9 +1116,9 @@
       "roomId": 853,
       "title": "Underground Passageway",
       "position": {
-        "x": 157.75,
+        "x": 394.38,
         "y": 5,
-        "z": -108.5
+        "z": -271.25
       },
       "sourceGrid": {
         "x": 230,
