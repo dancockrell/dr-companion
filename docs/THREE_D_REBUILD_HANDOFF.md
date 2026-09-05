@@ -329,6 +329,59 @@ allows a click to create a validated intent that changes the local mock snapshot
 No generated art, real network connection, collision simulation, or complete
 city texture pass is required for that milestone.
 
+### The acceptance checklist
+
+Six lines. A line is recorded when someone has watched it happen and written
+down where; until then the slot is empty and the line is not done. An empty
+slot is the honest state and must not be filled from a test result — every one
+of these is about the running program, and each has at least one failure mode
+that a green suite cannot see.
+
+Where a line was attempted and could not be settled, the slot says
+`unproven — <what was tried>` rather than staying blank, so the next person
+does not repeat the attempt from nothing.
+
+1. **Town Green North renders.** The viewer opens on `1-14`, shows its title,
+   and draws primitive terrain rather than an empty scene.
+   recorded in ____________________ on __________
+2. **Every real exit is clickable, and clicking one moves the character.** Each
+   of the room's true exits has a control; a person clicks one; the command
+   reaches the game. Not the same claim as the intent path working — see line 3.
+   recorded in ____________________ on __________
+3. **Click → `intent_accepted` → confirmed room change → the token moves.** The
+   whole chain in one observation, with a real character, so the confirmation
+   comes back from the game and not from a fixture.
+   recorded in ____________________ on __________
+4. **A fabricated exit is refused.** An intent naming a move the published
+   snapshot does not carry comes back `intent_rejected`, and nothing reaches
+   the game socket.
+   recorded in ____________________ on __________
+5. **A stun flips `cannotAct` and the scene reacts.** The app publishes the
+   state change and the viewer shows it, rather than continuing to offer
+   actions the character cannot take.
+   recorded in ____________________ on __________
+6. **An assessed creature's confidence visibly ages.** The viewer's
+   presentation of an assessment weakens over time on its own, without a new
+   event arriving to tell it to.
+   recorded in ____________________ on __________
+
+### What holds each side of the manifest contract
+
+The manifest and the viewer are checked separately, because they fail
+separately: a good viewer given a bad manifest draws a button that goes
+nowhere, and a good manifest given a bad viewer draws nothing at all. Neither
+suite substitutes for the other, and a requirement with a name in only one
+column is a requirement one side is trusting the other to have got right.
+
+| Requirement on any manifest handed to the viewer | Node side (Claude) | Godot side (Codex) |
+|---|---|---|
+| Every exit resolves to a cell here, or is `targetCellId: null` **and** `external: true` | `tools/godot-fixture-contract-test.mjs` — "every exit resolves to a cell or is explicitly null-targeted" | `godot/tests/foundation_test.gd` — "every detailed cell is within two true-exit hops" |
+| No cell carries two exits with the same `move` | `tools/godot-fixture-contract-test.mjs` — "no cell has two exits with the same move" | none yet — the viewer would build two buttons with one label and nothing would say so |
+| The current room is one of the cells | `tools/godot-fixture-contract-test.mjs` — "the current room is one of the cells" | `godot/tests/foundation_test.gd` — "Town Green North has at least one true exit" |
+| The fixture still matches its generator | `tools/build-godot-mock-fixture.mjs --check`, run first by the suite above | not checked from Godot, and should not be — Godot loads what it is given |
+| Only true exits are exposed; a fabricated one is refused | none — the app validates against its own published snapshot, not the fixture | `godot/tests/foundation_test.gd` — "a fabricated exit intent is refused by IntentSender" |
+| A click on an exit button reaches `request_visible_exit` | none | `godot/tests/world_controls_test.gd` — the seam only; the `Button.pressed` connection into it is covered by nothing, and §9's checklist line 2 is the only thing that looks at it |
+
 ## 10. Combat without a combat-text parser
 
 `PresentationEvent`'s combat kinds in section 4 (`attack`, `hit`, `miss`,

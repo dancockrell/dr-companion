@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "task_id": "l3-fixture-data-contract",
+  "agent": "claude-code",
+  "summary": "Data-contract tests over the Godot manifest, with each rule shown able to fire, and a requirement-to-test map across both sides",
+  "status": "completed",
+  "claimed_at": "2026-09-05T17:25:00Z",
+  "updated_at": "2026-09-05T17:50:00Z",
+  "paths": [
+    "tools/godot-fixture-contract-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": ["test:godot-fixture-contract", "contractViolations"],
+  "coordination": {
+    "depends_on": ["l2-mock-fixture-derived"],
+    "conflicts_with": [],
+    "notes": "Registered in package.json and tools/test-suites.json both, and the full run's total rose by exactly this suite's checks. The rules are properties of any manifest handed to the viewer, not of the mock, so the same function will serve a live snapshot. No godot/*.gd was touched; the section 9 table names the Godot-side tests that already exist and says plainly where a requirement has a name in only one column."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "node tools/godot-fixture-contract-test.mjs: 11 checked, 0 failed, all passed - 19 cells against a floor of 15, 60 exits against a floor of 40",
+      "each of the three rules is run against a manifest built to break it and must report that exact rule: an exit targeting 1-999999, an external exit stripped of its external flag, a duplicated move, and a currentRoomId not in cells - all four caught, so a green run is distinguishable from a checker that reads nothing",
+      "sabotage of the checker itself: the unique-move push guarded by if (false) -> FAIL a duplicated move within one cell is caught / the rule did not fire, 11 checked, 1 failed, exit 1. Restored; md5sum -c matched.",
+      "denominator floors: MINIMUM_CELLS 15 and MINIMUM_EXITS 40 sit below the real 19 and 60 so a fixture emptied by a broken generator fails loudly instead of satisfying every rule vacuously",
+      "full suite: 117 passed, 0 failed, 0 not run, 3500 checks across 117 suites, all passed - test:godot-fixture-contract appears with 12 checks, up from 116 suites / 3488 checks"
+    ]
+  }
+}

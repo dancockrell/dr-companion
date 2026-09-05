@@ -1159,13 +1159,15 @@ receives. No portraits, no images in the client.
   do: `git grep -n crossing_mock_world tools/` — if no generator exists (none did on 5 Sep), write one extracting Town Green North + depth 2 from the primitive world manifest that `tools/build-primitive-world-manifest.mjs` writes (`data/world/out/crossing-primitive-registry.json` and its siblings — read that tool's `outputDir`). `--check` compares to the committed fixture.
   verify: `node tools/build-godot-mock-fixture.mjs --check` exit 0.
 
-- [ ] **L3  Data contract tests** (≈30)
+- [x] **L3  Data contract tests** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 35
   touches: new:tools/godot-fixture-contract-test.mjs, package.json, tools/test-suites.json, docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: L2
   do: every exit resolves to a cell or is `targetCellId:null`; no cell has two exits with the same `move`; the current room is in `cells`. §9 maps each requirement to a test name on both sides (`godot/tests/foundation_test.gd` already exists).
   verify: suite green in the full run.
 
-- [ ] **L4  Slice acceptance checklist** (≈15)
+- [x] **L4  Slice acceptance checklist** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 15
   touches: docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: L1
   do: §9: Town Green North renders; every real exit clickable; click → `intent_accepted` → confirmed room change → token moves; a fabricated exit is refused; a stun flips `cannotAct` and the scene reacts; an assessed creature's confidence visibly ages. Each line has a "recorded in docs/verification/… on <date>" slot.

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "task_id": "l4-slice-acceptance-checklist",
+  "agent": "claude-code",
+  "summary": "Six acceptance lines for the Crossing slice in handoff section 9, each with an empty recorded-in slot",
+  "status": "completed",
+  "claimed_at": "2026-09-05T17:50:00Z",
+  "updated_at": "2026-09-05T18:00:00Z",
+  "paths": [
+    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["l1-name-what-i-own"],
+    "conflicts_with": [],
+    "notes": "Extends section 9, which already held the slice's definition of done, rather than opening a rival section. Line 2 is deliberately split from line 3: docs/verification/live-chain-2026-09-05.md proves the intent path from the socket inward and explicitly does not prove that a click on the viewer's own button produces a command, and one line covering both would let the proven half certify the unproven one."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "grep -c 'recorded in ____________________ on __________' docs/THREE_D_REBUILD_HANDOFF.md -> 6",
+      "the checklist states that an empty slot must not be filled from a test result, and that an attempted-and-unsettled line reads 'unproven - <what was tried>' rather than staying blank"
+    ]
+  }
+}
