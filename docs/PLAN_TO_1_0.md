@@ -944,7 +944,8 @@ whether it is embedded, docked or a separate window is D0.
   verify: transitions; empty or unresolvable evidence refused; `published` refused for `private`; supersession leaves the old record addressable; a supersession cycle (A supersedes B supersedes A) refused; source check green.
   sabotage: allow empty evidence → red; allow the cycle → red.
 
-- [ ] **G6  Map job yields a claim even with no model** (≈25)
+- [x] **G6  Map job yields a claim even with no model** (≈25)
+  commit: PENDING-G6 verified: 2026-09-05 minutes: 50
   touches: C1>src/lib/aiWorker.ts, G1>src/lib/aiJobProducers.ts, C1>tools/ai-worker-test.mjs
   depends-on: G1, G5
   do: on `map_reconciliation` with provider absent or failing, emit the deterministic claim `{subject:'room:<id>', predicate:'exit_divergence', value:{diff}, confidence:0.5, producer:{kind:'parser', identity:'aiJobProducers.detectExitDivergence'}}`, job → `awaiting_review`. A working provider's parsed JSON adds a second claim with `producer.kind:'model'`; malformed → `invalid_output` and the deterministic claim still stands. Every model-proposed tether passes `validateTetherCandidate` (handoff §33) before it becomes a claim: `fromRoomId` known; a non-null `toRoomId` must appear as `currentRoomId` in a cited authoritative snapshot; a directionless exit gets `boardAnchor:null`, never a guessed one; kind `ferry` needs transport evidence; kinds `portal|warp` never infer adjacency from board proximity. A proposal that fails validation is recorded in the job note, not as a claim.

@@ -22,7 +22,7 @@ import { saveJournalCursor, type EventJournal } from './aiEventJournal.ts'
 import type { JobStore } from './aiJobStore.ts'
 import type { ModelProvider, ProviderFailure } from './aiModelProvider.ts'
 import type { Activity } from './aiReviewScheduler.ts'
-import { runWorkerOnce, type WorkerOutcome } from './aiWorker.ts'
+import { runWorkerOnce, type WorkerDeps, type WorkerOutcome } from './aiWorker.ts'
 
 /** Situation flags that mean something is wrong right now. Taken from the
  * game's own already-parsed indicator set, not inferred from text. */
@@ -312,6 +312,17 @@ export interface HostTickInput {
   alerts: AlertBroker
   jobs: JobStore
   provider: ModelProvider
+  /**
+   * Where candidate claims go, and what the tether validator checks against.
+   *
+   * Threaded through rather than reached for, so a turn cannot acquire a
+   * claim store the caller did not give it - and optional, because a host
+   * without one produces no claims rather than crashing. The worker's own
+   * deps document why these three travel together.
+   */
+  claims?: WorkerDeps['claims']
+  evidence?: WorkerDeps['evidence']
+  knownRoom?: WorkerDeps['knownRoom']
   app: HostAppState
   memory: HostMemory
   now: number
@@ -369,6 +380,9 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
       stateHash: hash,
       lastReviewedHash: memory.lastReviewedHash,
       instructions: INSTRUCTIONS,
+      claims: input.claims,
+      evidence: input.evidence,
+      knownRoom: input.knownRoom,
     },
     signal
   )

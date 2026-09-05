@@ -21,6 +21,9 @@ const { AlertBroker } = await import('../src/lib/aiAlertBroker.ts')
 const { JobStore } = await import('../src/lib/aiJobStore.ts')
 const { absentProvider } = await import('../src/lib/aiModelProvider.ts')
 const { runWorkerOnce } = await import('../src/lib/aiWorker.ts')
+const { ClaimStore } = await import('../src/lib/aiClaimStore.ts')
+const { EvidenceStore } = await import('../src/lib/aiEvidenceStore.ts')
+const { readJSON, writeJSON } = await import('../src/lib/storage.ts')
 
 let pass = 0
 let fail = 0
@@ -322,9 +325,212 @@ console.log('\n-- a refused prompt is a reported failure, not an unhandled rejec
     bugOutcome.result?.failure)
 }
 
+console.log('\n-- a map reconciliation produces a claim with no model at all --')
+{
+  // Everything below runs against a real evidence store fed by a real journal,
+  // so "the claim was accepted" is not resting on a resolver that says yes to
+  // anything.
+  const mapReconSetup = (provider, opts = {}) => {
+    const d = setup({ provider, activity: 'idle', stateHash: 'h1', lastReviewedHash: 'h1' })
+    d.journal.append('snapshot', { currentRoomId: 'room:143' }, 1)
+    d.journal.append('line', { text: 'a gate' }, 2)
+    const evidence = new EvidenceStore({ source: d.journal, capacity: 100 })
+    evidence.load()
+    const claims = new ClaimStore({ evidence, storage: { read: readJSON, write: writeJSON } })
+    claims.load()
+    d.jobs = new JobStore({ evidence })
+    d.jobs.load()
+    d.claims = claims
+    d.evidence = evidence
+    d.knownRoom = (id) => id === 'room:142'
+    const job = d.jobs.create({
+      kind: 'map_reconciliation',
+      scope: { roomId: 'room:142', divergence: [{ move: 'east', inSnapshot: true, inStream: false }] },
+      inputRefs: ['event:1', 'event:2'],
+      allowedTools: ['flag_conflict'],
+      now: d.nowIso,
+    })
+    return { d, job, claims, evidence }
+  }
+
+  {
+    const { d, job, claims } = mapReconSetup(absentProvider())
+    const out = await runWorkerOnce(d)
+    ok('the job ran', out.did === 'background-job', out.did)
+    ok('the provider was absent', out.result.ok === false && out.result.failure === 'absent', JSON.stringify(out.result))
+    ok('exactly one claim', out.claimIds.length === 1, JSON.stringify(out.claimIds))
+    const c = claims.get(out.claimIds[0])
+    ok('about the room', c.subject === 'room:142')
+    ok('with the right predicate', c.predicate === 'exit_divergence')
+    ok('carrying the diff', JSON.stringify(c.value.diff) === JSON.stringify(job.scope.divergence))
+    ok('confidence 0.5, which says the sources disagree', c.confidence === 0.5, String(c.confidence))
+    ok('produced by the parser, named',
+      c.producer.kind === 'parser' && c.producer.identity === 'aiJobProducers.detectExitDivergence', c.producer.identity)
+    ok('and the job is awaiting review, not failed', d.jobs.get(job.jobId).status === 'awaiting_review', d.jobs.get(job.jobId).status)
+    ok('the note says the parser claim stands alone', (d.jobs.get(job.jobId).note ?? '').includes('stands alone'), d.jobs.get(job.jobId).note)
+  }
+
+  {
+    const { d, job } = mapReconSetup(oom)
+    const out = await runWorkerOnce(d)
+    ok('a failing model changes none of that', out.claimIds.length === 1, JSON.stringify(out.claimIds))
+    ok('still awaiting review', d.jobs.get(job.jobId).status === 'awaiting_review')
+    ok('and the failure is in the note', (d.jobs.get(job.jobId).note ?? '').includes('out_of_memory'), d.jobs.get(job.jobId).note)
+  }
+}
+
+console.log('\n-- a working model adds a second claim, and only for a tether that survives validation --')
+{
+  const proposing = (tethers) => ({
+    describe: () => ({ available: true }),
+    generate: async () => ({ ok: true, text: JSON.stringify({ tethers }), tokens: 9 }),
+  })
+
+  const run = async (tethers, opts = {}) => {
+    const d = setup({ provider: proposing(tethers), activity: 'idle', stateHash: 'h1', lastReviewedHash: 'h1' })
+    d.journal.append('snapshot', { currentRoomId: 'room:143' }, 1)
+    d.journal.append('line', { text: 'a gate' }, 2)
+    if (opts.transport) d.journal.append('transport', { transport: true }, 3)
+    const evidence = new EvidenceStore({ source: d.journal, capacity: 100 })
+    evidence.load()
+    const claims = new ClaimStore({ evidence, storage: { read: readJSON, write: writeJSON } })
+    claims.load()
+    d.jobs = new JobStore({ evidence })
+    d.jobs.load()
+    d.claims = claims
+    d.evidence = evidence
+    d.knownRoom = (id) => id === 'room:142'
+    const job = d.jobs.create({
+      kind: 'map_reconciliation',
+      scope: { roomId: 'room:142', divergence: [{ move: 'east', inSnapshot: true, inStream: false }] },
+      inputRefs: opts.transport ? ['event:1', 'event:2', 'event:3'] : ['event:1', 'event:2'],
+      allowedTools: ['flag_conflict'],
+      now: d.nowIso,
+    })
+    const out = await runWorkerOnce(d)
+    return { d, job, claims, out, note: d.jobs.get(job.jobId).note ?? '' }
+  }
+
+  {
+    // Destination room:143 IS in a cited authoritative snapshot.
+    const { out, claims } = await run([
+      {
+        fromRoomId: 'room:142',
+        toRoomId: 'room:143',
+        kind: 'road',
+        move: 'east',
+        boardAnchor: { x: 2.5, y: 0, z: 0, yawDeg: 90 },
+      },
+    ])
+    ok('two claims', out.claimIds.length === 2, JSON.stringify(out.claimIds))
+    const model = out.claimIds.map((id) => claims.get(id)).find((c) => c.producer.kind === 'model')
+    ok('the second one is the model proposal', model !== undefined)
+    ok('and it is a tether claim', model.predicate === 'has_tether')
+    ok('a bearing keeps the anchor it arrived with', model.value.boardAnchor !== null,
+      JSON.stringify(model.value.boardAnchor))
+  }
+
+  {
+    // ADVERSARIAL: an invented destination. Nothing ever went there.
+    const { out, note, claims } = await run([
+      { fromRoomId: 'room:142', toRoomId: 'room:999', kind: 'road', move: 'east' },
+    ])
+    ok('no model claim for an invented destination', out.claimIds.length === 1, JSON.stringify(out.claimIds))
+    ok('the note names the destination', note.includes('room:999'), note)
+    ok('and says no snapshot witnessed it', note.includes('authoritative snapshot'), note)
+    ok('nothing produced by a model exists', claims.all().every((c) => c.producer.kind !== 'model'))
+  }
+
+  {
+    // ADVERSARIAL: a directionless exit arriving WITH an anchor the model made up.
+    const { out, claims } = await run([
+      {
+        fromRoomId: 'room:142',
+        toRoomId: null,
+        kind: 'threshold',
+        move: 'go gate',
+        boardAnchor: { x: 9, y: 9, z: 9, yawDeg: 9 },
+      },
+    ])
+    ok('a directionless exit is still allowed as a claim', out.claimIds.length === 2, JSON.stringify(out.claimIds))
+    const model = out.claimIds.map((id) => claims.get(id)).find((c) => c.producer.kind === 'model')
+    ok('but its board anchor is null, not the invented one', model.value.boardAnchor === null, JSON.stringify(model.value.boardAnchor))
+  }
+
+  {
+    // ADVERSARIAL: a portal justified only by two cells looking close together.
+    const { out, note } = await run([
+      { fromRoomId: 'room:142', toRoomId: null, kind: 'portal', move: 'enter shimmer', basis: ['board-proximity'] },
+    ])
+    ok('a proximity-only portal is refused', out.claimIds.length === 1, JSON.stringify(out.claimIds))
+    ok('and the note says why', note.includes('board proximity'), note)
+  }
+
+  {
+    // ADVERSARIAL: a ferry with no crossing in evidence.
+    const { out, note } = await run([
+      { fromRoomId: 'room:142', toRoomId: null, kind: 'ferry', move: 'board ferry' },
+    ])
+    ok('a ferry with no transport evidence is refused', out.claimIds.length === 1, JSON.stringify(out.claimIds))
+    ok('and the note says what was missing', note.includes('transport'), note)
+  }
+
+  {
+    // ...and the same ferry once a crossing is on file. The positive control
+    // for the clause above: without it the ferry rule could be refusing
+    // everything and look identical.
+    const { out } = await run(
+      [{ fromRoomId: 'room:142', toRoomId: null, kind: 'ferry', move: 'board ferry' }],
+      { transport: true }
+    )
+    ok('a ferry WITH transport evidence is accepted', out.claimIds.length === 2, JSON.stringify(out.claimIds))
+  }
+
+  {
+    // ADVERSARIAL: a room the map has never heard of.
+    const { out, note } = await run([
+      { fromRoomId: 'room:404', toRoomId: null, kind: 'road', move: 'east' },
+    ])
+    ok('an unknown origin room is refused', out.claimIds.length === 1)
+    ok('and the note names it', note.includes('room:404'), note)
+  }
+}
+
+console.log('\n-- malformed model output is invalid_output, and the parser claim still stands --')
+{
+  const malformed = {
+    describe: () => ({ available: true }),
+    generate: async () => ({ ok: true, text: 'not json at all', tokens: 2 }),
+  }
+  const d = setup({ provider: malformed, activity: 'idle', stateHash: 'h1', lastReviewedHash: 'h1' })
+  d.journal.append('snapshot', { currentRoomId: 'room:143' }, 1)
+  const evidence = new EvidenceStore({ source: d.journal, capacity: 100 })
+  evidence.load()
+  const claims = new ClaimStore({ evidence, storage: { read: readJSON, write: writeJSON } })
+  claims.load()
+  d.jobs = new JobStore({ evidence })
+  d.jobs.load()
+  d.claims = claims
+  d.evidence = evidence
+  d.knownRoom = () => true
+  const job = d.jobs.create({
+    kind: 'map_reconciliation',
+    scope: { roomId: 'room:142', divergence: [{ move: 'east', inSnapshot: true, inStream: false }] },
+    inputRefs: ['event:1'],
+    allowedTools: ['flag_conflict'],
+    now: d.nowIso,
+  })
+  const out = await runWorkerOnce(d)
+  const note = d.jobs.get(job.jobId).note ?? ''
+  ok('the parser claim still stands', out.claimIds.length === 1, JSON.stringify(out.claimIds))
+  ok('the note says invalid_output', note.includes('invalid_output'), note)
+  ok('and the job is awaiting review', d.jobs.get(job.jobId).status === 'awaiting_review')
+}
+
+
 console.log('')
 const total = pass + fail
-const MIN_EXPECTED = 38
+const MIN_EXPECTED = 68
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

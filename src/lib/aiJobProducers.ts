@@ -144,3 +144,143 @@ export function proposeMapReconciliation(params: ProposeParams): ProposeResult {
   })
   return { job, created: true, reason: `${params.divergence.length} direction(s) disagree` }
 }
+
+/**
+ * A tether the model proposes, before anything has agreed it is real.
+ *
+ * `docs/LOCAL_AI_BACKGROUND_WORKER.md` section 17. Structural, and
+ * deliberately not `WorldExit`: a candidate is a *proposal* about the graph,
+ * and giving it the same type as a compiled exit is how a proposal ends up
+ * being drawn.
+ */
+export interface TetherCandidate {
+  fromRoomId: string
+  /** Null when the proposer does not claim to know where it goes, which is a
+   * legitimate and useful thing to say. */
+  toRoomId: string | null
+  kind: string
+  /** The command, when one was proposed. Decides whether this is a bearing. */
+  move?: string
+  boardAnchor?: unknown
+  evidenceRefs: string[]
+  /**
+   * How the proposer says it knows.
+   *
+   * Present so `portal` and `warp` can be refused when the only thing behind
+   * them is that two cells look close together on the board. Without a stated
+   * basis a proposal cannot be checked against section 17's proximity rule at
+   * all, so an absent basis is treated as unstated rather than as clean.
+   */
+  basis?: string[]
+}
+
+export interface TetherValidationDeps {
+  /** Evidence store, or anything that resolves refs the same way. */
+  evidence: {
+    resolve(refs: readonly string[]): {
+      resolved: Array<{ ref: string; kind: string; payload: unknown }>
+      missing: string[]
+    }
+  } | null
+  /** Whether the map knows this room. A predicate rather than a store, so the
+   * validator cannot read anything else out of the map. */
+  knownRoom(roomId: string): boolean
+}
+
+export type TetherValidation =
+  | { ok: true; candidate: TetherCandidate & { boardAnchor: unknown; status: 'candidate' } }
+  | { ok: false; reason: string }
+
+/** Bases that are about how a board is drawn rather than about movement. */
+const PROXIMITY_BASES = ['board-proximity', 'visual-proximity', 'adjacent-on-board', 'proximity']
+
+/**
+ * Refuse a plausible-looking tether before it is even allowed to be a
+ * candidate.
+ *
+ * Every clause is a specific way a map that looks right is wrong:
+ *
+ * - **An invented destination** is the commonest. A model that has read a room
+ *   description can name an exit's far side without anything having gone
+ *   through it, and only the authoritative-snapshot requirement separates an
+ *   observed tether from a guessed one. Note what that means in practice
+ *   today: the journal carries `line` events, so a proposal with a
+ *   non-null destination is refused until something journals a snapshot. That
+ *   is the safe direction to be wrong in, and it is why the rule is a
+ *   requirement on the evidence rather than on the proposal.
+ * - **A directionless exit** must not be given a board anchor. An anchor is a
+ *   claim about compass placement and the graph did not make one; null is the
+ *   honest value, which is what `WorldExit.boardAnchor` already documents.
+ * - **A portal looks adjacent and is not.** Proximity in a presentation layout
+ *   is never evidence about movement.
+ * - **A ferry needs a crossing.** A route that exists on a timetable is not a
+ *   route the character has taken.
+ */
+export function validateTetherCandidate(
+  candidate: TetherCandidate,
+  deps: TetherValidationDeps
+): TetherValidation {
+  if (!deps.knownRoom(candidate.fromRoomId)) {
+    return { ok: false, reason: `fromRoomId ${candidate.fromRoomId} is not a room the map knows` }
+  }
+  if (!candidate.evidenceRefs || candidate.evidenceRefs.length === 0) {
+    return { ok: false, reason: 'a tether candidate must cite evidence' }
+  }
+  if (!deps.evidence) {
+    return { ok: false, reason: 'no evidence store is attached, so this proposal cannot be checked' }
+  }
+
+  const { resolved, missing } = deps.evidence.resolve(candidate.evidenceRefs)
+  if (missing.length > 0) {
+    return { ok: false, reason: `evidence does not resolve: ${missing.join(', ')}` }
+  }
+
+  const kind = String(candidate.kind ?? '').toLowerCase()
+  const basis = (candidate.basis ?? []).map((b) => String(b).toLowerCase())
+
+  if ((kind === 'portal' || kind === 'warp') && basis.some((b) => PROXIMITY_BASES.includes(b))) {
+    return {
+      ok: false,
+      reason: `a ${kind} may not be inferred from board proximity (${basis.join(', ')})`,
+    }
+  }
+
+  if (candidate.toRoomId !== null && candidate.toRoomId !== undefined) {
+    const witnessed = resolved.some(
+      (item) =>
+        item.kind === 'snapshot' &&
+        item.payload !== null &&
+        typeof item.payload === 'object' &&
+        (item.payload as { currentRoomId?: unknown }).currentRoomId === candidate.toRoomId
+    )
+    if (!witnessed) {
+      return {
+        ok: false,
+        reason: `destination ${candidate.toRoomId} appears in no cited authoritative snapshot`,
+      }
+    }
+  }
+
+  if (kind === 'ferry') {
+    const crossed = resolved.some(
+      (item) =>
+        item.kind === 'transport' ||
+        item.kind === 'crossing' ||
+        (item.payload !== null &&
+          typeof item.payload === 'object' &&
+          (item.payload as { transport?: unknown }).transport === true)
+    )
+    if (!crossed) {
+      return { ok: false, reason: 'a ferry needs a transport entry or a successful crossing in evidence' }
+    }
+  }
+
+  // A directionless exit gets a null anchor, never a guessed one - and never
+  // the one the proposal arrived carrying, which is the case that matters,
+  // because a model that supplies an anchor is exactly the thing this clause
+  // is defending against.
+  const bearing = candidate.move ? expandCompassDirection(candidate.move) : null
+  const boardAnchor = bearing ? (candidate.boardAnchor ?? null) : null
+
+  return { ok: true, candidate: { ...candidate, boardAnchor, status: 'candidate' } }
+}

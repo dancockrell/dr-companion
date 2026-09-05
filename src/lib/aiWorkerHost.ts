@@ -65,9 +65,11 @@ import {
 import { useAppStore } from '../store/useAppStore'
 import { AlertBroker } from './aiAlertBroker.ts'
 import { EventJournal, seedJournalCursor } from './aiEventJournal.ts'
+import { ClaimStore } from './aiClaimStore.ts'
 import { EvidenceStore } from './aiEvidenceStore.ts'
 import { detectExitDivergence, proposeMapReconciliation } from './aiJobProducers.ts'
 import { JobStore } from './aiJobStore.ts'
+import { readJSON, writeJSON } from './storage.ts'
 import { absentProvider, type ModelHealth, type ModelProvider } from './aiModelProvider.ts'
 import { localProvider, type LocalModelProvider } from './aiLocalProvider.ts'
 import {
@@ -308,6 +310,7 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
   const alerts = useRef<AlertBroker>(null as unknown as AlertBroker)
   const jobs = useRef<JobStore>(null as unknown as JobStore)
   const evidence = useRef<EvidenceStore>(null as unknown as EvidenceStore)
+  const claims = useRef<ClaimStore>(null as unknown as ClaimStore)
   if (journal.current === null) {
     journal.current = new EventJournal()
     // A remount inside one run must not re-review everything already seen.
@@ -324,6 +327,15 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
     evidence.current.load()
     jobs.current = new JobStore({ evidence: evidence.current })
     jobs.current.load()
+    // Candidates, kept where they cannot become canonical data. The storage
+    // functions are handed in rather than imported by that module, so its own
+    // import list stays short enough for its source check to be worth
+    // asserting - see aiClaimStore.ts's constructor comment.
+    claims.current = new ClaimStore({
+      evidence: evidence.current,
+      storage: { read: readJSON, write: writeJSON },
+    })
+    claims.current.load()
     // Anything left running belonged to a process that is gone. Resolving it
     // here, once, is what keeps a restart honest rather than leaving records
     // claiming a worker that does not exist.
@@ -462,6 +474,15 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
             roomCombatants: character?.roomCombatants,
             isTown: character?.location.isTown,
           },
+          claims: claims.current,
+          evidence: evidence.current,
+          // The map's own answer to "is this a room", read at the moment the
+          // turn starts. A model proposing a tether from a room the
+          // cartographer has never heard of is proposing about nothing.
+          knownRoom: (roomId) =>
+            (useAppStore.getState().mapZone?.rooms ?? []).some(
+              (room) => `room:${room.id}` === roomId
+            ),
           memory: memory.current,
           now: Date.now(),
           nowIso: new Date().toISOString(),
