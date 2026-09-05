@@ -34,9 +34,52 @@ import type { AlertBroker } from './aiAlertBroker.ts'
 import type { EventJournal } from './aiEventJournal.ts'
 import type { JobStore } from './aiJobStore.ts'
 import type { ModelProvider, ModelRequest, ModelResult } from './aiModelProvider.ts'
-import { generateWithinBudget, PrivacyGateError } from './aiModelProvider.ts'
+import { generateWithinBudget, parseStructured, PrivacyGateError } from './aiModelProvider.ts'
 import type { Activity } from './aiReviewScheduler.ts'
 import { decideReview } from './aiReviewScheduler.ts'
+
+/**
+ * What a live review is allowed to say.
+ *
+ * Two fields, both harmless. `notable` is what the model thought worth a
+ * person's attention; `question` is the one thing it would like to know. Note
+ * what is absent: there is no field for a command, a destination, a target or
+ * an action. A model that wants the character to do something has nowhere to
+ * put it, which is section 2's "one command path" enforced by the shape of
+ * the contract rather than by filtering afterwards.
+ */
+export interface LiveReview {
+  notable: string[]
+  question?: string
+}
+
+/**
+ * Appended to the caller's instructions for a live review.
+ *
+ * Here rather than in `aiIngest.ts` with the rest of the prompt because the
+ * schema and the parser have to agree, and the only way to guarantee that is
+ * for one file to own both. A schema in the prompt that has drifted from the
+ * validator produces `invalid_output` forever with nothing to indicate why.
+ */
+const LIVE_REVIEW_SCHEMA = `
+
+Reply with one JSON object and nothing else:
+{ "notable": string[], "question"?: string }
+"notable" holds short phrases worth a person's attention, and may be empty.
+"question" is optional and holds at most one question.`
+
+/** The validator the schema above describes. Deliberately permissive about
+ * extra keys - a model that adds "confidence" has still answered, and
+ * discarding a usable review over a field nobody reads would be a worse
+ * failure than ignoring it. Strict about the two that are read. */
+function isLiveReview(value: unknown): value is LiveReview {
+  if (typeof value !== 'object' || value === null) return false
+  const v = value as { notable?: unknown; question?: unknown }
+  if (!Array.isArray(v.notable)) return false
+  if (!v.notable.every((n) => typeof n === 'string')) return false
+  if (v.question !== undefined && typeof v.question !== 'string') return false
+  return true
+}
 
 export interface WorkerDeps {
   journal: EventJournal
@@ -68,6 +111,10 @@ export type WorkerOutcome =
       acknowledged: boolean
       cursorAfter: number
       alertKey: string | null
+      /** The parsed review, when the model returned one that matched the
+       * schema. `null` covers both "no model answered" and "it answered with
+       * prose", which are different failures and are told apart by `result`. */
+      review: LiveReview | null
     }
   /** A background job was preempted by an alert. */
   | { did: 'preempted'; reason: string; jobId: string; cursorAfter: number }
@@ -164,10 +211,11 @@ export async function runWorkerOnce(
     }
 
     const read = journal.readFrom(decision.fromCursor)
-    const result = await generateOrRefuse(
+    const generated = await generateOrRefuse(
       provider,
       {
-        instructions: deps.instructions,
+        // The schema travels with the request that has to satisfy it.
+        instructions: deps.instructions + LIVE_REVIEW_SCHEMA,
         // Compact suffix, section 5. References and counts, never a transcript.
         state: JSON.stringify({
           events: read.events.map((e) => ({ seq: e.seq, kind: e.kind })),
@@ -179,6 +227,20 @@ export async function runWorkerOnce(
       },
       signal
     )
+
+    // A 200 from the model is not an answer. Text that does not carry the
+    // agreed object has told us nothing, and treating it as success would
+    // acknowledge the events it failed to review - so the cursor would move
+    // past a period nothing ever looked at, permanently and silently. It is
+    // demoted to `invalid_output` here, before the acknowledge below, which
+    // is why that block needs no second condition.
+    let review: LiveReview | null = null
+    let result: ModelResult = generated
+    if (generated.ok) {
+      const parsed = parseStructured(generated.text, isLiveReview)
+      if (parsed.ok) review = parsed.value
+      else result = { ok: false, failure: 'invalid_output', message: parsed.reason }
+    }
 
     // The one place the cursor may move, and only here.
     let acknowledged = false
@@ -198,6 +260,7 @@ export async function runWorkerOnce(
       acknowledged,
       cursorAfter: journal.acknowledged(),
       alertKey: decision.alertKey,
+      review,
     }
   }
 

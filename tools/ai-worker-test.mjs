@@ -34,7 +34,11 @@ const ok = (what, cond, detail = '') => {
   }
 }
 
-const working = { describe: () => ({ available: true }), generate: async () => ({ ok: true, text: '{}', tokens: 3 }) }
+// `{}` used to be enough. H3 gave the live review a schema, so the double
+// now answers it: an empty object no longer parses as a review and would
+// correctly be invalid_output, which is a different property than the ones
+// this double is here to exercise.
+const working = { describe: () => ({ available: true }), generate: async () => ({ ok: true, text: '{"notable":[]}', tokens: 3 }) }
 const hangs = { describe: () => ({ available: true }), generate: () => new Promise(() => {}) }
 const oom = { describe: () => ({ available: true }), generate: async () => { throw new Error('CUDA out of memory') } }
 const garbage = { describe: () => ({ available: true }), generate: async () => 'nonsense' }
@@ -177,6 +181,79 @@ console.log('\n-- unchanged state costs nothing --')
   const out = await runWorkerOnce(d)
   ok('no live review happened', out.did !== 'review', out.did)
   ok('and the model was never called', called === 0, String(called))
+}
+
+console.log('\n-- a review that is not the agreed object has reviewed nothing --')
+{
+  const says = (text) => ({ describe: () => ({ available: true }), generate: async () => ({ ok: true, text, tokens: 5 }) })
+  const run = async (text) => {
+    const d = setup({ provider: says(text) })
+    d.journal.append('room', { id: 1 }, 1)
+    const out = await runWorkerOnce(d)
+    return { out, cursor: d.journal.acknowledged() }
+  }
+
+  const good = await run('{"notable":["a closed door"],"question":"where does it go?"}')
+  ok('a conforming object is ok', good.out.result.ok === true,
+    good.out.result.ok ? '' : good.out.result.message)
+  ok('and is handed back parsed rather than as text',
+    good.out.review?.notable?.[0] === 'a closed door', JSON.stringify(good.out.review))
+  ok('the optional question survives', good.out.review?.question === 'where does it go?')
+  ok('and the cursor moved', good.cursor === 1, String(good.cursor))
+
+  const chatty = await run('Sure! Here is my analysis:\n```json\n{"notable":["a rat"]}\n```\nHope that helps.')
+  ok('an object wrapped in a fence and a sentence is still found',
+    chatty.out.result.ok === true && chatty.out.review?.notable?.[0] === 'a rat',
+    JSON.stringify(chatty.out.review))
+
+  const nested = await run('{"notable":["a door"],"meta":{"confidence":0.4},"extra":1} and then some prose')
+  ok('a nested object does not truncate the match', nested.out.result.ok === true,
+    nested.out.result.ok ? '' : nested.out.result.message)
+  ok('and extra keys are kept rather than refused',
+    nested.out.review?.notable?.length === 1, JSON.stringify(nested.out.review))
+
+  const brace = await run('{"notable":["the sign said } here"]}')
+  ok('a brace inside a string does not close the object early',
+    brace.out.result.ok === true && brace.out.review?.notable?.[0] === 'the sign said } here',
+    JSON.stringify(brace.out.review))
+
+  const prose = await run('The room looks quiet and nothing seems notable right now.')
+  ok('prose is invalid_output', !prose.out.result.ok && prose.out.result.failure === 'invalid_output',
+    prose.out.result.ok ? 'ok' : prose.out.result.failure)
+  ok('with no parsed review', prose.out.review === null)
+  // The whole reason this demotion happens before the acknowledge: a cursor
+  // that moved past events nothing reviewed cannot be moved back.
+  ok('and the cursor did NOT move', prose.cursor === 0, String(prose.cursor))
+  ok('so the outcome reports it was not acknowledged', prose.out.acknowledged === false)
+
+  const wrongShape = await run('{"notable":"a door"}')
+  ok('valid JSON of the wrong shape is invalid_output too',
+    !wrongShape.out.result.ok && wrongShape.out.result.failure === 'invalid_output',
+    wrongShape.out.result.ok ? 'ok' : wrongShape.out.result.failure)
+  ok('and it too leaves the cursor alone', wrongShape.cursor === 0, String(wrongShape.cursor))
+
+  const unclosed = await run('{"notable":["a door"')
+  ok('a truncated object is invalid_output rather than a crash',
+    !unclosed.out.result.ok && unclosed.out.result.failure === 'invalid_output',
+    unclosed.out.result.ok ? 'ok' : unclosed.out.result.failure)
+
+  // The prompt has to carry the schema the parser enforces, or every answer
+  // is invalid_output forever with nothing saying why.
+  let sent = null
+  const capture = {
+    describe: () => ({ available: true }),
+    generate: async (request) => {
+      sent = request
+      return { ok: true, text: '{"notable":[]}', tokens: 1 }
+    },
+  }
+  const d = setup({ provider: capture })
+  d.journal.append('room', { id: 1 }, 1)
+  await runWorkerOnce(d)
+  ok('the instructions still begin with the caller\'s own prompt',
+    sent?.instructions.startsWith('classify'), sent?.instructions?.slice(0, 20))
+  ok('and end with the schema the validator enforces',
+    /\{ "notable": string\[\], "question"\?: string \}/.test(sent?.instructions ?? ''))
 }
 
 console.log('\n-- the worker cannot reach the game --')

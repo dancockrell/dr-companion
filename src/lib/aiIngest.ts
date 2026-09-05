@@ -20,7 +20,7 @@
 import type { AlertBroker } from './aiAlertBroker.ts'
 import { saveJournalCursor, type EventJournal } from './aiEventJournal.ts'
 import type { JobStore } from './aiJobStore.ts'
-import type { ModelProvider } from './aiModelProvider.ts'
+import type { ModelProvider, ProviderFailure } from './aiModelProvider.ts'
 import type { Activity } from './aiReviewScheduler.ts'
 import { runWorkerOnce, type WorkerOutcome } from './aiWorker.ts'
 
@@ -108,6 +108,19 @@ export interface AiWorkerStatus {
   lastOutcome: string | null
   lastFailure: string | null
   /**
+   * The failure kind on its own, beside the human sentence above.
+   *
+   * `lastFailure` is `"timeout: No result within the 5s budget."` - fine to
+   * read once, useless to branch on. A panel that wanted to say something
+   * different for out-of-memory than for absence had to match on the prefix
+   * of a message, which breaks the first time somebody rewords it. The kind
+   * is a closed set, so it is carried as one.
+   */
+  lastFailureKind: ProviderFailure | null
+  /** The most recent live review the model actually produced, and when. Null
+   * until one arrives, which on an install with no model is forever. */
+  lastReview: { notable: string[]; question?: string; at: string } | null
+  /**
    * Turns taken since the app started.
    *
    * The only field that proves the host is alive. Every other number here can
@@ -150,6 +163,8 @@ export function sameStatus(a: AiWorkerStatus, b: AiWorkerStatus): boolean {
     a.pendingAlerts !== b.pendingAlerts ||
     a.lastOutcome !== b.lastOutcome ||
     a.lastFailure !== b.lastFailure ||
+    a.lastFailureKind !== b.lastFailureKind ||
+    a.lastReview?.at !== b.lastReview?.at ||
     a.unreviewedWithoutModel !== b.unreviewedWithoutModel
   ) {
     return false
@@ -304,6 +319,10 @@ export interface HostTickInput {
    * so both stay deterministic in tests. */
   nowIso: string
   signal?: AbortSignal
+  /** The status this turn is replacing. Only `lastReview` is read from it: a
+   * turn that produced no review must keep showing the last one rather than
+   * blanking the panel once a second. */
+  previous?: AiWorkerStatus
 }
 
 /** Stable instruction prefix. Here rather than in the provider so the prompt's
@@ -322,7 +341,7 @@ const INSTRUCTIONS = 'Review the recent event delta and report notable changes.'
  * `tools/ai-worker-host-test.mjs` asserts that dependency array by reading it.
  */
 export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus> {
-  const { journal, alerts, jobs, provider, app, memory, now, nowIso, signal } = input
+  const { journal, alerts, jobs, provider, app, memory, now, nowIso, signal, previous } = input
   memory.ticks += 1
 
   const activity = deriveActivity({
@@ -376,6 +395,14 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
         ? null
         : `${outcome.result.failure}: ${outcome.result.message}`
       : null
+  const failureKind =
+    (outcome.did === 'review' || outcome.did === 'background-job') && !outcome.result.ok
+      ? outcome.result.failure
+      : null
+  const review =
+    outcome.did === 'review' && outcome.review
+      ? { notable: outcome.review.notable, question: outcome.review.question, at: nowIso }
+      : null
 
   return {
     available: health.available,
@@ -387,6 +414,11 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
     jobs: byStatus,
     lastOutcome: outcome.did,
     lastFailure: failure,
+    lastFailureKind: failureKind,
+    // Held rather than replaced when a turn produces none: the last thing the
+    // model said stays on screen until it says something else. A field that
+    // blanked on every idle tick would flicker once a second and be unreadable.
+    lastReview: review ?? previous?.lastReview ?? null,
     ticks: memory.ticks,
     // Only meaningful while there is no model. With one available these
     // same events are a backlog being worked through, and journalLost is

@@ -54,13 +54,14 @@
  * which is the defect this whole architecture is arranged to avoid. Disconnect
  * comes from `bridgeConnected` for the same reason.
  */
-import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { gameDropped, gameLines, gameVersion, subscribeGame } from './gameLink'
 import { useAppStore } from '../store/useAppStore'
 import { AlertBroker } from './aiAlertBroker.ts'
 import { EventJournal, seedJournalCursor } from './aiEventJournal.ts'
 import { JobStore } from './aiJobStore.ts'
-import { absentProvider, type ModelProvider } from './aiModelProvider.ts'
+import { absentProvider, type ModelHealth, type ModelProvider } from './aiModelProvider.ts'
+import { localProvider, type LocalModelProvider } from './aiLocalProvider.ts'
 import {
   deriveAlerts,
   ingestLines,
@@ -74,6 +75,8 @@ export type { AiWorkerStatus } from './aiIngest.ts'
 
 const INITIAL_STATUS: AiWorkerStatus = {
   available: false,
+  lastFailureKind: null,
+  lastReview: null,
   journalPending: 0,
   journalLost: 0,
   missedLines: 0,
@@ -145,6 +148,114 @@ const TICK_MS = 1000
 const DEFAULT_PROVIDER: ModelProvider = absentProvider()
 
 /**
+ * Where the model server address lives.
+ *
+ * One string, written only when a person types one in. An install that never
+ * touches it has no such key, which is exactly the state `absentProvider()`
+ * describes and the state almost every install stays in.
+ */
+const PROVIDER_URL_KEY = 'drc.ai-provider.v1'
+
+/** The stored address, or null. Trimmed, because a pasted URL usually has a
+ * space on the end and a stored empty string is not a configuration. */
+export function readProviderUrl(): string | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(PROVIDER_URL_KEY)
+    const trimmed = raw?.trim()
+    return trimmed ? trimmed : null
+  } catch {
+    // Storage can be unavailable, and an AI setting is never a reason to
+    // take the client down.
+    return null
+  }
+}
+
+/**
+ * Store, or clear when given nothing.
+ *
+ * Returns the value that is now stored so a caller does not have to re-read
+ * to find out what its own write did.
+ */
+export function writeProviderUrl(url: string | null): string | null {
+  const trimmed = url?.trim() ?? ''
+  try {
+    if (trimmed) globalThis.localStorage?.setItem(PROVIDER_URL_KEY, trimmed)
+    else globalThis.localStorage?.removeItem(PROVIDER_URL_KEY)
+  } catch {
+    return readProviderUrl()
+  }
+  providerRevision++
+  for (const listener of [...providerListeners]) listener()
+  return trimmed ? trimmed : null
+}
+
+/**
+ * A counter that changes when the stored address does.
+ *
+ * The panel writes the address and the host builds the provider, and they are
+ * in different components with no parent between them, so the host has to
+ * hear about the write. Subscribing to a revision number rather than to the
+ * string keeps `useSyncExternalStore`'s snapshot stable - a getter returning a
+ * fresh string every call is an infinite render loop.
+ */
+let providerRevision = 0
+const providerListeners = new Set<() => void>()
+
+export function subscribeProviderUrl(listener: () => void): () => void {
+  providerListeners.add(listener)
+  return () => {
+    providerListeners.delete(listener)
+  }
+}
+
+export function getProviderRevision(): number {
+  return providerRevision
+}
+
+/**
+ * Build the provider the stored setting asks for.
+ *
+ * No address means `absentProvider()`, which is the default and stays the
+ * default: this function is the only thing in the app that can produce
+ * anything else, and it needs a person to have typed a URL first. `allowRemote`
+ * is deliberately not passed - a stored address off this machine is refused by
+ * `localProvider` itself, with a reason the panel shows.
+ */
+export function buildProvider(url: string | null): ModelProvider {
+  if (!url) return DEFAULT_PROVIDER
+  return localProvider({ baseUrl: url })
+}
+
+/**
+ * The provider the host is currently running, for the panel's "Test
+ * connection" button.
+ *
+ * The button has to probe the same object the worker uses, or it would report
+ * on a second provider built for the occasion - which could answer while the
+ * real one was pointed somewhere else, and a test that passes for a thing
+ * nobody is using is worse than no test.
+ */
+let activeProvider: ModelProvider = DEFAULT_PROVIDER
+
+export function getActiveProvider(): ModelProvider {
+  return activeProvider
+}
+
+/**
+ * Probe now and publish the result.
+ *
+ * Asynchronous on purpose and never called from a render: `describe()` is the
+ * render path and stays synchronous. A provider with no `refresh` - the
+ * absent one - simply reports what it already says.
+ */
+export async function testProviderConnection(): Promise<ModelHealth> {
+  const provider = activeProvider as Partial<LocalModelProvider> & ModelProvider
+  const health = typeof provider.refresh === 'function' ? await provider.refresh() : provider.describe()
+  publishStatus({ ...currentStatus, available: health.available, providerReason: health.reason })
+  return health
+}
+
+/**
  * Run the worker for as long as the hosting component is mounted.
  *
  * `enabled` rather than a conditional call, for the same reason
@@ -155,8 +266,35 @@ const DEFAULT_PROVIDER: ModelProvider = absentProvider()
  * path for every consumer; returning it here would re-render the root on
  * every tick to deliver a number only the Settings panel reads.
  */
-export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFAULT_PROVIDER): void {
+export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): void {
   const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
+
+  // Rebuilt only when the stored address changes, never on a render: the tick
+  // effect depends on the provider, and a new object each render tore the
+  // effect down and aborted any generation in flight (trap 6).
+  const revision = useSyncExternalStore(
+    subscribeProviderUrl,
+    getProviderRevision,
+    getProviderRevision
+  )
+  const derived = useMemo(
+    () => (override ? null : buildProvider(readProviderUrl())),
+    // `revision` is the dependency that matters; reading the URL inside keeps
+    // the snapshot a stable number rather than a fresh string every call.
+    [override, revision]
+  )
+  const provider = override ?? derived ?? DEFAULT_PROVIDER
+  activeProvider = provider
+
+  // A replaced provider owns a probe interval. Stopping it here rather than
+  // leaving it to be collected is the difference between one timer and one
+  // per address the person tried.
+  useEffect(
+    () => () => {
+      ;(derived as Partial<LocalModelProvider> | null)?.stop?.()
+    },
+    [derived]
+  )
 
   const journal = useRef<EventJournal>(null as unknown as EventJournal)
   const alerts = useRef<AlertBroker>(null as unknown as AlertBroker)
@@ -277,6 +415,7 @@ export function useAiWorkerHost(enabled: boolean, provider: ModelProvider = DEFA
           now: Date.now(),
           nowIso: new Date().toISOString(),
           signal: controller.signal,
+          previous: currentStatus,
         })
 
         if (cancelled) return

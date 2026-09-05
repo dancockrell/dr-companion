@@ -50,6 +50,38 @@ export type ProviderFailure =
   | 'privacy_gate'
   | 'error'
 
+/**
+ * One sentence per failure kind, written for the person looking at the panel.
+ *
+ * Section 14 requires that "model failure, absence, timeout, and
+ * out-of-memory state are visible", and visible is not the same as present: a
+ * single "the model failed" covering all seven leaves somebody with no idea
+ * whether to install something, buy a smaller model, or wait. Each sentence
+ * below names a different next action, which is the test - if two of them
+ * would send the same person to do the same thing, one of them is wrong.
+ *
+ * Exhaustive by type rather than by a default branch. A new
+ * `ProviderFailure` must fail to compile here rather than quietly inherit
+ * somebody else's sentence.
+ */
+const FAILURE_SENTENCES: Record<ProviderFailure, string> = {
+  absent: 'No model server answered. Check that yours is running.',
+  timeout: 'The model did not answer in time. It may be too large for this machine.',
+  cancelled: 'The last review was interrupted. Nothing was lost.',
+  invalid_output: 'The model answered, but not in the form this asks for.',
+  out_of_memory: 'The model ran out of memory. Try a smaller profile.',
+  privacy_gate: 'Sensitive input withheld: the review was refused before it reached the model.',
+  error: 'The model server returned an error.',
+}
+
+export function failureSentence(kind: ProviderFailure): string {
+  return FAILURE_SENTENCES[kind]
+}
+
+/** The kinds, for a test that wants to walk all of them rather than a list
+ * somebody has to remember to update. */
+export const PROVIDER_FAILURE_KINDS = Object.keys(FAILURE_SENTENCES) as ProviderFailure[]
+
 export interface ModelHealth {
   available: boolean
   /** Why not, when unavailable. Shown to a person, so it names the next step
@@ -180,6 +212,76 @@ export function aiLog(level: 'info' | 'warn' | 'error', message: string, detail?
   // check allows exactly this file and this function.
   const write = globalThis.console?.[level]
   if (typeof write === 'function') write.call(globalThis.console, line, ...extra)
+}
+
+/**
+ * Pull the first complete JSON object out of a model's answer and check its
+ * shape.
+ *
+ * A local instruct model will not reliably return bare JSON. It prefixes
+ * "Sure, here is the analysis:", wraps the object in a ```json fence, or adds
+ * a sentence afterwards, and every one of those is an ordinary Tuesday rather
+ * than a fault worth failing the whole turn over. So the object is extracted
+ * rather than required to stand alone.
+ *
+ * Brace-matched, not regular-expression-matched. `/\{.*\}/` is greedy and
+ * swallows a trailing object; `/\{.*?\}/` is lazy and truncates the first
+ * nested one. Neither can describe balanced delimiters, and both fail on the
+ * exact input this is for - a nested result inside a chatty sentence. Strings
+ * are tracked so a `}` inside a quoted value does not close the object.
+ *
+ * `validate` is the caller's, because this module must not know what a live
+ * review looks like. A parse that succeeds and a shape that validates are
+ * different questions and both are asked: JSON.parse is happy with
+ * `{"notable": "a door"}` and that is not the contract.
+ *
+ * Returns a discriminated result rather than throwing or returning null with
+ * a reason on the side, so a caller cannot use the value without having
+ * looked at whether there is one.
+ */
+export type StructuredParse<T> =
+  | { ok: true; value: T }
+  | { ok: false; reason: string }
+
+export function parseStructured<T>(text: string, validate: (value: unknown) => value is T): StructuredParse<T> {
+  const start = text.indexOf('{')
+  if (start === -1) return { ok: false, reason: 'no JSON object in the answer' }
+
+  let depth = 0
+  let inString = false
+  let escaped = false
+  let end = -1
+
+  for (let i = start; i < text.length; i++) {
+    const c = text[i]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (c === '\\') escaped = true
+      else if (c === '"') inString = false
+      continue
+    }
+    if (c === '"') inString = true
+    else if (c === '{') depth++
+    else if (c === '}') {
+      depth--
+      if (depth === 0) {
+        end = i
+        break
+      }
+    }
+  }
+
+  if (end === -1) return { ok: false, reason: 'the JSON object was never closed' }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text.slice(start, end + 1))
+  } catch {
+    return { ok: false, reason: 'the JSON object did not parse' }
+  }
+
+  if (!validate(parsed)) return { ok: false, reason: 'the object did not match the schema' }
+  return { ok: true, value: parsed }
 }
 
 /**

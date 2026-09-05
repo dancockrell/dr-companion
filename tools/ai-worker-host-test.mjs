@@ -332,6 +332,8 @@ console.log('\n-- status is published on a change, and otherwise on a slow sched
     jobs: { running: 1 },
     lastOutcome: 'review',
     lastFailure: 'timeout: too slow',
+    lastFailureKind: 'timeout',
+    lastReview: { notable: ['a door'], at: '2026-09-05T00:00:01.000Z' },
     unreviewedWithoutModel: 42,
   }
   const fields = Object.keys(base).filter((k) => k !== 'ticks')
@@ -464,6 +466,85 @@ console.log('\n-- the panel promises only what this build can do --')
     `host imports aiLocalProvider: ${providerReachable}`)
   ok('a refused prompt is named rather than left to read as a generic failure',
     /Sensitive input withheld/.test(panel))
+}
+
+console.log('\n-- every way a model can fail says something different on screen --')
+{
+  const { failureSentence, PROVIDER_FAILURE_KINDS } = await import('../src/lib/aiModelProvider.ts')
+
+  ok('the kinds come from the table rather than a list somebody must remember',
+    PROVIDER_FAILURE_KINDS.length === 7, `${PROVIDER_FAILURE_KINDS.length} kinds`)
+  ok('and they are the ones the type declares',
+    ['absent', 'timeout', 'cancelled', 'invalid_output', 'out_of_memory', 'privacy_gate', 'error']
+      .every((k) => PROVIDER_FAILURE_KINDS.includes(k)),
+    PROVIDER_FAILURE_KINDS.join(','))
+
+  const sentences = PROVIDER_FAILURE_KINDS.map(failureSentence)
+  ok('every kind has a sentence', sentences.every((s) => typeof s === 'string' && s.length > 0))
+  ok('and no two kinds share one', new Set(sentences).size === sentences.length,
+    `${new Set(sentences).size} distinct of ${sentences.length}`)
+  // Distinct is not enough: a person has to be able to tell which is which
+  // without a glossary, so each names the thing that went wrong.
+  ok('absence sends you to start a server', /server answered|running/.test(failureSentence('absent')),
+    failureSentence('absent'))
+  ok('out of memory sends you to a smaller model',
+    /smaller/.test(failureSentence('out_of_memory')), failureSentence('out_of_memory'))
+  ok('timeout is about time, not about memory',
+    /in time/.test(failureSentence('timeout')) && !/memory/.test(failureSentence('timeout')),
+    failureSentence('timeout'))
+  ok('a privacy refusal reads as a working gate, not a broken model',
+    /withheld|refused/.test(failureSentence('privacy_gate')), failureSentence('privacy_gate'))
+
+  const fs = await import('node:fs')
+  const panel = fs.readFileSync('src/components/shared/AiWorkerPanel.tsx', 'utf8')
+  ok('the panel reads the shared table rather than writing its own copy',
+    /failureSentence\(status\.lastFailureKind\)/.test(panel))
+  ok('and keeps the privacy case as its own sentence rather than duplicating one',
+    /lastFailureKind !== 'privacy_gate'/.test(panel))
+}
+
+console.log('\n-- the model server address, and what it can point at --')
+{
+  const fs = await import('node:fs')
+  const host = fs.readFileSync(HOST_SRC, 'utf8')
+  const panel = fs.readFileSync('src/components/shared/AiWorkerPanel.tsx', 'utf8')
+
+  ok('the address has one storage key and it follows the drc convention',
+    /'drc\.ai-provider\.v1'/.test(host))
+  ok('an empty setting builds the absent provider, which stays the default',
+    /if \(!url\) return DEFAULT_PROVIDER/.test(host))
+  // `allowRemote:` is the code form. Matching the bare word instead flagged
+  // the comment explaining why it is never passed, which is a check failing
+  // on its own documentation.
+  ok('and the host never passes allowRemote, so a stored remote address is refused',
+    !/allowRemote\s*:/.test(host))
+  ok('the panel commits on the button rather than on every keystroke',
+    /onClick=\{\(\) => void connect\(\)\}/.test(panel) && !/onChange[\s\S]{0,80}writeProviderUrl/.test(panel))
+  ok('the test button probes the provider the worker is using',
+    /testProviderConnection/.test(panel) && /activeProvider/.test(host))
+  ok('describe() is never awaited on the render path',
+    !/await[\s\S]{0,40}\.describe\(\)/.test(panel))
+  ok('and a replaced provider has its probe stopped rather than left running',
+    /\.stop\?\.\(\)/.test(host))
+
+  // The live review. Checked in the source because the branch needs a model
+  // AND a game stream, and a browser has neither: `attachGame` goes through
+  // Tauri, so in Chrome the socket does not exist and the journal stays empty
+  // forever. What the running app did confirm is everything up to the render -
+  // a real loopback server, through localProvider, through the worker, to a
+  // parsed review on the status. These hold the render to that shape.
+  ok('the panel shows the review the status carries rather than re-deriving one',
+    /status\.lastReview/.test(panel))
+  ok('it lists every notable line', /lastReview\.notable\.map/.test(panel))
+  ok('says so plainly when there were none, rather than showing an empty box',
+    /Nothing notable\./.test(panel))
+  ok('shows the question when there is one', /lastReview\.question &&/.test(panel))
+  ok('and shows when it was said, so a stale review cannot read as current',
+    /lastReview\.at\)\.toLocaleTimeString\(\)/.test(panel))
+  ok('the review is held between turns, not blanked on every idle tick',
+    /lastReview: review \?\? previous\?\.lastReview \?\? null/.test(
+      fs.readFileSync('src/lib/aiIngest.ts', 'utf8')
+    ))
 }
 
 console.log('\n-- the host cannot reach the game command path --')
