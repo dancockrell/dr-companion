@@ -75,13 +75,24 @@ working, not failing.
 ## Is the installed bridge script current?
 
 ```js
-window.__TAURI_INTERNALS__.invoke('bridge_install_status')
+window.__TAURI_INTERNALS__
+  .invoke('plan_setup')
+  .then((p) => p.components.find((c) => c.id === 'bridge'))
 ```
 
-`current: true` matches, `false` differs, `null` means could not check — never
-read `null` as either. Compares content, not `BRIDGE_VERSION`: two copies both
-declared `0.9.0` while differing by 15 KB, one with the Origin check and token
-auth and one without.
+`presence: 'present'` with a `detail` of "matches this build" is current,
+`'outdated'` differs, and `'present'` with "Installed in Lich's scripts
+folder" means the check could not run — never read that third one as either of
+the first two. Compares content, not `BRIDGE_VERSION`: two copies both declared
+`0.9.0` while differing by 15 KB, one with the Origin check and token auth and
+one without, so when they differ at the same declared version the `detail`
+says so out loud.
+
+**Changed 5 Sep 2026 (#275.)** This used to name `bridge_install_status`, a
+second command computing the identical comparison that nothing in `src/`
+called. It is gone; `plan_setup`'s bridge row is the one implementation, and
+it is the one the setup screen renders, so what this prints is what a user
+sees.
 
 ## Who to talk to, and how to address them
 
@@ -409,12 +420,18 @@ grep -n "broadcast" lich-scripts/companion_bridge.lic
   (`src-tauri/src/setup.rs`), which hashes the installed and bundled
   `companion_bridge.lic` with `compare_bridge` and is what actually feeds the
   setup screen's bridge row. **Correction, 29 Aug 2026:** this used to name
-  `bridge_install_status` instead. That command implements the identical
-  comparison and is registered with Tauri, but nothing in `src/` calls it —
-  verified by grepping for the string, which returns zero hits outside its
-  own definition and registration. It is dead, not wired, and citing it here
+  `bridge_install_status` instead. That command implemented the identical
+  comparison and was registered with Tauri, but nothing in `src/` called it —
+  verified by grepping for the string, which returned zero hits outside its
+  own definition and registration. It was dead, not wired, and citing it here
   as "wired in" would have sent the next reader to edit a command whose
-  output nothing renders.
+  output nothing renders. **Resolved 5 Sep 2026 (#275):** the duplicate is
+  deleted rather than left standing, the "both declare the same
+  `BRIDGE_VERSION` and differ anyway" note it uniquely carried is now in the
+  row's `detail`, and `npm run test:tauri-command-callers` fails on any
+  registered command with no caller, so the next one is caught rather than
+  swept for. That check goes red naming both commands when run against the
+  pre-fix `lib.rs`.
 - **Vendored Ruby4Lich5** — `tools/vendor-fetch.mjs`, gitignored, re-verified
   at runtime.
 - **Fixture port** — `tools/fake-lich.mjs` defaults to **11124**, not 11024.

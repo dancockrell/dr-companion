@@ -1403,13 +1403,29 @@ pub async fn plan_setup_inner(
     // rather than becoming `Outdated`, because telling somebody their script
     // is stale when we merely failed to look sends them to reinstall a file
     // that may be perfectly current.
-    let bridge_stale = match (&bridge, &bundled_bridge) {
+    //
+    // `same_version` records the case worth naming out loud rather than only
+    // in a comment: the files differ while both declare the same
+    // `BRIDGE_VERSION`. That is the reading somebody talks themselves out of
+    // ("the versions match, so it must be fine"), so the row says it. It is
+    // only ever set alongside a `Some(true)` verdict - it labels a staleness
+    // the hash already decided, it never decides one.
+    let (bridge_stale, bridge_same_version) = match (&bridge, &bundled_bridge) {
         (Some(path), Some(bundled)) => match std::fs::read(path) {
-            Ok(installed) => Some(!compare_bridge(&installed, bundled)),
+            Ok(installed) => {
+                let stale = !compare_bridge(&installed, bundled);
+                let installed_version =
+                    declared_bridge_version(&String::from_utf8_lossy(&installed));
+                let same = stale
+                    && installed_version.is_some()
+                    && installed_version
+                        == declared_bridge_version(&String::from_utf8_lossy(bundled));
+                (Some(stale), same)
+            }
             // Present but unreadable is the third answer again, not a verdict.
-            Err(_) => None,
+            Err(_) => (None, false),
         },
-        _ => None,
+        _ => (None, false),
     };
 
     components.push(ComponentPlan {
@@ -1421,6 +1437,12 @@ pub async fn plan_setup_inner(
             (Some(_), _) => Presence::Present,
         },
         detail: match (&bridge, bridge_stale) {
+            (Some(_), Some(true)) if bridge_same_version => {
+                "Installed, but not the copy this build ships - reinstall it. Both copies \
+                 declare the same BRIDGE_VERSION: the constant does not move on every edit, \
+                 so this compares the file contents instead."
+                    .into()
+            }
             (Some(_), Some(true)) => {
                 "Installed, but not the copy this build ships - reinstall it".into()
             }
@@ -1714,22 +1736,24 @@ pub async fn plan_setup_inner(
     }
 }
 
-/// Unpack a verified Lich zip into our own app folder.
-///
-/// The release archive wraps everything in a single `Lich5/` directory. Left
-/// alone that puts `lich.rbw` one level deeper than detection looks, so the
-/// install would appear to succeed and then not be found. Strip a single
-/// common top-level directory when there is exactly one.
-#[tauri::command]
-pub fn extract_lich(archive: String) -> Result<String, String> {
-    extract_archive(archive, "lich".into(), Some("lich.rbw".into()))
-}
-
 /// Unpack a verified archive into a named folder under the app directory.
 ///
 /// `expect` is a file that must exist afterwards. Release archives often wrap
 /// everything in one directory, and silently installing one level too deep
-/// looks like success until nothing can find it.
+/// looks like success until nothing can find it. Lich is the worked example
+/// and the reason the strip exists: `lich-5.zip` wraps everything in a single
+/// `Lich5/` directory, which left alone puts `lich.rbw` one level deeper than
+/// detection looks, so the install appears to succeed and is then not found.
+/// Hence a single common top-level directory is stripped when there is
+/// exactly one, and `expect` is checked afterwards rather than assumed.
+///
+/// This used to have a `extract_lich(archive)` wrapper alongside it that
+/// filled in `("lich", "lich.rbw")`. It was a second command answering the
+/// same question, registered with Tauri and called by nothing in `src/` -
+/// `SetupWizard.tsx` has always reached the Lich case through this general
+/// command. Removed with #275; the caller that remained (`examples/fetch.rs`)
+/// now passes the same two arguments the app passes, which is what makes that
+/// example an exercise of the real path rather than of a parallel one.
 #[tauri::command]
 pub fn extract_archive(
     archive: String,
@@ -1928,27 +1952,23 @@ pub fn copy_bridge_to_lich(src: &Path) -> Result<String, String> {
 // which is what it installs from, so that is the only honest thing to compare
 // an install against at runtime.
 
-/// What the installed bridge script is, in the three answers this can have.
-#[derive(Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct BridgeInstall {
-    /// True when the installed script is the one this build ships.
-    ///
-    /// `None` means we could not determine it - no Lich folder, no bundled
-    /// copy, an unreadable file. Never collapse `None` into `false`: telling
-    /// somebody their install is stale when we simply could not look sends
-    /// them to fix a thing that may not be broken.
-    pub current: Option<bool>,
-    /// Where the installed copy is, when there is one.
-    pub installed_path: Option<String>,
-    /// `BRIDGE_VERSION` as each copy declares it. Reported for a human to
-    /// read. Deliberately not what `current` is computed from - see the note
-    /// above for why these can agree while the files do not.
-    pub installed_version: Option<String>,
-    pub bundled_version: Option<String>,
-    /// Plain English for whatever the fields above cannot say alone.
-    pub note: String,
-}
+// # Who asks this
+//
+// `plan_setup_inner`'s `bridge` row, and only that. It reads both copies,
+// compares them with `compare_bridge` below, and turns the three answers into
+// `Presence::Outdated` / `Present` / `Present` respectively - `None` staying
+// `Present` is the important arm, and `bridge_row_tells_stale_apart_from_could_not_check`
+// is the test holding it.
+//
+// A second command, `bridge_install_status`, used to sit here computing the
+// identical comparison into a richer `BridgeInstall` payload. It was
+// registered with Tauri and called by nothing: two implementations of one
+// question, and the one with a UI was never it. Removed with #275, and the
+// half of its output that the row did not already carry - naming the case
+// where both copies declare the same `BRIDGE_VERSION` and differ anyway -
+// moved into that row's `detail`, which is the string a person actually
+// reads. `tools/tauri-command-callers-test.mjs` is what stops another one
+// growing back unnoticed.
 
 /// The `BRIDGE_VERSION = '...'` a script declares, if it declares one.
 ///
@@ -1972,104 +1992,11 @@ fn bridge_fingerprint(bytes: &[u8]) -> String {
     hex(Sha256::digest(&normalised))
 }
 
-/// Compare two scripts, given their bytes. Split from the command so it can
-/// be tested without a Tauri app or a Lich install - the comparison is the
-/// part with the bug in it, not the file lookup.
+/// Compare two scripts, given their bytes. Split from its caller so it can be
+/// tested without a Tauri app or a Lich install - the comparison is the part
+/// with the bug in it, not the file lookup.
 fn compare_bridge(installed: &[u8], bundled: &[u8]) -> bool {
     bridge_fingerprint(installed) == bridge_fingerprint(bundled)
-}
-
-#[tauri::command]
-pub fn bridge_install_status<R: tauri::Runtime>(app: AppHandle<R>) -> BridgeInstall {
-    use tauri::Manager;
-
-    let bundled_path = match app.path().resolve(
-        "lich-scripts/companion_bridge.lic",
-        tauri::path::BaseDirectory::Resource,
-    ) {
-        Ok(p) => p,
-        Err(e) => {
-            return BridgeInstall {
-                note: format!("Not checked: could not locate this build's own copy ({e})."),
-                ..Default::default()
-            }
-        }
-    };
-
-    let bundled = match std::fs::read(&bundled_path) {
-        Ok(b) => b,
-        Err(e) => {
-            return BridgeInstall {
-                note: format!(
-                    "Not checked: this build's own copy could not be read ({e}). \
-                     Nothing can be said about the installed one without it."
-                ),
-                ..Default::default()
-            }
-        }
-    };
-    let bundled_version = declared_bridge_version(&String::from_utf8_lossy(&bundled));
-
-    let Some(dir) = bridge_target_dir() else {
-        return BridgeInstall {
-            bundled_version,
-            note: "Not checked: no Lich scripts folder found, so there is nothing installed \
-                   to compare against."
-                .into(),
-            ..Default::default()
-        };
-    };
-
-    let installed_path = dir.join("companion_bridge.lic");
-    if !installed_path.exists() {
-        // Absent, not unknown - we looked in the right place and it is not
-        // there. That is a real answer and a different one from "stale".
-        return BridgeInstall {
-            current: Some(false),
-            bundled_version,
-            note: "The bridge script is not installed yet.".into(),
-            ..Default::default()
-        };
-    }
-
-    let installed = match std::fs::read(&installed_path) {
-        Ok(b) => b,
-        Err(e) => {
-            return BridgeInstall {
-                installed_path: Some(pretty_path(&installed_path)),
-                bundled_version,
-                note: format!("Not checked: the installed script could not be read ({e})."),
-                ..Default::default()
-            }
-        }
-    };
-
-    let installed_version = declared_bridge_version(&String::from_utf8_lossy(&installed));
-    let current = compare_bridge(&installed, &bundled);
-
-    // The note says which way the version constant fell, because a stale
-    // install whose version *matches* is the case worth naming out loud - it
-    // is the one somebody would otherwise talk themselves out of.
-    let note = if current {
-        "The installed bridge script matches this build.".to_string()
-    } else if installed_version.is_some() && installed_version == bundled_version {
-        format!(
-            "The installed bridge script differs from this build, even though both declare \
-             version {}. The version constant does not move on every edit, so it cannot be \
-             trusted to tell them apart - this compares the file contents instead. Reinstall it.",
-            bundled_version.clone().unwrap_or_default()
-        )
-    } else {
-        "The installed bridge script differs from this build. Reinstall it.".to_string()
-    };
-
-    BridgeInstall {
-        current: Some(current),
-        installed_path: Some(pretty_path(&installed_path)),
-        installed_version,
-        bundled_version,
-        note,
-    }
 }
 
 #[cfg(test)]
