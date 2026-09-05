@@ -46,6 +46,7 @@ import {
   bumpStateVersion,
   currentStateVersion,
   onStateVersionChange,
+  versionedSetter,
 } from '../src/lib/stateVersion.ts'
 
 let pass = 0
@@ -544,23 +545,67 @@ console.log('\n-- exactly one store is constructed in the app --')
     sendingComponents.length === 0, sendingComponents.join(', '))
 }
 
-console.log('\n-- the store bumps the version by the shape of the write --')
+console.log('\n-- a write bumps the version by its shape, not by its caller --')
 {
+  // These were three regexes over `useAppStore.ts` until #370: they asserted
+  // that the bump was *spelled* a particular way, which is why removing the
+  // whole feature could turn them red while every behavioural check stayed
+  // green. The wrapper now lives in `stateVersion.ts` — importable without a
+  // Vite build — so the property can be run instead of grepped.
+  const wrote = []
+  const state = { character: null, mapHere: null }
+  const set = versionedSetter((patch) => wrote.push(patch), () => state)
+
+  const bumpsFor = (patch) => {
+    const before = currentStateVersion()
+    set(patch)
+    return currentStateVersion() - before
+  }
+
+  ok('a write carrying character bumps the version', bumpsFor({ character: { id: 1 } }) === 1)
+  ok('a write carrying mapHere bumps the version', bumpsFor({ mapHere: { room: 2 } }) === 1)
+  ok('a write carrying both bumps it once, not twice',
+    bumpsFor({ character: { id: 3 }, mapHere: { room: 4 } }) === 1)
+  ok('an authoritative key set to null still counts as a statement',
+    bumpsFor({ character: null }) === 1)
+  ok('a write carrying neither does not bump it',
+    bumpsFor({ gameLines: ['a line'], settingsOpen: true }) === 0)
+  ok('an empty write does not bump it', bumpsFor({}) === 0)
+
+  // The functional form is how `bridgeMessageHandler` writes, so the wrapper
+  // has to resolve it before deciding rather than after.
+  ok('a functional update carrying character bumps it',
+    bumpsFor(() => ({ character: { id: 5 } })) === 1)
+  ok('a functional update carrying neither does not',
+    bumpsFor(() => ({ gameLines: [] })) === 0)
+
+  // The mirror is gone (#370): the wrapper counts writes, it does not add to
+  // them. A store field would be a second answer to a question with one owner.
+  ok('the patch reaches the store untouched',
+    wrote.every((patch) => !('stateVersion' in patch)),
+    JSON.stringify(wrote.find((patch) => 'stateVersion' in patch)))
+  ok('every write reached the store, bumped or not', wrote.length === 8, `${wrote.length}`)
+
+  // A subscriber is the supported way for a component to re-render on it, and
+  // it is what the removed mirror was justified by. It has to actually fire.
+  let heard = 0
+  const off = onStateVersionChange(() => { heard += 1 })
+  set({ character: { id: 6 } })
+  set({ gameLines: [] })
+  off()
+  set({ character: { id: 7 } })
+  ok('a subscriber hears authoritative writes and only those, until it unsubscribes',
+    heard === 1, `${heard}`)
+
+  // Structural, and deliberately so: the store cannot be imported outside a
+  // Vite build, so "no write reaches zustand past the wrapper" has no runtime
+  // form here. Three `rawSet` occurrences would mean somebody had written
+  // state past it, which is the bypass the wrapper exists to prevent.
   const src = readFileSync('src/store/useAppStore.ts', 'utf8')
-  ok('the authoritative keys are the game’s own statements',
-    /AUTHORITATIVE_KEYS[^=]*=\s*\['character', 'mapHere'\]/.test(src))
-  ok('the version is bumped in exactly one place', (src.match(/bumpStateVersion\(\)/g) ?? []).length === 1)
-  ok('and that place is the wrapper, keyed on the patch rather than the caller',
-    /AUTHORITATIVE_KEYS\.some\(\(key\) => key in patch\)[\s\S]{0,400}raw\(\{ \.\.\.patch, stateVersion: bumpStateVersion\(\) \}\)/.test(src))
-  // The raw setter must reach nothing but the wrapper. Three occurrences would
-  // mean somebody had written state past it, which is exactly the bypass the
-  // wrapper exists to make impossible.
   const raw = src.match(/\brawSet\b/g) ?? []
   ok('the unwrapped setter appears only where it is wrapped', raw.length === 2, `${raw.length} use(s)`)
   ok('every store helper is handed the wrapped setter',
-    /const set = versioned\(rawSet, get\)/.test(src))
-  ok('the mirror field ships with the store', /stateVersion: 0,/.test(src))
-  ok('AppState declares it', /stateVersion: number/.test(readFileSync('src/types/index.ts', 'utf8')))
+    /const set = versionedSetter<AppState>\(rawSet, get\)/.test(src))
 }
 
 console.log('\n-- Stop reaches the gate without the kill switch importing it --')
