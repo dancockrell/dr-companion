@@ -32,9 +32,10 @@ const NEEDS_ENVIRONMENT = [
   {
     script: 'test:live-chain',
     requires: 'the app running with the viewer attached',
-    // Not written yet; it arrives with increment B4. Recorded now so the
-    // requirement is written down before the suite exists rather than after.
-    pending: 'B4',
+    // Written and registered by B1-B4 (#292). The marker saying it was still
+    // to come outlived the suite by one PR and turned this check red on main,
+    // which is the check doing its job: it refuses to let "arrives later"
+    // stand beside a script that is already here.
   },
   {
     script: 'test:protocol-harness',
