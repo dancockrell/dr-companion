@@ -703,8 +703,9 @@ whether it is embedded, docked or a separate window is D0.
   do: three fixtures — raises, loops until the runner's timeout, exits non-zero — asserting the runner reports each distinctly and the app process is unaffected (the runner is out-of-process; the assertion is on reported state). Mirror in the TS runner's tests if it has any (`ls typescript/`).
   verify: `npm run test:runner` green with the three names.
 
-- [ ] **E8  Disconnect/reconnect behaviour test** (≈20)
-  touches: tools/mounted-test.mjs, tools/backlog-test.mjs
+- [x] **E8  Disconnect/reconnect behaviour test** (≈20)
+  commit: TBD verified: 2026-09-05 minutes: 35
+  touches: tools/backlog-test.mjs, tools/game-connection-owner-test.mjs
   depends-on: none
   do: these two already exercise `attachGame`/`detachGame`/`backfill` (`grep -ln "detachGame\|backfill" tools/*.mjs`). Add: socket dropped mid-stream → pane says disconnected; `sendGame` refused with a reason; reconnect → backfill runs (`gameLink.ts` `backfill()`).
   verify: both suites green with the three named checks.

@@ -87,6 +87,8 @@ const handlers = new Map()
 
 let backlogReply = { lines: [], dropped: 0 }
 let backlogThrows = false
+/** When set, `game_send` is refused with this message, the way Rust refuses. */
+let sendRefusal = null
 
 const stub = {
   isTauri: () => true,
@@ -99,6 +101,7 @@ const stub = {
       if (backlogThrows) throw new Error('backend unreachable')
       return backlogReply
     }
+    if (cmd === 'game_send' && sendRefusal) throw new Error(sendRefusal)
     if (cmd === 'game_attach' || cmd === 'game_detach' || cmd === 'game_status') {
       return { connected: cmd === 'game_attach', host: '', port: 0, lines: 0, note: '' }
     }
@@ -139,6 +142,13 @@ function deliver(c) {
   const fn = handlers.get('game:line')
   if (!fn) throw new Error('gameLink never subscribed to game:line')
   fn(c)
+}
+
+/** Play Rust the other way: the reader thread announcing the link changed. */
+function deliverState(next) {
+  const fn = handlers.get('game:state')
+  if (!fn) throw new Error('gameLink never subscribed to game:state')
+  fn(next)
 }
 
 console.log('backlog backfill')
@@ -317,6 +327,65 @@ console.log('backlog backfill')
     L.streamCharacterState().vitals.value.health === undefined,
     'detaching clears the stream-derived vitals immediately, not just on the next attach'
   )
+}
+
+// ------------------------------------------------- the socket drops mid-stream
+//
+// The three things a player actually experiences when Lich goes away with the
+// character still logged in: the pane has to say so, a command typed into a
+// dead link has to be refused with a reason rather than vanishing, and
+// reattaching has to bring back what was missed.
+//
+// Deliberately not asserted through the component: `gameState()` is what
+// `GameConnectionBar` renders (tools/game-connection-owner-test.mjs owns that
+// link), so the behaviour lives here and the wiring lives there.
+console.log(`${NL}socket dropped mid-stream`)
+{
+  backlogReply = { lines: [], dropped: 0 }
+  sendRefusal = null
+  const L = await freshLink()
+  L.subscribeGame(() => {})
+  await settle()
+
+  // Control: a line arriving is what makes the link report connected, so this
+  // is the state the drop has to change. Without it, "disconnected" below
+  // could be the state the module started in.
+  deliver(chunk(1, 'the wind picks up.'))
+  await settle()
+  ok(L.gameState().connected === true, 'control: the link reports connected while text is arriving')
+
+  deliverState({ connected: false, host: '', port: 0, lines: 1, note: 'Lich has exited.', lich: 'gone' })
+  await settle()
+  ok(L.gameState().connected === false, 'a socket dropped mid-stream leaves the pane saying disconnected')
+  eq(L.gameState().note, 'Lich has exited.', 'and it keeps the reason rather than a bare flag')
+  eq(texts(L).length, 1, 'the scrollback survives the drop - nothing is thrown away')
+
+  // sendGame refused with a reason. The refusal is the backend's, and it has
+  // to reach the caller: a command silently swallowed on a dead link is
+  // indistinguishable from one the game ignored.
+  sendRefusal = 'Not attached to a game.'
+  let refusedWith = null
+  try {
+    await L.sendGame('north')
+    refusedWith = '(not refused at all)'
+  } catch (e) {
+    refusedWith = e instanceof Error ? e.message : String(e)
+  }
+  eq(refusedWith, 'Not attached to a game.', 'sendGame is refused with the backend\'s own reason')
+  sendRefusal = null
+
+  // Reconnect: the backlog is what the pane missed while it was down, and
+  // attachGame must run it. Distinct text so a pass cannot be the control
+  // line still sitting in the buffer.
+  backlogReply = { lines: [chunk(1, 'you are back on the north road.')], dropped: 2 }
+  await L.attachGame(4455)
+  await settle()
+  ok(L.gameState().connected === true, 'reattaching reports connected again')
+  ok(
+    texts(L).includes('you are back on the north road.'),
+    'reconnecting runs the backfill, so the pane gets what it missed'
+  )
+  eq(L.gameDropped(), 2, 'and what could not be recovered is counted rather than hidden')
 }
 
 // ---------------------------------------------------------------- denominator
