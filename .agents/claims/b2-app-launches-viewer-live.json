@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "b2-app-launches-viewer-live",
+  "agent": "claude-code",
+  "summary": "Make the app-launched viewer start in live mode, and make a failed live start visible instead of an empty scene",
+  "status": "completed",
+  "claimed_at": "2026-09-05T06:25:00Z",
+  "updated_at": "2026-09-05T06:55:00Z",
+  "paths": [
+    "src-tauri/src/viewer.rs",
+    "godot/scripts/world_root.gd",
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": [
+    "launch_viewer",
+    "viewer_launch_args",
+    "_ready",
+    "_live_requested"
+  ],
+  "coordination": {
+    "depends_on": [
+      "b1-export-viewer-locally"
+    ],
+    "conflicts_with": [],
+    "notes": "node tools/plan-audit.mjs --claims lists no in-progress claim on godot/ at all, so no Codex claim covers world_root.gd right now; the five Codex isometric claims that touch the viewer are all completed. This extends the existing owners rather than adding any: launch_viewer keeps being the one launcher and gains a pure viewer_launch_args seam so the flag can be tested, and world_root._ready keeps being the one place that decides live versus mock. The status label is created by world_root in code rather than added to the scene file, because the .tscn is Codex content and a runtime Label needs no scene change. The module header's 'nothing goes on the command line' rule is narrowed to secrets, keeping the token reasoning intact."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "cargo test --lib viewer -> test result: ok. 7 passed (3 new)",
+      "cargo fmt -- --check clean; npx tsc -b exit 0; node tools/run-tests.mjs -> 101 passed, 3039 checks, all passed (DRC_TEST_PORT=7942, because another session held 7893)",
+      "sabotage: LIVE_FLAG in world_root.gd changed to --live-presentationX -> the_live_flag_is_spelled_the_way_the_gdscript_reads_it FAILED; restored, md5sum -c matched 331ffdb45d0d8c087cfac4610368df6f",
+      "the running app launched it: Win32_Process CommandLine = \"C:/Users/Admin/dev/wt-b/godot/build/DRCompanionWorldViewer.exe\" -- --live-presentation (pid 37184)",
+      "netstat: 127.0.0.1:60916 -> 127.0.0.1:63488 ESTABLISHED pid 37184 (viewer) against pid 32648 (app)",
+      "done-when: the viewer window shows room 1-308 'Empaths' Guild', the currentRoomId of the live snapshot the app published (sequence 5, numeric, 1060 cells) - not the mock fixture's 1-14 Town Green North",
+      "trap found while sabotaging: sed -i and grep in this Git Bash both strip CR, so sed -i silently rewrote the CRLF file to LF and grep -c for CR could not see it. The restore had to convert back before md5 matched."
+    ]
+  }
+}

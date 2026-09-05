@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "task_id": "b1-export-viewer-locally",
+  "agent": "claude-code",
+  "summary": "Install Godot 4.3 outside the repo and export a real world viewer executable locally",
+  "status": "completed",
+  "claimed_at": "2026-09-05T06:10:00Z",
+  "updated_at": "2026-09-05T06:20:00Z",
+  "paths": [
+    "docs/PLAN_TO_1_0.md"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "No source is changed by this increment; it only establishes that a viewer can be built on this machine, which B2 and B3 depend on. Godot lives at C:/Users/Admin/dev/tools/godot, outside every repo, and the same 4.3-stable zip and export-template tpz named by .github/workflows/release.yml were used so a local export cannot diverge from CI's. An earlier partial download of the tpz was already on disk at 226 MB against a Content-Length of 1073228327 and unzip -t could not find its central directory; it was re-fetched rather than trusted, because a truncated template archive exports an executable that is wrong in ways nothing here would notice."
+  },
+  "completion": {
+    "commit": null,
+    "checks": [
+      "C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64.exe --version -> 4.3.stable.official.77dcf97d8",
+      "unzip -t on the re-fetched export templates -> 'No errors detected', 1073228327 bytes, version.txt says 4.3.stable",
+      "GODOT4=<that exe> npm run godot:export -> exit 0, 'Verified Windows viewer export: 84365552 bytes, sha256 863540270e5bb925fcaede9488b44ec6d0ddb251348453d6a0582eedfc96c6c5'",
+      "ls -la godot/build/DRCompanionWorldViewer.exe -> 84365552 bytes (> 1 MB)",
+      "Two non-fatal findings recorded for other lanes: rcedit is absent so the export warns 'Could not start rcedit executable' and skips version resources, and godot/tests/live_bridge_transport_test.gd fails to parse under 4.3 because OS.get_temp_dir() does not exist in that version."
+    ]
+  }
+}

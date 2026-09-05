@@ -548,14 +548,16 @@ when `--live-presentation` is on the command line, and
 app-launched viewer has therefore always started in mock mode. Everything else
 in the chain (token/port files, auth, reconnect) is already written.
 
-- [ ] **B1  Export a viewer locally** (≈15 + download)
+- [x] **B1  Export a viewer locally** (≈15 + download)
+  commit: (this PR) verified: 2026-09-05 minutes: 25
   touches: none
   depends-on: none
   do: Godot 4.3 (`grep -n "config/features" godot/project.godot`); the release workflow names the exact zip (`grep -n Godot_v4 .github/workflows/release.yml`) — download the same by hand outside the repo. `git submodule update --init --recursive`; `GODOT4=<path> npm run godot:export`.
   verify: `ls -la godot/build/DRCompanionWorldViewer.exe` → size > 1 MB.
   pitfalls: 8.
 
-- [ ] **B2  The app launches the viewer live** (≈25)
+- [x] **B2  The app launches the viewer live** (≈25)
+  commit: (this PR) verified: 2026-09-05 minutes: 55
   touches: src-tauri/src/viewer.rs, godot/scripts/world_root.gd
   depends-on: B1
   do: `viewer.rs`: `Command::new(&exe).args(["--", "--live-presentation"])` — Godot user args follow `--`; a mode flag is not a credential, so update the module header from "nothing goes on the command line" to "no *secrets* go on the command line", keeping the reasoning about the token. `world_root.gd` `_ready()`: when live is requested and `start_live()` fails, do not silently `return` into an empty scene — set a visible label (the world_controls or inspector already has status text: `grep -n "status\|label" godot/scripts/world_controls.gd | head`) reading "Bridge unavailable — is DR Companion running?" and let `BridgeClient`'s reconnect timer keep trying. Mock stays a dev path reached only without the flag.
@@ -563,13 +565,15 @@ in the chain (token/port files, auth, reconnect) is already written.
   done-when: Godot receives a `snapshot` with a numeric `sequence` from the app.
   pitfalls: 9. Read Codex's active claims on `world_root.gd` first.
 
-- [ ] **B3  Record the proof** (≈20)
+- [x] **B3  Record the proof** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 20
   touches: none
   depends-on: B2
   do: `docs/verification/live-chain-<date>.md`: commit sha, `godot --version`, commands, the Godot line, the Rust `intent_accepted` line for a clicked exit, the text pane showing the movement, one screenshot, and a non-empty "what did not work" section (or "nothing, first try" with the evidence).
   verify: file exists with all six items.
 
-- [ ] **B4  `tools/live-chain-check.mjs`** (≈30)
+- [x] **B4  `tools/live-chain-check.mjs`** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 30
   touches: new:tools/live-chain-check.mjs, package.json
   depends-on: B3
   do: read `%LOCALAPPDATA%\DR Companion Data\presentation-bridge.{port,token}` (names from `presentation_bridge.rs:60`); `net.connect`; send `{"type":"auth","token"}` NDJSON; expect `auth_ok`; expect a `snapshot` with numeric `sequence` within 2 s; send a walk intent from a fabricated room id; expect `intent_rejected`. Print `OK`/`FAIL` per step; exit 1 on any FAIL or a 5 s overall timeout naming the step. Register as `test:live-chain` and in C6's list, **not** in `test-suites.json`.
