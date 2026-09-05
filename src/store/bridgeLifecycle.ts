@@ -1,4 +1,4 @@
-import { bridge } from '../bridge'
+import { bridge } from '../bridge/index.ts'
 import type { AppState } from '../types'
 import type { BridgeServerMessage } from '../bridge/types'
 

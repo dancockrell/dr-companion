@@ -1,5 +1,5 @@
-import { CardDeck } from './CardDeck'
-import { DECKS, type RoomCard } from '../../lib/cards'
+import { CardDeck } from './CardDeck.tsx'
+import { DECKS, type RoomCard } from '../../lib/cards.ts'
 import type { DeckPref } from '../../lib/layout'
 import type { Deck } from '../../lib/cards'
 

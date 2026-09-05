@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { cn } from '../../lib/cn'
-import { MACROS, type Macro } from '../../data/macros'
-import { useMacroRunner } from '../../lib/useMacroRunner'
-import { useDragScroll } from '../../lib/useDragScroll'
-import { actionAccent, actionIcon } from '../../lib/battleActionVisuals'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { cn } from '../../lib/cn.ts'
+import { MACROS, type Macro } from '../../data/macros.ts'
+import { useMacroRunner } from '../../lib/useMacroRunner.ts'
+import { useDragScroll } from '../../lib/useDragScroll.ts'
+import { actionAccent, actionIcon } from '../../lib/battleActionVisuals.ts'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
 
 const GROUPS: Macro['group'][] = ['combat', 'health', 'hunt', 'goods', 'magic', 'travel', 'info']
 

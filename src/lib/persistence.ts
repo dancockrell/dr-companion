@@ -4,8 +4,8 @@
  */
 
 import type { UiMode } from '../types'
-import { readJSON, writeJSON } from './storage'
-import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults'
+import { readJSON, writeJSON } from './storage.ts'
+import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults.ts'
 
 const KEY = 'dr-companion-prefs-v1'
 

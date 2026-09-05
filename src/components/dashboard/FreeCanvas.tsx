@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { GripVertical } from 'lucide-react'
-import { cn } from '../../lib/cn'
+import { cn } from '../../lib/cn.ts'
 import {
   MIN_H,
   MIN_W,
@@ -9,7 +9,7 @@ import {
   gridSlot,
   type KeyboardRectAction,
   type Rect,
-} from '../../lib/freeLayout'
+} from '../../lib/freeLayout.ts'
 import type { PanelId } from '../../lib/layout'
 
 export interface Placed {

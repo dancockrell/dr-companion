@@ -13,7 +13,7 @@
  * look identical if all you print is how many loaded.
  */
 import { useEffect, useState } from 'react'
-import { loadAliasConfig, type Alias } from './aliases'
+import { loadAliasConfig, type Alias } from './aliases.ts'
 
 let cached: Alias[] | null = null
 let note = ''

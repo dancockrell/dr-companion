@@ -8,7 +8,7 @@
  * Native-only, like everything else in tauri.ts - unavailable in the browser
  * demo, where there is no OS to send a key to.
  */
-import { invokeTauri, isTauri } from './tauri'
+import { invokeTauri, isTauri } from './tauri.ts'
 
 export type MediaAction =
   | 'play_pause'

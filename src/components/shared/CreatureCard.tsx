@@ -1,7 +1,7 @@
-import { cn } from '../../lib/cn'
-import { Badge } from './Badge'
-import { CreatureArt } from './CreatureArt'
-import { DECK_STYLE, type RoomCard, type Tier } from '../../lib/cards'
+import { cn } from '../../lib/cn.ts'
+import { Badge } from './Badge.tsx'
+import { CreatureArt } from './CreatureArt.tsx'
+import { DECK_STYLE, type RoomCard, type Tier } from '../../lib/cards.ts'
 
 /**
  * One card, rendered at whichever tier the deck chose. See DESIGN.md S6.

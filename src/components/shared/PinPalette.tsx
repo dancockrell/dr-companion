@@ -14,8 +14,8 @@
  * returning a fragment here makes these buttons real members of that grid
  * instead of creating a second rail with different behavior.
  */
-import { PIN_PRESETS, PIN_COLOR_HEX, PIN_DRAG_TYPE } from '../../lib/mapPins'
-import { PinIconGlyph } from './PinIconGlyph'
+import { PIN_PRESETS, PIN_COLOR_HEX, PIN_DRAG_TYPE } from '../../lib/mapPins.ts'
+import { PinIconGlyph } from './PinIconGlyph.tsx'
 
 export interface PinBrush {
   label: string

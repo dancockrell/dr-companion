@@ -19,10 +19,10 @@
  * again — it was already wrong once.
  */
 import type { UiMode } from '../types'
-import { DECKS, type Deck, type Tier } from './cards'
+import { DECKS, type Deck, type Tier } from './cards.ts'
 import type { Rect } from './freeLayout'
-import { dockOf, type Dock } from './dock'
-import { readJSON, writeJSON } from './storage'
+import { dockOf, type Dock } from './dock.ts'
+import { readJSON, writeJSON } from './storage.ts'
 
 export type PanelId =
   | 'map'

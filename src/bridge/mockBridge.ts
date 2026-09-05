@@ -10,26 +10,26 @@ import {
   capabilitiesForCharacter,
   intentBlockReason,
   intentWarnings,
-} from '../lib/accountCapabilities'
+} from '../lib/accountCapabilities.ts'
 import {
   pickBestHealer,
   scoreHealers,
   chooseHealer,
   type HealCityId,
-} from '../data/healers'
-import { planTownRun } from '../data/townRun'
-import { pickSuggestedHunt, rankHuntingGrounds, HUNTING_GROUNDS } from '../data/hunting'
-import { simulateCombatLoop, describeCombatState } from '../data/combatMachine'
-import { planTravel } from '../data/travelPath'
+} from '../data/healers.ts'
+import { planTownRun } from '../data/townRun.ts'
+import { pickSuggestedHunt, rankHuntingGrounds, HUNTING_GROUNDS } from '../data/hunting.ts'
+import { simulateCombatLoop, describeCombatState } from '../data/combatMachine.ts'
+import { planTravel } from '../data/travelPath.ts'
 import type { GuildId } from '../data/hunting'
-import { ranksOf, type SkillState, SKILLS_BY_SET, SKILL_SETS } from '../data/skills'
-import { effectiveAthletics } from '../data/obstacles'
-import { DEMO_ZONE, demoPath } from '../data/demoMap'
-import { DEMO_INVASION_ROOM } from '../data/demoInvasionRoom'
-import { loadZone, DEFAULT_ZONE } from '../lib/mapData'
-import { loadPrefs, savePrefs } from '../lib/persistence'
-import { EXPECTED_BRIDGE_VERSION } from '../lib/versions'
-import { registerPlayerProfiles, type PlayerArtProfile } from '../lib/playerArt'
+import { ranksOf, type SkillState, SKILLS_BY_SET, SKILL_SETS } from '../data/skills.ts'
+import { effectiveAthletics } from '../data/obstacles.ts'
+import { DEMO_ZONE, demoPath } from '../data/demoMap.ts'
+import { DEMO_INVASION_ROOM } from '../data/demoInvasionRoom.ts'
+import { loadZone, DEFAULT_ZONE } from '../lib/mapData.ts'
+import { loadPrefs, savePrefs } from '../lib/persistence.ts'
+import { EXPECTED_BRIDGE_VERSION } from '../lib/versions.ts'
+import { registerPlayerProfiles, type PlayerArtProfile } from '../lib/playerArt.ts'
 
 type Listener = (msg: BridgeServerMessage) => void
 

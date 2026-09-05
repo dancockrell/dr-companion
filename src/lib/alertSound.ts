@@ -13,15 +13,15 @@
  * tested in plain Node. See that file's own header for the channel-split and
  * per-class-throttle reasoning; this file is the playback half only.
  */
-import { invokeTauri, isTauri } from './tauri'
-import { alertGate, GLOBAL_MS, type AlertChannel } from './alertGate'
+import { invokeTauri, isTauri } from './tauri.ts'
+import { alertGate, GLOBAL_MS, type AlertChannel } from './alertGate.ts'
 import { effectiveAudioGain, masterMuted } from './audioMaster.ts'
 import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults.ts'
 import {
   clearAlertPlaybackFailure,
   recordAlertPlaybackFailure,
   resetAlertPlaybackFailures,
-} from './alertPlaybackStatus'
+} from './alertPlaybackStatus.ts'
 
 export type { AlertChannel } from './alertGate'
 

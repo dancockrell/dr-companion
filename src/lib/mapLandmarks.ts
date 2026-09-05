@@ -1,6 +1,6 @@
 import type { MapZoneRoom } from '../bridge/types'
 import type { PinColor, PinIcon } from './mapPins'
-import { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors'
+import { COMMON_PLACE_PIN_COLORS } from './mapPlaceColors.ts'
 
 export type LandmarkKind =
   | 'bank'

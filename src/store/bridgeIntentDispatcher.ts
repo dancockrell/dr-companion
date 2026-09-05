@@ -1,8 +1,8 @@
-import { bridge } from '../bridge'
+import { bridge } from '../bridge/index.ts'
 import type { IntentName } from '../bridge/types'
-import { combatRanks } from '../data/skills'
+import { combatRanks } from '../data/skills.ts'
 import type { AppState } from '../types'
-import { isSafetyIntent } from './bridgePolicy'
+import { isSafetyIntent } from './bridgePolicy.ts'
 
 export function requestIntent(
   intent: IntentName | `travel:${string}`,

@@ -61,8 +61,8 @@ import {
   gameVersion,
   streamCharacterState,
   subscribeGame,
-} from './gameLink'
-import { useAppStore } from '../store/useAppStore'
+} from './gameLink.ts'
+import { useAppStore } from '../store/useAppStore.ts'
 import { AlertBroker } from './aiAlertBroker.ts'
 import { EventJournal, seedJournalCursor } from './aiEventJournal.ts'
 import { ClaimStore } from './aiClaimStore.ts'

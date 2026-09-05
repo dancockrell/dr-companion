@@ -12,8 +12,8 @@
  * "we have great music. let people see and choose individual tracks and
  * make playlists with them too."
  */
-import { loadPrefs, savePrefs, type Playlist } from './persistence'
-import { ALL_TRACKS } from './ambientSound'
+import { loadPrefs, savePrefs, type Playlist } from './persistence.ts'
+import { ALL_TRACKS } from './ambientSound.ts'
 
 export type { Playlist }
 

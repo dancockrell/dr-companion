@@ -8,8 +8,8 @@
  * future nudge about anywhere else, or the feature would only ever fire
  * once per session before going quiet for good.
  */
-import { readJSON, writeJSON } from './storage'
-import { profileKey } from './profiles'
+import { readJSON, writeJSON } from './storage.ts'
+import { profileKey } from './profiles.ts'
 import type { GameInstance } from '../types'
 
 /** Below this, "you keep coming back" isn't true yet - it's just standing around. */

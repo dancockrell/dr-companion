@@ -3,7 +3,7 @@
  * `useAliases`/`useMacros`.
  */
 import { useEffect, useState } from 'react'
-import { loadPresetConfig, type Preset } from './presets'
+import { loadPresetConfig, type Preset } from './presets.ts'
 
 let cached: Preset[] | null = null
 let note = ''

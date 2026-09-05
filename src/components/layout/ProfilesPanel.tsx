@@ -9,9 +9,9 @@
  * See docs/DOMAIN.md section 18.
  */
 import { Users, CopyPlus, Trash2 } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { profilesByRecency, profileKey } from '../../lib/profiles'
-import { cityLabel, type HealCityId } from '../../data/healers'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { profilesByRecency, profileKey } from '../../lib/profiles.ts'
+import { cityLabel, type HealCityId } from '../../data/healers.ts'
 
 function when(ts: number): string {
   const mins = Math.floor((Date.now() - ts) / 60000)

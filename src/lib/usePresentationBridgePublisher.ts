@@ -42,7 +42,7 @@
  * projected facts happen to match the last successful publish.
  */
 import { useEffect, useRef } from 'react'
-import { useAppStore } from '../store/useAppStore'
+import { useAppStore } from '../store/useAppStore.ts'
 import { justReconnected, publishWorldSnapshotIfChanged } from './presentationBridge.ts'
 
 export function usePresentationBridgePublisher(enabled: boolean): void {

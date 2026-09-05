@@ -12,7 +12,7 @@
  * here is computed or estimated.
  */
 import { Sparkles } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore } from '../../store/useAppStore.ts'
 import type { CharacterStats } from '../../types'
 
 const STAT_LABELS: { key: keyof CharacterStats; short: string; label: string }[] = [

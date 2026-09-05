@@ -1,32 +1,32 @@
 import { create } from 'zustand'
 import type { AppState, SetupComponent, UiMode, AuthMode } from '../types'
-import { bridge } from '../bridge'
+import { bridge } from '../bridge/index.ts'
 import type { IntentName } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
-import { loadPrefs, savePrefs } from '../lib/persistence'
-import { DEFAULT_FRONTEND } from '../lib/frontends'
+import { loadPrefs, savePrefs } from '../lib/persistence.ts'
+import { DEFAULT_FRONTEND } from '../lib/frontends.ts'
 import {
   APP_VERSION,
   EXPECTED_BRIDGE_VERSION,
-} from '../lib/versions'
-import { loadProfiles } from '../lib/profiles'
-import { emptyTrail } from '../lib/trail'
-import { loadPins as loadQuickSwitchPins, togglePin, MAX_SLOTS } from '../lib/quickSwitch'
+} from '../lib/versions.ts'
+import { loadProfiles } from '../lib/profiles.ts'
+import { emptyTrail } from '../lib/trail.ts'
+import { loadPins as loadQuickSwitchPins, togglePin, MAX_SLOTS } from '../lib/quickSwitch.ts'
 import {
   copySettingsFrom,
   deleteProfileByKey,
   patchActiveProfile,
   syncProfile,
-} from './profilePersistence'
+} from './profilePersistence.ts'
 import {
   connectBridge,
   disconnectBridge,
   setBridgeMode,
-} from './bridgeLifecycle'
-import { requestIntent } from './bridgeIntentDispatcher'
-import { handleBridgeMessage } from './bridgeMessageHandler'
+} from './bridgeLifecycle.ts'
+import { requestIntent } from './bridgeIntentDispatcher.ts'
+import { handleBridgeMessage } from './bridgeMessageHandler.ts'
 
-export { isIntentImplemented } from './bridgePolicy'
+export { isIntentImplemented } from './bridgePolicy.ts'
 
 const prefs = loadPrefs()
 

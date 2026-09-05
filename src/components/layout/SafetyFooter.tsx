@@ -37,14 +37,14 @@
  */
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
 import { lazy, Suspense } from 'react'
-import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
-import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop'
-import { MusicTransport } from '../game/MusicTransport'
-import { isLowHealth } from '../../lib/vitals'
-import { requestOpenSoundPanel } from '../../lib/soundPanelOpen'
-import { cn } from '../../lib/cn'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore.ts'
+import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop.ts'
+import { MusicTransport } from '../game/MusicTransport.tsx'
+import { isLowHealth } from '../../lib/vitals.ts'
+import { requestOpenSoundPanel } from '../../lib/soundPanelOpen.ts'
+import { cn } from '../../lib/cn.ts'
 
-const SoundControls = lazy(() => import('../game/SoundControls').then((module) => ({ default: module.SoundControls })))
+const SoundControls = lazy(() => import('../game/SoundControls.tsx').then((module) => ({ default: module.SoundControls })))
 
 // Same material language as the shared Button component: a hairline top
 // highlight and bottom shadow so a filled button reads as struck metal

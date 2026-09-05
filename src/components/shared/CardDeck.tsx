@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { cn } from '../../lib/cn'
-import { CreatureCard } from './CreatureCard'
+import { cn } from '../../lib/cn.ts'
+import { CreatureCard } from './CreatureCard.tsx'
 import type { DeckPref } from '../../lib/layout'
 import {
   DECK_LABEL,
@@ -12,7 +12,7 @@ import {
   type Deck,
   type RoomCard,
   type Tier,
-} from '../../lib/cards'
+} from '../../lib/cards.ts'
 
 /**
  * One deck of cards, compressing to fit whatever width it is given.

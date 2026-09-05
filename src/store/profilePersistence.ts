@@ -7,7 +7,7 @@ import {
   profileKey,
   upsertProfile,
   type CharacterProfile,
-} from '../lib/profiles'
+} from '../lib/profiles.ts'
 
 type SetState = (partial: Partial<AppState>) => void
 type GetState = () => AppState

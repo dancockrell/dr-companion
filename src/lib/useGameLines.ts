@@ -49,7 +49,7 @@ import {
   gameVersion,
   subscribeGame,
   type GameLine,
-} from './gameLink'
+} from './gameLink.ts'
 
 /**
  * The whole buffer, newest last, with an identity that changes when it does.

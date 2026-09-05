@@ -1,22 +1,22 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { useDragScroll } from '../../lib/useDragScroll'
-import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat'
-import { CreatureArt } from './CreatureArt'
-import { Portrait } from './Portrait'
-import { Paperdoll, type Pose } from './Paperdoll'
+import { useDragScroll } from '../../lib/useDragScroll.ts'
+import { RANGE_WORD, combatantFor, indexCombatants } from '../../lib/combat.ts'
+import { CreatureArt } from './CreatureArt.tsx'
+import { Portrait } from './Portrait.tsx'
+import { Paperdoll, type Pose } from './Paperdoll.tsx'
 import { Activity, Anchor, Backpack, Ban, BookOpen, Bug, Droplet, ExternalLink, EyeOff, FlaskConical, Ghost, HeartCrack, HeartPulse, Skull, Timer, Users, Zap, type LucideIcon } from 'lucide-react'
-import { playerArtFor, playerDefaultArtFor, playerProfileFor, notePlayerArtMissing } from '../../lib/playerArt'
-import { useMacroRunner } from '../../lib/useMacroRunner'
-import { RoomBackdrop } from '../room/RoomBackdrop'
-import { type Deck } from '../../lib/cards'
+import { playerArtFor, playerDefaultArtFor, playerProfileFor, notePlayerArtMissing } from '../../lib/playerArt.ts'
+import { useMacroRunner } from '../../lib/useMacroRunner.ts'
+import { RoomBackdrop } from '../room/RoomBackdrop.tsx'
+import { type Deck } from '../../lib/cards.ts'
 import type { RoomCombatant } from '../../types'
 import type { RoomCard } from '../../lib/cards'
-import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body'
+import { SEVERITY_LABEL, type BodyPart, type Injury, type Severity } from '../../lib/body.ts'
 import type { Vital } from '../../lib/vitals'
-import { requestGameAction } from '../../lib/gameActions'
-import { ArmorManager } from './ArmorManager'
-import { fanRadarSlots, pointOnRadar } from '../../lib/combatRadarLayout'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { requestGameAction } from '../../lib/gameActions.ts'
+import { ArmorManager } from './ArmorManager.tsx'
+import { fanRadarSlots, pointOnRadar } from '../../lib/combatRadarLayout.ts'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
 import {
   STALE_AFTER_SECONDS,
   rangeRadiusPct,
@@ -27,7 +27,7 @@ import {
   alwaysTone,
   nsysColor,
   hasFreshRadarPlacement,
-} from '../../lib/combatRadarLogic'
+} from '../../lib/combatRadarLogic.ts'
 
 /**
  * The room, with everyone in it — a compass filling the whole board edge to

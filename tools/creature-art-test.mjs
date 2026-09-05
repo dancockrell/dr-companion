@@ -27,10 +27,17 @@ const compile = (src, name) => {
   const out = join(dir, name)
   const js = ts
     .transpileModule(readFileSync(src, 'utf8'), {
-      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+      compilerOptions: {
+          module: ts.ModuleKind.ESNext,
+          target: ts.ScriptTarget.ES2022,
+          // Let the compiler rewrite './x.ts' -> './x.js' rather than a regex
+          // below. Six copies of that regex existed; one had learned about
+          // explicit .ts extensions and five had not, so five suites broke the
+          // day src/ adopted them (C14). tsc has owned this since 5.7.
+          rewriteRelativeImportExtensions: true,
+        },
     })
     .outputText
-    .replace(/from '(\.\/[^']+)'/g, (_, r) => `from '${r}.js'`)
     .replace('../../data/art/creature-curation.json', curationUrl)
   writeFileSync(out, js)
   return out

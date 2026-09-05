@@ -17,8 +17,8 @@
  * way to know if a URL still resolves, the same reasoning SoundControls'
  * original fix already documented.
  */
-import { loadPrefs, savePrefs, type FavoriteStation } from './persistence'
-import { RADIO_STATIONS } from './ambientSound'
+import { loadPrefs, savePrefs, type FavoriteStation } from './persistence.ts'
+import { RADIO_STATIONS } from './ambientSound.ts'
 
 function pruneDead(list: FavoriteStation[]): FavoriteStation[] {
   const liveStationIds = new Set(RADIO_STATIONS.map((s) => s.id))

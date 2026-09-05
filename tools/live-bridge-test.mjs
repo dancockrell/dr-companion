@@ -144,6 +144,10 @@ const tsc = spawnSync(
     '--target', 'es2022',
     '--moduleResolution', 'bundler',
     '--skipLibCheck',
+    // src/ carries explicit .ts extensions (C14); this standalone invocation
+    // does not read tsconfig.app.json, so it has to be told both halves.
+    '--allowImportingTsExtensions',
+    '--rewriteRelativeImportExtensions',
     '--ignoreConfig',
   ],
   { encoding: 'utf8' }
@@ -198,7 +202,13 @@ writeFileSync(
 const modPath = join(outDir, 'realBridge.mjs')
 writeFileSync(
   modPath,
-  readFileSync(emitted, 'utf8').replace(/(['"])\.\.\/lib\/tauri\1/g, "'./tauri-stub.mjs'")
+  // The `.js` is optional because it depends on how the module was written and
+  // compiled, not on anything this test cares about: `realBridge.ts` now names
+  // `../lib/tauri.ts` (C14) and `--rewriteRelativeImportExtensions` emits
+  // `../lib/tauri.js`. A specifier matched all the way to its closing quote is
+  // a literal, and a literal goes stale silently - the import stops being
+  // rewritten and Node reports a missing file in a temp directory instead.
+  readFileSync(emitted, 'utf8').replace(/(['"])\.\.\/lib\/tauri(\.js)?\1/g, "'./tauri-stub.mjs'")
 )
 
 function findFile(root, name) {

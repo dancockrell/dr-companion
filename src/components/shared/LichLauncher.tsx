@@ -31,7 +31,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Play, RefreshCw, ExternalLink } from 'lucide-react'
-import { isTauri, invokeTauri } from '../../lib/tauri'
+import { isTauri, invokeTauri } from '../../lib/tauri.ts'
 
 interface LichStatus {
   installDir: string | null

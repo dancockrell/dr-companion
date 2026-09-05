@@ -1,4 +1,4 @@
-import { cn } from '../../lib/cn'
+import { cn } from '../../lib/cn.ts'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'good'

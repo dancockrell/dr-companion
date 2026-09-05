@@ -8,15 +8,15 @@
  */
 import { useMemo, useState } from 'react'
 import { Brain, Music } from 'lucide-react'
-import { useAppStore, isIntentImplemented } from '../../store/useAppStore'
+import { useAppStore, isIntentImplemented } from '../../store/useAppStore.ts'
 import {
   suggestTraining,
   nextTrainingTarget,
   emptySkillsReason,
-} from '../../data/skills'
-import { activityTrainingFor } from '../../data/activityTraining'
-import { PLAY_SONGS, PLAY_MOODS, moodDifficulty, buildPlayCommand } from '../../data/performance'
-import { useMacroRunner } from '../../lib/useMacroRunner'
+} from '../../data/skills.ts'
+import { activityTrainingFor } from '../../data/activityTraining.ts'
+import { PLAY_SONGS, PLAY_MOODS, moodDifficulty, buildPlayCommand } from '../../data/performance.ts'
+import { useMacroRunner } from '../../lib/useMacroRunner.ts'
 
 /**
  * The PLAY picker (issue #12).

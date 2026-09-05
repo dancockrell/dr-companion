@@ -20,7 +20,7 @@
  */
 
 import type { GameInstance, AccountTier } from '../types'
-import { readJSON, writeJSON } from './storage'
+import { readJSON, writeJSON } from './storage.ts'
 
 export interface CharacterProfile {
   /** Character name as the game spells it. */

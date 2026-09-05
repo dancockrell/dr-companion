@@ -7,7 +7,7 @@
  * is.
  */
 import { useEffect, useState } from 'react'
-import { loadVariableConfig, type Variable } from './variables'
+import { loadVariableConfig, type Variable } from './variables.ts'
 
 let cached: Variable[] | null = null
 let note = ''

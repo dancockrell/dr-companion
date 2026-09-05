@@ -24,8 +24,8 @@
  * actively wrong for whoever imports it.
  */
 import { load as parseYaml, dump as toYaml } from 'js-yaml'
-import { invokeTauri, isTauri } from './tauri'
-import { saveGenieConfig } from './genieConfigWrite'
+import { invokeTauri, isTauri } from './tauri.ts'
+import { saveGenieConfig } from './genieConfigWrite.ts'
 import {
   loadAllPins,
   replaceAllPins,
@@ -35,7 +35,7 @@ import {
   type PinStore,
   type PinColor,
   type PinIcon,
-} from './mapPins'
+} from './mapPins.ts'
 
 export const PINS_LEAF = 'dr-companion-pins.yaml'
 

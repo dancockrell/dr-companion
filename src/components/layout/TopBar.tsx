@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore } from '../../store/useAppStore.ts'
 import { locationLine } from '../../lib/locationLine.ts'
 
 /**

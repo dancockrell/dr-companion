@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from 'react'
-import { useAppStore } from '../../store/useAppStore'
-import { cn } from '../../lib/cn'
-import { RoundtimeMeter } from './RoundtimeMeter'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { cn } from '../../lib/cn.ts'
+import { RoundtimeMeter } from './RoundtimeMeter.tsx'
 import type { SituationFlag } from '../../types'
-import { situationFor } from '../../lib/situation'
-import { subscribeGame, streamCharacterState } from '../../lib/gameLink'
+import { situationFor } from '../../lib/situation.ts'
+import { subscribeGame, streamCharacterState } from '../../lib/gameLink.ts'
 
 /**
  * What is currently true about you, ranked by how much it matters.

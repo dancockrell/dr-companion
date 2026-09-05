@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { MessageSquareText } from 'lucide-react'
-import { StreamTabs } from '../game/StreamTabs'
-import { GameCommandBar } from '../game/GameCommandBar'
-import { PanelBoundary } from '../shared/PanelBoundary'
-import { useHighlights } from '../../lib/useHighlights'
-import { GameConnectionBar } from '../game/GameConnectionBar'
+import { StreamTabs } from '../game/StreamTabs.tsx'
+import { GameCommandBar } from '../game/GameCommandBar.tsx'
+import { PanelBoundary } from '../shared/PanelBoundary.tsx'
+import { useHighlights } from '../../lib/useHighlights.ts'
+import { GameConnectionBar } from '../game/GameConnectionBar.tsx'
 
 /**
  * The transcript: what the game said, and the line you type back.

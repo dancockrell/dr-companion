@@ -18,8 +18,8 @@
 const BASE = '/player-art/'
 const REPOSITORY_BASE =
   'https://raw.githubusercontent.com/dancockrell/dr-companion/main/public/player-art/'
-import { profiledPlayerDefaultFor, type NpcRace, type NpcRole } from './npcDefaults'
-import { genericPortraitFor, portraitUrl, slug as portraitSlug } from './portraits'
+import { profiledPlayerDefaultFor, type NpcRace, type NpcRole } from './npcDefaults.ts'
+import { genericPortraitFor, portraitUrl, slug as portraitSlug } from './portraits.ts'
 
 const slug = (s: string) =>
   s.toLowerCase().replace(/^(a|an|the)\s+/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)

@@ -1,11 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { initTypeScale } from './lib/typeScale'
-import { loadArtManifest } from './lib/creatureArt'
-import { loadPlayerArtManifest } from './lib/playerArt'
-import { loadNpcDefaultManifest, loadBulkNpcManifest } from './lib/npcDefaults'
-import { loadPortraitManifest } from './lib/portraits'
+import { initTypeScale } from './lib/typeScale.ts'
+import { loadArtManifest } from './lib/creatureArt.ts'
+import { loadPlayerArtManifest } from './lib/playerArt.ts'
+import { loadNpcDefaultManifest, loadBulkNpcManifest } from './lib/npcDefaults.ts'
+import { loadPortraitManifest } from './lib/portraits.ts'
 import App from './App.tsx'
 
 // Before the first render, so a scaled interface does not visibly reflow.

@@ -30,7 +30,7 @@
  * character.
  */
 import { useSyncExternalStore } from 'react'
-import { readJSON, writeJSON } from './storage'
+import { readJSON, writeJSON } from './storage.ts'
 
 export type MiddlePanelId =
   | 'experience'

@@ -10,10 +10,10 @@
  */
 import { useMemo, useState } from 'react'
 import { Play, Plus, Trash2, Pencil, X, RotateCcw, Search, Volume2, VolumeX, ClipboardPaste } from 'lucide-react'
-import { parseHighlights, paint, segments, type Highlight, type HighlightType } from '../../lib/highlights'
-import { LoadingNotice } from '../shared/LoadingNotice'
-import { reloadHighlights } from '../../lib/useHighlights'
-import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
+import { parseHighlights, paint, segments, type Highlight, type HighlightType } from '../../lib/highlights.ts'
+import { LoadingNotice } from '../shared/LoadingNotice.tsx'
+import { reloadHighlights } from '../../lib/useHighlights.ts'
+import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor.ts'
 import {
   formatHighlightLine,
   hasUnsafeBraces,
@@ -21,11 +21,11 @@ import {
   removeLine,
   appendUnderPlayerSection,
   isPlayerAddedLine,
-} from '../../lib/genieConfigEdit'
-import { listSounds } from '../../lib/genieConfigWrite'
-import { invokeTauri, isTauri } from '../../lib/tauri'
-import { useOffClasses, toggleClass } from '../../lib/offClasses'
-import { cn } from '../../lib/cn'
+} from '../../lib/genieConfigEdit.ts'
+import { listSounds } from '../../lib/genieConfigWrite.ts'
+import { invokeTauri, isTauri } from '../../lib/tauri.ts'
+import { useOffClasses, toggleClass } from '../../lib/offClasses.ts'
+import { cn } from '../../lib/cn.ts'
 
 const TYPES: HighlightType[] = ['line', 'string', 'beginswith', 'regexp']
 

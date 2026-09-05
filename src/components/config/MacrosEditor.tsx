@@ -15,13 +15,13 @@
  */
 import { useMemo, useState } from 'react'
 import { Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste, Keyboard } from 'lucide-react'
-import { parseMacros, comboKey, normalizeModifiers, type Macro } from '../../lib/macros'
-import { LoadingNotice } from '../shared/LoadingNotice'
-import { reloadMacros } from '../../lib/useMacros'
-import { referencedVariables } from '../../lib/variables'
-import { useVariables } from '../../lib/useVariables'
-import { codeToGenieKey } from '../../lib/keybindings'
-import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
+import { parseMacros, comboKey, normalizeModifiers, type Macro } from '../../lib/macros.ts'
+import { LoadingNotice } from '../shared/LoadingNotice.tsx'
+import { reloadMacros } from '../../lib/useMacros.ts'
+import { referencedVariables } from '../../lib/variables.ts'
+import { useVariables } from '../../lib/useVariables.ts'
+import { codeToGenieKey } from '../../lib/keybindings.ts'
+import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor.ts'
 import {
   formatMacroLine,
   hasUnsafeBraces,
@@ -29,7 +29,7 @@ import {
   removeLine,
   appendUnderPlayerSection,
   isPlayerAddedLine,
-} from '../../lib/genieConfigEdit'
+} from '../../lib/genieConfigEdit.ts'
 
 interface DraftMacro {
   key: string

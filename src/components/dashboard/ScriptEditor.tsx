@@ -38,10 +38,10 @@ import {
   writeScript,
   type ScriptDirs,
   type ScriptLang,
-} from '../../lib/scriptFiles'
-import { invokeTauri } from '../../lib/tauri'
-import { useAppStore } from '../../store/useAppStore'
-import { cn } from '../../lib/cn'
+} from '../../lib/scriptFiles.ts'
+import { invokeTauri } from '../../lib/tauri.ts'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { cn } from '../../lib/cn.ts'
 
 export type EditorTarget = {
   /** Empty for a script being created. */

@@ -5,7 +5,7 @@
  * already knowing it. See `src-tauri/src/config_import.rs`'s own header for
  * the backup/atomic-write guarantees these wrap.
  */
-import { invokeTauri, isTauri } from './tauri'
+import { invokeTauri, isTauri } from './tauri.ts'
 
 export interface WriteResult {
   path: string

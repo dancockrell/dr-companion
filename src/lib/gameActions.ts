@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { sendGame } from './gameLink'
-import { validateGameActionCommand } from './gameCommand'
+import { sendGame } from './gameLink.ts'
+import { validateGameActionCommand } from './gameCommand.ts'
 
 export interface GameActionFailure {
   id: number

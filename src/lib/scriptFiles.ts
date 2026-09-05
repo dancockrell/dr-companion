@@ -18,7 +18,7 @@
  * they are asked, so a file saved here appears in the task list on the next
  * refresh with no restart and no registration step.
  */
-import { invokeTauri, isTauri } from './tauri'
+import { invokeTauri, isTauri } from './tauri.ts'
 
 export type ScriptLang = 'python' | 'typescript' | 'ruby'
 

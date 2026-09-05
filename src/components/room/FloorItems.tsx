@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Anvil, Apple, Backpack, Beer, Bone, BookOpen, BowArrow, Box, Coins, Cookie, ExternalLink, FlaskConical, Gem, Hammer, Key, Leaf, Package, Pickaxe, ScrollText, Search, Shield, Shirt, Skull, Sparkles, Sword, Utensils, Wand2, X } from 'lucide-react'
-import { cn } from '../../lib/cn'
-import { nounOf } from '../../lib/room'
-import { useRoomItemTake } from '../../lib/useRoomItemTake'
-import { useDragScroll } from '../../lib/useDragScroll'
-import { requestGameAction } from '../../lib/gameActions'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
+import { cn } from '../../lib/cn.ts'
+import { nounOf } from '../../lib/room.ts'
+import { useRoomItemTake } from '../../lib/useRoomItemTake.ts'
+import { useDragScroll } from '../../lib/useDragScroll.ts'
+import { requestGameAction } from '../../lib/gameActions.ts'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
 
 /**
  * The floor, as its own row — pulled off the battle board itself

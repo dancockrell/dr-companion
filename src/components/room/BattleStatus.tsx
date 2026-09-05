@@ -1,7 +1,7 @@
-import { useAppStore } from '../../store/useAppStore'
-import { StatusBoard } from '../shared/StatusBoard'
-import { HandsRow } from '../shared/HandsRow'
-import { GearNotice } from '../shared/GearNotice'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { StatusBoard } from '../shared/StatusBoard.tsx'
+import { HandsRow } from '../shared/HandsRow.tsx'
+import { GearNotice } from '../shared/GearNotice.tsx'
 
 /**
  * You, above the fight rather than a column away from it — the two things

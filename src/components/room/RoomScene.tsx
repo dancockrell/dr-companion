@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
-import { RoomBackdrop } from './RoomBackdrop'
+import { RoomBackdrop } from './RoomBackdrop.tsx'
 
 /**
  * The width, in vh, a scene actually renders at once its own `min(100%, …)`

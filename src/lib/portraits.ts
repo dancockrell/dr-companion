@@ -14,8 +14,8 @@
  * that a new character meets a face rather than an empty box, and can replace
  * it in one click.
  */
-import { suggestPortraits, type PortraitMeta } from './lookMatch'
-import { readJSON, writeJSON } from './storage'
+import { suggestPortraits, type PortraitMeta } from './lookMatch.ts'
+import { readJSON, writeJSON } from './storage.ts'
 
 const KEY = 'drc.portrait.v1'
 

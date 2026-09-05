@@ -1,6 +1,6 @@
-import { useAppStore } from '../store/useAppStore'
-import { canSendMacro, type MacroSendState } from './canSendMacro'
-import { createMacroFlightGate } from './macroFlightGate'
+import { useAppStore } from '../store/useAppStore.ts'
+import { canSendMacro, type MacroSendState } from './canSendMacro.ts'
+import { createMacroFlightGate } from './macroFlightGate.ts'
 
 /**
  * One gate for every macro launcher in the window.

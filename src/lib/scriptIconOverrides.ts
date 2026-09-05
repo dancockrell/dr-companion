@@ -8,9 +8,9 @@
  * machine should see the same tile for `flow.hunt` rather than each having
  * to set it again. One localStorage entry, not one per profile.
  */
-import { readJSON, writeJSON } from './storage'
+import { readJSON, writeJSON } from './storage.ts'
 import type { ScriptIconKey } from './scriptIcons'
-import { SCRIPT_ICON_KEYS } from './scriptIcons'
+import { SCRIPT_ICON_KEYS } from './scriptIcons.ts'
 
 const STORAGE_KEY = 'drc.script-icons.v1'
 type OverrideStore = Record<string, ScriptIconKey>

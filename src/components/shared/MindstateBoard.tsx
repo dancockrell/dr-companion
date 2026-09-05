@@ -1,5 +1,5 @@
-import { cn } from '../../lib/cn'
-import { MINDSTATE_LABELS, MINDSTATE_MAX, SKILL_SETS, type SkillState } from '../../data/skills'
+import { cn } from '../../lib/cn.ts'
+import { MINDSTATE_LABELS, MINDSTATE_MAX, SKILL_SETS, type SkillState } from '../../data/skills.ts'
 
 /**
  * Every skill at once, read for where there is room.

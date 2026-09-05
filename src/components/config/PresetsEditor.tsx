@@ -11,16 +11,16 @@
  */
 import { useMemo, useState } from 'react'
 import { Trash2, Pencil, X, RotateCcw, Search } from 'lucide-react'
-import { parsePresets, presetColours, type Preset } from '../../lib/presets'
-import { LoadingNotice } from '../shared/LoadingNotice'
-import { reloadPresets } from '../../lib/usePresets'
-import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
+import { parsePresets, presetColours, type Preset } from '../../lib/presets.ts'
+import { LoadingNotice } from '../shared/LoadingNotice.tsx'
+import { reloadPresets } from '../../lib/usePresets.ts'
+import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor.ts'
 import {
   formatPresetLine,
   hasUnsafeBraces,
   replaceLine,
   removeLine,
-} from '../../lib/genieConfigEdit'
+} from '../../lib/genieConfigEdit.ts'
 
 interface DraftPreset {
   fg: string

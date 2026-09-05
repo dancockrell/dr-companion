@@ -10,10 +10,10 @@
  * native wheel/trackpad overflow.
  */
 import { useRef, useState } from 'react'
-import { PIN_ICONS } from '../../lib/mapPins'
-import { PinIconGlyph } from './PinIconGlyph'
+import { PIN_ICONS } from '../../lib/mapPins.ts'
+import { PinIconGlyph } from './PinIconGlyph.tsx'
 import type { PlayerMarker } from '../../lib/playerMarker'
-import { useModalDialog } from '../../lib/useModalDialog'
+import { useModalDialog } from '../../lib/useModalDialog.ts'
 
 export function PlayerMarkerEditor({
   marker,

@@ -29,12 +29,12 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw, Copy, Check, ShieldAlert } from 'lucide-react'
-import { isTauri, invokeTauri } from '../../lib/tauri'
-import { useAppStore } from '../../store/useAppStore'
-import { viewerStatus } from '../../lib/viewerClient'
-import { getAiStatus } from '../../lib/aiWorkerHost'
-import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
-import { buildBugBundle, type DiagnosticRow, type Presence } from '../../lib/bugBundle'
+import { isTauri, invokeTauri } from '../../lib/tauri.ts'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { viewerStatus } from '../../lib/viewerClient.ts'
+import { getAiStatus } from '../../lib/aiWorkerHost.ts'
+import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions.ts'
+import { buildBugBundle, type DiagnosticRow, type Presence } from '../../lib/bugBundle.ts'
 
 const NOT_IN_BROWSER = 'the browser preview cannot see this machine'
 

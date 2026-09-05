@@ -1,13 +1,13 @@
 import { lazy, useState } from 'react'
 import { Pin, PinOff, Circle, Settings, Map as MapIcon, Highlighter } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { setAlwaysOnTop, isTauri } from '../../lib/tauri'
-import { useMapDock, setMapDock } from '../../lib/mapDock'
-import { cn } from '../../lib/cn'
-import { LazySurface } from '../shared/LazySurface'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { setAlwaysOnTop, isTauri } from '../../lib/tauri.ts'
+import { useMapDock, setMapDock } from '../../lib/mapDock.ts'
+import { cn } from '../../lib/cn.ts'
+import { LazySurface } from '../shared/LazySurface.tsx'
 
-const SettingsSheet = lazy(() => import('./SettingsSheet').then((module) => ({ default: module.SettingsSheet })))
-const ConfigManagerSheet = lazy(() => import('../config/ConfigManagerSheet').then((module) => ({ default: module.ConfigManagerSheet })))
+const SettingsSheet = lazy(() => import('./SettingsSheet.tsx').then((module) => ({ default: module.SettingsSheet })))
+const ConfigManagerSheet = lazy(() => import('../config/ConfigManagerSheet.tsx').then((module) => ({ default: module.ConfigManagerSheet })))
 
 /**
  * Three controls and a connection light, floating over the top right corner.

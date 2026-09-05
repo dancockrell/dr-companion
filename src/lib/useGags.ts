@@ -3,7 +3,7 @@
  * `useAliases`/`useMacros`.
  */
 import { useEffect, useState } from 'react'
-import { loadGagConfig, type Gag } from './gags'
+import { loadGagConfig, type Gag } from './gags.ts'
 
 let cached: Gag[] | null = null
 let note = ''

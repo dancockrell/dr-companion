@@ -6,8 +6,8 @@ import {
   subscribeAiClaims,
 } from '../../lib/aiWorkerHost.ts'
 import type { Claim } from '../../lib/aiClaimStore.ts'
-import { addPin, loadPins, removePin } from '../../lib/mapPins'
-import { useAppStore } from '../../store/useAppStore'
+import { addPin, loadPins, removePin } from '../../lib/mapPins.ts'
+import { useAppStore } from '../../store/useAppStore.ts'
 
 /**
  * Where a candidate claim meets a person.

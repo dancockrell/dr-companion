@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import type { PanelId } from './layout'
-import { invokeTauri, isTauri, listenTauri } from './tauri'
-import { LatestOperation } from './asyncState'
+import { invokeTauri, isTauri, listenTauri } from './tauri.ts'
+import { LatestOperation } from './asyncState.ts'
 
 export type PanelWindowAction = 'opening' | 'closing'
 export interface PanelWindowSnapshot {

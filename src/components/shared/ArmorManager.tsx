@@ -20,10 +20,10 @@ import {
   Shirt,
   Trash2,
 } from 'lucide-react'
-import { isIntentImplemented, useAppStore } from '../../store/useAppStore'
-import { useDragScroll } from '../../lib/useDragScroll'
-import { scrollableRegionProps } from '../../lib/scrollableRegion'
-import { nextArmorInRotation } from '../../lib/armorRotation'
+import { isIntentImplemented, useAppStore } from '../../store/useAppStore.ts'
+import { useDragScroll } from '../../lib/useDragScroll.ts'
+import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
+import { nextArmorInRotation } from '../../lib/armorRotation.ts'
 import {
   ARMOR_COVERAGE,
   armorCandidates,
@@ -37,7 +37,7 @@ import {
   type ArmorCoverage,
   type ArmorLoadoutPiece,
   type ArmorLoadouts,
-} from '../../lib/armorLoadout'
+} from '../../lib/armorLoadout.ts'
 
 const COVERAGE_META: Record<ArmorCoverage, { label: string; short: string; Icon: ComponentType<{ className?: string }> }> = {
   head: { label: 'Head', short: 'HD', Icon: HardHat },

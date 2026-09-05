@@ -9,9 +9,9 @@
  * a personal choice in a way a pin's category colour is not, and six swatches
  * for hundreds of accounts on this game is not "a colour editor."
  */
-import { readJSON, writeJSON } from './storage'
-import { profileKey } from './profiles'
-import { PIN_COLOR_HEX, PIN_ICONS, type PinIcon } from './mapPins'
+import { readJSON, writeJSON } from './storage.ts'
+import { profileKey } from './profiles.ts'
+import { PIN_COLOR_HEX, PIN_ICONS, type PinIcon } from './mapPins.ts'
 import type { GameInstance } from '../types'
 
 export interface PlayerMarker {

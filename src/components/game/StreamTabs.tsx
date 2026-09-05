@@ -30,15 +30,15 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Info } from 'lucide-react'
-import { type GameLine } from '../../lib/gameLink'
-import { useGameLines, useGameStreams } from '../../lib/useGameLines'
-import { GameLineRow } from './GameLineRow'
+import { type GameLine } from '../../lib/gameLink.ts'
+import { useGameLines, useGameStreams } from '../../lib/useGameLines.ts'
+import { GameLineRow } from './GameLineRow.tsx'
 import type { Highlight } from '../../lib/highlights'
-import { useAppStore } from '../../store/useAppStore'
-import { CHANNELS, linesFor, type Channel } from '../../lib/chatChannels'
-import { STREAM_LABELS } from '../../lib/streamLabels'
-import { useOffClasses } from '../../lib/offClasses'
-import { cn } from '../../lib/cn'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { CHANNELS, linesFor, type Channel } from '../../lib/chatChannels.ts'
+import { STREAM_LABELS } from '../../lib/streamLabels.ts'
+import { useOffClasses } from '../../lib/offClasses.ts'
+import { cn } from '../../lib/cn.ts'
 
 /**
  * Tabs over the companion own log, kept from the component this replaces.

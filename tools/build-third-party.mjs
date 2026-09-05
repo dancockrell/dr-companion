@@ -350,7 +350,9 @@ if (crates) {
 {
   const sheet = readFileSync('src/components/layout/SettingsSheet.tsx', 'utf8')
   ok('the Settings sheet imports the licence rather than keeping a copy',
-    /import \{ LICH_LICENSE \} from '\.\.\/\.\.\/data\/lichLicense'/.test(sheet))
+    // `(\.ts)?` because src/ now writes the extension (C14), and whether it
+    // does is not what this check is about.
+    /import \{ LICH_LICENSE \} from '\.\.\/\.\.\/data\/lichLicense(\.ts)?'/.test(sheet))
   for (const field of ['holders', 'grant', 'conditions', 'disclaimer']) {
     ok(`...and renders LICH_LICENSE.${field}`, sheet.includes(`LICH_LICENSE.${field}`))
   }

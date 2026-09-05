@@ -1,5 +1,5 @@
-import { BattleColumn } from './BattleColumn'
-import { GameChatColumn } from './GameChatColumn'
+import { BattleColumn } from './BattleColumn.tsx'
+import { GameChatColumn } from './GameChatColumn.tsx'
 
 /**
  * `BattleColumn` and `GameChatColumn`, stacked back into one pane.

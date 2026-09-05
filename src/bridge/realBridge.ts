@@ -4,7 +4,7 @@
  * Falls back cleanly when Lich is not running.
  */
 
-import { invokeTauri } from '../lib/tauri'
+import { invokeTauri } from '../lib/tauri.ts'
 import type { BridgeClientMessage, BridgeServerMessage } from './types'
 
 export type RealBridgeStatus =

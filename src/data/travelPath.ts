@@ -8,13 +8,13 @@ import type { AccountTier, GameInstance } from '../types'
 import {
   TRAVEL_DESTINATIONS,
   type TravelDestination,
-} from './travelDestinations'
+} from './travelDestinations.ts'
 import {
   passportCheck,
   canUsePlatinumPortals,
   type PassportState,
   type Province,
-} from './obstacles'
+} from './obstacles.ts'
 
 export interface TravelPlanStep {
   kind: 'walk' | 'ferry' | 'portal' | 'gate' | 'wait'

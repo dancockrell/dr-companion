@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { Star } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { rankHuntingGrounds, type GuildId } from '../../data/hunting'
-import { combatRanks } from '../../data/skills'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { rankHuntingGrounds, type GuildId } from '../../data/hunting.ts'
+import { combatRanks } from '../../data/skills.ts'
 
 /**
  * Hunt mode, favorites, and a manual ground pick - `start_training` has

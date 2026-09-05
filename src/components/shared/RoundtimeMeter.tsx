@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore } from '../../store/useAppStore.ts'
 
 /**
  * Roundtime, counting down, because a frozen one is worse than none.

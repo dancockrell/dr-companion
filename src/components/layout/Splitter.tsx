@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { clampSplitterValue, splitterRange } from '../../lib/splitterRange'
+import { clampSplitterValue, splitterRange } from '../../lib/splitterRange.ts'
 
 /**
  * A draggable divider between two columns.

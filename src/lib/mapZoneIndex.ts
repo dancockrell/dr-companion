@@ -5,7 +5,7 @@
  * tiny Node harness which supplies map chunks itself. The browser can import
  * JSON directly; the isolated harness deliberately cannot.
  */
-import MAP_INDEX from '../data/map/index.json'
+import MAP_INDEX from '../data/map/index.json' with { type: 'json' }
 
 export interface MapZoneIndexEntry {
   id: string

@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
-import { customPinIconHref, isCustomPinIcon, type PinIcon } from '../../lib/mapPins'
-import { PIN_ICON_COMPONENT } from '../../lib/pinIcons'
+import { customPinIconHref, isCustomPinIcon, type PinIcon } from '../../lib/mapPins.ts'
+import { PIN_ICON_COMPONENT } from '../../lib/pinIcons.ts'
 
 /** Draw either a curated Lucide symbol or a generated fantasy glyph in HTML UI. */
 export function PinIconGlyph({

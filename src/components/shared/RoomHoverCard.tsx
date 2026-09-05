@@ -14,12 +14,12 @@
 import { useEffect, useState } from 'react'
 import { Eye, ExternalLink, Loader2 } from 'lucide-react'
 import type { MapZoneRoom } from '../../bridge/types'
-import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins'
-import { isWatched, toggleWatched } from '../../lib/watchedRooms'
-import { cachedElanthipedia, fetchElanthipedia, type ElanthipediaPage } from '../../lib/elanthipedia'
+import { PIN_COLOR_HEX, type MapPin } from '../../lib/mapPins.ts'
+import { isWatched, toggleWatched } from '../../lib/watchedRooms.ts'
+import { cachedElanthipedia, fetchElanthipedia, type ElanthipediaPage } from '../../lib/elanthipedia.ts'
 import type { GameInstance } from '../../types'
-import { landmarksFor } from '../../lib/mapLandmarks'
-import { PinIconGlyph } from './PinIconGlyph'
+import { landmarksFor } from '../../lib/mapLandmarks.ts'
+import { PinIconGlyph } from './PinIconGlyph.tsx'
 
 export function RoomHoverCard({
   room,

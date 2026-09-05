@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { cn } from '../../lib/cn'
+import { cn } from '../../lib/cn.ts'
 import type { RoomCard } from '../../lib/cards'
-import { artFor, noteArtLoaded, noteArtMissing } from '../../lib/creatureArt'
+import { artFor, noteArtLoaded, noteArtMissing } from '../../lib/creatureArt.ts'
 
 /**
  * The picture on a card, and what stands in for it before the pack exists.

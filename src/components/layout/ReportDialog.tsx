@@ -10,11 +10,11 @@
  */
 import { useMemo, useState } from 'react'
 import { X, Copy, Check, ExternalLink, Save, ShieldCheck } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { Button } from '../shared/Button'
-import { buildReport, issueUrl } from '../../lib/bugReport'
-import { APP_VERSION } from '../../lib/versions'
-import { useModalDialog } from '../../lib/useModalDialog'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { Button } from '../shared/Button.tsx'
+import { buildReport, issueUrl } from '../../lib/bugReport.ts'
+import { APP_VERSION } from '../../lib/versions.ts'
+import { useModalDialog } from '../../lib/useModalDialog.ts'
 
 
 export function ReportDialog({ onClose }: { onClose: () => void }) {

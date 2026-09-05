@@ -21,10 +21,10 @@ import {
   Radio,
   Bug,
 } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
-import { LazySurface } from '../shared/LazySurface'
+import { useAppStore } from '../../store/useAppStore.ts'
+import { LazySurface } from '../shared/LazySurface.tsx'
 
-const ReportDialog = lazy(() => import('./ReportDialog').then((module) => ({ default: module.ReportDialog })))
+const ReportDialog = lazy(() => import('./ReportDialog.tsx').then((module) => ({ default: module.ReportDialog })))
 
 type Filter = 'all' | 'problems' | 'game'
 

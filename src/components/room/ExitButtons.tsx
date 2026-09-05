@@ -1,4 +1,4 @@
-import { useMacroRunner } from '../../lib/useMacroRunner'
+import { useMacroRunner } from '../../lib/useMacroRunner.ts'
 
 /**
  * The room's own exits, clickable — the same words `ClassicRoomText`'s

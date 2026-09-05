@@ -2,8 +2,8 @@
  * Bridge facade — mock for UI development, real WebSocket when Lich is up.
  */
 
-import { mockBridge } from './mockBridge'
-import { realBridge } from './realBridge'
+import { mockBridge } from './mockBridge.ts'
+import { realBridge } from './realBridge.ts'
 import type { BridgeClientMessage, BridgeServerMessage, IntentName } from './types'
 import type { DemoPresetId } from './mockBridge'
 
@@ -122,4 +122,4 @@ export const bridge = {
 }
 
 export type { DemoPresetId }
-export { DEMO_PRESET_LIST } from './mockBridge'
+export { DEMO_PRESET_LIST } from './mockBridge.ts'

@@ -21,10 +21,18 @@ globalThis.localStorage = {
 
 const dir = join('node_modules', '.drc-test')
 mkdirSync(dir, { recursive: true })
-const compilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }
+const compilerOptions = {
+  module: ts.ModuleKind.ESNext,
+  target: ts.ScriptTarget.ES2022,
+  rewriteRelativeImportExtensions: true,
+}
+// `rewriteRelativeImportExtensions` makes tsc's output deterministic: every
+// relative specifier comes out `.js` whatever the source wrote. The string
+// patches below are stubbing work, and they can only stay correct if what
+// they match does not follow `src/`’s import style. It used to (C14).
 writeFileSync(join(dir, 'storage.mjs'), ts.transpileModule(readFileSync('src/lib/storage.ts', 'utf8'), { compilerOptions }).outputText)
 const offClassesOut = join(dir, 'offClasses.mjs')
-writeFileSync(offClassesOut, ts.transpileModule(readFileSync('src/lib/offClasses.ts', 'utf8'), { compilerOptions }).outputText.replace('./storage', './storage.mjs'))
+writeFileSync(offClassesOut, ts.transpileModule(readFileSync('src/lib/offClasses.ts', 'utf8'), { compilerOptions }).outputText.replace('./storage.js', './storage.mjs'))
 
 const { offClasses, toggleClass } = await import(pathToFileURL(offClassesOut).href)
 const { paint } = await import('../src/lib/highlights.ts')

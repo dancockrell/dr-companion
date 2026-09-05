@@ -9,10 +9,10 @@
  */
 import { useMemo, useState } from 'react'
 import { Plus, Trash2, Pencil, X, RotateCcw, Search, ClipboardPaste } from 'lucide-react'
-import { parseSubstitutes, type Substitute } from '../../lib/substitutes'
-import { LoadingNotice } from '../shared/LoadingNotice'
-import { reloadSubstitutes } from '../../lib/useSubstitutes'
-import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor'
+import { parseSubstitutes, type Substitute } from '../../lib/substitutes.ts'
+import { LoadingNotice } from '../shared/LoadingNotice.tsx'
+import { reloadSubstitutes } from '../../lib/useSubstitutes.ts'
+import { useGenieConfigEditor } from '../../lib/useGenieConfigEditor.ts'
 import {
   formatSubstituteLine,
   hasUnsafeBraces,
@@ -20,7 +20,7 @@ import {
   removeLine,
   appendUnderPlayerSection,
   isPlayerAddedLine,
-} from '../../lib/genieConfigEdit'
+} from '../../lib/genieConfigEdit.ts'
 
 interface DraftSubstitute {
   find: string

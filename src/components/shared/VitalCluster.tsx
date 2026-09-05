@@ -1,5 +1,5 @@
-import { cn } from '../../lib/cn'
-import { vitalsFor, type Vital } from '../../lib/vitals'
+import { cn } from '../../lib/cn.ts'
+import { vitalsFor, type Vital } from '../../lib/vitals.ts'
 
 export { vitalsFor, type Vital }
 

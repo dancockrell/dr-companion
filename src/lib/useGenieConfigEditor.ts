@@ -19,8 +19,8 @@
  * refusing to.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { invokeTauri, isTauri } from './tauri'
-import { saveGenieConfig, restoreGenieConfigBackup } from './genieConfigWrite'
+import { invokeTauri, isTauri } from './tauri.ts'
+import { saveGenieConfig, restoreGenieConfigBackup } from './genieConfigWrite.ts'
 
 export interface ConfigEditorState<T> {
   /** Where the file actually is on disk, once known. Empty until loaded. */
