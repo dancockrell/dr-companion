@@ -51,16 +51,47 @@ const LOCKED = MINDSTATE_MAX
  * Position in the spectrum carries the number as well, so the board can be read
  * without reading: a wash of green is a character training well, a scatter of
  * red is an hour being wasted.
+ *
+ * The eight stops used to be Tailwind's default violet-500 through red-600,
+ * which is the "raw framework palette color" `--color-magic` in `index.css`
+ * was added to stop: a saturated web rainbow in a window whose whole palette
+ * is warm and aged. They are the app's own semantic colours now, and the
+ * spectrum survives the swap because the app's colours are already ordered the
+ * same way - magic, info, good, warn, danger is violet through red.
+ *
+ * The two stops with no token are genuine intermediates rather than missing
+ * colours, so they are mixed from their neighbours instead of becoming two
+ * near-duplicate tokens nobody else would ever use. Mind lock is a darkened
+ * danger for the same reason: it has to read as worse than "nearly locked",
+ * and that is a step along one colour, not a ninth colour.
+ *
+ * Measured in the running app, as the eight bands actually composite - 32%
+ * over `--color-surface`, which is what a reader sees rather than what the
+ * values say. Adjacent steps come out 10, 11, 30, 33, 10, 9, 22 against the
+ * old ramp's 13, 16, 54, 70, 21, 22, 15. Two things in that worth knowing:
+ *
+ *   - the amber-to-red half is compressed, because `--color-warn` and
+ *     `--color-danger` sit close together in a palette this warm. Both mixes
+ *     are 50/50 for that reason - it is the split that makes the two halves
+ *     of each gap as equal as they can be, checked at 50/40/30/25/20.
+ *   - the step that got *bigger* is the last one, nearly-locked to mind lock,
+ *     15 to 22. That is the one boundary this board exists to make
+ *     unmissable, and Tailwind's red-500 to red-600 was the weakest step in
+ *     the whole old ramp.
  */
 const BANDS: Array<{ upTo: number; fill: string; why: string }> = [
-  { upTo: 2, fill: '#8b5cf6', why: 'nearly empty, about to fall out of mindstate' },
-  { upTo: 6, fill: '#6366f1', why: 'low' },
-  { upTo: 12, fill: '#3b82f6', why: 'filling' },
-  { upTo: 20, fill: '#22c55e', why: 'absorbing well' },
-  { upTo: 26, fill: '#eab308', why: 'getting full' },
-  { upTo: 30, fill: '#f97316', why: 'close to lock' },
-  { upTo: 33, fill: '#ef4444', why: 'nearly locked' },
-  { upTo: 34, fill: '#dc2626', why: 'mind lock, further training is wasted' },
+  { upTo: 2, fill: 'var(--color-magic)', why: 'nearly empty, about to fall out of mindstate' },
+  { upTo: 6, fill: 'color-mix(in srgb, var(--color-magic) 50%, var(--color-info))', why: 'low' },
+  { upTo: 12, fill: 'var(--color-info)', why: 'filling' },
+  { upTo: 20, fill: 'var(--color-good)', why: 'absorbing well' },
+  { upTo: 26, fill: 'var(--color-warn)', why: 'getting full' },
+  { upTo: 30, fill: 'color-mix(in srgb, var(--color-warn) 50%, var(--color-danger))', why: 'close to lock' },
+  { upTo: 33, fill: 'var(--color-danger)', why: 'nearly locked' },
+  {
+    upTo: 34,
+    fill: 'color-mix(in srgb, var(--color-danger) 72%, black)',
+    why: 'mind lock, further training is wasted',
+  },
 ]
 
 function band(mindstate: number) {

@@ -1,265 +1,167 @@
 {
-  "note": "Raw colour literals present when the ratchet was installed. This list may only shrink: tools/color-token-test.mjs fails on a new literal and on an entry that no longer matches. Do not regenerate it to make a failure go away - that is the one move it exists to prevent.",
+  "note": "Raw colour literals in src/components. This list may only shrink: tools/color-token-test.mjs fails on a new literal and on an entry that no longer matches. Do not regenerate it to make a failure go away - that is the one move it exists to prevent. Every entry now carries a `why`, which is the point: what is left is not a backlog, it is a set of decisions somebody made and wrote down. A new entry without a `why` is a literal that still owes a token, and the test reports the two counts separately so neither can hide in the other.",
   "entries": [
     {
       "file": "src/components/config/HighlightsEditor.tsx",
       "literal": "#FF0000",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not an app colour. A worked example of the game's own #highlight command, shown as placeholder text in the import box so a player can see the syntax of what they are pasting."
     },
     {
       "file": "src/components/config/HighlightsEditor.tsx",
       "literal": "#FFFFFF",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not an app colour. The default colour of a highlight the *player* creates, written into the Genie/Lich config file and read by the game client, which cannot resolve a CSS variable - a token here would send the literal text var(--color-ink) to a Ruby script."
     },
     {
       "file": "src/components/config/PresetsEditor.tsx",
       "literal": "#400000",
-      "count": 1
-    },
-    {
-      "file": "src/components/game/SoundControls.tsx",
-      "literal": "rgb(46,42,32)",
-      "count": 1
-    },
-    {
-      "file": "src/components/layout/SettingsSheet.tsx",
-      "literal": "#268",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not an app colour. Placeholder text showing the shape of a value the player types into the preset background field. That field is the game client's colour vocabulary, not this app's."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#12283a",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"water\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#191720",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"cave\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#1e232b",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"no terrain matched\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#222a33",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"bank\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#22331f",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"forest\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#26313d",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"snow\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#2a2233",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"temple\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#2a3020",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"field\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#2b2823",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"road\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#2f5f7e",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"water\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#33291b",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"shop\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#3a2118",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"inn\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#3a3020",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the shaded half of the \"desert\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#3a3244",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"cave\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#4a6b3a",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"forest\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#4c5666",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"no terrain matched\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#546a86",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"bank\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#6a7a44",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"field\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#6b5a86",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"temple\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#6e685c",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"road\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#7d94a8",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"snow\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#8a6b3c",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"shop\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#96522f",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"inn\" palette."
     },
     {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#9a8253",
-      "count": 1
-    },
-    {
-      "file": "src/components/room/RoomScene.tsx",
-      "literal": "#101318",
-      "count": 1
-    },
-    {
-      "file": "src/components/room/RoomScene.tsx",
-      "literal": "#1d2229",
-      "count": 1
-    },
-    {
-      "file": "src/components/room/RoomScene.tsx",
-      "literal": "rgba(124,132,142,0.22)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(0,0,0,0.35)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(0,0,0,0.4)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(0,0,0,0.5)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(0,0,0,0.55)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(0,0,0,0.68)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(0,0,0,0.7)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(10,14,20,0.28)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(15,23,31,0.08)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(255,255,255,0.05)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(255,255,255,0.25)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/CombatRadar.tsx",
-      "literal": "rgba(5,8,12,0.62)",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/MindstateBoard.tsx",
-      "literal": "#22c55e",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/MindstateBoard.tsx",
-      "literal": "#3b82f6",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/MindstateBoard.tsx",
-      "literal": "#6366f1",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/MindstateBoard.tsx",
-      "literal": "#8b5cf6",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/MindstateBoard.tsx",
-      "literal": "#dc2626",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/MindstateBoard.tsx",
-      "literal": "#eab308",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/MindstateBoard.tsx",
-      "literal": "#ef4444",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/MindstateBoard.tsx",
-      "literal": "#f97316",
-      "count": 1
-    },
-    {
-      "file": "src/components/shared/PresentationBridgePanel.tsx",
-      "literal": "#268",
-      "count": 1
+      "count": 1,
+      "why": "PERMANENT EXCEPTION. Not a theme colour: a pigment in a generated picture. RoomBackdrop draws a stand-in landscape for each of 17,750 rooms, and the whole point of the TERRAIN table is that a forest does not look like a bank and a cave does not look like snow. Mapping these onto the five semantic tokens would make every room the same five colours and delete the feature. This one is the lit half of the \"desert\" palette."
     }
   ]
 }

@@ -554,15 +554,12 @@ function InfoCard({
 }
 
 /**
- * A puck reads as a small physical token sitting on the board rather than a
- * flat icon printed on it — a soft shadow beneath, a highlight along the
- * top edge, a shade along the bottom, the way light actually falls on a
- * round chip. box-shadow rather than a drop-shadow filter: it costs nothing
- * extra to composite, and the two inset shadows are what make the token
- * itself read as domed rather than just floating.
+ * The depth this file draws — the puck, the vitals pill and the two washes
+ * over the room picture — lives in `src/index.css` beside `.game-icon-button`,
+ * which is the same vocabulary made of the same materials. It was three inline
+ * style strings here, which is how a fourth component comes to invent a fifth
+ * wash; the reasoning for each is written where the values are.
  */
-const PUCK_SHADOW =
-  '0 3px 6px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 3px rgba(255,255,255,0.25), inset 0 -3px 4px rgba(0,0,0,0.35)'
 
 /** How much taller than wide a `shape="rect"` puck draws — a portrait
  * aspect, not a square crop of one. Chosen to read as "a small picture of
@@ -611,7 +608,7 @@ function Puck({
 
   if (own) {
     return (
-      <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}>
+      <div className="board-puck" style={{ width: px, borderRadius: frameRadius }}>
         {/* A person, not a creature — the part of the picture that tells
             the story is the face, not whatever a center crop happens to
             keep. Biased to the top regardless of shape: even the small
@@ -633,7 +630,7 @@ function Puck({
   if (card.deck === 'people') {
     const fallback = playerDefaultArtFor(card.name)
     return (
-      <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}>
+      <div className="board-puck" style={{ width: px, borderRadius: frameRadius }}>
         <NpcPortrait url={fallback.url} height={height} className={`border ${ringClass} ${frameClass}`} />
       </div>
     )
@@ -645,7 +642,7 @@ function Puck({
   // art file exists first, is what actually surfaces that fallback chain
   // here instead of skipping straight past it to a dot.
   return (
-    <div style={{ width: px, boxShadow: PUCK_SHADOW, borderRadius: frameRadius }}>
+    <div className="board-puck" style={{ width: px, borderRadius: frameRadius }}>
       <CreatureArt
         name={card.name}
         noun={card.noun}
@@ -758,8 +755,7 @@ function YouCard({
     // vitals and status icons beside the doll instead of below it uses
     // that width and buys back the vertical space the second row cost.
     <div
-      className="pointer-events-auto flex max-w-60 items-center gap-1.5 rounded-full bg-surface/70 py-1 pl-1 pr-3 ring-1 ring-border/35 backdrop-blur-sm"
-      style={{ boxShadow: '0 3px 14px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.05)' }}
+      className="board-pill pointer-events-auto flex max-w-60 items-center gap-1.5 rounded-full bg-surface/70 py-1 pl-1 pr-3 ring-1 ring-border/35 backdrop-blur-sm"
     >
       <Portrait character={you.character} instance={you.instance} race={you.race ?? undefined} sex={you.sex} size={portraitSize} shape="oval" focus="face" />
       <Paperdoll injuries={you.injuries} bleeding={you.bleeding} height={dollHeight} known={you.injuriesKnown} pose={you.pose} />
@@ -1035,16 +1031,9 @@ export function CombatRadar({
         <>
           {/* A restrained tactical wash keeps the radar readable over both
               pale snow and dark caves without hiding the room art that makes
-              the board feel situated. The brighter center is the player's
-              immediate space; the vignette gives edge pucks contrast. */}
-          <div
-            aria-hidden
-            className="absolute inset-0"
-            style={{
-              background:
-                'radial-gradient(circle at 42% 50%, rgba(15,23,31,0.08) 0%, rgba(10,14,20,0.28) 58%, rgba(5,8,12,0.62) 100%)',
-            }}
-          />
+              the board feel situated. `.board-wash` in src/index.css, where
+              the reason for each stop is written beside its value. */}
+          <div aria-hidden className="board-wash absolute inset-0" />
 
           {/* The compass — the whole board, edge to edge. The roster floats
               over its right side as an overlay (below) rather than sharing
@@ -1131,11 +1120,7 @@ export function CombatRadar({
               range/relation split before this pass and nothing asked for
               one now) — same flat scrollable list it has always shown. */}
           {zone && room != null && <RoomBackdrop zone={zone} room={room} title={title} text={text} />}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.7) 100%)' }}
-            aria-hidden
-          />
+          <div className="board-disc absolute inset-0" aria-hidden />
           {orderedStrip.length > 0 ? (
             <RosterStrip width={boardWidth} bordered={false}>
               {orderedStrip.map((entry) => (
