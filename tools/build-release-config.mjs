@@ -80,22 +80,51 @@ if (existsSync(viewerRs)) {
   }
 }
 
+/**
+ * A release without a viewer is a supported build, not a broken one.
+ *
+ * `godot/shared-assets` is a *private* repository, and a workflow's built-in
+ * token reaches only its own repo, so a release built without a credential for
+ * it cannot export a viewer at all - which is how the first real run of this
+ * workflow failed. The plan ships beta.1 with the viewer disabled anyway, so
+ * the honest answer is to build the installer without it and say so, rather
+ * than to fail the release or, worse, to quietly point the config at a file
+ * that is not there and let Tauri decide what that means.
+ *
+ * `--require-viewer` is for the build that is supposed to have one: it refuses
+ * rather than silently producing the smaller installer.
+ */
+const viewerBuilt = existsSync(resolve(root, 'godot', 'build', 'DRCompanionWorldViewer.exe'))
+const requireViewer = process.argv.includes('--require-viewer')
+if (requireViewer && !viewerBuilt) {
+  console.error(
+    'FAILED: --require-viewer was given but godot/build/DRCompanionWorldViewer.exe does not exist.\n' +
+      '        Export it with `npm run godot:export` (needs the shared-assets submodule and Godot),\n' +
+      '        or drop the flag to build an installer that honestly carries no viewer.'
+  )
+  process.exit(1)
+}
+
 const releaseConfig = {
   $schema: base.$schema ?? 'https://schema.tauri.app/config/2',
   bundle: {
-    resources: { ...resources, [VIEWER_SRC]: VIEWER_DEST },
+    resources: viewerBuilt ? { ...resources, [VIEWER_SRC]: VIEWER_DEST } : { ...resources },
   },
 }
 
 if (check) {
-  const viewerBuilt = existsSync(resolve(root, 'godot', 'build', 'DRCompanionWorldViewer.exe'))
   console.log(
-    `Release config would carry ${baseCount + 1} resources ` +
-      `(${baseCount} from the base config plus the viewer). ` +
-      `Viewer currently built: ${viewerBuilt ? 'yes' : 'no'}.`
+    viewerBuilt
+      ? `Release config would carry ${baseCount + 1} resources (${baseCount} inherited plus the world viewer).`
+      : `Release config would carry ${baseCount} resources, all inherited. No viewer is built, so the ` +
+        `installer would carry none - run with --require-viewer to make that a failure instead.`
   )
   process.exit(0)
 }
 
 writeFileSync(OUT, `${JSON.stringify(releaseConfig, null, 2)}\n`)
-console.log(`${OUT}: ${baseCount + 1} resources (${baseCount} inherited + the world viewer)`)
+console.log(
+  viewerBuilt
+    ? `${OUT}: ${baseCount + 1} resources (${baseCount} inherited + the world viewer)`
+    : `${OUT}: ${baseCount} resources, all inherited. NO world viewer in this installer.`
+)

@@ -22,12 +22,33 @@ import { join, resolve } from 'node:path'
 const root = resolve(import.meta.dirname, '..')
 const buildDir = resolve(root, 'src-tauri', 'target', 'release')
 
+/**
+ * Whether this build was supposed to carry a viewer.
+ *
+ * The shared-assets submodule is a *private* repository, and a workflow's
+ * built-in token reaches only its own repo, so a release built without a
+ * credential for it cannot export a viewer at all. That is a real, ordinary
+ * build - the plan ships beta.1 with the viewer disabled anyway - and it must
+ * not be confused with a build that tried and failed.
+ *
+ * So the caller declares which one it is. `--expect-viewer` requires it and
+ * fails loudly when it is missing; the default requires everything else and
+ * reports the viewer's absence as a stated fact rather than passing over it in
+ * silence. Three states, not two: shipped, deliberately absent, missing when
+ * it was wanted.
+ */
+const expectViewer = process.argv.includes('--expect-viewer')
+
 /** Basenames that must be somewhere under the release output. */
 const REQUIRED = [
-  {
-    file: 'DRCompanionWorldViewer.exe',
-    why: 'the world viewer - the point of this release wiring',
-  },
+  ...(expectViewer
+    ? [
+        {
+          file: 'DRCompanionWorldViewer.exe',
+          why: 'the world viewer - the point of this release wiring',
+        },
+      ]
+    : []),
   {
     file: 'companion_bridge.lic',
     why: 'a resource the ordinary build already shipped; present only if the release config extended the base rather than replacing it',
@@ -84,3 +105,15 @@ if (failed > 0) {
   process.exit(1)
 }
 console.log(`\nAll ${REQUIRED.length} required resources are staged in the release build.`)
+
+// Said out loud either way. An installer without a viewer is a supported
+// build, and the one thing it must never do is look like an installer with
+// one.
+if (!expectViewer) {
+  const viewer = find(buildDir, 'DRCompanionWorldViewer.exe')
+  console.log(
+    viewer
+      ? 'Note: a viewer is staged even though this run did not require one.'
+      : 'This installer carries NO world viewer. The app runs without it and reports it as not installed.'
+  )
+}

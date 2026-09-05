@@ -776,7 +776,7 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane F — Release engineering
 
-- [ ] **F1  Throwaway-tag release run** (≈30 + waiting)
+- [~] **F1  Throwaway-tag release run** (≈30 + waiting)
   touches: none
   depends-on: none
   do: `git tag v0.0.0-ci-check origin/main && git push origin v0.0.0-ci-check`; `gh run watch`. The Godot install step (`release.yml` around line 60–69) has never executed. Each failure becomes `F1a…` here with its fix. Success = draft release with the installer and `release:verify` printing both resources. Delete the draft and the tag after.
