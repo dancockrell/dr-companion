@@ -117,3 +117,10 @@ The data is already structured and exact. If a language model is ever useful
 here it is as an *interface* to this database — turning a sentence into a query,
 summarising a page — with the facts still coming from the rows. Never as the
 store.
+
+The approved local-model architecture is now specified in
+[`LOCAL_AI_BACKGROUND_WORKER.md`](LOCAL_AI_BACKGROUND_WORKER.md). Its idle
+knowledge and wiki work produces provenance-bearing candidate patches against
+this store. Fine-tuning may teach extraction, citation, tool use, and
+abstention; it does not supersede this database or silently promote generated
+claims into facts.

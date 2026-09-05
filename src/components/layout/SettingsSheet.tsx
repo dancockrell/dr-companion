@@ -15,6 +15,7 @@ import { VarsPanel } from '../shared/VarsPanel'
 import { LinksPanel } from '../shared/LinksPanel'
 import { ScriptApiPanel } from '../shared/ScriptApiPanel'
 import { PresentationBridgePanel } from '../shared/PresentationBridgePanel'
+import { AiWorkerPanel } from '../shared/AiWorkerPanel'
 import { HuntingGroundsPanel } from '../shared/HuntingGroundsPanel'
 import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
@@ -440,6 +441,16 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               Godot 3D viewer bridge
             </h3>
             <PresentationBridgePanel />
+          </section>
+
+          {/* Acceptance criterion 14: model failure, absence, timeout and
+              out-of-memory must be visible. Most installs read "not
+              installed", which is the honest and entirely workable state. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              Local AI worker
+            </h3>
+            <AiWorkerPanel />
           </section>
 
           <section className="space-y-2">

@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DR Companion — Fixed-Isometric MVP Mockup</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f3e9d2;
+      --muted: #aa9d87;
+      --faint: #776c5e;
+      --panel: #171b1a;
+      --panel-2: #202522;
+      --panel-3: #292d28;
+      --line: #4e493e;
+      --gold: #d7ad61;
+      --gold-soft: #836a3d;
+      --green: #69b486;
+      --red: #d06f67;
+      --blue: #68a9c0;
+      --violet: #9279bd;
+      --shadow: rgba(3, 6, 5, .72);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1120px;
+      min-height: 720px;
+      overflow: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 54% 30%, rgba(128, 95, 46, .17), transparent 34%),
+        linear-gradient(135deg, #0d100f, #191c19 46%, #0a0c0b);
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .app {
+      height: 100vh;
+      min-height: 720px;
+      display: grid;
+      grid-template-rows: 48px minmax(0, 1fr) 224px;
+      border: 1px solid #3c382f;
+      background: #111412;
+      box-shadow: inset 0 0 70px rgba(0,0,0,.45);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      align-items: center;
+      gap: 14px;
+      padding: 0 16px;
+      background: linear-gradient(#242823, #181b18);
+      border-bottom: 1px solid #5a503d;
+      box-shadow: 0 8px 22px rgba(0,0,0,.28);
+      z-index: 10;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .crest {
+      width: 27px; height: 31px;
+      display: grid; place-items: center;
+      color: #151710; font: 900 13px Georgia, serif;
+      background: linear-gradient(145deg, #e6c17c, #8e6a31);
+      clip-path: polygon(50% 0, 94% 16%, 84% 76%, 50% 100%, 16% 76%, 6% 16%);
+      filter: drop-shadow(0 2px 3px #000);
+    }
+    .brand strong { font: 700 18px Georgia, serif; letter-spacing: .055em; }
+    .brand small { display: block; margin-top: -2px; color: var(--muted); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; }
+
+    .location { text-align: center; }
+    .location strong { font: 600 16px Georgia, serif; }
+    .location span { margin-left: 8px; color: var(--muted); font-size: 11px; }
+
+    .connection { justify-self: end; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
+    .connection .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px rgba(105,180,134,.65); }
+    .icon-button { width: 29px; height: 29px; border: 1px solid #4d493f; border-radius: 6px; background: #252923; }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 228px minmax(620px, 1fr) 250px;
+      background: #101310;
+    }
+
+    .side {
+      min-height: 0;
+      padding: 12px;
+      background: linear-gradient(90deg, #151916, #1a1e1a);
+      border-right: 1px solid #3d3a32;
+      box-shadow: 10px 0 28px rgba(0,0,0,.2);
+      z-index: 5;
+    }
+    .right-side {
+      border-right: 0;
+      border-left: 1px solid #3d3a32;
+      box-shadow: -10px 0 28px rgba(0,0,0,.2);
+    }
+
+    .portrait-card {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 11px;
+      margin-bottom: 13px;
+    }
+
+    .portrait {
+      position: relative;
+      height: 86px;
+      border: 1px solid #8f7445;
+      border-radius: 6px 6px 15px 6px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 31%, #d5a47c 0 13%, transparent 14%),
+        radial-gradient(ellipse at 49% 52%, #4a291d 0 23%, transparent 24%),
+        linear-gradient(120deg, transparent 44%, #b26c32 45% 52%, transparent 53%),
+        linear-gradient(145deg, #384b3e, #14231e 63%, #0d1210);
+      box-shadow: inset 0 -16px 25px rgba(0,0,0,.35);
+    }
+    .portrait::after { content: "◆"; position: absolute; right: 5px; bottom: 4px; color: #e2bd6e; font-size: 10px; }
+    .identity h2 { margin: 5px 0 2px; font: 600 17px Georgia, serif; }
+    .identity p { margin: 0; color: var(--gold); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .level { margin-top: 12px; color: var(--muted); font-size: 10px; }
+
+    .meters { display: grid; gap: 8px; margin-bottom: 14px; }
+    .meter-line { display: grid; grid-template-columns: 54px 1fr 29px; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); }
+    .meter { height: 6px; overflow: hidden; border-radius: 20px; background: #090b0a; box-shadow: inset 0 1px 2px #000; }
+    .meter i { display: block; height: 100%; border-radius: inherit; }
+    .hp i { width: 82%; background: linear-gradient(90deg, #843f3c, #d66e62); }
+    .sp i { width: 68%; background: linear-gradient(90deg, #2e7252, #68bb82); }
+    .mp i { width: 91%; background: linear-gradient(90deg, #356b84, #69b5d0); }
+
+    .section { margin-top: 12px; }
+    .section-title {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 0 0 8px;
+      color: #c9b890;
+      font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase;
+    }
+    .section-title span { color: var(--faint); font-size: 11px; }
+
+    .objective, .party-member, .alert, .worker-card, .context-card {
+      border: 1px solid #393a33;
+      border-radius: 7px;
+      background: linear-gradient(145deg, rgba(42,47,41,.88), rgba(27,31,28,.9));
+    }
+    .objective { padding: 10px; font-size: 11px; line-height: 1.45; }
+    .objective b { display:block; margin-bottom: 3px; color: var(--ink); }
+    .objective span { color: var(--muted); }
+    .objective .route { margin-top: 8px; color: var(--gold); font-size: 9px; }
+
+    .party { display: grid; gap: 6px; }
+    .party-member { display: grid; grid-template-columns: 27px 1fr auto; align-items:center; gap:7px; padding: 6px; font-size: 10px; }
+    .avatar { width: 27px; height: 27px; border-radius: 50%; border: 1px solid #746749; background: radial-gradient(circle at 50% 35%, #d0a07b 0 17%, transparent 18%), linear-gradient(145deg,#655037,#20251f); }
+    .party-member span { color: var(--muted); font-size: 9px; }
+    .ready { width: 6px; height: 6px; border-radius:50%; background:var(--green); }
+
+    .board-wrap {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
+        radial-gradient(ellipse at 50% 32%, #3b4135, #242b25 46%, #121713 80%);
+      background-size: 34px 34px, 34px 34px, auto;
+    }
+    .board-wrap::after {
+      content:""; position:absolute; inset:0; pointer-events:none;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(4,7,5,.62) 100%);
+    }
+
+    .board-label {
+      position: absolute; top: 16px; left: 20px; z-index: 4;
+      display:flex; align-items:center; gap:9px;
+      color:#eee0be; font:600 13px Georgia,serif;
+      text-shadow:0 2px 4px #000;
+    }
+    .board-label i { width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px #d7ad61; }
+    .view-controls { position:absolute; right:16px; top:14px; z-index:5; display:flex; gap:5px; }
+    .view-controls button { border:1px solid #5e584a; background:rgba(24,28,24,.86); border-radius:5px; padding:6px 9px; font-size:9px; color:var(--muted); }
+    .view-controls .active { color:var(--ink); border-color:#94794a; background:#36342b; }
+
+    .world {
+      position: absolute;
+      width: 820px;
+      height: 500px;
+      left: 50%; top: 49%;
+      transform: translate(-50%,-50%);
+      filter: drop-shadow(0 34px 20px rgba(0,0,0,.44));
+    }
+    .world svg { width:100%; height:100%; overflow:visible; }
+    .world text { font-family: Inter, sans-serif; }
+
+    .speech {
+      position:absolute; left:51%; top:24%; z-index:6;
+      max-width:180px; padding:8px 10px;
+      color:#29251d; background:#f0e3c5; border:2px solid #6a5a3b;
+      border-radius:10px 10px 10px 2px;
+      font:600 10px/1.35 Georgia,serif;
+      box-shadow:0 5px 12px rgba(0,0,0,.35);
+    }
+    .speech::after { content:""; position:absolute; left:14px; bottom:-10px; border:6px solid transparent; border-top-color:#6a5a3b; transform:rotate(18deg); }
+
+    .route-hint {
+      position:absolute; left:20px; bottom:16px; z-index:5;
+      display:flex; align-items:center; gap:8px; padding:7px 10px;
+      border:1px solid #5c5547; border-radius:6px;
+      background:rgba(18,22,19,.84); color:var(--muted); font-size:9px;
+    }
+    .route-hint strong { color:var(--ink); }
+    .route-mark { width:20px; height:4px; border-radius:5px; background:repeating-linear-gradient(90deg,var(--gold) 0 5px,transparent 5px 8px); }
+
+    .right-side { padding:12px; }
+    .context-card { padding:9px; display:grid; grid-template-columns:1fr auto; gap:5px; font-size:10px; }
+    .context-card span { color:var(--muted); }
+    .tag { align-self:start; padding:3px 6px; border-radius:10px; color:#d7c9a7 !important; background:#4a4231; font-size:8px !important; text-transform:uppercase; letter-spacing:.08em; }
+
+    .alerts { display:grid; gap:6px; }
+    .alert { position:relative; padding:8px 9px 8px 28px; font-size:10px; line-height:1.35; }
+    .alert::before { content:"!"; position:absolute; left:9px; top:9px; width:12px;height:12px;border-radius:50%; display:grid;place-items:center; background:#7e6032;color:#f7dfad;font:bold 8px sans-serif; }
+    .alert b { display:block; font-size:10px; }
+    .alert span { color:var(--muted); font-size:9px; }
+
+    .worker-card { padding:10px; border-color:#4e563f; background:linear-gradient(145deg,rgba(38,50,39,.95),rgba(25,32,27,.95)); }
+    .worker-head { display:flex; align-items:center; gap:7px; margin-bottom:9px; font-size:11px; font-weight:700; }
+    .pulse { width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 9px rgba(105,180,134,.7); }
+    .worker-row { display:flex;justify-content:space-between;gap:8px;margin-top:6px;color:var(--muted);font-size:9px; }
+    .worker-row strong { color:#d4dbc9; font-weight:600; }
+    .job { margin-top:9px;padding:8px;border:1px solid #414a3a;border-radius:5px;background:rgba(12,17,13,.34); }
+    .job b { display:block;font-size:9px;color:#cbd6bd; }
+    .job span { color:var(--muted);font-size:8px; }
+    .progress { margin-top:7px;height:3px;border-radius:4px;background:#101410;overflow:hidden; }
+    .progress i { display:block;width:63%;height:100%;background:linear-gradient(90deg,#557955,#91a864); }
+
+    .legend { display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;color:var(--muted);font-size:8px; }
+    .legend i { display:inline-block;width:12px;height:3px;margin-right:4px;vertical-align:middle;border-radius:3px; }
+
+    .console {
+      position:relative;
+      display:grid;
+      grid-template-columns:228px minmax(0,1fr) 250px;
+      border-top:1px solid #5b503c;
+      background:#111511;
+      box-shadow:0 -12px 28px rgba(0,0,0,.35);
+      z-index:9;
+    }
+    .quick-actions { padding:12px; border-right:1px solid #3c3931; background:#171b17; }
+    .action-grid { display:grid;grid-template-columns:1fr 1fr;gap:6px; }
+    .action {
+      min-height:43px; padding:7px;
+      border:1px solid #454238;border-radius:6px;
+      background:linear-gradient(#2a2e28,#20241f);
+      text-align:left; font-size:10px;
+    }
+    .action span { display:block;margin-top:3px;color:var(--faint);font-size:8px; }
+    .action.primary { border-color:#8b7040; box-shadow:inset 0 0 14px rgba(213,171,90,.08); }
+
+    .transcript { min-width:0;display:grid;grid-template-rows:30px 1fr 38px;background:#131713; }
+    .tabs { display:flex;align-items:end;gap:3px;padding:0 10px;border-bottom:1px solid #34362f;background:#171b17; }
+    .tab { padding:8px 12px 7px;color:var(--faint);font-size:9px;border-bottom:2px solid transparent; }
+    .tab.active { color:var(--ink);border-color:var(--gold); }
+    .game-lines { padding:9px 14px;overflow:hidden;font:11px/1.47 "Cascadia Mono",Consolas,monospace;color:#c7beab; }
+    .game-lines p { margin:0; white-space:nowrap; overflow:hidden;text-overflow:ellipsis; }
+    .game-lines .room { color:#e4c98f; font-weight:700; }
+    .game-lines .speech-line { color:#b9d0b5; }
+    .game-lines .system { color:#89998d; }
+    .command-line { display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:5px 10px;border-top:1px solid #33362f;background:#0e120f; }
+    .prompt { color:var(--gold);font:bold 14px Georgia,serif; }
+    .command-line input { width:100%;border:0;outline:0;background:transparent;color:var(--ink);font:11px "Cascadia Mono",Consolas,monospace; }
+    .send { border:1px solid #6d5935;border-radius:4px;background:#3d3425;padding:5px 10px;font-size:9px; }
+
+    .event-strip { padding:12px;border-left:1px solid #3c3931;background:#171b17; }
+    .event { display:grid;grid-template-columns:24px 1fr;gap:7px;margin-bottom:9px;font-size:9px;color:var(--muted); }
+    .event-icon { width:24px;height:24px;display:grid;place-items:center;border:1px solid #49483f;border-radius:5px;background:#292d27;color:var(--gold); }
+    .event b { display:block;color:#d7cebb;font-size:9px; }
+    .footer-state { position:absolute;right:12px;bottom:4px;color:#625e53;font-size:8px; }
+
+    @media (max-width: 1250px) {
+      .workspace, .console { grid-template-columns: 208px minmax(600px,1fr) 230px; }
+      .world { width:730px;height:445px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="DR Companion fixed-isometric concept mockup">
+    <header class="topbar">
+      <div class="brand"><div class="crest">DR</div><div><strong>DR Companion</strong><small>Tabletop world client</small></div></div>
+      <div class="location"><strong>Dock Quarter</strong><span>Crossing · Room 998</span></div>
+      <div class="connection"><span class="dot"></span> Lich connected <button class="icon-button" aria-label="Settings">⚙</button></div>
+    </header>
+
+    <section class="workspace">
+      <aside class="side" aria-label="Character information">
+        <div class="portrait-card">
+          <div class="portrait" aria-label="Illustrated player portrait"></div>
+          <div class="identity"><h2>Ariayne</h2><p>Ranger · Ilithi</p><div class="level">Circle 42 · Ready</div></div>
+        </div>
+        <div class="meters">
+          <div class="meter-line"><span>Health</span><div class="meter hp"><i></i></div><b>82</b></div>
+          <div class="meter-line"><span>Stamina</span><div class="meter sp"><i></i></div><b>68</b></div>
+          <div class="meter-line"><span>Mana</span><div class="meter mp"><i></i></div><b>91</b></div>
+        </div>
+
+        <section class="section">
+          <h3 class="section-title">Current objective <span>◇</span></h3>
+          <div class="objective"><b>Meet the river pilot</b><span>Reach the eastern ferry landing before dusk.</span><div class="route">3 confirmed rooms · ferry tether</div></div>
+        </section>
+
+        <section class="section">
+          <h3 class="section-title">Party <span>2 / 5</span></h3>
+          <div class="party">
+            <div class="party-member"><div class="avatar"></div><div><b>Threnn</b><br><span>Paladin · with you</span></div><i class="ready"></i></div>
+            <div class="party-member"><div class="avatar"></div><div><b>Mira</b><br><span>Empath · market</span></div><i class="ready"></i></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3 class="section-title">Conditions</h3>
+          <div class="legend"><span><i style="background:#69b486"></i>Balanced</span><span><i style="background:#d7ad61"></i>Hidden</span></div>
+        </section>
+      </aside>
+
+      <section class="board-wrap" aria-label="Fixed-isometric game board">
+        <div class="board-label"><i></i> The Riverhaven Approach</div>
+        <div class="view-controls"><button>World</button><button class="active">Route</button><button>Room</button><button aria-label="Center on player">⌖</button></div>
+        <div class="speech">“Ferry leaves when the bronze bell sounds.”</div>
+
+        <div class="world" aria-hidden="true">
+          <svg viewBox="0 0 820 500" role="img" aria-label="Isometric river port tabletop board">
+            <defs>
+              <linearGradient id="grass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#71865b"/><stop offset="1" stop-color="#4d6048"/></linearGradient>
+              <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a99b7e"/><stop offset="1" stop-color="#746d5e"/></linearGradient>
+              <linearGradient id="water" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4c8a91"/><stop offset=".55" stop-color="#356f7c"/><stop offset="1" stop-color="#285660"/></linearGradient>
+              <linearGradient id="roof" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b66f47"/><stop offset="1" stop-color="#744131"/></linearGradient>
+              <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+
+            <!-- tabletop thickness -->
+            <polygon points="410,35 785,227 410,458 35,227" fill="#31372d" stroke="#786a4e" stroke-width="4"/>
+            <polygon points="35,227 410,458 410,474 35,243" fill="#23271f"/>
+            <polygon points="785,227 410,458 410,474 785,243" fill="#171d19"/>
+
+            <!-- terrain cells -->
+            <polygon points="410,49 770,231 410,441 50,231" fill="url(#grass)"/>
+            <polygon points="410,49 770,231 626,316 266,132" fill="url(#water)" opacity=".96"/>
+            <path d="M267 132 L626 316 M307 113 L666 296 M355 91 L714 274" stroke="#75a9a9" opacity=".26" stroke-width="2"/>
+            <path d="M317 157 L572 287 L477 342 L222 211 Z" fill="#baad8e" stroke="#6f6550" stroke-width="3"/>
+            <path d="M360 179 L522 261 L488 281 L326 199 Z" fill="url(#stone)" stroke="#605a4c" stroke-width="2"/>
+            <path d="M349 184 L511 266" stroke="#d4c4a1" opacity=".42" stroke-width="3" stroke-dasharray="11 8"/>
+
+            <!-- marsh and beach -->
+            <polygon points="108,222 218,166 286,201 174,259" fill="#65754e"/>
+            <polygon points="102,227 174,264 236,228 165,192" fill="#c4ae78" opacity=".9"/>
+            <g stroke="#8f9b55" stroke-width="3"><path d="M151 204l-5-20m8 18l4-24m5 27l10-19M192 192l-2-22m8 25l8-23"/></g>
+
+            <!-- piers -->
+            <g fill="#76583a" stroke="#3f3226" stroke-width="2">
+              <polygon points="257,149 276,139 367,185 348,196"/>
+              <polygon points="283,166 294,160 294,207 282,214"/>
+              <polygon points="596,283 610,275 684,313 669,322"/>
+              <polygon points="638,302 648,297 648,343 637,349"/>
+            </g>
+
+            <!-- bridge -->
+            <g>
+              <polygon points="506,144 536,128 626,174 596,191" fill="#7d7465" stroke="#4c473f" stroke-width="2"/>
+              <path d="M514 143l88 45M527 136l88 45" stroke="#c2b594" stroke-width="2"/>
+              <path d="M503 135l95 48M536 119l95 48" stroke="#4f4537" stroke-width="4"/>
+            </g>
+
+            <!-- buildings -->
+            <g stroke="#46382b" stroke-width="2">
+              <g><polygon points="147,279 207,248 260,275 199,307" fill="#927553"/><polygon points="147,279 199,307 199,362 147,334" fill="#66503c"/><polygon points="199,307 260,275 260,331 199,362" fill="#4c4135"/><polygon points="137,276 204,240 270,273 201,310" fill="url(#roof)"/><path d="M204 240v68" stroke="#dac18d"/></g>
+              <g><polygon points="276,337 337,306 384,329 323,361" fill="#927553"/><polygon points="276,337 323,361 323,404 276,380" fill="#62503f"/><polygon points="323,361 384,329 384,373 323,404" fill="#493e34"/><polygon points="267,333 335,299 394,327 323,364" fill="#775247"/><path d="M335 299v62" stroke="#c5ac7c"/></g>
+              <g><polygon points="554,334 615,303 669,330 608,362" fill="#987a55"/><polygon points="554,334 608,362 608,408 554,380" fill="#62503f"/><polygon points="608,362 669,330 669,376 608,408" fill="#493e34"/><polygon points="545,330 614,295 679,327 608,365" fill="url(#roof)"/><path d="M614 295v67" stroke="#dac18d"/></g>
+            </g>
+
+            <!-- market tents -->
+            <g stroke="#54402e" stroke-width="2">
+              <g><polygon points="410,327 445,309 478,325 443,344" fill="#d3bd83"/><polygon points="410,327 443,344 443,368 410,351" fill="#7b5941"/><polygon points="443,344 478,325 478,349 443,368" fill="#59473a"/></g>
+              <g><polygon points="457,353 489,337 519,352 487,369" fill="#8b5c4d"/><polygon points="457,353 487,369 487,391 457,375" fill="#66473d"/><polygon points="487,369 519,352 519,374 487,391" fill="#493d35"/></g>
+            </g>
+
+            <!-- trees -->
+            <g stroke="#2f3e2f" stroke-width="2">
+              <g><path d="M121 288v37" stroke="#594534" stroke-width="7"/><circle cx="121" cy="280" r="22" fill="#476340"/><circle cx="106" cy="286" r="15" fill="#5c7749"/></g>
+              <g><path d="M710 274v35" stroke="#594534" stroke-width="7"/><circle cx="710" cy="266" r="21" fill="#496541"/><circle cx="696" cy="273" r="14" fill="#637a4c"/></g>
+              <g><path d="M696 360v32" stroke="#594534" stroke-width="6"/><circle cx="696" cy="354" r="18" fill="#47603f"/></g>
+            </g>
+
+            <!-- ferry -->
+            <g transform="translate(432 116)"><polygon points="0,18 54,-8 99,12 46,39" fill="#745335" stroke="#33271e" stroke-width="3"/><polygon points="11,14 55,-7 85,7 42,29" fill="#a47a4a"/><path d="M49 4v-42" stroke="#3b2d21" stroke-width="4"/><path d="M52-37l33 28-33 4z" fill="#d2c49d" stroke="#655b47" stroke-width="2"/></g>
+
+            <!-- portal -->
+            <g transform="translate(704 198)" filter="url(#glow)"><ellipse cx="0" cy="0" rx="16" ry="29" fill="none" stroke="#9b83c7" stroke-width="5"/><ellipse cx="0" cy="0" rx="8" ry="21" fill="#66558d" opacity=".5"/></g>
+
+            <!-- route markers -->
+            <path d="M204 308 C268 289 316 261 372 231" fill="none" stroke="#dfbd71" stroke-width="5" stroke-linecap="round" stroke-dasharray="4 11" opacity=".9"/>
+
+            <!-- NPC miniature -->
+            <g transform="translate(449 265)"><ellipse cx="0" cy="25" rx="20" ry="10" fill="#332f27" stroke="#c39d57" stroke-width="2"/><path d="M-10 20l5-35h11l10 35z" fill="#5b6e4d" stroke="#273427" stroke-width="2"/><circle cx="1" cy="-20" r="8" fill="#d3a17d"/><path d="M-7-24q8-13 17 0" fill="#72513a"/></g>
+
+            <!-- player miniature -->
+            <g transform="translate(369 246)"><ellipse cx="0" cy="29" rx="25" ry="12" fill="#282720" stroke="#f0c86e" stroke-width="3"/><ellipse cx="0" cy="29" rx="31" ry="16" fill="none" stroke="#e2ba5d" stroke-width="2" opacity=".72" filter="url(#glow)"/><path d="M-12 24l6-40h13l13 40z" fill="#3c7455" stroke="#1c3328" stroke-width="2"/><circle cx="2" cy="-22" r="9" fill="#d6a27b"/><path d="M-7-26q9-16 20 2l-6 4z" fill="#9a5a31"/><path d="M10-3l24-24" stroke="#d0bc8e" stroke-width="3"/><path d="M31-31l7 7" stroke="#5c3d28" stroke-width="4"/></g>
+
+            <!-- creature miniature -->
+            <g transform="translate(248 278)"><ellipse cx="0" cy="18" rx="19" ry="9" fill="#2d2b24" stroke="#735d3d" stroke-width="2"/><path d="M-12 13q2-28 16-25 13 3 11 27z" fill="#66583f"/><circle cx="0" cy="-12" r="6" fill="#7d6c4e"/><path d="M-4-17l-8-8m15 7l8-8" stroke="#786142" stroke-width="3"/></g>
+
+            <!-- labels -->
+            <g font-size="9" fill="#eee3ca" text-anchor="middle">
+              <text x="369" y="298">YOU</text>
+              <text x="205" y="383">RIVER TAVERN</text>
+              <text x="615" y="426">FERRY LANDING</text>
+            </g>
+          </svg>
+        </div>
+        <div class="route-hint"><span class="route-mark"></span><span><strong>Route ready</strong> · east road → board ferry</span></div>
+      </section>
+
+      <aside class="side right-side" aria-label="Context and AI worker">
+        <section>
+          <h3 class="section-title">Context <span>Live</span></h3>
+          <div class="context-card"><div><b>Ferry Landing, West</b><br><span>Room 998 · observed now</span></div><span class="tag">confirmed</span></div>
+        </section>
+
+        <section class="section">
+          <h3 class="section-title">Alerts <span>2</span></h3>
+          <div class="alerts">
+            <div class="alert"><b>Ferry bell heard</b><span>Transport window may be open.</span></div>
+            <div class="alert"><b>New tether observed</b><span>East road candidate saved for review.</span></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3 class="section-title">AI Worker <span>Local</span></h3>
+          <div class="worker-card">
+            <div class="worker-head"><i class="pulse"></i> Watching live state</div>
+            <div class="worker-row"><span>Next review</span><strong>3s</strong></div>
+            <div class="worker-row"><span>Model</span><strong>Qwen3 4B · local</strong></div>
+            <div class="job"><b>Mapping · Dock Quarter</b><span>Checkpointed · 14 observations</span><div class="progress"><i></i></div></div>
+            <div class="worker-row"><span>Authority</span><strong>Read + propose</strong></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3 class="section-title">Tethers</h3>
+          <div class="legend"><span><i style="background:#a99b7e"></i>Road</span><span><i style="background:#76583a"></i>Dock</span><span><i style="background:#4c8a91"></i>Ferry</span><span><i style="background:#9279bd"></i>Portal</span></div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="console" aria-label="Game transcript and commands">
+      <aside class="quick-actions">
+        <h3 class="section-title">Context actions <span>⌘K</span></h3>
+        <div class="action-grid">
+          <button class="action primary">Board ferry<span>transport</span></button>
+          <button class="action">Look<span>observe room</span></button>
+          <button class="action">Talk<span>river pilot</span></button>
+          <button class="action">Route<span>preview</span></button>
+          <button class="action">Inventory<span>equipment</span></button>
+          <button class="action">Rest<span>recover</span></button>
+        </div>
+      </aside>
+
+      <section class="transcript">
+        <div class="tabs"><div class="tab active">Game</div><div class="tab">Thoughts</div><div class="tab">Combat</div><div class="tab">System</div></div>
+        <div class="game-lines" aria-label="MUD game text">
+          <p class="room">[The Crossing, West Ferry Landing]</p>
+          <p>A broad timber pier reaches into the green-blue river. Reeds whisper along the muddy bank.</p>
+          <p>You also see a river pilot, a brass-bound notice board, and a weathered ferry.</p>
+          <p class="speech-line">The river pilot says, “Ferry leaves when the bronze bell sounds.”</p>
+          <p class="system">A bronze bell rings once across the water.</p>
+          <p>Obvious paths: east, southwest. You may also board the ferry.</p>
+        </div>
+        <label class="command-line"><span class="prompt">›</span><input value="board ferry" aria-label="Game command"><button class="send">Send</button></label>
+      </section>
+
+      <aside class="event-strip">
+        <h3 class="section-title">Recent state</h3>
+        <div class="event"><div class="event-icon">⌁</div><div><b>Room confirmed</b>Node 998 · just now</div></div>
+        <div class="event"><div class="event-icon">♢</div><div><b>Route updated</b>Ferry available</div></div>
+        <div class="event"><div class="event-icon">◇</div><div><b>Candidate saved</b>Awaiting corroboration</div></div>
+        <div class="footer-state">Concept mockup · not live game state</div>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

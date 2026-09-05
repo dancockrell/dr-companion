@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "task_id": "isometric-screen-mockup",
+  "agent": "codex-root",
+  "summary": "Build and visually verify a self-contained HTML mockup of the fixed-isometric DR Companion screen",
+  "status": "completed",
+  "claimed_at": "2026-09-04T10:05:00Z",
+  "updated_at": "2026-09-04T12:28:00Z",
+  "paths": [
+    "docs/mockups/dr-companion-isometric-mvp.html",
+    ".agents/claims/isometric-screen-mockup.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": ["56df738b"],
+    "conflicts_with": [],
+    "notes": "A documentation mockup illustrating the approved client direction; it is not a second runtime UI or a claim that these controls are implemented."
+  },
+  "completion": {
+    "commit": "f37f990f",
+    "checks": [
+      "browser visual QA at 1280x720: passed; board, transcript, side panels, speech bubble, player marker, and read-plus-propose authority are visible",
+      "browser accessibility tree inspection: passed; landmarks, controls, state labels, transcript, and command field are exposed",
+      "npm run test:all after integrating concurrent AI runtime work: 91 suites passed with 2645 checks, 0 failed, 9 not run because Ruby and ffmpeg were unavailable",
+      "npm run build: passed",
+      "git diff --check: passed",
+      "staged secret-pattern scan: passed; known malformed Gitleaks hook bypassed with documented --no-verify exception"
+    ]
+  }
+}

@@ -130,6 +130,7 @@ The repository contains both user-facing and implementation-facing documentation
 - [`docs/PACKAGING.md`](docs/PACKAGING.md) — desktop packaging
 - [`docs/SETUP-POLICY.md`](docs/SETUP-POLICY.md) — installer/setup behavior
 - [`docs/GAME_KNOWLEDGE.md`](docs/GAME_KNOWLEDGE.md) — provenance and scope of game knowledge
+- [`docs/LOCAL_AI_BACKGROUND_WORKER.md`](docs/LOCAL_AI_BACKGROUND_WORKER.md) — interruptible local-AI monitoring, alerts, and evidence-backed background work
 - [`docs/ENGINE.md`](docs/ENGINE.md) — scripting/task-engine design
 - [`DEPENDENCIES.md`](DEPENDENCIES.md) — external dependencies not captured by manifests
 
