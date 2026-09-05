@@ -12,6 +12,7 @@
   "test:bug-bundle",
   "test:plan",
   "test:panel-data-contracts",
+  "test:tauri-command-callers",
   "test:safety",
   "test:flow-stop",
   "test:kill-switch",

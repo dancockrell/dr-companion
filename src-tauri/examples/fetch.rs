@@ -71,8 +71,15 @@ fn main() {
             Err(e) => println!("OK  {e}"),
         }
 
+        // The same two arguments SetupWizard.tsx passes for the Lich case, so
+        // this exercises the command the app actually invokes rather than a
+        // wrapper of its own (see extract_archive's doc comment, and #275).
         println!("-- extract --");
-        match dr_companion_lib::setup::extract_lich(dest_s.clone()) {
+        match dr_companion_lib::setup::extract_archive(
+            dest_s.clone(),
+            "lich".into(),
+            Some("lich.rbw".into()),
+        ) {
             Ok(dir) => {
                 let n = std::fs::read_dir(&dir).map(|d| d.count()).unwrap_or(0);
                 println!("OK  extracted to {dir} ({n} entries)");
