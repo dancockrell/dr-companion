@@ -272,11 +272,13 @@ PRs per lane, squash-merged.
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
 | D | D1–D6 | `lane-d/layout` | `dev/wt-d` | 5 Sep 2026 |
-| L | L1–L6 | `lane-l/viewer-contract` | `dev/wt-l` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
-F2, F6, PRs #293 and #295) and **I** (I1–I11, PRs #303 and this one). Their rows
-are gone from the table above, which is what finishing a lane looks like here.
+F2, F6, PRs #293 and #295), **I** (I1–I11, PRs #303 and #300) and **L**
+(L1–L5, PRs #305 and this one; L6 is `[!]`, blocked on four acceptance lines
+that need a live character and one human click, neither of which is a code
+change). Their rows are gone from the table above, which is what finishing a
+lane looks like here.
 
 Free to claim now: **K1** (the appearance design note) — but C7 recorded
 `rewrite/remove-2d` as an open question for that branch's owner, and K3 onward
