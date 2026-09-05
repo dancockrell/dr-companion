@@ -161,6 +161,64 @@ jobs:
       - name: Build installer
         run: npm run tauri:build
 
+      # Until 5 Sep 2026 the job stopped at the line above: it built a 217 MB
+      # NSIS installer on every push and then threw it away with the runner.
+      # F8 ("uninstall test on the CI artefact") and F9 both name an artefact
+      # that had never existed - `gh api .../actions/runs/<id>/artifacts` was
+      # empty on runs whose `tauri` job says success, which is the same shape
+      # as every other check in this repo that reported a pass for work it had
+      # not done. Uploading it is what makes "install what CI built, on a
+      # clean machine" a thing anybody can do without a Windows box.
+      #
+      # The hash is printed rather than only the name because that is what
+      # lets a tester prove the file they installed is the file CI produced:
+      # the run log carries the digest, and `certutil -hashfile` in the guest
+      # has to agree with it. An artefact whose provenance is "it downloaded
+      # from somewhere" proves nothing about this commit.
+      - name: Record what was built
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(Get-ChildItem 'src-tauri/target/release/bundle/nsis' -Filter '*-setup.exe' -ErrorAction SilentlyContinue)
+          if ($files.Count -ne 1) {
+            throw "Expected exactly one NSIS setup .exe, found $($files.Count). The build step cannot have produced what the upload below claims."
+          }
+          $f = $files[0]
+          $sha = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
+          Write-Host "installer : $($f.Name)"
+          Write-Host "bytes     : $($f.Length)"
+          Write-Host "sha256    : $sha"
+          # Onto the run summary too, so the digest is on the page somebody
+          # actually opens rather than only in a collapsed log. Plain lines,
+          # no markdown escaping: a table here would need backticks, and a
+          # backtick is PowerShell's escape character inside a YAML block
+          # scalar, which is three quoting rules stacked for no gain.
+          $lines = @(
+            '### Installer',
+            '',
+            "    file   : $($f.Name)",
+            "    bytes  : $($f.Length)",
+            "    sha256 : $sha",
+            '',
+            'Downloadable for 7 days as the `dr-companion-nsis-installer` artefact.'
+          )
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      # Seven days, because this is a per-commit build artefact and not a
+      # release: long enough to install and uninstall it on the VM, short
+      # enough that main's push rate does not accumulate hundreds of them.
+      # `if-no-files-found: error` matters more than it looks - the default is
+      # a warning, so a glob that stopped matching would publish an empty
+      # artefact and the job would still be green.
+      - name: Upload the installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: dr-companion-nsis-installer
+          path: src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
   # The one Ruby this app actually depends on is the one it bundles -
   # Ruby4Lich5, currently 4.0.x (DEPENDENCIES.md, docs/DESIGN.md's own
   # dependency table: "Ruby 4.0+"). Anything older is tried in good faith,

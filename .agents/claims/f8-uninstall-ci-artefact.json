@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "task_id": "f8-uninstall-ci-artefact",
+  "agent": "claude-code",
+  "summary": "F8 - install the CI-built NSIS installer on the clean VM and uninstall it, recording what is left against what was there before",
+  "status": "in_progress",
+  "claimed_at": "2026-09-05T15:05:00Z",
+  "updated_at": "2026-09-05T15:05:00Z",
+  "paths": [
+    ".github/workflows/ci.yml",
+    "docs/verification/uninstall-2026-09-05.md",
+    "docs/verification/first-run-2026-09-05.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/f8-uninstall-ci-artefact.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "F8's blocked-on line named E3, which merged in PR #335 along with E2 and E10, so the stated blocker is gone. A different one was found in its place and is fixed here rather than worked around: the ci.yml `tauri` job built the installer and discarded it, so the artefact F8 and F9 both name had never existed on any run. `gh api repos/dancockrell/dr-companion/actions/runs/33972082431/artifacts` printed nothing for a run whose tauri job is success. This lane adds the upload to the existing job - it does not add a second build workflow beside it, and release.yml keeps its own tag-triggered publish, which answers a different question (a signed-off release, not a per-commit build). E3 in docs/verification/first-run-2026-09-05.md exercised a LOCALLY built installer; F8 repeats it on the CI one and records the differences."
+  }
+}

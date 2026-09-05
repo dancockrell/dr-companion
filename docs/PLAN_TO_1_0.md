@@ -281,6 +281,7 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
+| F | F8 | `lane-f/f8-uninstall` | `dev/wt-f8` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12, F7 and F8 in PR #315, which emptied the
@@ -922,12 +923,13 @@ whether it is embedded, docked or a separate window is D0.
   sabotage: both branches, since a skip that cannot become a check is not a skip. Point `VIEWER_SRC` at `Sabotaged.exe` → `FAIL the exported viewer is a bundled resource: no entry in the release config` plus `FAIL and it is bundled to the viewer/ folder…: undefined`; rename `dir.join("viewer")` in `viewer.rs` → `FAIL the release config can be derived at all: Error: viewer.rs does not look for the viewer under a "viewer" folder…`. Restored, md5 `38cc398ffe46` and `20f85970347e` either side.
   pitfalls: the checked branch was exercised with a one-byte placeholder at `godot/build/DRCompanionWorldViewer.exe` (gitignored), because the real export needs the private `shared-assets` submodule. That proves the branch runs and can go red; it does not prove a real installer works, which is F8's and F9's job.
 
-- [!] **F8  Uninstall test on the CI artefact** (≈10)
-  blocked-on: E3, which is `[ ]` and itself waits on E2 — a clean VM, a CI-built NSIS installer and a person at the keyboard. No installer exists on this machine (`src-tauri/target/release/bundle` is absent) and none can be produced here, so there is nothing to uninstall. Marked blocked rather than skipped: an unstarted increment and one that cannot start look identical from the marker alone.
-  touches: none
+- [~] **F8  Uninstall test on the CI artefact** (≈10)
+  owner: lane-f claim: f8-uninstall-ci-artefact since: 2026-09-05
+  touches: .github/workflows/ci.yml, new:docs/verification/uninstall-2026-09-05.md, docs/verification/first-run-2026-09-05.md
   depends-on: E3, F1
   do: E3 again with the CI-built installer; append to the E2 doc.
   verify: appended.
+  finding-before-starting: **the `tauri` job built an installer and threw it away.** `gh api repos/dancockrell/dr-companion/actions/runs/33972082431/artifacts --jq '.artifacts[]'` printed nothing on a run whose `tauri` job is `success`, and `ci.yml` had no `upload-artifact` step — the phrase "the CI artefact" named something that did not exist for the whole life of this increment. The first commit of this lane adds the upload, which is also what F9 and any future installer test need.
 
 - [ ] **F9  `v1.0.0-beta.1`** (≈20)
   touches: none
