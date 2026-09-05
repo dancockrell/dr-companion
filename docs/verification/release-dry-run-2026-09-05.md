@@ -45,9 +45,32 @@ the viewer disabled — so absence had to become a state rather than a crash.
 
 ## Run 2 — green
 
-Tag `v0.0.0-ci-check` re-pointed at `d0bbc0a4`. Run
+Tag `v0.0.0-ci-check` re-pointed at `34556d98`. Run
 [33959089005](https://github.com/dancockrell/dr-companion/actions/runs/33959089005),
 `gh run watch --exit-status` exited 0.
+
+> **Corrected 5 Sep 2026 by a later review pass.** This line read `d0bbc0a4`,
+> which is not an object in this repository — so the green run in the one
+> section that certifies the release path could not be traced to any commit.
+> The run itself carries the answer, which is why the sha is now derived from
+> it rather than restated:
+>
+> ```
+> $ git cat-file -t d0bbc0a4
+> fatal: Not a valid object name d0bbc0a4
+> $ git cat-file -t c8c3bb77                       # positive control
+> commit
+> $ gh api repos/dancockrell/dr-companion/actions/runs/33959089005 \
+>     --jq '{conclusion,head_branch,head_sha}'
+> {"conclusion":"success","head_branch":"v0.0.0-ci-check",
+>  "head_sha":"34556d98d9c45b9531a1c2b86ca51092eee641ff"}
+> $ git log -1 --oneline 34556d98
+> 34556d98 build(release): the viewer's assets are private, so make its absence a state [F1] (#304)
+> ```
+>
+> Run 1's attribution below was already exact (`head_sha` = `c8c3bb77…`,
+> `conclusion` = `failure`); only this one was wrong. Where the `gh api` line
+> and any sha written here disagree, the API is right.
 
 Draft release created with one asset:
 

@@ -41,6 +41,25 @@ than a crash:
 | No `SHARED_ASSETS_TOKEN` | Godot is never installed, the installer carries no viewer, and the release body says so |
 | Token set but the fetch fails | The run **fails**. A viewer was asked for; shipping the smaller installer quietly would be the one unacceptable outcome |
 
+**Only the middle row has ever run.** Added 5 Sep 2026 by a review pass,
+because the table above reads as three live behaviours and two of them are
+unreachable today:
+
+```
+$ gh api repos/dancockrell/dr-companion/actions/secrets
+{"total_count":0,"secrets":[]}
+```
+
+No `SHARED_ASSETS_TOKEN` exists, so `release.yml:47` always resolves it to the
+empty string and sets `viewer=false`. Rows 1 and 3 cannot be reached, which
+means `Install Godot`, `Export the world viewer` and `Confirm the viewer was
+actually built` are permanently skipped, and `release:config --require-viewer`
+and `release:verify --expect-viewer` are read by code that nothing can
+currently make pass either flag. Neither script rejects an unknown flag, so a
+misspelling in the workflow expression would look exactly like the flag
+working. Re-run the command above before trusting rows 1 and 3: a non-zero
+`total_count` is what makes them describe something that can happen.
+
 To build a viewer-carrying release, add a repository secret
 `SHARED_ASSETS_TOKEN` holding a token that can read the shared-assets
 repository. Nothing else changes. Do not paste a token anywhere else in the
