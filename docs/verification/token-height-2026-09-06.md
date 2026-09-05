@@ -97,7 +97,10 @@ range-banded hostile: y = 0.490, top face 0.150, lift 0.34
   although `1-16` carries four unregistered primitive kinds and should draw one.
   The tokens rise by the expected 1.5 m between the two, so this change is
   visible there too, but why nothing is drawn under them was not chased and is
-  not this issue. Worth a look.
+  not this issue. Worth a look. **Chased, in issue #376: nothing was drawn under
+  them because nothing was drawn anywhere. A null `targetCellId` raised inside
+  `cell_visibility_policy.gd`, so no cell on the board mounted any content at
+  all — see [`cell-1-16-2026-09-06.md`](cell-1-16-2026-09-06.md).**
 - **These are fixture tokens, not game state.** The snapshot server invents one
   of each role on purpose; nothing here says anything about what a real room
   contains.

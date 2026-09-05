@@ -208,7 +208,17 @@ func send_intent(intent: Dictionary) -> Dictionary:
 		return current_snapshot
 
 	var exit := _find_exit(from_room, exit_move)
-	var target_id: String = exit.get("targetCellId", "")
+	# The second instance of issue #376, in the one place that could least
+	# afford it. A null `targetCellId` is the manifest saying this exit leaves
+	# the loaded subset, and the two lines below are written to reject exactly
+	# that - but `var target_id: String = <null>` raises "Trying to assign value
+	# of type 'Nil' to a variable of type 'String'" and abandons the function
+	# before either of them runs, so walking one of the mock board's thirteen
+	# null-targeted exits produced no snapshot, no rejection, and no signal at
+	# all. The type test keeps the rejection reachable: an unresolved target is
+	# empty here, which is what the next line already knows how to say.
+	var target_value = exit.get("targetCellId")
+	var target_id: String = target_value if target_value is String else ""
 	if target_id == "" or not WorldManifestLoader.has_cell(target_id):
 		intent_rejected.emit(intent, "exit's destination is outside the loaded manifest")
 		return current_snapshot

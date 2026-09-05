@@ -137,6 +137,16 @@ func _prepare_all_cells() -> void:
 func _apply_detail_window(origin_id: String) -> void:
 	var window: Dictionary = _visibility_policy.detail_window(origin_id, WorldManifestLoader.cells)
 	var requested_ids: Array = window.get("detailIds", [])
+	# A loaded cell is always at distance 0 from itself, so an empty window for
+	# one is not a small budget - it is the policy having failed to answer, and
+	# the whole board then draws nothing. That is what issue #376 looked like
+	# from here: a GDScript runtime error inside `detail_window()` returned null,
+	# this Dictionary came back empty, and nineteen cells mounted no content at
+	# all while the console carried one line about a String constructor. An empty
+	# window for a cell that is *not* in the manifest is the honest answer and is
+	# left alone.
+	if requested_ids.is_empty() and WorldManifestLoader.has_cell(origin_id):
+		push_error("WorldRoot: the detail window for '%s' came back empty although it is a loaded cell, so no cell will mount any primitive and the board will draw nothing. CellVisibilityPolicy.detail_window() failed rather than returning a small budget." % origin_id)
 	var requested: Dictionary = {}
 	for cell_id in requested_ids:
 		requested[cell_id] = true

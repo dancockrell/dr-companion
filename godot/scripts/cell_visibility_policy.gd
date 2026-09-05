@@ -26,7 +26,32 @@ func detail_window(origin_id: String, cells: Dictionary, max_hops: int = DEFAULT
 		for exit in cell.get("exits", []):
 			if not (exit is Dictionary):
 				continue
-			var target_id := String(exit.get("targetCellId", ""))
+			# A null `targetCellId` is the manifest's own way of saying this is a
+			# real exit that leads out of the loaded subset -
+			# `world_manifest_loader.gd` calls the null "the whole signal, in both
+			# the mock fixture and a live snapshot", and
+			# `tools/godot-fixture-contract-test.mjs` asserts both subjects carry
+			# some. Every other reader of this field uses `str()`, which tolerates
+			# it; this line used `String()`, which has no constructor taking Nil,
+			# so it raised at runtime and abandoned the walk.
+			#
+			# What that cost was not one skipped exit. `detail_window()` returned
+			# null, `_apply_detail_window()` got no ids, and *no cell anywhere on
+			# the board mounted any content at all* - no blocks, no ground, no
+			# props - with one console line to say so. It only bit when the walk
+			# reached such an exit inside `max_hops`, so it depended entirely on
+			# which room the player stood in: from `1-14` the mock board draws,
+			# from `1-16` (one hop from `1-40`, which has three null-targeted
+			# exits) it draws nothing at all (issue #376).
+			#
+			# The type test is the check rather than a coercion: skipping is
+			# exactly what a target outside the loaded subset means here, and
+			# `str(null)` would smuggle a "<null>" id into the comparison below
+			# instead of saying so.
+			var target_value = exit.get("targetCellId")
+			if not (target_value is String):
+				continue
+			var target_id: String = target_value
 			if target_id.is_empty() or not cells.has(target_id) or distances.has(target_id):
 				continue
 			distances[target_id] = distance + 1
