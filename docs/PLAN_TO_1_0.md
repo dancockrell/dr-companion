@@ -453,8 +453,9 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   done-when: ticks rise with Settings closed.
   pitfalls: 7, 11, 12.
 
-- [ ] **A2  Tick effect survives store updates** (≈20)
-  touches: C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-host-test.mjs
+- [x] **A2  Tick effect survives store updates** (≈20)
+  commit: 82d3b691 verified: 2026-09-05 minutes: 40
+  touches: C1>src/lib/aiWorkerHost.ts, C1>src/lib/aiIngest.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: A1
   do: extract the tick body into exported `runHostTick(deps)`; effect deps `[enabled, provider]`; inside the tick read `useAppStore.getState()`.
   verify: new check — a provider whose `generate` never resolves; call `runHostTick` (generation in flight); fire 20 store updates; the `AbortSignal` is **not** aborted and `journal.acknowledged()` unchanged.
