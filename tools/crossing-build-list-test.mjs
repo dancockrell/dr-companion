@@ -7,6 +7,7 @@
  * top claiming otherwise, so this fails when the two disagree rather than
  * waiting for a reader to notice.
  */
+import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 
 const BRIEFS = 'data/art/out/geometric-room-briefs.json'
@@ -31,14 +32,26 @@ if (!existsSync(DOC)) {
 }
 const doc = readFileSync(DOC, 'utf8')
 
-// The briefs are ~60MB, so this suite is skipped rather than failed when they
-// have not been built locally. Skipping is announced: a silent skip that ends
-// in "all passed" is the failure this codebase keeps finding.
+// The briefs are ~60MB and gitignored, so a fresh worktree does not have them.
+// This used to skip in that case. The skip announced itself, which reads as
+// careful, and it exited *before* the MIN_EXPECTED floor at the bottom of this
+// file - so the one guard written to catch a collapsed denominator was the one
+// thing the collapse stepped over. On main it ran 1 check instead of 20 and the
+// full run still ended "all passed", which is precisely what the announcement
+// was meant to prevent. A skip printed inside a suite is invisible: the runner
+// reads OK and FAIL lines, so a suite that quietly stops after one of them is a
+// passing suite with a small number beside it.
+//
+// Nothing environmental is missing here - the builder reads tracked inputs only
+// and takes under two seconds - so build them rather than skip.
 if (!existsSync(BRIEFS)) {
-  console.log(`\nNOT CHECKED: ${BRIEFS} is not present, so the document's figures were not`)
-  console.log('re-derived. Run `node tools/build-geometric-room-briefs.mjs` to check them.')
-  console.log(`\n${pass} checked, ${fail} failed, 1 not checked`)
-  process.exit(fail > 0 ? 1 : 0)
+  console.log(`building ${BRIEFS} (gitignored, absent in a fresh worktree, ~60MB)`)
+  execFileSync(process.execPath, ['tools/build-geometric-room-briefs.mjs'], { stdio: 'inherit' })
+}
+ok('the briefs the figures are derived from are available', existsSync(BRIEFS))
+if (!existsSync(BRIEFS)) {
+  console.error('FAILED: `node tools/build-geometric-room-briefs.mjs` produced no briefs')
+  process.exit(1)
 }
 
 const rooms = JSON.parse(readFileSync(BRIEFS, 'utf8')).roomBriefs.filter((r) => r.zone === '1')

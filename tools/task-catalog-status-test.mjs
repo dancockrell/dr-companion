@@ -73,7 +73,18 @@ const panel = readFileSync('src/components/dashboard/TaskFlowPanel.tsx', 'utf8')
 const palette = readFileSync('src/components/shared/CommandPalette.tsx', 'utf8')
 const quick = readFileSync('src/components/layout/QuickSwitchBar.tsx', 'utf8')
 ok('all three task-entry surfaces use the shared catalog store', [panel, palette, quick].every((text) => text.includes('useTaskCatalogs()')))
-ok('quick switch distinguishes failed lookup from loading', quick.includes('Task lookup failed:') && quick.includes('Task details are loading'))
+// The property is that a reader can tell "this lookup failed" from "this is
+// still loading". The literal that used to stand here was 'Task lookup
+// failed:', and 9d92b5ef made the message name which catalog failed - it now
+// reads `${languageLabel} task lookup failed:`, lowercase - so this check went
+// red against code that had got *better*. The suite was unregistered, so
+// nothing said so for however long that was. Assert the property and the
+// reason reaching the player, not the capitalisation: this is stricter than
+// what it replaces, which never required catalog.error be shown at all.
+ok('quick switch distinguishes failed lookup from loading',
+  /task lookup failed/i.test(quick) && /task details are loading/i.test(quick))
+ok('and a failed lookup names the source and carries its reason',
+  /languageLabel[^\n]*task lookup failed[^\n]*catalog\.error/i.test(quick))
 ok('all-or-nothing catalog Promise.all is gone', !panel.includes('Promise.all([\n      pythonStatus()') && !palette.includes('Promise.all([pythonStatus()'))
 
 console.log(fail === 0 ? '\nall passed' : `\n${fail} FAILED`)
