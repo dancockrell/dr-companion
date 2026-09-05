@@ -65,6 +65,8 @@
     "player-data:build": "node tools/build-player-data-doc.mjs",
     "test:version": "node tools/set-version.mjs --check",
     "version:set": "node tools/set-version.mjs",
+    "test:third-party": "node tools/build-third-party.mjs --check",
+    "third-party:build": "node tools/build-third-party.mjs",
     "test:plan": "node tools/plan-audit.mjs",
     "build:crossing-list": "node tools/build-crossing-build-list.mjs",
     "test:panel-data-contracts": "node tools/panel-data-contracts-test.mjs",

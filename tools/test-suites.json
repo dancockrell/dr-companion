@@ -5,6 +5,7 @@
   "test:crossing-build-list",
   "test:player-data",
   "test:version",
+  "test:third-party",
   "test:plan",
   "test:panel-data-contracts",
   "test:safety",

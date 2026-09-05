@@ -780,8 +780,9 @@ whether it is embedded, docked or a separate window is D0.
   do: `grep -rn "fetch(\|reqwest\|https://" src/ src-tauri/src/ | grep -v -E "test|127\.0\.0\.1|localhost"` → one line per destination (Elanthipedia, GitHub releases). State: no telemetry, no analytics, local model on loopback only.
   verify: the grep's destination count equals the doc's line count.
 
-- [ ] **F6  Third-party licences, generated** (≈25)
-  touches: new:tools/build-third-party.mjs, new:THIRD_PARTY.md, package.json
+- [x] **F6  Third-party licences, generated** (≈25)
+  commit: TBD verified: 2026-09-05 minutes: 50
+  touches: new:tools/build-third-party.mjs, new:THIRD_PARTY.md, package.json, tools/test-suites.json
   depends-on: none
   do: from `package.json` deps (`license` fields), `cargo metadata`, Lich (BSD-3), Godot (MIT), fonts, and every admitted asset's `sourceLicense` in `godot/assets/shared_asset_selections.json`. `--check` exits 0 when the committed file matches.
   verify: `node tools/build-third-party.mjs --check` exit 0.
