@@ -166,6 +166,181 @@ finally:
         sys.modules["tasks.example_custom"] = real_module
 
 print()
+print("-- containment: a bad script cannot take the app with it --")
+# A task is a separate process (see pythonTasks.ts's header: "Stop kills a
+# process; there is no half-stopped state"), so containment is not something
+# this file can assert by catching an exception. It has to run the real
+# runner as a real child and look at what came back.
+#
+# Three ways a player's script goes wrong, and the point is that the three
+# are reported *differently*. A runner that returned "it failed" for all of
+# them would pass a check that only asked whether each one failed, and the
+# app would have nothing to tell the player.
+#
+# USER_DIR is redirected at the child rather than writing fixtures into
+# python/tasks/user, which holds shipped examples and, on a real machine, a
+# player's own scripts. A test that leaves a file called "raises" in
+# somebody's task list has broken containment in the other direction.
+import subprocess  # noqa: E402
+import tempfile  # noqa: E402
+import textwrap  # noqa: E402
+
+PY_DIR = Path(__file__).resolve().parent
+
+FIXTURES = {
+    "drc_fixture_good": '''"""A task that behaves."""
+
+
+def main():
+    print("fixture: finished")
+''',
+    "drc_fixture_raises": '''"""A task that raises."""
+
+
+def main():
+    raise RuntimeError("containment fixture raised on purpose")
+''',
+    "drc_fixture_exits": '''"""A task that exits non-zero without raising."""
+
+import sys
+
+
+def main():
+    sys.stdout.write("fixture: exiting 3\\n")
+    sys.stdout.flush()
+    raise SystemExit(3)
+''',
+    "drc_fixture_loops": '''"""A task that never finishes."""
+
+import sys
+import time
+
+
+def main():
+    sys.stdout.write("fixture: looping\\n")
+    sys.stdout.flush()
+    while True:
+        time.sleep(0.05)
+''',
+}
+
+# Runs the real runner.main in a child, with USER_DIR pointed at the fixtures.
+DRIVER = textwrap.dedent(
+    """
+    import pathlib
+    import sys
+
+    sys.path.insert(0, sys.argv[1])
+    import runner
+
+    runner.USER_DIR = pathlib.Path(sys.argv[2])
+    raise SystemExit(runner.main(["run", sys.argv[3]]))
+    """
+)
+
+LOOP_TIMEOUT_S = 5
+
+with tempfile.TemporaryDirectory(prefix="drc-containment-") as tmp:
+    tmp_dir = Path(tmp)
+    for stem, source in FIXTURES.items():
+        (tmp_dir / f"{stem}.py").write_text(source, encoding="utf-8")
+
+    def run_fixture(stem: str, timeout: float = 60.0) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, "-c", DRIVER, str(PY_DIR), str(tmp_dir), f"user.{stem}"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+    # The denominator. If the driver is broken - a bad path, an import error,
+    # a runner that cannot see the fixture directory at all - every check
+    # below "passes" by failing for the wrong reason. This is the one that
+    # goes to zero when the harness breaks, so it runs first.
+    good = run_fixture("drc_fixture_good")
+    ok(
+        "the harness can run a well-behaved task through the real runner",
+        good.returncode == 0 and "fixture: finished" in good.stdout,
+        f"exit {good.returncode}, stdout {good.stdout.strip()!r}, stderr {good.stderr.strip()[-200:]!r}",
+    )
+
+    raised = run_fixture("drc_fixture_raises")
+    ok(
+        "a task that raises is reported as a failure naming the exception",
+        raised.returncode != 0
+        and "RuntimeError" in raised.stderr
+        and "containment fixture raised on purpose" in raised.stderr,
+        f"exit {raised.returncode}, stderr tail {raised.stderr.strip()[-160:]!r}",
+    )
+
+    exited = run_fixture("drc_fixture_exits")
+    ok(
+        "a task that exits non-zero is reported with its own exit code, not a traceback",
+        exited.returncode == 3 and "Traceback" not in exited.stderr,
+        f"exit {exited.returncode}, stderr {exited.stderr.strip()[-160:]!r}",
+    )
+
+    looped_timed_out = False
+    looped_started = False
+    try:
+        run_fixture("drc_fixture_loops", timeout=LOOP_TIMEOUT_S)
+    except subprocess.TimeoutExpired as expired:
+        looped_timed_out = True
+        # Partial output, so a timeout that means "the child never started"
+        # cannot be read as "the task looped". Without this the check would
+        # pass just as happily against a fixture that crashed on import and
+        # a driver that hung on its own.
+        partial = expired.stdout or b""
+        if isinstance(partial, bytes):
+            partial = partial.decode("utf-8", "replace")
+        looped_started = "fixture: looping" in partial
+    ok(
+        "a task that loops forever is stopped by the caller's timeout",
+        looped_timed_out,
+        f"timeout was {LOOP_TIMEOUT_S}s",
+    )
+    ok(
+        "...and it really was looping, not failing to start",
+        looped_started,
+    )
+
+    unknown = subprocess.run(
+        [sys.executable, "-c", DRIVER, str(PY_DIR), str(tmp_dir), "user.no_such_task"],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    ok(
+        "an unknown task id is its own reported state, not one of the three above",
+        unknown.returncode == 2 and "No task called" in unknown.stderr,
+        f"exit {unknown.returncode}",
+    )
+
+    # The property the increment is actually about: the app can tell these
+    # apart. Four outcomes, four distinct reported states.
+    reported = {
+        "good": good.returncode,
+        "raises": raised.returncode,
+        "exits": exited.returncode,
+        "unknown": unknown.returncode,
+    }
+    ok(
+        "the four outcomes are reported distinctly rather than as one 'it failed'",
+        len(set(reported.values())) == 4,
+        repr(reported),
+    )
+
+    # And this process is still here, having watched all four. The assertion
+    # is on reported state because the runner is out-of-process; this is the
+    # part that says the out-of-process claim held.
+    after = run_fixture("drc_fixture_good")
+    ok(
+        "this process is unaffected: a good task still runs after all four",
+        after.returncode == 0 and "fixture: finished" in after.stdout,
+        f"exit {after.returncode}",
+    )
+
+print()
 ok("enough was checked for a pass to mean something", checked >= 6, f"{checked} assertions")
 
 print()

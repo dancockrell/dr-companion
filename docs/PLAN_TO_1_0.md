@@ -696,8 +696,9 @@ whether it is embedded, docked or a separate window is D0.
   do: `grep -rhoE "writeJSON\('[^']+'|readJSON<[^>]*>\('[^']+'|(KEY|STORAGE_KEY) = '[^']+'" src/ | sort -u` drives a table: key, what it holds, owner file, behaviour on quota failure (`storage.ts` reports; say what the UI shows). The generator asserts its key count equals the grep's count. Same pattern as `tools/build-crossing-build-list.mjs`.
   verify: `node tools/build-player-data-doc.mjs --check` exit 0 against the committed doc.
 
-- [ ] **E7  Bad-script containment fixtures** (≈20)
-  touches: python/test_runner.py
+- [x] **E7  Bad-script containment fixtures** (≈20)
+  commit: TBD verified: 2026-09-05 minutes: 45
+  touches: python/test_runner.py, typescript/test_runner.ts
   depends-on: none
   do: three fixtures — raises, loops until the runner's timeout, exits non-zero — asserting the runner reports each distinctly and the app process is unaffected (the runner is out-of-process; the assertion is on reported state). Mirror in the TS runner's tests if it has any (`ls typescript/`).
   verify: `npm run test:runner` green with the three names.
