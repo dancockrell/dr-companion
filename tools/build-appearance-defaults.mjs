@@ -219,6 +219,12 @@ function build() {
       schemaVersion: registry.schemaVersion ?? null,
       idCount: ids.size,
       forbiddenSubstitutionRules: control.forbiddenRules,
+      // Carried into the client so `appearance.ts` can refuse a player
+      // override naming an id the registry does not admit. Without it the
+      // client would have no way to tell a valid override from one pointing
+      // at a mesh that will silently never load - the same defect the build
+      // assertion above exists to stop, arriving from the other direction.
+      ids: [...ids].sort(),
     },
     weapon: {
       classes: classesOf(weaponClasses),

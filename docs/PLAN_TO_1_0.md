@@ -271,7 +271,6 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
-| K | K1–K5 | `lane-k/appearance` | `dev/wt-k` | 5 Sep 2026 |
 | G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
@@ -279,19 +278,21 @@ F2, F6, PRs #293 and #295; then C12, F7 and F8 in PR #315, which emptied the
 UNWIRED backlog C6 opened), **I** (I1–I11, PRs #303 and #300) and **L**
 (L1–L5, PRs #305 and this one; L6 is `[!]`, blocked on four acceptance lines
 that need a live character and one human click, neither of which is a code
-change). Their rows are gone from the table above, which is what finishing a
-lane looks like here. **H** is finished too (H1–H4, H6, H7; PRs #316 and
-#318), with H5 and H8 left `[!]`: H5 needs a model runtime this machine does
-not have and no numbers were invented for it, and H8 depends on G6, which is
-not started. Both say what would unblock them.
+change), and **K** (K1–K5, PRs #313 and this one; K6 is `[!]` on a content
+gap, not a code one). Their rows are gone from the table above, which is what
+finishing a lane looks like here. **H** is finished too (H1–H4, H6, H7; PRs
+#316 and #318), with H5 and H8 left `[!]`: H5 needs a model runtime this
+machine does not have and no numbers were invented for it, and H8 depends on
+G6, which is not started. Both say what would unblock them.
 
-**K** is claimed (row above). C7 recorded `rewrite/remove-2d` as an open
-question for that branch's owner, and Lane K's dependency on it turned out to
-be narrower than version 3 assumed: appearance touches none of the six doomed
-files, so K1–K5 are unblocked and only **K6** (the picker UI, which renders
-into `DashboardLayout.tsx`) waits on the answer. **L1** is free now
-that B3 is done. **G** waits on Lane A finishing; C4 has landed, so
-`presentationBridge.ts` is split and no longer blocks it.
+**K1–K5 are done** (PRs #313 and the Lane K follow-up). C7's open question
+turned out not to gate any of them: appearance touches none of the six files
+`rewrite/remove-2d` deletes, which one `git diff --stat` established.
+**K6 is `[!]`** for a different and better reason than C7 — the registry admits
+no item meshes, so a picker would have nothing to offer but scenery; see its
+own `note:`. **L1** is free now that B3 is done. **G** is claimed and has
+landed G0 and G2–G5 (PR #317), so the line that used to stand here saying it
+waits on Lane A is stale and has gone.
 
 **D6 is free to claim**, and needs one thing this fleet cannot supply on its
 own: D5's measurements were all taken against the mock bridge, and D6 depends
@@ -1193,28 +1194,33 @@ receives. No portraits, no images in the client.
   verify: `node tools/build-appearance-defaults.mjs --check` exit 0; an unknown noun maps to `null`, never a guess.
   sabotage: point a class at an id not in the registry → red naming it.
 
-- [ ] **K3  Snapshot carries appearance** (≈25)
-  touches: src/lib/presentationBridge.ts, new:src/lib/appearance.ts, tools/presentation-bridge-test.mjs
+- [x] **K3  Snapshot carries appearance** (≈25)
+  commit: (this PR) verified: 2026-09-05 minutes: 60
+  touches: src/lib/presentationBridge.ts, new:src/lib/appearance.ts, tools/presentation-bridge-test.mjs, src/lib/presentationTypes.ts, src/lib/usePresentationBridgePublisher.ts, tools/build-appearance-defaults.mjs, src/data/appearanceDefaults.json, tools/build-player-data-doc.mjs, docs/PLAYER_DATA.md
   depends-on: K2, C4
   do: `appearance.ts`: `appearanceFor(kind, name)` = override (`readJSON('drc.appearance.v1')`) ?? default ?? null; `setOverride`, `resetOverride`. `compileWorldSnapshot` attaches `appearance` to each entity and to `player` (wielded items from `CharacterStatus` — `grep -n "wield\|worn\|armor" src/types/index.ts`). Rust passes entities through opaquely already; `player` is `Option<Value>` — nothing to change there.
   verify: presentation-bridge test: a fixture with a bastard sword → `appearance.modelId` equals the Large Edged default; an override wins; unknown → absent field, not null-string.
 
-- [ ] **K4  Godot maps `modelId`** (≈Codex; contract only here)
+- [x] **K4  Godot maps `modelId`** (≈Codex; contract only here)
+  commit: (this PR) verified: 2026-09-05 minutes: 15
   touches: docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: K3
   do: §11 states the field, the fallback order, and the test Godot must add (`entity_projection_test.gd`: unknown id → class default; missing field → neutral token). File the content task in the ledger for Codex.
   verify: claim filed; §11 names the test.
 
-- [ ] **K5  Override export / import / merge** (≈30)
+- [x] **K5  Override export / import / merge** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 35
   touches: K3>src/lib/appearance.ts, new:tools/appearance-test.mjs, package.json, tools/test-suites.json
   depends-on: K3
   do: one JSON `{version, overrides:{...}, provenance:'player'}`; import merges with the local player's own choices always winning; conflicts returned as a list, never silently overwritten; unknown ids ignored with a count.
   verify: tests per rule.
   sabotage: let import overwrite → red.
 
-- [ ] **K6  Picker UI** (≈40)
+- [!] **K6  Picker UI** (≈40)
+  blocked-on: the asset registry admits no item meshes, so the picker has nothing to offer
   touches: new:src/components/shared/AppearancePicker.tsx, src/components/dashboard/DashboardLayout.tsx
   depends-on: K5
+  note: K1–K5 are `[x]`, so nothing in Lane K blocks this. `godot/assets/shared_asset_selections.json` holds two ids and both are scenery, so `do:`'s "grid of registry entries for its class" would today be a grid offering a rock and a footbridge as alternatives to a sword — a UI that can only be exercised by making exactly the substitution `admission.forbiddenSubstitutions` forbids, and whose `verify:` (set, reload, still set) would pass while demonstrating the wrong behaviour. `knownModelIds()` and `appearanceClasses()` in `src/lib/appearance.ts` are what it will read; unblock it when the registry admits its first item mesh. Codex's side is filed as `.agents/claims/k4-godot-appearance-mapping.json`.
   do: from the inventory list, click an item → grid of registry entries for its class (thumbnails from the registry if it has them, labelled squares if not); one click sets, one resets; shows "default (from Large Edged)" vs "your choice".
   verify: browser: set, reload, still set; reset → default.
 

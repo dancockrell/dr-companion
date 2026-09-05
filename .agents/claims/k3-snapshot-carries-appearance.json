@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "task_id": "k3-snapshot-carries-appearance",
+  "agent": "claude-code",
+  "summary": "K3 - src/lib/appearance.ts resolves override ?? default ?? nothing, and compileWorldSnapshot attaches the result to entities, ground items and the player",
+  "status": "done",
+  "claimed_at": "2026-09-05T20:40:00Z",
+  "updated_at": "2026-09-05T21:40:00Z",
+  "paths": [
+    "src/lib/appearance.ts",
+    "src/lib/presentationBridge.ts",
+    "src/lib/presentationTypes.ts",
+    "src/lib/usePresentationBridgePublisher.ts",
+    "tools/presentation-bridge-test.mjs",
+    "tools/build-appearance-defaults.mjs",
+    "src/data/appearanceDefaults.json",
+    "tools/build-player-data-doc.mjs",
+    "docs/PLAYER_DATA.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/k3-snapshot-carries-appearance.json"
+  ],
+  "symbols": [
+    "appearanceFor",
+    "playerAppearanceFor",
+    "weaponClassFor",
+    "armorClassFor",
+    "setAppearanceOverride",
+    "resetAppearanceOverride",
+    "Appearance",
+    "PlayerAppearance"
+  ],
+  "coordination": {
+    "depends_on": ["K2", "C4"],
+    "conflicts_with": ["Lane G (presentationBridge.ts)"],
+    "notes": "presentationBridge.ts is shared with Lane G per the conflict matrix; C4's split has landed and G has not started, and this branch was rebased on origin/main immediately before pushing. The changes are additive: three spread-in optional fields and one new optional param. No existing field or guard was reshaped. Item-name normalisation is armorLoadout.ts's armorPieceId/armorCommandTarget and armour classification is its inferArmorCoverage - imported, not reimplemented, so a piece cannot be one coverage in ArmorManager and another in the viewer.",
+    "corrections_to_the_plan": "K3's `do:` says 'wielded items from CharacterStatus - grep -n \"wield|worn|armor\" src/types/index.ts'. That grep finds nothing wieldable: the field is `hands?: { left, right }`, and the only `worn` is on InventorySummary, which was NOT a parameter of compileWorldSnapshot. So `inventory?: InventorySummary | null` was added to the compiler and to publishWorldSnapshotIfChanged, and usePresentationBridgePublisher now subscribes to s.inventory. Optional because a snapshot published before the first inventory scan is still a complete snapshot.",
+    "deliberate_addition": "GroundItemSnapshot also carries appearance. Same one-line resolver, and it is the only place the weapon table can actually fire today: a dropped broadsword is a real Large Edged item, where a creature's noun is neither a weapon nor armour. Attaching to entities alone would have shipped a field nothing in the fixture could populate."
+  },
+  "evidence": {
+    "shape": "Appearance = { class, modelId: string | null, provenance: 'derived' | 'player' }. `class` is kept even when modelId is null because it is the useful fact and the only thing the resolver actually established; the field is ABSENT (never null-filled) when the noun named no class at all, the same absent-means-unknown contract `tactical` uses.",
+    "registry_ids_in_the_client": "tools/build-appearance-defaults.mjs now emits registry.ids into the JSON so the client can refuse an override naming an id the registry never admitted. Without it an override would render as nothing, indistinguishable from the class having no art, and the player would have no way to tell their choice had failed.",
+    "storage_key_guard": "test:player-data went NOT RUN with 'The description map and the tree disagree: keys with no description: drc.appearance.v1'. That is an existing guard working exactly as intended - every localStorage key must be described - so drc.appearance.v1 was added to DESCRIBES and docs/PLAYER_DATA.md regenerated (25 keys, 21 owner files, 298 source files scanned)."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "verify (plan's own line): a fixture with a bastard sword -> appearance.modelId equals the Large Edged default. 'OK a bastard sword resolves to the Large Edged default, whatever that default currently is  null'. Asserted against defaults.weapon.classes['Large Edged'] rather than a hardcoded null, so it stays true after a mesh is admitted.",
+      "verify: an override wins -> 'OK the override wins over the compiled default  dr.shared.kenney-nature.wood-narrow-bridge', 'OK and it is marked as the player's choice, not derived', 'OK the override reaches the snapshot, not only the resolver'",
+      "verify: unknown -> absent field, not null-string -> 'OK a ground item whose name does not resolve has the field ABSENT, not a null string  [\"id\",\"roomId\",\"name\"]' and 'OK a creature carries no appearance rather than an invented one'",
+      "longest-phrase matching: 'a heavy bastard sword' -> Large Edged; 'a slim throwing knife' -> Light Thrown, not Small Edged; 'a notched greatsword' -> Twohanded Edged, not Large Edged",
+      "sabotage A (make the resolver guess: unmatched noun returns 'Large Edged' instead of null) -> exit 1, 4 red and only those 4: 'FAIL a noun nobody has mapped resolves to no class, never the nearest match', 'FAIL and so resolves to no appearance at all', 'FAIL a ground item ... ABSENT ... [\"id\",\"roomId\",\"name\",\"appearance\"]', 'FAIL a creature carries no appearance rather than an invented one'. Restored.",
+      "sabotage B (honour an override id the registry never admitted) -> FIRST RUN STAYED GREEN. The check was passing for the wrong reason: it wrote the storage key 'bastard sword' where the resolver reads armorPieceId's 'bastard-sword', so the override never applied and the branch under test was never executed. Fixed the test to key with armorPieceId and to assert that key explicitly as its own control; re-ran the same sabotage -> exit 1, 'FAIL an override already in storage naming an unadmitted id is ignored ... dr.shared.nothing.at.all' plus its provenance partner, and nothing else. Restored.",
+      "restore: md5sum -c -> src/lib/appearance.ts: OK, src/lib/presentationBridge.ts: OK",
+      "npx tsc -b -> exit 0",
+      "node tools/build-appearance-defaults.mjs --check -> exit 0, all passed (the registry.ids addition did not break the drift check)",
+      "node tools/run-tests.mjs -> all passed",
+      "node tools/plan-audit.mjs -> plan ok"
+    ]
+  }
+}

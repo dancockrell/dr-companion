@@ -633,6 +633,32 @@ with `modelId: null` means "this is a Large Edged weapon and no mesh has been
 admitted for that class." Those are different facts and the field keeps them
 apart, the same way `tactical` is absent rather than null-filled.
 
+It appears in three places, and K3 shipped all three:
+
+```ts
+EntitySnapshot.appearance?: Appearance;      // from the entity's own noun
+GroundItemSnapshot.appearance?: Appearance;  // from the item's name
+PlayerSnapshot.appearance?: {
+  leftHand?: Appearance;   // absent, not null: "unknown" is not "empty-handed"
+  rightHand?: Appearance;
+  worn?: Appearance[];     // ARMOR_COVERAGE order, one piece per location
+};
+```
+
+Two consequences worth stating rather than leaving to be rediscovered:
+
+- **An entity almost never carries one.** The table covers weapons and armour,
+  and "a kobold" is neither, so a creature's `appearance` is absent by design.
+  Ground items are where the weapon table actually fires today — a dropped
+  broadsword is a real Large Edged item. A viewer that assumes every entity has
+  an `appearance` will be wrong about nearly all of them.
+- **The player's own figure is the enriched case.** The wielded item comes from
+  `CharacterStatus.hands` — which is what the field is called; there is no
+  `wield` anywhere in the client — and worn pieces from `InventorySummary.worn`,
+  which arrives on a separate bridge call. A snapshot published before the first
+  inventory scan legitimately has no `worn`, and that is "not asked yet", not
+  "wearing nothing."
+
 ### What Godot does with it
 
 Resolution order, and it terminates in a token rather than in a substitution:
@@ -657,5 +683,19 @@ Never an invented mesh at any rung. A missing weapon shows an empty hand.
 - an entity with `appearance.modelId: null` renders the neutral token for its
   `class`, and specifically not the token for a different class.
 
+- a ground item and the player's `rightHand` go through the same resolution as
+  an entity, so a fix to one cannot leave the other two behind;
+- `player.appearance.worn` with two pieces renders two locations, and a missing
+  `worn` renders the figure without armour rather than refusing to render.
+
 This is Codex's to write, under the §2 boundary: Claude owns what the field
-contains, Codex owns the reading of it.
+contains, Codex owns the reading of it. The request is filed as
+`.agents/claims/k4-godot-appearance-mapping.json`; check it with
+`node tools/plan-audit.mjs --claims` before touching the viewer's entity
+projection.
+
+**Do not build a fallback that substitutes across classes.** Rung 2 above says
+"class default" and means the neutral token *for that class* — not the nearest
+mesh from another one. Every rung of the order ends in a token or in nothing.
+If the viewer ever has to choose between two meshes for one entity, the data
+is wrong and the right move is to render nothing and say so, not to pick.

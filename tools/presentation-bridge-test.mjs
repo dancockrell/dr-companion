@@ -16,6 +16,17 @@ import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, should
 // Imported rather than retyped: a test that hardcodes the number it checks
 // only proves somebody remembered to edit two places.
 import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES } from '../src/lib/isometric-board-layout.mjs'
+import {
+  APPEARANCE_STORAGE_KEY,
+  appearanceFor,
+  setAppearanceOverride,
+  weaponClassFor,
+} from '../src/lib/appearance.ts'
+import { armorPieceId } from '../src/lib/armorLoadout.ts'
+// Same reason: the appearance checks below assert against the compiled table,
+// not against the values it happens to hold today. Every class is null now,
+// and a hardcoded null would keep passing after a mesh is admitted.
+import defaults from '../src/data/appearanceDefaults.json' with { type: 'json' }
 
 let pass = 0
 let fail = 0
@@ -370,6 +381,130 @@ console.log('\n-- justReconnected: the false->true edge that forces a publish pa
   ok('still disconnected: not a reconnect', justReconnected(false, false) === false)
   ok('connected -> disconnected: not a reconnect (dropping is not reconnecting)',
     justReconnected(false, true) === false)
+}
+
+console.log('\n-- appearance: the class resolves, the mesh is allowed not to exist --')
+{
+  // Read from the compiled table rather than retyped. Every class is null
+  // today, so a hardcoded `=== null` here would pass for the wrong reason and
+  // keep passing after Codex admits a weapon mesh, which is the moment this
+  // check most needs to be true.
+  const LARGE_EDGED = defaults.weapon.classes['Large Edged']
+  const SMALL_EDGED = defaults.weapon.classes['Small Edged']
+
+  ok('a bastard sword is Large Edged, not the bare "sword" entry it contains',
+    weaponClassFor('a heavy bastard sword') === 'Large Edged', String(weaponClassFor('a heavy bastard sword')))
+  ok('a bastard sword resolves to the Large Edged default, whatever that default currently is',
+    appearanceFor('weapon', 'a heavy bastard sword')?.modelId === LARGE_EDGED, String(LARGE_EDGED))
+  ok('a throwing knife is Light Thrown, not Small Edged (longest phrase wins)',
+    weaponClassFor('a slim throwing knife') === 'Light Thrown', String(weaponClassFor('a slim throwing knife')))
+  ok('a greatsword is Twohanded Edged, not Large Edged',
+    weaponClassFor('a notched greatsword') === 'Twohanded Edged', String(weaponClassFor('a notched greatsword')))
+
+  // The whole point of the table: something nobody has mapped gets nothing.
+  ok('a noun nobody has mapped resolves to no class, never the nearest match',
+    weaponClassFor('a chthonic warblade of the ninth seal') === null)
+  ok('and so resolves to no appearance at all',
+    appearanceFor('weapon', 'a chthonic warblade of the ninth seal') === null)
+
+  ok('armour classification is armorLoadout.ts\'s, not a second copy',
+    appearanceFor('armor', 'a steel helm')?.class === 'head',
+    String(appearanceFor('armor', 'a steel helm')?.class))
+  ok('a class with no admitted mesh still reports its class',
+    appearanceFor('weapon', 'a rusty dagger')?.class === 'Small Edged')
+  ok('...and its modelId is the compiled default for that class',
+    appearanceFor('weapon', 'a rusty dagger')?.modelId === SMALL_EDGED, String(SMALL_EDGED))
+
+  const snap = compileWorldSnapshot({ zone: ZONE, here: HERE, character: CHARACTER, sequence: 30 })
+  const dagger = snap?.groundItems?.find((i) => i.name === 'a rusty dagger')
+  const kronars = snap?.groundItems?.find((i) => i.name === 'some copper kronars')
+  ok('a ground item whose name resolves carries appearance',
+    dagger?.appearance?.class === 'Small Edged', String(dagger?.appearance?.class))
+  ok('a ground item whose name does not resolve has the field ABSENT, not a null string',
+    kronars !== undefined && !('appearance' in kronars),
+    kronars ? JSON.stringify(Object.keys(kronars)) : 'no such item')
+  // A creature noun is neither a weapon nor armour, so it must resolve to
+  // nothing. This is the check that would go red if the resolver ever started
+  // guessing - "a wild boar" is exactly the kind of name a loose matcher
+  // would find a mesh for.
+  const boar = snap?.entities?.find((e) => e.name === 'a wild boar')
+  ok('a creature carries no appearance rather than an invented one',
+    boar !== undefined && !('appearance' in boar),
+    boar ? JSON.stringify(Object.keys(boar)) : 'no such entity')
+}
+
+console.log('\n-- appearance: the player figure, and an override winning --')
+{
+  const ARMED = {
+    ...CHARACTER,
+    hands: { left: null, right: 'a bastard sword' },
+    vitals: { health: 100, healthMax: 100 },
+  }
+  const WORN = { containers: [], worn: ['a steel helm', 'a leather hauberk'], wornCount: 2, looseCount: 0, pressure: 'ok' }
+
+  const snap = compileWorldSnapshot({ zone: ZONE, here: HERE, character: ARMED, inventory: WORN, sequence: 31 })
+  ok('the wielded hand becomes the player\'s weapon appearance',
+    snap?.player?.appearance?.rightHand?.class === 'Large Edged',
+    String(snap?.player?.appearance?.rightHand?.class))
+  ok('an empty hand is ABSENT, not an empty-handed claim',
+    snap?.player?.appearance !== undefined && !('leftHand' in snap.player.appearance),
+    JSON.stringify(Object.keys(snap?.player?.appearance ?? {})))
+  ok('worn pieces resolve through inferArmorCoverage, in ARMOR_COVERAGE order',
+    JSON.stringify(snap?.player?.appearance?.worn?.map((p) => p.class)) === JSON.stringify(['head', 'chest']),
+    JSON.stringify(snap?.player?.appearance?.worn?.map((p) => p.class)))
+
+  const bare = compileWorldSnapshot({ zone: ZONE, here: HERE, character: CHARACTER, sequence: 32 })
+  ok('a character with no hands field and no inventory has NO player appearance field',
+    bare?.player !== null && !('appearance' in bare.player),
+    JSON.stringify(Object.keys(bare?.player ?? {})))
+
+  // localStorage does not exist under Node, so `storage.ts` returns the
+  // fallback and every override path above ran with an empty store. That is
+  // the store's honest behaviour and it is also a check that never exercises
+  // the override branch, so stand one up and drive it.
+  const store = new Map()
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => { store.set(k, v) },
+    removeItem: (k) => { store.delete(k) },
+  }
+
+  const REAL_ID = defaults.registry.ids[0]
+  ok('the registry ids reached the client at all (positive control for the two checks below)',
+    typeof REAL_ID === 'string' && REAL_ID.length > 0, String(REAL_ID))
+
+  ok('setting an override with a real registry id succeeds',
+    setAppearanceOverride('a bastard sword', REAL_ID) === true)
+  ok('the override wins over the compiled default',
+    appearanceFor('weapon', 'a bastard sword')?.modelId === REAL_ID,
+    String(appearanceFor('weapon', 'a bastard sword')?.modelId))
+  ok('and it is marked as the player\'s choice, not derived',
+    appearanceFor('weapon', 'a bastard sword')?.provenance === 'player')
+  ok('the override reaches the snapshot, not only the resolver',
+    compileWorldSnapshot({ zone: ZONE, here: HERE, character: ARMED, inventory: WORN, sequence: 33 })
+      ?.player?.appearance?.rightHand?.modelId === REAL_ID)
+
+  ok('an override naming an id the registry never admitted is refused',
+    setAppearanceOverride('a bastard sword', 'dr.shared.nothing.at.all') === false)
+  // Keyed with armorPieceId rather than a hand-typed string. The first
+  // version of this check typed 'bastard sword', the store is keyed
+  // 'bastard-sword', so the override never applied and the check passed
+  // without ever reaching the line it was written for - it stayed green under
+  // a deliberate sabotage of that line, which is how it was caught.
+  const BAD_KEY = armorPieceId('a bastard sword')
+  ok('the test writes the key the resolver actually reads (control for the check below)',
+    BAD_KEY === 'bastard-sword', BAD_KEY)
+  store.set(APPEARANCE_STORAGE_KEY, JSON.stringify({ [BAD_KEY]: 'dr.shared.nothing.at.all' }))
+  ok('an override already in storage naming an unadmitted id is ignored, not rendered as a mesh that never loads',
+    appearanceFor('weapon', 'a bastard sword')?.modelId === defaults.weapon.classes['Large Edged'],
+    String(appearanceFor('weapon', 'a bastard sword')?.modelId))
+  ok('...and it reports as derived, so the player is not told a refused choice took',
+    appearanceFor('weapon', 'a bastard sword')?.provenance === 'derived')
+
+  store.clear()
+  ok('resetting returns the item to its compiled default',
+    appearanceFor('weapon', 'a bastard sword')?.provenance === 'derived')
+  delete globalThis.localStorage
 }
 
 console.log('')

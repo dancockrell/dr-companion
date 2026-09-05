@@ -6,7 +6,11 @@
     "source": "godot/assets/shared_asset_selections.json",
     "schemaVersion": 1,
     "idCount": 2,
-    "forbiddenSubstitutionRules": 2
+    "forbiddenSubstitutionRules": 2,
+    "ids": [
+      "dr.shared.kenney-nature.wood-narrow-bridge",
+      "dr.shared.tabletop-weathered-stone.scatter"
+    ]
   },
   "weapon": {
     "classes": {
