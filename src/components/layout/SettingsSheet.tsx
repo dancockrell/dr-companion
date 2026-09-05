@@ -21,6 +21,7 @@ import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale'
 import { DEMO_PRESET_LIST } from '../../bridge'
 import { loadPrefs } from '../../lib/persistence'
 import { useModalDialog } from '../../lib/useModalDialog'
+import { LICH_LICENSE } from '../../data/lichLicense'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -56,6 +57,9 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // it and does not report it back; the select would otherwise sit on its
   // default while the app showed somebody else.
   const [demoPreset, setDemoPreset] = useState(() => loadPrefs().demoPreset ?? 'basic_prime')
+
+  // E9. Collapsed by default: the licence has to be present, not prominent.
+  const [showLichLicence, setShowLichLicence] = useState(false)
   const dialogRef = useModalDialog(onClose)
 
   return (
@@ -509,6 +513,63 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 >
                   Demo: broken pattern
                 </button>
+              </div>
+            )}
+          </section>
+
+          {/* E9. The wizard's ComponentCard already tells a player that
+              Ruby4Lich5 is somebody else's BSD-3-Clause software, at the
+              moment they choose to install it. That is a disclosure, not the
+              licence: condition 2 asks that the notice, the conditions and the
+              disclaimer be reproduced with the distribution, and the wizard is
+              a screen a returning player never sees again. This is where the
+              text itself lives - collapsed, because nobody reads it, and
+              present, because they have to be able to.
+
+              The text is not typed here. `src/data/lichLicense.ts` is the one
+              copy in this repository, and `tools/build-third-party.mjs`
+              renders THIRD_PARTY.md's Lich section from that same module and
+              re-reads a real Lich install to check it, so the two cannot
+              drift into disagreeing. */}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+              Licences
+            </h3>
+            <p className="text-xs text-ink-faint leading-snug">
+              DR Companion is MIT. It installs and talks to{' '}
+              <a
+                href={LICH_LICENSE.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-info hover:underline"
+              >
+                Lich
+              </a>
+              , which is {LICH_LICENSE.spdx} and is not part of this app.
+              THIRD_PARTY.md in the source lists everything else.
+            </p>
+            <button
+              type="button"
+              aria-expanded={showLichLicence}
+              className="w-full rounded-lg border border-border px-3 py-2 text-left text-xs text-ink-muted hover:text-ink"
+              onClick={() => setShowLichLicence((v) => !v)}
+            >
+              {showLichLicence ? 'Hide' : 'Show'} Lich&apos;s {LICH_LICENSE.spdx} licence
+            </button>
+            {showLichLicence && (
+              <div className="rounded-lg border border-border p-3 space-y-2 text-xs leading-snug text-ink-faint">
+                <p className="font-medium text-ink-muted">{LICH_LICENSE.title}</p>
+                {LICH_LICENSE.holders.map((holder) => (
+                  <p key={holder}>{holder}</p>
+                ))}
+                <p>All rights reserved.</p>
+                <p>{LICH_LICENSE.grant}</p>
+                <ol className="list-decimal space-y-1 pl-4">
+                  {LICH_LICENSE.conditions.map((condition) => (
+                    <li key={condition.slice(0, 24)}>{condition}</li>
+                  ))}
+                </ol>
+                <p>{LICH_LICENSE.disclaimer}</p>
               </div>
             )}
           </section>

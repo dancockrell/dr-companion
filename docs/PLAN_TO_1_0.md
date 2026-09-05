@@ -283,6 +283,7 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
+| E | E9, E11, E12, F5, then E1–E3, E10 | `lane-e/first-run` | `dev/wt-e` | 5 Sep 2026 |
 | G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
@@ -781,11 +782,14 @@ whether it is embedded, docked or a separate window is D0.
   do: these two already exercise `attachGame`/`detachGame`/`backfill` (`grep -ln "detachGame\|backfill" tools/*.mjs`). Add: socket dropped mid-stream → pane says disconnected; `sendGame` refused with a reason; reconnect → backfill runs (`gameLink.ts` `backfill()`).
   verify: both suites green with the three named checks.
 
-- [ ] **E9  Lich's BSD-3 licence in the app** (≈15)
-  touches: src/components/layout/SettingsSheet.tsx
+- [x] **E9  Lich's BSD-3 licence in the app** (≈15)
+  commit: (this PR) verified: 2026-09-05 minutes: 45
+  touches: new:src/data/lichLicense.ts, src/components/layout/SettingsSheet.tsx, tools/build-third-party.mjs, THIRD_PARTY.md, docs/PLAYER_DATA.md
   depends-on: none
+  result: `C:/Ruby4Lich5/Lich5/LICENSE` read rather than trusted — it is the BSD 3-Clause License, holders Murray Miron (2005-2006), Matt Lowe/Tillmen (2006-2020) and Elanthia Online (2021-present). A Licences section in the Settings sheet shows the grant, all three conditions and the disclaimer, collapsed behind a button.
   do: read `<lich>/LICENSE` head (ENGINE.md says verify, not trust); an About section with the licence text and copyright lines; Godot's MIT joins in F6.
-  verify: renders; `grep -c "Redistribution and use" src/components/layout/SettingsSheet.tsx` ≥ 1.
+  verify: the original line here was `grep -c "Redistribution and use" src/components/layout/SettingsSheet.tsx` ≥ 1, which asserts the mechanism — the text typed into the component — rather than the property. F6 already held those copyright lines in `tools/build-third-party.mjs`, so typing the text into the sheet as well would have been a second copy of a licence, which is the one document where two versions drifting is not merely untidy (§1 trap 17). The text lives once, in `src/data/lichLicense.ts`; the sheet and THIRD_PARTY.md both render from it. So the property is checked instead, and by command: `node tools/build-third-party.mjs --check` exit 0, whose Lich block now compares the module's grant, all three conditions and the disclaimer against the installed `LICENSE` (whitespace-flattened, since the file is hard-wrapped and the module is not), and whose new Settings block asserts the sheet imports the module and renders all four fields. `grep -c "Redistribution and use" src/data/lichLicense.ts` → 1. On a machine with no Lich the comparison still says NOT CHECKED rather than passing.
+  sabotage: (1) `must retain` → `must keep` in the module → `FAIL ...and condition 1 the app shows is the installed one`, exit 1, that one check only; (2) `{LICH_LICENSE.disclaimer}` → `{null}` in the sheet → `FAIL ...and renders LICH_LICENSE.disclaimer`, exit 1, that one check only. Both restored; md5 `86ce1299cfb2e7c57207a0b14678c211` and `26cb139010cb5f174b5a75bd7544048c` matched their pre-sabotage values.
 
 - [ ] **E10  Walk the wizard on the VM** (≈30)
   touches: none

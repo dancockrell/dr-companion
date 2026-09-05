@@ -37,6 +37,9 @@
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+// E9 put Lich's licence text into the app's Settings sheet. That screen and
+// this document now read one module, so a correction to either reaches both.
+import { LICH_LICENSE as LICH } from '../src/data/lichLicense.ts'
 
 const OUT = 'THIRD_PARTY.md'
 const LOCK = 'package-lock.json'
@@ -152,18 +155,9 @@ const selections = JSON.parse(readFileSync(SELECTIONS, 'utf8'))
 const assetLicences = [...new Set(selections.selections.map((s) => s.sourceLicense))].sort()
 if (!assetLicences.length) throw new Error(`${SELECTIONS} declared no sourceLicense; refusing to publish.`)
 
-/**
- * Lich's licence, and its copyright holders, recorded here rather than read
- * from disk - see the header. The check below is what keeps this honest.
- */
-const LICH = {
-  spdx: 'BSD-3-Clause',
-  holders: [
-    'Copyright (c) 2005-2006, Murray Miron',
-    'Copyright (c) 2006-2020, Matt Lowe (Tillmen)',
-    'Copyright (c) 2021-present, Elanthia Online',
-  ],
-}
+/* Lich's licence, and its copyright holders, are imported at the top of this
+ * file from `src/data/lichLicense.ts` rather than kept here - see that
+ * module's header, and the checks below, which are what keep it honest. */
 
 /* -------------------------------------------------------------- document --- */
 
@@ -211,10 +205,12 @@ installer fetches Ruby4Lich5. Lich is **${LICH.spdx}**:
 
 ${LICH.holders.map((h) => `> ${h}`).join('\n>\n')}
 
-> Redistribution and use in source and binary forms, with or without
-> modification, are permitted provided that the conditions of the
-> BSD 3-Clause License are met. The full text ships with Lich itself, at
-> \`Lich5/LICENSE\` in a Ruby4Lich5 install.
+> ${LICH.grant}
+
+The full text is in the app, under Settings, and in
+\`src/data/lichLicense.ts\`, which is where this section's copyright lines and
+the app's licence screen both come from. It also ships with Lich itself, at
+\`Lich5/LICENSE\` in a Ruby4Lich5 install.
 
 ## Godot
 
@@ -321,7 +317,12 @@ if (crates) {
     skip("Lich's licence text", `no Lich install found at ${LICH_LICENCE_PATHS.join(' or ')}`)
   } else {
     const text = readFileSync(path, 'utf8')
-    ok(`${path} is the BSD 3-Clause License`, /BSD 3-Clause License/.test(text))
+    // Compared with the licence's line wrapping removed: `lichLicense.ts`
+    // holds each clause as one string so the app can wrap it to whatever
+    // width the sheet is, and the file on disk is hard-wrapped at 79 columns.
+    // Without this the comparison would be measuring newlines.
+    const flat = text.replace(/\s+/g, ' ')
+    ok(`${path} is the ${LICH.title}`, text.includes(LICH.title))
     ok('...and carries the copyright holders this document names',
       LICH.holders.every((h) => text.includes(h)),
       LICH.holders.filter((h) => !text.includes(h)).join('; ') || 'all three')
@@ -329,6 +330,29 @@ if (crates) {
     // BSD-3 text. If this is absent the file is not what was read.
     ok('...and the redistribution clause is actually in the file read',
       text.includes('Redistribution and use in source and binary forms'))
+    // E9. The app now reproduces the whole licence, not a summary of it, so
+    // every clause it shows is compared against the installed file rather
+    // than only the copyright lines. A paraphrase that crept into the module
+    // would still satisfy the three checks above and fail these.
+    ok('...and the grant the app shows is the installed one', flat.includes(LICH.grant))
+    for (const [i, condition] of LICH.conditions.entries()) {
+      ok(`...and condition ${i + 1} the app shows is the installed one`,
+        flat.includes(condition))
+    }
+    ok('...and the disclaimer the app shows is the installed one',
+      flat.includes(LICH.disclaimer))
+  }
+}
+
+// The point of E9 is that the text reaches a player, so check the screen that
+// shows it, not only the module that holds it. A section that stopped
+// rendering the licence would leave every check above green.
+{
+  const sheet = readFileSync('src/components/layout/SettingsSheet.tsx', 'utf8')
+  ok('the Settings sheet imports the licence rather than keeping a copy',
+    /import \{ LICH_LICENSE \} from '\.\.\/\.\.\/data\/lichLicense'/.test(sheet))
+  for (const field of ['holders', 'grant', 'conditions', 'disclaimer']) {
+    ok(`...and renders LICH_LICENSE.${field}`, sheet.includes(`LICH_LICENSE.${field}`))
   }
 }
 
