@@ -44,21 +44,34 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { readFlags } from './cli-flags.mjs'
+
+/**
+ * One parse for all three flags, and an unknown one is fatal.
+ *
+ * `--require-viewer` arrives from a template expression in
+ * `.github/workflows/release.yml`, so a misspelling there would have been read
+ * as "no viewer required": the smaller installer would ship, every step green,
+ * on the one build that was supposed to carry a viewer. See tools/cli-flags.mjs.
+ */
+const flags = readFlags({
+  name: 'build-release-config',
+  boolean: ['--check', '--require-viewer'],
+  value: ['--out'],
+})
 
 const root = resolve(import.meta.dirname, '..')
 const BASE = resolve(root, 'src-tauri', 'tauri.conf.json')
-const outFlag = process.argv.indexOf('--out')
-const OUT =
-  outFlag !== -1 && process.argv[outFlag + 1]
-    ? resolve(process.argv[outFlag + 1])
-    : resolve(root, 'src-tauri', 'tauri.release.conf.json')
+const OUT = flags['--out']
+  ? resolve(String(flags['--out']))
+  : resolve(root, 'src-tauri', 'tauri.release.conf.json')
 const VIEWER_SRC = '../godot/build/DRCompanionWorldViewer.exe'
 /** Must match one of `viewer_candidates` in src-tauri/src/viewer.rs. The app
  * looks in `<resources>/viewer/` first; a different destination here would
  * bundle a viewer the app then reports as not installed. */
 const VIEWER_DEST = 'viewer/DRCompanionWorldViewer.exe'
 
-const check = process.argv.includes('--check')
+const check = flags['--check']
 const base = JSON.parse(readFileSync(BASE, 'utf8'))
 const resources = base?.bundle?.resources
 
@@ -127,7 +140,7 @@ if (process.env.DRC_VIEWER_EXE) {
       `${viewerBuilt ? 'It is there.' : 'It is NOT there.'} The emitted map is unaffected by this.`
   )
 }
-const requireViewer = process.argv.includes('--require-viewer')
+const requireViewer = flags['--require-viewer']
 if (requireViewer && !viewerBuilt) {
   console.error(
     `FAILED: --require-viewer was given but ${VIEWER_PROBE} does not exist.\n` +

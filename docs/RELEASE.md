@@ -9,9 +9,52 @@ mechanics and the standing answers.
 ## 1. What a release run does
 
 `.github/workflows/release.yml` fires on any `v*` tag, and on manual dispatch
-with a tag name. It builds the Windows NSIS installer and opens a **draft**
-release with the artefact attached. Nothing is published to players until
-somebody un-drafts it.
+with a tag name. It runs the whole of `ci.yml` on that commit, then builds the
+Windows NSIS installer and opens a **draft** release with the artefact
+attached. Nothing is published to players until somebody un-drafts it.
+
+### The suites run before the build, and that is enforced rather than intended
+
+Until 5 September 2026 they did not. `ci.yml`'s `push` trigger filters on
+`branches:`, which cannot match `refs/tags/v*` — branch and tag filters are
+separate lists — and `release.yml` had no `needs:`. So a tag pushed at any
+commit built an installer and opened a draft release having run `test:bundle`
+and nothing else: 1 of 142 suites, no `tsc`, no lint, no `cargo clippy`, no
+Rust tests, on a commit nobody had verified. Trap 21 in `docs/PLAN_TO_1_0.md`
+records that `main` has no branch protection and no rulesets either, so nothing
+outside those two files closed it.
+
+`ci.yml` now also carries a `workflow_call:` trigger and `release.yml`'s
+`installer` job is `needs: ci`. The suites stay defined in one place, and
+GitHub's own scheduler will not start the build until every job in `ci.yml` has
+succeeded on that commit. Check it rather than take it on trust:
+
+```bash
+grep -n "workflow_call" .github/workflows/ci.yml       # the trigger
+grep -n "needs: ci" .github/workflows/release.yml      # the gate
+```
+
+A `needs:` edge is enforced by the runner, not by anybody remembering; the
+alternative considered — `tags: ['v*']` on `ci.yml` plus a `workflow_run` or a
+commit-status poll here — runs the suites *beside* the release rather than
+before it, which is a report and not a gate.
+
+One thing `needs:` cannot see: `workflow_dispatch` checks out
+`inputs.tag`, which need not be the commit the gate ran on (`github.sha`).
+`installer`'s first step compares the two and fails when they differ, so
+dispatch with the tag selected as the ref.
+
+### The Godot tests run in CI
+
+`ci.yml`'s `godot` job installs a pinned Godot 4.3 for Linux (URL and sha512
+pinned together, the sum taken from the release's own `SHA512-SUMS.txt`) and
+runs `npm run test:godot` — the eleven scripts in `godot/tests`, 131 checks,
+which before 5 September 2026 ran only when a human typed the command on a
+machine that happened to have an engine. The job refuses to run at all if
+`godot/project.godot` stops declaring the version the download is pinned to.
+`tools/godot-tests.mjs` treats `GODOT4` as a contract rather than the first
+entry in a fallback list, so an install that failed makes the job red instead
+of green-with-nothing-checked.
 
 ```bash
 npm run version:set -- 1.0.0-beta.1     # package.json, tauri.conf.json, Cargo.toml
@@ -50,15 +93,33 @@ $ gh api repos/dancockrell/dr-companion/actions/secrets
 {"total_count":0,"secrets":[]}
 ```
 
-No `SHARED_ASSETS_TOKEN` exists, so `release.yml:47` always resolves it to the
+No `SHARED_ASSETS_TOKEN` exists, so `release.yml` always resolves it to the
 empty string and sets `viewer=false`. Rows 1 and 3 cannot be reached, which
 means `Install Godot`, `Export the world viewer` and `Confirm the viewer was
 actually built` are permanently skipped, and `release:config --require-viewer`
 and `release:verify --expect-viewer` are read by code that nothing can
-currently make pass either flag. Neither script rejects an unknown flag, so a
-misspelling in the workflow expression would look exactly like the flag
-working. Re-run the command above before trusting rows 1 and 3: a non-zero
-`total_count` is what makes them describe something that can happen.
+currently make pass either flag. **Where this paragraph and the command above
+disagree, the command is right and this text is stale.** Re-run it before
+trusting rows 1 and 3: a non-zero `total_count` is what makes them describe
+something that can happen.
+
+Because that branch has never executed, a misspelling in either workflow
+expression would have gone unnoticed indefinitely — and until 5 September 2026
+both scripts read their flags with `process.argv.includes(...)`, which cannot
+tell a flag that was not passed from one that was mistyped. `--requre-viewer`
+would have read as *no viewer required*: the smaller installer, shipped green,
+on the one build that was supposed to carry a viewer. Both now go through
+`tools/cli-flags.mjs` and refuse an argument they do not recognise:
+
+```bash
+node tools/build-release-config.mjs --requre-viewer   # exit 1, names the token
+npm run test:release-flags                            # the suite that holds it
+```
+
+That suite pairs every refusal with a control — the correctly spelled flag,
+run the same way, reaching its own branch — because a script that rejected
+*every* argument would otherwise score the same as one that rejects only the
+wrong ones. It does not make rows 1 and 3 reachable. Only the secret does.
 
 To build a viewer-carrying release, add a repository secret
 `SHARED_ASSETS_TOKEN` holding a token that can read the shared-assets

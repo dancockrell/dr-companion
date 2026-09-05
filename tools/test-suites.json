@@ -114,6 +114,7 @@
   "test:server",
   "test:live",
   "test:viewer-absent",
+  "test:release-flags",
   "test:map",
   "test:map-walk",
   "test:map-nearest",

@@ -1,4 +1,5 @@
-# Tag v* -> builds the Windows installer and opens a draft release.
+# Tag v* -> runs the whole of ci.yml on that commit, then builds the Windows
+# installer and opens a draft release. Nothing is built until the gate passes.
 name: release
 
 on:
@@ -15,11 +16,37 @@ permissions:
 
 env:
   # The version godot/project.godot declares (config/features "4.3"). Bumping
-  # the project without bumping this exports with the wrong templates.
+  # the project without bumping this exports with the wrong templates. The
+  # `godot` job in ci.yml pins the same version and refuses to run when
+  # project.godot disagrees with it, so a bump that leaves this behind is
+  # caught by the gate above before this file ever installs anything.
   GODOT_VERSION: '4.3'
 
 jobs:
+  # Everything ci.yml runs, on this exact commit, before anything is built or
+  # published.
+  #
+  # Until 5 Sep 2026 there was no `needs:` in this file and ci.yml's `push`
+  # trigger filtered on `branches:`, which cannot match `refs/tags/v*`. A tag
+  # pushed at any commit therefore built an installer and opened a draft
+  # release having run `test:bundle` and nothing else - 1 of 142 suites, no
+  # tsc, no lint, no clippy, no Rust tests, on a commit nobody had verified.
+  # Trap 21 in docs/PLAN_TO_1_0.md records that `main` has no branch protection
+  # and no rulesets either, so nothing outside these two files closed it.
+  #
+  # Of the two available fixes this is the one that is enforced rather than
+  # merely correlated. Adding `tags: ['v*']` to ci.yml and having this workflow
+  # look for the result would need `workflow_run` (which fires on completion,
+  # not before, and reports from the default branch) or a polling step against
+  # the commit-status API - a check somebody has to keep honest. `needs:` on a
+  # `workflow_call` is a hard edge in GitHub's own scheduler: the installer job
+  # cannot start until every job in ci.yml has succeeded on this commit, and
+  # the suites stay defined in exactly one place.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   installer:
+    needs: ci
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -33,6 +60,26 @@ jobs:
           # before anything was built - which is what the first real run of
           # this workflow found. The submodule is fetched conditionally below.
           submodules: false
+
+      # The gate above ran against the commit this workflow was *triggered* at.
+      # The checkout just above can be pointed somewhere else by the
+      # workflow_dispatch input, and then the suites would have passed on one
+      # tree while a different one was packaged and published - which is the
+      # same hole the `needs:` closes, reopened one step later and harder to
+      # see. Dispatch with the tag selected as the ref; the input then names
+      # the same commit and this passes.
+      - name: The commit CI passed on is the commit being built
+        shell: bash
+        run: |
+          set -euo pipefail
+          built=$(git rev-parse HEAD)
+          if [ "$built" != "${{ github.sha }}" ]; then
+            echo "::error::Checked out $built, but the ci job that gated this run was for ${{ github.sha }}."
+            echo "::error::Re-run this workflow with the tag itself selected as the ref, so the"
+            echo "::error::commit that was tested is the commit that gets shipped."
+            exit 1
+          fi
+          echo "Building $built - the commit the ci job passed on."
 
       # Three states, not two: the assets are present, deliberately absent, or
       # wanted and unreachable. An installer with no world viewer is a
@@ -61,9 +108,16 @@ jobs:
             exit 1
           fi
 
+      # 24, matching ci.yml and scene-art.yml. This file sat on 22 while the
+      # comment in ci.yml said "Node 24 everywhere, matching what this repo is
+      # developed and typed against" - and it is the one workflow that ships
+      # the artefact, so `npm run build` and `npm run tauri:build` were the two
+      # commands running on a runtime nobody develops on. Not demonstrated to
+      # have broken anything; the point is that a difference nobody intended is
+      # a difference nobody is testing.
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable

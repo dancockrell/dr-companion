@@ -98,6 +98,7 @@
     "test:godot": "node tools/godot-tests.mjs",
     "release:config": "node tools/build-release-config.mjs",
     "release:verify": "node tools/verify-release-bundle.mjs",
+    "test:release-flags": "node tools/release-flags-test.mjs",
     "test:godot-export": "node tools/export-godot-viewer.mjs --check",
     "test:live-chain": "node tools/live-chain-check.mjs",
     "test:viewer-absent": "node tools/viewer-absent-test.mjs",

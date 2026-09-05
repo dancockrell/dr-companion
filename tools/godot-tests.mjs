@@ -70,15 +70,28 @@ const MIN_TESTS = Number(process.env.DRC_GODOT_MIN_TESTS ?? 6)
  */
 const MIN_CHECKS = Number(process.env.DRC_GODOT_MIN_CHECKS ?? 60)
 
-/** Where a Godot 4.3 binary tends to be on this machine, after `GODOT4`. The
- * list is a convenience, not a contract: naming the binary explicitly is
- * always allowed and is what CI should do. */
-const CANDIDATES = [
-  process.env.GODOT4,
-  'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64_console.exe',
-  'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64.exe',
-  'godot',
-].filter(Boolean)
+/**
+ * `GODOT4` names the binary; the rest is where one tends to be on this machine.
+ *
+ * The two are not the same kind of thing, which is why the explicit one stands
+ * alone rather than heading a fallback list. `GODOT4` is what CI sets, and a CI
+ * job whose engine failed to install must go red - if a bad `GODOT4` fell
+ * through to `godot` on `PATH` and found nothing, this file would print NOT
+ * CHECKED and exit 0, and the job would be green having run no test at all.
+ * That is the same "a check that cannot fail" shape the rest of this file is
+ * written against, one layer out: here it would be the *job* that could not
+ * fail.
+ *
+ * So: set it and it must work. Leave it unset and the convenience list applies.
+ */
+const EXPLICIT = process.env.GODOT4 || ''
+const CANDIDATES = EXPLICIT
+  ? [EXPLICIT]
+  : [
+      'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64_console.exe',
+      'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64.exe',
+      'godot',
+    ]
 
 function findGodot() {
   for (const candidate of CANDIDATES) {
@@ -93,6 +106,13 @@ function findGodot() {
 }
 
 const godot = findGodot()
+if (!godot && EXPLICIT) {
+  console.error(`FAILED: GODOT4 is set to ${EXPLICIT}, and that does not run.`)
+  console.error('  An engine that was named explicitly and is missing is a broken setup,')
+  console.error('  not an absent one. Reporting "nothing checked" here would let a CI job')
+  console.error('  whose Godot install failed finish green having asserted nothing.')
+  process.exit(1)
+}
 if (!godot) {
   console.log('NOT CHECKED: no Godot binary found.')
   console.log(`  Looked at: ${CANDIDATES.join(', ')}`)
