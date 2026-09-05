@@ -425,7 +425,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   do: script `test:needs-env` prints the suites deliberately outside `test-suites.json` and their requirement: `test:godot-export` (submodule + Godot), `test:live-chain` (B4; the running app), `test:bridge` (Ruby). ENGINE.md gets the same list beside its testing section (`grep -n "run-tests" docs/ENGINE.md`).
   verify: `npm run test:needs-env` prints three names with requirements.
 
-- [ ] **C7  Decide `rewrite/remove-2d` and merge PR #276** (≈30; decision + one merge)
+- [x] **C7  Decide `rewrite/remove-2d` and merge PR #276** (≈30; decision + one merge)
+  commit: (this PR) verified: 2026-09-05 minutes: 30
   touches: none
   depends-on: none
   do: facts as of 5 Sep: `remove-2d` is 4 commits, 80 behind main, no PR, and its own `docs/ADAPTERS.md` opens "PROPOSAL, for review… nothing imports them". PR #276 (creature art pack removal, −797, CI green, claim present) is the mergeable subset. Steps: (a) `gh pr merge 276 --squash --delete-branch`; verify `git ls-tree origin/main public/creatures | wc -l` → 0. (b) Post in the ledger (a claim `c7-remove-2d-decision`, status blocked) the question for the branch owner: rebase and PR the deletion half now, keep `src/domain/` as a separate proposal PR? (c) Put the decision in section 10 for Dan. Lane K waits on this; Lane D does not (their `App.tsx` overlap is zero — checked with `git diff --stat origin/main...origin/rewrite/remove-2d -- src/App.tsx` → empty).
