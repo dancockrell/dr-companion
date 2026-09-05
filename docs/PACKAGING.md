@@ -49,6 +49,10 @@ Artifacts:
 - Does not require admin for current-user NSIS install
 - Live Lich bridge is optional; demo works offline
 
-## CI later
+## CI
 
-GitHub Actions `windows-latest` can run `tauri:build` and attach installers to releases so players never see a terminal.
+This is built, not planned. `.github/workflows/release.yml` runs on a `v*` tag,
+on `windows-latest`, calls `npm run tauri:build`, and attaches
+`src-tauri/target/release/bundle/nsis/*.exe` to a draft release, so players
+never see a terminal. `docs/RELEASE.md` is the procedure; the workflow file is
+what actually runs.

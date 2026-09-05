@@ -9,6 +9,7 @@
   "test:appearance-defaults",
   "test:appearance",
   "test:privacy",
+  "test:doc-claims",
   "test:bug-bundle",
   "test:plan",
   "test:panel-data-contracts",

@@ -29,7 +29,7 @@ The exact feature set changes quickly, but the major systems are now represented
 - a setup/install path for the external DragonRealms/Lich dependencies;
 - Windows desktop packaging through Tauri.
 
-`package.json` is also a useful map of the implemented surfaces: most important client subsystems have a named regression test rather than relying on the UI merely looking plausible.
+`package.json` is also a useful map of the implemented surfaces: most important client subsystems have a named regression test rather than relying on the UI merely looking plausible. `node tools/run-tests.mjs` prints how many suites and how many individual checks actually ran, and refuses to report a result at all below its own floors, so that count is the answer rather than this sentence.
 
 ## Architecture
 
@@ -138,7 +138,7 @@ The repository contains both user-facing and implementation-facing documentation
 - [`docs/PACKAGING.md`](docs/PACKAGING.md) — desktop packaging
 - [`docs/SETUP-POLICY.md`](docs/SETUP-POLICY.md) — installer/setup behavior
 - [`docs/GAME_KNOWLEDGE.md`](docs/GAME_KNOWLEDGE.md) — provenance and scope of game knowledge
-- [`docs/LOCAL_AI_BACKGROUND_WORKER.md`](docs/LOCAL_AI_BACKGROUND_WORKER.md) — interruptible local-AI monitoring, alerts, and evidence-backed background work
+- [`docs/LOCAL_AI_BACKGROUND_WORKER.md`](docs/LOCAL_AI_BACKGROUND_WORKER.md) — the approved architecture for interruptible local-AI monitoring, alerts, and evidence-backed background work. Its own status line says the implementation is not yet complete, so it is a contract rather than a description of what runs today
 - [`docs/ENGINE.md`](docs/ENGINE.md) — scripting/task-engine design
 - [`DEPENDENCIES.md`](DEPENDENCIES.md) — external dependencies not captured by manifests
 
