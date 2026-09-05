@@ -507,7 +507,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   do: `npm run worktree:init && cd src-tauri && cargo test --lib`.
   verify: `test result: ok` with the same passed count CI's `tauri` job reports for main (read it from `gh run view --log` first; require equality).
 
-- [ ] **A8  AI panel promises only what exists** (≈10)
+- [x] **A8  AI panel promises only what exists** (≈10)
+  commit: 3916d0a8 verified: 2026-09-05 minutes: 15
   touches: C1>src/components/shared/AiWorkerPanel.tsx, C1>tools/ai-worker-host-test.mjs
   depends-on: A1
   do: when `!available` and `src/lib/aiLocalProvider.ts` is absent from the build, show "Local model support is not yet available in this build."; once H1 lands, "Point Settings → Local model at a running Ollama or LM Studio on 127.0.0.1". A test reads the panel source and asserts the string matches the presence of `aiLocalProvider.ts`.
@@ -517,28 +518,32 @@ The four increments below came out of reading the 5 Sep implementation
 handoff PDF against the code (section 11). Each is a defect visible in the
 PDF's own source appendices that its text did not call out.
 
-- [ ] **A9  No model means an idle worker, not a red loss counter** (≈20)
+- [x] **A9  No model means an idle worker, not a red loss counter** (≈20)
+  commit: 3916d0a8 verified: 2026-09-05 minutes: 25
   touches: C1>src/lib/aiWorkerHost.ts, C1>src/components/shared/AiWorkerPanel.tsx, C1>tools/ai-worker-host-test.mjs
   depends-on: A1
   do: today an install with no model still journals every line, never acknowledges (the absent provider never returns `ok`), fills the 5000-event bound, and then the panel prints "N events were discarded before review" in `text-danger` forever. The capture is correct; the framing is a lie. When `provider.describe().available` is false: the tick still ingests (capture is continuous), but the panel shows "No local model; N events captured, none reviewed" in ordinary ink and `journalLost` is reported as "unreviewed" not "discarded". Loss stays red only while a provider is available.
   verify: test — absent provider, 6000 lines ingested → status has `unreviewedWithoutModel > 0` and `journalLost` is not surfaced as loss; available provider (scripted) with the same input → loss surfaced.
   sabotage: remove the availability branch → the first check red.
 
-- [ ] **A10  A handled alert stays handled until its condition clears** (≈25)
+- [x] **A10  A handled alert stays handled until its condition clears** (≈25)
+  commit: 9ab5222f verified: 2026-09-05 minutes: 30
   touches: C1>src/lib/aiAlertBroker.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-alert-broker-test.mjs
   depends-on: A2
   do: `acknowledge(key)` deletes the key, and the host's alert effect re-derives `situation:stunned` on every character update, so a stun that lasts four rounds becomes four urgent reviews (one per second with a real provider). The handoff's alert lifecycle separates ACK from RESOLVE. Implement the minimum: the broker keeps a `handled: Set<key>`; `raise()` of a handled key increments `occurrences` but does not re-enter `pending`; `reconcile(activeKeys)` (called by the host after `deriveAlerts`) drops handled keys no longer present, so the next occurrence is a fresh alert. Critical priority is exempt: a repeated disconnect must always re-alert.
   verify: tests — stunned raised, acked, raised again → `pendingCount()` 0 and `occurrences` 2; condition clears then returns → pending 1; a critical key re-enters pending after ack.
   sabotage: skip the `handled` check in `raise` → first check red.
 
-- [ ] **A11  A privacy-gate refusal is a visible failure, not an unhandled rejection** (≈15)
+- [x] **A11  A privacy-gate refusal is a visible failure, not an unhandled rejection** (≈15)
+  commit: 1f92171a verified: 2026-09-05 minutes: 25
   touches: C1>src/lib/aiWorker.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-test.mjs
   depends-on: A2
   do: `assertPromptCarriesNoSecrets` throws (correctly — a leak must stop the call) from outside `generateWithinBudget`'s try; `runWorkerOnce` does not catch; the host's tick has `try/finally` with no `catch`, so the rejection is unhandled and the tick reports nothing. Today unreachable (the live request carries only seqs and kinds) and reachable the moment G4 or G6 puts text in a request. Catch in `runWorkerOnce`: the outcome becomes `{did:'review'|'background-job', result:{ok:false, failure:'privacy_gate', message:<pattern names only>}}`; cursor untouched; job → `failed` with the pattern name; panel shows "Sensitive input withheld". Add `'privacy_gate'` to `ProviderFailure`.
   verify: test — a request whose `state` contains a runtime-assembled `pass`+`word: x` → outcome `privacy_gate`, cursor unchanged, no throw escapes.
   sabotage: let the throw escape → the test's `await` rejects → red.
 
-- [ ] **A12  Job transitions match the contract: completed needs a result** (≈15)
+- [x] **A12  Job transitions match the contract: completed needs a result** (≈15)
+  commit: d5237051 verified: 2026-09-05 minutes: 30
   touches: C1>src/lib/aiJobStore.ts, C1>tools/ai-job-store-test.mjs, C1>docs/LOCAL_AI_BACKGROUND_WORKER.md
   depends-on: C1
   do: code allows `running → completed` directly and `checkpointed → failed`; the handoff's table (§25) allows neither and adds `checkpointed → queued`. Reconcile in favour of the stricter table with one exception kept: `running → completed` stays legal **only** when the transition carries a `resultRef` (a job that finished with nothing to review, e.g. evaluation mining that found no cases). Add `resultRef?: string` to `BackgroundJob`; `transition(…, 'completed')` without it is refused. Add `checkpointed → queued`. Write the final table into `LOCAL_AI_BACKGROUND_WORKER.md` §6 so the doc and the code cannot disagree.
