@@ -27,6 +27,9 @@ import { armorPieceId } from '../src/lib/armorLoadout.ts'
 // not against the values it happens to hold today. Every class is null now,
 // and a hardcoded null would keep passing after a mesh is admitted.
 import defaults from '../src/data/appearanceDefaults.json' with { type: 'json' }
+// Shared with tools/godot-fixture-contract-test.mjs, which compiles a live
+// snapshot from this same zone to check the viewer's manifest contract.
+import { LIVE_HERE as HERE, LIVE_ZONE as ZONE } from './live-zone-fixture.mjs'
 
 let pass = 0
 let fail = 0
@@ -41,42 +44,10 @@ function ok(label, cond, detail) {
   }
 }
 
-/** A minimal, realistic three-room zone: Town Green North (14), with a real
- * link south to 13 and a zone-leaving exit ("go gate") that has no local
- * target - the exact shape `mapData.ts`'s `toZoneRoom` produces when
- * `moves.length` exceeds `links.length`. */
-const ZONE = {
-  ok: true,
-  zone: '1',
-  name: 'The Crossing',
-  here: 14,
-  rooms: [
-    {
-      id: 14,
-      uid: null,
-      title: 'The Crossing, Town Green North',
-      x: 100,
-      y: -50,
-      z: 0,
-      moves: ['south', 'go gate'],
-      links: [{ to: 13, kind: 'walk' }],
-      to: [13],
-    },
-    {
-      id: 13,
-      uid: null,
-      title: 'The Crossing, Town Green',
-      x: 100,
-      y: -46,
-      z: 0,
-      moves: ['north'],
-      links: [{ to: 14, kind: 'walk' }],
-      to: [14],
-    },
-  ],
-}
-
-const HERE = { id: 14, uid: null, title: null, location: null }
+// The zone and current room moved to tools/live-zone-fixture.mjs when
+// godot-fixture-contract-test.mjs started compiling a live snapshot to check
+// the manifest contract against. One copy, so the two suites cannot end up
+// asserting things about different worlds while appearing to agree.
 
 const CHARACTER = {
   // "a wild boar" is an exact bestiary name match; "a savage mage" has no

@@ -145,8 +145,7 @@
           "move": "north",
           "direction": "north",
           "targetRoomId": 11,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         },
         {
           "move": "south",
@@ -489,8 +488,7 @@
           "move": "west",
           "direction": "west",
           "targetRoomId": 20,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         }
       ]
     },
@@ -601,8 +599,7 @@
           "move": "go wooden gate",
           "direction": "go",
           "targetRoomId": 607,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         }
       ]
     },
@@ -649,22 +646,19 @@
           "move": "east",
           "direction": "east",
           "targetRoomId": 41,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         },
         {
           "move": "south",
           "direction": "south",
           "targetRoomId": 39,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         },
         {
           "move": "go general store",
           "direction": "go",
           "targetRoomId": 189,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         }
       ]
     },
@@ -759,8 +753,7 @@
           "move": "go doorway",
           "direction": "go",
           "targetRoomId": 193,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         }
       ]
     },
@@ -881,8 +874,7 @@
           "move": "north",
           "direction": "north",
           "targetRoomId": 265,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         },
         {
           "move": "west",
@@ -934,8 +926,7 @@
           "move": "east",
           "direction": "east",
           "targetRoomId": 372,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         },
         {
           "move": "go grass path",
@@ -987,8 +978,7 @@
           "move": "go archway",
           "direction": "go",
           "targetRoomId": 378,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         },
         {
           "move": "go gate",
@@ -1045,22 +1035,19 @@
           "move": "north",
           "direction": "north",
           "targetRoomId": 10,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         },
         {
           "move": "southeast",
           "direction": "southeast",
           "targetRoomId": 380,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         },
         {
           "move": "go collegium",
           "direction": "go",
           "targetRoomId": 381,
-          "targetCellId": null,
-          "external": true
+          "targetCellId": null
         },
         {
           "move": "go path",

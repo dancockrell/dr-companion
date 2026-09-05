@@ -13,8 +13,11 @@
 //   - board layout and asset candidates dropped, since a mock scene composes
 //     its own and Codex owns that side;
 //   - an exit whose target is outside the selection keeps its targetRoomId but
-//     is marked targetCellId: null, external: true, so the viewer can render it
-//     as a real exit it cannot follow rather than pretending it does not exist.
+//     is given targetCellId: null, so the viewer can render it as a real exit
+//     it cannot follow rather than pretending it does not exist. That null is
+//     the whole signal: it is what every .gd consumer branches on, and it is
+//     also what the live compiler (src/lib/presentationBridge.ts::exitsFor)
+//     emits for a zone-leaving exit, so mock and live carry the same shape.
 //
 // Usage:
 //   node tools/build-godot-mock-fixture.mjs           write the fixture
@@ -55,14 +58,12 @@ for (let depth = 0; depth < neighbourhoodDepth; depth += 1) {
 
 const projectExit = (exit) => {
   const inside = Boolean(exit.targetCellId) && selected.has(exit.targetCellId)
-  const projected = {
+  return {
     move: exit.move,
     direction: exit.direction,
     targetRoomId: exit.targetRoomId,
     targetCellId: inside ? exit.targetCellId : null,
   }
-  if (!inside) projected.external = true
-  return projected
 }
 
 const projectCell = (cell) => {
@@ -117,6 +118,6 @@ if (checkOnly) {
   }
 } else {
   writeFileSync(fixturePath, generated)
-  const external = fixture.cells.flatMap((cell) => cell.exits).filter((exit) => exit.external).length
-  console.log(`wrote ${fixturePath}: ${fixture.cells.length} cells, ${external} exits leaving the slice`)
+  const leaving = fixture.cells.flatMap((cell) => cell.exits).filter((exit) => exit.targetCellId === null).length
+  console.log(`wrote ${fixturePath}: ${fixture.cells.length} cells, ${leaving} exits leaving the slice`)
 }
