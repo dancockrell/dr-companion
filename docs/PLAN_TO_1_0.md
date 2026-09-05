@@ -271,7 +271,6 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
-| D | D1–D6 | `lane-d/layout` | `dev/wt-d` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295), **I** (I1–I11, PRs #303 and #300) and **L**
@@ -283,9 +282,14 @@ lane looks like here.
 Free to claim now: **K1** (the appearance design note) — but C7 recorded
 `rewrite/remove-2d` as an open question for that branch's owner, and K3 onward
 depends on the answer, so K can be started and not finished. **L1** is free now
-that B3 is done. **D** waits on A1 `[x]`. **G** waits on Lane A finishing; C4
-has landed, so `presentationBridge.ts` is split and no longer blocks it. **J**
-waits on D6.
+that B3 is done. **G** waits on Lane A finishing; C4 has landed, so
+`presentationBridge.ts` is split and no longer blocks it.
+
+**D6 is free to claim**, and needs one thing this fleet cannot supply on its
+own: D5's measurements were all taken against the mock bridge, and D6 depends
+on the new layout having survived a real play session. Whoever picks it up
+should read D6's own `blocked-on` and `note` lines first — its `do:` as written
+would remove the `'map'` panel id, which is still live. **J** waits on D6.
 
 **When two lanes touch one file**, §3's conflict matrix decides who goes first;
 where it is silent, the earlier `Since` wins and the other rebases. Conflicts in
