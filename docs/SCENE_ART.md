@@ -1,5 +1,7 @@
 # Scene art
 
+> **Scope:** this document describes the existing 2D illustration selection pipeline. It remains useful for provenance and semantic matching, but it does not define the replacement world renderer. New board production follows the [world-board strategy](THREE_D_WORLD_STRATEGY.md), using reusable geometry kits and reviewed actor assets.
+
 DR Companion treats room art as an illustration layer over DragonRealms, not as a replacement for room text. The game text remains authoritative when art and prose disagree.
 
 ## Selection order

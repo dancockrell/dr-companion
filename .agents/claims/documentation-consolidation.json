@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "task_id": "documentation-consolidation",
+  "agent": "Codex GitHub documentation audit",
+  "summary": "Route current design to the fixed isometric board and label superseded presentation documents",
+  "status": "active",
+  "claimed_at": "2026-09-05T06:28:02.684750+00:00",
+  "updated_at": "2026-09-05T06:28:02.684750+00:00",
+  "paths": [
+    "README.md",
+    "docs/THREE_D_WORLD_STRATEGY.md",
+    "docs/DESIGN.md",
+    "docs/DESIGN-BIBLE.md",
+    "docs/BATTLESPACE-V3-DESIGN.md",
+    "docs/SCENE_ART.md",
+    "docs/THREE_D_REBUILD_HANDOFF.md"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Reviewed active claims and open PRs. Preserve PLAN_TO_1_0.md and its concurrent lane-register work; no runtime or asset edits."
+  },
+  "completion": {
+    "commit": null,
+    "checks": []
+  }
+}

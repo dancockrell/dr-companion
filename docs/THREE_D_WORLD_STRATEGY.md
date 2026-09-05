@@ -8,14 +8,20 @@ three-dimensional world is already playable.
 
 ---
 
+## Authority and implementation status
+
+This is the current visual design authority, reaffirmed 5 September 2026. The [working plan](PLAN_TO_1_0.md) tracks implementation; the [handoff](THREE_D_REBUILD_HANDOFF.md) specifies integration. Earlier companion-panel and separate battlespace designs are historical. Detailed animation examples below describe a later stage, not prerequisites for the static-board milestone.
+
+Rooms are authoritative nodes; region groupings organize their presentation without replacing room identity. Typed tethers distinguish the actual exit/transition semantics supplied by the graph. Drawing two nodes close together never creates a legal route. The fixed-view RTS-style board uses reusable isometric tile and structure kits, with rigged actors now and animation later.
+
 ## 1. The player promise
 
 The companion should make a familiar place feel like a place.
 
 A player opens one coherent, fixed-view isometric tabletop world: zoomed far out it is a
 city or region, zoomed closer it becomes a route through that world, and zoomed
-all the way in it becomes the current room and its battle space. There is no
-separate player-facing 2D map to keep in sync. The 3D view is the primary
+all the way in it becomes the current room and its battle space. The normal experience uses one board; the existing 2D map and text remain
+explicit recovery/accessibility fallbacks over the same data. The 3D view is the primary
 presentation of the same authoritative world state; it never invents a route,
 declares a combat outcome, or replaces the game's prose.
 
@@ -337,7 +343,7 @@ standards:
 |---|---|---|
 | Terrain, paths, simple facades, trees, hedges, flowers, benches, crates, barrels, and other scatter | Many inexpensive or licensed-store **geometric set pieces**, then palette-normalized in Godot. Imperfect joins are acceptable because a room recipe mixes several pieces and scatter hides simple seams. | Correct footprint, simple colors/materials, stable import, known license, no baked scene/background, and clear tactical readability. |
 | Guilds, shrines, landmarks, bridges, and interiors | Small project-made component sets assembled from room evidence; purchased generic pieces may dress them but cannot invent their identity. | Room facts, legal graph exits, no-invention review, connector/portal anchors, and readable silhouette. |
-| Player and monster miniatures | Fewer, higher-quality **paid rigged models** or approved riggable character outputs; use Magnific for concept/proportion studies and only isolated model experiments. | Shippable license, clean skeleton/rest pose, importable Godot animation data, known scale/material slots, plus idle/turn/step/attack/hit/miss/defeat/spell test clips. |
+| Player and monster miniatures | Fewer, higher-quality **paid rigged models** or approved riggable character outputs; use Magnific for concept/proportion studies and only isolated model experiments. | Shippable license, clean skeleton/rest pose, attachment sockets, known scale/material slots, and board-scale readability now. Importable animation data and action-clip review are later gates; clips are not required for static admission. |
 
 The live MUD remains authoritative: an animation is presentation selected after
 the bridge reports an event. It may make a miss expressive, but cannot make a
@@ -369,7 +375,7 @@ The first Asset Maker Town Green GLB is a useful **art-direction experiment**:
 it establishes a desired material and tabletop-composition language. It is
 rejected for the runtime city library because image-to-3D has fused the scene
 into a single source-angle sculpture. That shape cannot reliably represent
-real exits, support multiple camera angles, host interiors, accept dynamic
+real exits, remain legible at the fixed isometric heading, host interiors, accept dynamic
 actors, or let the map graph change the scene.
 
 Keep the experiment in the raw Asset Maker project with its generation record;

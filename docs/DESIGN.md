@@ -1,5 +1,7 @@
 # DR Companion — design
 
+> **Historical design — superseded for new work (5 September 2026).** This is the original companion-panel proposal. Its scope and implementation-status claims are historical. Use the [current world-board strategy](THREE_D_WORLD_STRATEGY.md) and [working implementation plan](PLAN_TO_1_0.md). The body is retained for design rationale and regression evidence; historical claims of completion do not certify the current build.
+
 Status: **proposed, not approved.** Nothing here is built.
 
 Every number and file path below was read, not remembered. The point of this

@@ -1,5 +1,7 @@
 # Design bible
 
+> **Historical design — superseded for new work (5 September 2026).** The companion-only product identity and fixed panel layout below are superseded. DR Companion is now a full desktop client. Use the [current world-board strategy](THREE_D_WORLD_STRATEGY.md) and [working implementation plan](PLAN_TO_1_0.md). The body is retained for design rationale and regression evidence; historical claims of completion do not certify the current build.
+
 Written after building four layout mechanisms in one afternoon — a panel
 stack, a column flow, a free canvas, a docking model — each invented on the
 spot to fix the last one, none of them designed. The result rendered the map

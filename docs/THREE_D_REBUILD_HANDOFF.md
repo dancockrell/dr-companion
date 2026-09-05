@@ -1,5 +1,7 @@
 # DR Companion 3D Rebuild: Implementation Handoff
 
+> **Authority:** implement the [world-board strategy](THREE_D_WORLD_STRATEGY.md); use [PLAN_TO_1_0.md](PLAN_TO_1_0.md) to establish what is actually complete. Animation examples describe later capabilities. The current production gate is a static board with rigged actors and confirmed graph transitions.
+
 Status: **approved direction; ready for parallel implementation**
 
 ## 1. Product decision
