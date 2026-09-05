@@ -284,6 +284,7 @@ PRs per lane, squash-merged.
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
 | C | C13, C14 | `chore/import-extensions` | `dev/wt-imports` | 5 Sep 2026 |
+| E | E2, E3, E10 | `lane-e/vm-first-run` | `dev/wt-vm` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12, F7 and F8 in PR #315, which emptied the
@@ -298,15 +299,17 @@ machine does not have and no numbers were invented for it, and H8 depended on
 G6, which is now `[x]` - so H8's stated blocker is gone and it is free for
 whoever holds H. Both say what would unblock them.
 
-**Lane E is finished too** (E1, E9, E11, E12 and F5; PR #314), with **E2, E3
-and E10 left `[!]`**. E1 is not what blocks those three: the clean VM exists
-and is snapshotted, and so does an installer built from that branch, recorded
-with its size and SHA-256 in `docs/verification/vm.md`. What is missing is a
-way to drive the guest - `VBoxManage guestcontrol` never becomes ready on that
-VM - so screenshotting each installer prompt is an interactive GUI walkthrough
-somebody has to sit through. That doc lists the three remaining routes in and
-says which to prefer, so the next session starts where this one stopped rather
-than rebuilding a VM. Two defects outside the lane were filed rather than
+**Lane E is finished** (E1, E9, E11, E12 and F5 in PR #314; **E2, E3 and E10**
+in the Lane E follow-up). The line that stood here said those last three were
+blocked because `VBoxManage guestcontrol` never becomes ready on that VM. It
+does. The earlier attempts were made at `GuestAdditionsRunLevel=2`, before
+anyone had logged in, and the execution service is a run-level-3 facility; the
+account password nobody had is in the VM's own unattended answer file, still on
+disk. Waiting a minute after `startvm` and reading that file was the whole fix,
+and all three increments then ran through guest control in one sitting.
+`docs/verification/vm.md` carries the corrected method and
+`docs/verification/first-run-2026-09-05.md` the walkthrough, the timings and
+the two file inventories. Two defects outside the lane were filed rather than
 worked around: #323 (`npm run tauri:build` cannot run in any worktree prepared
 by `worktree:init`) and #324 (`run-tests` counts a suite's honest NOT CHECKED
 as a pass).
@@ -765,15 +768,18 @@ whether it is embedded, docked or a separate window is D0.
   verify: the file exists with both — `docs/verification/vm.md`, build and snapshot name in the table at the top. It also records that `ver` could **not** be run inside the guest (`VBoxManage guestcontrol` returned "the guest execution service is not ready", twice), so the build is what VirtualBox read off the ISO and what the desktop watermark shows, and says so rather than implying an in-guest reading.
   note: the unattended install appeared to run for twenty-five minutes and had in fact done nothing — it was parked on `Press any key to boot from CD or DVD` and had fallen through to `No bootable option or device was found`. `VMState="running"` said nothing about that. Caught by taking a screenshot instead of trusting the state field; the fix and three other traps are in the doc.
 
-- [!] **E2  Installer on the clean VM** (≈20)
-  blocked-on: no working way to drive the guest — `VBoxManage guestcontrol` returns "the guest execution service is not ready (yet)" or hangs, on four attempts across two boots, with Guest Additions 7.0.18 reporting RunLevel 3. E1 is **not** the blocker: the VM exists and `clean` is snapshotted, and an installer exists too — `DR Companion_0.1.1_x64-setup.exe`, 217,297,383 bytes, SHA-256 1F813B6F…0BE09E, bundling the real Ruby4Lich5 v5.20.1, staged at `C:/Users/Admin/dev/_scratch/vm/payload/`. What is left is getting it into the guest and screenshotting each prompt through the GUI. `docs/verification/vm.md` §"State when E1 was signed off" lists the three remaining routes and says which to prefer and why.
+- [x] **E2  Installer on the clean VM** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 75
+  result: seven prompts before the app runs, screenshotted in order in `docs/verification/first-run-2026-09-05.md` — three from Windows refusing an unsigned download (Edge "isn't commonly downloaded", the download held as a `.crdownload`, then Defender SmartScreen "Publisher: Unknown", whose default button is **Delete** and whose keep path is hidden behind "Show more → Keep anyway") and four from NSIS (Welcome; Choose Install Location `%LOCALAPPDATA%\DR Companion`, 210.8 MB; Installing; Completing, with Run and Create desktop shortcut both ticked). **No administrator elevation was requested at any point** — not by this installer, not by Ruby4Lich5's underneath it, not by the uninstaller. The installer shows **no licence page**. The file was fetched with Edge inside the guest rather than pushed in with `copyto`, because a copied file carries no Mark of the Web and would have skipped SmartScreen entirely; it arrived with `ZoneId=3` and its SHA-256 was re-measured in the guest as `1f813b6f…0be09e`, matching the build record exactly.
+  note: the `blocked-on` this replaces was a misdiagnosis, and `docs/verification/vm.md` now says so in place of the three routes it used to list. `guestcontrol` was never broken. The earlier attempts ran at `GuestAdditionsRunLevel=2` — nobody had logged in, and the execution service is a run-level-3 facility — and the account password nobody had is in the VM's own `Unattended-*-autounattend.xml`, still on this disk. Waiting for run level 3 and reading the password out of that file was the entire fix.
   touches: none
   depends-on: E1, F1
   do: copy in the NSIS `.exe`; run; screenshot every prompt including SmartScreen; note admin elevation; run the app; screenshot the first screen. Write `docs/verification/first-run-<date>.md`.
   verify: the doc lists every prompt in order.
 
-- [!] **E3  Uninstall on the clean VM** (≈10)
-  blocked-on: E2
+- [x] **E3  Uninstall on the clean VM** (≈10)
+  commit: (this PR) verified: 2026-09-05 minutes: 20
+  result: both lists are in `docs/verification/first-run-2026-09-05.md`, taken by the same script before and after so they compare line for line. Program files go completely: `%LOCALAPPDATA%\DR Companion` (49 files, 221,078,388 bytes) is absent afterwards, along with the HKCU uninstall entry and both shortcuts. User data survives: the WebView2 profile `%LOCALAPPDATA%\io.github.dancockrell.dr-companion` (302 files, 46,868,004 bytes) holds the settings and is untouched. **`%APPDATA%` never had a DR Companion entry at all**, before or after — everything the app writes is under `%LOCALAPPDATA%`. The uninstaller's own page offers "Delete the application data" **unticked by default**, which is the right default; only that default path was exercised. Two things survive that are not user data and should not: a 65 MB cached `DR Companion Data\downloads\Ruby4Lich5.exe`, and the four live bearer files `presentation-bridge.port/.token` and `script-api.port/.token` — credentials for the local bridges, left on disk after the thing that used them is gone. That last one is the finding worth acting on.
   touches: none
   depends-on: E2
   do: Settings → Apps → uninstall; list what remains under `%APPDATA%` and `%LOCALAPPDATA%` (user data should; program files should not).
@@ -825,8 +831,10 @@ whether it is embedded, docked or a separate window is D0.
   verify: the original line here was `grep -c "Redistribution and use" src/components/layout/SettingsSheet.tsx` ≥ 1, which asserts the mechanism — the text typed into the component — rather than the property. F6 already held those copyright lines in `tools/build-third-party.mjs`, so typing the text into the sheet as well would have been a second copy of a licence, which is the one document where two versions drifting is not merely untidy (§1 trap 17). The text lives once, in `src/data/lichLicense.ts`; the sheet and THIRD_PARTY.md both render from it. So the property is checked instead, and by command: `node tools/build-third-party.mjs --check` exit 0, whose Lich block now compares the module's grant, all three conditions and the disclaimer against the installed `LICENSE` (whitespace-flattened, since the file is hard-wrapped and the module is not), and whose new Settings block asserts the sheet imports the module and renders all four fields. `grep -c "Redistribution and use" src/data/lichLicense.ts` → 1. On a machine with no Lich the comparison still says NOT CHECKED rather than passing.
   sabotage: (1) `must retain` → `must keep` in the module → `FAIL ...and condition 1 the app shows is the installed one`, exit 1, that one check only; (2) `{LICH_LICENSE.disclaimer}` → `{null}` in the sheet → `FAIL ...and renders LICH_LICENSE.disclaimer`, exit 1, that one check only. Both restored; md5 `86ce1299cfb2e7c57207a0b14678c211` and `26cb139010cb5f174b5a75bd7544048c` matched their pre-sabotage values.
 
-- [!] **E10  Walk the wizard on the VM** (≈30)
-  blocked-on: E2
+- [x] **E10  Walk the wizard on the VM** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 30
+  result: every step screenshotted in `docs/verification/first-run-2026-09-05.md`, with the "did a program need me here?" note per step. **Total elapsed: 11 minutes 15 seconds**, from Enter on the downloaded installer to the app logging "All dependencies found. Connecting." The doc breaks that into machine time (NSIS extraction ~45 s, Ruby4Lich5's own installer 3 m 48 s, bridge script < 2 s) and operator latency, because the wall-clock figure includes a screenshot-and-decide pause between every click and would flatter nobody to quote bare; the floor for a person who knows the steps is under five minutes. **A stranger can finish it unaided**: nothing asked for a credential, an account, a path or a port. A program was needed at exactly one step, and unavoidably — Ruby4Lich5's own four-page installer, which DR Companion cannot answer for and which it honestly warns "asks its own questions".
+  note: that third-party page defaults to the **wrong game** — "Lich5 Folder Location" offers Desktop ("preferred for Gemstone IV", the default) versus `C:\Ruby4Lich5\Lich5` ("preferred for DragonRealms"). This run deliberately took the default to find out what happens rather than predict it, and **it worked**: DR Companion found Lich at the Desktop path and installed the bridge there, so detection is not hardcoded to `C:\Ruby4Lich5`. It is therefore a guidance defect, not a breakage — one sentence in the Ruby row saying either option works would close it. Also found: the app window opens 1196x859 on a 1024x768 screen and is not clamped to the display, putting "Check again" and "App folder" off the right edge (measured with `GetWindowRect`, not eyeballed); Settings lists the publisher as the literal string `github`; and the first screen after setup shows fabricated combat state ("In combat, 84 of 100 health", eighteen people present) on a machine that has never connected — labelled `MOCK`, but faintly.
   touches: none
   depends-on: E2
   do: from `clean` plus the installer: every wizard step screenshotted (`src/components/first-run/`), a note per step "did a program need me here?", total elapsed time in the doc.
