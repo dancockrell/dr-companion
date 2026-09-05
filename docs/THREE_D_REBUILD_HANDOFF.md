@@ -545,3 +545,117 @@ Swings, impacts, casts, parries, damage numbers, death blows — anything that
 is an *event* rather than a *state*. Those wait for real captured combat text.
 Build none of them on this data; a hit spark inferred from a state change
 would be exactly the invented account this split exists to prevent.
+
+## 11. Appearance: what an entity and the character are wearing and holding
+
+An earlier plan proposed extending `src/lib/portraits.ts`. `rewrite/remove-2d`
+deletes that file, and Dan's rule quoted in that branch is "I would rather
+throw an error than keep 2d because throwing errors gets fixed while janky
+solutions are hard to find." So appearance is **not** a descendant of the 2D
+art limb. There are no portraits and no images in the client. Appearance is
+data the snapshot carries and Godot renders, in three pieces:
+
+1. a **defaults table**, compiled by a tool, mapping an item noun to a class
+   and a class to an asset-registry id;
+2. a **player override store** in the client under `drc.appearance.v1`;
+3. an **`appearance` field** on `EntitySnapshot` and on `player`, resolved
+   `override ?? default ?? absent`.
+
+### It extends four existing owners, and adds no fifth
+
+Nothing below is a new vocabulary. Each piece is keyed to something that
+already exists and is already tested, because a second table answering the
+same question would drift from the first:
+
+| Owner | What appearance takes from it |
+|---|---|
+| `godot/assets/shared_asset_selections.json` (Codex) | The **id vocabulary**. A `modelId` is a `selections[].id` and nothing else, and its `admission.forbiddenSubstitutions` rule binds this table too. |
+| `src/data/skills.ts` (`SKILLS_BY_SET.Weapon`) | The **weapon classes**, minus the meta-skills that name no object: Parry Ability, Offhand Weapon, Melee Mastery, Missile Mastery, Expertise. |
+| `src/lib/armorLoadout.ts` (`ARMOR_COVERAGE`, `inferArmorCoverage`, `armorCommandTarget`) | The **armour classes** and the **item-name normalisation**. The compiler calls these; it does not re-derive "a broadsword" → "broadsword". |
+| `src/lib/presentationBridge.ts` and `presentationTypes.ts` | The **carrier**. `compileWorldSnapshot` attaches the field; the shapes live beside `EntitySnapshot` and `PlayerSnapshot`. |
+
+### Why this does not contradict §10's "never key presentation off weapon identity"
+
+§10 forbids branching *animation* on what a weapon **is**, because DR's weapons
+are unbounded and unenumerable, so per-weapon behaviour is wrong by
+construction. That argument is about identity. This is about **class**, and a
+class list is exactly what §10 says weapons lack: `SKILLS_BY_SET.Weapon` is a
+closed, game-defined set of fourteen, published by Simutronics and mirrored in
+Lich. A bastard sword and a claymore are one Large Edged silhouette; nothing
+here knows or cares that they are different objects.
+
+The line stays where §10 drew it: appearance decides **what mesh is held**, and
+never what it does. No swing, no impact, no damage type, no spell effect. Those
+still wait for real captured combat text, and a nine-foot pole-arm and a dagger
+still play the identical state-driven presentation.
+
+### An unknown noun resolves to nothing, never to a guess
+
+The whole table is allowed to be empty and must never be filled by inference.
+A noun nobody has mapped resolves to no class; a class with no admitted asset
+resolves to `modelId: null`. Both cases are honest and both render as the
+neutral token. A guess renders a Moon Mage holding a sword, which is worse than
+an empty hand because it is not visibly wrong.
+
+That is `admission.forbiddenSubstitutions` restated for held items: no generic
+mesh stands in for a named thing. The registry's rule already covers guilds,
+shrines, shops, landmarks and rooms; a "generic sword" for an unrecognised
+weapon is the same substitution one scale down.
+
+**Today, every class resolves to `modelId: null`**, because the registry admits
+exactly two ids and both are scenery (`dr.shared.tabletop-weathered-stone.scatter`,
+`dr.shared.kenney-nature.wood-narrow-bridge`). That is the correct output, not
+a gap to be papered over: admitting a weapon mesh is a registry review plus one
+line in the compiler's class table, and the compiler asserts every id it emits
+against the registry so a typo cannot ship as a mesh that silently never loads.
+
+### The shape
+
+```ts
+type Appearance = {
+  // The class the noun resolved to: a SKILLS_BY_SET.Weapon entry, or an
+  // ARMOR_COVERAGE location. Present even when no mesh exists, because the
+  // class is the useful fact and discarding it would lose information the
+  // viewer could still label with.
+  class: string;
+  // A shared_asset_selections.json selections[].id, or null when the registry
+  // admits no mesh for this class yet.
+  modelId: string | null;
+  // 'derived' from the table, or 'player' from an override. Same vocabulary
+  // as ArmorLoadoutPiece.provenance, deliberately.
+  provenance: 'derived' | 'player';
+};
+```
+
+`appearance` is **absent** from an entity or from `player` when the noun
+resolved to no class at all. Absent means "nothing is known"; a present entry
+with `modelId: null` means "this is a Large Edged weapon and no mesh has been
+admitted for that class." Those are different facts and the field keeps them
+apart, the same way `tactical` is absent rather than null-filled.
+
+### What Godot does with it
+
+Resolution order, and it terminates in a token rather than in a substitution:
+
+1. `modelId` present → look it up in the registry and load that GLB.
+2. `modelId` present but unknown to the registry → **class default**, and log
+   it. This is a client bug, not a content gap, and it should be visible.
+3. `modelId: null` → the **neutral token** for the class. Not a mesh borrowed
+   from another class.
+4. field absent → the neutral token, unlabelled.
+
+Never an invented mesh at any rung. A missing weapon shows an empty hand.
+
+### The test Godot must add
+
+`entity_projection_test.gd`:
+
+- an entity whose `appearance.modelId` is not in the registry falls back to the
+  class default and does not load an unrelated mesh;
+- an entity with `appearance` absent renders the neutral token and does not
+  crash;
+- an entity with `appearance.modelId: null` renders the neutral token for its
+  `class`, and specifically not the token for a different class.
+
+This is Codex's to write, under the §2 boundary: Claude owns what the field
+contains, Codex owns the reading of it.

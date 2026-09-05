@@ -271,6 +271,7 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
+| K | K1–K5 | `lane-k/appearance` | `dev/wt-k` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295), **I** (I1–I11, PRs #303 and #300) and **L**
@@ -279,9 +280,11 @@ that need a live character and one human click, neither of which is a code
 change). Their rows are gone from the table above, which is what finishing a
 lane looks like here.
 
-Free to claim now: **K1** (the appearance design note) — but C7 recorded
-`rewrite/remove-2d` as an open question for that branch's owner, and K3 onward
-depends on the answer, so K can be started and not finished. **L1** is free now
+**K** is claimed (row above). C7 recorded `rewrite/remove-2d` as an open
+question for that branch's owner, and Lane K's dependency on it turned out to
+be narrower than version 3 assumed: appearance touches none of the six doomed
+files, so K1–K5 are unblocked and only **K6** (the picker UI, which renders
+into `DashboardLayout.tsx`) waits on the answer. **L1** is free now
 that B3 is done. **G** waits on Lane A finishing; C4 has landed, so
 `presentationBridge.ts` is split and no longer blocks it.
 
@@ -1126,14 +1129,16 @@ registry (`godot/assets/shared_asset_selections.json` ids), a player override
 store, and a per-entity `appearance` field on the snapshot the viewer already
 receives. No portraits, no images in the client.
 
-- [ ] **K1  Design note, no code** (≈20)
+- [x] **K1  Design note, no code** (≈20)
+  commit: (this PR) verified: 2026-09-05 minutes: 25
   touches: docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: C7
   do: add §11 "Appearance": the three pieces above; the id vocabulary is the registry's `selections[].id`; defaults are compiled by a tool from a noun→class table; overrides live in the client under `drc.appearance.v1`; the snapshot compiler attaches `appearance: {modelId, glyph?}` to `EntitySnapshot` and to `player`; Godot maps `modelId` → GLB through the registry and falls back to the class default, never to an invented mesh (the registry's own `forbiddenSubstitutions` rule).
   verify: the section exists and names the four owners it extends.
 
-- [ ] **K2  Defaults compiler** (≈30)
-  touches: new:tools/build-appearance-defaults.mjs, new:src/data/appearanceDefaults.json, package.json
+- [x] **K2  Defaults compiler** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 55
+  touches: new:tools/build-appearance-defaults.mjs, new:src/data/appearanceDefaults.json, package.json, tools/test-suites.json, src/lib/armorLoadout.ts
   depends-on: K1
   do: input: a noun table (`sword, broadsword, bastard sword → 'Large Edged'`, …) keyed to `SKILLS_BY_SET.Weapon` (`grep -rn SKILLS_BY_SET src/`) excluding meta-skills (Parry, Offhand, Mastery, Expertise); armor classes from `armorLoadout.ts`'s coverage helpers; each class → a registry `id` that exists in `shared_asset_selections.json` (assert, do not trust). `--check` compares to the committed JSON.
   verify: `node tools/build-appearance-defaults.mjs --check` exit 0; an unknown noun maps to `null`, never a guess.

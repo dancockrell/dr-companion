@@ -1,5 +1,5 @@
 import type { InventorySummary } from '../types'
-import { readJSON, writeJSON } from './storage'
+import { readJSON, writeJSON } from './storage.ts'
 
 /**
  * Coverage is deliberately player-editable. The live Lich inventory feed gives
