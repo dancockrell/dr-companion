@@ -4,4 +4,5 @@ export interface BoardSpawnPoint { id: string; role: 'player' | 'occupant' | 'ho
 export interface BoardLayout { footprint: { width: number; depth: number; height: number; unit: 'metre' }; selectionBounds: { width: number; depth: number; height: number }; spawnPoints: BoardSpawnPoint[] }
 export function classifyTether(command: string, direction: string): TetherKind
 export function tetherAnchorFor(direction: string): BoardAnchor | null
+export function expandCompassDirection(value: unknown): string | null
 export function boardLayoutFor(cell: { classification?: { spatialMode?: string } }): BoardLayout

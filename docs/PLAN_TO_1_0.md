@@ -906,7 +906,8 @@ whether it is embedded, docked or a separate window is D0.
   verify: tests — pin, evict the journal past capacity, resolve → still returns the payload; a ref never pinned → listed in `missing`; eviction skips cited entries.
   sabotage: evict cited entries → red.
 
-- [ ] **G1  Producer: divergent exits** (≈25)
+- [x] **G1  Producer: divergent exits** (≈25)
+  commit: PENDING-G1 verified: 2026-09-05 minutes: 40
   touches: new:src/lib/aiJobProducers.ts, C1>src/lib/aiWorkerHost.ts, new:tools/ai-job-producers-test.mjs, package.json, tools/test-suites.json
   depends-on: A4
   do: `detectExitDivergence(snapshotCell, parsedExits)` → `[{move, inSnapshot, inStream}]`. Parsed exits come from the stream parser's room state (`grep -n "exits" src/lib/gameStream.ts src/types/stream.ts`) — never parse text here. Non-empty → `jobs.create({kind:'map_reconciliation', scope:{roomId}, inputRefs:['event:<seq>'], allowedTools:['flag_conflict']})` unless a non-terminal job already has that `scope.roomId`.
