@@ -221,6 +221,24 @@ function recordDeterministicDivergence(
     return { claimIds: [], note: 'the job carries no room or no divergence to claim' }
   }
 
+  // Corroboration first. The same divergence noticed again from a *different*
+  // event is a second observation of one fact, not a second fact - and a
+  // producer that created a fresh claim each time would fill the review list
+  // with copies of one disagreement.
+  const corroborated = deps.claims.corroborate({
+    subject: roomId,
+    predicate: 'exit_divergence',
+    value: { diff },
+    evidenceRefs: job.inputRefs,
+    now: nowIso,
+  })
+  if (corroborated.ok && corroborated.claim) {
+    return {
+      claimIds: [corroborated.claim.claimId],
+      note: `corroborated ${corroborated.claim.claimId}`,
+    }
+  }
+
   const created = deps.claims.create({
     subject: roomId,
     predicate: 'exit_divergence',

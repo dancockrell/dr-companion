@@ -958,7 +958,8 @@ whether it is embedded, docked or a separate window is D0.
   do: list candidates (subject, predicate, evidence count, producer, confidence); Accept/Reject change status only; evidence tooltip.
   verify: create a claim in devtools; it appears; Accept → accepted; pins/map `localStorage` keys byte-identical before and after (read them in devtools).
 
-- [ ] **G8  Corroboration** (≈15)
+- [x] **G8  Corroboration** (≈15)
+  commit: PENDING-G8 verified: 2026-09-05 minutes: 25
   touches: G5>src/lib/aiClaimStore.ts, G5>tools/ai-claim-store-test.mjs
   depends-on: G5
   do: same `(subject,predicate,value)` from a second independent `evidenceRef` → `corroborated`.

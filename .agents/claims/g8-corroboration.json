@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "task_id": "g8-corroboration",
+  "agent": "claude-code",
+  "summary": "The same assertion supported by evidence it did not already rest on promotes a candidate to corroborated; the same ref twice does not",
+  "status": "completed",
+  "claimed_at": "2026-09-05T21:36:00Z",
+  "updated_at": "2026-09-05T21:55:00Z",
+  "paths": [
+    "src/lib/aiClaimStore.ts",
+    "tools/ai-claim-store-test.mjs",
+    "src/lib/aiWorker.ts",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/g8-corroboration.json"
+  ],
+  "symbols": ["ClaimStore.corroborate"],
+  "coordination": {
+    "depends_on": ["G5"],
+    "conflicts_with": [],
+    "notes": "Extends the claim store rather than adding a second path to the same records. The match is on the triple (subject, predicate, value) because two claims differing in value are two assertions however alike they look, and terminal claims are excluded so corroborating something a person rejected cannot quietly undo the rejection. The worker's deterministic recorder tries corroboration before creation, so a divergence noticed again from a different event strengthens one claim instead of filling the review list with copies of one disagreement - which is what gives this a caller in the running app rather than only in a test.",
+    "deviations": "aiWorker.ts is outside the increment's touches list; it is where the caller had to go, for the reason above."
+  },
+  "completion": {
+    "commit": "PENDING-G8",
+    "checks": [
+      "node --experimental-strip-types tools/ai-claim-store-test.mjs: 99 checked, 0 failed / all passed",
+      "verify - independent ref: 'an independent ref corroborates' OK, status corroborated, evidenceRefs event:1,event:2, 'no second record was made' 1",
+      "verify - unresolvable ref: 'Refused corroboration: evidence does not resolve: event:9999'",
+      "verify - different value: 'no open claim makes that assertion'",
+      "verify - rejected claim: cannot be corroborated back to life, still rejected",
+      "sabotage - the new-ref filter replaced with the whole list: 5 red - 'the same ref corroborates nothing' (accepted), 'and the refusal says so', 'the claim did not move', 'and gained no evidence', 'and cites both' (event:1,event:1,event:2); exit 1; restore md5 OK"
+    ]
+  }
+}
