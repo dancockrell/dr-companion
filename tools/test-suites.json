@@ -6,6 +6,7 @@
   "test:player-data",
   "test:version",
   "test:third-party",
+  "test:appearance-defaults",
   "test:plan",
   "test:panel-data-contracts",
   "test:safety",

@@ -1136,8 +1136,9 @@ receives. No portraits, no images in the client.
   do: add §11 "Appearance": the three pieces above; the id vocabulary is the registry's `selections[].id`; defaults are compiled by a tool from a noun→class table; overrides live in the client under `drc.appearance.v1`; the snapshot compiler attaches `appearance: {modelId, glyph?}` to `EntitySnapshot` and to `player`; Godot maps `modelId` → GLB through the registry and falls back to the class default, never to an invented mesh (the registry's own `forbiddenSubstitutions` rule).
   verify: the section exists and names the four owners it extends.
 
-- [ ] **K2  Defaults compiler** (≈30)
-  touches: new:tools/build-appearance-defaults.mjs, new:src/data/appearanceDefaults.json, package.json
+- [x] **K2  Defaults compiler** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 55
+  touches: new:tools/build-appearance-defaults.mjs, new:src/data/appearanceDefaults.json, package.json, tools/test-suites.json, src/lib/armorLoadout.ts
   depends-on: K1
   do: input: a noun table (`sword, broadsword, bastard sword → 'Large Edged'`, …) keyed to `SKILLS_BY_SET.Weapon` (`grep -rn SKILLS_BY_SET src/`) excluding meta-skills (Parry, Offhand, Mastery, Expertise); armor classes from `armorLoadout.ts`'s coverage helpers; each class → a registry `id` that exists in `shared_asset_selections.json` (assert, do not trust). `--check` compares to the committed JSON.
   verify: `node tools/build-appearance-defaults.mjs --check` exit 0; an unknown noun maps to `null`, never a guess.

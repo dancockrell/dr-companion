@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "task_id": "k2-appearance-defaults-compiler",
+  "agent": "claude-code",
+  "summary": "K2 - tools/build-appearance-defaults.mjs compiles src/data/appearanceDefaults.json from SKILLS_BY_SET.Weapon, ARMOR_COVERAGE and the Codex asset registry, and asserts every id it emits actually exists",
+  "status": "done",
+  "claimed_at": "2026-09-05T19:40:00Z",
+  "updated_at": "2026-09-05T20:35:00Z",
+  "paths": [
+    "tools/build-appearance-defaults.mjs",
+    "src/data/appearanceDefaults.json",
+    "package.json",
+    "tools/test-suites.json",
+    "src/lib/armorLoadout.ts",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/k2-appearance-defaults-compiler.json"
+  ],
+  "symbols": ["META_WEAPON_SKILLS", "WEAPON_NOUNS", "CLASS_MODEL_IDS"],
+  "coordination": {
+    "depends_on": ["K1"],
+    "conflicts_with": [],
+    "notes": "Extends rather than duplicates: the weapon classes are read from src/data/skills.ts's SKILLS_BY_SET.Weapon and the armour classes from src/lib/armorLoadout.ts's ARMOR_COVERAGE, both imported, so a hand-kept second copy of either cannot drift from the one the app uses. The item-name normalisation stays armorLoadout.ts's; no second normaliser is written here, and the noun matcher itself is deliberately NOT in this tool - it belongs beside the data's consumer in K3's src/lib/appearance.ts, and putting a copy here would have been the fork.",
+    "deviations_from_touches": "Two files beyond the plan's touches list. (1) tools/test-suites.json: the plan listed only package.json, but trap 2 says a test registered in one place never runs, and --check is worthless unless the suite runs it. Registered in both; the suite total rose from 3569 to 3576 checks across 119 suites. (2) src/lib/armorLoadout.ts: one character-level change, `from './storage'` to `from './storage.ts'`. Trap 1 - Node cannot resolve an extensionless src/lib import, so importing ARMOR_COVERAGE from a tool failed with ERR_MODULE_NOT_FOUND until the owner was fixed. Vite resolves the explicit extension identically, and presentationBridge.ts already imports './room.ts' this way."
+  },
+  "evidence": {
+    "registry_state": "godot/assets/shared_asset_selections.json admits 2 ids and both are scenery, so CLASS_MODEL_IDS is empty and all 25 classes resolve to null. That is the required answer, not a shortfall: the registry's admission.forbiddenSubstitutions forbids a generic mesh standing in for a named thing, and a generic sword for an unmapped class is that substitution one scale down.",
+    "vacuity_guard": "With zero ids emitted, 'every emitted id exists in the registry' checks nothing - the exact shape of a check that reports success for work it never did. assertRegistryReaderWorks therefore runs the same id predicate against selections[0].id before anything else, aborts if the registry reads as 0 ids, and aborts if admission.forbiddenSubstitutions has gone missing. The summary prints the denominator and an explicit NOT CHECKED line rather than only a verdict.",
+    "counts": "14 weapon classes (19 SKILLS_BY_SET.Weapon entries minus 5 meta-skills: Parry Ability, Offhand Weapon, Melee Mastery, Missile Mastery, Expertise); 11 armour classes (every ARMOR_COVERAGE location); 110 weapon nouns; 0 classes resolved to a registry id; 25 resolved to null."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "verify: node tools/build-appearance-defaults.mjs --check -> exit 0, '7 checked, 0 failed', 'all passed'",
+      "verify: summary line 'weapon classes: 14 (19 skills minus 5 meta) - 0 resolved to a registry id, 14 to null'; 'armour classes: 11 - 0 resolved to a registry id, 11 to null'; 'ids emitted and checked against the registry: 0' followed by the NOT CHECKED line",
+      "verify: an unknown noun maps to null, never a guess - CLASS_MODEL_IDS is empty and every class value in the emitted JSON is null; no fallback path exists that could substitute another class's id",
+      "sabotage: CLASS_MODEL_IDS = { 'Large Edged': 'dr.shared.kenney-weapons.broadsword' } -> exit 1, 'FAIL CLASS_MODEL_IDS[\"Large Edged\"] = \"dr.shared.kenney-weapons.broadsword\", which is not a selections[].id in godot/assets/shared_asset_selections.json. An id that resolves to nothing is a mesh that silently never loads.'",
+      "sabotage reached the suite, not only the tool: node tools/run-tests.mjs under sabotage -> exit 1, 'test:appearance-defaultsFAILED   1 checks  (exit 1)', '117 passed, 2 failed'. So the registration works and a bad id cannot ship.",
+      "restore: md5sum -c -> tools/build-appearance-defaults.mjs: OK (1ed1fa4b71054d0ddb72edc5e3b832bb)",
+      "npx tsc -b -> exit 0",
+      "node tools/run-tests.mjs -> all passed, 119 suites, 3597 checks. The baseline was 118 suites / 3569, so the rise is 28 and not the 7 this suite adds. Accounted for rather than waved through: test:crossing-build-list went 1 -> 20 because data/art/out/geometric-room-briefs.json (a ~60MB generated file it skips on) appeared between the two runs, and test:plan went 160 -> 162 because K1 and K2 now have two more existing paths to check. 3569 + 19 + 7 + 2 = 3597 exactly.",
+      "node tools/plan-audit.mjs -> plan ok"
+    ]
+  }
+}
