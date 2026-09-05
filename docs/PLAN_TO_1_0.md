@@ -283,7 +283,6 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | A | A1–A6, A8–A12 | `lane-a/host-repair` | `dev/wt-a` | 5 Sep 2026 |
 | B | B1–B8 | `lane-b/live-chain` | `dev/wt-b` | 5 Sep 2026 |
-| E | E9, E11, E12, F5, then E1–E3, E10 | `lane-e/first-run` | `dev/wt-e` | 5 Sep 2026 |
 | G | G0, G2–G5, G1, G6, G8, G7, G9, G10, G12 (not G11) | `lane-g/ai-claims` | `dev/wt-g` | 5 Sep 2026 |
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
@@ -297,6 +296,19 @@ finishing a lane looks like here. **H** is finished too (H1–H4, H6, H7; PRs
 #316 and #318), with H5 and H8 left `[!]`: H5 needs a model runtime this
 machine does not have and no numbers were invented for it, and H8 depends on
 G6, which is not started. Both say what would unblock them.
+
+**Lane E is finished too** (E1, E9, E11, E12 and F5; PR #314), with **E2, E3
+and E10 left `[!]`**. E1 is not what blocks those three: the clean VM exists
+and is snapshotted, and so does an installer built from that branch, recorded
+with its size and SHA-256 in `docs/verification/vm.md`. What is missing is a
+way to drive the guest - `VBoxManage guestcontrol` never becomes ready on that
+VM - so screenshotting each installer prompt is an interactive GUI walkthrough
+somebody has to sit through. That doc lists the three remaining routes in and
+says which to prefer, so the next session starts where this one stopped rather
+than rebuilding a VM. Two defects outside the lane were filed rather than
+worked around: #323 (`npm run tauri:build` cannot run in any worktree prepared
+by `worktree:init`) and #324 (`run-tests` counts a suite's honest NOT CHECKED
+as a pass).
 
 **K1–K5 are done** (PRs #313 and the Lane K follow-up). C7's open question
 turned out not to gate any of them: appearance touches none of the six files
