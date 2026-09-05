@@ -19,6 +19,7 @@
 import { spawn } from 'node:child_process'
 import { connect } from 'node:net'
 import { newStreamState, feed, looksTagged } from '../src/lib/gameStream.ts'
+import { freePortWithRetry } from './free-port.mjs'
 
 let failed = 0
 const ok = (name, cond, detail = '') => {
@@ -26,27 +27,42 @@ const ok = (name, cond, detail = '') => {
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${name.padEnd(50)}${detail}`)
 }
 
-const PORT = 11731 // Not 11024: a real Lich or the other fixture may hold that.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-const fixture = spawn(
-  process.execPath,
-  ['tools/fake-lich.mjs', '--port', String(PORT), '--speed', '40', '--tagged', '--split'],
-  { stdio: ['ignore', 'ignore', 'pipe'] }
-)
-
+// A port asked for at run time, not a constant. 11731 was chosen to dodge a
+// real Lich and did so; what a constant cannot dodge is a second copy of this
+// same suite, and several sessions run the suite at once on this machine. The
+// collision surfaced as "FAIL the fixture is listening", which reads as a bug
+// in the code under test. See tools/free-port.mjs.
+let fixture = null
 let fixtureErr = ''
-fixture.stderr.on('data', (d) => (fixtureErr += d.toString()))
+const started = await freePortWithRetry(async (port) => {
+  fixtureErr = ''
+  fixture = spawn(
+    process.execPath,
+    ['tools/fake-lich.mjs', '--port', String(port), '--speed', '40', '--tagged', '--split'],
+    { stdio: ['ignore', 'ignore', 'pipe'] }
+  )
+  fixture.stderr.on('data', (d) => (fixtureErr += d.toString()))
+  // Wait for it to listen rather than sleeping a guessed amount.
+  for (let i = 0; i < 60; i++) {
+    await sleep(50)
+    if (/listening on/.test(fixtureErr)) return true
+  }
+  fixture.kill()
+  return false
+})
+const PORT = started.port
 
 try {
-  // Wait for it to listen rather than sleeping a guessed amount.
-  let up = false
-  for (let i = 0; i < 60 && !up; i++) {
-    await sleep(50)
-    up = /listening on/.test(fixtureErr)
-  }
-  ok('the fixture is listening', up, up ? `port ${PORT}` : fixtureErr.slice(0, 80))
-  if (!up) throw new Error('fixture never came up')
+  ok(
+    'the fixture is listening',
+    started.ok,
+    started.ok
+      ? `port ${PORT}${started.attempts > 1 ? ` after ${started.attempts} tries` : ''}`
+      : `no port worked in ${started.attempts} tries: ${fixtureErr.slice(0, 80)}`
+  )
+  if (!started.ok) throw new Error('fixture never came up')
 
   const state = newStreamState()
   const lines = []

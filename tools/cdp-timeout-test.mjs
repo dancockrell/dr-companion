@@ -33,6 +33,7 @@ import { createServer } from 'node:http'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { freePort } from './free-port.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 
@@ -162,10 +163,13 @@ const { attach, DEFAULT_REQUEST_TIMEOUT_MS } = await import(`file://${join(HERE,
 
 console.log('-- the deadline still fires against a target that never answers --')
 {
-  // A port unlikely to collide, and its own so a real browser is never
-  // involved. See tools/fake-lich.mjs for why picking a port that something
-  // real might want is its own class of bug.
-  const PORT = 9934
+  // Its own port so a real browser is never involved, and asked for at run
+  // time so a second copy of this suite cannot want the same one - several
+  // sessions run the suite at once here. See tools/fake-lich.mjs for why
+  // picking a port something real might want is its own class of bug, and
+  // tools/free-port.mjs for why a carefully chosen constant does not fix this
+  // one.
+  const PORT = await freePort()
   const srv = await silentEndpoint(PORT)
   // Driven by the parameter, not by the environment. Reading
   // `DRC_CDP_TIMEOUT_MS` here made this case take its full thirty seconds
@@ -216,7 +220,7 @@ console.log('\n-- and it does not outlive the request it was guarding --')
   // fix deliberately reverted, which is a test that proves nothing.
   //
   // Caught by sabotage: removing the `clearTimeout` left the suite green.
-  const PORT = 9935
+  const PORT = await freePort()
   const srv = await answeringEndpoint(PORT)
 
   const before = process.getActiveResourcesInfo().filter((r) => r === 'Timeout').length
