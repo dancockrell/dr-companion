@@ -568,7 +568,8 @@ in the chain (token/port files, auth, reconnect) is already written.
   do: `docs/verification/live-chain-<date>.md`: commit sha, `godot --version`, commands, the Godot line, the Rust `intent_accepted` line for a clicked exit, the text pane showing the movement, one screenshot, and a non-empty "what did not work" section (or "nothing, first try" with the evidence).
   verify: file exists with all six items.
 
-- [ ] **B4  `tools/live-chain-check.mjs`** (≈30)
+- [x] **B4  `tools/live-chain-check.mjs`** (≈30)
+  commit: (this PR) verified: 2026-09-05 minutes: 30
   touches: new:tools/live-chain-check.mjs, package.json
   depends-on: B3
   do: read `%LOCALAPPDATA%\DR Companion Data\presentation-bridge.{port,token}` (names from `presentation_bridge.rs:60`); `net.connect`; send `{"type":"auth","token"}` NDJSON; expect `auth_ok`; expect a `snapshot` with numeric `sequence` within 2 s; send a walk intent from a fabricated room id; expect `intent_rejected`. Print `OK`/`FAIL` per step; exit 1 on any FAIL or a 5 s overall timeout naming the step. Register as `test:live-chain` and in C6's list, **not** in `test-suites.json`.
