@@ -11,7 +11,7 @@ import {
 } from '../lib/versions.ts'
 import { loadProfiles } from '../lib/profiles.ts'
 import { emptyTrail } from '../lib/trail.ts'
-import { bumpStateVersion } from '../lib/stateVersion.ts'
+import { versionedSetter } from '../lib/stateVersion.ts'
 import { loadPins as loadQuickSwitchPins, togglePin, MAX_SLOTS } from '../lib/quickSwitch.ts'
 import {
   copySettingsFrom,
@@ -76,53 +76,26 @@ let seqCounter = 0
 const nextSeq = () => ++seqCounter
 
 /**
- * The keys that make a write *authoritative* — a new statement by the game
- * about where the character is and what state they are in.
+ * The store's `set`, wrapped so any write carrying `character` or `mapHere`
+ * bumps the authoritative counter that `src/lib/stateVersion.ts` owns.
  *
  * Anything that reasons about the game and then proposes to act on it has to
  * be able to ask "is the world I reasoned about still the world in front of
  * me", and a timestamp cannot answer that: two pushes can land in the same
  * millisecond, and an unchanged push is not a new statement. A counter can.
  * `src/lib/aiSuggestions.ts` is the first consumer, and it refuses to send a
- * proposed command whose `basedOnStateVersion` is no longer `stateVersion`.
- */
-const AUTHORITATIVE_KEYS: readonly (keyof AppState)[] = ['character', 'mapHere']
-
-/**
- * Wrap `set` so the version is bumped by the *shape of the write*, not by the
- * writer remembering to.
+ * proposed command whose `basedOnStateVersion` is no longer the current
+ * version.
  *
- * Five places write `character` or `mapHere`, in three files, and two of them
- * are disconnect paths. A convention — "bump it when you write these" — holds
- * until the sixth write site, and the failure when it stops holding is silent
- * and exactly the wrong way round: a stale suggestion passes the freshness
- * check because the counter never moved.
- *
- * Every store helper takes `set` as an argument (`bridgeMessageHandler`,
- * `bridgeLifecycle`, `profilePersistence`), so wrapping it once here covers
- * all of them, including write sites nobody has written yet.
+ * The wrapper itself lives in `stateVersion.ts` rather than here because this
+ * module reaches `mapData.ts`, which uses `import.meta.glob`, so nothing
+ * outside a Vite build can import it — and a rule no test can execute is a
+ * rule only a regex over this source could defend. The store keeps no copy of
+ * the number: readers ask the owner.
  */
-function versioned(
-  raw: (partial: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void,
-  read: () => AppState
-): (partial: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void {
-  return (partial) => {
-    const patch = typeof partial === 'function' ? partial(read()) : partial
-    if (AUTHORITATIVE_KEYS.some((key) => key in patch)) {
-      // One expression writes both the owner in `stateVersion.ts` and the
-      // mirror components render from, so they cannot report different
-      // numbers.
-      raw({ ...patch, stateVersion: bumpStateVersion() })
-      return
-    }
-    raw(patch)
-  }
-}
-
 export const useAppStore = create<AppState>((rawSet, get) => {
-  const set = versioned(rawSet, get)
+  const set = versionedSetter<AppState>(rawSet, get)
   return {
-  stateVersion: 0,
   mapHere: null,
   mapTrail: emptyTrail(),
   mapdbInstall: null,

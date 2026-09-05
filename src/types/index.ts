@@ -491,20 +491,6 @@ export interface InventorySummary {
 
 export interface AppState {
   /**
-   * How many authoritative statements about the game world this session has
-   * accepted.
-   *
-   * Incremented by the store's own `set` wrapper on any write carrying
-   * `character` or `mapHere`, so it counts the game telling us something and
-   * nothing else — not renders, not settings, not log lines. It exists so a
-   * proposal made about one world can be refused when the world has moved:
-   * `src/lib/aiSuggestions.ts` carries the version it reasoned from and
-   * compares it at the moment a player confirms. Starts at 0; a suggestion
-   * built before the first status therefore matches nothing and is refused,
-   * which is the right way for it to fail.
-   */
-  stateVersion: number
-  /**
    * Geography as Lich reports it, not as we guessed it.
    *
    * null until asked, and null again if no map is loaded — which is not the
