@@ -13,6 +13,9 @@
  *   node --experimental-strip-types tools/presentation-bridge-test.mjs
  */
 import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, shouldPublish } from '../src/lib/presentationBridge.ts'
+// Imported rather than retyped: a test that hardcodes the number it checks
+// only proves somebody remembered to edit two places.
+import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES } from '../src/lib/isometric-board-layout.mjs'
 
 let pass = 0
 let fail = 0
@@ -99,8 +102,14 @@ console.log('\n-- compileWorldSnapshot: a real snapshot --')
 
     const here = snap.cells.find((c) => c.id === '1-14')
     ok('the current cell carries its real title', here?.title === 'The Crossing, Town Green North')
-    ok('live cells carry the same five-metre board footprint as offline cells',
-      here?.board.footprint.width === 5 && here.board.footprint.depth === 5)
+    // The property, not the number: a live cell's block matches the offline
+    // compiler's, and both are smaller than the pitch so there is a gutter
+    // between neighbouring rooms. Asserting `5` pinned the old value and would
+    // have had to be edited to whatever the new one was, which tests nothing.
+    ok('live cells carry the same board footprint the offline compiler publishes',
+      here?.board.footprint.width === CELL_BLOCK_METRES && here.board.footprint.depth === CELL_BLOCK_METRES)
+    ok('and that block leaves a gutter rather than meeting its neighbour',
+      CELL_BLOCK_METRES < CELL_PITCH_METRES && CELL_GAP_METRES > 0)
     ok('live cells preserve the rig-ready player spawn socket',
       here?.board.spawnPoints.some((spawn) => spawn.role === 'player' && spawn.rigSocket === 'humanoid-root') ?? false)
     ok('the linked exit resolves to the real target cell', here?.exits.find((e) => e.move === 'south')?.targetCellId === '1-13')

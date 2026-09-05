@@ -49,19 +49,46 @@ func visible_moves() -> Array:
 func position_state_for(exit_move: String) -> String:
 	return str(_position_states.get(exit_move, "absent"))
 
+## A flat chevron lying in the gutter, pointing the way out.
+##
+## This was an upright cylinder standing at the anchor, and Dan found both
+## things wrong with it by playing: "the exits are sometimes hard to find", and
+## a marker wants to be "on the edge actually... but not on the block itself,
+## it won't be readable".
+##
+## Upright is the harder half. At a fixed isometric camera a standing post is
+## seen nearly end-on, so it covers very few pixels and hides behind whatever
+## the room contains. A flat shape lying on the ground keeps its whole area
+## turned toward the camera wherever it sits on the board. The wedge also
+## carries direction, which a cylinder cannot: it points out of the room, so
+## eight of them read as eight ways out rather than eight identical bollards.
+##
+## And it belongs in the gutter between this block and the next rather than on
+## the block, for the reason Dan gave - against room content it is not
+## readable. The gutter is empty by construction (CELL_GAP_METRES in
+## src/lib/isometric-board-layout.mjs), so a marker there competes with
+## nothing, and a mark drawn between two tiles is what a doorway between two
+## rooms actually is.
 func _add_visuals(anchor: Node3D, move: String, resolved: bool) -> void:
 	var marker := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.22
-	mesh.bottom_radius = 0.38
-	mesh.height = 0.8
+	var mesh := PrismMesh.new()
+	# Wide across the edge it sits on, shallow along the direction of travel,
+	# and thin: a chevron painted on the floor, not an object in the room.
+	mesh.size = Vector3(0.9, 0.12, 0.7)
 	marker.mesh = mesh
+	# The prism's point faces +Z. Turn it to face away from the room centre so
+	# it reads as an arrow out rather than a wedge lying at some angle.
+	var outward := Vector3(anchor.position.x, 0.0, anchor.position.z)
+	if outward.length_squared() > 0.0001:
+		marker.rotation.y = atan2(outward.x, outward.z)
 	var material := StandardMaterial3D.new()
 	material.albedo_color = Color(0.95, 0.85, 0.30) if resolved else Color(0.52, 0.55, 0.58)
 	material.emission_enabled = resolved
 	material.emission = Color(0.45, 0.30, 0.04) if resolved else Color.BLACK
 	marker.material_override = material
-	marker.position.y = 0.4
+	# Just clear of the ground plane: high enough not to z-fight the board,
+	# low enough to stay a floor marking.
+	marker.position.y = 0.08
 	anchor.add_child(marker)
 
 	var label := Label3D.new()
