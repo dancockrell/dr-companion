@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "task_id": "e2-e3-e10-vm-first-run",
+  "agent": "claude-code",
+  "summary": "Install, first-run and uninstall DR Companion on the clean Windows VM, screenshotting every prompt (E2, E10, E3)",
+  "status": "completed",
+  "claimed_at": "2026-09-05T13:05:00Z",
+  "updated_at": "2026-09-05T14:10:00Z",
+  "paths": [
+    "docs/PLAN_TO_1_0.md",
+    "docs/verification/vm.md",
+    "docs/verification/first-run-2026-09-05.md",
+    "docs/verification/first-run-2026-09-05-*.png",
+    ".agents/claims/e2-e3-e10-vm-first-run.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Documentation and verification only - no source file is touched, so this cannot collide with lanes A, B or G. It edits three lines of docs/PLAN_TO_1_0.md's markers plus the Lane E paragraph in 3.1, per 0.2. It rewrites one section of docs/verification/vm.md, which was Lane E's own file and whose lane is finished, so nobody else holds it. The VM drc-clean-win11 was restored to its clean snapshot before starting and left running; nothing was installed on the host."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "npx tsc -b: exit 0",
+      "node tools/run-tests.mjs: all passed (140 suites, 4331 checks)",
+      "node tools/plan-audit.mjs: plan ok",
+      "in-guest SHA-256 of the delivered installer: 1f813b6f74982f9e2a6e39095f37a59526137f1e838033f1e59d6f97810be09e, matching the figure docs/verification/vm.md records for the build - so the artefact installed is the artefact built, checked on the file that actually arrived rather than assumed",
+      "in-guest Mark of the Web on that file: ZoneId=3, HostUrl=http://10.0.2.2:8731/... - the download was a real browser download, which is what makes the SmartScreen prompts real rather than skipped",
+      "in-guest Get-AuthenticodeSignature on the delivered file: NotSigned - independently reproduces E4 on the artefact rather than on the build output",
+      "in-guest ver: Microsoft Windows [Version 10.0.26100.1742] - fills the gap vm.md recorded as unverified",
+      "app window measured with GetWindowRect, not read off a screenshot: SCREEN=1024x768, WIN 'DR Companion' L=52 T=0 R=1248 B=859 W=1196 H=859 - 224px off the right edge",
+      "uninstall outcome checked by re-running the same inventory script before and after: %LOCALAPPDATA%\\DR Companion went from 49 files / 221,078,388 bytes to absent; %LOCALAPPDATA%\\io.github.dancockrell.dr-companion stayed at 302 files / 46,868,004 bytes"
+    ],
+    "controls": [
+      "The keyboard and mouse drivers were positive-controlled before being trusted: Win+R then typing a marker string, screenshotted, showed 'drc-keyboard-control-works' in the Run box; SetCursorPos was confirmed by reading GetCursorPos back and by the cursor landing on the intended control.",
+      "The payload HTTP server was positive-controlled from the host (200, 217297383 bytes) and then from inside the guest (curl -sI -> HTTP/1.1 200 OK) before Edge was involved, so a failed download could not be misread as a missing file.",
+      "The mouse helper was made to fail loudly rather than silently: it retries three times and exits non-zero unless the guest echoes CURSOR=. This caught a real dropped click during the uninstall confirm step, which had previously looked like a click that landed - the earlier silent version had already caused one screenshot to be misread as 'the menu did not open'.",
+      "The baseline suite first came back exit 1 with '139 passed, 0 failed, 1 not run - test:server'. Re-running it, per the shared-tree rule, gave 140 passed / 0 not run / all passed, and running test:server alone also passed; the NOT CHECKED was transient, not a red tree."
+    ],
+    "not_verified": [
+      "A non-administrator account: 'tester' is a local Administrator. No UAC was raised, consistent with a per-user install, but whether a standard user can create C:\\Ruby4Lich5 was not established.",
+      "The uninstaller's 'Delete the application data' path - only the unticked default was exercised.",
+      "Any real game connection; the app ran in mock mode throughout.",
+      "The optional wizard rows (Genie, the 222-script DragonRealms suite, the map database).",
+      "A GitHub release download - gh release list is empty, so the payload was served from the host. The Mark of the Web is identical; the reputation SmartScreen assigns a real release URL may not be.",
+      "What the 'Hmv-da1480-ola1015 - unavailable / Retry' item on the first screen is. Recorded as an observation, not diagnosed."
+    ]
+  }
+}

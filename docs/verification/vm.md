@@ -58,11 +58,12 @@ so both are recorded rather than one being picked:
   booted VM: `Windows 11 Enterprise LTSC Evaluation` / `Build
   26100.ge_release.240331-1435`.
 
-**`ver` was not run inside the guest.** `VBoxManage guestcontrol` returned
-`The guest execution service is not ready (yet)` on two attempts, so the
-in-guest value is unverified. The two figures above are what was actually
-observed; if an exact UBR ever matters, log in and run `winver`, and correct
-this section rather than trusting it.
+**`ver` has now been run inside the guest** and says
+`Microsoft Windows [Version 10.0.26100.1742]`, which agrees with what
+VirtualBox read off the ISO. Corrected 5 Sep 2026 during E2. This paragraph
+used to say the in-guest value was unverified because `guestcontrol` returned
+"the guest execution service is not ready (yet)"; that diagnosis was wrong —
+see "Guest control works, and here is how" below.
 
 ## The licence watermark, and what it said when
 
@@ -133,35 +134,66 @@ Ruby4Lich5 v5.20.1, hash-verified by `tools/vendor-fetch.mjs --require-real`,
 not the stub. It does **not** contain the Godot world viewer, for the reason
 `docs/RELEASE.md` gives.
 
-**What blocks E2 is getting it into the guest and driving the prompts.**
+E2, E3 and E10 have since been done on this VM. The walkthrough, every prompt
+and the two file inventories are in
+`docs/verification/first-run-2026-09-05.md`.
 
-`VBoxManage guestcontrol` does not work on this VM. Guest Additions report
-`GuestAdditionsRunLevel=3` and `GuestAdditionsVersion=7.0.18 r162988`, and
-every `guestcontrol run` still returns
-`The guest execution service is not ready (yet)`, or hangs indefinitely — four
-attempts across two boots, including one that waited ten minutes. So the file
-cannot be pushed in and commands cannot be run from the host that way.
+## Guest control works, and here is how
 
-Three routes remain, none tried yet, and the third is the most faithful to
-what E2 is actually asking:
+This section used to say `VBoxManage guestcontrol` does not work on this VM —
+"the guest execution service is not ready (yet)", four attempts across two
+boots — and it listed three ways to get a file in without it. That diagnosis
+was wrong, and it is corrected here rather than left standing, because it was
+the stated blocker on three increments.
 
-1. Attach a temporary **read-only** shared folder pointing at
-   `_scratch\vm\payload` (that folder holds the installer and nothing else —
-   never the repository tree). Detach it before re-snapshotting. This
-   contradicts the "no shared folders" line in the table above, so if it is
-   used, say so in the E2 doc rather than quietly changing the spec here.
-2. Serve the payload folder over HTTP from the host and fetch it in the guest
-   at `http://10.0.2.2:<port>/` — NAT already routes that.
-3. Download it in the guest from a GitHub release, which is what an actual
-   stranger does, and is the only route that also exercises SmartScreen on a
-   real download rather than on a file that arrived by another path. E2 wants
-   the SmartScreen prompt screenshotted, so this is the one to prefer.
+Two separate things were going on, and neither is a broken execution service:
 
-Either way the prompts have to be driven through the GUI —
-`VBoxManage controlvm ... keyboardputscancode` and `screenshotpng`, the same
-pair used to get past the boot prompt above — because there is no working
-guest control. Budget for that: E2's "screenshot every prompt in order" is a
-genuinely interactive walkthrough, not a script.
+1. **The earlier attempts were made before anyone had logged in.** Guest
+   Additions report `GuestAdditionsRunLevel=2` at the sign-in screen and `3`
+   once the desktop is up, and the execution service belongs to run level 3.
+   This VM auto-logs in, so the entire fix is to wait about a minute after
+   `startvm` — and to *check* the run level rather than assume it.
+2. **Nobody had the account password**, so at run level 3 the next error would
+   have been `The specified user was not able to logon on guest`, which reads
+   like the same wall. It is `drc-test-vm`, and it is on this disk, in the
+   VM's own unattended answer file:
+   `C:\Users\Admin\VirtualBox VMs\drc-clean-win11\Unattended-*-autounattend.xml`
+   (`<AutoLogon>` and `<LocalAccounts>`).
+
+```bash
+VB="C:/Program Files/Oracle/VirtualBox/VBoxManage.exe"
+"$VB" snapshot drc-clean-win11 restore clean
+"$VB" startvm drc-clean-win11 --type gui
+# do not proceed until this says 3:
+"$VB" showvminfo drc-clean-win11 --machinereadable | grep GuestAdditionsRunLevel
+"$VB" guestcontrol drc-clean-win11 --username tester --password drc-test-vm \
+      copyto <hostfile> --target-directory "C:/Users/tester/drc/"
+```
+
+Three mechanics that cost an hour between them:
+
+- **`--target-directory` needs a trailing slash.** Without one it fails with
+  "Destination ... already exists and is a directory".
+- **Passing arguments to `cmd.exe` via `guestcontrol run` did not work** in any
+  form tried; every variant came back "The syntax of the command is incorrect."
+  Write a `.cmd` file, `copyto` it, run it with no arguments. `.cmd` files need
+  CRLF (`sed -i 's/$/\r/'`).
+- **Git Bash rewrites `/c` to `C:/`** before VBoxManage sees it. Export
+  `MSYS_NO_PATHCONV=1`.
+
+For the GUI, `controlvm screenshotpng` and `controlvm keyboardputscancode`
+work with no guest cooperation at all. Mouse clicks were done from inside the
+guest via `SetCursorPos` + `mouse_event` in a copied-in PowerShell file — a
+process started by guest control does land in the interactive session, which is
+what makes that work. The screenshot PNG is the guest's native resolution, so
+its pixels are 1:1 with what the mouse API takes.
+
+**On delivery, prefer a real browser download.** A file pushed in with
+`copyto` carries no Mark of the Web, so it installs with no security prompt and
+proves nothing about what a stranger sees. E2 served the payload from the host
+over HTTP and fetched it with Edge in the guest, which produced a genuine
+`ZoneId=3` and the full SmartScreen chain. There is still no GitHub release to
+download from (`gh release list` is empty).
 
 **Restore `clean` first.** The snapshot is pristine; the VM was booted once
 after it was taken, to test guest control, and restored afterwards.
