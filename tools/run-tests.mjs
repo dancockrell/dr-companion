@@ -126,6 +126,21 @@ function classify(result, output) {
 
   if (code !== 0) return { state: 'FAILED', why: `exit ${code}`, checks }
 
+  // A suite that printed FAIL and exited 0 anyway is a failure, whatever it
+  // thinks. The verdict used to come from the exit code alone: `checks.fail`
+  // was counted here and then never consulted, so a suite whose own summary
+  // said one thing failed was filed under `passed` and the run ended
+  // `all passed`. Demonstrated by an independent review with a throwaway
+  // suite printing one OK, one FAIL and `process.exit(0)` - reported `ok`.
+  //
+  // No registered suite does this today; every one that prints FAIL also
+  // exits non-zero. That makes this a latent hole in the instrument rather
+  // than a live false green, and it is worth closing precisely because the
+  // instrument is the thing every other check is trusted through.
+  if (checks.fail > 0) {
+    return { state: 'FAILED', why: `printed ${checks.fail} FAIL line(s) but exited 0`, checks }
+  }
+
   // A suite can run, pass everything it attempted, and still have declined to
   // check part of its job - `bundle-test` without a built viewer,
   // `crossing-build-list` without its generated briefs. Those suites announce
