@@ -438,7 +438,7 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
 ### Lane A — AI host repair (on `main` after C1)
 
 - [x] **A1  Host at the app root; panel reads a store** (≈20)
-  commit: c15f1bc1 verified: 2026-09-05 minutes: 35
+  commit: 5a03d6be verified: 2026-09-05 minutes: 35
   touches: src/App.tsx, C1>src/lib/aiWorkerHost.ts, C1>src/components/shared/AiWorkerPanel.tsx
   depends-on: C1
   do:
@@ -454,7 +454,7 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   pitfalls: 7, 11, 12.
 
 - [x] **A2  Tick effect survives store updates** (≈20)
-  commit: 82d3b691 verified: 2026-09-05 minutes: 40
+  commit: b80e2a95 verified: 2026-09-05 minutes: 40
   touches: C1>src/lib/aiWorkerHost.ts, C1>src/lib/aiIngest.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: A1
   do: extract the tick body into exported `runHostTick(deps)`; effect deps `[enabled, provider]`; inside the tick read `useAppStore.getState()`.
@@ -463,7 +463,7 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   pitfalls: 6.
 
 - [x] **A3  Review hash covers what matters** (≈15)
-  commit: b283e0ac verified: 2026-09-05 minutes: 25
+  commit: 4bd9c0de verified: 2026-09-05 minutes: 25
   touches: C1>src/lib/aiIngest.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: A2
   do: `reviewHash({roomId, situation: sorted, inRoundtime: (roundtime ?? 0) > 0, hostiles: count of roomCombatants hostile && !dead})` → `JSON.stringify`.
@@ -471,7 +471,7 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   sabotage: drop `roomId` → room-change check red.
 
 - [x] **A4  Derive all six activities** (≈20)
-  commit: b283e0ac verified: 2026-09-05 minutes: 30
+  commit: 4bd9c0de verified: 2026-09-05 minutes: 30
   touches: C1>src/lib/aiIngest.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-worker-host-test.mjs
   depends-on: A2
   do:
@@ -486,7 +486,7 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   sabotage: swap combat/travel order → combat-while-moving check red.
 
 - [x] **A5  Journal cursor survives a panel remount** (≈20)
-  commit: 3671a73f verified: 2026-09-05 minutes: 30
+  commit: f5671577 verified: 2026-09-05 minutes: 30
   touches: C1>src/lib/aiEventJournal.ts, C1>src/lib/aiWorkerHost.ts, C1>tools/ai-event-journal-test.mjs
   depends-on: C1
   do: `seedAcknowledged(cursor)` on the journal. The host persists `{sessionId, acknowledged}` under `drc.ai-journal-cursor.v1`; on mount seeds only when `sessionId` matches the in-memory session id. Sequence numbers restart per process, so this survives a remount, **not** a restart — say so in the doc comment and point at `JobStore.recoverInterrupted` for the restart case.
@@ -495,7 +495,7 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   pitfalls: 3.
 
 - [x] **A6  Publish status only on change** (≈10)
-  commit: 12196a93 verified: 2026-09-05 minutes: 30
+  commit: f50a13aa verified: 2026-09-05 minutes: 30
   touches: C1>src/lib/aiWorkerHost.ts
   depends-on: A1
   do: shallow-compare against the last published status; publish `ticks` every 5th tick only.
