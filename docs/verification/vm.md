@@ -64,12 +64,25 @@ in-guest value is unverified. The two figures above are what was actually
 observed; if an exact UBR ever matters, log in and run `winver`, and correct
 this section rather than trusting it.
 
-## The licence watermark says "expired"
+## The licence watermark, and what it said when
 
-The booted desktop shows `Windows License is expired` alongside the evaluation
-notice. That is the evaluation image's own clock and not a fault in the VM —
-it boots, logs in and runs. It is recorded here because it will be visible in
-every E2, E3 and E10 screenshot and would otherwise look like a finding.
+Worth knowing before it turns up in an E2 or E10 screenshot and reads as a
+finding. It changed between two observations on the same day:
+
+- **immediately after install**, first boot to a desktop:
+  `Windows License is expired`;
+- **on the next boot**, about ten minutes later:
+  `Windows License valid for 90 days`.
+
+The first reading was the evaluation clock before activation state had
+settled, not a broken image. This section originally recorded only that
+reading and asserted it was the permanent state, which was wrong within one
+reboot — corrected here rather than left standing, because a screenshot
+saying "expired" beside a document insisting that is normal would send the
+next person hunting a licensing problem that does not exist.
+
+The ninety days run from **5 September 2026**. After that the guest begins
+shutting itself down periodically and the VM has to be rebuilt from the ISO.
 
 ## Rebuilding or resetting it
 
@@ -100,3 +113,55 @@ installer run on it once is no longer answering the question E2 asks.
   `--firmware efi` and `--tpm-type 2.0`.
 - **`aka.ms/windev_VM_vbox`**, the ready-made developer VM, now redirects to
   Bing: that image is gone. The evaluation ISO above is the route.
+
+## State when E1 was signed off, and what E2 still needs
+
+The VM is done. E2, E3 and E10 are not, and they are `[!]` in the plan rather
+than half-done here. What exists already, so nobody rebuilds it:
+
+**The installer exists.** Built locally on 5 Sep 2026 from this branch:
+
+```
+src-tauri/target/release/bundle/nsis/DR Companion_0.1.1_x64-setup.exe
+217,297,383 bytes
+SHA-256 1F813B6F74982F9E2A6E39095F37A59526137F1E838033F1E59D6F97810BE09E
+```
+
+A copy is staged outside the repository at
+`C:\Users\Admin\dev\_scratch\vm\payload\`. It bundles the **real**
+Ruby4Lich5 v5.20.1, hash-verified by `tools/vendor-fetch.mjs --require-real`,
+not the stub. It does **not** contain the Godot world viewer, for the reason
+`docs/RELEASE.md` gives.
+
+**What blocks E2 is getting it into the guest and driving the prompts.**
+
+`VBoxManage guestcontrol` does not work on this VM. Guest Additions report
+`GuestAdditionsRunLevel=3` and `GuestAdditionsVersion=7.0.18 r162988`, and
+every `guestcontrol run` still returns
+`The guest execution service is not ready (yet)`, or hangs indefinitely — four
+attempts across two boots, including one that waited ten minutes. So the file
+cannot be pushed in and commands cannot be run from the host that way.
+
+Three routes remain, none tried yet, and the third is the most faithful to
+what E2 is actually asking:
+
+1. Attach a temporary **read-only** shared folder pointing at
+   `_scratch\vm\payload` (that folder holds the installer and nothing else —
+   never the repository tree). Detach it before re-snapshotting. This
+   contradicts the "no shared folders" line in the table above, so if it is
+   used, say so in the E2 doc rather than quietly changing the spec here.
+2. Serve the payload folder over HTTP from the host and fetch it in the guest
+   at `http://10.0.2.2:<port>/` — NAT already routes that.
+3. Download it in the guest from a GitHub release, which is what an actual
+   stranger does, and is the only route that also exercises SmartScreen on a
+   real download rather than on a file that arrived by another path. E2 wants
+   the SmartScreen prompt screenshotted, so this is the one to prefer.
+
+Either way the prompts have to be driven through the GUI —
+`VBoxManage controlvm ... keyboardputscancode` and `screenshotpng`, the same
+pair used to get past the boot prompt above — because there is no working
+guest control. Budget for that: E2's "screenshot every prompt in order" is a
+genuinely interactive walkthrough, not a script.
+
+**Restore `clean` first.** The snapshot is pristine; the VM was booted once
+after it was taken, to test guest control, and restored afterwards.

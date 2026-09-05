@@ -736,13 +736,15 @@ whether it is embedded, docked or a separate window is D0.
   verify: the file exists with both — `docs/verification/vm.md`, build and snapshot name in the table at the top. It also records that `ver` could **not** be run inside the guest (`VBoxManage guestcontrol` returned "the guest execution service is not ready", twice), so the build is what VirtualBox read off the ISO and what the desktop watermark shows, and says so rather than implying an in-guest reading.
   note: the unattended install appeared to run for twenty-five minutes and had in fact done nothing — it was parked on `Press any key to boot from CD or DVD` and had fallen through to `No bootable option or device was found`. `VMState="running"` said nothing about that. Caught by taking a screenshot instead of trusting the state field; the fix and three other traps are in the doc.
 
-- [ ] **E2  Installer on the clean VM** (≈20)
+- [!] **E2  Installer on the clean VM** (≈20)
+  blocked-on: no working way to drive the guest — `VBoxManage guestcontrol` returns "the guest execution service is not ready (yet)" or hangs, on four attempts across two boots, with Guest Additions 7.0.18 reporting RunLevel 3. E1 is **not** the blocker: the VM exists and `clean` is snapshotted, and an installer exists too — `DR Companion_0.1.1_x64-setup.exe`, 217,297,383 bytes, SHA-256 1F813B6F…0BE09E, bundling the real Ruby4Lich5 v5.20.1, staged at `C:/Users/Admin/dev/_scratch/vm/payload/`. What is left is getting it into the guest and screenshotting each prompt through the GUI. `docs/verification/vm.md` §"State when E1 was signed off" lists the three remaining routes and says which to prefer and why.
   touches: none
   depends-on: E1, F1
   do: copy in the NSIS `.exe`; run; screenshot every prompt including SmartScreen; note admin elevation; run the app; screenshot the first screen. Write `docs/verification/first-run-<date>.md`.
   verify: the doc lists every prompt in order.
 
-- [ ] **E3  Uninstall on the clean VM** (≈10)
+- [!] **E3  Uninstall on the clean VM** (≈10)
+  blocked-on: E2
   touches: none
   depends-on: E2
   do: Settings → Apps → uninstall; list what remains under `%APPDATA%` and `%LOCALAPPDATA%` (user data should; program files should not).
@@ -794,7 +796,8 @@ whether it is embedded, docked or a separate window is D0.
   verify: the original line here was `grep -c "Redistribution and use" src/components/layout/SettingsSheet.tsx` ≥ 1, which asserts the mechanism — the text typed into the component — rather than the property. F6 already held those copyright lines in `tools/build-third-party.mjs`, so typing the text into the sheet as well would have been a second copy of a licence, which is the one document where two versions drifting is not merely untidy (§1 trap 17). The text lives once, in `src/data/lichLicense.ts`; the sheet and THIRD_PARTY.md both render from it. So the property is checked instead, and by command: `node tools/build-third-party.mjs --check` exit 0, whose Lich block now compares the module's grant, all three conditions and the disclaimer against the installed `LICENSE` (whitespace-flattened, since the file is hard-wrapped and the module is not), and whose new Settings block asserts the sheet imports the module and renders all four fields. `grep -c "Redistribution and use" src/data/lichLicense.ts` → 1. On a machine with no Lich the comparison still says NOT CHECKED rather than passing.
   sabotage: (1) `must retain` → `must keep` in the module → `FAIL ...and condition 1 the app shows is the installed one`, exit 1, that one check only; (2) `{LICH_LICENSE.disclaimer}` → `{null}` in the sheet → `FAIL ...and renders LICH_LICENSE.disclaimer`, exit 1, that one check only. Both restored; md5 `86ce1299cfb2e7c57207a0b14678c211` and `26cb139010cb5f174b5a75bd7544048c` matched their pre-sabotage values.
 
-- [ ] **E10  Walk the wizard on the VM** (≈30)
+- [!] **E10  Walk the wizard on the VM** (≈30)
+  blocked-on: E2
   touches: none
   depends-on: E2
   do: from `clean` plus the installer: every wizard step screenshotted (`src/components/first-run/`), a note per step "did a program need me here?", total elapsed time in the doc.
