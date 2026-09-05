@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "c0-plan-to-1-0",
+  "agent": "claude-code",
+  "summary": "Land the shared plan to 1.0 (docs/PLAN_TO_1_0.md) and the audit that keeps it honest (tools/plan-audit.mjs, test:plan)",
+  "status": "completed",
+  "claimed_at": "2026-09-05T03:00:00Z",
+  "updated_at": "2026-09-05T04:10:00Z",
+  "paths": [
+    "docs/PLAN_TO_1_0.md",
+    "tools/plan-audit.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    ".agents/claims/c0-plan-to-1-0.json"
+  ],
+  "symbols": [
+    "parsePlan",
+    "audit"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "The plan is the bookkeeping surface for parallel sessions: 100 increments in 12 lanes, each naming its files, commands, expected output and dependencies, with a status marker per line that ships in the increment's own commit. It complements this ledger rather than replacing it: a claim records who holds what; the plan records what there is to hold and in what order. The audit checks every named path and dependency against the tree (three states: present, absent, awaiting another increment) so a stale plan fails the build. Written against main ae0e57a9; the audit of the previous draft found seven wrong claims about the tree (section 9 of the plan lists each with the command that found it), including that rewrite/remove-2d deletes portraits.ts, which the previous draft proposed extending."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "node tools/plan-audit.mjs: plan ok: 100 increments, 115 paths checked, 57 paths awaiting other increments (not checked)",
+      "node tools/plan-audit.mjs --self-test: passed; the audit reports every planted defect (missing path, missing new file, unknown dependency, done-depends-on-undone, duplicate id, new-but-exists, unknown via) and nothing else",
+      "self-test caught its own first draft: a planted dependency 'Z9' fell outside the id pattern [A-L] and never reached the check; replaced with L99",
+      "sabotage: added src/lib/does-not-exist.ts to D2's touches -> exit 1, 'FAIL D2 touches src/lib/does-not-exist.ts, which does not exist'; restored, md5 d904a9eca69a matched before and after",
+      "node tools/run-tests.mjs: all passed, 94 suites, test:plan 93 checks (was 93 suites; a first registration showed NOT RUN 'asserted nothing' because the audit printed only a summary, fixed by printing one OK/FAIL line per increment)"
+    ]
+  }
+}
