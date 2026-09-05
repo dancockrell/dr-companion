@@ -727,11 +727,14 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane E — First run and setup
 
-- [ ] **E1  A clean Windows VM** (≈30 + download)
-  touches: none
+- [x] **E1  A clean Windows VM** (≈30 + download)
+  commit: (this PR) verified: 2026-09-05 minutes: 70
+  touches: new:docs/verification/vm.md
   depends-on: none
   do: this machine is Windows 11 **Home**: no Windows Sandbox, no Hyper-V. Use VirtualBox with Microsoft's Windows 11 Enterprise evaluation ISO (90-day), 4 GB RAM, 60 GB disk, no shared folders; snapshot `clean` before installing anything. Record build number and snapshot name in `docs/verification/vm.md`.
-  verify: the file exists with both.
+  result: `drc-clean-win11`, Windows 11 Enterprise LTSC Evaluation build **26100.1742**, EFI + TPM 2.0 (Windows 11 refuses to install without both), 4 GB, 2 CPUs, 60 GB VDI, NAT, no shared folders, clipboard and drag-and-drop disabled. Snapshot **`clean`**, UUID `f3d11570-c6a9-46d2-99c1-77e300027040`, taken powered off with the install ISO detached. VirtualBox 7.0.18 was already on this machine and was not installed by this increment. The ISO came from Microsoft's own CDN via `go.microsoft.com/fwlink/p/?linkid=2289029`, 5,112,850,432 bytes matching the server's `Content-Length`; it lives outside the repository at `C:\Users\Admin\dev\_scratch\vm\win11-ltsc-eval.iso`.
+  verify: the file exists with both — `docs/verification/vm.md`, build and snapshot name in the table at the top. It also records that `ver` could **not** be run inside the guest (`VBoxManage guestcontrol` returned "the guest execution service is not ready", twice), so the build is what VirtualBox read off the ISO and what the desktop watermark shows, and says so rather than implying an in-guest reading.
+  note: the unattended install appeared to run for twenty-five minutes and had in fact done nothing — it was parked on `Press any key to boot from CD or DVD` and had fallen through to `No bootable option or device was found`. `VMState="running"` said nothing about that. Caught by taking a screenshot instead of trusting the state field; the fix and three other traps are in the doc.
 
 - [ ] **E2  Installer on the clean VM** (≈20)
   touches: none

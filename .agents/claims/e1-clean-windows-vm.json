@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "task_id": "e1-clean-windows-vm",
+  "agent": "claude-code",
+  "summary": "A Windows 11 VM that has never seen this project, snapshotted clean, so E2, E3 and E10 can ask whether a stranger can install the app",
+  "status": "completed",
+  "claimed_at": "2026-09-05T18:00:00Z",
+  "updated_at": "2026-09-05T21:40:00Z",
+  "paths": [
+    "docs/verification/vm.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/e1-clean-windows-vm.json"
+  ],
+  "symbols": [],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Nothing was installed on the host for this. VirtualBox 7.0.18 was already present. The ISO lives outside the repository at C:/Users/Admin/dev/_scratch/vm/win11-ltsc-eval.iso, not in any git tree. The VM has no shared folders and clipboard and drag-and-drop are disabled, so it cannot reach the host tree another session might be working in."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "VM drc-clean-win11 exists, UUID d2f33cb1-de66-4385-b131-e0cccd85c80b, VMState=poweroff",
+      "snapshot 'clean' exists, UUID f3d11570-c6a9-46d2-99c1-77e300027040, taken powered off with the install ISO detached",
+      "the ISO is Microsoft's own: go.microsoft.com/fwlink/p/?linkid=2289029 redirects to software-static.download.prss.microsoft.com, and the downloaded file is 5,112,850,432 bytes, exactly the Content-Length the server returned",
+      "build 26100.1742 from two independent sources: VirtualBox's own inspection of the ISO before install (detectedOSVersion = 10.0.26100.1742) and the booted desktop's watermark (Build 26100.ge_release.240331-1435)",
+      "`ver` was NOT run in the guest - VBoxManage guestcontrol returned 'the guest execution service is not ready (yet)' twice. docs/verification/vm.md says so rather than implying an in-guest reading.",
+      "the booted desktop was looked at, not inferred: a screenshot shows a logged-in Windows 11 Enterprise LTSC Evaluation desktop",
+      "the install appeared to be running for about twenty-five minutes and had done nothing - it was parked on 'Press any key to boot from CD or DVD' and had fallen through to 'No bootable option or device was found'. VMState=\"running\" was true and meaningless. Caught by screenshotting rather than trusting the state field, which is the whole of section 1 of CLAUDE.md in one instance.",
+      "a second trap from the fix: hammering Enter past the boot prompt then lands on Windows Setup's Cancel button and raises 'Are you sure you want to quit?', blocking the install behind a modal. Esc did not dismiss it; the accelerator 'n' did. Both recorded in the doc."
+    ]
+  }
+}
