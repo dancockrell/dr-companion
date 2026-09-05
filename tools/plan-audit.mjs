@@ -294,6 +294,26 @@ if (args.has('--self-test')) {
   if (args.has('--tally')) {
     tally(increments)
   } else {
+    // The ledger has to parse before anything reads it. One claim with an
+    // unescaped `\R` in a Windows path made `--claims` throw for every session
+    // on the machine, and nothing failed - the tool that broke was the one
+    // nobody runs in CI. A claim that cannot be parsed is a claim nobody can
+    // check, so it fails here with the file named.
+    let claimsChecked = 0
+    if (existsSync('.agents/claims')) {
+      for (const file of readdirSync('.agents/claims').filter((n) => n.endsWith('.json'))) {
+        claimsChecked++
+        try {
+          JSON.parse(readFileSync(join('.agents/claims', file), 'utf8'))
+          console.log(`OK   claim ${file} parses`)
+        } catch (error) {
+          console.log(`FAIL claim ${file} is not valid JSON: ${error.message}`)
+          console.error(`FAILED: ${file} cannot be parsed, so every tool that reads the ledger is broken`)
+          process.exit(1)
+        }
+      }
+    }
+
     const r = audit(increments, (p) => existsSync(p))
     // One line per increment: the suite runner counts ^OK and ^FAIL lines, and a
     // run that prints only a summary reads as "asserted nothing".

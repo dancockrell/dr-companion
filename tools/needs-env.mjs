@@ -30,6 +30,11 @@ const NEEDS_ENVIRONMENT = [
     requires: 'the godot/shared-assets submodule and a Godot 4 binary on PATH',
   },
   {
+    script: 'test:godot',
+    requires:
+      'a Godot 4.3 binary (set GODOT4, or use one of the paths tools/godot-tests.mjs looks in). It runs the 11 scripts in godot/tests - 131 checks that nothing in this repository ran at all until 5 Sep 2026, one of which had been failing to parse ever since the project settled on 4.3',
+  },
+  {
     script: 'test:live-chain',
     // The marker saying it was still to come outlived the suite by one PR and
     // turned this check red on main, which is the check doing its job: it

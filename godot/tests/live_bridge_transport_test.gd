@@ -19,7 +19,12 @@ func _run() -> void:
 		_finish()
 		return
 
-	var config_dir := OS.get_temp_dir().path_join("drc-godot-live-bridge-%d" % Time.get_ticks_msec())
+	# Not OS.get_temp_dir(): that arrived in Godot 4.4 and this project is 4.3
+	# (see godot/project.godot), so this whole script failed to parse and had
+	# been shipping in every export as a broken file that nothing ran. The user
+	# data directory is writable on every platform in 4.3, and this run removes
+	# its own directory below, so nothing is left for the OS to sweep.
+	var config_dir := OS.get_user_data_dir().path_join("drc-godot-live-bridge-%d" % Time.get_ticks_msec())
 	DirAccess.make_dir_recursive_absolute(config_dir)
 	var token := "a".repeat(64)
 	_write_text(config_dir.path_join("presentation-bridge.port"), str(port))
