@@ -332,6 +332,31 @@ license page, but that is Ruby4Lich5's disclosure, not this app's. Worth a
 line in an About screen before this ships in dr-companion's own release,
 not before.
 
+## Tests the build cannot run, and tests it simply does not
+
+`node tools/run-tests.mjs` runs what is listed in `tools/test-suites.json`.
+Everything else is invisible, and two very different absences look identical
+from outside it: a suite deliberately left out because it needs an environment
+the build box has not got, and a suite nobody ever registered.
+
+`npm run test:needs-env` separates them and fails if either list has drifted.
+
+Needing an environment:
+
+- `test:godot-export` - the `godot/shared-assets` submodule and a Godot 4
+  binary on PATH.
+- `test:live-chain` - the app running with the viewer attached. Not written
+  yet; it arrives with increment B4.
+- `test:protocol-harness` - Ruby, and a free TCP port: it starts
+  `lich-scripts/test/protocol_harness.rb` and talks to it over a real socket.
+
+The second list is a backlog rather than a design. As of 5 Sep 2026 there are
+21 `test:` scripts that exist, need nothing special, and are reached by neither
+`test-suites.json` nor any registered script that composes others - so they
+have not run since the day they were written. `test:needs-env` names them all,
+and refuses to let a new one appear unlisted or a listed one stay behind after
+it is wired in.
+
 ## What is not decided
 
 - Text pane as third column or fourth.

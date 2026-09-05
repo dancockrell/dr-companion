@@ -418,7 +418,8 @@ claim file are implied. Three prefixes, all understood by `tools/plan-audit.mjs`
   do: `git log --oneline -S protocol_harness -- lich-scripts/ | head`. If no test ever required it, delete it (the commit says so); if one did and was removed, restore that test instead.
   verify: `grep -rn protocol_harness lich-scripts/ tools/ package.json docs/` → only lines you also updated.
 
-- [ ] **C6  Needs-environment test list** (≈10)
+- [x] **C6  Needs-environment test list** (≈10)
+  commit: (this PR) verified: 2026-09-05 minutes: 25
   touches: package.json, docs/ENGINE.md
   depends-on: none
   do: script `test:needs-env` prints the suites deliberately outside `test-suites.json` and their requirement: `test:godot-export` (submodule + Godot), `test:live-chain` (B4; the running app), `test:bridge` (Ruby). ENGINE.md gets the same list beside its testing section (`grep -n "run-tests" docs/ENGINE.md`).

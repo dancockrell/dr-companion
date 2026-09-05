@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task_id": "c6-needs-env-list",
+  "agent": "claude-code",
+  "summary": "test:needs-env names every suite the full run does not execute and why, and fails when either reason drifts",
+  "status": "completed",
+  "claimed_at": "2026-09-05T13:25:00Z",
+  "updated_at": "2026-09-05T13:50:00Z",
+  "paths": [
+    "package.json",
+    "tools/test-suites.json",
+    "tools/needs-env.mjs",
+    "docs/ENGINE.md",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/c6-needs-env-list.json"
+  ],
+  "symbols": [
+    "test:needs-env",
+    "NEEDS_ENVIRONMENT",
+    "UNWIRED"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "Two deviations from the increment as written, both because the tree disagreed with it. First, test:bridge is NOT outside test-suites.json: it is registered and runs in the full suite for 10 checks, because tools/ruby-test.mjs finds Lich's own interpreter under C:\Ruby4Lich5 rather than needing it on PATH. Listing it as needs-environment would have been a claim nobody could have checked, so the third entry is test:protocol-harness (C5) instead. Second, computing the list rather than typing it found something bigger than the increment: 21 test: scripts exist that the full suite never reaches, directly or through a registered script that composes others, so they have not run since they were written. That is the same defect the increment was written to prevent, already present at scale, so the tool enumerates it and holds the list exact in both directions rather than only printing three names. The increment's touches list did not include a tool file; an inline node -e with this much quoting would have been unreadable, so tools/needs-env.mjs exists and is registered as a suite so drift fails the build."
+  },
+  "completion": {
+    "commit": "",
+    "checks": [
+      "npm run test:needs-env: exit 0, three environment-gated suites with their requirement, 21 unwired suites named, 'checked 24 listed entries and 23 unreached test scripts against 169 npm scripts and 101 registered suites'",
+      "sabotage A (an orphan goes unlisted): removed test:sound-actions from UNWIRED -> exit 1, 'FAIL test:sound-actions - the full suite never runs it and nothing here says why'",
+      "sabotage B (the other direction): appended test:map-viewport to test-suites.json leaving it in UNWIRED -> exit 1, 'FAIL test:map-viewport - now registered; drop it from UNWIRED'",
+      "restores verified by hash: tools/needs-env.mjs OK, tools/test-suites.json OK (md5sum -c)",
+      "the finding for other lanes: the 21 unwired suites are tests nobody has run, spread across the map, art, layout and battlespace areas; registering them is not this lane's work but the list is now in the build output"
+    ]
+  }
+}
