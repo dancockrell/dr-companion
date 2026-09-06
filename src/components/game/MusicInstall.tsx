@@ -188,7 +188,15 @@ export function MusicInstallAction({ groupId }: { groupId?: string }) {
 
 function stateLabel(s: MusicGroupStatus): string {
   if (s.state === 'installed') return 'Installed'
-  if (s.state === 'partial') return `Partial, ${s.missing} of ${s.total} missing`
+  // `partial` names the interrupted downloads separately from the missing
+  // count, because they are the ones the next Resume continues rather than
+  // refetches - #402. A group with nothing finished but a download stopped
+  // part-way reads `Partial, 42 of 42 missing (1 interrupted)`, which is what
+  // is actually on the disk, where it used to read `Not installed`.
+  if (s.state === 'partial') {
+    const missing = `Partial, ${s.missing} of ${s.total} missing`
+    return s.partial > 0 ? `${missing} (${s.partial} interrupted)` : missing
+  }
   return 'Not installed'
 }
 

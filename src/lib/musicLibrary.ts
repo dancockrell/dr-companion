@@ -235,6 +235,16 @@ export interface MusicGroupStatus {
   name: string
   installed: number
   missing: number
+  /**
+   * How many of the missing tracks have a `.part` on disk: an interrupted
+   * download the next install continues from rather than refetches.
+   *
+   * A group where every track is like that is `partial`, not `absent`. #402
+   * found the other half of this - an interrupted download left a `.part`
+   * nothing ever read or deleted - and a group that reported `absent` while
+   * holding a gigabyte of half-files is the same lie from the panel's side.
+   */
+  partial: number
   total: number
   bytesInstalled: number
   bytesTotal: number
@@ -270,17 +280,26 @@ let installedBase: string | null = null
  */
 let presentFiles: Set<string> | null = null
 
+/**
+ * Which pinned files have an interrupted download beside them. Empty rather
+ * than null: it is only ever read alongside `presentFiles`, which already
+ * carries the "nobody has looked" answer for both.
+ */
+let partialFiles: Set<string> = new Set()
+
 /** Test seam: forget what was found, so a case can set up its own world. */
 export function resetInstalledMusicBase() {
   installedBase = null
   presentFiles = null
+  partialFiles = new Set()
   libraryStatus = null
 }
 
 /** Only for tests: stand in for what Rust would have reported on disk. */
-export function setInstalledMusicFiles(files: string[] | null) {
+export function setInstalledMusicFiles(files: string[] | null, partials: string[] = []) {
   presentFiles = files === null ? null : new Set(files)
-  libraryStatus = presentFiles ? deriveStatus('', presentFiles) : null
+  partialFiles = new Set(partials)
+  libraryStatus = presentFiles ? deriveStatus('', presentFiles, partialFiles) : null
   notifyLibrary()
 }
 
@@ -300,14 +319,24 @@ export function trackPresence(file: string): 'present' | 'absent' | 'unknown' {
 
 /** Derive every group's state from the set of files on disk. One grouping, one
  * counting, both here - Rust reports files and nothing else. */
-function deriveStatus(dir: string, present: Set<string>): MusicLibraryStatus {
+function deriveStatus(
+  dir: string,
+  present: Set<string>,
+  partials: Set<string>
+): MusicLibraryStatus {
   const groups: MusicGroupStatus[] = MUSIC_GROUPS.map((g) => {
     let installed = 0
+    let partial = 0
     let bytesInstalled = 0
     for (const t of g.tracks) {
       if (present.has(t.file)) {
         installed++
         bytesInstalled += t.bytes
+      } else if (partials.has(t.file)) {
+        // Counted apart from `installed`, never into it: a `.part` is bytes
+        // whose hash nobody has checked, and the byte totals below are what
+        // the panel offers to install, so a half-file must not shrink them.
+        partial++
       }
     }
     return {
@@ -315,15 +344,19 @@ function deriveStatus(dir: string, present: Set<string>): MusicLibraryStatus {
       name: g.name,
       installed,
       missing: g.tracks.length - installed,
+      partial,
       total: g.tracks.length,
       bytesInstalled,
       bytesTotal: g.bytes,
       // An empty group is not an installed one, the same reason `status_of`
-      // refuses to call an empty manifest a complete library.
+      // refuses to call an empty manifest a complete library. A group with
+      // nothing finished but a download interrupted part-way is `partial`
+      // rather than `absent` - #402 - so the row offers Resume and says what
+      // is actually on the disk.
       state:
         g.tracks.length > 0 && installed === g.tracks.length
           ? 'installed'
-          : installed === 0
+          : installed === 0 && partial === 0
             ? 'absent'
             : 'partial',
     }
@@ -410,11 +443,12 @@ export function isLibraryUrl(src: string): boolean {
 export async function refreshMusicLibrary(): Promise<MusicLibraryStatus | null> {
   if (!isTauri()) return null
   const raw = (await invokeTauri('music_library_status', { tracks: MUSIC_TRACKS })) as
-    | { dir: string; installed_files: string[] }
+    | { dir: string; installed_files: string[]; partial_files?: string[] }
     | undefined
   if (!raw) return null
   presentFiles = new Set(raw.installed_files ?? [])
-  const status = deriveStatus(raw.dir, presentFiles)
+  partialFiles = new Set(raw.partial_files ?? [])
+  const status = deriveStatus(raw.dir, presentFiles, partialFiles)
   // Not `status.complete` any more (it was, until groups existed): one
   // installed station has to be playable while the other three are absent, and
   // gating the base on a complete library made a partial install unreachable -

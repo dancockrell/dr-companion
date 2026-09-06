@@ -140,6 +140,7 @@ const {
   groupIdForFile,
   isLibraryUrl,
   musicGroup,
+  installMusicLibrary,
   musicLibraryStatus,
   resetInstalledMusicBase,
   setInstalledMusicBase,
@@ -649,6 +650,157 @@ console.log('\n-- 8. the offered install is the group that could not play --')
   )
   setInstalledMusicFiles(null)
   resetInstalledMusicBase()
+}
+
+
+console.log('\n-- 9. an interrupted download is a state the panel can see (#402) --')
+{
+  // #402: `download_verified` deleted its temporary only on a checksum
+  // mismatch, so a dropped connection left a `.part` that `present()` could
+  // not see, that no retry read and that nothing ever removed. The fix keeps
+  // it deliberately, as a resume point, which only helps if the side that
+  // draws the panel can tell an interrupted group from an absent one.
+  const [, second] = MUSIC_GROUPS
+  const interrupted = filesOf(second.id).slice(0, 2)
+  setInstalledMusicFiles([], interrupted)
+  const byId = Object.fromEntries((musicLibraryStatus()?.groups ?? []).map((g) => [g.id, g]))
+  const s = byId[second.id]
+  check(
+    'a group with nothing finished but a download interrupted is partial, not absent',
+    s?.state === 'partial',
+    s?.state
+  )
+  check(
+    'and names how many of them are interrupted',
+    s?.partial === interrupted.length,
+    `${s?.partial} interrupted of ${s?.total}`
+  )
+  check(
+    'while still counting none of them as installed',
+    s?.installed === 0 && s?.bytesInstalled === 0 && s?.missing === s?.total,
+    `${s?.installed} installed, ${s?.bytesInstalled} bytes`
+  )
+  check(
+    'so a half-downloaded track is absent to the players, never present',
+    trackPresence(interrupted[0]) === 'absent',
+    trackPresence(interrupted[0])
+  )
+  // The other side of the same fact. Without it the checks above would also
+  // pass if presence had simply stopped answering `present` at all.
+  setInstalledMusicFiles(filesOf(second.id))
+  check(
+    'control: the same group with the files finished reports installed',
+    Object.fromEntries((musicLibraryStatus()?.groups ?? []).map((g) => [g.id, g]))[second.id]
+      ?.state === 'installed'
+  )
+  // A group with nothing at all is still absent, so `partial` did not simply
+  // swallow the third state.
+  setInstalledMusicFiles([])
+  check(
+    'control: a group with nothing on disk is still absent',
+    Object.fromEntries((musicLibraryStatus()?.groups ?? []).map((g) => [g.id, g]))[second.id]
+      ?.state === 'absent'
+  )
+  setInstalledMusicFiles(null)
+  resetInstalledMusicBase()
+
+  // The producing side and the consuming side, checked against each other -
+  // a field Rust reports and nothing reads is the same absence with more
+  // steps.
+  const rust = readFileSync('src-tauri/src/music.rs', 'utf8')
+  const lib = readFileSync('src/lib/musicLibrary.ts', 'utf8')
+  const panel = readFileSync('src/components/game/MusicInstall.tsx', 'utf8')
+  check(
+    'Rust reports the interrupted downloads on the status walk',
+    /pub partial_files: Vec<String>/.test(rust) && /partial_files\.push/.test(rust),
+    'src-tauri/src/music.rs'
+  )
+  check(
+    'and this side reads that field rather than ignoring it',
+    /raw\.partial_files/.test(lib),
+    'src/lib/musicLibrary.ts'
+  )
+  check(
+    'and the panel puts the count in front of a person',
+    /s\.partial > 0/.test(panel) && /interrupted/.test(panel),
+    'src/components/game/MusicInstall.tsx'
+  )
+}
+
+console.log('\n-- 10. a refusal reaches the transport where progress would be (#402) --')
+{
+  // #402 item 2: nothing checked free space before a multi-gigabyte install,
+  // so a full disk surfaced as a raw OS error some minutes in. Rust now
+  // refuses before the first request. The property here is that the sentence
+  // it refuses with survives the trip and is shown, rather than being
+  // swallowed or replaced by a generic failure.
+  const REFUSAL =
+    'not enough free space: this needs 1.6 GB and the disk has 900 MB free, of which 400 MB is usable after leaving a 500 MB margin. Nothing was downloaded.'
+  const invoked = []
+  globalThis.window = {
+    __TAURI_INTERNALS__: {
+      invoke: (cmd, args) => {
+        invoked.push({ cmd, args })
+        if (cmd === 'install_music_library') return Promise.reject(new Error(REFUSAL))
+        return Promise.resolve(undefined)
+      },
+    },
+  }
+  let caught = null
+  try {
+    await installMusicLibrary(MUSIC_GROUPS[0])
+  } catch (e) {
+    caught = e
+  }
+  // The denominator: the call really did reach the backend seam, so the
+  // message below is one that travelled rather than one written here.
+  check(
+    'the install reached the backend at all',
+    invoked.some((c) => c.cmd === 'install_music_library'),
+    invoked.map((c) => c.cmd).join(', ') || 'nothing invoked'
+  )
+  check(
+    'a refused install rejects rather than resolving quietly',
+    caught !== null,
+    caught === null ? 'resolved' : 'rejected'
+  )
+  check(
+    'and the refusal arrives word for word, numbers and all',
+    caught?.message === REFUSAL,
+    caught?.message
+  )
+  check(
+    'and it names what is needed and what is there',
+    /needs .*and the disk has .*free/.test(caught?.message ?? ''),
+    caught?.message
+  )
+  // Nothing was refreshed off the back of a failed install, so a refusal
+  // cannot leave the panel claiming a library it did not get.
+  check(
+    'and no status was read as though the install had happened',
+    !invoked.some((c) => c.cmd === 'music_library_status'),
+    invoked.map((c) => c.cmd).join(', ')
+  )
+  delete globalThis.window
+
+  // Where it is shown: the same span the progress readout occupies, in the
+  // one component both the footer transport and the Sound panel render.
+  const panel = readFileSync('src/components/game/MusicInstall.tsx', 'utf8')
+  check(
+    'the button stores whatever the install rejected with, not a fixed string',
+    /\.catch\(\(e: unknown\) => \{[\s\S]{0,200}?setError\(e instanceof Error \? e\.message : String\(e\)\)/.test(
+      panel
+    )
+  )
+  check(
+    'and renders it, announced, where the progress readout would be',
+    /phase === 'failed' &&[\s\S]{0,300}?role="alert"[\s\S]{0,200}?\{error\}/.test(panel)
+  )
+  check(
+    'and still offers no Retry beside it',
+    !/>\s*Retry\s*</.test(panel),
+    'src/components/game/MusicInstall.tsx'
+  )
 }
 
 stopMusic()
