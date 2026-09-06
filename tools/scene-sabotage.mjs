@@ -145,24 +145,41 @@ const cases = [
     // Not the same case as 9. This one keeps the read and drops the guard, so
     // the builder honours a ground kind Godot has no factory for and bakes a
     // placeholder box into content every player receives.
+    // `if (true)` and not a bare assignment: the next line is this `if`'s
+    // `else`, so removing the condition leaves a dangling `else` and the module
+    // stops parsing. The first version did exactly that, and the run it
+    // produced reddened the *baseline* case - a builder that cannot be imported
+    // fails every check equally, which is a sabotage that never reached the one
+    // it was aimed at and would have read as a pass if the harness had only
+    // asked whether something went red.
     name: '10. the builder stops refusing a correction this build cannot draw',
     file: 'tools/build-world-content.mjs',
     from: 'if (isDrawable(field, override[field])) kept[field] = override[field]',
-    to: 'kept[field] = override[field]',
+    to: 'if (true) kept[field] = override[field]',
     runner: 'scene',
     expect: 'FAIL a field this build cannot draw is dropped and counted, never baked in',
   },
   {
     // The drift the coverage list exists to be protected from: somebody
-    // rebuilds the world and does not commit the CSV beside it. Deleting one
-    // row is a smaller edit than any real drift would be, which is the point -
-    // the check has to notice one room, not only a wholesale mismatch.
+    // rebuilds the world and does not commit the CSV beside it. One row, not a
+    // wholesale mismatch, because the check has to notice a single room.
+    //
+    // The anchor is the header and carries no newline of its own. The first
+    // version ended `...Liquid\n` and never matched: this repo checks out CRLF,
+    // so the file holds `\r\n` and the case ABORTed rather than proving
+    // anything - which is the harness doing its job, and the reason a sabotage
+    // that changes nothing must never be allowed to read as a pass.
+    //
+    // Adding a row rather than deleting one, so exactly one check reddens.
+    // Deleting `105-47` would have made both directions of the comparison fail
+    // at once; `1-1` is a room the batch classifies, so it is in the CSV and
+    // not in the coverage list, and only the first direction can see it.
     name: '11. the committed residue drifts from the committed content',
     file: 'tools/world-content-residue.csv',
-    from: '105-47,105,Soul of Maelshyve,A Treacherous Silver Liquid,,,A Treacherous Silver Liquid\n',
-    to: '',
+    from: 'cellId,zone,zoneName,title,colour,label,place',
+    to: 'cellId,zone,zoneName,title,colour,label,place\n1-1,1,Crossing,Town Green,,,Town Green',
     runner: 'scene',
-    expect: 'FAIL and the coverage list names nothing the residue CSV does not',
+    expect: "FAIL every row of the residue CSV is a room the panel's coverage list offers",
   },
 ]
 

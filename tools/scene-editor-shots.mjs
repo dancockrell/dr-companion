@@ -143,6 +143,166 @@ try {
   const afterReset = JSON.parse((await b.eval(`localStorage.getItem(${JSON.stringify(KEY)})`)) ?? 'null')
   check('reset removes the room from the store entirely', afterReset?.[roomId] === undefined, JSON.stringify(afterReset))
   check('and the batch answer is back on screen', /Ground · from the batch/.test(await b.eval('document.body.innerText')))
+
+  // ------------------------------------------------------------------ S3
+  // The picker, driven with the two controls a person has: the square, and the
+  // numbers. `scene-editor-test.mjs` proves the store and the compiler accept a
+  // placement; only this can say that a click on the footprint produces one.
+
+  const kinds = await b.eval('document.querySelectorAll("[data-scene-placeable]").length')
+  const offered = await b.eval(`
+    (async () => {
+      const m = await import('/src/lib/sceneOverrides.ts')
+      return m.sceneOptions().placeable.length
+    })()
+  `)
+  check('the picker offers the registry’s placeable kinds', kinds >= 1, `${kinds} kinds, compiled not typed`)
+  check(
+    'and offers no row for a kind the registry does not admit',
+    kinds === offered,
+    'the grid is the registry, with nothing added and nothing greyed out'
+  )
+
+  // The centre of the square, which is (0, 0) in the cell. A weak position on
+  // purpose: the next check moves it, and a value that had to travel is worth
+  // more than one that happened to match the default.
+  await b.click('[data-testid="scene-footprint"]')
+  await new Promise((r) => setTimeout(r, 400))
+  const placed = JSON.parse((await b.eval(`localStorage.getItem(${JSON.stringify(KEY)})`)) ?? 'null')
+  check(
+    'clicking the footprint places a primitive',
+    Array.isArray(placed?.[roomId]?.primitives) && placed[roomId].primitives.length === 1,
+    JSON.stringify(placed?.[roomId]?.primitives)
+  )
+  check(
+    'it lands where the click was, not at a default nobody chose',
+    placed?.[roomId]?.primitives?.[0]?.x === 0 && placed?.[roomId]?.primitives?.[0]?.z === 0,
+    'the centre of the square is the centre of the cell'
+  )
+  const markers = await b.eval('document.querySelectorAll("[data-scene-placed]").length')
+  check('and it is drawn on the square', markers >= 1, `${markers} marker(s)`)
+
+  // Typing a value no click could produce. The property is not that the field
+  // clamps but that whatever reaches the store is something the store accepts:
+  // a refusal here would be a red message about a number the person was handed
+  // a box to type.
+  const half = await b.eval(`
+    (async () => {
+      const m = await import('/src/lib/sceneOverrides.ts')
+      return m.PLACEMENT_HALF_EXTENT
+    })()
+  `)
+  await b.run(`
+    const el = document.querySelector('[data-scene-placed-x="0"]');
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(el, '99');
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  `)
+  await new Promise((r) => setTimeout(r, 400))
+  const nudged = JSON.parse((await b.eval(`localStorage.getItem(${JSON.stringify(KEY)})`)) ?? 'null')
+  check(
+    'a typed position past the edge is pulled back rather than refused',
+    nudged?.[roomId]?.primitives?.[0]?.x === half,
+    `typed 99, stored ${nudged?.[roomId]?.primitives?.[0]?.x} against a half-extent of ${half}`
+  )
+  check(
+    'and no refusal is shown for a value the control itself offered',
+    !/is not a primitives this build can draw/.test(await b.eval('document.body.innerText'))
+  )
+
+  await b.screenshot(out('scene-editor-2026-09-06-picker.png'))
+
+  // Reload, because S3's `verify:` is "place one, reload, still there" and a
+  // value living only in React state would pass everything above.
+  await b.goto(`${base}?view=panel&id=scene`, { waitFor: '[data-testid="scene-panel"]' })
+  await new Promise((r) => setTimeout(r, 600))
+  const survived = JSON.parse((await b.eval(`localStorage.getItem(${JSON.stringify(KEY)})`)) ?? 'null')
+  check(
+    'the placement survives a reload',
+    survived?.[roomId]?.primitives?.[0]?.x === half,
+    'the store, not component state'
+  )
+
+  // ------------------------------------------------------------------ S4
+  // Coverage and transfer, on the room the search reopens after the reload.
+
+  await b.run(`
+    const el = document.querySelector('input[placeholder^="Find a place"]');
+    el.focus();
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(el, 'Town Green');
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  `)
+  await new Promise((r) => setTimeout(r, 2500))
+  await b.click('button', /Truffenyi/)
+  await b.waitFor('[data-testid="scene-transfer"]')
+
+  const exportCount = await b.eval(
+    'document.querySelector(\'[data-testid="scene-export-count"]\')?.innerText ?? ""'
+  )
+  check('the transfer section counts the rooms decided here', exportCount === '1', JSON.stringify(exportCount))
+
+  await b.click('[data-testid="scene-transfer"] summary')
+  const exportText = await b.eval('document.querySelector(\'[data-testid="scene-export"]\')?.value ?? ""')
+  check(
+    'the export on screen is the file the builder reads back',
+    JSON.parse(exportText).overrides?.[roomId]?.primitives?.[0]?.x === half,
+    'the same shape tools/build-world-content.mjs takes as its first rule'
+  )
+
+  // Somebody else's file, naming the same room. The merge is per *field* and
+  // not per room, which is the distinction worth checking here: the incoming
+  // file disagrees about the placement, which this player has decided, and also
+  // offers a ground, which they have not. The first must be kept and the second
+  // taken - a room-level rule would have to throw one of those away, and either
+  // direction loses something nobody asked it to lose.
+  //
+  // Written this way after the first version asserted the room-level rule and
+  // went red. The code was right and the check was wrong.
+  const foreign = JSON.stringify({
+    version: 1,
+    provenance: 'somebody-else',
+    overrides: {
+      [roomId]: { primitives: [{ kind: 'water-ribbon-5m', x: -1, z: 1 }], ground: 'water' },
+      '999-1': { ground: 'sand' },
+    },
+  })
+  await b.run(`
+    const el = document.querySelector('[data-testid="scene-import-text"]');
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
+    setter.call(el, ${JSON.stringify(foreign)});
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  `)
+  await b.click('[data-testid="scene-import"]')
+  await new Promise((r) => setTimeout(r, 400))
+  const merged = JSON.parse((await b.eval(`localStorage.getItem(${JSON.stringify(KEY)})`)) ?? 'null')
+  const resultLine = await b.eval(
+    'document.querySelector(\'[data-testid="scene-import-result"]\')?.innerText ?? ""'
+  )
+  check('an import takes what is new', merged?.['999-1']?.ground === 'sand', 'a room this machine had no opinion about')
+  check(
+    'and never overwrites a local choice',
+    merged?.[roomId]?.primitives?.[0]?.x === half,
+    'the incoming placement disagreed and the local one stands'
+  )
+  check(
+    'while still taking a field of that same room nobody here had decided',
+    merged?.[roomId]?.ground === 'water',
+    'the merge is per field, so a disagreement about one thing does not throw away agreement about another'
+  )
+  check('and reports the conflict by count rather than resolving it silently', /kept mine over 1/.test(resultLine), resultLine)
+
+  const coverage = await b.eval(
+    'document.querySelector(\'[data-testid="scene-coverage-count"]\')?.innerText ?? "(absent)"'
+  )
+  check(
+    'the coverage list states this zone’s unclassified count',
+    /^\d+$/.test(coverage),
+    `${coverage} unclassified in this zone, derived from the zone's own content file`
+  )
 } finally {
   await b.close()
 }
