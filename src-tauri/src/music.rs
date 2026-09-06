@@ -35,17 +35,88 @@ use crate::setup::downloads::{
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
 use tauri::AppHandle;
 
-/// Set by `cancel_music_install`, cleared when an install starts. A whole
-/// library is a long download and a player who changes their mind should not
-/// have to kill the app.
+/// The one install that may be running, and the flag that cancels *it*.
 ///
-/// This one flag is now read in two places rather than one: between tracks
-/// here, and after every chunk inside `download_verified_from`, which takes
-/// it as a parameter. Not a second flag - the same one, passed down - so
-/// there is nothing for a Cancel to hit one of and miss the other.
-static CANCELLED: AtomicBool = AtomicBool::new(false);
+/// This used to be a single process-wide `CANCELLED: AtomicBool` which every
+/// install cleared as its first act. That is right for the sequential case -
+/// a stale cancel must not disable the next install - and wrong the moment
+/// two installs overlap, which nothing prevented: every Install button in the
+/// app stayed clickable while another install ran, so pressing Cancel and
+/// then any other Install discarded the cancel and the first download ran to
+/// completion (#422). Two overlapping installs could also each pass the
+/// free-space check and together overrun the disk.
+///
+/// So the flag belongs to the install rather than to the process, and there
+/// is exactly one owner of "is an install running": `InstallGuard`. A second
+/// `install_music_library` while one is in flight is refused as busy before
+/// it touches the running install's flag and before it asks the disk
+/// anything, and the answer names the install that already has the slot.
+///
+/// The flag is still read in two places and is still one flag: between tracks
+/// in `install_into`, and after every chunk inside `download_verified_from`,
+/// which takes it as a parameter.
+struct RunningInstall {
+    /// What to name in the refusal, so a person is told *which* install is
+    /// already going rather than only that something is.
+    group: String,
+    cancel: AtomicBool,
+}
+
+static RUNNING: Mutex<Option<Arc<RunningInstall>>> = Mutex::new(None);
+
+/// A panic inside an install would poison this lock and then refuse every
+/// install for the life of the process - a worse outcome than carrying on
+/// with whatever the slot holds, which the guard's `Drop` clears anyway.
+fn running_slot() -> MutexGuard<'static, Option<Arc<RunningInstall>>> {
+    RUNNING
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// Ownership of the one install slot, released when this drops.
+///
+/// `Drop` rather than a call at the end of the install, because an install
+/// that returns an error - a refused host, a full disk, a sha that did not
+/// match - must not leave the app refusing every install afterwards.
+struct InstallGuard(Arc<RunningInstall>);
+
+impl InstallGuard {
+    /// Take the slot, or report the name of the install that already has it.
+    fn claim(group: &str) -> Result<Self, String> {
+        let mut slot = running_slot();
+        if let Some(running) = slot.as_ref() {
+            return Err(running.group.clone());
+        }
+        let handle = Arc::new(RunningInstall {
+            group: group.to_string(),
+            cancel: AtomicBool::new(false),
+        });
+        *slot = Some(handle.clone());
+        Ok(Self(handle))
+    }
+
+    fn cancel(&self) -> &AtomicBool {
+        &self.0.cancel
+    }
+}
+
+impl Drop for InstallGuard {
+    fn drop(&mut self) {
+        let mut slot = running_slot();
+        // Only ever clear our own claim. Identity rather than the name,
+        // because two installs of the same group would otherwise be able to
+        // release each other's slot.
+        if slot
+            .as_ref()
+            .is_some_and(|running| Arc::ptr_eq(running, &self.0))
+        {
+            *slot = None;
+        }
+    }
+}
 
 /// One manifest entry, as the frontend sends it. `bytes` and `sha256` come
 /// from `data/audio/manifest.json`, which is bundled; nothing here trusts a
@@ -91,6 +162,16 @@ pub struct MusicInstallResult {
     pub total: usize,
     pub bytes: u64,
     pub cancelled: bool,
+    /// True when another install already had the slot and this call did
+    /// nothing at all: no flag touched, no disk asked, no request made.
+    ///
+    /// A refusal rather than an error, because "something else is already
+    /// downloading" is a state the panel shows rather than a failure - and
+    /// because an error string would have to be recognised by text.
+    pub busy: bool,
+    /// Which install has the slot, when `busy`. Named so the panel can say
+    /// what to wait for.
+    pub busy_group: Option<String>,
 }
 
 /// Where an installed library lives. Beside the other things this app
@@ -235,9 +316,15 @@ pub fn music_library_status(tracks: Vec<MusicTrack>) -> MusicLibraryStatus {
     status_of(&music_dir(), &tracks)
 }
 
+/// Cancel whatever is running now, and nothing else.
+///
+/// A Cancel with no install in flight does nothing, where it used to arm a
+/// process-wide flag that the next install had to remember to clear.
 #[tauri::command]
 pub fn cancel_music_install() {
-    CANCELLED.store(true, Ordering::SeqCst);
+    if let Some(running) = running_slot().as_ref() {
+        running.cancel.store(true, Ordering::SeqCst);
+    }
 }
 
 /// How much room to leave on the volume after an install.
@@ -341,25 +428,67 @@ pub(crate) fn space_refusal(needed: u64, free: Option<u64>) -> Option<String> {
 /// Progress is reported across the whole set rather than per file, because
 /// "37 of 182" and a byte count is what a person waiting actually wants; the
 /// per-file callback feeds the running total.
+///
+/// `group` is what to call this install in a refusal - the group's name, or
+/// the whole library. It is the only thing this side knows about grouping:
+/// the tracks themselves are still just a list.
 #[tauri::command]
 pub async fn install_music_library(
     app: AppHandle,
     tracks: Vec<MusicTrack>,
+    group: Option<String>,
 ) -> Result<MusicInstallResult, String> {
     let dir = music_dir();
     let free = free_space(&dir);
     let progress_app = app.clone();
-    install_into(
+    install_guarded(
+        group.as_deref().unwrap_or("the music library"),
         &dir,
         &tracks,
         free,
         &ALLOWED_DOWNLOAD_PREFIXES,
-        &CANCELLED,
         move |received, total, phase| {
             emit_setup_progress(&progress_app, "music", received, total, phase);
         },
     )
     .await
+}
+
+/// One install at a time: claim the slot, run, release it however it ends.
+///
+/// Split from `install_music_library` for the reason `install_into` is split
+/// from it too - the disk, the allowlist and the free-space answer are
+/// parameters so the refusal can be reached by a test rather than by finding
+/// a machine in the right state. Nothing here reads an environment variable,
+/// so the seam cannot be opened at run time.
+///
+/// The busy answer is returned *before* `install_into`, which is what makes
+/// the two consequences in #422 impossible rather than unlikely: the second
+/// call never reaches `cancel.store(false)`, so it cannot discard the running
+/// install's Cancel, and it never reaches `space_refusal`, so two installs
+/// cannot each pass the free-space check against one disk.
+pub(crate) async fn install_guarded(
+    group: &str,
+    dir: &Path,
+    tracks: &[MusicTrack],
+    free: Option<u64>,
+    allowed: &[&str],
+    on_progress: impl FnMut(u64, u64, &str),
+) -> Result<MusicInstallResult, String> {
+    let guard = match InstallGuard::claim(group) {
+        Ok(guard) => guard,
+        Err(busy_group) => {
+            return Ok(MusicInstallResult {
+                installed: 0,
+                total: tracks.len(),
+                bytes: 0,
+                cancelled: false,
+                busy: true,
+                busy_group: Some(busy_group),
+            })
+        }
+    };
+    install_into(dir, tracks, free, allowed, guard.cancel(), on_progress).await
 }
 
 /// The body of `install_music_library`, with the disk, the allowlist, the
@@ -372,11 +501,19 @@ pub async fn install_music_library(
 /// the real allowlist and a real `GetDiskFreeSpaceExW`; nothing here reads an
 /// environment variable, so the seam cannot be opened at run time.
 ///
-/// `cancel` is the same flag `cancel_music_install` sets: shipping goes
-/// through `install_music_library`, which passes `&CANCELLED`. It is a
-/// parameter rather than a read of the static so a test can cancel one
-/// install without reaching into a process-wide flag two other tests in the
-/// same binary are also using.
+/// `cancel` is the flag `cancel_music_install` sets: shipping goes through
+/// `install_music_library` and `install_guarded`, which pass the running
+/// install's own flag. It is a parameter rather than a read of a static so a
+/// test can cancel one install without reaching into a flag two other tests
+/// in the same binary are also using.
+///
+/// The clear below stays, and is now belt as well as braces: `install_guarded`
+/// hands every run a fresh flag, so there is no stale cancel left to clear -
+/// but a caller that reuses a flag (as
+/// `an_install_cancelled_mid_file_reports_partial_and_the_next_one_resumes`
+/// deliberately does) must still not be disabled by the previous run's
+/// cancel. What made the clear dangerous was two installs sharing one flag,
+/// and that is what the guard removes.
 pub(crate) async fn install_into(
     dir: &Path,
     tracks: &[MusicTrack],
@@ -425,6 +562,8 @@ pub(crate) async fn install_into(
                 total: tracks.len(),
                 bytes: done_bytes,
                 cancelled: true,
+                busy: false,
+                busy_group: None,
             });
         }
         let base = done_bytes;
@@ -451,6 +590,8 @@ pub(crate) async fn install_into(
                 total: tracks.len(),
                 bytes: base + bytes,
                 cancelled: true,
+                busy: false,
+                busy_group: None,
             });
         }
         done_bytes = base + track.bytes;
@@ -478,6 +619,8 @@ pub(crate) async fn install_into(
         total: tracks.len(),
         bytes: done_bytes,
         cancelled,
+        busy: false,
+        busy_group: None,
     })
 }
 
@@ -626,6 +769,48 @@ mod tests {
             track("biome/b2.ogg", WIKI, OK_SHA, 8),
         ];
         (a, b)
+    }
+
+    #[test]
+    fn a_group_that_is_only_half_files_is_removed_bytes_and_all() {
+        // #423: with nothing finished and a `.part` for every track, the panel
+        // offered Resume and no Remove, so up to 1.65 GB could not be deleted
+        // from anywhere in the app. This side always could; the counts here
+        // are what the row's new Remove reaches.
+        let dir = scratch("remove-all-part");
+        let (a, b) = two_groups();
+        for t in a.iter() {
+            let path = track_path(&dir, &t.file).unwrap();
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path.with_extension("part"), vec![9u8; 4_096]).unwrap();
+        }
+        for t in b.iter() {
+            place(&dir, t);
+        }
+        let parts = |dir: &Path| {
+            std::fs::read_dir(dir.join("radio"))
+                .map(|entries| {
+                    entries
+                        .filter_map(|e| e.ok())
+                        .filter(|e| e.path().extension().is_some_and(|x| x == "part"))
+                        .count()
+                })
+                .unwrap_or(0)
+        };
+        assert_eq!(parts(&dir), 2, "the fixture did not write the half-files");
+        // Nothing finished, everything interrupted: the exact state that had
+        // no control.
+        let before = status_of(&dir, &a);
+        assert!(before.installed_files.is_empty());
+        assert_eq!(before.partial_files.len(), 2);
+
+        assert_eq!(remove_tracks(&dir, &a).unwrap(), 2, "two .part files");
+        assert_eq!(parts(&dir), 0, "the half-files survived the removal");
+        assert!(status_of(&dir, &a).partial_files.is_empty());
+        // And the group next door is untouched, so the count above is a
+        // removal of one group rather than of everything.
+        assert_eq!(status_of(&dir, &b).installed_files.len(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -1555,6 +1740,260 @@ mod tests {
             status_of(&dir, std::slice::from_ref(&resumed)).installed_files,
             vec![resumed.file.clone()]
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // ------------------------------------------------------- #425
+    //
+    // The one branch in the resume path only a server can trigger: a leftover
+    // `.part` that is *past the end* of the resource it belongs to, because
+    // the file on the server changed. Every other resume case leaves a prefix
+    // shorter than the body, so none of them reaches the 416.
+
+    #[tokio::test]
+    async fn a_part_longer_than_the_file_restarts_via_416() {
+        let dir = scratch("part-past-the-end");
+        let body = body_of(20_000);
+        // Two connections: the 416, then the restart.
+        let (url, log, _served) = serve_mode(Mode::Ranged, body.clone(), 2);
+        let t = track("radio/a.ogg", &url, &hex(Sha256::digest(&body)), 20_000);
+        let dest = track_path(&dir, &t.file).unwrap();
+        std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
+        // Longer than the resource now is - an older, larger version of the file.
+        std::fs::write(dest.with_extension("part"), vec![7u8; 30_000]).unwrap();
+
+        let out = install_into(
+            &dir,
+            std::slice::from_ref(&t),
+            None,
+            &LOOPBACK,
+            &AtomicBool::new(false),
+            |_, _, _| {},
+        )
+        .await
+        .expect("the install returned an error");
+
+        assert_eq!(
+            out.installed, 1,
+            "the oversized prefix was not recovered from"
+        );
+        assert_eq!(std::fs::read(&dest).unwrap(), body);
+        assert!(
+            std::fs::metadata(dest.with_extension("part")).is_err(),
+            "the stale .part survived"
+        );
+        // The denominator: the server can show it was asked to continue from
+        // past the end, and then asked again with no range at all.
+        assert_eq!(ranges_asked(&log), vec![Some(30_000), None]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // ------------------------------------------------------- #422
+    //
+    // One install at a time. These three drive `install_guarded`, which owns
+    // the process-wide slot, so they cannot run beside each other: cargo runs
+    // them on their own threads and a peer holding the slot is exactly what
+    // they are about. `slot()` serialises them, and nothing else in this file
+    // touches `install_guarded`.
+    //
+    // An atomic and a sleep rather than a `Mutex`, because these tests hold
+    // the serialiser across `await` and a `MutexGuard` held across one is a
+    // deadlock waiting to happen (clippy refuses it outright).
+    static SERIALISED: AtomicBool = AtomicBool::new(false);
+
+    struct Serial;
+
+    impl Drop for Serial {
+        fn drop(&mut self) {
+            SERIALISED.store(false, Ordering::SeqCst);
+        }
+    }
+
+    async fn slot() -> Serial {
+        while SERIALISED.swap(true, Ordering::SeqCst) {
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+        Serial
+    }
+
+    #[tokio::test]
+    async fn a_second_install_is_refused_while_one_is_running_and_does_not_touch_its_cancel() {
+        let _serial = slot().await;
+        let dir = scratch("overlap");
+        let body = body_of(BIG);
+        let (url, _log, _served) = serve_mode(Mode::Slow { chunk: 16_384 }, body.clone(), 1);
+        let slow = track("radio/a.ogg", &url, &hex(Sha256::digest(&body)), BIG as u64);
+
+        // The second install's own server, with a connection to spare. If the
+        // refusal were not real this track would be fetched from it, so an
+        // empty log is a fact about the second install rather than about a
+        // server that could not have answered - the control at the end
+        // answers from this same server.
+        let (second_url, second_log, _second_served) = serve_mode(Mode::Ranged, body_of(64), 1);
+        let other = track(
+            "biome/b.ogg",
+            &second_url,
+            &hex(Sha256::digest(body_of(64))),
+            64,
+        );
+
+        let reached = AtomicBool::new(false);
+        let refused: Mutex<Option<MusicInstallResult>> = Mutex::new(None);
+
+        let first = install_guarded(
+            "Six Strings",
+            &dir,
+            std::slice::from_ref(&slow),
+            None,
+            &LOOPBACK,
+            |received, _, phase| {
+                if phase == "downloading" && received >= CANCEL_AFTER {
+                    reached.store(true, Ordering::SeqCst);
+                }
+            },
+        );
+        let second = async {
+            while !reached.load(Ordering::SeqCst) {
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+            }
+            // The Cancel, pressed while the first install is parked on the
+            // socket, and then a second Install before it has read the flag.
+            // That order is the whole of #422: it is what used to clear the
+            // flag and let the first download run to completion.
+            cancel_music_install();
+            let out = install_guarded(
+                "Ambience",
+                &dir,
+                std::slice::from_ref(&other),
+                None,
+                &LOOPBACK,
+                |_, _, _| {},
+            )
+            .await
+            .expect("the refusal is not an error");
+            *refused.lock().unwrap() = Some(out);
+        };
+        let (first, ()) = tokio::join!(first, second);
+        let first = first.expect("a cancelled install is not a failure");
+
+        let second = refused.lock().unwrap().clone().expect("the second ran");
+        assert!(
+            second.busy,
+            "the second install was not refused: {second:?}"
+        );
+        assert_eq!(second.busy_group.as_deref(), Some("Six Strings"));
+        assert_eq!(second.installed, 0);
+        assert_eq!(second.bytes, 0);
+        assert!(
+            second_log.lock().unwrap().is_empty(),
+            "the refused install still asked the server for something"
+        );
+        assert!(
+            !track_path(&dir, &other.file).unwrap().exists(),
+            "the refused install wrote a file"
+        );
+
+        // And the Cancel it was pressed before survived it.
+        assert!(
+            first.cancelled,
+            "the Cancel was discarded: the first install reported cancelled={} after {} bytes",
+            first.cancelled, first.bytes
+        );
+        assert!(
+            (first.bytes as usize) < BIG,
+            "it ran to completion anyway: {} of {BIG}",
+            first.bytes
+        );
+        assert!(!first.busy);
+
+        // The control, on the same server the refusal was measured against:
+        // with the slot free the second install runs and the server answers.
+        // Without it, the empty log above is also what an unreachable server
+        // would produce.
+        let control = install_guarded(
+            "Ambience",
+            &dir,
+            std::slice::from_ref(&other),
+            None,
+            &LOOPBACK,
+            |_, _, _| {},
+        )
+        .await
+        .expect("the second install runs once the first has finished");
+        assert!(!control.busy, "the slot was never released");
+        assert_eq!(control.installed, 1);
+        assert_eq!(second_log.lock().unwrap().len(), 1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn a_cancel_with_nothing_running_does_not_disable_the_next_install() {
+        let _serial = slot().await;
+        // The other half of what the process-wide flag got wrong. It used to
+        // be armed by a Cancel pressed at any time and cleared only by the
+        // next install's first act; now there is nothing to arm.
+        let dir = scratch("cancel-idle");
+        let body = body_of(20_000);
+        let (url, _log, _served) = serve_mode(Mode::Ranged, body.clone(), 1);
+        let t = track("radio/a.ogg", &url, &hex(Sha256::digest(&body)), 20_000);
+
+        cancel_music_install();
+        let out = install_guarded(
+            "Six Strings",
+            &dir,
+            std::slice::from_ref(&t),
+            None,
+            &LOOPBACK,
+            |_, _, _| {},
+        )
+        .await
+        .expect("the install runs");
+        assert!(!out.cancelled, "a Cancel with nothing running blocked it");
+        assert!(!out.busy);
+        assert_eq!(out.installed, 1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn an_install_that_fails_still_releases_the_slot() {
+        let _serial = slot().await;
+        // A refused host is the cheapest error that stops an install after
+        // the slot is claimed. Without `Drop` on the guard the app would
+        // refuse every install afterwards, which is a worse fault than the
+        // one being fixed and would look exactly like the app hanging.
+        let dir = scratch("slot-release");
+        // Assembled rather than written whole, for the reason the host tests
+        // above give: `tools/build-privacy-doc.mjs` scans this file for hosts
+        // and a literal here adds a fictional one to the document.
+        let elsewhere = format!("https://{}/a.ogg", "evil.example");
+        let bad = track("radio/a.ogg", &elsewhere, OK_SHA, 8);
+        let error = install_guarded(
+            "Six Strings",
+            &dir,
+            std::slice::from_ref(&bad),
+            None,
+            &LOOPBACK,
+            |_, _, _| {},
+        )
+        .await
+        .expect_err("an unexpected host is refused");
+        assert!(error.contains("evil.example"), "{error}");
+
+        let body = body_of(20_000);
+        let (url, _log, _served) = serve_mode(Mode::Ranged, body.clone(), 1);
+        let good = track("radio/a.ogg", &url, &hex(Sha256::digest(&body)), 20_000);
+        let out = install_guarded(
+            "Six Strings",
+            &dir,
+            std::slice::from_ref(&good),
+            None,
+            &LOOPBACK,
+            |_, _, _| {},
+        )
+        .await
+        .expect("the next install runs");
+        assert!(!out.busy, "the failed install kept the slot");
+        assert_eq!(out.installed, 1);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

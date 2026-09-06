@@ -140,6 +140,7 @@ const {
   groupIdForFile,
   isLibraryUrl,
   musicGroup,
+  musicInstallRun,
   installMusicLibrary,
   musicLibraryStatus,
   resetInstalledMusicBase,
@@ -900,9 +901,9 @@ console.log('\n-- 11. cancel stops inside a file, and the row offers Resume (#40
     'src-tauri/src/setup/downloads.rs'
   )
   check(
-    'the installer passes its own flag down rather than keeping a second one',
-    /install_music_library[\s\S]{0,600}?&CANCELLED,/.test(rust) &&
-      (rust.match(/static CANCELLED: AtomicBool/g) ?? []).length === 1,
+    'the installer passes the running install its own flag rather than keeping a second one',
+    /install_into\(dir, tracks, free, allowed, guard\.cancel\(\), on_progress\)/.test(rust) &&
+      (rust.match(/cancel: AtomicBool::new\(false\)/g) ?? []).length === 1,
     'src-tauri/src/music.rs'
   )
   check(
@@ -918,6 +919,208 @@ console.log('\n-- 11. cancel stops inside a file, and the row offers Resume (#40
       /&NEVER_CANCELLED,/.test(downloads),
     'src-tauri/src/setup/downloads.rs'
   )
+}
+
+console.log('\n-- 12. one install at a time, and anything on disk can be removed (#422, #423) --')
+{
+  const install = readFileSync('src/components/game/MusicInstall.tsx', 'utf8')
+  const lib = readFileSync('src/lib/musicLibrary.ts', 'utf8')
+  const rust = readFileSync('src-tauri/src/music.rs', 'utf8')
+
+  // #422, the Rust side. The cancel flag used to be one process-wide
+  // `AtomicBool` that every install cleared as its first act, so a Cancel
+  // followed by any second Install was discarded and the first download ran to
+  // completion. The flag now belongs to the running install, and there is one
+  // owner of "is an install running".
+  check(
+    'Rust keeps one install slot rather than a process-wide cancel flag',
+    /static RUNNING: Mutex<Option<Arc<RunningInstall>>>/.test(rust) &&
+      !/static CANCELLED: AtomicBool/.test(rust),
+    'src-tauri/src/music.rs'
+  )
+  check(
+    'a Cancel reaches the install that is running, not the process',
+    /pub fn cancel_music_install\(\) \{[\s\S]{0,300}?running\.cancel\.store\(true/.test(rust),
+    'src-tauri/src/music.rs'
+  )
+  check(
+    'a second install is refused as busy before any flag or disk is touched',
+    /InstallGuard::claim\([\s\S]{0,400}?busy: true/.test(rust) &&
+      /install_guarded[\s\S]{0,900}?InstallGuard::claim/.test(rust),
+    'src-tauri/src/music.rs'
+  )
+  check(
+    'and the slot is released however the install ends, error included',
+    /impl Drop for InstallGuard/.test(rust),
+    'src-tauri/src/music.rs'
+  )
+  check(
+    'the shipping command goes through the guard rather than straight to install_into',
+    /pub async fn install_music_library\([\s\S]{0,700}?install_guarded\(/.test(rust),
+    'src-tauri/src/music.rs'
+  )
+
+  // #422, this side. The property is that no component keeps an install phase
+  // of its own: that is what made every button in the app clickable while
+  // another install ran.
+  const { readdirSync } = await import('node:fs')
+  const withOwnPhase = []
+  let scanned = 0
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`
+      if (entry.isDirectory()) walk(full)
+      else if (entry.isFile() && /\.tsx?$/.test(entry.name)) {
+        scanned++
+        const text = readFileSync(full, 'utf8')
+        if (/useState<[^>]*'installing'/.test(text) || /setPhase\('installing'\)/.test(text)) {
+          withOwnPhase.push(full)
+        }
+      }
+    }
+  }
+  walk('src')
+  // The denominator, for the reason section 5 gives about its own walk.
+  check('the scan for a private install phase read the source tree', scanned >= 100, `${scanned} files`)
+  check(
+    'no component keeps its own install phase',
+    withOwnPhase.length === 0,
+    withOwnPhase.join(', ')
+  )
+  check(
+    'the buttons read the one running install instead',
+    /export function useMusicInstall|function useMusicInstall/.test(install) &&
+      /onMusicInstallChange/.test(lib) &&
+      /musicInstallRun/.test(install),
+    'src/components/game/MusicInstall.tsx'
+  )
+  check(
+    // The condition as well as the markup: a disabled button nothing can
+    // reach reads exactly like one that is never drawn, and the first version
+    // of this check passed against a branch whose guard had been cut out.
+    'and a button for any other group is disabled, saying what is running',
+    /if \(run\) \{[\s\S]{0,700}?disabled\b[\s\S]{0,500}?Installing \{run\.groupName\}/.test(install),
+    'src/components/game/MusicInstall.tsx'
+  )
+
+  // The store, driven rather than read: while an install is in flight one
+  // place knows which group it is, and it is empty again afterwards.
+  let release = null
+  const invoked = []
+  globalThis.window = {
+    __TAURI_INTERNALS__: {
+      invoke: (cmd, args) => {
+        invoked.push({ cmd, args })
+        if (cmd === 'install_music_library') {
+          return new Promise((resolve) => {
+            release = () =>
+              resolve({ installed: 1, total: 1, bytes: 1, cancelled: false, busy: false })
+          })
+        }
+        if (cmd === 'music_library_status') {
+          return Promise.resolve({ dir: 'scratch', installed_files: [], partial_files: [] })
+        }
+        return Promise.resolve(undefined)
+      },
+    },
+  }
+  const [, second] = MUSIC_GROUPS
+  const running = installMusicLibrary(second)
+  await settle()
+  check(
+    'while an install runs, one place knows which group it is',
+    musicInstallRun()?.groupId === second.id,
+    musicInstallRun()?.groupId ?? 'nothing running'
+  )
+  check(
+    'and Rust is told the name, so a refusal can say what to wait for',
+    invoked.find((c) => c.cmd === 'install_music_library')?.args?.group === second.name,
+    invoked.find((c) => c.cmd === 'install_music_library')?.args?.group ?? 'no group sent'
+  )
+  release()
+  await running
+  check('and nothing is running once it finishes', musicInstallRun() === null)
+
+  // A busy answer is a refusal a person can act on, not a silent success.
+  const busyInvoked = []
+  globalThis.window = {
+    __TAURI_INTERNALS__: {
+      invoke: (cmd, args) => {
+        busyInvoked.push({ cmd, args })
+        if (cmd === 'install_music_library') {
+          return Promise.resolve({
+            installed: 0,
+            total: 3,
+            bytes: 0,
+            cancelled: false,
+            busy: true,
+            busy_group: second.name,
+          })
+        }
+        return Promise.resolve(undefined)
+      },
+    },
+  }
+  let caught = null
+  try {
+    await installMusicLibrary(MUSIC_GROUPS[0])
+  } catch (e) {
+    caught = e
+  }
+  check('a refused second install rejects rather than resolving quietly', caught !== null)
+  check(
+    'and the refusal names the install that has the slot',
+    (caught?.message ?? '').includes(second.name),
+    caught?.message
+  )
+  check(
+    'and nothing was read back as though it had installed',
+    !busyInvoked.some((c) => c.cmd === 'music_library_status'),
+    busyInvoked.map((c) => c.cmd).join(', ')
+  )
+  check('and the store is not left claiming an install is running', musicInstallRun() === null)
+  delete globalThis.window
+
+  // #423. A group whose every track was cancelled part-way has nothing
+  // finished and a `.part` for each one, and offered Resume and no Remove -
+  // up to 1.65 GB with no way to delete it from anywhere in the app.
+  check(
+    'the Remove gate reads one derived number rather than counting at the button',
+    /s\.removable > 0/.test(install) && /removable: installed \+ partial/.test(lib),
+    'src/components/game/MusicInstall.tsx'
+  )
+  const worst = MUSIC_GROUPS.reduce((a, b) => (b.bytes > a.bytes ? b : a))
+  setInstalledMusicFiles(
+    [],
+    worst.tracks.map((t) => t.file)
+  )
+  const allPart = (musicLibraryStatus()?.groups ?? []).find((g) => g.id === worst.id)
+  check(
+    'a group that is all half-files still reports partial with nothing installed',
+    allPart?.state === 'partial' && allPart?.installed === 0 && allPart?.partial === worst.tracks.length,
+    `${allPart?.installed} installed, ${allPart?.partial} interrupted`
+  )
+  check(
+    'and it is removable, which is what the row now offers',
+    (allPart?.removable ?? 0) > 0,
+    `${allPart?.removable} removable, ${formatLibrarySize(worst.bytes)} at stake`
+  )
+  // The other side of the gate: a group with nothing on disk offers no Remove,
+  // so the check above is the state and not a button that is always drawn.
+  setInstalledMusicFiles([], [])
+  const empty = (musicLibraryStatus()?.groups ?? []).find((g) => g.id === worst.id)
+  check(
+    'a group with nothing on disk is not removable',
+    empty?.removable === 0 && empty?.state === 'absent',
+    `${empty?.removable} removable, ${empty?.state}`
+  )
+  check(
+    'and the tooltip names the interrupted downloads it also deletes',
+    /interrupted download\$\{/.test(install) && /removedLabel\(s\)/.test(install),
+    'src/components/game/MusicInstall.tsx'
+  )
+  setInstalledMusicFiles(null)
+  resetInstalledMusicBase()
 }
 
 stopMusic()

@@ -30,12 +30,15 @@ import {
   formatLibrarySize,
   installMusicLibrary,
   musicGroup,
+  musicInstallRun,
   musicLibraryStatus,
+  onMusicInstallChange,
   onMusicLibraryChange,
   refreshMusicLibrary,
   removeMusicGroup,
   type MusicGroup,
   type MusicGroupStatus,
+  type MusicInstallRun,
   type MusicLibraryStatus,
 } from '../../lib/musicLibrary.ts'
 import { resetMusicLibraryVerdict, startMusic } from '../../lib/ambientSound.ts'
@@ -58,6 +61,23 @@ function useLibrary(): MusicLibraryStatus | null {
 }
 
 /**
+ * Which install is running, read from the one place that knows.
+ *
+ * #422: this used to be a `phase` in each button's own `useState`, so a button
+ * knew only about the install it had started itself and every other button in
+ * the app stayed clickable beside it. Now there is one running install, one
+ * subscription to it, and no component that keeps an install phase of its own.
+ */
+function useMusicInstall(): MusicInstallRun | null {
+  const [run, setRun] = useState<MusicInstallRun | null>(() => musicInstallRun())
+  useEffect(() => {
+    setRun(musicInstallRun())
+    return onMusicInstallChange(setRun)
+  }, [])
+  return run
+}
+
+/**
  * The one control that downloads anything.
  *
  * `group` null means the whole library. `label` is passed in rather than built
@@ -77,14 +97,18 @@ export function MusicInstallButton({
   className?: string
   onDone?: () => void
 }) {
-  const [phase, setPhase] = useState<'idle' | 'installing' | 'failed'>('idle')
-  const [done, setDone] = useState(0)
+  // Only the failure is this button's own business. Whether an install is
+  // running is one fact about the app, not one per button.
+  const [phase, setPhase] = useState<'idle' | 'failed'>('idle')
   const [error, setError] = useState('')
+  const run = useMusicInstall()
+  const id = group ? group.id : null
 
   const total = group ? group.bytes : MUSIC_LIBRARY_BYTES
+  const done = run ? run.received : 0
   const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
 
-  if (phase === 'installing') {
+  if (run && run.groupId === id) {
     return (
       <span className="flex shrink-0 items-center gap-1.5 text-xs text-ink-muted">
         <span className="tabular-nums">
@@ -101,6 +125,26 @@ export function MusicInstallButton({
     )
   }
 
+  if (run) {
+    // Something else is downloading. Rust refuses a second install anyway, so
+    // a button that still looked pressable would only be a button that fails.
+    return (
+      <span className="flex min-w-0 shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          disabled
+          className={cn(
+            'shrink-0 rounded border border-line px-1.5 py-0.5 text-xs text-ink-faint opacity-60',
+            className
+          )}
+          title={`One install at a time. ${run.groupName} is downloading now; cancel it to start another.`}
+        >
+          Installing {run.groupName}
+        </button>
+      </span>
+    )
+  }
+
   return (
     <span className="flex min-w-0 shrink-0 items-center gap-1.5">
       <button
@@ -112,9 +156,8 @@ export function MusicInstallButton({
         title={title}
         onClick={() => {
           setError('')
-          setDone(0)
-          setPhase('installing')
-          void installMusicLibrary(group, (p) => setDone(p.received))
+          setPhase('idle')
+          void installMusicLibrary(group)
             .then(() => {
               setPhase('idle')
               // A cancelled install resolves too, having written whatever it
@@ -201,6 +244,27 @@ function stateLabel(s: MusicGroupStatus): string {
 }
 
 /**
+ * What a Remove would actually delete, said in the units it deletes them in.
+ *
+ * The old sentence named the installed tracks only and never mentioned the
+ * interrupted downloads it also removes (#423), so it under-reported the click
+ * whenever both were on disk and described nothing at all when only the
+ * half-files were.
+ */
+function removedLabel(s: MusicGroupStatus): string {
+  const parts: string[] = []
+  if (s.installed > 0) {
+    parts.push(
+      `the ${s.installed} installed track${s.installed === 1 ? '' : 's'} (${formatLibrarySize(s.bytesInstalled)})`
+    )
+  }
+  if (s.partial > 0) {
+    parts.push(`${s.partial} interrupted download${s.partial === 1 ? '' : 's'}`)
+  }
+  return parts.join(' and ')
+}
+
+/**
  * Every group, its size, whether it is there, and one control per row.
  *
  * Rendered in the Sound panel. Outside the desktop app there is no app data
@@ -215,6 +279,7 @@ export function MusicLibraryGroups() {
     void refreshMusicLibrary()
   }, [])
   const [busy, setBusy] = useState<string | null>(null)
+  const run = useMusicInstall()
 
   const byId: Record<string, MusicGroupStatus | undefined> = Object.fromEntries(
     (status?.groups ?? []).map((g) => [g.id, g])
@@ -279,12 +344,19 @@ export function MusicLibraryGroups() {
                 }
               />
             )}
-            {s && s.installed > 0 && (
+            {/* Remove is offered whenever there is anything to remove, which is
+                not the same as "anything finished". #423: a group cancelled
+                part-way through its first track has `installed === 0` and a
+                `.part` for every track, and the row offered Resume and no way
+                at all to delete up to 1.65 GB of half-files. `removable` is
+                derived in musicLibrary.ts so this gate and the sentence below
+                read one number. */}
+            {s && s.removable > 0 && (
               <button
                 type="button"
                 className="shrink-0 rounded border border-line p-1 text-ink-faint hover:text-warn disabled:opacity-40"
-                disabled={busy === group.id}
-                title={`Delete the ${s.installed} installed tracks of ${group.name} (${formatLibrarySize(s.bytesInstalled)}) from this app's data folder. Nothing else is touched.`}
+                disabled={busy === group.id || run !== null}
+                title={`Delete ${removedLabel(s)} of ${group.name} from this app's data folder. Nothing else is touched.`}
                 aria-label={`Remove ${group.name}`}
                 onClick={() => {
                   setBusy(group.id)
