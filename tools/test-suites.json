@@ -73,6 +73,7 @@
   "test:ai-worker",
   "test:ai-worker-host",
   "test:ai-script-repair",
+  "test:ai-script-repair-break",
   "test:ai-suggestions",
   "test:link",
   "test:eval",

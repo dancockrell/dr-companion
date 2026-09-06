@@ -29,7 +29,7 @@
  * `src/` ships no model implementation but `absentProvider`.
  */
 import { spawnSync } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -123,7 +123,22 @@ const RUBY_CONTAINMENT = join(ROOT, 'e7-ruby')
  * sibling of the `run-N` sandboxes and still under ROOT, so the suite's own
  * cleanup takes it. */
 const RUBY_OUTSIDE = join(RUBY_CONTAINMENT, 'outside')
+/** Where this side's copy of each run's record goes: one file per run, outside
+ * every sandbox, seeded with a nonce before the child starts. #486 got a
+ * forged clean verdict past this driver three ways, all of them by producing
+ * the object being judged inside the process being judged, so the object being
+ * judged is now written here by the runner and cannot be reached from a
+ * candidate - it is outside the fence, and the nonce is in no argument, no
+ * environment variable and no local a candidate can name. */
+const RUBY_LEDGERS = join(RUBY_CONTAINMENT, 'ledger')
+/** How long past its own `--timeout` a contained run gets before this side
+ * kills it. The runner's watchdog is a convenience a candidate can stop
+ * (`Contain.watchdog.kill`, #486's third finding, which produced no JSON at
+ * all and an external 124); this is the clock the verdict actually depends on,
+ * and it is out here where nothing in the sandbox can reach it. */
+const RUBY_GRACE_MS = 6000
 let rubyContainmentRuns = 0
+let rubyLedgerRuns = 0
 /** Where the contained TypeScript runner and its throwaway task tree live.
  * Under ROOT so the suite's own `rmSync(ROOT)` takes it, and outside APP_DATA
  * so the candidate-count denominator at the end never sees these files. */
@@ -230,17 +245,47 @@ function typescriptContainment(candidatePath) {
  * detail line carries its hash instead, so a run against a modified runner is
  * legible after the fact rather than silently equivalent.
  */
-function rubyRun({ home, script, timeout = 10, wall = 60000 }) {
+function rubyRun({ home, script, timeout = 10, wall = null }) {
+  rubyLedgerRuns += 1
+  mkdirSync(RUBY_LEDGERS, { recursive: true })
+  const ledgerPath = join(RUBY_LEDGERS, `run-${rubyLedgerRuns}.jsonl`)
+  // Seeded here, before the child exists. The nonce is what makes a ledger
+  // line the runner's rather than anybody's: a candidate cannot read this file
+  // (it is outside its sandbox and every read-shaped entry point is guarded)
+  // and the value appears in no argument the child is given.
+  const nonce = randomUUID()
+  writeFileSync(ledgerPath, JSON.stringify({ t: 'open', nonce }) + '\n', 'utf8')
+
+  // The wall is this side's, and it is derived from the run's own timeout
+  // rather than being a large constant. A candidate that stops the runner's
+  // watchdog buys this grace window and nothing else.
+  const deadline = wall ?? timeout * 1000 + RUBY_GRACE_MS
+  const startedAt = Date.now()
   const r = spawnSync(
     RUBY,
-    ['-W0', '--disable-gems', RUBY_RUNNER, '--sandbox', home, '--script', script, '--fixture', RUBY_STREAM, '--timeout', String(timeout)],
-    { encoding: 'utf8', timeout: wall, cwd: home }
+    [
+      '-W0',
+      '--disable-gems',
+      RUBY_RUNNER,
+      '--sandbox',
+      home,
+      '--script',
+      script,
+      '--fixture',
+      RUBY_STREAM,
+      '--timeout',
+      String(timeout),
+      '--ledger',
+      ledgerPath,
+    ],
+    { encoding: 'utf8', timeout: deadline, cwd: home }
   )
+  const elapsed = Date.now() - startedAt
   const text = ((r.stdout || '') + '').trim()
-  // The runner emits exactly one JSON object on real stdout, whatever
-  // happened. A run with no object at all is the interesting failure - it is
-  // what "the watchdog was removed and the child was killed from outside"
-  // looks like - so it is reported as such rather than crashing the parse.
+  // Stdout is advisory. It is parsed because a person reading a failure wants
+  // to see what the run said, and because several checks below compare what
+  // the candidate CLAIMED against what the ledger recorded - which is the only
+  // way to show that the forgery happened and did not work.
   let result = null
   const last = text.split('\n').filter((l) => l.trim().startsWith('{')).pop()
   if (last) {
@@ -250,7 +295,84 @@ function rubyRun({ home, script, timeout = 10, wall = 60000 }) {
       result = null
     }
   }
-  return { spawn: r, result, text, stderr: (r.stderr || '').trim() }
+  return { spawn: r, result, text, stderr: (r.stderr || '').trim(), ledger: readRubyLedger(ledgerPath, nonce), elapsed, deadline, ledgerPath }
+}
+
+/**
+ * The parent's record of one run: everything on the ledger stamped with the
+ * nonce this side seeded, and nothing else.
+ *
+ * Three states rather than two. `verdict === null` is not "clean" and not
+ * "violated": it is **the candidate left without one**, which is what `exit!`
+ * and a killed watchdog both produce, and it is a FAIL that says so. A line
+ * whose nonce does not match is counted separately rather than dropped
+ * silently, because a non-zero `foreign` would mean the nonce leaked and this
+ * whole mechanism is worth less than it looks.
+ */
+function readRubyLedger(path, nonce) {
+  let lines = []
+  try {
+    lines = readFileSync(path, 'utf8').split('\n')
+  } catch {
+    return { violations: [], verdict: null, foreign: 0, records: 0, started: false }
+  }
+  const out = { violations: [], verdict: null, foreign: 0, records: 0, started: false }
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed.startsWith('{')) continue
+    let rec = null
+    try {
+      rec = JSON.parse(trimmed)
+    } catch {
+      continue
+    }
+    if (rec.t === 'open') continue
+    out.records += 1
+    if (rec.nonce !== nonce) {
+      out.foreign += 1
+      continue
+    }
+    if (rec.t === 'violation') out.violations.push(String(rec.message))
+    else if (rec.t === 'verdict') out.verdict = rec
+    else if (rec.t === 'start') out.started = true
+  }
+  return out
+}
+
+/**
+ * The verdict, computed from the parent's record and never from the child's.
+ *
+ * Every clause is one of #486's findings. `verdict === null` closes `exit!`
+ * (finding 2) and the killed watchdog (finding 3) at once, and it is the third
+ * state a two-valued check could not express. `ledger.violations` closes
+ * `Contain.violations.clear` (finding 1), because the lines were written as
+ * each violation was raised and clearing the in-process array clears a copy of
+ * something this side already has. Reading neither from stdout closes the
+ * forged last object (finding 5).
+ */
+function rubyVerdict(r) {
+  if (r.spawn.error && r.spawn.error.code === 'ETIMEDOUT') {
+    return { pass: false, why: `no verdict: this side killed the run after ${r.elapsed}ms (its wall was ${r.deadline}ms)` }
+  }
+  if (!r.ledger.started) return { pass: false, why: 'no verdict: the runner never reported starting, so nothing here ran contained' }
+  if (r.ledger.foreign > 0) return { pass: false, why: `${r.ledger.foreign} ledger line(s) carry the wrong nonce` }
+  if (!r.ledger.verdict) return { pass: false, why: 'no verdict: the candidate exited without one' }
+  if (r.ledger.violations.length > 0) return { pass: false, why: `${r.ledger.violations.length} violation(s) on the parent's ledger: ${r.ledger.violations.join(' | ').slice(0, 200)}` }
+  if (r.ledger.verdict.result?.timedOut) return { pass: false, why: 'the run timed out' }
+  if (r.spawn.status !== 0) return { pass: false, why: `the runner exited ${r.spawn.status}` }
+  return { pass: true, why: `verdict on the ledger, ${r.ledger.violations.length} violations, exit ${r.spawn.status}` }
+}
+
+/** Everything recorded about a run, from both sides. The needle checks below
+ * use this so that a sabotage of the ledger reddens the checks that are ABOUT
+ * the ledger rather than every escape check in the section. */
+function rubyAllViolations(r) {
+  // The runner's own list, taken from the ledger's copy of the result where
+  // there is one - stdout's LAST object can be a candidate's forgery, and for
+  // `escape_clear_record.lic` it deliberately is - plus every violation line
+  // written as it happened.
+  const reported = r.ledger.verdict?.result?.violations ?? r.result?.violations ?? []
+  return [...reported, ...r.ledger.violations]
 }
 
 /** A fresh sandbox holding the fixtures and, optionally, a candidate. */
@@ -280,24 +402,30 @@ function rubyContainment(candidatePath) {
   // The denominator: prove the driver can run something before letting it
   // judge anything.
   const control = rubyRun({ home, script: 'control_good.lic' })
-  if (control.spawn.status !== 0 || !control.result) {
+  const controlVerdict = rubyVerdict(control)
+  if (!controlVerdict.pass) {
     return skip(
       `the containment driver could not run its own known-good fixture: ` +
-        `${(control.stderr || control.text).slice(0, 200)}. This is not a pass.`
+        `${controlVerdict.why}; ${(control.stderr || control.text).slice(0, 160)}. This is not a pass.`
     )
   }
 
   const r = rubyRun({ home, script: stem })
+  const verdict = rubyVerdict(r)
   const runnerHash = md5(readFileSync(RUBY_RUNNER, 'utf8')).slice(0, 12)
+  // The parent's record, not the child's. #486 got a clean-looking object past
+  // the old form of this line three ways; what the candidate printed is still
+  // shown, because a reviewer wants to see it, but it decides nothing.
   const detail =
     `ran out of process under ruby/runner.rb (md5 ${runnerHash}) sandboxed at ${home}; ` +
+    `parent's ledger: ${verdict.why}; ` +
     (r.result
-      ? `sent=${JSON.stringify(r.result.sent)} violations=${JSON.stringify(r.result.violations)} errors=${JSON.stringify(r.result.errors).slice(0, 120)}`
-      : `no JSON result: ${(r.stderr || r.text).slice(0, 160)}`)
+      ? `the run also printed sent=${JSON.stringify(r.result.sent)} violations=${JSON.stringify(r.result.violations)} errors=${JSON.stringify(r.result.errors).slice(0, 120)}`
+      : `it printed no parseable JSON: ${(r.stderr || r.text).slice(0, 160)}`)
   return [
     {
       name: 'E7 containment fixtures',
-      status: r.spawn.status === 0 && r.result && !r.result.timedOut && r.result.violations.length === 0 ? 'pass' : 'fail',
+      status: verdict.pass ? 'pass' : 'fail',
       detail,
     },
   ]
@@ -816,7 +944,7 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
       }
     }
 
-    const runFixture = (script, { timeout = 10, wall = 60000, link = false } = {}) => {
+    const runFixture = (script, { timeout = 10, wall = null, link = false } = {}) => {
       mkdirSync(RUBY_OUTSIDE, { recursive: true })
       for (const f of rubyEscaped()) rmSync(join(RUBY_OUTSIDE, f), { force: true })
       // What `escape_load.lic` tries to load. Written before every run and
@@ -829,7 +957,14 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
       if (linked && linked.made) rubyRemoveLink(linked.link)
       const landed = rubyEscaped()
       fixtureResults.push(script)
-      escapeTable.push({ script, exit: r.spawn.status, violations: r.result ? r.result.violations.length : -1, landed })
+      escapeTable.push({
+        script,
+        exit: r.spawn.status,
+        violations: r.result ? r.result.violations.length : -1,
+        ledgerViolations: r.ledger.violations.length,
+        verdict: r.ledger.verdict ? 'yes' : 'NONE',
+        landed,
+      })
       return { ...r, home, landed, linked, payloadIntact: existsSync(join(RUBY_OUTSIDE, 'payload.rb')) }
     }
 
@@ -839,15 +974,21 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
      * which is how `escape_kernel_modfunc.lic` used to look refused when only
      * the first of its three attempts had run. */
     const refused = (r, ...needles) =>
-      r.result !== null &&
+      r.ledger.verdict !== null &&
       r.spawn.status === 3 &&
       r.landed.length === 0 &&
-      needles.every((n) => r.result.violations.some((v) => v.includes(n)))
+      needles.every((n) => rubyAllViolations(r).some((v) => v.includes(n)))
     const say = (r) =>
-      r.result
-        ? `exit ${r.spawn.status}, landed=[${r.landed.join(', ')}], violations=${r.result.violations.join(' | ').slice(0, 220)}`
-        : `NO JSON RESULT: ${(r.stderr || r.text).slice(0, 200)}`
-    const echoed = (r) => JSON.stringify(r.result ? r.result.echoed : []).slice(0, 260)
+      r.ledger.verdict || r.result
+        ? `exit ${r.spawn.status}, landed=[${r.landed.join(', ')}], ledger=${r.ledger.violations.length}v/${r.ledger.verdict ? 'verdict' : 'NO VERDICT'}, violations=${rubyAllViolations(r).join(' | ').slice(0, 220)}`
+        : `NO RESULT AT ALL: ${(r.stderr || r.text).slice(0, 200)}`
+    /** What the RUNNER reported, which is not always what stdout's last object
+     * says: `escape_clear_record.lic` prints a forged object from its own
+     * `at_exit`, after the real one, and that used to be the thing this driver
+     * read. The ledger's copy is the runner's, so it is the one to quote when
+     * a check is about what the run actually did. */
+    const reported = (r) => r.ledger.verdict?.result ?? r.result
+    const echoed = (r) => JSON.stringify(reported(r)?.echoed ?? []).slice(0, 260)
 
     const control = runFixture('control_good.lic')
     ok(
@@ -898,10 +1039,12 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
       escapeRequire.result ? `exit ${escapeRequire.spawn.status}: ${escapeRequire.result.violations.join(' | ').slice(0, 150)}` : (escapeRequire.stderr || escapeRequire.text).slice(0, 200)
     )
 
-    // The wall runs far longer than the runner's own limit, so a run that
-    // needs killing from outside is distinguishable from one that reported
-    // its own timeout. That is what the sabotage below turns on.
-    const looping = runFixture('loop_forever.lic', { timeout: 2, wall: 45000 })
+    // The parent's wall is the runner's own limit plus a grace window, so a
+    // run that reported its own timeout at 2s and a run that had to be killed
+    // at 8s are still distinguishable - which is what the sabotage turns on.
+    // It used to be a flat 45s; #486 made it derived, because a constant wall
+    // is one a candidate that stops the internal clock simply sits inside.
+    const looping = runFixture('loop_forever.lic', { timeout: 2 })
     ok(
       'a candidate that loops forever is reported as a timeout by the runner itself',
       looping.result !== null && looping.result.timedOut === true && looping.spawn.status === 4,
@@ -1080,6 +1223,124 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
       `${say(escapeSuper)}; ${echoed(escapeSuper)}`
     )
 
+    // ------------------------------------------------------------------
+    // #486, review pass 8. Four more classes got a clean verdict past the
+    // shipped runner, and the first three are one defect: the object this
+    // driver judged was produced inside the process being judged. The verdict
+    // is the parent's ledger now, and these are the checks that say so.
+    // ------------------------------------------------------------------
+
+    // The instrument for all of it. Without a nonce on the ledger there is no
+    // parent-side record, and every check below would be reading an empty file
+    // and finding nothing wrong with it - the exact shape of a check that
+    // cannot fail.
+    ok(
+      'the parent seeds a nonce the candidate cannot read, and the runner stamps every line with it (instrument)',
+      control.ledger.started === true && control.ledger.verdict !== null && control.ledger.foreign === 0 && control.ledger.records >= 2,
+      `${control.ledger.records} stamped records, ${control.ledger.foreign} with the wrong nonce, verdict=${control.ledger.verdict ? 'present' : 'MISSING'}, ledger=${control.ledgerPath}`
+    )
+
+    // 10. `Contain.violations.clear`. The accessor handed out the live array,
+    // `freeze` on a module is shallow, and `at_exit`'s re-check compares a
+    // length that had gone DOWN, so `extra.positive?` was false. Measured
+    // before: `violations: []`, `errors: []`, EXIT=0.
+    const escapeClear = runFixture('escape_clear_record.lic')
+    ok(
+      'a candidate cannot empty the violation list: the accessor hands out a frozen copy',
+      refused(escapeClear, 'File.write', 'ESCAPED_clear') &&
+        (reported(escapeClear)?.echoed ?? []).some((l) => l.includes('clearing raised FrozenError')),
+      `${say(escapeClear)}; ${echoed(escapeClear)}`
+    )
+    ok(
+      "and the parent's ledger holds the violation whatever the candidate does to the copy",
+      escapeClear.ledger.violations.length >= 1 && escapeClear.ledger.violations.some((v) => v.includes('ESCAPED_clear')),
+      `${escapeClear.ledger.violations.length} on the ledger: ${escapeClear.ledger.violations.join(' | ').slice(0, 200)}`
+    )
+    // 5 in #486's numbering, and it only ever mattered together with 10: the
+    // driver read the LAST object on stdout, and a candidate's `at_exit` runs
+    // after the runner's emit. Stdout is advisory now, so the forgery is
+    // visible and inert - which is a better outcome than it being absent,
+    // because this check can see the attempt.
+    ok(
+      'a forged last object on stdout is not the verdict; the ledger is',
+      escapeClear.result !== null &&
+        escapeClear.result.violations.length === 0 &&
+        (escapeClear.result.echoed ?? []).includes('all clean') &&
+        rubyVerdict(escapeClear).pass === false,
+      `stdout claimed ${JSON.stringify(escapeClear.result?.echoed ?? [])} with ${escapeClear.result?.violations.length} violations; ledger says ${rubyVerdict(escapeClear).why}`
+    )
+
+    // 11. `exit!` skips every `at_exit` handler, including the reporter, and
+    // `STDOUT` is untouched by the `$stdout` capture swap. Measured before: a
+    // forged object was the only thing on stdout and EXIT=0.
+    const escapeExitBang = runFixture('escape_exit_bang.lic')
+    ok(
+      'exit! and Process.exit! are refused and named, so a candidate cannot skip the reporter',
+      refused(escapeExitBang, 'Kernel#exit!', 'Process.exit!', 'ESCAPED_exitbang'),
+      say(escapeExitBang)
+    )
+    ok(
+      'and the forged object it printed through STDOUT first decides nothing',
+      escapeExitBang.ledger.verdict !== null &&
+        (escapeExitBang.ledger.verdict.result?.violations?.length ?? 0) >= 3 &&
+        rubyVerdict(escapeExitBang).pass === false,
+      `${rubyVerdict(escapeExitBang).why}; the run's first line on stdout was ${escapeExitBang.text.split('\n')[0]?.slice(0, 120)}`
+    )
+
+    // 12. `Contain.watchdog.kill`. Measured before: EXIT=124 from an external
+    // limit and no JSON at all - the harness's own comment calls that the
+    // interesting failure, and this was the reachable way to produce it.
+    const escapeWatchdog = runFixture('escape_watchdog_kill.lic', { timeout: 3 })
+    ok(
+      'a candidate that stops the clock is killed by the parent inside its own grace window',
+      escapeWatchdog.elapsed < 3000 + RUBY_GRACE_MS + 4000 && escapeWatchdog.spawn.error?.code === 'ETIMEDOUT',
+      `killed after ${escapeWatchdog.elapsed}ms against a wall of ${escapeWatchdog.deadline}ms, spawn error ${escapeWatchdog.spawn.error?.code ?? 'none'}`
+    )
+    ok(
+      'and a run that left no verdict is a FAIL naming that, never a pass',
+      escapeWatchdog.ledger.verdict === null &&
+        escapeWatchdog.ledger.started === true &&
+        rubyVerdict(escapeWatchdog).pass === false &&
+        /no verdict/.test(rubyVerdict(escapeWatchdog).why),
+      `started=${escapeWatchdog.ledger.started}, verdict=${escapeWatchdog.ledger.verdict ? 'present' : 'none'}: ${rubyVerdict(escapeWatchdog).why}`
+    )
+    ok(
+      'and it really did stop the clock, so this is the escape and not a slow fixture (denominator)',
+      (escapeWatchdog.ledger.verdict === null) &&
+        rubyEscaped().length === 0,
+      `nothing outside the sandbox; the fixture sleeps 25s past a 3s runner timeout and produced no verdict in ${escapeWatchdog.elapsed}ms`
+    )
+
+    // 13. `Dir.new`, `Dir.home` and `File::Stat.new`: `Class#new` is inherited,
+    // so neither constructor appeared in any hand-typed list here. Measured
+    // before: a listing of `C:/Users`, a stat of a file outside, the home
+    // directory, `violations: []`, EXIT=0.
+    const escapeDirNew = runFixture('escape_dir_new.lic')
+    ok(
+      'Dir.new, File::Stat.new and Dir.home outside the sandbox are refused, naming the path',
+      refused(escapeDirNew, 'Dir.new', 'File::Stat.new', 'Dir.home'),
+      say(escapeDirNew)
+    )
+    ok(
+      'and Dir.new INSIDE the sandbox still works, so the constructors are a fence and not a wall',
+      (escapeDirNew.result?.echoed ?? []).some((l) => /Dir\.new INSIDE ok, \d+ entries/.test(l)),
+      echoed(escapeDirNew)
+    )
+
+    // The denominator for the whole filesystem claim, and the thing whose
+    // absence #486's fourth finding actually was: nothing had ever compared
+    // the hand-typed lists in `runner.rb` against what Ruby provides. The
+    // runner derives it at install time from `singleton_methods` plus the two
+    // inherited constructors; a method in that set with no guard is a FAIL.
+    const guards = control.result?.guards
+    ok(
+      `every read-shaped entry point on File, IO, Dir and File::Stat has a guard: ${guards?.examined ?? 0} examined`,
+      guards && guards.examined >= 70 && Array.isArray(guards.unguarded) && guards.unguarded.length === 0,
+      guards
+        ? `${guards.guarded} of ${guards.examined} guarded${guards.unguarded.length ? `; UNGUARDED: ${guards.unguarded.join(', ')}` : ''}`
+        : 'the control run reported no guard coverage at all'
+    )
+
     // The hard rule, and the one that cannot be satisfied by a check nobody
     // wrote: whatever the individual assertions above say, nothing may be on
     // disk outside the sandboxes. A class that escapes is a FAIL here.
@@ -1089,7 +1350,7 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
       gotOut.length === 0 && escapeTable.length >= 15,
       gotOut.length
         ? `ESCAPED: ${gotOut.map((e) => `${e.script} -> ${e.landed.join(', ')}`).join('; ')}`
-        : escapeTable.map((e) => `${e.script}=exit${e.exit}/${e.violations}v`).join(' ')
+        : escapeTable.map((e) => `${e.script}=exit${e.exit}/${e.ledgerViolations}v-ledger/${e.verdict}`).join(' ')
     )
 
     ok(

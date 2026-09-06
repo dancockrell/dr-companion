@@ -1,0 +1,55 @@
+# A candidate that erases the record of its own violation.
+#
+# #486's first finding. `attr_reader :violations` handed the array itself out,
+# `freeze` on a module is shallow, so the array it holds is not frozen, and a
+# candidate that caught its own `Contain::Violation` could simply empty the
+# list. The `at_exit` re-check could not help: it compares the list's length
+# against the number already emitted, and after a `clear` that difference is
+# negative rather than positive.
+#
+# Measured before the fix: `violations: []`, `errors: []`, `EXIT=0`, which the
+# caller's verdict read as a clean run.
+#
+# The forged second object at the bottom is #486's fifth finding in the same
+# file, because the two only matter together: the caller took the LAST JSON
+# object on stdout, and a candidate's `at_exit` runs after the runner's first
+# emit. On its own the forgery lost to the exit code; with the record erased
+# there was no exit code left to lose to.
+#
+# What must happen now: the parent's ledger already holds the violation, written
+# as it was raised, in a file the candidate cannot reach - so clearing the
+# in-process copy clears a copy of a record somebody else already has.
+
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_clear.txt')
+
+echo 'escape_clear_record: starting'
+
+begin
+  File.write(TARGET, "written past the fence\n")
+  echo 'escape_clear_record: THE WRITE LANDED'
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_clear_record: caught #{e.class}"
+end
+
+begin
+  Contain.violations.clear
+  echo "escape_clear_record: cleared, list is now #{Contain.violations.length} long"
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_clear_record: clearing raised #{e.class}"
+end
+
+begin
+  Contain.result.errors.clear
+  echo 'escape_clear_record: cleared the errors too'
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_clear_record: clearing errors raised #{e.class}"
+end
+
+# Finding 5: the last object on stdout used to be the verdict.
+at_exit do
+  STDOUT.puts('{"sent":[],"echoed":["all clean"],"errors":[],"violations":[],"notes":[],"timedOut":false,"shim":{"methods":138}}')
+  STDOUT.flush
+end
+
+echo 'escape_clear_record: finishing normally'

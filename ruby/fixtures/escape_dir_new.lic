@@ -1,0 +1,55 @@
+# A candidate that reads outside the sandbox through the constructors.
+#
+# #486's fourth finding. `DIR_PATH_OPS` listed `mkdir rmdir delete unlink open
+# children entries each_child foreach chdir exist? empty?` and neither `:new`
+# nor `:home` was on it, and `File::Stat` was never touched at all, so one
+# constructor bypassed the whole of `FILE_STAT_OPS`.
+#
+# `Dir.new` is strictly stronger than the `File.exist?` probing the header
+# already called out as worth refusing: it enumerates a directory rather than
+# guessing at one name at a time. Measured before the fix, all three succeeded
+# with `violations: []` and `EXIT=0`:
+#
+#   Dir.new OUTSIDE ok: [".anaconda", ".android", ".bashrc", ...]
+#   File::Stat OUTSIDE ok: size=4352 mtime=...
+#   Dir.home=C:/Users/Admin
+#
+# `Dir.new` and `File::Stat.new` are `Class#new`, inherited rather than owned,
+# which is why enumerating each class's *own* singleton methods missed them and
+# why the coverage check in the runner adds the constructors by hand.
+
+OUTSIDE_DIR = File::ALT_SEPARATOR ? 'C:/Users' : '/etc'
+OUTSIDE_FILE = File::ALT_SEPARATOR ? 'C:/Windows/win.ini' : '/etc/hosts'
+
+echo 'escape_dir_new: starting'
+
+begin
+  entries = Dir.new(OUTSIDE_DIR).children.first(6)
+  echo "escape_dir_new: Dir.new OUTSIDE ok: #{entries.inspect}"
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_dir_new: Dir.new refused with #{e.class}"
+end
+
+begin
+  st = File::Stat.new(OUTSIDE_FILE)
+  echo "escape_dir_new: File::Stat OUTSIDE ok: size=#{st.size}"
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_dir_new: File::Stat.new refused with #{e.class}"
+end
+
+begin
+  echo "escape_dir_new: Dir.home=#{Dir.home}"
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_dir_new: Dir.home refused with #{e.class}"
+end
+
+# The fence is a fence and not a wall: the same constructor inside the sandbox
+# must still work, or the guard has broken ordinary use to close a hole.
+begin
+  inside = Dir.new(__dir__).children.length
+  echo "escape_dir_new: Dir.new INSIDE ok, #{inside} entries"
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_dir_new: Dir.new INSIDE wrongly refused with #{e.class}"
+end
+
+echo 'escape_dir_new: finished'
