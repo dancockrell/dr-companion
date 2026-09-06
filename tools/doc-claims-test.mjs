@@ -602,8 +602,50 @@ const pkg = JSON.parse(read('package.json'))
     return hits
   }
 
-  const found = scan(population)
-  ok('no shipped string or document instructs the retired route', found.length === 0, found.join('; '))
+  /**
+   * Files inside the scanned tree that legitimately name a needle, each with
+   * the reason, because an unexplained exemption is how a real regression gets
+   * waved through.
+   *
+   * One entry, and it arrived from N4 rather than being written with this
+   * check: `frontends.ts` describes Lich's *own* argument parser - which flags
+   * `determine_frontend` accepts and which only `resolve_headless_frontend`
+   * honours - and `--genie` is one of the facts it is describing. That is the
+   * same category as `src-tauri/src/lich.rs`, which asserts the flag is absent
+   * and needs the string in order to test for it. Describing a flag is not
+   * instructing a player to pass it.
+   *
+   * The exemption is by file and not by line, and it is checked in both
+   * directions below: a file listed here that no longer contains a needle is a
+   * stale exemption and fails, the same way `tools/color-token-allowlist.json`
+   * refuses an entry that no longer matches.
+   */
+  const EXEMPT = new Map([
+    [
+      'src/lib/frontends.ts',
+      "doc comments describing Lich's own argument parser, not instructions",
+    ],
+  ])
+  const norm = (h) => h.replace(/\\/g, '/')
+  const allHits = scan(population).map(norm)
+  const exemptHit = (h) => [...EXEMPT.keys()].some((f) => h.startsWith(`${f}:`))
+  const found = allHits.filter((h) => !exemptHit(h))
+  ok(
+    'no shipped string or document instructs the retired route',
+    found.length === 0,
+    found.join('; ') ||
+      `${allHits.length - found.length} exempt hit(s) in ${EXEMPT.size} file(s)`
+  )
+  // A stale exemption is worse than none: it spends a reader's attention and
+  // quietly widens the hole. Every file listed must still contain a needle.
+  const staleExemptions = [...EXEMPT.keys()].filter(
+    (f) => !allHits.some((h) => h.startsWith(`${f}:`))
+  )
+  ok(
+    'every retired-instruction exemption still earns itself',
+    staleExemptions.length === 0,
+    staleExemptions.join(', ') || [...EXEMPT.values()].join('; ')
+  )
 
   // The positive control, through the same `scan` the real check uses - not a
   // re-implementation of it, which would leave `scan` itself unproven. The

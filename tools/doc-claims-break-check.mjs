@@ -169,6 +169,21 @@ const CASES = [
     to: '// saveGenieConfig\nexport',
     expect: 'only the pin export writes into a Genie install',
   },
+  {
+    // Sabotage the checker again, this time its one exemption. Pointing the
+    // entry at a file that does not exist must do two things at once: the two
+    // hits it was covering come back and redden the real check, and the
+    // staleness check notices the entry matches nothing. If only the first went
+    // red, a stale exemption could sit there indefinitely widening the hole; if
+    // only the second did, the exemption was never load-bearing at all.
+    file: 'tools/doc-claims-test.mjs',
+    from: "      'src/lib/frontends.ts',",
+    to: "      'src/lib/frontends-that-do-not-exist.ts',",
+    expect: [
+      'no shipped string or document instructs the retired route',
+      'every retired-instruction exemption still earns itself',
+    ],
+  },
 ]
 
 const md5 = (s) => createHash('md5').update(s).digest('hex')
