@@ -261,12 +261,19 @@ try {
   //
   // Written this way after the first version asserted the room-level rule and
   // went red. The code was right and the check was wrong.
+  //
+  // The second room is `1-1`, which is a real room in this zone. It used to be
+  // `999-1` - not a room in any zone this app ships - and it was taken, stored,
+  // and then dropped at compile without a word, which is #461's third finding
+  // sitting inside the check that was supposed to be watching. Since the import
+  // checks room existence, a case written that way is now refused, correctly,
+  // while proving nothing about the merge.
   const foreign = JSON.stringify({
     version: 1,
     provenance: 'somebody-else',
     overrides: {
       [roomId]: { primitives: [{ kind: 'water-ribbon-5m', x: -1, z: 1 }], ground: 'water' },
-      '999-1': { ground: 'sand' },
+      '1-1': { ground: 'sand' },
     },
   })
   await b.run(`
@@ -282,7 +289,7 @@ try {
   const resultLine = await b.eval(
     'document.querySelector(\'[data-testid="scene-import-result"]\')?.innerText ?? ""'
   )
-  check('an import takes what is new', merged?.['999-1']?.ground === 'sand', 'a room this machine had no opinion about')
+  check('an import takes what is new', merged?.['1-1']?.ground === 'sand', 'a room this machine had no opinion about')
   check(
     'and never overwrites a local choice',
     merged?.[roomId]?.primitives?.[0]?.x === half,
@@ -302,6 +309,107 @@ try {
     'the coverage list states this zone’s unclassified count',
     /^\d+$/.test(coverage),
     `${coverage} unclassified in this zone, derived from the zone's own content file`
+  )
+
+  // ----------------------------------------------------------------- #461
+  // A bad file, and the reason on screen where the person is looking. The
+  // node suite proves the parse refuses; only this says the refusal reaches a
+  // pixel. The store is read after each one, because a refusal that is shown
+  // and stored anyway is worse than no refusal at all.
+
+  const paste = async (text) => {
+    await b.run(`
+      const el = document.querySelector('[data-testid="scene-import-text"]');
+      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
+      setter.call(el, ${JSON.stringify(text)});
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    `)
+    await b.click('[data-testid="scene-import"]')
+    await new Promise((r) => setTimeout(r, 500))
+    return {
+      error: await b.eval('document.querySelector(\'[data-testid="scene-import-error"]\')?.innerText ?? ""'),
+      refusals: await b.eval('document.querySelector(\'[data-testid="scene-import-refusals"]\')?.innerText ?? ""'),
+      store: await b.eval(`localStorage.getItem(${JSON.stringify(KEY)})`),
+    }
+  }
+
+  const before461 = await b.eval(`localStorage.getItem(${JSON.stringify(KEY)})`)
+  const future = await paste(
+    JSON.stringify({ version: 99, provenance: 'attacker', overrides: { '1-2': { ground: 'water' } } })
+  )
+  check('a file from a future format is refused on screen, naming the version', /99/.test(future.error), future.error)
+  check('and nothing from it is stored', future.store === before461)
+
+  const ghost = await paste(
+    JSON.stringify({
+      version: 1,
+      provenance: 'somebody-else',
+      overrides: { '1-99999': { ground: 'water' }, '1-3': { ground: 'water' } },
+    })
+  )
+  check(
+    'a room this map does not have is named as refused',
+    /1-99999/.test(ghost.refusals),
+    ghost.refusals.split('\n')[0] ?? ''
+  )
+  check(
+    'and the rooms that are real in the same file are still taken',
+    JSON.parse(ghost.store ?? 'null')?.['1-3']?.ground === 'water' &&
+      JSON.parse(ghost.store ?? 'null')?.['1-99999'] === undefined,
+    'one bad room does not cost a person the rest of the file'
+  )
+
+  const payload = await paste(
+    JSON.stringify({
+      version: 1,
+      provenance: 'somebody-else',
+      overrides: {
+        '1-4': { primitives: [{ kind: 'water-ribbon-5m', x: 0, z: 0, payload: { a: { b: 'x'.repeat(64) } } }] },
+      },
+    })
+  )
+  check(
+    'a primitive carrying a nested payload is refused, naming the key',
+    /payload/.test(payload.refusals),
+    payload.refusals.split('\n')[0] ?? ''
+  )
+  check('and it is not in the store', JSON.parse(payload.store ?? 'null')?.['1-4'] === undefined)
+
+  await b.screenshot(out('scene-import-2026-09-06.png'))
+
+  // The quota this origin actually has, measured rather than assumed, because
+  // `SCENE_LIMITS` is chosen against it and a cap chosen against a number
+  // nobody measured is a guess with a comment.
+  const quota = await b.eval(`
+    (() => {
+      const key = 'drc.quota-probe'
+      const chunk = 'x'.repeat(1024)
+      let written = 0
+      try {
+        for (;;) {
+          localStorage.setItem(key, chunk.repeat(written + 64))
+          written += 64
+          if (written > 20000) break
+        }
+      } catch (e) {
+        // the expected end
+      }
+      const held = (localStorage.getItem(key) ?? '').length
+      localStorage.removeItem(key)
+      return held
+    })()
+  `)
+  console.log(
+    `NOTE this origin held ${quota} characters in one key (${(quota / 1048576).toFixed(2)} MiB of characters) before refusing`
+  )
+  const cap = await b.eval(`
+    (async () => (await import('/src/lib/sceneOverrides.ts')).SCENE_LIMITS.totalChars)()
+  `)
+  check(
+    'the scene cap is a fraction of what this origin will hold',
+    quota > cap * 2,
+    `cap ${cap}, measured quota ${quota} characters in a single key`
   )
 } finally {
   await b.close()

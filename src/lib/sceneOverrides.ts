@@ -320,14 +320,17 @@ export function isDrawable(field: SceneField, value: unknown): boolean {
  *
  * Chosen from a measurement rather than from a round number that felt safe.
  * Issue #461 measured the store with none of these: every room in the game on
- * every field is 4,361,241 characters, which localStorage counts as UTF-16 -
- * 8.32 MiB against an origin quota measured at 5 MiB in this app's own webview
- * (`docs/verification/scene-import-2026-09-06.md` records the measurement and
- * the command). The store shares that quota with prefs, highlights, layout and
- * every other key the app keeps, so the scene editor may not have all of it.
+ * every field is 4,361,241 characters. `tools/scene-editor-shots.mjs` measures
+ * what the origin will actually hold by filling one key until it refuses -
+ * 5,177,344 characters on 6 Sep 2026 - and that is the whole origin, shared
+ * with prefs, layout, highlights, portraits and every other key in
+ * `docs/PLAYER_DATA.md`, so the scene editor may not have all of it. The
+ * unbounded store was therefore within one import of taking every other
+ * preference in the app down with it.
  *
- * - `totalChars` 1,048,576 is 2 MiB as UTF-16, under half the origin's whole
- *   quota. One zone with every room and every field decided measures 188,634
+ * - `totalChars` 1,048,576 is a fifth of the measured origin quota, which
+ *   leaves four fifths for everything else the app saves. One zone with every
+ *   room and every field decided measures 188,634
  *   characters (Crossing, 1,060 rooms), so this holds five such zones, or a
  *   single-field opinion about every room in the game (509,491 characters).
  *   Somebody who has genuinely decided more than that has a pipeline file, not
