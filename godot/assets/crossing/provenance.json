@@ -2129,6 +2129,195 @@
 			"statusHook": "consumer-owned",
 			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
 			"triangles": 1848.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.stoppered-jar",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-0.200000017881393,
+					0.0,
+					-0.200000017881393
+				],
+				"size": [
+					0.400000035762787,
+					0.497500002384186,
+					0.400000035762787
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "neutral_prop",
+			"forwardAxis": "-Z",
+			"geometryGlb": "stoppered-jar.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"alchemy_glaze",
+				"oak_light"
+			],
+			"meshInstances": 3.0,
+			"nativeNode": "painted_stoppered_jar",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "c12f4656782aa286bca497cdac3711337ee09db7c406e273150c9cb9dc09108c",
+			"sockets": {},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 1664.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.glass-carboy",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-0.377000063657761,
+					0.0,
+					-0.377000063657761
+				],
+				"size": [
+					0.754000127315521,
+					1.15499997138977,
+					0.754000127315521
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "neutral_prop",
+			"forwardAxis": "-Z",
+			"geometryGlb": "glass-carboy.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"alchemy_dark_glass",
+				"oak_light",
+				"sand"
+			],
+			"meshInstances": 4.0,
+			"nativeNode": "painted_glass_carboy",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "5e82d4929b968ff7fed8f3d4af072acf037f94aeefa96336e2cd99a17b859442",
+			"sockets": {},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 2368.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.liquid-vat",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-0.795000016689301,
+					0.0,
+					-0.795000016689301
+				],
+				"size": [
+					1.5900000333786,
+					1.22000002861023,
+					1.5900000333786
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "neutral_prop",
+			"forwardAxis": "-Z",
+			"geometryGlb": "liquid-vat.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"wood5",
+				"wood6",
+				"wood9",
+				"wood4",
+				"wood11",
+				"wood0",
+				"wood1",
+				"wood7",
+				"wood3",
+				"wood8",
+				"wood2",
+				"iron",
+				"oak",
+				"alchemy_liquid"
+			],
+			"meshInstances": 41.0,
+			"nativeNode": "painted_liquid_vat",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "799cd75ea23d225a827a61988161965160bd78b709da9a03df4c4961b48b9c6a",
+			"sockets": {
+				"liquid_surface": [
+					0.0,
+					0.953000009059906,
+					0.0
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 3696.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.long-worktable",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-2.20000004768372,
+					0.0,
+					-0.56900018453598
+				],
+				"size": [
+					4.40000009536743,
+					0.960214734077454,
+					1.13800036907196
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "neutral_prop",
+			"forwardAxis": "-Z",
+			"geometryGlb": "long-worktable.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"oak",
+				"wood4",
+				"wood7",
+				"wood3",
+				"wood11",
+				"wood1"
+			],
+			"meshInstances": 10.0,
+			"nativeNode": "painted_long_worktable",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "9d020af99c93200ce1e28da4b3f639994f9795348ec15dc5b566a5a2cf1d8011",
+			"sockets": {
+				"surface": [
+					0.0,
+					0.960214793682098,
+					0.0
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 280.0
 		}
 	],
 	"creditsConsumed": 0,
@@ -2178,8 +2367,8 @@
 		}
 	],
 	"repository": "https://github.com/dancockrell/shared-game-environment-library",
-	"revision": "4cffea70413fd512f3d22399179ae5ed9612095a",
-	"runtimeSha256": "a8bba59e9d9a225462f6475b92e7e3f25f075e1318863765a06fef400d0dfe9a",
-	"sourceSha256": "228fc37972c2b334524b07f24b6e89e67be7659b6e859255a02c568862e3ed19",
+	"revision": "bb132e1ef840bdad13e8aa23e1de4a8dc41a395d",
+	"runtimeSha256": "ba738a9398ae231fd59c09c42aeadc37aa6bc2d59de0f69109365f4c00baccf8",
+	"sourceSha256": "6683105162c620d6b3e4d77d7b144980573badea67bec6f9ed93adda3293c1ae",
 	"transformation": "Native subset only; textures and full geometry preserved"
 }

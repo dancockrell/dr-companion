@@ -10,10 +10,34 @@ Run: node tools/build-crossing-city-batch.mjs. Add --check-complete for the rele
 - directedExits: 2389
 - descriptions: 840
 - missingDescriptions: 220
-- partialRecipes: 24
+- partialRecipes: 26
+- generatedRecipes: 17
 - complete: 0
 - compassMismatches: 493
 - sourceCompassMismatches: 2
+
+## Batch production, not per-room authoring
+
+The productionPlan in the JSON groups evidence-bearing rooms by spatial classification and primary structural kit. Exact exit commands, socket count and furnishing families remain per-room parameters, not new template identities. It ranks shared kit work by unbuilt-room coverage and selects stable representative scenes plus explicit exceptions. These are planning cohorts, NOT generated or approved scenes. Missing evidence remains unresolved. Existing room-specific recipes remain authoritative overrides.
+
+- inputRooms: 1060
+- scheduledRooms: 565
+- cohorts: 22
+- representativeReviews: 60
+- exceptionRooms: 816
+
+Target workflow: extract evidence once; compile constrained scene recipes in batches; cache by evidence, graph, kit and compiler revisions; rebuild only affected rooms; validate all rooms; review changed template representatives and every flagged exception. Full per-room visual review remains a release gate until a measured sampling policy is accepted. Do not equate a faster report with faster scene production.
+
+### Highest-coverage kit work
+
+- building-frontage: 128 unbuilt rooms (139 described rooms total)
+- garden-and-boundary: 122 unbuilt rooms (135 described rooms total)
+- interior-shell-and-fittings: 120 unbuilt rooms (121 described rooms total)
+- street-and-junction: 118 unbuilt rooms (127 described rooms total)
+- workshop-and-commercial-display: 116 unbuilt rooms (127 described rooms total)
+- riverine-and-maritime: 83 unbuilt rooms (86 described rooms total)
+- rock-cave-and-underground: 47 unbuilt rooms (47 described rooms total)
+- vertical-connection: 38 unbuilt rooms (38 described rooms total)
 
 ## Coordinated asset families
 

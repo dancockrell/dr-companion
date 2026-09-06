@@ -75,6 +75,20 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 		return null
 	if cell.get("sourceDescriptionHash", "") != recipe.descriptionHash:
 		return null
+	if recipe.has("generatedBy"):
+		# Compiled clearances depend on exact geometry and exits, not prose alone.
+		if cell.get("board", {}).get("footprint", {}) != recipe.requiredFootprint:
+			return null
+		var actual: Array = cell.get("exits", [])
+		if actual.size() != recipe.requiredExits.size():
+			return null
+		for required in recipe.requiredExits:
+			var found := false
+			for edge in actual:
+				if edge.get("move") == required.move and edge.get("targetCellId") == required.targetCellId and edge.get("boardAnchor") == required.boardAnchor:
+					found = true
+			if not found:
+				return null
 	var size := ContentRegistryScript.block_size_metres(cell)
 	var ground_top := ContentRegistryScript.block_top_y(cell)
 	var holder := Node3D.new()
@@ -163,7 +177,26 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 				model.free()
 				holder.free()
 				return null
-			model.position = parent_model.transform * Vector3(socket[0], socket[1], socket[2])
+			# Optional X/Z offsets are support-local metres, not room fractions.
+			# Height still comes exclusively from the measured socket.
+			var offset = support.get("offset", [0.0, 0.0])
+			if not offset is Array or offset.size() != 2:
+				model.free()
+				holder.free()
+				return null
+			for value in offset:
+				if typeof(value) not in [TYPE_INT, TYPE_FLOAT] or not is_finite(float(value)):
+					model.free()
+					holder.free()
+					return null
+			var support_point := Vector3(socket[0] + offset[0], socket[1], socket[2] + offset[1])
+			var low: Array = parent_record.bounds.min
+			var dims: Array = parent_record.bounds.size
+			if support_point.x < low[0] or support_point.x > low[0] + dims[0] or support_point.z < low[2] or support_point.z > low[2] + dims[2]:
+				model.free()
+				holder.free()
+				return null
+			model.position = parent_model.transform * support_point
 			model.position.y += float(placement.lift)
 		model.visible = true
 		model.set_meta("asset_id", placement.assetId)

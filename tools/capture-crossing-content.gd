@@ -37,7 +37,18 @@ func _run() -> void:
 		suffix += "-flat"
 	if "--no-textures" in requested:
 		suffix += "-no-textures"
-	for entry in [["1-194", "bellows-room"], ["1-193", "armory-workroom"], ["1-32", "trollferry-quay"], ["1-14", "north"], ["1-15", "bower"], ["1-17", "oak"], ["1-225", "armory-approach"], ["1-379", "bazaar"], ["1-191", "weaponsmith"], ["1-192", "armory-interior"], ["1-371", "supply-stand"], ["1-7", "herbalist"], ["1-22", "residences"], ["1-95", "bathhouse"], ["1-100", "cottage"], ["1-112", "stable"]]:
+	var entries: Array = [["1-194", "bellows-room"], ["1-193", "armory-workroom"], ["1-32", "trollferry-quay"], ["1-14", "north"], ["1-15", "bower"], ["1-17", "oak"], ["1-225", "armory-approach"], ["1-379", "bazaar"], ["1-191", "weaponsmith"], ["1-192", "armory-interior"], ["1-371", "supply-stand"], ["1-7", "herbalist"], ["1-22", "residences"], ["1-95", "bathhouse"], ["1-100", "cottage"], ["1-112", "stable"]]
+	# Any real manifest room can be reviewed without editing this script per room.
+	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/crossing/world.json"))
+	for id in requested:
+		var listed := false
+		for entry in entries:
+			listed = listed or entry[0] == id
+		if not listed:
+			for cell in manifest.cells:
+				if cell.id == id:
+					entries.append([id, "room-" + id])
+	for entry in entries:
 		if not requested.is_empty() and not entry[0] in requested:
 			continue
 		captured.append(entry[0])

@@ -2,6 +2,53 @@
 
 ## Scope supersession: all Crossing, one batch
 
+### Batch composition compiler checkpoint
+
+The existing city batch command now compiles actual roomCompositions, not just
+an inventory. The current bounded-furnishing-v3 rule set generates 17 partial
+compositions while retaining 26 authored overrides. It consumes the existing
+source descriptions, authoritative world cells and selected native asset bounds;
+the existing SharedAssetContent renderer remains the sole composition renderer.
+
+Every generated furnishing retains its source sentence. The compiler reserves
+the central 4m activity space, every declared spawn, and 2m-wide straight exit
+approaches. Unlocated exits conservatively reserve all cardinal approaches;
+this does not invent door locations. Native AABBs determine placement and
+collision clearance. No new models or paid generation services are used.
+
+Only representative-room sources qualify. Seasonal state, negated objects,
+remote sound references and unsupported contexts are withheld. This is a small
+literal extraction vocabulary, NOT a general semantic parser; complex prose
+still needs structured evidence extraction and broader reviewed kit templates.
+The 290 evidence/state exclusions are recorded, not silently populated.
+
+Input hashes include description, board, exits, selected asset records and
+catalog revision. Unchanged generated recipes are reused. Runtime rejects a
+cached generated composition if description, footprint or exits changed.
+The capture tool accepts any manifest room ID without per-room source edits.
+
+Actual engine captures inspected: rooms 326, 226 and 227. The first 326 capture
+exposed a wrong green outdoor base on an explicitly stone-floored locker room;
+the compiler now honors explicit floor evidence and uses neutral unknown ground.
+The two Chizili rooms remain partial: jars/vats/table/counter placement is visible,
+but herbs, specimen glassware, finishes and connected doorway alignment remain
+unfinished. The generated rooms are sparse furnishing passes, not finished
+interiors or production-quality city coverage. No 1000x throughput claim is made.
+
+Validation: all 18 Godot scripts passed (4,799 checks); composition compiler
+and production cohort tests passed; repeat compilation reused all 17 recipes.
+The rendered locker-room base was rechecked after the correction: it is neutral,
+not green, but still lacks its intended floor finish and architectural shell.
+The legacy missing rock_smallA warning persists in neighboring primitive cells.
+
+Concurrent work discovered on origin/feat/world-content-pipeline at 9491201a
+adds all-zone cartographic ground/block classification in world-content-rules.mjs
+and build-world-content.mjs. This checkpoint does not duplicate that classifier:
+it adds native furnishing composition to the existing renderer. The concurrent
+classification work is not integrated or validated here yet. Reconcile its
+structural classification and boundary outputs before adding a new structural
+classifier; preserve description evidence as the stronger room-specific source.
+
 ### Typed architectural exit correction
 
 Whole-word singular matching previously missed doorway, archway, gateway,

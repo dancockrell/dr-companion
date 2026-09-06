@@ -7,6 +7,11 @@
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T06:13:06.680Z",
   "paths": [
+    "docs/verification/crossing-native-room-1-326.png",
+    "docs/verification/crossing-native-room-1-226.png",
+    "docs/verification/crossing-native-room-1-227.png",
+    "tools/compile-room-compositions.mjs",
+    "tools/compile-room-compositions-test.mjs",
     "tools/room-production-batches.mjs",
     "tools/room-production-batches-test.mjs",
     "tools/node-tethered-world-projection-test.mjs",

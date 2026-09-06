@@ -3,11 +3,18 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { planProductionBatches } from './room-production-batches.mjs'
+import { compileRoomCompositions } from './compile-room-compositions.mjs'
 
 execFileSync(process.execPath, ['tools/build-primitive-world-manifest.mjs', '1'], { stdio: 'inherit' })
 const world = JSON.parse(readFileSync('godot/assets/crossing/world.json', 'utf8'))
 const sources = JSON.parse(readFileSync('data/art/room-prompts-priority.json', 'utf8'))
 const selections = JSON.parse(readFileSync('godot/assets/shared_asset_selections.json', 'utf8'))
+const compiled = compileRoomCompositions(world, sources, selections, JSON.parse(readFileSync('godot/assets/crossing/provenance.json', 'utf8')))
+selections.roomCompositions = compiled.roomCompositions
+const selectionPath = 'godot/assets/shared_asset_selections.json'
+const selectionText = JSON.stringify(selections, null, 2)+'\n'
+if (readFileSync(selectionPath,'utf8') !== selectionText) writeFileSync(selectionPath,selectionText)
+console.log(JSON.stringify({...compiled.report,exceptions:compiled.report.exceptions.length}))
 const recipes = new Map(selections.roomCompositions.map(r => [r.cellId, r]))
 const archivePath = 'data/world/crossing-archive-candidates.json'
 const archive = existsSync(archivePath) ? JSON.parse(readFileSync(archivePath, 'utf8')) : null
@@ -70,12 +77,14 @@ const counts = {
   descriptions: rooms.filter(r=>r.description).length,
   missingDescriptions: rooms.filter(r=>!r.description).length,
   partialRecipes: rooms.filter(r=>r.recipeStatus === 'partial-authored').length,
+  generatedRecipes: rooms.filter(r=>r.recipeStatus === 'partial-generated-review-required').length,
   complete: rooms.filter(r=>r.productionStatus === 'complete').length,
   compassMismatches: rooms.reduce((n,r)=>n+r.connections.filter(e=>e.compassBearingMatches === false).length,0),
   sourceCompassMismatches: rooms.reduce((n,r)=>n+r.connections.filter(e=>e.sourceCompassBearingMatches === false).length,0),
 }
 const productionPlan = planProductionBatches(rooms)
-const batch = { schemaVersion: 1, scope: 'All Crossing rooms in authoritative zone 1; one production batch', counts, productionPlan,
+const {reusedRooms: _cacheHits, ...stableCompilationReport} = compiled.report
+const batch = { schemaVersion: 1, scope: 'All Crossing rooms in authoritative zone 1; one production batch', counts, productionPlan, compositionCompilation:stableCompilationReport,
   acceptance: ['every room has reviewed source evidence', 'no unbuilt or placeholder room', 'all legal exits have deliberate endpoints', 'interiors and vertical relationships reviewed', 'assets have provenance and measured bounds', 'all room captures reviewed at gameplay framing', 'tests and dense-scene performance accepted'],
   families, rooms }
 writeFileSync('data/world/crossing-city-batch.json', JSON.stringify(batch,null,2)+'\n')

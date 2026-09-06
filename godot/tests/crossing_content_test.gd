@@ -63,6 +63,13 @@ func _run() -> void:
 		changed = cell.duplicate(true)
 		changed.id = "unrelated-room"
 		check(content.build_room_composition(changed) == null, "Similar text cannot assign another room's geometry")
+		if recipe.has("generatedBy"):
+			changed = cell.duplicate(true)
+			changed.board.footprint.width += 1
+			check(content.build_room_composition(changed) == null, "Changed footprint refuses cached generated placements")
+			changed = cell.duplicate(true)
+			changed.exits[0].move = "different command"
+			check(content.build_room_composition(changed) == null, "Changed graph refuses cached generated clearances")
 	check(content.build_room_composition(cells["1-467"]) == null, "Pond without an authored composition refuses unrelated geometry")
 	for room_id in ["1-191", "1-192"]:
 		var shop: Node3D = content.build_room_composition(cells[room_id])
@@ -179,6 +186,26 @@ func _run() -> void:
 	supply_recipe.pieces[3].support.pieceIndex = 3
 	check(content.build_room_composition(cells["1-371"]) == null, "Self or forward support reference refuses composition")
 	supply_recipe.pieces[3].support.pieceIndex = 1
+	var alchemy: Node3D = content.build_room_composition(cells["1-226"])
+	var tabletop := _bounds(alchemy.get_child(1), alchemy)
+	var jars: Array[AABB] = []
+	for child in alchemy.get_children():
+		if child.get_meta("asset_id", "") == "painted-river-port.stoppered-jar":
+			var jar := _bounds(child, alchemy)
+			check(absf(jar.position.y - tabletop.end.y) < 0.03, "Alchemy jars sit at measured table socket height")
+			check(jar.position.x >= tabletop.position.x and jar.end.x <= tabletop.end.x and jar.position.z >= tabletop.position.z and jar.end.z <= tabletop.end.z, "Supported jars stay within tabletop bounds")
+			for other in jars:
+				check(not jar.intersects(other), "Alchemy jars do not overlap")
+			jars.append(jar)
+	check(jars.size() == 5, "Salesroom has the declared five supported jars")
+	alchemy.free()
+	var alchemy_recipe: Dictionary = content._room_compositions["1-226"]
+	var jar_support: Dictionary = alchemy_recipe.pieces[7].support
+	var saved_offset = jar_support.offset
+	for invalid in [[100, 0], [0], "bad", [NAN, 0]]:
+		jar_support.offset = invalid
+		check(content.build_room_composition(cells["1-226"]) == null, "Invalid support offsets refuse composition")
+	jar_support.offset = saved_offset
 	check(JSON.stringify(cells) == original, "Composition never changes room positions exits or state")
 	var workshop: Node3D = content.build_room_composition(cells["1-193"])
 	var workshop_exits: Dictionary = workshop.get_meta("exit_anchors", {})
