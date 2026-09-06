@@ -362,7 +362,7 @@ export function MapWindow() {
               <button
                 type="button"
                 className="p-1 rounded border border-border text-ink-faint hover:text-ink"
-                title="Save every character's pins to dr-companion-pins.yaml, in your Genie Config folder"
+                title="Save every character's pins to dr-companion-pins.yaml, in your DR Companion data folder"
                 aria-label="Export pins to file"
                 onClick={() => void doExportPins()}
               >
@@ -371,7 +371,7 @@ export function MapWindow() {
               <button
                 type="button"
                 className="p-1 rounded border border-border text-ink-faint hover:text-ink"
-                title="Load pins from dr-companion-pins.yaml in your Genie Config folder - a guildmate's shared file, or your own from another machine"
+                title="Load pins from dr-companion-pins.yaml in your DR Companion data folder - a guildmate's shared file, or your own from another machine"
                 aria-label="Import pins from file"
                 onClick={() => void doImportPins()}
               >

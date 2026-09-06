@@ -115,6 +115,65 @@ const GREP_PATTERN = /writeJSON\('[^']+'|readJSON<[^>]*>\('[^']+'|(?:KEY|STORAGE
 }
 
 /**
+ * The files the app writes into its own data directory, as opposed to the
+ * browser storage above. Added by Q5, which moved the pin export out of a
+ * Genie install (`docs/PLAYER_CONFIG.md` section 8, question N-c).
+ *
+ * Derived, for the same reason the keys are: a hand-kept list of "what else
+ * is on disk" answers the question correctly once. Every leaf constant in the
+ * tree is collected, and every `writePlayerFile`/`readPlayerFile` call site is
+ * required to name one of them - the direction that catches a file written
+ * under a name this scan's pattern does not match.
+ */
+const LEAF_PATTERN = /\b([A-Z][A-Z0-9_]*_LEAF) = '([^']+)'/g
+const leaves = []
+for (const file of files) {
+  for (const m of readFileSync(file, 'utf8').matchAll(LEAF_PATTERN)) {
+    leaves.push({ constant: m[1], leaf: m[2], file })
+  }
+}
+leaves.sort((a, b) => a.leaf.localeCompare(b.leaf))
+{
+  // The absent direction. A call passing something that is not a known leaf
+  // constant is a file this inventory would not list.
+  const known = new Set(leaves.map((l) => l.constant))
+  const bad = []
+  for (const file of files) {
+    // The wrapper module declares these functions, so its own matches are the
+    // parameter name rather than a call site. Exempting the definition is not
+    // a hole: a second module writing under a bare string is exactly what the
+    // rest of this loop is for, and this exemption is one named path.
+    if (file === 'src/lib/playerFiles.ts') continue
+    const calls = readFileSync(file, 'utf8').matchAll(/(?:write|read)PlayerFile\(\s*([A-Za-z0-9_]+)/g)
+    for (const m of calls) if (!known.has(m[1])) bad.push(file + ': ' + m[1])
+  }
+  if (bad.length) {
+    throw new Error(
+      'A player file is written under a name this inventory does not know, so the doc would ' +
+        'omit it: ' + bad.join(', ') + '. Give it a *_LEAF constant and describe it below.'
+    )
+  }
+}
+
+/** What each such file is, in a player's terms. Authored, and required: an
+ *  undescribed leaf stops the build rather than reaching the doc unexplained. */
+const DESCRIBES_FILES = {
+  'dr-companion-pins.yaml':
+    'Every map pin you placed, for every character, as YAML you can read and edit. Written only when you press Export in the map panel, never on its own. Overwriting it keeps a `.bak` of the previous version beside it, and a second window of the app cannot silently overwrite an export you just made.',
+}
+
+const fileRows = leaves.map((l) => {
+  const what = DESCRIBES_FILES[l.leaf]
+  if (!what) {
+    throw new Error(
+      'No description for the player file ' + l.leaf + ' (' + l.file + '). Add one to ' +
+        'DESCRIBES_FILES so it reaches the doc explained rather than as a bare filename.'
+    )
+  }
+  return '| `' + l.leaf + '` | ' + what + ' | `' + l.file + '` |'
+})
+
+/**
  * What each key holds, in a player's terms, and anything true of it that the
  * key name does not say.
  *
@@ -257,8 +316,8 @@ drives a whole sign-in and then reads these preferences back to prove it.
 ## The one thing that is not in this list
 
 The second change is that the password can now be **remembered, if you ask**.
-That is the only thing this app stores anywhere but \`localStorage\`, and the
-difference is deliberate:
+That is the only thing this app stores anywhere but \`localStorage\` without
+you having asked for a file by name, and the difference is deliberate:
 
 | | \`localStorage\` | the remembered password |
 |---|---|---|
@@ -274,6 +333,22 @@ decoding step (\`docs/LICH_NATIVE_LOGIN.md\` §5.2). The code is
 
 ${keys.length} keys, owned by ${new Set(found.map((f) => f.file)).size} files, found by scanning
 ${files.length} source files.
+
+## Files you asked for
+
+Separately from all of the above, the app writes ${leaves.length} file${leaves.length === 1 ? '' : 's'}
+into its own data directory, and only when you press a button that says so.
+${leaves.length === 1 ? 'It lives' : 'They live'} in the \`config\` folder under
+\`DR Companion Data\` - the same directory the table above means by "the app's
+own data directory", and ${leaves.length === 1 ? 'it is yours' : 'they are yours'} to
+open, copy, hand to somebody else, or delete.
+
+Nothing outside that folder is written: **this app does not write into a Genie
+install.** It still reads one, once, if you import a config from it.
+
+| File | What it is | Written by |
+|---|---|---|
+${fileRows.join('\n')}
 
 ## The keys
 

@@ -845,14 +845,15 @@ function Shell({
             </button>
           )}
           {/* Pins as a file, not just this browser's own storage - saved into
-            * the same Config folder highlights.cfg/aliases.cfg already live
-            * in, so it travels with the rest of a shared config. See
-            * pinsFile.ts's header for the whole story. */}
+            * the app's own data folder, which is where every file this app
+            * writes for a player lives as of Q5 (it used to be a Genie Config
+            * folder, which a player may not have). See pinsFile.ts's header
+            * for the whole story. */}
           {onExportPins && (
             <button
               type="button"
               className="p-1 rounded text-ink-faint hover:text-ink"
-              title="Save every character's pins to dr-companion-pins.yaml, in your Genie Config folder"
+              title="Save every character's pins to dr-companion-pins.yaml, in your DR Companion data folder"
               aria-label="Export pins to file"
               onClick={onExportPins}
             >
@@ -863,7 +864,7 @@ function Shell({
             <button
               type="button"
               className="p-1 rounded text-ink-faint hover:text-ink"
-              title="Load pins from dr-companion-pins.yaml in your Genie Config folder - a guildmate's shared file, or your own from another machine"
+              title="Load pins from dr-companion-pins.yaml in your DR Companion data folder - a guildmate's shared file, or your own from another machine"
               aria-label="Import pins from file"
               onClick={onImportPins}
             >

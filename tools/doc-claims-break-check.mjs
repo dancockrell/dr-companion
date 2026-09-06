@@ -25,7 +25,7 @@
  *     did not name is a failure too. A sabotage that takes down more than its
  *     target means the checks are entangled and are saying less than they look.
  */
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 
@@ -159,15 +159,42 @@ const CASES = [
     ],
   },
   {
-    // A second module reaching for the Genie writer is how the deleted editor
-    // comes back - not as one commit called "restore the editor", but as one
-    // save somewhere that looked harmless. `mapPins.ts` because it is the
-    // nearest neighbour of the one legitimate caller and so the likeliest place
-    // for it to happen by accident.
+    // A module reaching for the Genie writer is how the deleted editor comes
+    // back - not as one commit called "restore the editor", but as one save
+    // somewhere that looked harmless. `mapPins.ts` because it is the nearest
+    // neighbour of what used to be the one legitimate caller, and so the
+    // likeliest place for it to happen by accident.
+    //
+    // Turned the other way up by Q5, which deleted the Genie write path: the
+    // check this reddens used to be "exactly one caller" and is now "none".
+    // The sabotage is unchanged, which is the point of keeping it - the same
+    // plant that proved a *second* caller was caught now proves a *first* one
+    // is.
     file: 'src/lib/mapPins.ts',
     from: 'export',
     to: '// saveGenieConfig\nexport',
-    expect: 'only the pin export writes into a Genie install',
+    expect: 'nothing in this app writes into a Genie install',
+  },
+  {
+    // The other half of the same property, and the one a one-caller check
+    // could never have asserted: the wrapper module itself coming back. A file
+    // is created rather than edited, so the restore is a delete - see the
+    // runner's `create` handling.
+    create: 'src/lib/genieConfigWrite.ts',
+    content: 'export async function saveGenieConfig() {}\n',
+    expect: [
+      'nothing in this app writes into a Genie install',
+      'the module that wrapped the Genie writer is gone',
+    ],
+  },
+  {
+    // A second invocation site for the *read* command. Q5 left one, in the
+    // config importer, and this is how a Genie route grows back a leaf at a
+    // time. `mapPins.ts` again, for the same reason as above.
+    file: 'src/lib/mapPins.ts',
+    from: 'export',
+    to: "// invokeTauri('read_genie_config', { leaf: 'highlights.cfg' })\nexport",
+    expect: 'exactly one module invokes read_genie_config, and it is the config importer',
   },
   {
     // Sabotage the checker again, this time its one exemption. Pointing the
@@ -211,18 +238,37 @@ console.log('baseline: doc-claims-test is green\n')
 
 let bad = 0
 for (const c of CASES) {
-  const orig = readFileSync(c.file, 'utf8')
-  const before = md5(orig)
-  if (!orig.includes(c.from)) {
-    console.error(`ABORT ${c.file}: the fragment to break is not there, so this case would edit nothing and pass. ${JSON.stringify(c.from)}`)
-    process.exit(2)
-  }
-  writeFileSync(c.file, orig.replace(c.from, c.to))
-  const out = run()
-  writeFileSync(c.file, orig)
-  if (md5(readFileSync(c.file, 'utf8')) !== before) {
-    console.error(`ABORT ${c.file}: the restore did not reproduce the original bytes. Recover it from git before doing anything else.`)
-    process.exit(2)
+  let out
+  if (c.create) {
+    // A case whose sabotage is a file that should not exist. Its "restore" is
+    // a delete, and the abort discipline is the mirror image of the edit case:
+    // a file already there would make the creation a no-op AND destroy real
+    // work, so refuse rather than guess.
+    if (existsSync(c.create)) {
+      console.error(`ABORT ${c.create}: already exists, so this case would overwrite real work and prove nothing.`)
+      process.exit(2)
+    }
+    writeFileSync(c.create, c.content)
+    out = run()
+    rmSync(c.create)
+    if (existsSync(c.create)) {
+      console.error(`ABORT ${c.create}: the sabotage file is still there. Delete it before doing anything else.`)
+      process.exit(2)
+    }
+  } else {
+    const orig = readFileSync(c.file, 'utf8')
+    const before = md5(orig)
+    if (!orig.includes(c.from)) {
+      console.error(`ABORT ${c.file}: the fragment to break is not there, so this case would edit nothing and pass. ${JSON.stringify(c.from)}`)
+      process.exit(2)
+    }
+    writeFileSync(c.file, orig.replace(c.from, c.to))
+    out = run()
+    writeFileSync(c.file, orig)
+    if (md5(readFileSync(c.file, 'utf8')) !== before) {
+      console.error(`ABORT ${c.file}: the restore did not reproduce the original bytes. Recover it from git before doing anything else.`)
+      process.exit(2)
+    }
   }
 
   const want = Array.isArray(c.expect) ? c.expect : [c.expect]
@@ -233,5 +279,5 @@ for (const c of CASES) {
   console.log(`${hit && !extra.length ? 'OK  ' : 'FAIL'} ${want.join(' + ')}\n       red: ${JSON.stringify(red)}`)
 }
 
-console.log(`\n${CASES.length} sabotages across ${new Set(CASES.map((c) => c.file)).size} files; ${bad} did not redden exactly the checks they named`)
+console.log(`\n${CASES.length} sabotages across ${new Set(CASES.map((c) => c.file ?? c.create)).size} files; ${bad} did not redden exactly the checks they named`)
 process.exit(bad ? 1 : 0)

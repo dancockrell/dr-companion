@@ -682,11 +682,18 @@ const pkg = JSON.parse(read('package.json'))
   // caught it: none of them appeared in that editor. So this asserts the
   // shape rather than the wording.
   //
-  // `write_genie_config` itself survives, and the second check is why that is
-  // not a loophole: exactly one module may call it, and that module is the pin
-  // export (Dan's ask, 30 Aug 2026), which writes a DR Companion YAML into
-  // that folder rather than editing anything Genie wrote. A second caller
-  // appearing is how the editor would come back, one save at a time.
+  // `write_genie_config` no longer survives at all. **This check was turned
+  // the right way up a second time on 6 Sep 2026 (Q5).** It used to assert
+  // that `saveGenieConfig` had exactly one caller, the pin export - the
+  // strongest thing available while a Genie write path still existed. Q5
+  // deleted that path outright (`docs/PLAYER_CONFIG.md` section 8, question
+  // N-c: the player's own files are app data), so the property is now the
+  // stronger one the old check was approximating: **nothing in this app names
+  // a Genie writer, and the module that wrapped one is gone.**
+  //
+  // A one-caller check left standing after the caller was deleted would pass
+  // forever, including on the day somebody reintroduced the writer with one
+  // caller. That is the shape of a check that cannot fail.
   //
   // **This check changed shape on 6 Sep 2026 (Q1), and the change is worth
   // reading before trusting either version.** It used to assert that
@@ -714,13 +721,68 @@ const pkg = JSON.parse(read('package.json'))
   )
   // `scanned` came from `join`, so it carries this platform's separator.
   // Normalise before comparing, or the check passes or fails by OS.
-  const writers = scanned
-    .map((f) => f.replace(/\\/g, '/'))
-    .filter((f) => f !== 'src/lib/genieConfigWrite.ts' && read(f).includes('saveGenieConfig'))
+  const normalised = scanned.map((f) => f.replace(/\\/g, '/'))
+  const hits = (needle) => normalised.filter((f) => read(f).includes(needle))
+  /** Every hit as `file:line`, so a failure is actionable exactly as printed
+   *  rather than sending the reader to grep a file for it. */
+  const locate = (needle) => {
+    const found = []
+    for (const f of normalised) {
+      read(f)
+        .split('\n')
+        .forEach((line, i) => {
+          if (line.includes(needle)) found.push(`${f}:${i + 1}`)
+        })
+    }
+    return found
+  }
+
+  const writers = locate('saveGenieConfig').concat(locate('write_genie_config'))
   ok(
-    'only the pin export writes into a Genie install',
-    writers.length === 1 && writers[0] === 'src/lib/pinsFile.ts',
-    writers.join(', ') || 'nothing calls it'
+    'nothing in this app writes into a Genie install',
+    writers.length === 0,
+    writers.join(', ') || 'nothing names a Genie writer'
+  )
+  ok(
+    'the module that wrapped the Genie writer is gone',
+    !existsSync('src/lib/genieConfigWrite.ts'),
+    existsSync('src/lib/genieConfigWrite.ts') ? 'it is still there' : 'deleted'
+  )
+  // Control for both. An absence check over a scan that returned nothing, or
+  // over a `read` that hands back empty strings, is green for the same reason
+  // a clean tree is - so prove the same scan can still see a symbol that is
+  // genuinely there, in the very module the writers used to live beside.
+  ok(
+    'control: the same scan finds the module that replaced it',
+    hits('writePlayerFile').length >= 2 && existsSync('src/lib/playerFiles.ts'),
+    hits('writePlayerFile').join(', ') || 'nothing names writePlayerFile'
+  )
+
+  // The read side survives, and this is what keeps it from becoming a way
+  // back in: `read_genie_config` may be invoked from exactly one place, the
+  // config importer. It is how a player brings years of `#highlight` lines
+  // across, and it is a read - but a second invocation site appearing is how
+  // a Genie route grows back, one leaf at a time.
+  //
+  // The needle is the invocation, not the name: half a dozen module headers
+  // say `read_genie_config` while describing what they stopped doing, and
+  // counting those would make this check fail on a comment.
+  const CALL = "invokeTauri('read_genie_config'"
+  const readers = hits(CALL)
+  ok(
+    'exactly one module invokes read_genie_config, and it is the config importer',
+    readers.length === 1 && readers[0] === 'src/components/config/PlayerConfigPanel.tsx',
+    locate(CALL).join(', ') || 'nothing invokes it'
+  )
+  // Positive control on a symbol that genuinely has two call sites. Without
+  // it, `readers.length === 1` is equally satisfied by a counter that can
+  // only ever return 0 or 1 - and the check above would then be measuring
+  // its own arithmetic rather than the tree.
+  const twoCallers = hits('exportPinsToFile(').filter((f) => f !== 'src/lib/pinsFile.ts')
+  ok(
+    'control: the same counter reports two call sites when there are two',
+    twoCallers.length === 2,
+    twoCallers.join(', ') || 'found none'
   )
 }
 
