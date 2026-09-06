@@ -613,7 +613,8 @@
             0.2,
             0.15
           ],
-          "lift": 0.42,
+          "support": { "pieceIndex": 1, "socket": "surface" },
+          "lift": 0,
           "yawDegrees": 0
         }
       ]

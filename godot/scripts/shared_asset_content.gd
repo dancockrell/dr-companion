@@ -107,6 +107,25 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 			model.scale.x = size.x * placement.envelope[0] / dimensions[0]
 			model.scale.z = size.z * placement.envelope[1] / dimensions[2]
 			model.position.y = ground_top - dimensions[1] * factor
+		if placement.has("support"):
+			# Backward-only references make the assembly order explicit and acyclic.
+			# Sockets are source-local: transform through the fitted support, not a
+			# guessed world height. Child lift is clearance above the support surface.
+			var support: Dictionary = placement.support
+			var index := int(support.get("pieceIndex", -1))
+			if index < 0 or index >= holder.get_child_count():
+				model.free()
+				holder.free()
+				return null
+			var parent_model: Node3D = holder.get_child(index)
+			var parent_record: Dictionary = _native_records[parent_model.get_meta("asset_id")]
+			var socket: Array = parent_record.get("sockets", {}).get(support.get("socket", ""), [])
+			if socket.size() != 3:
+				model.free()
+				holder.free()
+				return null
+			model.position = parent_model.transform * Vector3(socket[0], socket[1], socket[2])
+			model.position.y += float(placement.lift)
 		model.visible = true
 		model.set_meta("asset_id", placement.assetId)
 		holder.add_child(model)

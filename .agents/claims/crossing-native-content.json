@@ -3,10 +3,11 @@
   "task_id": "crossing-native-content",
   "agent": "codex",
   "summary": "Published incremental Crossing expansion: full graph, live identity enrichment, 14 partial sets and 17 shared models; complete vertical slice remains unfinished",
-  "status": "completed",
+  "status": "active",
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T03:00:00Z",
   "paths": [
+    "docs/verification/crossing-native-supply-stand.png",
     "godot/assets/crossing/",
     "godot/assets/shared_asset_selections.json",
     "godot/scripts/content_registry.gd",

@@ -1,5 +1,33 @@
 # Crossing native Town Green checkpoint — 6 September 2026
 
+## Support-socket placement continuation
+
+Supply Stand supplies now sit on the trestle table's published `surface` socket,
+not an independently guessed 0.42 m lift. The existing composition factory
+transforms that source-local socket through the support's fitted scale and yaw.
+This reuses the existing catalog metadata; no new assets, paid generation,
+navigation rules, or parallel assembly system were introduced.
+
+Optional piece field: `support: { "pieceIndex": 1, "socket": "surface" }`.
+The index identifies an earlier piece in the same recipe; the socket replaces
+the supported piece's center, and `lift` is world-space vertical clearance.
+The supported piece keeps its independently declared envelope and yaw. Missing
+sockets, self references, and forward references refuse the whole composition
+and use the existing fallback. This is placement, not a collision or physics
+solver; authors must still review support width, load silhouette, and overlap.
+
+Validation: 18 Godot scripts / 389 checks passed; 27 board geometry checks passed.
+Regression tests vary table scale and rotate it, measure actual mesh bounds,
+and verify support contact and refusal behavior. Seven room captures and the
+world overview were regenerated through the actual viewer. The new capture
+shows correct table contact but also unresolved striped ground, prominent debug
+markers, neighboring fallback blocks, and disconnected room platforms. It is
+**not** accepted as finished district art. The optional legacy shared submodule
+is unavailable in this checkout; its fallback warning remains visible, while
+the packaged native furniture loads successfully. No live-character run occurred.
+
+![Supply Stand support placement](crossing-native-supply-stand.png)
+
 ## Current expansion checkpoint
 
 This section supersedes the six-room / mock-only scope below, which is retained
