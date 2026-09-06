@@ -35,6 +35,7 @@
   "test:audio-master",
   "test:ambient",
   "test:audio-playback",
+  "test:music-first-run",
   "test:aliases",
   "test:macros",
   "test:variables",

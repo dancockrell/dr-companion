@@ -24,6 +24,7 @@ import {
   pauseMusic,
   resumeMusic,
   retryMusic,
+  musicRetryable,
   currentCustomStream,
   currentRadioStation,
   RADIO_STATIONS,
@@ -215,6 +216,15 @@ export function MusicTransport({
 
   const playing = vol > 0 && now?.status === 'playing'
   const failed = now?.status === 'failed'
+  // The library itself is not there. Not a track that might work next time -
+  // see PlaybackStatus in ambientSound.ts, and issue #383. No track name (it
+  // would be a filename, and the wrong thing to blame), and no Retry, because
+  // no retry can succeed.
+  const unavailable = now?.status === 'unavailable'
+  // Not `failed` on its own. ambientSound.ts decides when a retry could
+  // honestly do anything - see musicRetryable - so the footer and the Sound
+  // panel cannot come to different answers about it.
+  const retryable = musicRetryable()
   const nowLabel = now
     ? now.status === 'loading'
       ? `Loading ${now.title}`
@@ -246,7 +256,7 @@ export function MusicTransport({
           type="button"
           className="shrink-0 rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
           onClick={() => skipTrack(-1)}
-          disabled={!canSkip}
+          disabled={!canSkip || unavailable}
           title="Previous track" aria-label="Previous track"
         >
           <SkipBack className="h-3.5 w-3.5" />
@@ -255,7 +265,8 @@ export function MusicTransport({
           type="button"
           className="shrink-0 rounded p-1 text-ink-faint hover:text-ink"
           onClick={() => (failed ? retryMusic() : playing ? pauseMusic() : resumeMusic())}
-          title={failed ? 'Retry music' : playing ? 'Pause music' : 'Play music'}
+          disabled={unavailable}
+          title={unavailable ? (now?.error ?? 'Music not installed') : failed ? 'Retry music' : playing ? 'Pause music' : 'Play music'}
           aria-label={failed ? 'Retry music' : playing ? 'Pause music' : 'Play music'}
         >
           {failed ? (
@@ -270,7 +281,7 @@ export function MusicTransport({
           type="button"
           className="shrink-0 rounded p-1 text-ink-faint hover:text-ink disabled:opacity-30"
           onClick={() => skipTrack(1)}
-          disabled={!canSkip}
+          disabled={!canSkip || unavailable}
           title="Next track" aria-label="Next track"
         >
           <SkipForward className="h-3.5 w-3.5" />
@@ -300,18 +311,18 @@ export function MusicTransport({
               }
               onClick={onTitleClick}
             >
-              <span className={failed ? 'text-warn' : undefined}>{nowLabel}</span>
+              <span className={failed || unavailable ? 'text-warn' : undefined}>{nowLabel}</span>
             </button>
           ) : (
             <span
-              className="min-w-16 max-w-48 truncate text-xs text-ink-muted"
+              className={cn('min-w-16 max-w-48 truncate text-xs', failed || unavailable ? 'text-warn' : 'text-ink-muted')}
               title={now ? `${nowLabel}${now.composer ? ` — ${now.composer}` : ''}${now.error ? ` — ${now.error}` : ''}` : 'Silent'}
-              role={failed ? 'alert' : undefined}
+              role={failed || unavailable ? 'alert' : undefined}
             >
               {nowLabel}
             </span>
           ))}
-        {failed && (
+        {retryable && (
           <button
             type="button"
             onClick={retryMusic}

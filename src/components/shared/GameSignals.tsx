@@ -35,6 +35,8 @@ import { useOffClasses } from '../../lib/offClasses.ts'
 import { playAlert, setAlertsVolume, setDangerVolume, setSpeechVolume } from '../../lib/alertSound.ts'
 import {
   setZone,
+  setMusicStarted,
+  onMusicStarted,
   setMusicVolume,
   setRadioStation,
   setCustomStream,
@@ -67,6 +69,11 @@ export function GameSignals() {
     setDangerVolume(prefs.dangerVolume ?? 0)
     setSpeechVolume(prefs.speechVolume ?? 0)
     setMusicVolume(prefs.musicVolume ?? 0)
+    // Before anything below can start a source. A machine that has never run
+    // this app answers false, and zone music then waits for the Play button
+    // instead of starting itself off the mock bridge's invented zone - issue
+    // #383, Defect 5 on the clean-VM first run.
+    setMusicStarted(prefs.musicStarted ?? false)
     setCrossfadeStyle(prefs.crossfadeStyle ?? 'standard')
     const rememberedPlaylist = prefs.activePlaylistId
       ? getPlaylist(prefs.activePlaylistId)
@@ -82,6 +89,12 @@ export function GameSignals() {
       savePrefs({ activePlaylistId: null })
     }
   }, [])
+
+  /** The one place that stores "yes, I want music" - ambientSound.ts owns no
+   * storage, and every button that can start music routes through its single
+   * `markMusicStarted`, so this subscription is the whole persistence path
+   * rather than a `savePrefs` call repeated at five call sites. */
+  useEffect(() => onMusicStarted(() => savePrefs({ musicStarted: true })), [])
 
   /** Zone music, driven by the bridge's own map-zone report - not by the
    * raw game-text connection GamePane used to own. */

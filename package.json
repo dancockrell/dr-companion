@@ -215,7 +215,8 @@
     "test:vendor": "node tools/vendor-stub-test.mjs",
     "test:audio-master": "node tools/audio-master-test.mjs",
     "test:async-state": "node --experimental-strip-types tools/async-state-test.ts",
-    "test:game-command-boundary": "node --experimental-strip-types tools/game-command-boundary-test.ts"
+    "test:game-command-boundary": "node --experimental-strip-types tools/game-command-boundary-test.ts",
+    "test:music-first-run": "node --experimental-strip-types tools/music-first-run-test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
