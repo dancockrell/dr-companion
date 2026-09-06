@@ -87,6 +87,16 @@ export interface PersistedPrefs {
   /** Speech channel - someone waiting on you personally (whispers/tells). */
   speechVolume?: number
   musicVolume?: number
+  /**
+   * Has this listener ever asked for music? Zone music is the one source
+   * nobody picks - a zone report arrives and a playlist starts - so without
+   * this a first run plays a track nobody asked for, which is how issue #383
+   * put a failed track and a dead Retry button on the first painted screen.
+   * False on a machine that has never run this app; set by any deliberate
+   * start (Play, a station, a playlist, a stream, a skip). Distinct from
+   * `musicVolume`, which is a level, not an answer to "do you want music".
+   */
+  musicStarted?: boolean
   /** Master output gate; never substitutes zero for configured channel gains. */
   masterMuted?: boolean
   /**
@@ -178,6 +188,7 @@ const defaults: PersistedPrefs = {
   dangerVolume: DEFAULT_AUDIO_VOLUMES.danger,
   speechVolume: DEFAULT_AUDIO_VOLUMES.speech,
   musicVolume: DEFAULT_AUDIO_VOLUMES.music,
+  musicStarted: false,
   masterMuted: false,
   favoriteStations: [],
   playlists: [],

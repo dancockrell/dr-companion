@@ -170,7 +170,18 @@ check('a stalled stream can recover through the same Retry', nowPlaying()?.statu
 const transport = await import('node:fs').then(({ readFileSync }) =>
   readFileSync('src/components/game/MusicTransport.tsx', 'utf8')
 )
-check('the shared transport renders a visible Retry action', transport.includes('failed &&') && />\s*Retry\s*</.test(transport))
+// Was `transport.includes('failed &&')`, which is the mechanism rather than
+// the property this check is named for - and the mechanism changed when a
+// missing music library stopped being reported as a failed track (issue
+// #383). The Retry control is now gated on ambientSound.ts's own
+// `musicRetryable`, so the footer and the Sound panel share one decision
+// about when a retry is honest instead of each re-deriving it from `status`.
+check(
+  'the shared transport renders a visible Retry action',
+  />\s*Retry\s*</.test(transport) &&
+    /\{retryable && \(/.test(transport) &&
+    transport.includes('musicRetryable()')
+)
 check('both state-changing music icon buttons have explicit names', (transport.match(/aria-label=\{failed \? 'Retry music'/g) ?? []).length === 2)
 
 const alertSource = await import('node:fs').then(({ readFileSync }) =>

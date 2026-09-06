@@ -447,7 +447,18 @@ let currentZone: string | null = null
  * hearing or let them skip it. `title`/`composer` come from `TRACK_META`;
  * a custom stream has neither, so it carries its URL as `title` instead.
  */
-export type PlaybackStatus = 'loading' | 'playing' | 'failed'
+/**
+ * `unavailable` is not a louder `failed`. `failed` is one source that did not
+ * play and might on a second try - a stream that dropped, a decode that
+ * stalled - so it carries the track's name and the transport offers Retry.
+ * `unavailable` is the library itself not being there: every track would fail
+ * for the same reason, no retry can change it, and naming any one of them is
+ * misleading. Defect 5 on the clean-VM first run (issue #383) was exactly
+ * this state wearing `failed`'s clothes - a bottom bar reading
+ * `Hmv-da1480-ola1015 - unavaila...` next to a button that could never
+ * succeed, on a build that shipped with no `public/audio/` at all.
+ */
+export type PlaybackStatus = 'loading' | 'playing' | 'failed' | 'unavailable'
 
 export interface NowPlaying {
   title: string
@@ -473,20 +484,164 @@ export function onNowPlayingChange(fn: (np: NowPlaying | null) => void): () => v
 
 type PlayingMeta = Omit<NowPlaying, 'status' | 'error'>
 
-/** Publish what the media element confirms, not merely what was requested. */
+/**
+ * Everything in the curated pool is served from the app's own `/audio/`
+ * directory. A custom stream is not, which is the whole reason this
+ * distinction exists: a stream that fails is one source failing and Retry is
+ * a reasonable thing to offer, while a bundled file that fails means the
+ * files are not there.
+ */
+const BUNDLED_AUDIO_PREFIX = '/audio/'
+function isBundledTrack(src: string): boolean {
+  return src.startsWith(BUNDLED_AUDIO_PREFIX)
+}
+
+/**
+ * Whether the app's own music files are actually present. Three states, not
+ * two, for the reason CLAUDE.md's section 1 gives: "I have not looked" is not
+ * the same claim as "they are absent", and folding it into either is where
+ * the lie enters. Nothing probes until a bundled track has actually failed,
+ * so an install that works pays nothing for this.
+ */
+export type MusicLibraryVerdict = 'unknown' | 'present' | 'absent'
+let libraryVerdict: MusicLibraryVerdict = 'unknown'
+let libraryProbe: Promise<MusicLibraryVerdict> | null = null
+
+export function musicLibraryVerdict(): MusicLibraryVerdict {
+  return libraryVerdict
+}
+
+/**
+ * Ask the server what is actually at a bundled track's URL.
+ *
+ * Status alone is not enough and that is measured, not assumed: reproducing
+ * Defect 5 against the Vite dev server, `/audio/radio/<track>.flac` came back
+ * **200 OK** carrying `index.html`, because a dev server falls back to the SPA
+ * document for an unknown path. A packaged build 404s instead. Both mean the
+ * same thing - there is no audio there - and only the content type separates
+ * either of them from a real file. So the verdict is "present" when the body
+ * announces itself as audio and "absent" otherwise, which covers a 404, an
+ * HTML fallback, and a fetch that throws because the asset protocol has
+ * nothing to serve.
+ *
+ * `fetchImpl` is a parameter rather than a module-level reference so the
+ * absent branch can be executed deliberately in a test instead of waited for.
+ */
+export async function probeMusicLibrary(
+  src: string,
+  fetchImpl: typeof fetch = globalThis.fetch
+): Promise<MusicLibraryVerdict> {
+  try {
+    const res = await fetchImpl(src, { method: 'HEAD' })
+    if (!res.ok) return 'absent'
+    const type = (res.headers.get('content-type') ?? '').toLowerCase()
+    // `application/ogg` is the registered type for .ogg/.oga; a server that
+    // does not recognise an extension commonly falls back to octet-stream,
+    // which is unhelpful but is at least not a document.
+    const looksLikeAudio =
+      type.startsWith('audio/') ||
+      type.startsWith('application/ogg') ||
+      type.startsWith('application/octet-stream')
+    return looksLikeAudio ? 'present' : 'absent'
+  } catch {
+    return 'absent'
+  }
+}
+
+/** Test seam: forget what was probed, so a case can set up its own world. */
+export function resetMusicLibraryVerdict() {
+  libraryVerdict = 'unknown'
+  libraryProbe = null
+}
+
+/** The one state a missing library produces, whatever was being played. */
+function libraryAbsentState(source: NowPlaying['source']): NowPlaying {
+  return {
+    title: 'Music not installed',
+    composer: '',
+    source,
+    status: 'unavailable',
+    error: 'This build shipped without the music files, so there is nothing to play.',
+  }
+}
+
+/**
+ * Publish what the media element confirms, not merely what was requested.
+ *
+ * A bundled track that fails does not become a per-track error until the
+ * library has been checked. Without that, a build with no `public/audio/`
+ * produces one differently-named failure per track - which is what the two
+ * clean-VM runs saw, three different titles for one cause - instead of one
+ * state that says what is actually wrong.
+ */
 function playMusic(src: string, meta: PlayingMeta, opts?: LayerOptions) {
+  // Already known absent: do not touch the element at all. Every later track
+  // would take the same path to the same answer, and starting a load per
+  // track is how N errors got made in the first place.
+  if (libraryVerdict === 'absent' && isBundledTrack(src)) {
+    music.play(null)
+    setNowPlaying(libraryAbsentState(meta.source))
+    return
+  }
   music.play(src, 0.22, {
     ...opts,
     onLoading: () => setNowPlaying({ ...meta, status: 'loading' }),
     onWaiting: () => setNowPlaying({ ...meta, status: 'loading' }),
     onPlaying: () => setNowPlaying({ ...meta, status: 'playing' }),
-    onFailure: (error) => setNowPlaying({ ...meta, status: 'failed', error }),
+    onFailure: (error) => {
+      if (!isBundledTrack(src)) {
+        setNowPlaying({ ...meta, status: 'failed', error })
+        return
+      }
+      // Report the honest interim state while the probe runs, then let the
+      // verdict decide. `loading` rather than `failed` so a Retry button never
+      // flickers into existence for a library that is about to be declared
+      // missing.
+      setNowPlaying({ ...meta, status: 'loading' })
+      libraryProbe ??= probeMusicLibrary(src).then((verdict) => {
+        libraryVerdict = verdict
+        return verdict
+      })
+      void libraryProbe.then((verdict) => {
+        if (nowPlayingState?.title !== meta.title) return
+        if (verdict === 'absent') {
+          music.play(null)
+          setNowPlaying(libraryAbsentState(meta.source))
+        } else {
+          setNowPlaying({ ...meta, status: 'failed', error })
+        }
+      })
+    },
   })
 }
 
 /** Retry the selected failed/stalled source without rebuilding its playlist. */
 export function retryMusic() {
   music.retry()
+}
+
+/**
+ * Should a Retry control exist at all right now?
+ *
+ * Here rather than in the transport, and read by it rather than re-derived
+ * from `status`, because this is the whole of Defect 5's user-visible half:
+ * the clean-VM first run showed a Retry button beside a track that was never
+ * in the build, and pressing it could only ever produce the same failure. A
+ * failed *source* may work on a second try. A missing *library* cannot, so
+ * there is nothing to offer.
+ *
+ * One function so the footer, the Sound panel and anything added later cannot
+ * disagree about when a retry is honest.
+ *
+ * No separate `libraryVerdict === 'absent'` guard here, deliberately: an
+ * absent library already resolves to `unavailable` rather than `failed`, so
+ * such a guard could never be the reason this returns false, and a branch
+ * nothing can execute is a branch nobody can prove still works. It was
+ * written, found unreachable by sabotaging it and watching the suite stay
+ * green, and removed.
+ */
+export function musicRetryable(): boolean {
+  return nowPlayingState?.status === 'failed'
 }
 
 /**
@@ -774,9 +929,74 @@ export function setZone(zoneId: string | null) {
   // Radio, a custom stream, and a playlist, once selected, keep playing
   // across zone changes - all three are a deliberate override, not a
   // per-zone thing to interrupt.
+  if (!musicStarted) return
   if (!radio.current && !customStreamUrl && !playlist.current) {
     zoneMusic.select(zoneId)
   }
+}
+
+/**
+ * Has anyone asked for music yet?
+ *
+ * Zone music is the one source nothing chooses: a zone report arrives from
+ * the bridge and a playlist starts. On a first run that is music nobody asked
+ * for - and worse, the mock bridge answers `map_zone` from an invented zone
+ * before a person has connected to anything, so the very first painted screen
+ * was starting a track (issue #383). Silence is the honest default; a station,
+ * a playlist, a stream, a skip, or the Play button are all somebody saying
+ * yes, and after any of those a zone change may move the music again.
+ *
+ * Deliberately not keyed on `musicVolume > 0`. Volume 0 is a real level a
+ * listener can choose, and "the slider is down" is a different fact from
+ * "nobody has ever started this".
+ */
+let musicStarted = false
+export function musicHasStarted(): boolean {
+  return musicStarted
+}
+
+/**
+ * Told when the answer flips from no to yes, so it survives a restart.
+ * A listener rather than a `savePrefs` call in here, and rather than one at
+ * every button that can start music: this module deliberately owns no
+ * storage (see the volume functions' own split), and five call sites each
+ * remembering to persist the same fact is five chances for one of them to
+ * forget. One place produces it, one place stores it.
+ */
+const musicStartedListeners = new Set<(started: boolean) => void>()
+export function onMusicStarted(fn: (started: boolean) => void): () => void {
+  musicStartedListeners.add(fn)
+  return () => musicStartedListeners.delete(fn)
+}
+/** Assign through this, never to `musicStarted` directly, or a start made by
+ * one route is remembered and one made by another is not. */
+function markMusicStarted() {
+  if (musicStarted) return
+  musicStarted = true
+  for (const l of musicStartedListeners) l(true)
+}
+
+/**
+ * Say yes to music. Idempotent - a second call must not restart the current
+ * zone track from a fresh shuffle, the same reason `setZone` and
+ * `setRadioStation` guard their own no-op cases.
+ */
+export function startMusic() {
+  if (musicStarted) return
+  markMusicStarted()
+  if (!radio.current && !customStreamUrl && !playlist.current) {
+    zoneMusic.select(currentZone)
+  }
+}
+
+/**
+ * Restore the answer from a previous session without playing anything now -
+ * the caller (GameSignals' restore-on-mount effect) hands this module the
+ * remembered value the same way it hands over the remembered volumes. False
+ * is the value a machine that has never run this app has.
+ */
+export function setMusicStarted(started: boolean) {
+  musicStarted = started
 }
 
 /**
@@ -797,6 +1017,9 @@ export function setZone(zoneId: string | null) {
  * a fresh shuffle.
  */
 export function setRadioStation(id: string | null) {
+  // Picking a station - or picking "zone music" out of one - is a person
+  // asking for music. See `musicHasStarted`.
+  markMusicStarted()
   if (id !== null) {
     customStreamUrl = null
     playlist.clearSilently()
@@ -820,6 +1043,7 @@ export function setRadioStation(id: string | null) {
  * the same way picking a station does; a no-op if the id isn't in the
  * pool. */
 export function playTrack(trackId: string) {
+  markMusicStarted()
   customStreamUrl = null
   playlist.clearSilently()
   radio.playTrackDirectly(trackId)
@@ -845,6 +1069,7 @@ export function setPlaylist(id: string | null, trackIds: string[] = []) {
   // current zone track from a freshly shuffled position - a redundant
   // click producing an audible interruption.
   if (id === playlist.current) return
+  markMusicStarted()
   if (id) {
     customStreamUrl = null
     radio.clearSilently()
@@ -875,6 +1100,7 @@ export function currentPlaylistId(): string | null {
 let customStreamUrl: string | null = null
 export function setCustomStream(url: string | null) {
   if (url === customStreamUrl) return
+  markMusicStarted()
   customStreamUrl = url
   if (url) {
     radio.clearSilently()
@@ -893,6 +1119,12 @@ export function currentCustomStream(): string | null {
  * `music` slot. A no-op on a custom stream - a live stream has no track to
  * skip to. */
 export function skipTrack(dir: 1 | -1) {
+  // Skipping with nothing playing is a request for music, not a request for
+  // the second track of a playlist that has not begun.
+  if (!musicStarted) {
+    startMusic()
+    return
+  }
   if (customStreamUrl) return
   if (radio.current) radio.skip(dir)
   else if (playlist.current) playlist.skip(dir)
@@ -997,6 +1229,9 @@ export function pauseMusic() {
   }, FADE_MS)
 }
 export function resumeMusic() {
+  // Play with nothing loaded is where a first-run listener actually starts
+  // music, so this is the button that answers `musicHasStarted`.
+  startMusic()
   const restoreGain = preMuteMusicGain
   if (pauseTimer) {
     clearTimeout(pauseTimer)
