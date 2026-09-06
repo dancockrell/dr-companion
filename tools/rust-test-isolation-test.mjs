@@ -25,6 +25,21 @@
 //   2. no listener is bound to a fixed port (the free-port rule, #C9): use
 //      `TcpListener::bind("127.0.0.1:0")` and read the port back.
 //
+// One class of site cannot obey rule 1 and must not be made to: production
+// code reading a path *another program* chose. `lich.rs`'s `session_dir()`
+// reads `<tmp>/simutronics/sessions`, where Lich's `front-end.rb:435-443`
+// writes its session descriptors. A `process::id()` there would turn this
+// check green and point the reader at a directory nothing writes - a fix that
+// reports success while removing the feature (CLAUDE.md 1). So there is one
+// escape hatch, and it is deliberately noisy:
+//
+//     // drc-shared-temp-path: <why this path is not ours to choose>
+//
+// on a line shortly before the call. The reason is mandatory - a bare marker
+// is still a failure - every exempt site is printed on every run rather than
+// vanishing, and MAX_EXEMPT caps how many may exist, so the hatch cannot
+// quietly become the habit. Widening it is a conversation, not an edit.
+//
 // It asserts what it examined before concluding anything (CLAUDE.md 1): a run
 // that scanned no files, or found no `temp_dir()` call at all, is a broken
 // instrument and must not read as a pass.
@@ -53,6 +68,28 @@ const RULE_HOME = "test_support.rs";
 // Generous: these paths are often built across four or five wrapped lines.
 const WINDOW = 400;
 
+// How far *back* from a `temp_dir()` call the exemption marker may sit, so a
+// marker can carry a short explanation above the line it excuses without
+// reaching down the file and excusing something further on. About eight lines.
+const BACK_WINDOW = 500;
+
+// A marker plus a reason. The reason is what makes this greppable and
+// arguable later; `// drc-shared-temp-path:` on its own excuses nothing.
+const EXEMPT = /drc-shared-temp-path:[ \t]*(\S.*)/;
+
+// The ceiling on the escape hatch, the mirror of the floors above. Today one
+// site uses it (`lich.rs` `session_dir`). If a second and third arrive, that
+// is worth an argument rather than an edit here.
+const MAX_EXEMPT = 3;
+
+// The exemption granted to the call at `index`, or null. Returns the reason
+// text so the caller can print it.
+function exemptionFor(text, index) {
+  const before = text.slice(Math.max(0, index - BACK_WINDOW), index);
+  const m = before.match(EXEMPT);
+  return m ? m[1].trim() : null;
+}
+
 function rustFiles(dir) {
   const out = [];
   for (const name of readdirSync(dir)) {
@@ -65,6 +102,7 @@ function rustFiles(dir) {
 
 const files = rustFiles(SRC);
 const failures = [];
+const exempt = [];
 let tempDirSites = 0;
 let bindSites = 0;
 
@@ -85,6 +123,11 @@ for (const file of files) {
     if (home) continue;
     const tail = text.slice(m.index, m.index + WINDOW);
     if (/process::id\(\)/.test(tail)) continue;
+    const reason = exemptionFor(text, m.index);
+    if (reason) {
+      exempt.push(`${rel}:${lineOf(m.index)}  ${reason}`);
+      continue;
+    }
     const name = tail.match(/\.join\(\s*(?:format!\(\s*)?"([^"]*)"/);
     failures.push(
       `${rel}:${lineOf(m.index)}  temp path${name ? ` "${name[1]}"` : ""} is not unique to ` +
@@ -141,9 +184,47 @@ const seesIt = !/process::id\(\)/.test(SABOTAGE.slice(SABOTAGE.indexOf("temp_dir
 say(seesIt, "control: the rule flags a fixed-name temp path when shown one");
 if (!seesIt) failures.push("control failed: the uniqueness rule cannot see a fixed name");
 
+// Three controls on the escape hatch itself, because an exemption mechanism
+// that over-matches would silently excuse the whole tree and this run would
+// still print "all passed". Each is a synthetic string, so these hold whether
+// or not the tree happens to use the hatch today.
+const withReason = `// drc-shared-temp-path: Lich chooses it\n${SABOTAGE}`;
+const bareMarker = `// drc-shared-temp-path:\n${SABOTAGE}`;
+const outOfReach = `// drc-shared-temp-path: too far above\n${"//\n".repeat(400)}${SABOTAGE}`;
+const at = (s) => s.indexOf("temp_dir()");
+const hatchOk =
+  exemptionFor(withReason, at(withReason)) === "Lich chooses it" &&
+  exemptionFor(bareMarker, at(bareMarker)) === null &&
+  exemptionFor(outOfReach, at(outOfReach)) === null;
+say(
+  hatchOk,
+  "control: the exemption needs a reason, and does not reach past its window",
+);
+if (!hatchOk) failures.push("control failed: the drc-shared-temp-path exemption is unsound");
+
+const hatchInBounds = exempt.length <= MAX_EXEMPT;
+say(
+  hatchInBounds,
+  `${exempt.length} exempt temp path${exempt.length === 1 ? "" : "s"}, ` +
+    `at or below the ceiling of ${MAX_EXEMPT}`,
+);
+if (!hatchInBounds) {
+  failures.push(
+    `${exempt.length} sites carry drc-shared-temp-path, over the ceiling of ${MAX_EXEMPT} — ` +
+      `the escape hatch is becoming the habit. Argue it rather than raising the number.`,
+  );
+}
+// Printed on every run, pass or fail: an exemption that nobody sees is an
+// exemption nobody re-reads.
+for (const e of exempt) console.log(`NOTE exempt ${e}`);
+
 const tempBad = failures.filter((f) => f.includes("temp path")).length;
 const portBad = failures.filter((f) => f.includes("fixed port")).length;
-say(tempBad === 0, `every temp path is unique to its process (${tempDirSites} sites)`);
+say(
+  tempBad === 0,
+  `every temp path is unique to its process (${tempDirSites} sites, ` +
+    `${exempt.length} exempt with a stated reason)`,
+);
 say(portBad === 0, `no test binds a fixed port (${bindSites} sites)`);
 
 if (failures.length) {

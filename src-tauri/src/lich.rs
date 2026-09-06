@@ -858,6 +858,12 @@ pub fn lich_owned_status() -> OwnedLich {
 fn session_dir() -> PathBuf {
     match std::env::var("DRC_SESSION_DIR") {
         Ok(dir) if !dir.trim().is_empty() => PathBuf::from(dir),
+        // drc-shared-temp-path: Lich chooses this path (front-end.rb:435-443), not us.
+        //
+        // Adding `process::id()` here would satisfy the isolation rule and
+        // point the reader at a directory nothing writes, so the attach offer
+        // would go permanently blind while the check turned green. Tests reach
+        // the seam above (DRC_SESSION_DIR) and never touch this branch.
         _ => std::env::temp_dir().join("simutronics").join("sessions"),
     }
 }
@@ -2820,9 +2826,7 @@ mod tests {
 
     #[test]
     fn lich_says_which_character_is_on_which_port() {
-        let dir = std::env::temp_dir().join(format!("drc-sessions-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).expect("a session directory");
+        let dir = crate::test_support::scratch_dir("lich-sessions");
         // The shape Lich writes: front-end.rb:435-443.
         let ours = DETACHABLE_PORT;
         let neighbour = DETACHABLE_PORT + 1;
@@ -2841,7 +2845,7 @@ mod tests {
         std::fs::write(dir.join("Truncated.session"), "{\"name\":\"Trunc").unwrap();
         std::fs::write(dir.join("notes.txt"), "ignored").unwrap();
 
-        let found = session_descriptors_in(&dir);
+        let found = session_descriptors_in(dir.path());
         assert_eq!(found.len(), 2, "two parsed, from {found:?}");
         assert_eq!(character_on_port(&found, ours).as_deref(), Some("Phemius"));
         // The wrong answer is available: another character is in the same
@@ -2855,13 +2859,20 @@ mod tests {
             None,
             "a port nobody claims"
         );
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
     fn a_missing_session_directory_is_no_sessions_and_not_an_error() {
-        let dir = std::env::temp_dir().join("drc-sessions-that-do-not-exist-504");
-        let _ = std::fs::remove_dir_all(&dir);
+        // A child of a scratch directory that is never created. The old form
+        // named a constant under `%TEMP%` and deleted it on entry, which is
+        // the #502 class exactly: another lane's identically-named directory
+        // was what got deleted.
+        let parent = crate::test_support::scratch_dir("lich-missing-sessions");
+        let dir = parent.join("never-created");
+        assert!(
+            !dir.exists(),
+            "the case is only meaningful while it is absent"
+        );
         assert!(session_descriptors_in(&dir).is_empty());
     }
 
