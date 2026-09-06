@@ -297,13 +297,16 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
-| **N** | design only (this PR) | `lane-n/design` | `/c/Users/Admin/dev/wt-laneN` | 2026-09-06 |
 
-G's row was deleted on 6 Sep 2026 when G11's second PR (#359) merged. Lane N's
-row above covers **the design PR only** — the one that writes the lane into this
-document and `docs/LICH_NATIVE_LOGIN.md`, implementing none of it. It is deleted
-when that PR merges, at which point N1 and N2 are both free to claim
-concurrently by two different sessions.
+No lane is currently held. G's row was deleted on 6 Sep 2026 when G11's second
+PR (#359) merged, and **Lane N's design row went the same day** when PR #432
+merged — that row covered the design PR only, the one that wrote the lane into
+this document and `docs/LICH_NATIVE_LOGIN.md` while implementing none of it.
+An empty table means every lane is free to claim. **N1 and N2 are the two
+increments anywhere in this plan with no dependencies and no file overlap with
+each other**, so two sessions can start Lane N right now; read
+`docs/LICH_NATIVE_LOGIN.md` first, including its §7 list of what is inferred
+rather than measured.
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12 and F7 in PR #315, which emptied the
