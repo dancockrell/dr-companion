@@ -1,5 +1,6 @@
 pub mod bridge_token;
 pub mod config_import;
+pub mod credentials;
 pub mod custom_portraits;
 pub mod elanthipedia;
 pub mod game_link;

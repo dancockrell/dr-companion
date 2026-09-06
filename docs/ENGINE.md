@@ -30,13 +30,27 @@ map. Everything it does well, this app either already does better - the map is
 17,750 rooms with the cartographers' own colours, against Genie's - or is
 bounded, ordinary UI work.
 
-**Lich is the game.** It holds the eaccess authentication handshake, the
-Simutronics wire protocol, the XML parse that turns a stream into rooms,
-vitals, wounds and exits, and the entire dr-scripts ecosystem that the
-community has built for twenty years. Reimplementing that is months of work to
-end up with less, and it would mean this app handling account passwords
-first-party - a line the project has deliberately stayed behind all the way
-through (see `src-tauri/src/lich.rs`).
+**Lich is the game.** It holds the Simutronics wire protocol, the XML parse
+that turns a stream into rooms, vitals, wounds and exits, and the entire
+dr-scripts ecosystem that the community has built for twenty years.
+Reimplementing that is months of work to end up with less.
+
+**The account login is the one piece this app does itself, and that is new.**
+This paragraph used to say that handling account passwords first-party was "a
+line the project has deliberately stayed behind". The line has moved, and
+saying otherwise would leave a promise standing while the code walked out from
+under it. Lich's `--login` resolves a *saved* entry, its own login window
+cannot create one on this machine, and the third-party client that used to fill
+that gap was retired on 6 September 2026 - so there was no route left to a
+signed-in session that did not go through this app. It now performs the eaccess
+handshake itself and hands Lich a launch file.
+
+What that costs, stated rather than softened: the player types a Play.net
+password into this app. What it does not cost is where the password goes or how
+long it lives - `docs/PRIVACY.md` and `docs/LICH_NATIVE_LOGIN.md` §5 are the
+authorities, and `src-tauri/src/credentials.rs` is the one type that holds it.
+It is sent to `eaccess.play.net` and nowhere else, kept in memory for a single
+sign-in, overwritten when that ends, and not stored unless the player asks.
 
 So: Lich keeps doing the hard thing it is good at, and stops being an external
 dependency somebody has to install and launch correctly.

@@ -10,9 +10,17 @@
   it, or that it crashed.
 - **No analytics.** No third-party script, no tracking pixel, no account.
 - **Nothing leaves the machine about your character.** Your game text, your
-  inventory, your skills, your character name and your Play.net credentials
-  are never sent anywhere by this app. Your password never reaches it at all:
-  it goes to Lich's own login.
+  inventory, your skills and your character name are not sent anywhere by this
+  app.
+- **Your account details go to Simutronics, and nowhere else.** Signing in is
+  the one exception to the line above, and it is worth stating plainly rather
+  than burying: **your password is typed into this app, used once to sign in to
+  Simutronics, held only in memory, and not stored unless you later ask for
+  it.** It goes to `eaccess.play.net` over TLS - Simutronics' own account
+  server, the same one every other DragonRealms client uses - and nowhere else.
+  It is never written to a settings file, never put on a command line, and
+  never logged. If you do ask for it to be remembered, it is kept in Windows
+  Credential Manager rather than in any file this app writes.
 - **Everything the app stores, it stores on your machine.** `docs/PLAYER_DATA.md`
   is the generated inventory of that.
 - **A local AI model, if you install one, runs on loopback.** It is a process
@@ -21,9 +29,17 @@
 
 ## Every destination
 
-8 hosts appear in the source. 7 of them this app
+9 hosts appear in the source. 8 of them this app
 contacts itself; the rest are links, which do nothing until you click them and
 are then fetched by your browser, not by this app.
+
+### `eaccess.play.net`
+
+**Contacted by the app.** Simutronics' own account server, and the only place this app sends anything you typed as a credential. It is what signs you in to DragonRealms, and it is the same server every other DragonRealms client - Lich, Genie, the official one - talks to for the same reason.
+
+- **What is sent:** Your account name, your password (obscured by the XOR the protocol specifies, which is not encryption - the TLS around it is), the game you chose, and the character you picked from the list it sends back. Nothing else: no game text, no map, no settings, and nothing about this app.
+- **Where in the code:** `src-tauri/src/credentials.rs`, which declares the endpoint and holds the password while it is in use. The protocol client that speaks to it is the rest of Lane N; the connection is TLS on port 7910.
+- Your password is typed into this app. It is held in memory for the length of one sign-in, in a type that overwrites its own bytes when it drops, and it is not written to any settings file, not put on a command line, not placed in the launch file Lich reads, and not logged. It is not stored at all unless you tick a box asking for it, and if you do, it goes to Windows Credential Manager and nowhere else. This is a change: earlier versions of this app never handled a password, because the sign-in happened in another program. That program is gone from the path, and saying the app still never sees it would be false.
 
 ### `elanthipedia.play.net`
 
@@ -102,10 +118,19 @@ grep -rn "fetch(\|reqwest\|https://" src/ src-tauri/src/ | grep -v -E "test|127\
 direction is the one that matters for a privacy statement: it is what stops
 the document describing an app that no longer exists.
 
-The scan currently matches 73 lines across 339 source
-files and finds 8 hosts, which is the number of sections above. It
-cannot tell a request from a link - both are an `https://` in a file - so
-that distinction is recorded by hand against each call site, and is the part a
+Not every destination is a URL. Signing in opens a raw socket, which no
+`https://` pattern can see, so the generator reads a second form as well: an
+endpoint declared in the source as `("host", port)`, either as a
+`…_ENDPOINT` constant or beside a `connect` call. Those hosts go into the
+same list and are checked in the same two directions, so a socket cannot be
+described here without existing in the code, or exist in the code without
+being described here.
+
+The scan currently matches 74 lines across 340 source
+files, plus 1 declared non-URL endpoint line(s), and
+finds 9 hosts, which is the number of sections above. It cannot
+tell a request from a link - both are an `https://` in a file - so that
+distinction is recorded by hand against each call site, and is the part a
 reader should check rather than take on trust.
 
 What the scan does **not** cover, said plainly rather than left to be

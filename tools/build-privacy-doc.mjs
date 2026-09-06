@@ -37,6 +37,43 @@
  * the call site. `--check` asserts every host the scan found is classified
  * and that nothing is classified which the scan did not find, which is the
  * direction that catches a host removed from the code and left in the prose.
+ *
+ * # Destinations that are not URLs
+ *
+ * The scan above finds a host only when it is written as an `https://` URL,
+ * and the app's most sensitive destination is not one: signing a player in
+ * (`docs/LICH_NATIVE_LOGIN.md` §2) opens a raw TLS socket to
+ * `eaccess.play.net` on port 7910, which no URL pattern can see. A privacy
+ * document that missed the one place a password goes would be worth less than
+ * none.
+ *
+ * The wrong fix is a fake `https://` in a comment, which makes the source lie
+ * to satisfy a regexp. The fix here is a second pattern, and one agreed form
+ * for the source to declare such an endpoint in. **That form is:**
+ *
+ *     pub const <NAME>_ENDPOINT: (&str, u16) = ("host.example", 1234);   // Rust
+ *
+ * and, so a connect written inline is not invisible either, any literal
+ * `("host.example", 1234)` pair on a line that also names `TcpStream::connect`
+ * or `.connect(`. `ENDPOINT_HIT` selects the lines, `ENDPOINT` reads the host
+ * and port off them, and the host joins the same `hosts` map the URL scan
+ * fills - so both directions of the existing check (`unclassified`, `stale`)
+ * cover a socket exactly as they cover a fetch, with no second list to drift.
+ *
+ * `src-tauri/src/credentials.rs` carries the one declaration this repository
+ * has, and says in its own doc comment that the line's shape is load-bearing.
+ * Lane N's protocol client (`eaccess.rs`) reads it rather than repeating it.
+ *
+ * Two traps, both live:
+ *
+ * - `EXCLUDE` matches the substring `test` anywhere in the rendered
+ *   `path:line:text`, so a declaration in a file or comment containing "test",
+ *   "latest" or "greatest" is dropped **silently** and reads as a pass. Keep
+ *   the declaration clear of those words.
+ * - The endpoint scan needs its own denominator. A pattern that stopped
+ *   matching says "no endpoints found", and so does an app with no sockets.
+ *   `ENDPOINT_FLOOR` refuses to publish below it and `--check` prints the
+ *   count, so the two cannot be confused.
  */
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -51,6 +88,16 @@ const EXCLUDE = /test|127\.0\.0\.1|localhost/
 /** Hosts are read off the matching lines, which is what the doc enumerates. */
 const HOST = /https?:\/\/([a-zA-Z0-9.-]+)/g
 
+/**
+ * The second scan: destinations reached by a socket rather than a URL.
+ * `ENDPOINT_HIT` picks the lines - a declaration in the agreed form, or a
+ * `connect` call - and `ENDPOINT` reads `("host", port)` off them.
+ */
+const ENDPOINT_HIT = /const\s+[A-Z0-9_]*ENDPOINT\b|TcpStream::connect|\.connect\(/
+const ENDPOINT = /\(\s*"([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+)"\s*,\s*(\d{1,5})\s*\)/g
+/** Below this, the endpoint pattern has stopped matching rather than the app having stopped connecting. */
+const ENDPOINT_FLOOR = 1
+
 const SOURCE_EXT = new Set(['.ts', '.tsx', '.rs'])
 
 function walk(dir, out = []) {
@@ -64,12 +111,17 @@ function walk(dir, out = []) {
 
 const files = ROOTS.flatMap((r) => walk(r))
 const lines = []
+const endpointLines = []
 for (const file of files) {
   const text = readFileSync(file, 'utf8')
   for (const [i, line] of text.split(/\r?\n/).entries()) {
     // grep -rn's own output shape, so a line here is a line there.
     const rendered = `${file.split('\\').join('/')}:${i + 1}:${line}`
-    if (HIT.test(rendered) && !EXCLUDE.test(rendered)) lines.push(rendered)
+    if (EXCLUDE.test(rendered)) continue
+    if (HIT.test(rendered)) lines.push(rendered)
+    // `.match` rather than `.test`: ENDPOINT carries /g, and a global
+    // regexp's `test` is stateful - it would answer every other call wrongly.
+    if (ENDPOINT_HIT.test(rendered) && rendered.match(ENDPOINT)) endpointLines.push(rendered)
   }
 }
 
@@ -79,13 +131,37 @@ for (const line of lines) {
     hosts.set(m[1], (hosts.get(m[1]) ?? 0) + 1)
   }
 }
+// A socket destination counts as a host in exactly the same map, so the
+// unclassified/stale checks below cover it with no second list to drift.
+const endpoints = new Map()
+for (const line of endpointLines) {
+  for (const m of line.matchAll(ENDPOINT)) {
+    hosts.set(m[1], (hosts.get(m[1]) ?? 0) + 1)
+    endpoints.set(m[1], Number(m[2]))
+  }
+}
 
 // A floor set well below the real figures, so a scan that silently matched
 // nothing - a moved directory, a regexp that stopped compiling the way it
 // used to - refuses to publish an empty promise rather than a true one.
-if (files.length < 200) throw new Error(`scanned only ${files.length} source files; refusing to publish.`)
-if (lines.length < 20) throw new Error(`only ${lines.length} lines matched; refusing to publish.`)
-if (hosts.size < 3) throw new Error(`only ${hosts.size} hosts found; refusing to publish.`)
+//
+// Not thrown under `--check`, which asserts the same floors itself further
+// down. Throwing here would stop that run at the first floor and hide every
+// check after it - and those are the ones that say *which* host went missing,
+// which is the whole diagnosis. A `--check` run reports all of them and exits
+// non-zero; a write run refuses outright.
+const CHECKING = process.argv.includes('--check')
+if (!CHECKING) {
+  if (files.length < 200) throw new Error(`scanned only ${files.length} source files; refusing to publish.`)
+  if (lines.length < 20) throw new Error(`only ${lines.length} lines matched; refusing to publish.`)
+  if (hosts.size < 3) throw new Error(`only ${hosts.size} hosts found; refusing to publish.`)
+  if (endpointLines.length < ENDPOINT_FLOOR) {
+    throw new Error(
+      `the endpoint scan matched ${endpointLines.length} line(s), below the floor of ${ENDPOINT_FLOOR}; ` +
+        'the pattern has stopped matching. Refusing to publish a document that would silently drop a socket destination.',
+    )
+  }
+}
 
 /**
  * Every host the scan can find, and what the app actually does with it.
@@ -97,6 +173,14 @@ if (hosts.size < 3) throw new Error(`only ${hosts.size} hosts found; refusing to
  * that column.
  */
 const DESTINATIONS = [
+  {
+    host: 'eaccess.play.net',
+    contacted: true,
+    what: 'Simutronics\' own account server, and the only place this app sends anything you typed as a credential. It is what signs you in to DragonRealms, and it is the same server every other DragonRealms client - Lich, Genie, the official one - talks to for the same reason.',
+    sends: 'Your account name, your password (obscured by the XOR the protocol specifies, which is not encryption - the TLS around it is), the game you chose, and the character you picked from the list it sends back. Nothing else: no game text, no map, no settings, and nothing about this app.',
+    where: '`src-tauri/src/credentials.rs`, which declares the endpoint and holds the password while it is in use. The protocol client that speaks to it is the rest of Lane N; the connection is TLS on port 7910.',
+    note: 'Your password is typed into this app. It is held in memory for the length of one sign-in, in a type that overwrites its own bytes when it drops, and it is not written to any settings file, not put on a command line, not placed in the launch file Lich reads, and not logged. It is not stored at all unless you tick a box asking for it, and if you do, it goes to Windows Credential Manager and nowhere else. This is a change: earlier versions of this app never handled a password, because the sign-in happened in another program. That program is gone from the path, and saying the app still never sees it would be false.',
+  },
   {
     host: 'elanthipedia.play.net',
     contacted: true,
@@ -183,9 +267,17 @@ const md = `# What DR Companion sends, and where
   it, or that it crashed.
 - **No analytics.** No third-party script, no tracking pixel, no account.
 - **Nothing leaves the machine about your character.** Your game text, your
-  inventory, your skills, your character name and your Play.net credentials
-  are never sent anywhere by this app. Your password never reaches it at all:
-  it goes to Lich's own login.
+  inventory, your skills and your character name are not sent anywhere by this
+  app.
+- **Your account details go to Simutronics, and nowhere else.** Signing in is
+  the one exception to the line above, and it is worth stating plainly rather
+  than burying: **your password is typed into this app, used once to sign in to
+  Simutronics, held only in memory, and not stored unless you later ask for
+  it.** It goes to \`eaccess.play.net\` over TLS - Simutronics' own account
+  server, the same one every other DragonRealms client uses - and nowhere else.
+  It is never written to a settings file, never put on a command line, and
+  never logged. If you do ask for it to be remembered, it is kept in Windows
+  Credential Manager rather than in any file this app writes.
 - **Everything the app stores, it stores on your machine.** \`docs/PLAYER_DATA.md\`
   is the generated inventory of that.
 - **A local AI model, if you install one, runs on loopback.** It is a process
@@ -221,10 +313,19 @@ grep -rn "fetch(\\|reqwest\\|https://" src/ src-tauri/src/ | grep -v -E "test|12
 direction is the one that matters for a privacy statement: it is what stops
 the document describing an app that no longer exists.
 
+Not every destination is a URL. Signing in opens a raw socket, which no
+\`https://\` pattern can see, so the generator reads a second form as well: an
+endpoint declared in the source as \`("host", port)\`, either as a
+\`…_ENDPOINT\` constant or beside a \`connect\` call. Those hosts go into the
+same list and are checked in the same two directions, so a socket cannot be
+described here without existing in the code, or exist in the code without
+being described here.
+
 The scan currently matches ${lines.length} lines across ${files.length} source
-files and finds ${hosts.size} hosts, which is the number of sections above. It
-cannot tell a request from a link - both are an \`https://\` in a file - so
-that distinction is recorded by hand against each call site, and is the part a
+files, plus ${endpointLines.length} declared non-URL endpoint line(s), and
+finds ${hosts.size} hosts, which is the number of sections above. It cannot
+tell a request from a link - both are an \`https://\` in a file - so that
+distinction is recorded by hand against each call site, and is the part a
 reader should check rather than take on trust.
 
 What the scan does **not** cover, said plainly rather than left to be
@@ -235,15 +336,24 @@ account. \`THIRD_PARTY.md\` lists those dependencies.
 
 /* ---------------------------------------------------------------- check --- */
 
-if (process.argv.includes('--check')) {
+if (CHECKING) {
   let failures = 0
+  // Counted rather than typed: the number stood at a hand-written `5 + 1` and
+  // would have gone on saying six however many checks were added or lost.
+  let checks = 0
   const ok = (what, cond, detail = '') => {
+    checks++
     console.log(`${cond ? 'OK  ' : 'FAIL'} ${what}${detail ? `   ${detail}` : ''}`)
     if (!cond) failures++
   }
 
   ok('the scan still reaches the source', files.length >= 200, `${files.length} files`)
   ok('the scan still matches outbound lines', lines.length >= 20, `${lines.length} lines`)
+  // Its own denominator: without this, a pattern that stopped matching and an
+  // app that stopped connecting report identically, and the only symptom is
+  // that `stale` names the host the pattern used to find.
+  ok('the endpoint scan still matches declared sockets', endpointLines.length >= ENDPOINT_FLOOR,
+    `${endpointLines.length} line(s), ${endpoints.size} endpoint(s): ${[...endpoints].map(([h, p]) => `${h}:${p}`).join(', ') || 'none'}`)
   ok('every host the scan found is described', unclassified.length === 0,
     unclassified.join(', ') || `${hosts.size} hosts`)
   // The direction that finds things: a host deleted from the code and left in
@@ -266,7 +376,11 @@ if (process.argv.includes('--check')) {
   ok(`${OUT} matches the source`, norm(current) === norm(md),
     norm(current) === norm(md) ? '' : 'run: node tools/build-privacy-doc.mjs')
 
-  console.log(`\n${5 + 1} checked, ${failures} failed`)
+  console.log(`\n${checks} checked, ${failures} failed`)
+  if (checks < 6) {
+    console.log('REFUSING TO REPORT A RESULT: too few checks ran for a pass to mean anything.')
+    process.exit(2)
+  }
   process.exit(failures ? 1 : 0)
 }
 

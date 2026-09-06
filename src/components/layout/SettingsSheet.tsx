@@ -567,13 +567,23 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 without somewhere to look would be asking them to take it on
                 trust. docs/PRIVACY.md is generated from a scan of the source
                 and fails the build the day a destination appears that it does
-                not name, which is the part worth linking to. */}
+                not name, which is the part worth linking to.
+
+                The password half of this used to promise that a password never
+                reached the app, because it went to another program's login.
+                That stopped being true when this app took over the sign-in
+                (Lane N), and a privacy claim left standing while the code
+                moves under it is the one kind of stale prose worth failing a
+                build over. The sentence below is docs/PRIVACY.md's, word for
+                word, and tools/doc-claims-test.mjs checks that both still say
+                it and that nothing persists a password. */}
             <p className="text-xs text-ink-faint leading-snug">
-              No telemetry and no analytics. Nothing about your character, your
-              game text or your account leaves this machine, and your password
-              never reaches this app at all - it goes to Lich&apos;s own login.
-              The wiki lookup on a watched room asks Elanthipedia about that
-              room and nothing else.{' '}
+              No telemetry and no analytics. Nothing about your character or
+              your game text leaves this machine. Your password is typed into
+              this app, used once to sign in to Simutronics, held only in
+              memory, and not stored unless you later ask for it. The wiki
+              lookup on a watched room asks Elanthipedia about that room and
+              nothing else.{' '}
               <a
                 href="https://github.com/dancockrell/dr-companion/blob/main/docs/PRIVACY.md"
                 target="_blank"
