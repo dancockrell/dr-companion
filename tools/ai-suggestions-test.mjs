@@ -543,6 +543,32 @@ console.log('\n-- exactly one store is constructed in the app --')
     /\b(sendGame|sendGameAction|requestGameAction)\b/.test(readFileSync(f, 'utf8')))
   ok('no AI panel reaches the command path directly',
     sendingComponents.length === 0, sendingComponents.join(', '))
+
+  // And the one write path the wrapper cannot cover, swept here because this
+  // block already has the file list.
+  //
+  // `zustand`'s `create` hands the initialiser the same setter it also exposes
+  // on the hook, so `useAppStore.setState({ character })` writes an
+  // authoritative key and bumps nothing. Measured rather than reasoned, with a
+  // wrapper of the same shape as `versionedSetter`: one bump for a write
+  // through a store action, none for the identical write through `setState`,
+  // and the field updated both times.
+  //
+  // The `rawSet` count further down cannot see this one. It reads
+  // `useAppStore.ts`, and this bypass is spelled anywhere but there. The
+  // wrapper exists because "bump it when you write these" stops holding at the
+  // sixth write site, and `setState` is how the sixth one arrives.
+  const storeBypass = /\buseAppStore\s*\.\s*setState\s*\(/
+  ok('the store-bypass matcher fires on the line it is looking for',
+    storeBypass.test('useAppStore.setState({ character: null })'),
+    'positive control: that write reaches zustand past versionedSetter')
+  ok('and not on the supported ways to reach the store',
+    !storeBypass.test('useAppStore.getState().character') && !storeBypass.test('const [s, setState] = useState()'),
+    'negative control')
+  const bypassing = files.filter((f) => f !== 'src/store/useAppStore.ts' && storeBypass.test(readFileSync(f, 'utf8')))
+  ok('nothing writes the store through useAppStore.setState, which would skip the version bump',
+    bypassing.length === 0,
+    bypassing.join(', ') || `${files.length} files swept; write through a store action so versionedSetter sees it`)
 }
 
 console.log('\n-- a write bumps the version by its shape, not by its caller --')
