@@ -803,6 +803,78 @@ console.log('\n-- 10. a refusal reaches the transport where progress would be (#
   )
 }
 
+console.log('\n-- 11. cancel stops inside a file, and the row offers Resume (#402) --')
+{
+  // #402's last item. Cancel used to be read once per track, so pressing it
+  // during a 90 MB download did nothing until that file finished. The read
+  // loop now takes the same flag and checks it per chunk, which means a
+  // cancelled install ends *mid-file* - and what that leaves is exactly what
+  // an interrupted download leaves, a `.part` shorter than the pinned size.
+  // So the state this produces on the panel is `partial`, with Resume, not a
+  // failure and not a restart from zero.
+  const panel = readFileSync('src/components/game/MusicInstall.tsx', 'utf8')
+  const [, second] = MUSIC_GROUPS
+  const stoppedMidFile = filesOf(second.id).slice(0, 1)
+  setInstalledMusicFiles(filesOf(second.id).slice(1, 3), stoppedMidFile)
+  const s = Object.fromEntries((musicLibraryStatus()?.groups ?? []).map((g) => [g.id, g]))[
+    second.id
+  ]
+  check(
+    'a group cancelled part-way through a file is partial, not failed',
+    s?.state === 'partial',
+    s?.state
+  )
+  check(
+    'and the file the cancel stopped in counts as interrupted, not installed',
+    s?.partial === 1 && s?.installed === 2,
+    `${s?.installed} installed, ${s?.partial} interrupted`
+  )
+  check(
+    'so the row a person sees says Resume rather than Install',
+    s?.state === 'partial' && /s\.state === 'partial'\s*\?\s*`Resume \(/.test(panel),
+    'src/components/game/MusicInstall.tsx'
+  )
+  setInstalledMusicFiles(null)
+  resetInstalledMusicBase()
+
+  // The producing side: the flag the Cancel button sets is the one the read
+  // loop reads. A cancel token nothing passes down is the same gap this
+  // section exists to close.
+  const rust = readFileSync('src-tauri/src/music.rs', 'utf8')
+  const downloads = readFileSync('src-tauri/src/setup/downloads.rs', 'utf8')
+  check(
+    'the download loop checks a cancel flag per chunk rather than per file',
+    /received \+= bytes\.len\(\) as u64;[\s\S]{0,200}?if cancel\.load\(Ordering::SeqCst\)/.test(
+      downloads
+    ),
+    'src-tauri/src/setup/downloads.rs'
+  )
+  check(
+    'and a cancel is an outcome rather than an error string to recognise',
+    /enum DownloadOutcome/.test(downloads) && /Cancelled \{ bytes: u64 \}/.test(downloads),
+    'src-tauri/src/setup/downloads.rs'
+  )
+  check(
+    'the installer passes its own flag down rather than keeping a second one',
+    /install_music_library[\s\S]{0,600}?&CANCELLED,/.test(rust) &&
+      (rust.match(/static CANCELLED: AtomicBool/g) ?? []).length === 1,
+    'src-tauri/src/music.rs'
+  )
+  check(
+    'and stops the run when a track comes back cancelled part-way',
+    /if let DownloadOutcome::Cancelled \{ bytes \} = outcome \{[\s\S]{0,700}?cancelled: true/.test(
+      rust
+    ),
+    'src-tauri/src/music.rs'
+  )
+  check(
+    'while the setup wizard, which has no Cancel, passes a flag nothing sets',
+    /pub static NEVER_CANCELLED: AtomicBool/.test(downloads) &&
+      /&NEVER_CANCELLED,/.test(downloads),
+    'src-tauri/src/setup/downloads.rs'
+  )
+}
+
 stopMusic()
 console.log(`\n${checked} checks, ${failed} failures`)
 if (checked < 55) {

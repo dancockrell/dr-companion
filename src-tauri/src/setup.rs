@@ -38,7 +38,10 @@ pub mod bundles;
 pub mod downloads;
 pub use bundles::{install_bundle, install_bundle_inner, list_repo_files, BundleFile};
 pub(crate) use downloads::emit_setup_progress;
-pub use downloads::{download_component, download_verified, DownloadResult, Progress};
+pub use downloads::{
+    download_component, download_verified, DownloadOutcome, DownloadResult, Progress,
+    NEVER_CANCELLED,
+};
 
 /// Lowercase hex of a digest - `sha2`/`sha1` 0.11 dropped `LowerHex` from
 /// their output type (`hybrid-array`'s `Array<u8, N>` in place of the old
