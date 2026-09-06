@@ -5,6 +5,7 @@ import type { IntentName } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
 import { loadPrefs, savePrefs } from '../lib/persistence.ts'
 import { initialBridgeMode } from '../lib/bridgeModeSelect.ts'
+import { publishBridgeMode } from '../lib/bridgeModeSync.ts'
 import { DEFAULT_FRONTEND } from '../lib/frontends.ts'
 import {
   APP_VERSION,
@@ -270,7 +271,15 @@ export const useAppStore = create<AppState>((rawSet, get) => {
   },
 
   setBridgeMode: (m: 'mock' | 'live') => {
-    setBridgeMode(m, set, get, (mode) => savePrefs({ bridgeMode: mode }))
+    // Persist, then tell the other windows - in that order, because the
+    // browser transport carries no payload and the listener reads what was
+    // written. `publishBridgeMode` is a no-op while a *received* mode is
+    // being applied, which is what stops one click echoing round the
+    // windows forever. See `bridgeModeSync.ts` and issue #424.
+    setBridgeMode(m, set, get, (mode) => {
+      savePrefs({ bridgeMode: mode })
+      publishBridgeMode(mode)
+    })
   },
 
   connectBridge: () => connectBridge(set, get, handleBridgeMessage),

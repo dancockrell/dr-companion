@@ -19,7 +19,7 @@
  * A static import costs a few KB in the web build and cannot break this way.
  */
 import { invoke } from '@tauri-apps/api/core'
-import { listen } from '@tauri-apps/api/event'
+import { emit, listen } from '@tauri-apps/api/event'
 
 export function isTauri(): boolean {
   // Some browser/dev shims declare the property with an undefined value.
@@ -55,6 +55,20 @@ export async function getBridgeDefaultUrl(): Promise<string> {
   return typeof url === 'string' ? url : 'ws://127.0.0.1:7415/companion'
 }
 
+
+/**
+ * Broadcast a Tauri event to every webview of this process, including this
+ * one. No-ops in the browser, where there is no event bus to reach.
+ *
+ * Rejections are warned rather than thrown for the same reason `listenTauri`
+ * swallows its own: the callers are fire-and-forget notifications, so there
+ * is nobody to hand an error to, and the consequence of a miss is a window
+ * that did not hear about a change - not a wrong answer.
+ */
+export function emitTauri(event: string, payload?: unknown): void {
+  if (!isTauri()) return
+  void emit(event, payload).catch((e) => console.warn('Tauri emit failed', event, e))
+}
 
 /**
  * Subscribe to a Tauri event. No-ops in the browser.

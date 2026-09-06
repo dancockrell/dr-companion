@@ -16,7 +16,10 @@
  *      of them and not only the main window (issue #400);
  *   e. the empty state at every size the window can be, because the demo
  *      button being *present* and the demo button being *reachable* turned
- *      out to be different facts (issue #418).
+ *      out to be different facts (issue #418);
+ *   f. two of those windows open at once, where leaving the demo in one has
+ *      to leave it in the other - the demo is one fact about the app, not one
+ *      per window (issue #424).
  *
  * # What this cannot tell you
  *
@@ -233,6 +236,66 @@ try {
     overflowSeen > 0,
     `${overflowSeen} of ${EMPTY_STATE_SIZES.length} sizes overflowed`
   )
+
+  /*
+   * f. two windows, one demo (issue #424).
+   *
+   * The main window and a popped-out stats panel, open at the same time in
+   * one browser - one profile, so one localStorage and one `storage` event
+   * bus between them, which is the browser transport `bridgeModeSync.ts`
+   * uses. Pressing "Leave the demo" in the pop-out has to take the *other*
+   * window out of the demo too, banner and invented character both.
+   *
+   * What this is not: two Tauri webviews. In the app the transport is a Tauri
+   * event instead, and this cannot exercise that branch - `isTauri()` is
+   * false in Chrome. What it does establish is the half a source check
+   * cannot: that a message published in one document actually arrives in
+   * another and is applied there.
+   */
+  // Case e leaves a device-metrics override behind, and the last size in its
+  // list is not a size to judge two windows at. Back to the size this file
+  // launched with, said rather than assumed.
+  await b.resize(1280, 860)
+  await b.goto(base)
+  await b.run(`
+    localStorage.setItem('dr-companion-prefs-v1', JSON.stringify({ setupComplete: true, bridgeMode: 'mock' }));
+    return true;
+  `)
+  await b.goto(base, { waitFor: '#root > *' })
+  const popout = await b.newTab(base + '?view=panel&id=stats')
+  try {
+    await popout.waitFor('#root > *', 15000)
+    const waitForText = async (page, wanted, present) => {
+      let text = ''
+      for (let i = 0; i < 60; i += 1) {
+        text = await page.eval('document.body.innerText')
+        if (text.includes(wanted) === present) break
+        await new Promise((r) => setTimeout(r, 250))
+      }
+      return text
+    }
+    const popBefore = await waitForText(popout, BANNER, true)
+    const mainBefore = await waitForText(b, BANNER, true)
+    check('f. both windows start in the demo', popBefore.includes(BANNER) && mainBefore.includes(BANNER))
+
+    const exited = await popout.click('button', /Leave the demo/)
+    check('f. the pop-out offers the exit', !!exited && !exited.dead, JSON.stringify(exited))
+
+    const mainAfter = await waitForText(b, BANNER, false)
+    check('f. the main window leaves the demo too', !mainAfter.includes(BANNER), JSON.stringify(mainAfter.slice(0, 60)))
+    check('f. and its invented character is gone', !/Dan the Bold/.test(mainAfter))
+    await b.screenshot(out('demo-mode-sync-2026-09-06-main-after-popout-exit.png'))
+
+    // The reverse, which is the direction issue #424 did not ask for: start
+    // the demo in the main window and the open pop-out has to follow.
+    const started = await b.click('button', /Start the demo/)
+    check('f. the main window offers the demo again', !!started && !started.dead, JSON.stringify(started))
+    const popAfter = await waitForText(popout, BANNER, true)
+    check('f. the open pop-out follows back into the demo', popAfter.includes(BANNER), JSON.stringify(popAfter.slice(0, 60)))
+    await popout.screenshot(out('demo-mode-sync-2026-09-06-popout-follows.png'))
+  } finally {
+    await popout.close()
+  }
 
   const errors = b.consoleErrors()
   check('no page exceptions', errors.length === 0, errors.join(' | '))
