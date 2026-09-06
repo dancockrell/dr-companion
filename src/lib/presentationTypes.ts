@@ -37,6 +37,41 @@ export interface WorldCell {
   /** Presentation-only footprint and rig sockets; never movement truth. */
   board: BoardLayout
   exits: WorldExit[]
+  /**
+   * What this room looks like, from `src/data/world/<zone>.json`.
+   *
+   * Absent, never defaulted, for a zone this app has no cartography for. A
+   * cell with no content is a cell the viewer draws as a plain block, which is
+   * exactly what every live cell was before this existed: `compileWorldSnapshot`
+   * published `boardLayoutFor({})` for all 17,750 rooms, so no live room had
+   * ever been an interior and the `interior-cutaway` branch in
+   * `isometric-board-layout.mjs` — the one that makes a cell 3 m tall instead
+   * of 1 — could only be reached by the offline Crossing manifest.
+   *
+   * Presentation only, like `board`. Nothing here contributes an exit, a
+   * position, or any claim about where the character can go.
+   */
+  content?: WorldCellContent
+}
+
+/** The batch's answer for one cell. Mirrors `RoomContent` in `worldContent.ts`,
+ * which is the reader; this is the wire shape Godot receives. */
+export interface WorldCellContent {
+  /** street, path, interior, cave, water, snow, swamp, sand, forest, farmland, grass, rock, unknown. */
+  groundKind: string
+  /** outdoor-open, building-interior, cave, water. */
+  blockKind: string
+  /** A `LandmarkKind` from `mapLandmarks.ts`, or null. */
+  landmark: string | null
+  tags: string[]
+  spatialMode: string
+  tier: string
+  /** Compass sides with nothing walkable beyond them. */
+  boundaryEdges: string[]
+  /** Slots for `content_registry.gd` to fill, in the same `{kind, role}` shape
+   * the offline manifest publishes. Derived by `primitivesFor()` rather than
+   * stored, so there is one statement of which kinds a cell asks for. */
+  primitives: { kind: string; role: string }[]
 }
 
 export interface EntitySnapshot {

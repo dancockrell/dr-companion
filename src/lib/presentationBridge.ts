@@ -12,13 +12,32 @@
  * (`src/bridge/types.ts`), the same normalized shape whether it came from a
  * live Lich zone or the offline fallback (`mapData.ts`'s own doc comment:
  * "When Lich is connected its own zone data wins... it is authoritative
- * about where the character actually is"). Godot's placeholder-primitive
- * scene slots get filled from a separately-compiled art manifest
- * (`tools/build-primitive-world-manifest.mjs`); this file only carries the
- * topology and live occupants, matching the brief's split of "compile
- * existing authoritative room IDs, room graph, legal exits... into
- * versioned deterministic manifests" (offline) from "publish confirmed
- * state" (this file, live).
+ * about where the character actually is").
+ *
+ * # Where a live cell's content comes from
+ *
+ * Every cell used to publish `board: boardLayoutFor({})` — an empty
+ * classification, for all 17,750 rooms — on the reasoning that Godot's
+ * placeholder-primitive slots are filled from the separately-compiled art
+ * manifest (`tools/build-primitive-world-manifest.mjs`) and this file carries
+ * only topology and live occupants. That split was right about the *art* and
+ * wrong about the consequence: the offline manifest existed for one zone, so
+ * no live room had ever been an interior. `boardLayoutFor`'s
+ * `interior-cutaway` branch — the one that makes a cell 3 m tall rather than
+ * 1 m, and draws a floor plane rather than terrain — was unreachable on the
+ * live path, in every zone, always.
+ *
+ * `src/data/world/<zone>.json` closes it. It is batch-derived from the same
+ * cartography this file already reads (`tools/build-world-content.mjs`, 85
+ * zones, 0.48% unclassified) and it is the *content* layer, not the art layer:
+ * a ground kind, a block kind, the landmark `mapLandmarks.ts` already decided
+ * for the 2D map, and which of the eight compass sides face nothing walkable.
+ * The art manifest is compiled from the same file, so the offline and live
+ * paths take their classification from one place rather than from two that
+ * happen to agree.
+ *
+ * It stays presentation-only. Nothing in `content` contributes an exit, a
+ * position, or any claim about where the character can go.
  *
  * # Rooms as teleportation nodes
  *
@@ -66,11 +85,14 @@ import {
   classifyTether,
   tetherAnchorFor,
 } from './isometric-board-layout.mjs'
+import { primitivesFor } from './world-content-rules.mjs'
+import type { RoomContent } from './worldContent.ts'
 import { invokeTauri } from './tauri.ts'
 import type {
   Vec3,
   WorldExit,
   WorldCell,
+  WorldCellContent,
   EntitySnapshot,
   TacticalSnapshot,
   GroundItemSnapshot,
@@ -142,6 +164,34 @@ function exitsFor(zoneId: string, room: MapZoneRoom): WorldExit[] {
     })
 }
 
+/**
+ * One room's batch content, in the shape Godot receives.
+ *
+ * `primitives` is computed here rather than read, because
+ * `src/data/world/<zone>.json` does not carry it: it is a pure function of the
+ * block kind, the tags and the boundary edges, and storing it in 17,750 records
+ * would be the same decision written twice with the copy going stale the day
+ * the Godot content pack registers a sixth kind. `primitivesFor()` is that one
+ * statement, and `tools/build-primitive-world-manifest.mjs` narrows the same
+ * classification through its own richer recipe for the art path.
+ */
+function cellContentFor(room: RoomContent): WorldCellContent {
+  return {
+    groundKind: room.ground,
+    blockKind: room.block,
+    landmark: room.landmark,
+    tags: room.classification.tags,
+    spatialMode: room.classification.spatialMode,
+    tier: room.classification.tier,
+    boundaryEdges: room.boundaryEdges,
+    primitives: primitivesFor({
+      blockKind: room.block,
+      tags: room.classification.tags,
+      boundaryEdges: room.boundaryEdges,
+    }),
+  }
+}
+
 function worldPosition(room: MapZoneRoom): Vec3 {
   return {
     x: (room.x ?? 0) * MAP_UNIT_TO_METRES,
@@ -168,9 +218,19 @@ export function compileWorldSnapshot(params: {
    * why `worn` itself is optional inside it - see its own doc comment.
    */
   inventory?: InventorySummary | null
+  /**
+   * The zone's batch-derived content, from `loadWorldContent()`.
+   *
+   * Optional, and absent is a real state rather than a shortfall: a zone this
+   * app has no cartography for has no content file, and a snapshot whose cells
+   * carry no `content` is the honest publication of that. It is passed in
+   * rather than loaded here because this function is pure and synchronous and
+   * is tested as such; `publishWorldSnapshotIfChanged` below does the loading.
+   */
+  content?: Map<number, RoomContent> | null
   sequence: number
 }): WorldSnapshot | null {
-  const { zone, here, character, inventory, sequence } = params
+  const { zone, here, character, inventory, content, sequence } = params
 
   // No zone, no zone id, or the zone itself reported failure: there is
   // nothing true to publish. A snapshot with an empty cells array would
@@ -182,13 +242,22 @@ export function compileWorldSnapshot(params: {
   if (hereId == null) return null
 
   const rooms = (zone.rooms ?? []).filter((r): r is MapZoneRoom & { id: number } => r.id != null)
-  const cells: WorldCell[] = rooms.map((room) => ({
-    id: cellId(zoneId, room.id),
-    title: room.title ?? '',
-    position: worldPosition(room),
-    board: boardLayoutFor({}),
-    exits: exitsFor(zoneId, room),
-  }))
+  const cells: WorldCell[] = rooms.map((room) => {
+    const roomContent = content?.get(room.id) ?? null
+    const cellContent = roomContent ? cellContentFor(roomContent) : null
+    return {
+      id: cellId(zoneId, room.id),
+      title: room.title ?? '',
+      position: worldPosition(room),
+      // The classification decides the block's height and whether the viewer
+      // draws a floor or terrain, so it has to reach `boardLayoutFor`. `{}`
+      // when there is none, which is the shape this passed unconditionally
+      // before `src/data/world` existed.
+      board: boardLayoutFor(roomContent ? { classification: roomContent.classification } : {}),
+      exits: exitsFor(zoneId, room),
+      ...(cellContent ? { content: cellContent } : {}),
+    }
+  })
 
   const currentCellId = cellId(zoneId, hereId)
   const currentCell = cells.find((c) => c.id === currentCellId)
@@ -404,7 +473,30 @@ export async function publishWorldSnapshotIfChanged(
   },
   force = false
 ): Promise<void> {
-  const snapshot = compileWorldSnapshot({ ...params, sequence: sequence + 1 })
+  // Awaited before compiling, and cached per zone by `worldContent.ts`, so this
+  // is one fetch the first time a zone is entered and a Map lookup every time
+  // after. A zone with no content file resolves to null and the snapshot goes
+  // out without any, which is what happened for every zone before this existed.
+  //
+  // Imported here rather than at the top of the file, and that is not style.
+  // `worldContent.ts` calls `import.meta.glob`, which is a Vite build-time
+  // transform and a plain TypeError under bare Node. A static import would run
+  // it on module load and take `tools/presentation-bridge-test.mjs` — 40-odd
+  // checks over `compileWorldSnapshot`, `shouldPublish` and
+  // `gameCommandForIntent`, none of which need a zone file — down with it. The
+  // pure half of this module stays runnable outside Vite; only the publication
+  // path, which already needs Tauri, reaches for the loader.
+  //
+  // Guarded on there being a zone at all, which is not merely an optimisation:
+  // with no zone there is nothing to load, and `tools/viewer-absent-test.mjs`
+  // calls this with `{zone: null}` under bare Node to check that publishing
+  // with nothing to publish is a no-op rather than a throw. An unconditional
+  // import made that case throw on the glob.
+  const zoneId = params.zone?.zone ?? null
+  const content = zoneId
+    ? await (await import('./worldContent.ts')).loadWorldContent(zoneId)
+    : null
+  const snapshot = compileWorldSnapshot({ ...params, content, sequence: sequence + 1 })
   if (!snapshot) return
   const nextProjectionKey = projectionKey(snapshot)
   const nextZone = params.zone

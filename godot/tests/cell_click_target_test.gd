@@ -52,7 +52,8 @@ const MOCK_FIXTURE_PATH := "res://mock/crossing_mock_world.json"
 
 ## An ordinary room (height 1) and an interior cutaway (height 3).
 const ROOM_ID := "1-14"
-const TALL_ROOM_ID := "1-16"
+## Read from the fixture rather than named. See `_fixture_guarantee` below.
+var _tall_room_id := ""
 
 ## A cell of this file's own, injected into the loaded manifest before the
 ## viewer builds anything, and parked far from every real one so a ray near it
@@ -106,6 +107,9 @@ func _run() -> void:
 	var registry: Node = root.get_node("ContentRegistry")
 	var loader: Node = root.get_node("WorldManifestLoader")
 	_ok("the mock fixture loads", loader.load_from_path(MOCK_FIXTURE_PATH))
+	_tall_room_id = _fixture_guarantee("tallCellId")
+	_ok("and names the interior cutaway this case pairs against an ordinary cell",
+		_tall_room_id != "" and loader.cells.has(_tall_room_id), _tall_room_id)
 	_ok("the fixture is non-trivial (a floor, so an empty load cannot pass the count below)",
 		loader.cells.size() >= 10, "%d cells" % loader.cells.size())
 
@@ -191,14 +195,14 @@ func _run() -> void:
 		"%.2f m out, against the old %.2f m half-width" % [room_bounds["width"] * 0.5 + OUTSIDE_MARGIN, SUPERSEDED_CLICK_BOX_METRES * 0.5])
 
 	# -- two rooms at two heights, so one number cannot serve both --
-	var tall_bounds: Dictionary = registry.selection_bounds_metres(loader.cells[TALL_ROOM_ID])
-	var tall_hit := _ray_down(space, _position_of(loader.cells[TALL_ROOM_ID]))
+	var tall_bounds: Dictionary = registry.selection_bounds_metres(loader.cells[_tall_room_id])
+	var tall_hit := _ray_down(space, _position_of(loader.cells[_tall_room_id]))
 	_ok("an interior cutaway is clickable to the top of the block it published",
-		_cell_of(tall_hit) == TALL_ROOM_ID and is_equal_approx(_hit_y(tall_hit), tall_bounds["height"] * 0.5),
+		_cell_of(tall_hit) == _tall_room_id and is_equal_approx(_hit_y(tall_hit), tall_bounds["height"] * 0.5),
 		"y = %.2f m of a %.2f m box" % [_hit_y(tall_hit), tall_bounds["height"]])
 	_ok("which is above where the room next door is clickable, so one height cannot serve both",
 		tall_bounds["height"] > room_bounds["height"],
-		"%s %.2f m vs %s %.2f m" % [TALL_ROOM_ID, tall_bounds["height"], ROOM_ID, room_bounds["height"]])
+		"%s %.2f m vs %s %.2f m" % [_tall_room_id, tall_bounds["height"], ROOM_ID, room_bounds["height"]])
 	_ok("and the superseded box would have buried it",
 		SUPERSEDED_CLICK_BOX_HEIGHT < tall_bounds["height"],
 		"%.2f m of clickable block on a %.2f m room" % [SUPERSEDED_CLICK_BOX_HEIGHT, tall_bounds["height"]])
@@ -257,3 +261,25 @@ func _ok(label: String, condition: bool, detail: String = "") -> void:
 	else:
 		_failed += 1
 		print("FAIL %s %s" % [label, detail])
+
+## The cell the fixture generator guarantees for a named requirement.
+##
+## `TALL_ROOM_ID := "1-16"` stood here: Town Green South, which was an interior
+## cutaway under the old lore classification and is a park under the batch that
+## replaced it. The pair this case needs - an ordinary cell and a taller one -
+## was still two cells and had stopped being a pair, so the check compared 1 m
+## against 1 m and went red without anything in the viewer having changed.
+##
+## `tools/build-godot-mock-fixture.mjs` states the requirement instead, grows
+## the slice by the nearest cell that meets it, and publishes the id under
+## `guarantees`. It aborts rather than emitting a fixture that cannot satisfy
+## one, so this read cannot quietly return nothing.
+func _fixture_guarantee(key: String) -> String:
+	var text := FileAccess.get_file_as_string(MOCK_FIXTURE_PATH)
+	var parsed = JSON.parse_string(text)
+	if not (parsed is Dictionary):
+		return ""
+	var guarantees = (parsed as Dictionary).get("guarantees", {})
+	if not (guarantees is Dictionary):
+		return ""
+	return String((guarantees as Dictionary).get(key, ""))
