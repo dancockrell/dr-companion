@@ -231,6 +231,87 @@ if (generated) {
 if (scratch) rmSync(scratch, { recursive: true, force: true })
 
 console.log('')
+console.log('-- who Windows will say published this --')
+
+const TAURI_CONF = 'src-tauri/tauri.conf.json'
+const conf = JSON.parse(readFileSync(TAURI_CONF, 'utf8'))
+
+// Settings -> Apps on the clean VM listed the app as "DR Companion / 0.1.1 /
+// github / 211 MB" (docs/verification/first-run-2026-09-05.md, Defect 4).
+//
+// Nobody typed "github". With `bundle.publisher` unset, Tauri falls back to
+// the second segment of the bundle identifier, and this identifier is
+// `io.github.dancockrell.dr-companion`. So the publisher every user sees was
+// an accident of where the code is hosted - and in the config an absent value
+// and a deliberate one look identical, which is why this is checked here
+// rather than left as a field somebody might notice.
+//
+// The value to refuse is computed from the identifier rather than written out
+// as the string "github": if the identifier changes, the fallback changes with
+// it, and a literal would go on guarding the old one.
+const derivedPublisher = String(conf?.identifier ?? '').split('.')[1] ?? ''
+check(
+  'the identifier still has a second segment, so there is a fallback to refuse',
+  Boolean(derivedPublisher),
+  `identifier ${conf?.identifier ?? 'MISSING'} - Tauri would fall back to "${derivedPublisher}"`,
+)
+check(
+  'bundle.publisher is set explicitly',
+  typeof conf?.bundle?.publisher === 'string' && conf.bundle.publisher.trim().length > 0,
+  conf?.bundle?.publisher === undefined
+    ? `unset, so Windows shows "${derivedPublisher}", derived from the identifier`
+    : String(conf.bundle.publisher),
+)
+check(
+  'and it is a name, not the identifier segment Tauri would have used',
+  Boolean(derivedPublisher) && conf?.bundle?.publisher !== derivedPublisher,
+  String(conf?.bundle?.publisher),
+)
+
+// The saboteur. Those two checks are new, and a check nobody has seen fail is
+// a check nobody should trust. The first mutation is the exact state that
+// shipped - the key absent. The second is what it would degrade to if somebody
+// "filled in" the value Windows was already showing. Both are applied to a
+// parsed copy and never to the file; the md5 either side says that rather than
+// promising it.
+{
+  const publisherIsSet = (bundle) =>
+    typeof bundle?.publisher === 'string' && bundle.publisher.trim().length > 0
+  const publisherIsNotDerived = (bundle) =>
+    Boolean(derivedPublisher) && bundle?.publisher !== derivedPublisher
+
+  const beforeMd5 = createHash('md5').update(readFileSync(TAURI_CONF)).digest('hex')
+
+  const unset = { ...conf.bundle }
+  delete unset.publisher
+  check(
+    'the sabotage changed something - publisher was actually removed from the copy',
+    'publisher' in conf.bundle && !('publisher' in unset),
+  )
+  check(
+    'with bundle.publisher unset, the "set explicitly" check goes red',
+    publisherIsSet(unset) === false,
+  )
+  check(
+    'and with it set to the identifier segment, the "not derived" check goes red',
+    publisherIsNotDerived({ ...conf.bundle, publisher: derivedPublisher }) === false,
+    `publisher = "${derivedPublisher}"`,
+  )
+  // Which of the two catches which is worth stating, because they do not
+  // overlap: `undefined !== "github"` is true, so the unset case is invisible
+  // to the second check and only the first one sees it.
+  check(
+    'the unset case is caught only by the first check, so both are needed',
+    publisherIsNotDerived(unset) === true,
+  )
+  check(
+    'the config file on disk is unchanged by this test',
+    createHash('md5').update(readFileSync(TAURI_CONF)).digest('hex') === beforeMd5,
+    beforeMd5,
+  )
+}
+
+console.log('')
 console.log('-- the uninstaller cleanup hook, and the paths it deletes --')
 
 // F8 found that neither uninstall path removed the two loopback bearer tokens:
@@ -250,9 +331,8 @@ console.log('-- the uninstaller cleanup hook, and the paths it deletes --')
 // here: a path separator that has to survive JS escaping and a regex is two
 // chances to write a check that silently matches nothing.
 const HOOKS_NSH = 'src-tauri/installer-hooks.nsh'
-const TAURI_CONF = 'src-tauri/tauri.conf.json'
+// TAURI_CONF and `conf` are read once, in the publisher section above.
 
-const conf = JSON.parse(readFileSync(TAURI_CONF, 'utf8'))
 const hookPath = conf?.bundle?.windows?.nsis?.installerHooks
 check(
   'tauri.conf.json wires an installer hook file',
