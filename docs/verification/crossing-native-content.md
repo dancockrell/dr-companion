@@ -400,6 +400,27 @@ silently enlarge scenery beyond known bounds.
 
 ## Reproduce
 
+### City-wide overview occupancy
+
+Every loaded room now retains one base-only overview representation through
+the existing ContentRegistry factory path. Detailed room mounting hides it;
+unmounting detail restores it. No additional landmarks, buildings, items,
+characters, exits or navigation are synthesized. The source board footprint
+remains authoritative. Missing-description cells use a darker neutral color;
+other unbuilt overview surfaces are neutral too, not a claim that every outdoor
+room is grass. An initial green/brown overview was rejected as misleading and
+replaced by this abstract treatment.
+
+This closes the visibility hole where most of the city became route lines
+over empty space. It does not close any room's art-completion gate: the full
+city still needs deliberate geography, streets, architecture and furnishings.
+The overview carries `base-only; not completed room art` metadata. The existing
+full-city content test checks all 1,060 overview holders, exactly one declared
+base each and explicit incomplete status. Detailed geometry remains limited
+to the actual-exit neighborhood; no whole-city prop instantiation is added.
+Use `capture-crossing-content.gd -- world` for an overview-only capture instead
+of replaying the room collection. The older optional shared-rock warning remains.
+
 ### Full-city local compass repair
 
 The shared offline/live layout compiler now uses actual compass exits after

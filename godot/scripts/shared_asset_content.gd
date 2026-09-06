@@ -256,7 +256,8 @@ func shared_asset_status() -> Dictionary:
 ## than this file's.
 func _build_terrain(cell: Dictionary, _primitive: Dictionary) -> Node3D:
 	var ground := ContentRegistryScript.ground_size_metres(cell)
-	return _plane_piece("TerrainCell", Color("#58724b"), ground.x, ground.y, 0.0)
+	var color := Color("#626365") if cell.get("status", "") == "missing-description" else Color("#58724b")
+	return _plane_piece("TerrainCell", color, ground.x, ground.y, 0.0)
 
 func _build_interior_floor(cell: Dictionary, _primitive: Dictionary) -> Node3D:
 	# An intentionally neutral floor: an interior remains a documented content

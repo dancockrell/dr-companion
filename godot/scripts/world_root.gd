@@ -111,6 +111,7 @@ func _prepare_all_cells() -> void:
 		var content := Node3D.new()
 		content.name = "DetailContent"
 		holder.add_child(content)
+		holder.add_child(ContentRegistry.build_cell(cell, false))
 
 		# A clickable body per cell, so the mock viewer can turn a click into
 		# a focus-room intent even before real per-primitive collision
@@ -174,6 +175,7 @@ func _mount_cell_detail(cell_id: String) -> void:
 	if content == null:
 		return
 	content.add_child(ContentRegistry.build_cell(cell))
+	holder.get_node("OverviewGround").visible = false
 	_active_detail_cells[cell_id] = true
 
 func _unmount_cell_detail(cell_id: String) -> void:
@@ -185,6 +187,7 @@ func _unmount_cell_detail(cell_id: String) -> void:
 	if content != null:
 		for child in content.get_children():
 			child.free()
+	holder.get_node("OverviewGround").visible = true
 	_active_detail_cells.erase(cell_id)
 
 func _cell_position(cell: Dictionary) -> Vector3:

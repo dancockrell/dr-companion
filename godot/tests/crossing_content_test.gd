@@ -28,6 +28,12 @@ func _run() -> void:
 	for cell in fixture.cells:
 		cells[cell.id] = cell
 	var original := JSON.stringify(cells)
+	for cell in cells.values():
+		var overview: Node3D = registry.build_cell(cell, false)
+		check(overview.name == "OverviewGround", "Every full-city room has an overview surface holder")
+		check(overview.get_child_count() == 1, "Overview mounts only the declared base, not props or landmark placeholders")
+		check(overview.get_meta("content_status") == "base-only; not completed room art", "Overview does not claim art completion")
+		overview.free()
 	for recipe in selections.roomCompositions:
 		var cell: Dictionary = cells[recipe.cellId]
 		var node: Node3D = registry.build_cell(cell)

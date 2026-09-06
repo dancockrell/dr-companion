@@ -26,8 +26,8 @@ func _run() -> void:
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png(output.path_join("crossing-native-" + entry[1] + ".png"))
 	for id in requested:
-		assert(id in captured, "Unknown capture room: " + id)
-	if requested.is_empty():
+		assert(id == "world" or id in captured, "Unknown capture room: " + id)
+	if requested.is_empty() or "world" in requested:
 		world.focus_world_view()
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png(output.path_join("crossing-native-world.png"))

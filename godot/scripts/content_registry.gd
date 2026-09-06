@@ -27,7 +27,30 @@ var _room_factory: Callable
 func register_room(factory: Callable) -> void:
 	_room_factory = factory
 
-func build_cell(cell: Dictionary) -> Node3D:
+func build_cell(cell: Dictionary, detailed: bool = true) -> Node3D:
+	if not detailed:
+		# Reuse the same base factory at city distance. No landmarks, guessed
+		# buildings or props are manufactured to fill an unbuilt room.
+		var overview := Node3D.new()
+		overview.name = "OverviewGround"
+		overview.set_meta("presentation_only", true)
+		overview.set_meta("content_status", "base-only; not completed room art")
+		for primitive in cell.get("primitives", []):
+			if primitive.get("role", "") == "base":
+				var base: Node3D = build(cell, primitive)
+				# This is an abstract occupied footprint, not grass inferred for
+				# every outdoor room. Keep missing-description rooms distinct.
+				var material := StandardMaterial3D.new()
+				material.albedo_color = Color("#4c5054") if cell.get("status", "") == "missing-description" else Color("#72716b")
+				material.roughness = 1.0
+				var meshes: Array = base.find_children("*", "MeshInstance3D", true, false)
+				if base is MeshInstance3D:
+					meshes.append(base)
+				for mesh in meshes:
+					mesh.material_override = material
+				overview.add_child(base)
+				return overview
+		return overview
 	if _room_factory.is_valid():
 		var authored: Node3D = _room_factory.call(cell)
 		if authored != null:
