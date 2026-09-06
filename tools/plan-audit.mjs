@@ -38,7 +38,7 @@ const PLAN = 'docs/PLAN_TO_1_0.md'
 const MIN_INCREMENTS = 80
 const MIN_PATHS = 60
 
-const ID = /\b([A-L]\d+[a-z]?)\b/g
+const ID = /\b([A-N]\d+[a-z]?)\b/g
 const CHECKBOX = /^- \[([ ~x!-])\] (.*)$/
 
 export function parsePlan(text) {
@@ -49,7 +49,7 @@ export function parsePlan(text) {
     const line = lines[i]
     const m = CHECKBOX.exec(line)
     if (m) {
-      const ids = [...m[2].matchAll(/\*\*([A-L]\d+[a-z]?)\s/g)].map((x) => x[1])
+      const ids = [...m[2].matchAll(/\*\*([A-N]\d+[a-z]?)\s/g)].map((x) => x[1])
       if (ids.length === 0) continue // a checkbox that is not an increment
       current = { ids, marker: m[1], line: i + 1, touches: [], dependsOn: [], minutes: null }
       increments.push(current)
@@ -103,7 +103,7 @@ export function audit(increments, exists) {
       if (inc.marker === 'x' && target.marker !== 'x') findings.push(`${label} is done but depends on ${dep}, which is ${describe(target.marker)}`)
     }
     for (const raw of inc.touches) {
-      const arrives = /^([A-L]\d+[a-z]?)>(.+)$/.exec(raw)
+      const arrives = /^([A-N]\d+[a-z]?)>(.+)$/.exec(raw)
       if (arrives) {
         const [, via, p] = arrives
         const src = byId.get(via)
@@ -136,6 +136,41 @@ export function audit(increments, exists) {
     perIncrement.push({ label, clean: findings.length === before, checked: incChecked, awaiting: incAwaiting })
   }
   return { findings, checked, awaiting, ids: byId.size, perIncrement }
+}
+
+/**
+ * Every `### Lane X` heading in section 6 must have produced at least one
+ * increment.
+ *
+ * This closes a hole measured on 6 Sep 2026 while adding Lane N. The id
+ * patterns above stopped at `L`, so every N increment parsed to nothing - and the
+ * audit still said `plan ok: 120 increments`, exit 0, with a whole lane
+ * invisible. That is the shape this file exists to prevent: a lane the parser
+ * cannot see and a lane that is not there produce identical output, and the
+ * shorter one looks like success. `MIN_INCREMENTS` cannot catch it, because 120
+ * clears a floor of 80 comfortably.
+ *
+ * The heading is the manifest. Counting what parsed can never reveal what did
+ * not, so the check is against what section 6 declares rather than against a
+ * number somebody set once - which is also why it needs no maintenance when the
+ * next lane is added.
+ */
+export function checkLaneHeadings(text, increments) {
+  const findings = []
+  const lanes = []
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^### Lane ([A-Z])\b/.exec(line)
+    if (m && !lanes.includes(m[1])) lanes.push(m[1])
+  }
+  const seen = new Set(increments.flatMap((inc) => inc.ids).map((id) => id[0]))
+  for (const lane of lanes) {
+    if (!seen.has(lane)) {
+      findings.push(
+        `section 6 has a "### Lane ${lane}" heading but no ${lane} increment parsed; the id pattern in tools/plan-audit.mjs does not cover lane ${lane}`
+      )
+    }
+  }
+  return { findings, lanes }
 }
 
 function describe(marker) {
@@ -171,9 +206,9 @@ function describe(marker) {
  * hyphen and an em dash are accepted too so a typed edit does not vanish.
  */
 const GATE_HEADER = /^- \*\*Gate (\d+)\s*[–—-]\s*([^:*]+?)\s*:\*\*\s*(.*)$/
-const GATE_RANGE = /\b([A-L])(\d+)\s*[–—-]\s*([A-L])(\d+)\b/g
-const GATE_LANE = /\b([A-L]) complete\b/g
-const GATE_ID = /\b([A-L]\d+[a-z]?)\b/g
+const GATE_RANGE = /\b([A-N])(\d+)\s*[–—-]\s*([A-N])(\d+)\b/g
+const GATE_LANE = /\b([A-N]) complete\b/g
+const GATE_ID = /\b([A-N]\d+[a-z]?)\b/g
 
 export function parseGates(text, knownIds = []) {
   const lines = text.split(/\r?\n/)
@@ -513,6 +548,25 @@ function selfTest() {
   console.log(`${cleanOk ? 'OK  ' : 'FAIL'} gates: a clean gate line produces no findings`)
   if (!cleanOk) bad++
 
+  // The lane manifest. The defect it was written for is a lane whose ids the
+  // parser does not match: `parsePlan` returns nothing for it, every floor is
+  // still satisfied, and the audit passes over an invisible lane. Both
+  // directions are asserted here - a heading with no increments must fail, and
+  // a heading with increments must not - because a check that always fires
+  // carries exactly as little information as one that never does.
+  const laneText = ['### Lane A', '- [ ] **A1  a thing** (≈5)', '  touches: none', '', '### Lane Z', '- [ ] **Z1  invisible** (≈5)', '  touches: none'].join('\n')
+  const laneIncrements = parsePlan(laneText)
+  const laneResult = checkLaneHeadings(laneText, laneIncrements)
+  const laneExpect = [
+    [laneResult.lanes.length === 2, `finds both headings, got ${laneResult.lanes.length}`],
+    [laneResult.findings.some((f) => /"### Lane Z" heading but no Z increment parsed/.test(f)), 'names the lane whose ids never parsed'],
+    [!laneResult.findings.some((f) => /Lane A/.test(f)), 'does not report the lane that did parse'],
+  ]
+  for (const [hit, what] of laneExpect) {
+    console.log(`${hit ? 'OK  ' : 'FAIL'} lanes: ${what}`)
+    if (!hit) bad++
+  }
+
   if (bad) {
     console.error('FAILED self-test')
     process.exit(1)
@@ -574,7 +628,15 @@ if (args.has('--self-test')) {
     const ids = increments.flatMap((inc) => inc.ids)
     const g = parseGates(planText, ids)
     const floors = checkGateFloors(g.gates)
-    const gateFindings = [...g.findings, ...floors.findings]
+    // Section 6's lane headings are the manifest for the increment parser: a
+    // lane it cannot see is otherwise indistinguishable from a lane that does
+    // not exist. Printed with its denominator, so a broken heading scan reports
+    // itself rather than reporting a clean file.
+    const laneCheck = checkLaneHeadings(planText, increments)
+    if (laneCheck.findings.length === 0) {
+      console.log(`OK   section 6 lanes             ${laneCheck.lanes.length} headings, every one parsed to increments`)
+    }
+    const gateFindings = [...g.findings, ...floors.findings, ...laneCheck.findings]
     for (const gate of g.gates) {
       if (!gateFindings.some((f) => f.includes(`"${gate.name}"`))) {
         console.log(`OK   gate ${gate.name.padEnd(26)} ${gate.ids.length} members${gate.excluded.length ? `, excludes ${gate.excluded.join(', ')}` : ''}`)
