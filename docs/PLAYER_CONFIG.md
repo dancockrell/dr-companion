@@ -534,6 +534,42 @@ is a claim, and the code is the check.
   nothing in that directory writes into a Genie install. The one-caller check
   on `saveGenieConfig` is unchanged and still passes its sabotage.
 
+## 11. What Q2 actually landed, where it differs from the design above
+
+- **One compile gate, extracted rather than added.** `parseHighlights` and
+  `resolveHighlights` each held their own compile-and-probe, and the editor
+  needed the same question answered before a save. `compilePattern(type,
+  pattern)` in `highlights.ts` is now the single answer and all three call it.
+  Three implementations of "is this pattern safe to run once per rendered
+  line" is how a rule refused at load gets accepted at save and freezes the
+  game pane anyway.
+- **The editor refuses an invalid pattern before it is stored, and the
+  resolver still refuses it if one gets in.** The gate is the editor; the
+  backstop is `resolveHighlights`. Both are asserted, because the property is
+  not "the form validates" but "the runtime never sees an invalid rule" - a
+  hand-edited localStorage key produces exactly that state.
+- **A preset in use is not deleted, and the refusal names the rules.**
+  `refuseDeletingPreset(preset, highlights)` is pure and lives in
+  `highlights.ts`, not inside the tab: the message is the product, and a
+  message assembled inside a component is a message no check can read. "3
+  highlights use it" is a fact the player cannot act on.
+- **The preview is the game pane.** `HighlightsTab.tsx` calls `paint()` and
+  renders through `HighlightedText` over `useGameLines()`, and
+  `tools/highlight-test.mjs` greps it for the two matching primitives a
+  hand-rolled matcher would need, with a positive control on `highlights.ts`
+  so a zero means something. It prints how many lines it searched beside how
+  many matched.
+- **Only `fg` reaches the game pane.** `paint()` returns one colour per line
+  and one per span and `HighlightedText` sets `color` from it; Q2's `do:`
+  keeps that signature, so a preset's `bg` and `bold` are stored and edited
+  but not painted, and the tab says so on screen. Italic and underline were
+  **not** added: two fields the store does not declare and the renderer cannot
+  use would be an absence with more steps, freshly built.
+- **`useHighlights.ts` is untouched by Q2.** §10 records that Q1 had already
+  pointed it at the store; there was nothing left for this increment to
+  change, and editing it to satisfy a `touches:` line would have been a change
+  with nothing to fix.
+
 Where this document and a check disagree, **the check is right and this page
 is stale.** The checks are the `verify:` lines of Q1–Q6 in
 `docs/PLAN_TO_1_0.md`.
