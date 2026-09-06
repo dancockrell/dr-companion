@@ -22,8 +22,72 @@ export function WaitingForCharacter() {
   const setBridgeMode = useAppStore((s) => s.setBridgeMode)
   const connectBridge = useAppStore((s) => s.connectBridge)
 
+  /*
+   * The two ways forward, kept together and placed near the top of the panel.
+   *
+   * They used to be the last thing in the column, under six paragraphs, a
+   * command block and the whole Lich launcher - roughly 900px of panel in the
+   * real app. The app's own default window is 1180x820 and its declared
+   * minimum is 720x480 (`REQUESTED` and `MIN` in `src-tauri/src/lib.rs`), so
+   * on a fresh install "Start the demo" was below the bottom edge and could
+   * not be reached by any means (issue #418). The demo was the only route in
+   * for somebody with no Lich yet, and it was off screen.
+   *
+   * Nothing was cut to make room. The explanation is the same length; it is
+   * now below the buttons instead of in front of them, which is also the
+   * better order to read it in - you are told what you can do, and then why
+   * you are here.
+   */
+  const actions = (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {/*
+       * Asking for the demo is now an act, not the absence of one.
+       *
+       * This used to call `simulateConnect()`, which was `connectBridge()`
+       * under another name (the alias is now deleted) and worked only
+       * because mock was already the mode on every fresh install. With
+       * `live` the default (issue #382) that would have attached the real
+       * bridge and left the button apparently doing nothing. The pair below
+       * is the same pair Settings uses for its Mock button: set the mode,
+       * then connect.
+       */}
+      <button
+        type="button"
+        onClick={() => {
+          setBridgeMode('mock')
+          connectBridge()
+        }}
+        className="rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25"
+      >
+        Start the demo
+      </button>
+      <button
+        type="button"
+        onClick={() => useAppStore.getState().openSetup()}
+        className="rounded border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
+        title="The full connect guide, including Platinum, Fallen and Test"
+      >
+        Connection help
+      </button>
+    </div>
+  )
+
   return (
-    <div className="flex h-full min-w-0 flex-col items-start justify-center gap-3 p-6">
+    /*
+     * `overflow-y-auto` is the half of the #418 fix that does not depend on
+     * anybody keeping the panel short. Reordering makes it fit today; this
+     * makes it reachable whatever it grows into, and whatever size the window
+     * is dragged to.
+     *
+     * `justify-center` is gone on purpose, and it was not merely redundant:
+     * a flex column that centres content taller than itself pushes the
+     * overflow off *both* ends, and the part above the start edge cannot be
+     * scrolled to in any browser. That is why the heading was missing off the
+     * top of the clean-VM screenshots as well as the buttons off the bottom.
+     * `my-auto` on the child below centres the same way when there is room
+     * and does not clip when there is not.
+     */
+    <div className="flex h-full min-w-0 flex-col items-start overflow-y-auto p-6">
       {/* `w-full` matters as much as the cap beside it.
        *
        * `items-start` makes a flex child shrink-to-fit, so this box sized to
@@ -36,7 +100,7 @@ export function WaitingForCharacter() {
        * `w-full` lets it take the column's width; `max-w-lg` still stops it
        * running to a silly measure on a wide one.
        */}
-      <div className="w-full max-w-lg">
+      <div className="my-auto w-full max-w-lg">
         {/*
          * The heading names the two ways forward, and it is the largest type
          * on the screen because this is now the first thing a new install
@@ -57,6 +121,7 @@ export function WaitingForCharacter() {
               The bridge is up but no character has reported in yet. Log in, or run{' '}
               <code className="text-ink">,companion_bridge</code> in the game.
             </p>
+            {actions}
           </>
         ) : (
           <>
@@ -65,6 +130,7 @@ export function WaitingForCharacter() {
               Attach to Lich to see your own character, or start the demo to
               look around an invented one.
             </p>
+            {actions}
             {/*
              * The likeliest state here is not "not started yet". It is
              * playing already, through Genie, with Lich not in the loop at
@@ -102,37 +168,6 @@ export function WaitingForCharacter() {
             <LichLauncher />
           </>
         )}
-      </div>
-      <div className="flex gap-2">
-        {/*
-         * Asking for the demo is now an act, not the absence of one.
-         *
-         * This used to call `simulateConnect()`, which was `connectBridge()`
-         * under another name (the alias is now deleted) and worked only
-         * because mock was already the
-         * mode on every fresh install. With `live` the default (issue #382)
-         * that would have attached the real bridge and left the button
-         * apparently doing nothing. The pair below is the same pair Settings
-         * uses for its Mock button: set the mode, then connect.
-         */}
-        <button
-          type="button"
-          onClick={() => {
-            setBridgeMode('mock')
-            connectBridge()
-          }}
-          className="rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25"
-        >
-          Start the demo
-        </button>
-        <button
-          type="button"
-          onClick={() => useAppStore.getState().openSetup()}
-          className="rounded border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
-          title="The full connect guide, including Platinum, Fallen and Test"
-        >
-          Connection help
-        </button>
       </div>
     </div>
   )

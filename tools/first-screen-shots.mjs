@@ -13,7 +13,10 @@
  *      invented character left behind;
  *   d. each window this app can open, with the demo on - the popped-out panel
  *      windows and the map route - because the banner has to be in every one
- *      of them and not only the main window (issue #400).
+ *      of them and not only the main window (issue #400);
+ *   e. the empty state at every size the window can be, because the demo
+ *      button being *present* and the demo button being *reachable* turned
+ *      out to be different facts (issue #418).
  *
  * # What this cannot tell you
  *
@@ -26,6 +29,11 @@
  * Usage: node tools/first-screen-shots.mjs [http://127.0.0.1:5182/]
  */
 import { launch } from './browser.mjs'
+import {
+  EMPTY_STATE_PROBE,
+  EMPTY_STATE_SIZES,
+  EMPTY_STATE_CONTROLS,
+} from './empty-state-probe.mjs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -146,6 +154,84 @@ try {
     'd. control: with the demo off the pop-out has no banner',
     !live.includes(BANNER),
     JSON.stringify(live.slice(0, 50))
+  )
+
+  /*
+   * e. the empty state at every size the window can be (issue #418).
+   *
+   * The clean VM found "Start the demo" and "Connection help" below the
+   * bottom edge of the app's own default window, with the heading above the
+   * top and no scrollbar between them - the demo the whole first-run flow
+   * offers was unreachable on any screen shorter than about 1100px.
+   *
+   * Asserted by measurement, not by class names: each control is located by
+   * the words a person reads, and the question asked of it is whether a click
+   * would land on it (`document.elementFromPoint` at its centre), then
+   * whether scrolling a box a person can actually scroll would bring it
+   * there. See `empty-state-probe.mjs` for why both halves are needed and
+   * what a `scrollIntoView` version of this got wrong.
+   */
+  await b.goto(base)
+  await b.run(`
+    localStorage.setItem('dr-companion-prefs-v1', JSON.stringify({ setupComplete: true, bridgeMode: 'live' }));
+    return true;
+  `)
+  await b.goto(base + '?bridge=live')
+
+  let measured = 0
+  let overflowSeen = 0
+  for (const [w, h, why] of EMPTY_STATE_SIZES) {
+    const got = await b.resize(w, h)
+    check(
+      `e. ${w}x${h} is the size the page actually got`,
+      got.w === w && got.h === h,
+      `${why} - page reports ${got.w}x${got.h}`
+    )
+    // The layout settles on a frame, not on a promise.
+    await new Promise((r) => setTimeout(r, 400))
+    const m = await b.run(EMPTY_STATE_PROBE)
+    if (m.hostOverflows) overflowSeen += 1
+
+    const missing = m.controls.filter((c) => !c.found)
+    const stuck = m.controls.filter((c) => c.found && !c.visibleAfterScroll)
+    measured += m.controls.length
+    check(
+      `e. ${w}x${h}: every control is on screen or scrollable to`,
+      missing.length === 0 && stuck.length === 0,
+      [
+        missing.length ? `not rendered at all: ${missing.map((c) => c.needle).join(', ')}` : '',
+        stuck.length
+          ? stuck.map((c) => `"${c.needle}" at ${c.top}..${c.bottom}: ${c.why}`).join('; ')
+          : '',
+        `host overflow-y ${m.hostOverflowY}, ${m.hostScrollHeight}/${m.hostClientHeight}`,
+      ]
+        .filter(Boolean)
+        .join(' | ')
+    )
+    // Overflow without a scrollbar is the defect itself, so it is checked
+    // separately from whether today's content happens to fit.
+    check(
+      `e. ${w}x${h}: the container scrolls rather than clipping`,
+      m.hostOverflowY === 'auto' || m.hostOverflowY === 'scroll',
+      `overflow-y is ${m.hostOverflowY}`
+    )
+    // The paper record, at the size the clean VM's screen clamped to.
+    if (w === 992) await b.screenshot(out('empty-state-2026-09-06-after.png'))
+  }
+  // The denominator. A probe that found nothing, a size list that emptied, or
+  // a throw halfway down would otherwise look exactly like a clean sweep.
+  check(
+    'e. the sweep actually measured every control at every size',
+    measured === EMPTY_STATE_SIZES.length * EMPTY_STATE_CONTROLS.length,
+    `${measured} of ${EMPTY_STATE_SIZES.length * EMPTY_STATE_CONTROLS.length}`
+  )
+  // And the positive control on the scrolling half: at least one size must
+  // genuinely overflow, or "reachable by scrolling" was never exercised and
+  // this whole section would pass against a container that cannot scroll.
+  check(
+    'e. control: at least one size overflows, so scrolling was exercised',
+    overflowSeen > 0,
+    `${overflowSeen} of ${EMPTY_STATE_SIZES.length} sizes overflowed`
   )
 
   const errors = b.consoleErrors()
