@@ -44,12 +44,26 @@ import { join } from 'node:path'
 
 const PORT = '11024'
 
-/** Files that carry a retyped copy of the detachable port, and who retires it. */
+/**
+ * Files that carry a retyped copy of the detachable port, and who retires it.
+ *
+ * **This list was wrong on its first run against a rebased tree, and that is
+ * the whole argument for asserting it in both directions.** It was written from
+ * a reading of the tree N4 branched from and named four files. By the time it
+ * ran, N5 (#439) had merged and deleted the Genie instruction blocks in three
+ * of them — `Dashboard.tsx`, `WaitingForCharacter.tsx`, `LichLauncher.tsx` —
+ * and had added a fourth copy nobody had listed, in its own dev-mode stand-in.
+ * A list that only looked for *new* copies would have gone green while naming
+ * three files that no longer carry the number at all.
+ */
 const KNOWN_COPIES = [
   ['src/components/game/GameConnectionBar.tsx', 'N6 — replaced by the port lich_login_launch returns'],
-  ['src/components/dashboard/Dashboard.tsx', 'N6 — inside a Genie #config example that N6 deletes'],
-  ['src/components/shared/WaitingForCharacter.tsx', 'N5 — inside a Genie instruction block that N5 deletes'],
-  ['src/components/shared/LichLauncher.tsx', 'N5 — inside a Genie instruction block that N5 deletes'],
+  [
+    'src/lib/lichLoginFake.ts',
+    'N6 — the dev-mode stand-in has to *produce* what the real command returns, ' +
+      'so it is the one TS site that legitimately names the number; its own header ' +
+      'schedules its deletion now that both commands are registered',
+  ],
 ]
 
 /**
@@ -129,9 +143,37 @@ for (const f of files) {
   if (lines.length) hits.set(f, lines)
 }
 
+/**
+ * The whole judgment, over a map of file → value lines.
+ *
+ * Separated from the walk so it can be run against a deliberately damaged tree
+ * that exists only in memory. Sabotaging the real files would mean editing
+ * `GameConnectionBar.tsx` in a repo several sessions are writing at once, and a
+ * restore that half-worked would leave a real defect behind — see `CLAUDE.md`
+ * §19 on restoring by byte copy, and §12 on `git add` in a shared tree. A map
+ * costs nothing to damage.
+ */
+function analyse(hits) {
+  const coincidenceFilesAll = COINCIDENCES.map(([f]) => f)
+  const rustHits = [...hits].filter(([f]) => f.endsWith('.rs') && !coincidenceFilesAll.includes(f))
+  const tsFiles = [...hits.keys()].filter((f) => !f.endsWith('.rs')).sort()
+  const coincidenceFiles = COINCIDENCES.filter(([f]) => !f.endsWith('.rs'))
+    .map(([f]) => f)
+    .sort()
+  const copyFiles = KNOWN_COPIES.map(([f]) => f).sort()
+  const expected = [...coincidenceFiles, ...copyFiles].sort()
+  return {
+    rustHits,
+    tsFiles,
+    unexpected: tsFiles.filter((f) => !expected.includes(f)),
+    vanished: expected.filter((f) => !tsFiles.includes(f)),
+  }
+}
+
+const found = analyse(hits)
+
 // 1. The definition, and only one of it.
-const coincidenceFilesAll = COINCIDENCES.map(([f]) => f)
-const rustHits = [...hits].filter(([f]) => f.endsWith('.rs') && !coincidenceFilesAll.includes(f))
+const rustHits = found.rustHits
 checked++
 if (rustHits.length !== 1) {
   fail(`${PORT} appears as a value in ${rustHits.length} Rust files, expected 1: ${rustHits.map(([f]) => f).join(', ')}`)
@@ -147,13 +189,8 @@ if (rustHits.length !== 1) {
 
 // 2 and 3. Everything on the TS side, split into coincidence and copy, with
 // the copy list asserted exactly in both directions.
-const tsFiles = [...hits.keys()].filter((f) => !f.endsWith('.rs')).sort()
-const coincidenceFiles = COINCIDENCES.filter(([f]) => !f.endsWith('.rs')).map(([f]) => f).sort()
-const copyFiles = KNOWN_COPIES.map(([f]) => f).sort()
-const expected = [...coincidenceFiles, ...copyFiles].sort()
-
 checked++
-const unexpected = tsFiles.filter((f) => !expected.includes(f))
+const unexpected = found.unexpected
 if (unexpected.length) {
   fail(
     `${PORT} was retyped somewhere new: ${unexpected.join(', ')}. ` +
@@ -162,7 +199,7 @@ if (unexpected.length) {
 } else pass(`no new copy of ${PORT} on the TypeScript side`)
 
 checked++
-const vanished = expected.filter((f) => !tsFiles.includes(f))
+const vanished = found.vanished
 if (vanished.length) {
   fail(
     `${vanished.join(', ')} no longer contains ${PORT}, so this file is stale. ` +
@@ -184,6 +221,63 @@ for (const [file, why] of COINCIDENCES) {
   const lines = hits.get(file)
   if (!lines) fail(`${file} is listed as a coincidence and no longer carries ${PORT}`)
   else console.log(`OK   coincidence, not a copy: ${file}:${lines.map(([n]) => n).join(',')} — ${why}`)
+}
+
+// --- sabotage: every check above must be able to fail ---------------------
+//
+// A green run over a tree with nothing wrong in it and a green run over a
+// broken classifier are the same output. Each case below damages the map in
+// exactly one way and names which finding must go red, so a check that stops
+// working takes down the case that relies on it rather than passing quietly.
+console.log('\n-- sabotage: the checks above must be able to fail --')
+{
+  // A new retyped copy on the TS side: the case this file exists for.
+  const damaged = new Map(hits)
+  damaged.set('src/components/zz_new_copy.tsx', [[7, `const PORT = ${PORT}`]])
+  const s = analyse(damaged)
+  checked++
+  if (!s.unexpected.includes('src/components/zz_new_copy.tsx')) fail('sabotage: a new TS copy was not reported')
+  else pass(`sabotage lands: a new TS copy is reported — ${s.unexpected.join(', ')}`)
+  checked++
+  if (s.unexpected.length !== 1 || s.vanished.length) fail(`sabotage: not scoped — ${JSON.stringify(s)}`)
+  else pass('sabotage is scoped: nothing else changed verdict')
+}
+{
+  // The other direction, which is the one that was actually wrong today: a
+  // listed file stops carrying the number and the list must say so.
+  const damaged = new Map(hits)
+  damaged.delete('src/components/game/GameConnectionBar.tsx')
+  const s = analyse(damaged)
+  checked++
+  if (!s.vanished.includes('src/components/game/GameConnectionBar.tsx'))
+    fail('sabotage: a stale KNOWN_COPIES entry was not reported')
+  else pass(`sabotage lands: a stale entry is reported — ${s.vanished.join(', ')}`)
+  checked++
+  if (s.vanished.length !== 1 || s.unexpected.length) fail(`sabotage: not scoped — ${JSON.stringify(s)}`)
+  else pass('sabotage is scoped: no new copy was invented')
+}
+{
+  // And a second definition on the Rust side, which is the claim `lich.rs`
+  // makes about itself.
+  const damaged = new Map(hits)
+  damaged.set('src-tauri/src/zz_second.rs', [[3, `const OTHER: u16 = ${PORT};`]])
+  const s = analyse(damaged)
+  checked++
+  if (s.rustHits.length !== 2) fail(`sabotage: a second Rust definition was not counted — ${s.rustHits.length}`)
+  else pass('sabotage lands: a second Rust definition is counted')
+}
+{
+  // The saboteur itself: a damaged map that reads identically to the real one
+  // would make all six checks above green while testing nothing.
+  checked++
+  const damaged = new Map(hits)
+  damaged.set('src/components/zz_new_copy.tsx', [[7, `const PORT = ${PORT}`]])
+  if (damaged.size === hits.size) fail('the sabotage did not change the map it was given')
+  else pass('the sabotage changes the map it is given')
+  // And it must not have changed the real one.
+  checked++
+  if (hits.has('src/components/zz_new_copy.tsx')) fail('the sabotage leaked into the real scan')
+  else pass('the real scan is untouched by the sabotage')
 }
 
 console.log('')

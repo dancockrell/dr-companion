@@ -695,8 +695,41 @@ fn launch_lich_using(
     })
 }
 
-/// Start Lich.
+/// The account's characters, so the player picks from a real list.
 ///
+/// `docs/LICH_NATIVE_LOGIN.md` §8: argument JSON
+/// `{ account, password, gameCode }`, result
+/// `{ subscription, characters: [{ code, name }] }`.
+///
+/// Registered here rather than in `eaccess.rs` because this is a launcher
+/// command and `eaccess.rs` is the protocol with no I/O of its own beyond its
+/// transport - the same split `lich_login_launch` follows. N5 shipped the
+/// caller before either existed and left both in the callers test's
+/// `AWAITING_BACKEND` list; this and `lich_login_launch` are what remove them.
+///
+/// The same password rule as [`lich_login_launch`] applies and is not
+/// weakened by this being the "read-only" half: the account name and password
+/// go to Simutronics and nowhere else, and neither the result, an error nor a
+/// log line carries the password back.
+#[tauri::command]
+pub async fn lich_login_characters(
+    account: String,
+    password: String,
+    game_code: String,
+) -> Result<eaccess::Account, String> {
+    tokio::task::spawn_blocking(move || {
+        let password = Secret::new(password);
+        let plaintext = std::str::from_utf8(password.expose_for_obscuring())
+            .map_err(|_| "that password is not valid UTF-8".to_string())?;
+
+        let mut transport = eaccess::connect().map_err(|e| e.to_string())?;
+        eaccess::list_characters(&mut transport, account.trim(), plaintext, game_code.trim())
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("the character lookup did not finish: {e}"))?
+}
+
 /// Sign a character in and start Lich for them.
 ///
 /// The one command the sign-in screen needs, and the published shape is

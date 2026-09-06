@@ -1665,7 +1665,7 @@ the code increments. N8 is optional and human-gated and blocks nothing.
   pitfalls: 8, 9, 12, 14 (the `.sal` content and the temp path contain backslashes — write those files with Write/Edit or build them with forward slashes, never a heredoc), 16.
   done-when: a `.sal` produced from a `LaunchData` starts Lich, 11024 listens, and `stat` says the file is gone afterwards.
 
-- [x] **N3b  Register `lich_login_launch`** (≈15)
+- [x] **N3b  Register `lich_login_launch` and `lich_login_characters`** (≈15)
   commit: pending verified: 2026-09-06 minutes: 20
   done: N1 landed (#441) while N4 was in flight, so this stopped being blocked
   and was finished in the same PR rather than left as a `[!]` row whose
@@ -1673,13 +1673,28 @@ the code increments. N8 is optional and human-gated and blocks nothing.
   takes the password by move, `eaccess::connect` + `eaccess::login` produce
   the `LaunchData`, and `&data.0` goes straight to
   `launch_lich_with_launch_data` — one type for the launch fields, owned by
-  `eaccess.rs`. `tools/tauri-command-callers-test.mjs` carries a DEFERRED
-  entry naming N5 as the caller, and that file’s own staleness check is what
-  will force N5 to remove it.
-  note: `lich_login_characters` is deliberately **not** registered here. §8
-  publishes it, N5’s `do:` builds the picker that calls it, and registering it
-  now would mean a second DEFERRED entry for a command whose shape N5 owns.
-  touches: src-tauri/src/lich.rs, src-tauri/src/lib.rs
+  `eaccess.rs`. It needs no DEFERRED entry: N5 (#439) had already shipped the
+  screen that calls it, so `tools/tauri-command-callers-test.mjs` sees a real
+  caller for both commands and its exemption lists are empty in both
+  directions.
+  note: an earlier draft of this row said `lich_login_characters` was
+  deliberately **not** registered here, because N5's `do:` built the picker
+  that calls it. N5 landed (#439) with that picker shipped and the command
+  unregistered, so the reason expired and left a real gap: two
+  `AWAITING_BACKEND` exemptions in `tools/tauri-command-callers-test.mjs`
+  holding open an invoke the app could not answer. Both commands are
+  registered here and `AWAITING_BACKEND` is empty again. `eaccess.rs` gains
+  `Serialize` on `Account` and `CharacterEntry` — nothing else — with a test
+  asserting the exact key set in both directions, since the derive is on the
+  producing side and the picker is the half that otherwise never gets checked.
+  measured: after rebasing onto `3ceb3ded` (#453): `cargo test --lib` 208 passed,
+  `cargo clippy --all-targets -- -D warnings` and `cargo fmt -- --check` clean,
+  `npx tsc -b` exit 0, `node tools/plan-audit.mjs` `plan ok` 134 increments /
+  444 paths, `node tools/run-tests.mjs` no failures, 159 suites, 5907 checks,
+  with the same two pre-existing NOT CHECKED lines as the baseline
+  (`test:ai-script-repair`, `test:godot-fixture-contract`) - neither a pass and
+  neither this increment's.
+  touches: src-tauri/src/lich.rs, src-tauri/src/lib.rs, src-tauri/src/eaccess.rs, tools/tauri-command-callers-test.mjs
   depends-on: N1, N3
   do: this is a wrapper, not a design, and it is filed separately rather than
   left as an unticked clause inside N3 so the gap shows up in the marker
