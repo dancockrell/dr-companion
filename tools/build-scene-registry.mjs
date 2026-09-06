@@ -195,9 +195,19 @@ function build() {
 const built = build()
 const text = JSON.stringify(built, null, 2) + '\n'
 
+/**
+ * Line endings are normalised before comparing, and that is not laziness.
+ * `.gitattributes` checks this repo out with CRLF on Windows while `JSON
+ * .stringify` here emits LF, so a byte comparison would fail on every Windows
+ * checkout and pass on Linux CI - a check that reports a drift nobody made,
+ * which teaches the reader to ignore it. The claim being made is about the
+ * content, so the comparison is about the content.
+ */
+const normalise = (s) => s.split('\r\n').join('\n')
+
 if (process.argv.includes('--check')) {
   const committed = readFileSync(OUT, 'utf8')
-  if (committed !== text) {
+  if (normalise(committed) !== normalise(text)) {
     console.error(`FAIL ${OUT} is not what ${CONTENT_PACK} produces. Run: node tools/build-scene-registry.mjs`)
     process.exit(1)
   }

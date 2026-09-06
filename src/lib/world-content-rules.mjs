@@ -173,8 +173,16 @@ const ZONE_PATTERNS = [
  * 783 rooms and means it, while `#00FFFF` covers hallways, garden paths and
  * town squares alike. Admitting the coherent ones and demoting the rest is
  * what makes "colour first" true rather than merely stated.
+ *
+ * `player` sits ahead of even that, and is the only rule not derived from the
+ * cartography: it is a person's own correction, exported from the scene editor
+ * into `data/scene-overrides.json` and read back by the builder. Anywhere below
+ * `colour` it would be a correction the next run could overrule, which is the
+ * failure Lane S exists to fix. It reports 0 on a machine with no such file,
+ * and the builder prints which of the two that is - "there is no file" and "a
+ * file decided nothing" are different states and must not print the same line.
  */
-export const GROUND_LADDER = ['colour', 'title', 'label', 'zone', 'neighbour', 'unknown']
+export const GROUND_LADDER = ['player', 'colour', 'title', 'label', 'zone', 'neighbour', 'unknown']
 
 /**
  * Every name a record's `rule` field can carry.

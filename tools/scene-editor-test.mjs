@@ -17,7 +17,10 @@
  *
  *   node --experimental-strip-types tools/scene-editor-test.mjs
  */
-import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 // Before anything touches the store. `storage.ts` catches a missing
 // localStorage and returns its fallback, which would make every override in
@@ -44,6 +47,8 @@ const {
   resetSceneOverridesCache,
   exportSceneOverrides,
   importSceneOverrides,
+  clampToCell,
+  isDrawable,
 } = await import('../src/lib/sceneOverrides.ts')
 const { GROUND_KINDS, BLOCK_KINDS, blockKindFor, primitivesFor } = await import(
   '../src/lib/world-content-rules.mjs'
@@ -350,6 +355,214 @@ ok(
   placed.content.primitives.some((p) => !p.offset && p.kind === 'terrain-cell-5m')
 )
 
+// ---------------------------------------------------------------------------
+// 6. The clamp the picker and the store share.
+// ---------------------------------------------------------------------------
+// `ScenePrimitivePicker` converts a click to metres and `clampToCell` is the
+// only thing standing between that arithmetic and `isDrawable`'s refusal. The
+// property is not "the clamp clamps" - it is that **no value the control can
+// produce is one the store will refuse**, which is the thing a person would
+// experience as the editor being broken. So the last case here asks the store,
+// not the clamp.
+
 reset()
+ok('a placement inside the cell is left where it was put', clampToCell(1.25) === 1.25)
+ok(
+  'a placement past the edge is pulled back to the edge, not rejected',
+  clampToCell(9) === PLACEMENT_HALF_EXTENT && clampToCell(-9) === -PLACEMENT_HALF_EXTENT,
+  `±${PLACEMENT_HALF_EXTENT} m`
+)
+ok(
+  'a placement that is not a finite number becomes the centre',
+  [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].every((v) => clampToCell(v) === 0),
+  'the centre and not an edge: an infinity has no nearest edge that is not a guess about which way the person meant'
+)
+ok(
+  'nothing the clamp can produce is refused by the store',
+  [-99, -2.2000001, -1, 0, 1, 2.2000001, 99, Number.NaN].every((raw) =>
+    isDrawable('primitives', [{ kind: options.placeable[0], x: clampToCell(raw), z: clampToCell(-raw) }])
+  ),
+  'the one property that makes a click inside the drawn square always storable'
+)
+
+// ---------------------------------------------------------------------------
+// 7. The coverage list is the residue, in both directions.
+// ---------------------------------------------------------------------------
+// `ScenePanel`'s `Coverage` selects a zone's unclassified rooms with
+// `rule === 'unknown'` off the committed content, and does not read
+// `tools/world-content-residue.csv`. Two statements of one fact, which is
+// exactly the shape that drifts - so this holds them to each other across
+// every zone rather than the one the panel happens to be showing.
+//
+// Both directions on purpose. "Every row of the CSV is in the list" alone
+// would pass a list that named half the world besides; the second direction is
+// the one nobody writes and the one that finds things.
+
+const residueRows = readFileSync('tools/world-content-residue.csv', 'utf8')
+  .split(/\r?\n/)
+  .slice(1)
+  .filter((line) => line.trim() !== '')
+const fromCsv = new Set(residueRows.map((line) => line.slice(0, line.indexOf(','))))
+const worldIndex = JSON.parse(readFileSync('src/data/world/index.json', 'utf8'))
+const fromRule = new Set()
+for (const zone of worldIndex.zones) {
+  const file = JSON.parse(readFileSync(`src/data/world/${zone.id}.json`, 'utf8'))
+  for (const room of file.rooms) if (room.rule === 'unknown') fromRule.add(`${zone.id}-${room.id}`)
+}
+
+// The denominator, and it goes first. Both sets being empty would satisfy every
+// equality below while proving that neither instrument read anything.
+ok(
+  'there is a residue to compare at all',
+  fromCsv.size > 0 && fromRule.size > 0,
+  `${fromCsv.size} rows in the CSV, ${fromRule.size} rooms the rule left undecided`
+)
+const missingFromPanel = [...fromCsv].filter((id) => !fromRule.has(id))
+const missingFromCsv = [...fromRule].filter((id) => !fromCsv.has(id))
+ok(
+  "every row of the residue CSV is a room the panel's coverage list offers",
+  missingFromPanel.length === 0,
+  missingFromPanel.slice(0, 5).join(', ')
+)
+ok(
+  'and the coverage list names nothing the residue CSV does not',
+  missingFromCsv.length === 0,
+  missingFromCsv.slice(0, 5).join(', ')
+)
+ok(
+  'the index agrees on how many that is',
+  worldIndex.zones.reduce((n, z) => n + z.unknown, 0) === fromRule.size,
+  `${fromRule.size} across ${worldIndex.zones.length} zones`
+)
+
+// ---------------------------------------------------------------------------
+// 8. A correction survives the next build.
+// ---------------------------------------------------------------------------
+// The real `tools/build-world-content.mjs`, run end to end through its
+// `DRC_WORLD_OUT` / `DRC_SCENE_OVERRIDES` seams, against the committed map. Not
+// a fixture and not the builder's internals: the claim S4 makes is about what
+// `npm run world:build` writes to disk, and only running it says that.
+//
+// The seams are pointed somewhere the default could not reach - a fresh temp
+// directory - so a run that ignored `DRC_WORLD_OUT` would fail for want of the
+// file rather than passing against the committed one.
+
+const scratch = mkdtempSync(join(tmpdir(), 'drc-scene-'))
+const buildWith = (overrides) => {
+  const out = mkdtempSync(join(scratch, 'out-'))
+  const env = { ...process.env, DRC_WORLD_OUT: out, DRC_WORLD_RESIDUE: join(out, 'residue.csv') }
+  if (overrides === null) delete env.DRC_SCENE_OVERRIDES
+  else {
+    const path = join(out, 'overrides.json')
+    writeFileSync(path, JSON.stringify(overrides))
+    env.DRC_SCENE_OVERRIDES = path
+  }
+  try {
+    const stdout = execFileSync(
+      process.execPath,
+      ['--experimental-strip-types', 'tools/build-world-content.mjs'],
+      { encoding: 'utf8', env, stdio: ['ignore', 'pipe', 'pipe'] }
+    )
+    return { code: 0, stdout, out }
+  } catch (error) {
+    return { code: error.status ?? 1, stdout: `${error.stdout ?? ''}${error.stderr ?? ''}`, out }
+  }
+}
+const roomFrom = (out, zone, id) =>
+  JSON.parse(readFileSync(join(out, `${zone}.json`), 'utf8')).rooms.find((r) => r.id === id)
+
+// A room the batch has an opinion about, so "the player won" is a difference
+// and not merely an answer. Chosen by asking the committed content rather than
+// typed, so a room the pipeline stops classifying this way fails for want of a
+// subject instead of passing against a stale id.
+const baseline = buildWith(null)
+ok('the builder runs with no player file at all', baseline.code === 0)
+ok(
+  'and says so as its own sentence rather than reporting a zero',
+  baseline.stdout.includes('nothing to apply above colour, which is the ordinary state'),
+  'so "no file" and "a file that decided nothing" cannot print the same line'
+)
+ok(
+  'the seam is real: the run wrote where it was pointed',
+  roomFrom(baseline.out, ZONE, subject.id) !== undefined,
+  baseline.out
+)
+
+const beforeBuild = roomFrom(baseline.out, ZONE, subject.id)
+const otherGround = [...GROUND_KINDS].find((k) => k !== beforeBuild.ground && k !== 'unknown')
+const edited = buildWith({
+  version: 1,
+  provenance: 'tools/scene-editor-test.mjs',
+  overrides: {
+    [`${ZONE}-${subject.id}`]: { ground: otherGround, landmark: null },
+    'this-is-not-a-room': { ground: otherGround },
+    [`${ZONE}-${subject.id === 1 ? 2 : 1}`]: { ground: 'lava' },
+  },
+})
+const afterBuild = edited.code === 0 ? roomFrom(edited.out, ZONE, subject.id) : null
+ok('the builder runs with a player file', edited.code === 0, edited.code === 0 ? '' : edited.stdout.slice(0, 200))
+ok(
+  'a room in the imported set comes out of the builder with the imported answer',
+  afterBuild?.ground === otherGround,
+  `${beforeBuild.ground} -> ${afterBuild?.ground}`
+)
+ok(
+  'and the build records that a person decided it, not colour or title',
+  afterBuild?.rule === 'player',
+  `was decided by ${beforeBuild.rule}`
+)
+ok(
+  'the block follows the overridden ground rather than staying the batch’s',
+  afterBuild?.block === blockKindFor(otherGround),
+  `${afterBuild?.block} for ${otherGround}`
+)
+ok(
+  'a landmark override of null reaches the built file',
+  afterBuild?.landmark === null,
+  '"this room has no landmark" is a correction the batch cannot express'
+)
+ok(
+  'a field this build cannot draw is dropped and counted, never baked in',
+  /1 fields dropped as undrawable/.test(edited.stdout) &&
+    roomFrom(edited.out, ZONE, subject.id === 1 ? 2 : 1).ground !== 'lava',
+  'a ground Godot has no factory for would render as the placeholder box for every player'
+)
+ok(
+  'no other room in the zone moved',
+  JSON.parse(readFileSync(join(edited.out, `${ZONE}.json`), 'utf8')).rooms.filter(
+    (r) => r.rule === 'player'
+  ).length === 1,
+  'exactly the one that was overridden'
+)
+
+// The state that would otherwise be indistinguishable from having no file.
+const foreign = buildWith({
+  version: 1,
+  overrides: { 'zzz-1': { ground: otherGround }, 'zzz-2': { ground: otherGround } },
+})
+ok(
+  'a file for another cartography is refused rather than silently applying nothing',
+  foreign.code === 1,
+  'applying none of it would look exactly like having no file'
+)
+ok(
+  'and the refusal says how many rooms it could not place',
+  /names 2 rooms and not one of them is a room this map has/.test(foreign.stdout),
+  foreign.stdout.split('\n').filter((l) => l.startsWith('FAIL'))[0]?.slice(0, 90) ?? ''
+)
+
+rmSync(scratch, { recursive: true, force: true })
+
+reset()
+
+// The floor. Set below the real count and never touched otherwise: a truncated
+// run, a module that failed to import, or a section quietly deleted would
+// otherwise print "0 failed" and exit 0, which is what a passing run looks like.
+const FLOOR = 50
+if (pass + fail < FLOOR) {
+  console.log(`\nFAIL only ${pass + fail} checks ran, below the floor of ${FLOOR}. The run was truncated.`)
+  process.exit(1)
+}
+
 console.log(`\n${pass} passed, ${fail} failed (store key ${SCENE_STORAGE_KEY})`)
 process.exit(fail === 0 ? 0 : 1)

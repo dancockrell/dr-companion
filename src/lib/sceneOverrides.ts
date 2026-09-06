@@ -52,6 +52,27 @@ export const SCENE_STORAGE_KEY = 'drc.scene.v1'
  * equals the layout module's block size. */
 export const PLACEMENT_HALF_EXTENT = 2.2
 
+/**
+ * Pull a placement back inside the cell.
+ *
+ * Exported so the picker cannot state the clamp a second time. A control doing
+ * its own arithmetic could hand `setSceneField` a value a float past the edge,
+ * which `isDrawable` then refuses - and the refusal would arrive as a red
+ * message about a click the player made *inside* the square they were shown,
+ * which reads as the editor being broken rather than as a rounding error. The
+ * control clamps with the same function the store validates against, so a
+ * click inside the drawn footprint is always storable.
+ *
+ * Godot's own clamp is `content_registry.gd::_place`, against the cell's
+ * published block rather than against this constant, because a cell may be
+ * smaller than the layout's nominal block. This is the editor's bound; that is
+ * the renderer's, and they are allowed to differ in that direction.
+ */
+export function clampToCell(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(-PLACEMENT_HALF_EXTENT, Math.min(PLACEMENT_HALF_EXTENT, value))
+}
+
 /** One thing a person put somewhere inside a cell. */
 export interface PlacedPrimitive {
   /** A `placeable` kind from the scene registry. */
@@ -190,7 +211,13 @@ export function sceneOverridesRevision(): number {
 
 export function saveSceneOverrides(value: SceneOverrides): void {
   writeJSON(SCENE_STORAGE_KEY, value)
-  cached = value
+  // A fresh object, never the one handed in. `setSceneField` builds its next
+  // state by copying what `loadSceneOverrides()` returned, and if the caller
+  // ever passes that same reference back, `useSyncExternalStore` compares it
+  // against itself and skips the render - the panel writes the choice to
+  // localStorage and does not redraw, which is exactly what the browser
+  // capture caught before this line existed.
+  cached = { ...value }
   announce()
 }
 
@@ -259,7 +286,7 @@ export function setSceneField(roomId: string, field: SceneField, value: unknown)
       reason: `${JSON.stringify(value)} is not a ${field} this build can draw. The viewer's registry (${registry.source}) admits: ${optionsFor(field).join(', ') || '(none)'}.`,
     }
   }
-  const all = loadSceneOverrides()
+  const all = { ...loadSceneOverrides() }
   const next: SceneOverride = { ...(all[roomId] ?? {}) }
   ;(next as Record<string, unknown>)[field] = value
   all[roomId] = next
@@ -281,9 +308,9 @@ function optionsFor(field: SceneField): string[] {
  * actually decided something about.
  */
 export function resetSceneField(roomId: string, field: SceneField): void {
-  const all = loadSceneOverrides()
-  const room = all[roomId]
-  if (!room) return
+  const all = { ...loadSceneOverrides() }
+  const room = { ...(all[roomId] ?? {}) }
+  if (!all[roomId]) return
   delete room[field]
   if (Object.keys(room).length === 0) delete all[roomId]
   else all[roomId] = room

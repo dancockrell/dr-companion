@@ -19,19 +19,31 @@
  * "reset" only when there is something to reset. Reset deletes the override
  * rather than writing the batch's answer into it, so a later pipeline run that
  * improves that room can still reach it.
+ *
+ * Two things below the fields make the 86 a job rather than a statistic.
+ * `Coverage` lists this zone's unclassified rooms and opens each one here, so
+ * the residue is a list somebody can work through. `Transfer` exports the whole
+ * set as the JSON `tools/build-world-content.mjs` reads back as its first rule,
+ * so working through it is not thrown away by the next `npm run world:build`.
  */
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { PlaceSearch } from './PlaceSearch.tsx'
+import { ScenePrimitivePicker } from './ScenePrimitivePicker.tsx'
 import { loadWorldContent, type RoomContent } from '../../lib/worldContent.ts'
 import {
+  exportSceneOverrides,
+  importSceneOverrides,
   loadSceneOverrides,
   resolveScene,
+  saveSceneOverrides,
   sceneOptions,
   setSceneField,
   resetSceneField,
   subscribeSceneOverrides,
+  type PlacedPrimitive,
   type SceneField,
+  type SceneImportResult,
   type ResolvedScene,
 } from '../../lib/sceneOverrides.ts'
 
@@ -197,14 +209,186 @@ export function ScenePanel() {
             onReset={() => reset('art')}
           />
 
+          <ScenePrimitivePicker
+            placeable={OPTIONS.placeable}
+            placed={scene.primitives}
+            source={scene.sources.primitives}
+            onChange={(next: PlacedPrimitive[]) =>
+              next.length === 0 ? reset('primitives') : set('primitives', next)
+            }
+            onReset={() => reset('primitives')}
+          />
+
           {refused && (
             <p className="rounded border border-danger/50 bg-surface-overlay p-2 text-xs text-danger" role="alert">
               {refused}
             </p>
           )}
+
+          <Coverage
+            content={contentZone === target.zone ? content : null}
+            zone={target.zone}
+            current={target.room}
+            onPick={(room) =>
+              setPicked({
+                zone: target.zone,
+                room: room.id,
+                // The map's title for it when this zone's cartography is
+                // loaded, and nothing when it is not. An invented label on a
+                // room nobody has classified is exactly the wrong place to
+                // guess.
+                title: mapZone?.rooms?.find((r) => r.id === room.id)?.title ?? '',
+              })
+            }
+          />
+
+          <Transfer />
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * The rooms in this zone the batch could not classify, as a work list.
+ *
+ * Derived from the zone's own content file rather than read from
+ * `tools/world-content-residue.csv`. The CSV is the same fact written a second
+ * time - the builder emits both from one pass - and a panel reading the CSV
+ * would be a copy that goes stale the day somebody rebuilds the world without
+ * committing it. `tools/scene-editor-test.mjs` holds the two to each other:
+ * the rooms this rule selects, across every zone, must equal the CSV exactly.
+ *
+ * `rule` rather than `ground === 'unknown'`, and they are the same set today by
+ * construction. `rule` is the one that stays right if a later pass ever gives
+ * an unclassified room a fallback ground: the room would still be one nobody
+ * decided, which is what this list is for.
+ */
+function Coverage({
+  content,
+  zone,
+  current,
+  onPick,
+}: {
+  content: Map<number, RoomContent> | null
+  zone: string
+  current: number
+  onPick: (room: { id: number }) => void
+}) {
+  const rooms = useMemo(
+    () => (content ? [...content.values()].filter((room) => room.rule === 'unknown').sort((a, b) => a.id - b.id) : []),
+    [content]
+  )
+
+  if (!content) return null
+
+  return (
+    <details className="text-xs text-ink-faint" data-testid="scene-coverage">
+      <summary className="cursor-pointer">
+        Unclassified in this zone: <span data-testid="scene-coverage-count">{rooms.length}</span>
+        {rooms.length === 0 ? ' — the batch has an answer for every room here.' : ''}
+      </summary>
+      {rooms.length > 0 && (
+        <ul className="mt-1 space-y-0.5">
+          {rooms.map((room) => (
+            <li key={room.id}>
+              <button
+                type="button"
+                data-scene-residue={room.id}
+                onClick={() => onPick({ id: room.id })}
+                className={`w-full truncate text-left underline hover:text-accent ${
+                  room.id === current ? 'text-accent' : 'text-ink-muted'
+                }`}
+              >
+                {zone}-{room.id}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </details>
+  )
+}
+
+/**
+ * Export and import, as text rather than as a file dialog.
+ *
+ * A textarea is testable, works identically in the app and in a browser, and -
+ * the reason that matters - lets a person *see* what they are about to send
+ * somebody before they send it. The export is the shape
+ * `tools/build-world-content.mjs` reads back as its first rule, so this is also
+ * how a correction made here reaches the pipeline: paste it into
+ * `data/scene-overrides.json` and the next `npm run world:build` keeps it.
+ *
+ * An import never overwrites a local choice. Somebody else's file arriving at a
+ * machine whose owner has already decided is a conflict, and it is reported by
+ * count rather than resolved silently in either direction.
+ */
+function Transfer() {
+  const overrides = useSyncExternalStore(subscribeSceneOverrides, loadSceneOverrides, loadSceneOverrides)
+  const [incoming, setIncoming] = useState('')
+  const [result, setResult] = useState<SceneImportResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const text = useMemo(() => JSON.stringify(exportSceneOverrides(overrides), null, 2), [overrides])
+  const rooms = Object.keys(overrides).length
+
+  const doImport = () => {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(incoming)
+    } catch (e) {
+      setResult(null)
+      setError(`That is not JSON: ${(e as Error).message}`)
+      return
+    }
+    const { result: outcome, merged } = importSceneOverrides(parsed, overrides)
+    saveSceneOverrides(merged)
+    setError(null)
+    setResult(outcome)
+  }
+
+  return (
+    <details className="text-xs text-ink-faint" data-testid="scene-transfer">
+      <summary className="cursor-pointer">
+        Export and import — <span data-testid="scene-export-count">{rooms}</span>{' '}
+        {rooms === 1 ? 'room' : 'rooms'} decided here
+      </summary>
+      <textarea
+        readOnly
+        value={text}
+        data-testid="scene-export"
+        rows={5}
+        className="mt-1 w-full rounded border border-border bg-surface-overlay p-1 font-mono text-xs text-ink"
+      />
+      <textarea
+        value={incoming}
+        onChange={(e) => setIncoming(e.target.value)}
+        data-testid="scene-import-text"
+        rows={3}
+        placeholder="Paste somebody else's export here"
+        className="mt-1 w-full rounded border border-border bg-surface-overlay p-1 font-mono text-xs text-ink"
+      />
+      <button
+        type="button"
+        onClick={doImport}
+        data-testid="scene-import"
+        className="mt-1 rounded border border-border px-2 py-1 text-ink-muted hover:border-accent/60 hover:text-accent"
+      >
+        Import
+      </button>
+      {error && (
+        <p className="mt-1 text-danger" role="alert" data-testid="scene-import-error">
+          {error}
+        </p>
+      )}
+      {result && (
+        <p className="mt-1" data-testid="scene-import-result">
+          Took {result.added}, already had {result.unchanged}, kept mine over {result.conflicts.length}
+          {result.undrawable > 0 ? `, refused ${result.undrawable} this build cannot draw` : ''}.
+        </p>
+      )}
+    </details>
   )
 }
 
