@@ -208,6 +208,47 @@ export function packedRoomPositions(rooms) {
     }
     if (!changed) break
   }
+  // Compact explicitly connected internal rooms without moving street-facing
+  // entrances or any room participating in compass routes. Names only bound
+  // the establishment scope; actual reciprocal exits establish adjacency.
+  const byId = new Map(ordered.map(room => [room.id, room]))
+  const family = room => typeof room?.name === 'string' && room.name.includes(',')
+    ? room.name.split(',')[0].trim().toLowerCase() : null
+  const internal = new Map(ordered.map(room => [room.id, new Set()]))
+  for (const room of ordered) for (const exit of room.exits ?? []) {
+    const target = byId.get(exit.to)
+    if (!target || !family(room) || family(room) !== family(target)) continue
+    if (!/^(out|go .+)$/i.test(exit.move) || ['portal', 'warp', 'ferry', 'ladder', 'stairs'].includes(classifyTether(exit.move, ''))) continue
+    if (!(target.exits ?? []).some(back => back.to === room.id && /^(out|go .+)$/i.test(back.move) &&
+        !['portal', 'warp', 'ferry', 'ladder', 'stairs'].includes(classifyTether(back.move, '')))) continue
+    if (result.get(room.id).y !== result.get(target.id).y) continue
+    internal.get(room.id).add(target.id)
+    internal.get(target.id).add(room.id)
+  }
+  const distance = (a, b) => ((a.x-b.x)/CELL_PITCH_METRES)**2 + ((a.z-b.z)/CELL_PITCH_METRES)**2
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false
+    for (const room of [...ordered].sort((a,b) => a.id-b.id)) {
+      const neighbors = [...internal.get(room.id)]
+      if (!neighbors.length || incident.get(room.id).length ||
+          (room.exits ?? []).some(exit => !internal.get(room.id).has(exit.to))) continue
+      const origin = result.get(room.id)
+      const baseline = neighbors.map(id => distance(origin, result.get(id)))
+      let best = origin, cost = baseline.reduce((sum,value) => sum+value, 0)
+      for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+        const candidate = {x:origin.x+dx*CELL_PITCH_METRES,y:origin.y,z:origin.z+dz*CELL_PITCH_METRES}
+        if (slots.has(keyFor(candidate))) continue
+        const next = neighbors.map(id => distance(candidate,result.get(id)))
+        if (next.some((value,index) => baseline[index] === 1 && value !== 1)) continue
+        const score = next.reduce((sum,value) => sum+value,0)
+        if (score < cost) {best=candidate;cost=score}
+      }
+      if (best !== origin) {
+        slots.delete(keyFor(origin));slots.add(keyFor(best));result.set(room.id,best);changed=true
+      }
+    }
+    if (!changed) break
+  }
   return result
 }
 

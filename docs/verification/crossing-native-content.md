@@ -2,6 +2,24 @@
 
 ## Scope supersession: all Crossing, one batch
 
+### Internal-room compaction
+
+The canonical packedRoomPositions implementation now has an internal-room
+compaction pass after compass repair. It uses reciprocal go/out links,
+matching named establishments, same-floor positions and vacant slots.
+Rooms incident to compass routes or with exits outside that internal group
+stay fixed. Portal, warp, ferry, ladder and stair links do not qualify.
+Already one-pitch internal neighbors are preserved. No graph edges are added.
+
+In the current Crossing input this moves 100 eligible room centers closer to
+their linked establishment rooms. The 493 compass conflicts are unchanged.
+The armory's 192/193/194 cluster is NOT repaired by this pass: surrounding
+slots are occupied, so it still requires coordinated cluster placement and
+doorway alignment. This is presentation-layout improvement, not evidence of
+surveyed geography or finished streets. Tests include unrelated names,
+one-way links, portal links, fixed external-facing entrances, deterministic
+ordering, full-city non-overlap and retained compass neighbors.
+
 ### Bellows-room mechanism
 
 Room 1-194 now selects the shared forge-bellows model at native dimensions

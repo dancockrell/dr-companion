@@ -8,6 +8,28 @@ const fail = (message) => { console.error(`FAIL ${message}`); process.exitCode =
 const pass = (message) => console.log(`OK   ${message}`)
 
 const packingFixture = [{ id: 1, x: 0, y: 0 }, { id: 2, x: 40, y: 0 }, { id: 3, x: 0, y: 0 }, { id: 4, x: 0, y: 0, z: 1 }]
+const interiorFixture = [
+  {id:1,name:'Smith, Salesroom',x:0,y:0,exits:[{move:'out',to:3},{move:'go doorway',to:2}]},
+  {id:2,name:'Smith, Workroom',x:400,y:0,exits:[{move:'out',to:1}]},
+  {id:3,name:'Town, Street',x:0,y:40,exits:[{move:'go shop',to:1}]},
+]
+const beforeInterior = packedRoomPositions(interiorFixture.map(({name,...room})=>room))
+const afterInterior = packedRoomPositions(interiorFixture)
+const separation = (positions,a,b) => Math.hypot(positions.get(a).x-positions.get(b).x,positions.get(a).z-positions.get(b).z)
+if (separation(afterInterior,1,2) < separation(beforeInterior,1,2) &&
+    JSON.stringify(afterInterior.get(1)) === JSON.stringify(beforeInterior.get(1)))
+  pass('internal workroom compacts while external-facing salesroom stays fixed')
+else fail('interior compaction moves entrance or fails to reduce separation')
+for (const variant of [
+  interiorFixture.map(r=>r.id===2?{...r,name:'Other, Workroom'}:r),
+  interiorFixture.map(r=>r.id===2?{...r,exits:[]}:r),
+  interiorFixture.map(r=>r.id===1?{...r,exits:[{move:'out',to:3},{move:'go portal',to:2}]}:r),
+]) {
+  const unchanged = packedRoomPositions(variant.map(({name,...room})=>room))
+  if (JSON.stringify([...packedRoomPositions(variant)]) === JSON.stringify([...unchanged]))
+    pass('unrelated, one-way and magical connections do not infer interior proximity')
+  else fail('ineligible connection changed interior placement')
+}
 const packed = packedRoomPositions(packingFixture)
 if (packed.get(1).x === 0 && packed.get(2).x === CELL_PITCH_METRES) pass('adjacent source street slots have exactly one presentation pitch')
 else fail('street slots are not compact')
@@ -38,6 +60,7 @@ else {
   else fail('runtime manifest loses description rejection or real graph')
   const compass = { north: [0, -1], northeast: [1, -1], east: [1, 0], southeast: [1, 1], south: [0, 1], southwest: [-1, 1], west: [-1, 0], northwest: [-1, -1] }
   const rooms = world.cells.map(cell => ({ id: cell.roomId, ...cell.sourceGrid,
+    name: cell.title,
     exits: cell.exits.map(exit => ({ move: exit.move, to: exit.targetRoomId })) }))
   const seeds = packedRoomPositions(rooms.map(({ exits, ...room }) => room))
   const repaired = packedRoomPositions(rooms)

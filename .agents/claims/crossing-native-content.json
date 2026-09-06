@@ -2,7 +2,7 @@
   "schema_version": 1,
   "task_id": "crossing-native-content",
   "agent": "codex",
-  "summary": "ACTIVE: complete all Crossing as one city-wide batch; correct cross-establishment description collisions before workshop production, then continue full-city layouts and assets. Neighborhood checkpoints are not completion.",
+  "summary": "ACTIVE: complete all Crossing as one city-wide batch; description recovery, shared workshop assets, and graph-preserving internal-room compaction. Armory cluster alignment and full-city construction remain incomplete.",
   "status": "active",
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T06:13:06.680Z",

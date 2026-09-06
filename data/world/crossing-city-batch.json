@@ -24700,9 +24700,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -252,
+            "x": -144,
             "y": 0,
-            "z": -18
+            "z": -36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -25419,9 +25419,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -198,
+            "x": -162,
             "y": 0,
-            "z": -36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -25441,9 +25441,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -180,
+            "x": -126,
             "y": 0,
-            "z": -54
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -25833,7 +25833,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -108,
+            "x": -36,
             "y": 0,
             "z": 18
           },
@@ -28127,7 +28127,7 @@
           "presentationDelta": {
             "x": -18,
             "y": 0,
-            "z": 90
+            "z": 72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -30141,9 +30141,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": 90,
             "y": 0,
-            "z": -162
+            "z": -126
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -35726,9 +35726,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 198,
+            "x": 180,
             "y": 0,
-            "z": -72
+            "z": -36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -37088,9 +37088,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 0,
+            "x": -36,
             "y": 0,
-            "z": 216
+            "z": 90
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -38286,9 +38286,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 0,
             "y": 0,
-            "z": 54
+            "z": -36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -38512,9 +38512,9 @@
         "z": 0
       },
       "position": {
-        "x": 108,
+        "x": 72,
         "y": 0,
-        "z": 324
+        "z": 234
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -38531,9 +38531,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 0,
             "y": 0,
-            "z": -54
+            "z": 36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -38727,9 +38727,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": 0,
             "y": 0,
-            "z": -18
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -38784,9 +38784,9 @@
         "z": 0
       },
       "position": {
-        "x": 162,
+        "x": 144,
         "y": 0,
-        "z": 18
+        "z": 54
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -38809,9 +38809,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 0,
             "y": 0,
-            "z": 18
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -38896,9 +38896,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 0,
             "y": 0,
-            "z": -54
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -38931,9 +38931,9 @@
         "z": 0
       },
       "position": {
-        "x": 198,
+        "x": 162,
         "y": 0,
-        "z": -18
+        "z": 18
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -38961,9 +38961,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 0,
             "y": 0,
-            "z": 54
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -39043,9 +39043,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": -18,
             "y": 0,
-            "z": -54
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -39274,9 +39274,9 @@
         "z": 0
       },
       "position": {
-        "x": 180,
+        "x": 108,
         "y": 0,
-        "z": -18
+        "z": 18
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -39299,9 +39299,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 18,
             "y": 0,
-            "z": 54
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -39435,9 +39435,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 72,
+            "x": 36,
             "y": 0,
-            "z": 72
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -39744,7 +39744,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 72,
+            "x": -54,
             "y": 0,
             "z": 90
           },
@@ -40171,9 +40171,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 72,
+            "x": 54,
             "y": 0,
-            "z": 90
+            "z": 54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -40459,9 +40459,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -126,
+            "x": -144,
             "y": 0,
-            "z": 108
+            "z": 54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -40494,9 +40494,9 @@
         "z": 0
       },
       "position": {
-        "x": 0,
+        "x": -18,
         "y": 0,
-        "z": 270
+        "z": 216
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -40519,9 +40519,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 126,
+            "x": 144,
             "y": 0,
-            "z": -108
+            "z": -54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -40554,9 +40554,9 @@
         "z": 0
       },
       "position": {
-        "x": 144,
+        "x": 108,
         "y": 0,
-        "z": 378
+        "z": 324
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -40573,9 +40573,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -72,
+            "x": -36,
             "y": 0,
-            "z": -72
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -42381,7 +42381,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 72,
+            "x": 36,
             "y": 0,
             "z": -18
           },
@@ -47201,9 +47201,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 126,
+            "x": 90,
             "y": 0,
-            "z": 90
+            "z": 54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -49967,9 +49967,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 90,
+            "x": 54,
             "y": 0,
-            "z": -180
+            "z": -108
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -50531,9 +50531,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 18,
             "y": 0,
-            "z": 36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -50588,9 +50588,9 @@
         "z": 0
       },
       "position": {
-        "x": 54,
+        "x": 90,
         "y": 0,
-        "z": 144
+        "z": 90
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -50607,9 +50607,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": -18,
             "y": 0,
-            "z": -36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -50667,7 +50667,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": 0,
             "y": 0,
             "z": -18
           },
@@ -50689,9 +50689,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": -18,
             "y": 0,
-            "z": -36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -50746,7 +50746,7 @@
         "z": 0
       },
       "position": {
-        "x": 90,
+        "x": 72,
         "y": 0,
         "z": 72
       },
@@ -50765,7 +50765,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 0,
             "y": 0,
             "z": 18
           },
@@ -50804,9 +50804,9 @@
         "z": 0
       },
       "position": {
-        "x": 108,
+        "x": 54,
         "y": 0,
-        "z": 54
+        "z": 72
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -50823,9 +50823,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 18,
             "y": 0,
-            "z": 36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -58463,9 +58463,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 108,
+            "x": 126,
             "y": 0,
-            "z": 198
+            "z": 144
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -58684,9 +58684,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 90,
+            "x": 36,
             "y": 0,
-            "z": -108
+            "z": -72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -58878,9 +58878,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 72,
+            "x": 18,
             "y": 0,
-            "z": -72
+            "z": -54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -59222,9 +59222,9 @@
         "z": 0
       },
       "position": {
-        "x": 18,
+        "x": -36,
         "y": 0,
-        "z": 180
+        "z": 198
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -59241,9 +59241,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -72,
+            "x": -18,
             "y": 0,
-            "z": 72
+            "z": 54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -59282,9 +59282,9 @@
         "z": 0
       },
       "position": {
-        "x": 36,
+        "x": -18,
         "y": 0,
-        "z": 162
+        "z": 198
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -59301,9 +59301,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -90,
+            "x": -36,
             "y": 0,
-            "z": 108
+            "z": 72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -59323,9 +59323,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -180,
+            "x": -90,
             "y": 0,
-            "z": 108
+            "z": 72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -59358,9 +59358,9 @@
         "z": 0
       },
       "position": {
-        "x": 126,
+        "x": 144,
         "y": 0,
-        "z": 432
+        "z": 378
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -59383,9 +59383,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -108,
+            "x": -126,
             "y": 0,
-            "z": -198
+            "z": -144
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -59472,9 +59472,9 @@
         "z": 0
       },
       "position": {
-        "x": 144,
+        "x": 126,
         "y": 0,
-        "z": 432
+        "z": 396
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -59497,9 +59497,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -72,
+            "x": -54,
             "y": 0,
-            "z": -90
+            "z": -54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -59532,7 +59532,7 @@
         "z": 0
       },
       "position": {
-        "x": 162,
+        "x": 36,
         "y": 0,
         "z": 414
       },
@@ -59551,7 +59551,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -72,
+            "x": 54,
             "y": 0,
             "z": -90
           },
@@ -59841,7 +59841,7 @@
         "z": 0
       },
       "position": {
-        "x": 72,
+        "x": 144,
         "y": 0,
         "z": 72
       },
@@ -59860,7 +59860,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 108,
+            "x": 36,
             "y": 0,
             "z": -18
           },
@@ -60262,9 +60262,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 108,
+            "x": 54,
             "y": 0,
-            "z": 0
+            "z": -54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -60394,7 +60394,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": -18,
             "y": 0,
             "z": -54
           },
@@ -60746,9 +60746,9 @@
         "z": 0
       },
       "position": {
-        "x": 72,
+        "x": 18,
         "y": 0,
-        "z": 234
+        "z": 180
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -60765,9 +60765,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -108,
+            "x": -54,
             "y": 0,
-            "z": 0
+            "z": 54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -61119,7 +61119,7 @@
         "z": 0
       },
       "position": {
-        "x": 0,
+        "x": -54,
         "y": 0,
         "z": 162
       },
@@ -61138,7 +61138,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 18,
             "y": 0,
             "z": 54
           },
@@ -61220,9 +61220,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": 0,
             "y": 0,
-            "z": -18
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -61283,9 +61283,9 @@
         "z": 0
       },
       "position": {
-        "x": 108,
+        "x": 90,
         "y": 0,
-        "z": 36
+        "z": 72
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -61302,9 +61302,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 0,
             "y": 0,
-            "z": 18
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -68977,7 +68977,7 @@
           "presentationDelta": {
             "x": 0,
             "y": 0,
-            "z": -36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -69121,7 +69121,7 @@
       "position": {
         "x": 162,
         "y": 0,
-        "z": 486
+        "z": 540
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -69151,7 +69151,7 @@
           "presentationDelta": {
             "x": 0,
             "y": 0,
-            "z": 36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -70832,9 +70832,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": -18,
             "y": 0,
-            "z": -36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -70867,9 +70867,9 @@
         "z": 0
       },
       "position": {
-        "x": 54,
+        "x": 0,
         "y": 0,
-        "z": 432
+        "z": 468
       },
       "spatialClassification": "waterfront",
       "classificationStatus": "heuristic-needs-review",
@@ -70886,9 +70886,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 18,
             "y": 0,
-            "z": 36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -71062,9 +71062,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -108,
+            "x": -18,
             "y": 0,
-            "z": -90
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -71119,9 +71119,9 @@
         "z": 0
       },
       "position": {
-        "x": -18,
+        "x": 72,
         "y": 0,
-        "z": 378
+        "z": 450
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -71144,9 +71144,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 108,
+            "x": 18,
             "y": 0,
-            "z": 90
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -71439,9 +71439,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": -18,
             "y": 0,
-            "z": -36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -71496,9 +71496,9 @@
         "z": 0
       },
       "position": {
-        "x": 54,
+        "x": 0,
         "y": 0,
-        "z": 450
+        "z": 504
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -71521,9 +71521,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 18,
             "y": 0,
-            "z": 36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -71603,9 +71603,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -90,
+            "x": 0,
             "y": 0,
-            "z": -72
+            "z": -36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -71660,9 +71660,9 @@
         "z": 0
       },
       "position": {
-        "x": -18,
+        "x": 72,
         "y": 0,
-        "z": 396
+        "z": 432
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -71685,9 +71685,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 90,
+            "x": 0,
             "y": 0,
-            "z": 72
+            "z": 36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -71843,9 +71843,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": -18,
             "y": 0,
-            "z": 36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -71954,9 +71954,9 @@
         "z": 0
       },
       "position": {
-        "x": 36,
+        "x": -18,
         "y": 0,
-        "z": 450
+        "z": 396
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -71973,9 +71973,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 18,
             "y": 0,
-            "z": -36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73033,7 +73033,7 @@
           "presentationDelta": {
             "x": -108,
             "y": 0,
-            "z": 90
+            "z": 54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73053,9 +73053,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 18,
             "y": 0,
-            "z": 18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73090,7 +73090,7 @@
       "position": {
         "x": 54,
         "y": 0,
-        "z": 72
+        "z": 36
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -73109,7 +73109,7 @@
           "presentationDelta": {
             "x": 108,
             "y": 0,
-            "z": -90
+            "z": -54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73129,9 +73129,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
-            "z": -54
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73164,9 +73164,9 @@
         "z": 0
       },
       "position": {
-        "x": 108,
+        "x": 54,
         "y": 0,
-        "z": 18
+        "z": 54
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -73183,9 +73183,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
-            "z": 54
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73218,9 +73218,9 @@
         "z": 0
       },
       "position": {
-        "x": 126,
+        "x": 180,
         "y": 0,
-        "z": 0
+        "z": -18
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -73237,9 +73237,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": -18,
             "y": 0,
-            "z": -18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73347,9 +73347,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": -18,
             "y": 0,
-            "z": -54
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73369,9 +73369,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -90,
+            "x": -18,
             "y": 0,
-            "z": 72
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73391,9 +73391,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -72,
+            "x": -18,
             "y": 0,
-            "z": 54
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73479,9 +73479,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 0,
             "y": 0,
-            "z": 36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73514,9 +73514,9 @@
         "z": 0
       },
       "position": {
-        "x": 180,
+        "x": 144,
         "y": 0,
-        "z": -54
+        "z": -72
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -73533,9 +73533,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 0,
             "y": 0,
-            "z": -36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73568,9 +73568,9 @@
         "z": 0
       },
       "position": {
-        "x": 198,
+        "x": 126,
         "y": 0,
-        "z": -72
+        "z": -18
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -73598,9 +73598,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 18,
             "y": 0,
-            "z": 54
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73633,9 +73633,9 @@
         "z": 0
       },
       "position": {
-        "x": 54,
+        "x": 126,
         "y": 0,
-        "z": 54
+        "z": -36
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -73652,9 +73652,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 90,
+            "x": 18,
             "y": 0,
-            "z": -72
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -73687,9 +73687,9 @@
         "z": 0
       },
       "position": {
-        "x": 72,
+        "x": 126,
         "y": 0,
-        "z": 36
+        "z": 0
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -73706,9 +73706,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 72,
+            "x": 18,
             "y": 0,
-            "z": -54
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -75579,9 +75579,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 36,
             "y": 0,
-            "z": -90
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -75696,9 +75696,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
-            "z": -72
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -75813,9 +75813,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 18,
             "y": 0,
-            "z": -36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -75930,9 +75930,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 18,
             "y": 0,
-            "z": -72
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -75965,9 +75965,9 @@
         "z": 0
       },
       "position": {
-        "x": 378,
+        "x": 468,
         "y": 0,
-        "z": -18
+        "z": 54
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -75984,9 +75984,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": -36,
             "y": 0,
-            "z": 90
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -76019,9 +76019,9 @@
         "z": 0
       },
       "position": {
-        "x": 396,
+        "x": 468,
         "y": 0,
-        "z": 0
+        "z": 72
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -76038,9 +76038,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": -18,
             "y": 0,
-            "z": 72
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -76073,9 +76073,9 @@
         "z": 0
       },
       "position": {
-        "x": 414,
+        "x": 450,
         "y": 0,
-        "z": 18
+        "z": 36
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -76092,9 +76092,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": -18,
             "y": 0,
-            "z": 36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -76127,9 +76127,9 @@
         "z": 0
       },
       "position": {
-        "x": 360,
+        "x": 414,
         "y": 0,
-        "z": -36
+        "z": 18
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -76146,9 +76146,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
-            "z": 72
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -76768,9 +76768,9 @@
         "z": 0
       },
       "position": {
-        "x": -54,
+        "x": 54,
         "y": 0,
-        "z": 162
+        "z": 144
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -76793,9 +76793,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 252,
+            "x": 144,
             "y": 0,
-            "z": 18
+            "z": 36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -76828,9 +76828,9 @@
         "z": 0
       },
       "position": {
-        "x": -36,
+        "x": 0,
         "y": 0,
-        "z": 144
+        "z": 162
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -76847,9 +76847,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 198,
+            "x": 162,
             "y": 0,
-            "z": 36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -76882,9 +76882,9 @@
         "z": 0
       },
       "position": {
-        "x": -18,
+        "x": 36,
         "y": 0,
-        "z": 126
+        "z": 162
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -76907,9 +76907,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 180,
+            "x": 126,
             "y": 0,
-            "z": 54
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -77132,7 +77132,7 @@
       "position": {
         "x": 216,
         "y": 0,
-        "z": 540
+        "z": 522
       },
       "spatialClassification": "waterfront",
       "classificationStatus": "heuristic-needs-review",
@@ -77157,7 +77157,7 @@
           "presentationDelta": {
             "x": 18,
             "y": 0,
-            "z": -90
+            "z": -72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -77244,9 +77244,9 @@
         "z": 0
       },
       "position": {
-        "x": 324,
+        "x": 396,
         "y": 0,
-        "z": -36
+        "z": 0
       },
       "spatialClassification": "waterfront",
       "classificationStatus": "heuristic-needs-review",
@@ -77263,9 +77263,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": -90,
             "y": 0,
-            "z": 162
+            "z": 126
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -77481,9 +77481,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": 36,
             "y": 0,
-            "z": -36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -77831,9 +77831,9 @@
         "z": 0
       },
       "position": {
-        "x": 450,
+        "x": 468,
         "y": 0,
-        "z": 90
+        "z": 126
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -77850,9 +77850,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": -36,
             "y": 0,
-            "z": 36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -77975,9 +77975,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -108,
+            "x": -72,
             "y": 0,
-            "z": -180
+            "z": -144
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -78693,9 +78693,9 @@
         "z": 0
       },
       "position": {
-        "x": 342,
+        "x": 378,
         "y": 0,
-        "z": -54
+        "z": -18
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -78712,9 +78712,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 108,
+            "x": 72,
             "y": 0,
-            "z": 180
+            "z": 144
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -78755,7 +78755,7 @@
       "position": {
         "x": 432,
         "y": 0,
-        "z": 36
+        "z": 0
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -78774,7 +78774,7 @@
           "presentationDelta": {
             "x": -18,
             "y": 0,
-            "z": -36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -78997,7 +78997,7 @@
           "presentationDelta": {
             "x": 0,
             "y": 0,
-            "z": -36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79153,9 +79153,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 0,
+            "x": 18,
             "y": 0,
-            "z": -36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79196,9 +79196,9 @@
         "z": 0
       },
       "position": {
-        "x": 342,
+        "x": 360,
         "y": 0,
-        "z": -72
+        "z": -36
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -79215,9 +79215,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 0,
+            "x": -18,
             "y": 0,
-            "z": 36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79237,9 +79237,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 108,
+            "x": 90,
             "y": 0,
-            "z": 126
+            "z": 90
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79259,9 +79259,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 108,
+            "x": 90,
             "y": 0,
-            "z": 54
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79281,9 +79281,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 18,
             "y": 0,
-            "z": 36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79318,7 +79318,7 @@
       "position": {
         "x": 324,
         "y": 0,
-        "z": -90
+        "z": -36
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -79343,7 +79343,7 @@
           "presentationDelta": {
             "x": 0,
             "y": 0,
-            "z": 36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79401,9 +79401,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -108,
+            "x": -90,
             "y": 0,
-            "z": -126
+            "z": -90
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79515,9 +79515,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -108,
+            "x": -90,
             "y": 0,
-            "z": -54
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79575,9 +79575,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": -18,
             "y": 0,
-            "z": -36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -79739,7 +79739,7 @@
           "presentationDelta": {
             "x": 18,
             "y": 0,
-            "z": 36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -82093,9 +82093,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 144,
+            "x": 126,
             "y": 0,
-            "z": 144
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -82172,9 +82172,9 @@
         "z": 0
       },
       "position": {
-        "x": 450,
+        "x": 432,
         "y": 0,
-        "z": 36
+        "z": -108
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -82191,9 +82191,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -144,
+            "x": -126,
             "y": 0,
-            "z": -144
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -82213,9 +82213,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -198,
+            "x": -18,
             "y": 0,
-            "z": -108
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -82248,9 +82248,9 @@
         "z": 0
       },
       "position": {
-        "x": 252,
+        "x": 414,
         "y": 0,
-        "z": -72
+        "z": -108
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -82267,9 +82267,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 198,
+            "x": 18,
             "y": 0,
-            "z": 108
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83031,9 +83031,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
-            "z": -18
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83055,7 +83055,7 @@
           "presentationDelta": {
             "x": 18,
             "y": 0,
-            "z": -18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83112,7 +83112,7 @@
       "position": {
         "x": 486,
         "y": 0,
-        "z": 288
+        "z": 306
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -83131,7 +83131,7 @@
           "presentationDelta": {
             "x": -18,
             "y": 0,
-            "z": 18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83405,9 +83405,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 18,
             "y": 0,
-            "z": -90
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83427,7 +83427,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": -18,
             "y": 0,
             "z": 0
           },
@@ -83449,9 +83449,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 0,
             "y": 0,
-            "z": -108
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83536,9 +83536,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
-            "z": -36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83558,9 +83558,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
-            "z": -72
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83580,9 +83580,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -72,
+            "x": 18,
             "y": 0,
-            "z": -18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83731,9 +83731,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
-            "z": -72
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83766,9 +83766,9 @@
         "z": 0
       },
       "position": {
-        "x": 450,
+        "x": 504,
         "y": 0,
-        "z": 198
+        "z": 252
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -83785,9 +83785,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
-            "z": 72
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83820,9 +83820,9 @@
         "z": 0
       },
       "position": {
-        "x": 468,
+        "x": 504,
         "y": 0,
-        "z": 216
+        "z": 306
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -83839,9 +83839,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 0,
             "y": 0,
-            "z": 108
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83874,7 +83874,7 @@
         "z": 0
       },
       "position": {
-        "x": 468,
+        "x": 486,
         "y": 0,
         "z": 324
       },
@@ -83893,7 +83893,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 18,
             "y": 0,
             "z": 0
           },
@@ -83928,9 +83928,9 @@
         "z": 0
       },
       "position": {
-        "x": 486,
+        "x": 522,
         "y": 0,
-        "z": 234
+        "z": 324
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -83947,9 +83947,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": -18,
             "y": 0,
-            "z": 90
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -83982,9 +83982,9 @@
         "z": 0
       },
       "position": {
-        "x": 486,
+        "x": 576,
         "y": 0,
-        "z": 306
+        "z": 324
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -84001,9 +84001,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 72,
+            "x": -18,
             "y": 0,
-            "z": 18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -84036,9 +84036,9 @@
         "z": 0
       },
       "position": {
-        "x": 504,
+        "x": 558,
         "y": 0,
-        "z": 252
+        "z": 306
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -84061,9 +84061,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
-            "z": 72
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -84096,9 +84096,9 @@
         "z": 0
       },
       "position": {
-        "x": 504,
+        "x": 558,
         "y": 0,
-        "z": 288
+        "z": 342
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -84115,9 +84115,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
-            "z": 36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -84150,9 +84150,9 @@
         "z": 0
       },
       "position": {
-        "x": 468,
+        "x": 432,
         "y": 0,
-        "z": 72
+        "z": 36
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -84169,9 +84169,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -126,
+            "x": -90,
             "y": 0,
-            "z": -90
+            "z": -54
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -84546,7 +84546,7 @@
         "z": 0
       },
       "position": {
-        "x": 486,
+        "x": 450,
         "y": 0,
         "z": 198
       },
@@ -84565,7 +84565,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -72,
+            "x": -36,
             "y": 0,
             "z": 18
           },
@@ -84813,7 +84813,7 @@
           "presentationDelta": {
             "x": 0,
             "y": 0,
-            "z": 36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -85687,9 +85687,9 @@
         "z": 0
       },
       "position": {
-        "x": 234,
+        "x": 198,
         "y": 0,
-        "z": -90
+        "z": -18
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -85706,9 +85706,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -90,
+            "x": -54,
             "y": 0,
-            "z": 180
+            "z": 108
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -86204,9 +86204,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 18,
             "y": 0,
-            "z": 36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -86794,9 +86794,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": 0,
             "y": 0,
-            "z": 54
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -86915,9 +86915,9 @@
         "z": 0
       },
       "position": {
-        "x": -54,
+        "x": -72,
         "y": 0,
-        "z": 378
+        "z": 306
       },
       "spatialClassification": "waterfront",
       "classificationStatus": "heuristic-needs-review",
@@ -86934,9 +86934,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 0,
             "y": 0,
-            "z": -54
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -88018,9 +88018,9 @@
         "z": 0
       },
       "position": {
-        "x": 198,
+        "x": 162,
         "y": 0,
-        "z": 540
+        "z": 414
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -88037,9 +88037,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 0,
+            "x": 36,
             "y": 0,
-            "z": -216
+            "z": -90
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -88146,9 +88146,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": -36,
             "y": 0,
-            "z": 54
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -88875,7 +88875,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": 0,
             "y": 0,
             "z": -18
           },
@@ -88919,9 +88919,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 0,
             "y": 0,
-            "z": -18
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -88941,7 +88941,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 18,
             "y": 0,
             "z": -18
           },
@@ -88976,7 +88976,7 @@
         "z": 0
       },
       "position": {
-        "x": 504,
+        "x": 486,
         "y": 0,
         "z": 162
       },
@@ -89006,7 +89006,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 0,
             "y": 0,
             "z": 18
           },
@@ -89101,9 +89101,9 @@
         "z": 0
       },
       "position": {
-        "x": 522,
+        "x": 486,
         "y": 0,
-        "z": 162
+        "z": 198
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -89131,9 +89131,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 0,
             "y": 0,
-            "z": 18
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -89337,9 +89337,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 216,
+            "x": 18,
             "y": 0,
-            "z": -216
+            "z": -72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -89359,9 +89359,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 234,
+            "x": 162,
             "y": 0,
-            "z": -234
+            "z": -90
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -89381,9 +89381,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 558,
+            "x": 522,
             "y": 0,
-            "z": 54
+            "z": 90
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -89759,9 +89759,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
-            "z": -36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -89781,9 +89781,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 72,
+            "x": -18,
             "y": 0,
-            "z": -54
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -89803,7 +89803,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 414,
+            "x": 396,
             "y": 0,
             "z": 216
           },
@@ -89825,9 +89825,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -198,
+            "x": -36,
             "y": 0,
-            "z": 198
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -89912,9 +89912,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": 0,
             "y": 0,
-            "z": -18
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -89934,9 +89934,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 18,
             "y": 0,
-            "z": -36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -89977,9 +89977,9 @@
         "z": 0
       },
       "position": {
-        "x": 90,
+        "x": 72,
         "y": 0,
-        "z": 0
+        "z": 36
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -89996,9 +89996,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 0,
             "y": 0,
-            "z": 18
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90039,9 +90039,9 @@
         "z": 0
       },
       "position": {
-        "x": 108,
+        "x": 90,
         "y": 0,
-        "z": -18
+        "z": 0
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -90058,9 +90058,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": -18,
             "y": 0,
-            "z": 36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90093,9 +90093,9 @@
         "z": 0
       },
       "position": {
-        "x": 126,
+        "x": 72,
         "y": 0,
-        "z": -36
+        "z": -18
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -90123,9 +90123,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
-            "z": 36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90158,9 +90158,9 @@
         "z": 0
       },
       "position": {
-        "x": 144,
+        "x": 54,
         "y": 0,
-        "z": -54
+        "z": 0
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -90188,9 +90188,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -72,
+            "x": 18,
             "y": 0,
-            "z": 54
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90223,7 +90223,7 @@
         "z": 0
       },
       "position": {
-        "x": 486,
+        "x": 468,
         "y": 0,
         "z": 216
       },
@@ -90253,7 +90253,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -414,
+            "x": -396,
             "y": 0,
             "z": -216
           },
@@ -90288,9 +90288,9 @@
         "z": 0
       },
       "position": {
-        "x": 162,
+        "x": -36,
         "y": 0,
-        "z": -72
+        "z": 72
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -90318,9 +90318,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -216,
+            "x": -18,
             "y": 0,
-            "z": 216
+            "z": 72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90353,9 +90353,9 @@
         "z": 0
       },
       "position": {
-        "x": 180,
+        "x": 108,
         "y": 0,
-        "z": -90
+        "z": 54
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -90383,9 +90383,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -234,
+            "x": -162,
             "y": 0,
-            "z": 234
+            "z": 90
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90418,9 +90418,9 @@
         "z": 0
       },
       "position": {
-        "x": 504,
+        "x": 468,
         "y": 0,
-        "z": 198
+        "z": 234
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -90448,9 +90448,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -558,
+            "x": -522,
             "y": 0,
-            "z": -54
+            "z": -90
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90600,9 +90600,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -234,
+            "x": -180,
             "y": 0,
-            "z": -216
+            "z": -108
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90622,9 +90622,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
-            "z": 54
+            "z": 36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90644,9 +90644,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": 18,
             "y": 0,
-            "z": 36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90752,9 +90752,9 @@
         "z": 0
       },
       "position": {
-        "x": 162,
+        "x": 144,
         "y": 0,
-        "z": 540
+        "z": 486
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -90771,9 +90771,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": -18,
             "y": 0,
-            "z": -36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90814,9 +90814,9 @@
         "z": 0
       },
       "position": {
-        "x": 180,
+        "x": 126,
         "y": 0,
-        "z": 558
+        "z": 540
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -90833,9 +90833,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
-            "z": -54
+            "z": -36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -90876,9 +90876,9 @@
         "z": 0
       },
       "position": {
-        "x": -108,
+        "x": -54,
         "y": 0,
-        "z": 288
+        "z": 396
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -90895,9 +90895,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 234,
+            "x": 180,
             "y": 0,
-            "z": 216
+            "z": 108
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91448,9 +91448,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 162,
+            "x": 54,
             "y": 0,
-            "z": 180
+            "z": 126
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91540,9 +91540,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": -18,
             "y": 0,
-            "z": -18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91575,9 +91575,9 @@
         "z": 0
       },
       "position": {
-        "x": -90,
+        "x": -126,
         "y": 0,
-        "z": 306
+        "z": 324
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -91594,9 +91594,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 18,
             "y": 0,
-            "z": 18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91629,9 +91629,9 @@
         "z": 0
       },
       "position": {
-        "x": 72,
+        "x": -36,
         "y": 0,
-        "z": 504
+        "z": 450
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -91659,9 +91659,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -162,
+            "x": -54,
             "y": 0,
-            "z": -180
+            "z": -126
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91681,9 +91681,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -198,
+            "x": -18,
             "y": 0,
-            "z": -180
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91703,9 +91703,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -180,
+            "x": -18,
             "y": 0,
-            "z": -198
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91725,9 +91725,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -180,
+            "x": 18,
             "y": 0,
-            "z": -162
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91747,9 +91747,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -126,
+            "x": 0,
             "y": 0,
-            "z": -108
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91782,9 +91782,9 @@
         "z": 0
       },
       "position": {
-        "x": -126,
+        "x": -54,
         "y": 0,
-        "z": 324
+        "z": 450
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -91807,9 +91807,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 198,
+            "x": 18,
             "y": 0,
-            "z": 180
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91848,9 +91848,9 @@
         "z": 0
       },
       "position": {
-        "x": -108,
+        "x": -54,
         "y": 0,
-        "z": 306
+        "z": 468
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -91867,9 +91867,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 180,
+            "x": 18,
             "y": 0,
-            "z": 198
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91902,9 +91902,9 @@
         "z": 0
       },
       "position": {
-        "x": -108,
+        "x": -18,
         "y": 0,
-        "z": 342
+        "z": 432
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -91921,9 +91921,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 180,
+            "x": -18,
             "y": 0,
-            "z": 162
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -91956,9 +91956,9 @@
         "z": 0
       },
       "position": {
-        "x": -54,
+        "x": -36,
         "y": 0,
-        "z": 396
+        "z": 468
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -91975,9 +91975,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 126,
+            "x": 0,
             "y": 0,
-            "z": 108
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -92404,7 +92404,7 @@
         "z": 0
       },
       "position": {
-        "x": -144,
+        "x": -108,
         "y": 0,
         "z": 270
       },
@@ -92423,9 +92423,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 180,
+            "x": 90,
             "y": 0,
-            "z": -108
+            "z": -72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -92624,7 +92624,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
             "z": -18
           },
@@ -92646,7 +92646,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
             "z": 18
           },
@@ -92668,7 +92668,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 18,
             "y": 0,
             "z": 0
           },
@@ -92757,7 +92757,7 @@
           "presentationDelta": {
             "x": 0,
             "y": 0,
-            "z": -36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -92777,9 +92777,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": 0,
             "y": 0,
-            "z": -18
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -92801,7 +92801,7 @@
           "presentationDelta": {
             "x": 18,
             "y": 0,
-            "z": 18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -92834,7 +92834,7 @@
         "z": 0
       },
       "position": {
-        "x": 522,
+        "x": 576,
         "y": 0,
         "z": 216
       },
@@ -92859,7 +92859,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
             "z": 18
           },
@@ -92894,7 +92894,7 @@
         "z": 0
       },
       "position": {
-        "x": 522,
+        "x": 576,
         "y": 0,
         "z": 252
       },
@@ -92919,7 +92919,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 0,
             "y": 0,
             "z": -18
           },
@@ -92954,7 +92954,7 @@
         "z": 0
       },
       "position": {
-        "x": 540,
+        "x": 594,
         "y": 0,
         "z": 234
       },
@@ -92973,7 +92973,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": -18,
             "y": 0,
             "z": 0
           },
@@ -93010,7 +93010,7 @@
       "position": {
         "x": 522,
         "y": 0,
-        "z": 198
+        "z": 216
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -93029,7 +93029,7 @@
           "presentationDelta": {
             "x": 0,
             "y": 0,
-            "z": 36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -93062,9 +93062,9 @@
         "z": 0
       },
       "position": {
-        "x": 540,
+        "x": 522,
         "y": 0,
-        "z": 216
+        "z": 252
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -93081,9 +93081,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 0,
             "y": 0,
-            "z": 18
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -93118,7 +93118,7 @@
       "position": {
         "x": 540,
         "y": 0,
-        "z": 252
+        "z": 234
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -93143,7 +93143,7 @@
           "presentationDelta": {
             "x": -18,
             "y": 0,
-            "z": -18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -93694,9 +93694,9 @@
         "z": 0
       },
       "position": {
-        "x": 468,
+        "x": 450,
         "y": 0,
-        "z": 54
+        "z": 90
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -93713,9 +93713,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -198,
+            "x": -180,
             "y": 0,
-            "z": 72
+            "z": 36
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -94315,9 +94315,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 252,
+            "x": 198,
             "y": 0,
-            "z": 54
+            "z": 72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -94350,9 +94350,9 @@
         "z": 0
       },
       "position": {
-        "x": 504,
+        "x": 450,
         "y": 0,
-        "z": 306
+        "z": 324
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -94369,9 +94369,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -252,
+            "x": -198,
             "y": 0,
-            "z": -54
+            "z": -72
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -94505,9 +94505,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": 18,
             "y": 0,
-            "z": -72
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -94793,9 +94793,9 @@
         "z": 0
       },
       "position": {
-        "x": 468,
+        "x": 522,
         "y": 0,
-        "z": 36
+        "z": 108
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -94812,9 +94812,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 36,
+            "x": -18,
             "y": 0,
-            "z": 72
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -95318,9 +95318,9 @@
         "z": 0
       },
       "position": {
-        "x": 522,
+        "x": 468,
         "y": 0,
-        "z": 288
+        "z": 324
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -95343,9 +95343,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": 0,
             "y": 0,
-            "z": 18
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -95542,7 +95542,7 @@
           "presentationDelta": {
             "x": -18,
             "y": 0,
-            "z": -18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -95666,7 +95666,7 @@
       "position": {
         "x": 342,
         "y": 5,
-        "z": 252
+        "z": 270
       },
       "spatialClassification": "unresolved",
       "classificationStatus": "heuristic-needs-review",
@@ -95685,7 +95685,7 @@
           "presentationDelta": {
             "x": 18,
             "y": 0,
-            "z": 18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -96036,9 +96036,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 18,
+            "x": -18,
             "y": 0,
-            "z": -18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -96301,7 +96301,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 18,
             "y": 0,
             "z": -18
           },
@@ -96323,9 +96323,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 72,
+            "x": 18,
             "y": 0,
-            "z": 0
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -96347,7 +96347,7 @@
           "presentationDelta": {
             "x": -18,
             "y": 0,
-            "z": 36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -96472,7 +96472,7 @@
         "z": 0
       },
       "position": {
-        "x": 270,
+        "x": 234,
         "y": 0,
         "z": -162
       },
@@ -96502,7 +96502,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": -18,
             "y": 0,
             "z": 18
           },
@@ -96537,9 +96537,9 @@
         "z": 0
       },
       "position": {
-        "x": 288,
+        "x": 234,
         "y": 0,
-        "z": -144
+        "z": -126
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -96567,9 +96567,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -72,
+            "x": -18,
             "y": 0,
-            "z": 0
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -96604,7 +96604,7 @@
       "position": {
         "x": 198,
         "y": 0,
-        "z": -108
+        "z": -144
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -96634,7 +96634,7 @@
           "presentationDelta": {
             "x": 18,
             "y": 0,
-            "z": -36
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -97779,7 +97779,7 @@
       "position": {
         "x": 54,
         "y": 0,
-        "z": 504
+        "z": 450
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -97798,7 +97798,7 @@
           "presentationDelta": {
             "x": 0,
             "y": 0,
-            "z": -36
+            "z": 18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -98024,9 +98024,9 @@
         "z": 0
       },
       "position": {
-        "x": -126,
+        "x": 36,
         "y": 0,
-        "z": 198
+        "z": 0
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -98049,9 +98049,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 198,
+            "x": 36,
             "y": 0,
-            "z": -198
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -98084,7 +98084,7 @@
         "z": 0
       },
       "position": {
-        "x": 540,
+        "x": 504,
         "y": 0,
         "z": 162
       },
@@ -98109,7 +98109,7 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -54,
+            "x": -18,
             "y": 0,
             "z": 18
           },
@@ -98144,9 +98144,9 @@
         "z": 0
       },
       "position": {
-        "x": 288,
+        "x": 252,
         "y": 0,
-        "z": -162
+        "z": -144
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -98163,9 +98163,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -18,
+            "x": 18,
             "y": 0,
-            "z": 18
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -98198,9 +98198,9 @@
         "z": 0
       },
       "position": {
-        "x": 144,
+        "x": 162,
         "y": 0,
-        "z": 540
+        "z": 486
       },
       "spatialClassification": "exterior-cell",
       "classificationStatus": "heuristic-needs-review",
@@ -98223,9 +98223,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": 54,
+            "x": 36,
             "y": 0,
-            "z": -54
+            "z": 0
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
@@ -98258,9 +98258,9 @@
         "z": 0
       },
       "position": {
-        "x": 162,
+        "x": 144,
         "y": 0,
-        "z": 558
+        "z": 540
       },
       "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
@@ -98283,9 +98283,9 @@
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
-            "x": -36,
+            "x": -18,
             "y": 0,
-            "z": -36
+            "z": -18
           },
           "compassBearingMatches": null,
           "sourceCompassBearingMatches": null,
