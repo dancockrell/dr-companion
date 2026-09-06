@@ -21,8 +21,10 @@ writeFileSync(
 )
 const m = await import(pathToFileURL(out).href)
 
+let checked = 0
 let fails = 0
 const check = (label, got, want) => {
+  checked++
   const ok = JSON.stringify(got) === JSON.stringify(want)
   if (!ok) fails++
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${label.padEnd(44)} ${JSON.stringify(got)}`)
@@ -69,5 +71,21 @@ console.log('\n-- an unparseable description suggests rather than throws --')
 const messy = m.suggestPortraits('You see a shadowy figure.', portraits)
 check('everything stays on offer', messy.length, 3)
 
-console.log(fails ? `\n${fails} failed` : '\nall passed')
-process.exit(fails ? 1 : 0)
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 9
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${fails} failed`)
+if (fails) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)

@@ -13,8 +13,10 @@ const { clampMapPan } = await import(`${pathToFileURL(out).href}?v=${Date.now()}
 const hookSource = readFileSync('src/lib/useMapViewport.ts', 'utf8')
 const panelSource = readFileSync('src/components/shared/MapPanel.tsx', 'utf8')
 
+let checked = 0
 let failures = 0
 const check = (label, actual, expected) => {
+  checked++
   const pass = JSON.stringify(actual) === JSON.stringify(expected)
   console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`, actual)
   if (!pass) failures++
@@ -36,5 +38,20 @@ check('room changes have one reset path, not duplicate effects', (panelSource.ma
 check('the chart owns the full docked viewport', /h-full min-h-0 min-w-0 w-full flex-1/.test(panelSource), true)
 check('no empty priority slot steals the rest of the map width', !/Reserved for a priority panel/.test(panelSource) && !/aspectRatio:/.test(panelSource), true)
 
-if (failures) process.exit(1)
-console.log('\nall map viewport checks passed')
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 8
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${failures} failed`)
+if (failures) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')

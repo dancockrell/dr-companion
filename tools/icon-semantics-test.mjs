@@ -13,10 +13,19 @@ const consolePanel = read('src/components/layout/Console.tsx')
 const sound = read('src/components/game/SoundControls.tsx')
 const music = read('src/components/game/MusicTransport.tsx')
 
-let passed = 0
+let checked = 0
+let failed = 0
 function check(condition, message) {
-  if (!condition) throw new Error(message)
-  passed += 1
+  checked += 1
+  // A failure here is fatal by design: this file throws rather than
+  // continuing, so the run stops on the first wrong icon. `failed` therefore
+  // only ever reaches 1, and exists so the count line below has the same
+  // shape as every other suite's.
+  if (!condition) {
+    failed += 1
+    console.log(`FAIL ${message}`)
+    throw new Error(message)
+  }
   console.log(`OK   ${message}`)
 }
 
@@ -37,4 +46,20 @@ check(connection.includes('<Trash2 className="h-3.5 w-3.5"') && !connection.incl
 check(consolePanel.includes('<Trash2 className="h-3.5 w-3.5"'), 'console clear must use the shared 14px Trash2')
 check(connection.includes('aria-label="Clear the scrollback"'), 'scrollback clear must retain its specific accessible name')
 
-console.log(`icon semantics: ${passed} checks passed`)
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 9
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${failed} failed`)
+if (failed) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')

@@ -26,9 +26,26 @@ ok(tabs.includes('showStream showTime'), 'search results expose time and source 
 ok(tabs.includes('offClasses={offClasses} showTime'), 'game channel history exposes compact times')
 ok(column.includes('query={query}'), 'the scrollback search query reaches the transcript')
 
-if (checks < 8) {
-  console.log(`FAIL only ${checks} checks ran; expected 8`)
+console.log('')
+// This suite already had a floor - `if (checks < 8)` - and it is kept at 8
+// rather than lowered to the "well below the real count" the rest of #406
+// uses. Lowering a floor that already works would weaken a check to make it
+// look like its neighbours. What changed is only the shape: the failure went
+// out as a `FAIL` line, which `tools/run-tests.mjs` counts as one more failed
+// check rather than as the run refusing to report at all. A floor has to sit
+// outside what it counts.
+const MIN_EXPECTED = 8
+if (checks < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checks} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)
 }
-console.log(`\n${checks} checks, ${failures} failed`)
-process.exit(failures ? 1 : 0)
+// `checks`, not a pass count: the denominator has to be the number of checks
+// that ran, or it shrinks by one per failure and reports a smaller suite on
+// exactly the run where you need to know the size did not change.
+console.log(`${checks} checked, ${failures} failed`)
+if (failures) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)
