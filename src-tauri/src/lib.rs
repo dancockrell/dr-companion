@@ -9,6 +9,7 @@ pub mod elanthipedia;
 pub mod game_link;
 pub mod lich;
 pub mod lich_health;
+pub(crate) mod local_socket;
 pub mod login_error;
 pub mod media_keys;
 pub mod music;
@@ -22,6 +23,8 @@ pub mod script_api;
 pub mod scripts;
 pub mod setup;
 pub mod sounds;
+#[cfg(test)]
+pub(crate) mod test_support;
 pub mod viewer;
 pub mod window_size;
 

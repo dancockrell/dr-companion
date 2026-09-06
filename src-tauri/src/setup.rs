@@ -2027,12 +2027,7 @@ fn compare_bridge(installed: &[u8], bundled: &[u8]) -> bool {
 mod vendor_tests {
     use super::*;
 
-    fn temp(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(name);
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
-        d
-    }
+    use crate::test_support::scratch_dir;
 
     fn write_bundle(dir: &Path, exe_bytes: &[u8], manifest_json: &str) -> (PathBuf, PathBuf) {
         let exe = dir.join("Ruby4Lich5.exe");
@@ -2055,15 +2050,14 @@ mod vendor_tests {
     /// bundled Ruby row appear at all.
     #[test]
     fn a_correctly_fetched_bundle_verifies() {
-        let dir = temp("drc-vendor-good");
+        let dir = scratch_dir("vendor-good");
         let payload = b"pretend this is Ruby4Lich5.exe";
-        let (exe, manifest) = write_bundle(&dir, payload, &manifest_json(payload, "5.20.1"));
+        let (exe, manifest) = write_bundle(dir.path(), payload, &manifest_json(payload, "5.20.1"));
 
         let got = verify_vendor_bundle(&exe, &manifest).expect("should verify");
         assert_eq!(got.version, "5.20.1");
         assert_eq!(got.bytes, payload.len() as u64);
 
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// A dev checkout that never ran the fetch script. This is the common
@@ -2072,10 +2066,9 @@ mod vendor_tests {
     /// option exactly as it always has.
     #[test]
     fn a_missing_bundle_is_none_not_an_error() {
-        let dir = temp("drc-vendor-missing");
+        let dir = scratch_dir("vendor-missing");
         let got = verify_vendor_bundle(&dir.join("nope.exe"), &dir.join("nope.json"));
         assert!(got.is_none());
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// The exe on disk does not match what the manifest claims - a partial
@@ -2084,7 +2077,7 @@ mod vendor_tests {
     /// "verify before use" rule the network path already follows.
     #[test]
     fn a_tampered_or_mismatched_exe_is_refused() {
-        let dir = temp("drc-vendor-tampered");
+        let dir = scratch_dir("vendor-tampered");
         let real_payload = b"the real installer bytes";
         let manifest = manifest_json(real_payload, "5.20.1");
         // Same length as `real_payload`, different content - deliberately not
@@ -2100,14 +2093,13 @@ mod vendor_tests {
             tampered.len(),
             "test bug: the two payloads must match in length to isolate the hash check"
         );
-        let (exe, manifest_path) = write_bundle(&dir, tampered, &manifest);
+        let (exe, manifest_path) = write_bundle(dir.path(), tampered, &manifest);
 
         assert!(
             verify_vendor_bundle(&exe, &manifest_path).is_none(),
             "a hash mismatch must not verify"
         );
 
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// The declared size is checked before the hash is even computed - cheap
@@ -2116,14 +2108,13 @@ mod vendor_tests {
     /// also catch, but slower and less directly.
     #[test]
     fn a_size_mismatch_is_refused_before_hashing() {
-        let dir = temp("drc-vendor-wrong-size");
+        let dir = scratch_dir("vendor-wrong-size");
         let payload = b"short";
         let mut manifest = manifest_json(payload, "5.20.1");
         manifest = manifest.replace(&payload.len().to_string(), "999999");
-        let (exe, manifest_path) = write_bundle(&dir, payload, &manifest);
+        let (exe, manifest_path) = write_bundle(dir.path(), payload, &manifest);
 
         assert!(verify_vendor_bundle(&exe, &manifest_path).is_none());
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// Malformed JSON - a fetch script that died mid-write, or a manifest
@@ -2131,10 +2122,9 @@ mod vendor_tests {
     /// screen. `None`, same as "never fetched".
     #[test]
     fn unparseable_manifest_is_none_not_a_panic() {
-        let dir = temp("drc-vendor-bad-json");
-        let (exe, manifest_path) = write_bundle(&dir, b"bytes", "{ not json");
+        let dir = scratch_dir("vendor-bad-json");
+        let (exe, manifest_path) = write_bundle(dir.path(), b"bytes", "{ not json");
         assert!(verify_vendor_bundle(&exe, &manifest_path).is_none());
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// `bundled_option`'s shape - the fields the frontend actually branches

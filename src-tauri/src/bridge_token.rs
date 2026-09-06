@@ -97,30 +97,21 @@ fn read_token_from(dir: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
-
-    fn temp(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(name);
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
-        d
-    }
+    use crate::test_support::scratch_dir;
 
     #[test]
     fn reads_a_real_token_and_trims_it() {
-        let d = temp("drc-token-good");
+        let d = scratch_dir("token-good");
         let token = "a".repeat(64);
         std::fs::write(d.join("companion_bridge.token"), format!("{token}\r\n")).unwrap();
-        assert_eq!(read_token_from(&d), token);
-        let _ = std::fs::remove_dir_all(&d);
+        assert_eq!(read_token_from(d.path()), token);
     }
 
     /// A missing file is not an error, it is an older bridge.
     #[test]
     fn a_missing_token_is_empty_not_a_panic() {
-        let d = temp("drc-token-missing");
-        assert_eq!(read_token_from(&d), "");
-        let _ = std::fs::remove_dir_all(&d);
+        let d = scratch_dir("token-missing");
+        assert_eq!(read_token_from(d.path()), "");
     }
 
     /// Anything that is not the shape this bridge writes is refused rather
@@ -128,7 +119,7 @@ mod tests {
     /// is on that port is the failure this whole module exists to prevent.
     #[test]
     fn refuses_anything_that_is_not_a_token() {
-        let d = temp("drc-token-junk");
+        let d = scratch_dir("token-junk");
         let f = d.join("companion_bridge.token");
 
         for junk in [
@@ -139,9 +130,8 @@ mod tests {
             &"a".repeat(500),
         ] {
             std::fs::write(&f, junk).unwrap();
-            assert_eq!(read_token_from(&d), "", "accepted {junk:?}");
+            assert_eq!(read_token_from(d.path()), "", "accepted {junk:?}");
         }
 
-        let _ = std::fs::remove_dir_all(&d);
     }
 }

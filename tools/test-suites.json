@@ -126,6 +126,7 @@
   "test:scrub",
   "test:frontend",
   "test:detachable-port",
+  "test:rust-isolation",
   "test:bundle",
   "test:bridge",
   "test:runaway",

@@ -85,6 +85,7 @@
     "test:appearance": "node tools/appearance-test.mjs",
     "test:privacy": "node tools/build-privacy-doc.mjs --check",
     "test:detachable-port": "node tools/detachable-port-test.mjs",
+    "test:rust-isolation": "node tools/rust-test-isolation-test.mjs",
     "test:doc-claims": "node tools/doc-claims-test.mjs",
     "test:credential-store": "node --experimental-strip-types tools/credential-store-test.mjs",
     "test:bug-bundle": "node --experimental-strip-types tools/bug-bundle-test.mjs",
