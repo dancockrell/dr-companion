@@ -22,7 +22,8 @@
  * ticked case fills it. Without that control, a backend nobody wired up at all
  * would pass the check that matters most.
  */
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   REMEMBER_PASSWORD_DEFAULT,
   REMEMBER_PASSWORD_LABEL,
@@ -192,6 +193,67 @@ for (const [what, account, password] of [
   ok(
     'docs/PRIVACY.md carries the same sentence word for word',
     read('docs/PRIVACY.md').replace(/\n/g, ' ').replace(/\s+/g, ' ').includes(REMEMBER_PASSWORD_NOTICE),
+  )
+}
+
+/* ---------------------------------- the stored password is actually read --- */
+
+// Issue #459: N8 shipped a checkbox that wrote a password into Windows
+// Credential Manager and **nothing ever read it back**. The player typed it
+// again on every sign-in, so the stored secret bought nothing and cost a
+// persisted credential - and every check in this file passed throughout,
+// because they all check the write half.
+//
+// The check that would have noticed is the one this repo uses elsewhere: grep
+// the *consuming* side.
+{
+  const walk = (dir, out = []) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name)
+      if (entry.isDirectory()) walk(p, out)
+      else if (p.endsWith('.rs')) out.push(p)
+    }
+    return out
+  }
+  const rs = walk(join('src-tauri', 'src'))
+  // The denominator: a walker that reached nothing would report "no caller"
+  // for a function with a hundred of them.
+  ok('the Rust source walk reached the crate', rs.length >= 15, `${rs.length} files`)
+
+  const find = (needle) => {
+    const hits = []
+    for (const file of rs) {
+      const text = read(file)
+      // Everything from the test *module* on is test code, and a caller
+      // inside one is exactly the state #459 was in: a function only its own
+      // suite had ever run.
+      //
+      // The module, not the first `#[cfg(test)]`. This check was written the
+      // shorter way first and reported a real caller as absent, because
+      // `lich.rs` has a `#[cfg(test)]` static three hundred lines above its
+      // test module - so the scan cut the file in half and then said the
+      // second half did not exist. A false "it is missing" deserves the same
+      // suspicion as a false "it passed".
+      const cut = /#\[cfg\(test\)\]\s*\r?\n\s*(?:pub(?:\([a-z]+\))?\s+)?mod\s/.exec(text)?.index
+      const shipped = cut === undefined ? text : text.slice(0, cut)
+      for (const [i, line] of shipped.split('\n').entries()) {
+        if (line.includes(needle)) hits.push(`${file}:${i + 1}`)
+      }
+    }
+    return hits
+  }
+
+  // The positive control, and it is the same shape as the thing under test:
+  // the write half has always had a shipped caller, so a scan that reports
+  // nothing for `store(` is broken rather than informative.
+  const writes = find('credential_store(')
+  ok('control: the write half is found by the same scan', writes.length > 0, writes.join(', ') || 'none')
+
+  const reads = find('credential_store::load(')
+  ok(
+    'credential_store::load has a caller outside its own tests',
+    reads.length > 0,
+    reads.join(', ') || 'none - the stored password is written and never read (#459)',
   )
 }
 

@@ -40,7 +40,7 @@ are then fetched by your browser, not by this app.
 **Contacted by the app.** Simutronics' own account server, and the only place this app sends anything you typed as a credential. It is what signs you in to DragonRealms, and it is the same server every other DragonRealms client - Lich, Genie, the official one - talks to for the same reason.
 
 - **What is sent:** Your account name, your password (obscured by the XOR the protocol specifies, which is not encryption - the TLS around it is), the game you chose, and the character you picked from the list it sends back. Nothing else: no game text, no map, no settings, and nothing about this app.
-- **Where in the code:** `src-tauri/src/credentials.rs`, which declares the endpoint and holds the password while it is in use. The protocol client that speaks to it is the rest of Lane N; the connection is TLS on port 7910.
+- **Where in the code:** `src-tauri/src/credentials.rs`, which declares the endpoint and holds the password while it is in use. The protocol client that speaks to it is the rest of Lane N; the connection is TLS on port 7910. **That destination is fixed in the app you install.** Development builds accept two environment variables that point the login at a test server instead, which is how the failure cases are tested without an account; a release build ignores them and returns the declared endpoint before either is read, and the generator of this document refuses to publish if that stops being true.
 - Your password is typed into this app. It is held in memory for the length of one sign-in, in a type that overwrites its own bytes when it drops, and it is not written to any settings file, not put on a command line, not placed in the launch file Lich reads, and not logged. It is not stored at all unless you tick a box asking for it, and if you do, it goes to Windows Credential Manager and nowhere else. That box is off every time the screen opens, it says what ticking it means - "Stored in Windows Credential Manager. Anyone signed in to this Windows account can use it." - and Settings carries a Forget control that removes the entry again (`src-tauri/src/credential_store.rs`, `src/lib/rememberPassword.ts`). This is a change: earlier versions of this app never handled a password, because the sign-in happened in another program. That program is gone from the path, and saying the app still never sees it would be false.
 
 ### `elanthipedia.play.net`
@@ -128,7 +128,7 @@ same list and are checked in the same two directions, so a socket cannot be
 described here without existing in the code, or exist in the code without
 being described here.
 
-The scan currently matches 73 lines across 344 source
+The scan currently matches 73 lines across 346 source
 files, plus 1 declared non-URL endpoint line(s), and
 finds 9 hosts, which is the number of sections above. It cannot
 tell a request from a link - both are an `https://` in a file - so that

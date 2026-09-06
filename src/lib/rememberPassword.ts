@@ -12,12 +12,19 @@
  *
  * # What is *not* here
  *
- * There is no read. `credential_store`, `credential_has` and
+ * There is no read *in the webview*. `credential_store`, `credential_has` and
  * `credential_forget` are the whole command surface, and none of them returns
  * a password: the stored one is read on the Rust side, into a type that cannot
  * be serialised, and used once. So there is no route by which a remembered
  * password can arrive in this file, and that is deliberate rather than an
  * omission — see `src-tauri/src/credential_store.rs`.
+ *
+ * For a day this section said there was no read *anywhere*, and that was the
+ * bug (issue #459): the store had no reader at all, so a player ticked the box,
+ * was told their password was now in Credential Manager, and typed it again on
+ * every sign-in. `lich::resolve_password` is the reader now, and the boundary
+ * above is unchanged. {@link hasStoredPassword} is how the sign-in form knows
+ * to stop asking, and a `boolean` is all it gets.
  *
  * # The sentence
  *

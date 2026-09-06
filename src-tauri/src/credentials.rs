@@ -66,6 +66,15 @@ pub const EACCESS_ENDPOINT: (&str, u16) = ("eaccess.play.net", 7910);
 /// This is the accessor `eaccess.rs` (N1) calls. A second declaration of the
 /// host anywhere else would be a fork, and the two would drift.
 pub fn eaccess_endpoint() -> Result<(String, u16), String> {
+    // Issue #464: in a release build there is no override at all, and this
+    // returns before either variable is read. A knob that redirects *where the
+    // password goes* is not something a shipped binary should honour from its
+    // environment - `docs/PRIVACY.md` states that the account name and password
+    // go to Simutronics and nowhere else, and an ungated environment variable
+    // is an undocumented exception to that claim.
+    if !overrides_are_honoured() {
+        return Ok((EACCESS_ENDPOINT.0.to_string(), EACCESS_ENDPOINT.1));
+    }
     let host = std::env::var("DRC_EACCESS_HOST").unwrap_or_else(|_| EACCESS_ENDPOINT.0.to_string());
     // A value that was set and cannot be parsed is an error naming itself, not
     // a quiet fall back to 7910. N1 tightened this: a knob whose wrong value is
@@ -80,6 +89,20 @@ pub fn eaccess_endpoint() -> Result<(String, u16), String> {
         _ => EACCESS_ENDPOINT.1,
     };
     Ok((host, port))
+}
+
+/// Whether the two endpoint overrides above are read at all.
+///
+/// `true` in a development build, `false` in every release build, and it is a
+/// `const fn` over [`cfg!`] rather than a runtime flag so the release binary
+/// contains no path from the environment to the endpoint.
+///
+/// **This is the function `tools/build-privacy-doc.mjs` looks for.** The
+/// privacy document states that the password goes to `eaccess.play.net` and
+/// nowhere else; the generator's `--check` reads this file and fails if the
+/// override stops being gated, so the claim cannot quietly become false.
+pub const fn overrides_are_honoured() -> bool {
+    cfg!(debug_assertions)
 }
 
 /// A password, held in memory for the length of one login and no longer.
@@ -227,6 +250,37 @@ mod tests {
         if std::env::var("DRC_EACCESS_PORT").is_err() {
             assert_eq!(port, EACCESS_ENDPOINT.1);
         }
+    }
+
+    /// Issue #464: a release build must ignore the endpoint overrides.
+    ///
+    /// Compiled in both configurations and load-bearing in both. Under
+    /// `cargo test` it asserts the knob is honoured, which is what the mock
+    /// endpoint tests depend on; under `cargo test --release` it sets a
+    /// deliberately wrong host and port and requires the endpoint to come back
+    /// as the constant anyway. The wrong value is the point - a default that
+    /// happens to work could never tell an ignored override from an absent one.
+    #[test]
+    fn the_endpoint_overrides_are_debug_only() {
+        assert_eq!(
+            overrides_are_honoured(),
+            cfg!(debug_assertions),
+            "the gate does not follow the build configuration"
+        );
+        if overrides_are_honoured() {
+            return;
+        }
+        std::env::set_var("DRC_EACCESS_HOST", "not-simutronics.invalid");
+        std::env::set_var("DRC_EACCESS_PORT", "1");
+        let resolved = eaccess_endpoint();
+        std::env::remove_var("DRC_EACCESS_HOST");
+        std::env::remove_var("DRC_EACCESS_PORT");
+        let (host, port) = resolved.expect("a release build never parses the override");
+        assert_eq!(
+            (host.as_str(), port),
+            EACCESS_ENDPOINT,
+            "a release build honoured DRC_EACCESS_HOST/PORT; the password can be redirected"
+        );
     }
 
     /// The guarantee no type system can give: that no *other* file prints the

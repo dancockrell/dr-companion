@@ -275,17 +275,124 @@ pub fn game_status(link: State<'_, GameLink>) -> LinkState {
     state_of(guard.as_ref(), note)
 }
 
+/// How often the retry below re-dials while it waits for Lich's listener.
+///
+/// Four times a second: fast enough that a player does not sit on a ready
+/// socket, slow enough that eighty attempts over twenty seconds cost nothing.
+const DIAL_INTERVAL: Duration = Duration::from_millis(250);
+
+/// Connect, retrying until `wait` has elapsed, Lich exits, or it answers.
+///
+/// Three outcomes, deliberately, and each says which happened (issue #458):
+///
+/// - **connected** - the only success, and the moment the `.sal` can go;
+/// - **the process exited** - reported with its exit code, because "connection
+///   refused" would send a player looking at their firewall for a Ruby that
+///   died on a syntax error;
+/// - **the deadline passed** - reported as a wait that ran out, naming how long
+///   it waited, rather than as the last refusal.
+///
+/// The launch file is shredded on **every** exit from here, not only on the
+/// happy path. `sal.rs`'s lifetime note treats the attach as the "provably safe
+/// now" moment; a sign-in whose attach fails is a sign-in whose one-shot game
+/// key has no further use, and leaving it for the 120-second backstop was the
+/// second half of #458.
+///
+/// `status` is injected so the "Lich exited" branch can be executed in a test
+/// without spawning a Ruby that dies on cue.
+pub(crate) fn dial_with_retry(
+    host: &str,
+    port: u16,
+    wait: Duration,
+    interval: Duration,
+    status: &dyn Fn() -> crate::lich::SpawnedLich,
+) -> Result<TcpStream, String> {
+    let deadline = std::time::Instant::now() + wait;
+    // Declared without a value on purpose: every path that reads it has been
+    // through the `Err` arm below, so an initialiser here would be a string
+    // that could be reported having never come from a dial.
+    let mut last: String;
+    loop {
+        match TcpStream::connect((host, port)) {
+            Ok(stream) => {
+                // The detachable socket is up, which is the first externally
+                // observable moment provably after Lich finished reading the
+                // launch file: Lich is done with `@launch_data` by
+                // `main.rb:349` and does not open this listener until
+                // `main.rb:842-857`. So the one-shot game key can go now. A
+                // no-op unless this app started that Lich itself - see
+                // `lich::shred_pending_launch_files`.
+                crate::lich::shred_pending_launch_files();
+                return Ok(stream);
+            }
+            Err(e) => last = e.to_string(),
+        }
+
+        // Asked *after* a failed dial, not before: a Lich that exited having
+        // already opened the port is one this app can still attach to, and
+        // checking first would refuse it.
+        if let crate::lich::SpawnedLich::Exited(code) = status() {
+            crate::lich::shred_pending_launch_files();
+            return Err(match code {
+                Some(code) => format!(
+                    "Lich started and then exited with code {code} without opening {host}:{port}."
+                ),
+                None => format!("Lich started and then exited without opening {host}:{port}."),
+            });
+        }
+
+        if std::time::Instant::now() + interval > deadline {
+            return Err(if wait.is_zero() {
+                // A single dial, which is the Attach button. The launch file is
+                // deliberately NOT shredded here: a player pressing Attach
+                // while Lich is still booting has not proved anything about
+                // it, and Lich does not read `@launch_data` until
+                // `main.rb:213`. Shredding on that refusal would break the very
+                // sign-in it was asked about.
+                format!("Could not reach {host}:{port} - {last}")
+            } else {
+                // A wait that ran its course is different: Lich has had the
+                // whole window to read the file and open the port, and has done
+                // neither. The one-shot key has no further use.
+                crate::lich::shred_pending_launch_files();
+                format!(
+                    "Lich did not open {host}:{port} within {:.1} seconds - {last}",
+                    wait.as_secs_f32()
+                )
+            });
+        }
+        std::thread::sleep(interval);
+    }
+}
+
 /// Attach to a Lich that is already running with `--detachable-client`.
 ///
 /// Deliberately does not start Lich. Launching is `lich.rs`, which has its own
 /// reasons to be careful, and a connect that silently spawned a process would
 /// be doing two things under one name.
+///
+/// # `wait_ms`, and why a single dial was wrong
+///
+/// `None` dials once, which is right for the Attach button: a player pressing
+/// it is asking about a Lich they believe is already up, and twenty seconds of
+/// spinner to tell them it is not would be worse than an immediate answer.
+///
+/// `Some(ms)` retries until the deadline, and the sign-in path passes it
+/// (issue #458). Signing in *starts* Lich, and `lich_login_launch` returns the
+/// moment `spawn` succeeds - which is process creation, not readiness. Lich
+/// does not open the detachable listener until `main.rb:842-857`, after Ruby
+/// boots, Lich loads and the game connection is made, so a dial in the same
+/// tick provably cannot succeed. It failed in about two milliseconds, the
+/// player was told the sign-in had failed while their character was in fact
+/// logging in, and the `.sal` holding the one-shot game key was left for the
+/// 120-second backstop to remove instead of being shredded at attach.
 #[tauri::command]
 pub fn game_attach(
     app: AppHandle,
     link: State<'_, GameLink>,
     host: Option<String>,
     port: u16,
+    wait_ms: Option<u64>,
 ) -> Result<LinkState, String> {
     let host = host.unwrap_or_else(|| "127.0.0.1".into());
 
@@ -301,16 +408,17 @@ pub fn game_attach(
         }
     }
 
-    let stream = TcpStream::connect((host.as_str(), port))
-        .map_err(|e| format!("Could not reach {host}:{port} - {e}"))?;
+    let stream = dial_with_retry(
+        &host,
+        port,
+        Duration::from_millis(wait_ms.unwrap_or(0)),
+        DIAL_INTERVAL,
+        &crate::lich::spawned_lich_status,
+    )?;
 
-    // The detachable socket is up, which is the first externally observable
-    // moment provably after Lich finished reading the launch file: Lich is
-    // done with `@launch_data` by `main.rb:349` and does not open this
-    // listener until `main.rb:842-857`. So the one-shot game key can go now.
-    // A no-op unless this app started that Lich itself - see
-    // `lich::shred_pending_launch_files`.
-    crate::lich::shred_pending_launch_files();
+    // The launch file has already gone: `dial_with_retry` shreds it on the
+    // successful connect, and on the two ways the wait can end badly. Three
+    // outcomes, one place, so a test can watch the file disappear on each.
 
     // No Nagle. A MUD sends short lines and a command is a keystroke away from
     // being urgent; forty milliseconds of coalescing is the difference between
@@ -810,5 +918,180 @@ mod tests {
             verdict, "unknown",
             "a probe that could not answer must say so, not guess gone"
         );
+    }
+    // -- #458: the dial that waits for Lich to open its port ----------------
+
+    /// A launch file on disk, registered as pending, so the three cases below
+    /// can each watch it disappear.
+    ///
+    /// The file is real: `sal::shred` overwrites and unlinks, and a fixture
+    /// that was never written would make "it is gone" true for the wrong
+    /// reason. Each case asserts it exists first, which is that control.
+    fn pending_launch_file(tag: &str) -> std::path::PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "drc-dial-{tag}-{}-{:?}.sal",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        std::fs::write(&path, "KEY=not-a-real-key\n").expect("the fixture writes");
+        assert!(path.exists(), "control: the fixture is on disk");
+        crate::lich::remember_launch_file_for_test(path.clone());
+        path
+    }
+
+    /// A free loopback port that nothing is listening on.
+    ///
+    /// Bound and immediately dropped, so the number is known to be closed
+    /// *now* rather than assumed to be free - a hardcoded port is how a test
+    /// ends up measuring another session's server.
+    fn a_closed_port() -> u16 {
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+        let port = listener.local_addr().expect("addr").port();
+        drop(listener);
+        port
+    }
+
+    /// The case the whole issue is about: Lich opens its listener seconds
+    /// after the dial starts, and the attach waits for it.
+    ///
+    /// A fixture that is already listening cannot fail this - it would pass
+    /// against the single-connect code #458 was filed about - so the listener
+    /// is deliberately late.
+    #[test]
+    fn a_listener_that_opens_late_is_still_attached_to() {
+        let _pending = crate::lich::LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+        let port = listener.local_addr().expect("addr").port();
+        drop(listener);
+
+        let sal = pending_launch_file("late");
+        let opener = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(1500));
+            let l = std::net::TcpListener::bind(("127.0.0.1", port)).expect("late bind");
+            // Hold it open long enough for the dial to connect.
+            let _ = l.accept();
+        });
+
+        let started = std::time::Instant::now();
+        let stream = dial_with_retry(
+            "127.0.0.1",
+            port,
+            Duration::from_secs(10),
+            Duration::from_millis(100),
+            &|| crate::lich::SpawnedLich::NotOurs,
+        )
+        .expect("a listener that opens at 1.5s is attached to");
+        drop(stream);
+        opener.join().expect("the opener thread");
+
+        // The denominator: it really did wait rather than connecting to
+        // something that was up all along.
+        assert!(
+            started.elapsed() >= Duration::from_millis(1400),
+            "connected in {:?}, so the port was open before the wait",
+            started.elapsed()
+        );
+        assert!(
+            !sal.exists(),
+            "the launch file survived a successful attach"
+        );
+    }
+
+    /// Lich exits before opening the port: the error names the exit, and does
+    /// not spend the rest of the wait dialling a process that is gone.
+    #[test]
+    fn a_lich_that_exits_before_listening_is_reported_by_its_exit_code() {
+        let _pending = crate::lich::LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let sal = pending_launch_file("exit");
+        let port = a_closed_port();
+
+        let started = std::time::Instant::now();
+        let err = dial_with_retry(
+            "127.0.0.1",
+            port,
+            Duration::from_secs(20),
+            Duration::from_millis(100),
+            &|| crate::lich::SpawnedLich::Exited(Some(1)),
+        )
+        .expect_err("a dead Lich cannot be attached to");
+
+        assert!(err.contains("exited with code 1"), "{err}");
+        assert!(
+            !err.contains("Could not reach"),
+            "reported as a connection refusal rather than as the exit: {err}"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(10),
+            "it waited out the full deadline for a process it knew had exited"
+        );
+        assert!(!sal.exists(), "the launch file survived a failed launch");
+    }
+
+    /// Nothing ever listens: the wait is named, rather than the last refusal
+    /// being reported as though the dial had only just been tried.
+    #[test]
+    fn a_port_that_never_opens_times_out_naming_the_wait() {
+        let _pending = crate::lich::LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let sal = pending_launch_file("timeout");
+        let port = a_closed_port();
+
+        let err = dial_with_retry(
+            "127.0.0.1",
+            port,
+            Duration::from_millis(600),
+            Duration::from_millis(100),
+            &|| crate::lich::SpawnedLich::NotOurs,
+        )
+        .expect_err("nothing is listening");
+
+        assert!(err.contains("did not open"), "{err}");
+        assert!(err.contains("0.6 seconds"), "the wait is not named: {err}");
+        assert!(!sal.exists(), "the launch file survived a timed-out attach");
+    }
+
+    /// The Attach button's shape: no wait, one dial, the old message - and the
+    /// launch file left alone.
+    ///
+    /// That last part is the direction that finds things. A player pressing
+    /// Attach while Lich is still booting has proved nothing about it, and
+    /// Lich does not read the file until `main.rb:213`; shredding on that
+    /// refusal would break the sign-in it was asked about.
+    #[test]
+    fn a_single_dial_is_immediate_and_leaves_the_launch_file_alone() {
+        let _pending = crate::lich::LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let sal = pending_launch_file("single");
+        let port = a_closed_port();
+
+        let started = std::time::Instant::now();
+        let err = dial_with_retry(
+            "127.0.0.1",
+            port,
+            Duration::from_millis(0),
+            Duration::from_millis(100),
+            &|| crate::lich::SpawnedLich::NotOurs,
+        )
+        .expect_err("nothing is listening");
+
+        assert!(err.starts_with("Could not reach"), "{err}");
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "a no-wait dial took {:?}",
+            started.elapsed()
+        );
+        assert!(
+            sal.exists(),
+            "a single dial shredded a launch file it had no evidence about"
+        );
+        // Cleaned up by hand, since nothing else will: this is the one case
+        // that deliberately leaves the file behind.
+        crate::lich::shred_pending_launch_files();
     }
 }

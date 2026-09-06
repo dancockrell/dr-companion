@@ -169,6 +169,37 @@ pub enum EAccessError {
     Network { endpoint: String, detail: String },
 }
 
+impl EAccessError {
+    /// The stable machine code for this failure.
+    ///
+    /// A `match` over the enum rather than a name derived from `Debug`: the
+    /// compiler refuses an unhandled variant, so a variant added later cannot
+    /// silently reach the webview with no code and become `unknown` - which is
+    /// exactly what issue #457 was, one level up.
+    ///
+    /// The strings are the snake_case forms of the variant names above, and
+    /// `tools/sign-in-test.mjs` parses this file's `enum` block and asserts
+    /// that every variant it finds is one the webview can classify.
+    pub fn code(&self) -> crate::login_error::LoginCode {
+        use crate::login_error::LoginCode;
+        match self {
+            Self::BadCredentials { .. } => LoginCode::BadCredentials,
+            Self::AccountLockedOrExpired { .. } => LoginCode::AccountLockedOrExpired,
+            Self::NoSuchCharacter { .. } => LoginCode::NoSuchCharacter,
+            Self::ProtocolMismatch { .. } => LoginCode::ProtocolMismatch,
+            Self::PasswordLength { .. } => LoginCode::PasswordLength,
+            Self::ObscuredByteOutOfRange { .. } => LoginCode::ObscuredByteOutOfRange,
+            Self::Network { .. } => LoginCode::Network,
+        }
+    }
+}
+
+impl From<EAccessError> for crate::login_error::LoginFailure {
+    fn from(e: EAccessError) -> Self {
+        crate::login_error::LoginFailure::new(e.code(), e.to_string())
+    }
+}
+
 impl std::fmt::Display for EAccessError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -529,19 +560,21 @@ pub fn login(
 // The transport
 // ---------------------------------------------------------------------------
 
-/// Where `connect()` will go, after `credentials`' two test-only overrides.
+/// Where `connect()` will go, after `credentials`' two debug-only overrides.
 ///
 /// A thin wrapper rather than a second reader of the environment: the host and
 /// the override rules both live in `credentials.rs`, and this only adapts the
 /// error into this module's type so a caller has one thing to match on.
+///
+/// The error path used to re-read `DRC_EACCESS_HOST` and `DRC_EACCESS_PORT` to
+/// name the place it had failed to resolve. That was the second reader this
+/// doc comment says does not exist, and issue #464 made it load-bearing: the
+/// overrides are gone in a release build, so a line reading them here would
+/// have reported an endpoint the release binary would never use. `detail`
+/// already names the offending value, which is the part a reader needs.
 pub fn endpoint() -> Result<(String, u16), EAccessError> {
     crate::credentials::eaccess_endpoint().map_err(|detail| EAccessError::Network {
-        endpoint: format!(
-            "{}:{}",
-            std::env::var("DRC_EACCESS_HOST")
-                .unwrap_or_else(|_| crate::credentials::EACCESS_ENDPOINT.0.to_string()),
-            std::env::var("DRC_EACCESS_PORT").unwrap_or_default()
-        ),
+        endpoint: crate::credentials::EACCESS_ENDPOINT.0.to_string(),
         detail,
     })
 }
@@ -609,17 +642,19 @@ pub fn connect() -> Result<TlsTransport, EAccessError> {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+
+/// The scripted server the protocol cases are driven against.
+///
+/// A module of its own rather than an item inside `mod tests`, because
+/// `lich.rs` needs the same instrument: N9 (issue #459) has to prove that the
+/// password loaded from Windows Credential Manager is the one that reaches the
+/// wire, and that is a claim about the bytes in frame 2. A second mock in that
+/// file would be a fork of this one, and the two would drift.
 #[cfg(test)]
-mod tests {
+pub(crate) mod test_support {
     use super::*;
     use std::collections::VecDeque;
-    use std::sync::Mutex;
-
-    /// `std::env` is process-global and cargo runs tests in threads, so the
-    /// three cases that set `DRC_EACCESS_*` take this first. Without it they
-    /// pass or fail depending on scheduling, which is a check that cannot be
-    /// trusted in either direction.
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     /// A scripted EAccess server.
     ///
@@ -632,18 +667,18 @@ mod tests {
     ///
     /// It also never inspects the obscured password, so the obscuring sabotage
     /// reddens the wire-bytes case only.
-    struct MockEAccess {
-        replies: Vec<(u8, Vec<u8>)>,
+    pub(crate) struct MockEAccess {
+        pub(crate) replies: Vec<(u8, Vec<u8>)>,
         /// Every frame received, in order, without its trailing newline. This
         /// is the wire, and it is what the sequence and byte cases assert
         /// against - not what the client believes it sent.
-        received: Vec<Vec<u8>>,
-        inbox: VecDeque<u8>,
-        pending: Vec<u8>,
+        pub(crate) received: Vec<Vec<u8>>,
+        pub(crate) inbox: VecDeque<u8>,
+        pub(crate) pending: Vec<u8>,
     }
 
     impl MockEAccess {
-        fn new(replies: Vec<(u8, &[u8])>) -> Self {
+        pub(crate) fn new(replies: Vec<(u8, &[u8])>) -> Self {
             Self {
                 replies: replies.into_iter().map(|(v, r)| (v, r.to_vec())).collect(),
                 received: Vec::new(),
@@ -653,7 +688,7 @@ mod tests {
         }
 
         /// The verbs received, as a string like `K A M F G P C L`.
-        fn sequence(&self) -> String {
+        pub(crate) fn sequence(&self) -> String {
             self.received
                 .iter()
                 .map(|f| (f.first().copied().unwrap_or(b'?') as char).to_string())
@@ -662,7 +697,7 @@ mod tests {
         }
 
         /// One received frame, rendered lossily for a message.
-        fn frame_text(&self, i: usize) -> String {
+        pub(crate) fn frame_text(&self, i: usize) -> String {
             String::from_utf8_lossy(&self.received[i]).to_string()
         }
     }
@@ -707,7 +742,7 @@ mod tests {
     /// A hashkey with no structure to it, long enough for the test password.
     /// Every byte is under 0x80 so the obscuring result stays inside a byte,
     /// which is what the live server's keys do.
-    const HASHKEY: &[u8] = &[
+    pub(crate) const HASHKEY: &[u8] = &[
         0x41, 0x1f, 0x7a, 0x05, 0x63, 0x2c, 0x50, 0x11, 0x08, 0x77, 0x39, 0x5e, 0x22, 0x6b, 0x14,
         0x4d,
     ];
@@ -715,18 +750,23 @@ mod tests {
     /// Assembled at run time rather than written as a literal: gitleaks blocks
     /// credential-shaped literals in this repository, fake ones included
     /// (`PLAN_TO_1_0.md` §1 trap 3). Both are obviously not credentials.
-    fn account() -> String {
+    pub(crate) fn account() -> String {
         String::from("acct-") + "example"
     }
-    fn password() -> String {
+    pub(crate) fn password() -> String {
         String::from("pw-") + "example"
     }
 
-    const C_REPLY: &[u8] = b"C\t2\t2\t0\t0\tW_ABC123\tPhemius\tW_DEF456\tAlisandra\n";
-    const L_REPLY: &[u8] = b"L\tOK\tUPPORT=5535\tGAME=STORM\tGAMECODE=DR\tFULLGAMENAME=DragonRealms\tGAMEFILE=STORMFRONT.EXE\tGAMEHOST=dr.simutronics.net\tGAMEPORT=11024\tKEY=one-shot-launch-key\n";
+    /// The `A` reply for a password the account server will not accept.
+    /// Shared with `lich.rs`, whose N9 cases turn on the difference between a
+    /// refused *typed* password and a refused *stored* one.
+    pub(crate) const REFUSED_A_REPLY: &[u8] = b"A\tacct-example\tPASSWORD\n";
+
+    pub(crate) const C_REPLY: &[u8] = b"C\t2\t2\t0\t0\tW_ABC123\tPhemius\tW_DEF456\tAlisandra\n";
+    pub(crate) const L_REPLY: &[u8] = b"L\tOK\tUPPORT=5535\tGAME=STORM\tGAMECODE=DR\tFULLGAMENAME=DragonRealms\tGAMEFILE=STORMFRONT.EXE\tGAMEHOST=dr.simutronics.net\tGAMEPORT=11024\tKEY=one-shot-launch-key\n";
 
     /// The exact reply set from `docs/LICH_NATIVE_LOGIN.md` §2.2, one per verb.
-    fn happy_replies() -> Vec<(u8, &'static [u8])> {
+    pub(crate) fn happy_replies() -> Vec<(u8, &'static [u8])> {
         vec![
             (b'K', HASHKEY),
             (b'A', b"A\tacct-example\tKEY\tsession-key\t\n" as &[u8]),
@@ -739,12 +779,12 @@ mod tests {
         ]
     }
 
-    fn happy_server() -> MockEAccess {
+    pub(crate) fn happy_server() -> MockEAccess {
         MockEAccess::new(happy_replies())
     }
 
     /// The same set with one verb's reply replaced.
-    fn server_with(verb: u8, reply: &'static [u8]) -> MockEAccess {
+    pub(crate) fn server_with(verb: u8, reply: &'static [u8]) -> MockEAccess {
         let mut r = happy_replies();
         for entry in r.iter_mut() {
             if entry.0 == verb {
@@ -753,6 +793,19 @@ mod tests {
         }
         MockEAccess::new(r)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::test_support::*;
+    use super::*;
+    use std::sync::Mutex;
+
+    /// `std::env` is process-global and cargo runs tests in threads, so the
+    /// three cases that set `DRC_EACCESS_*` take this first. Without it they
+    /// pass or fail depending on scheduling, which is a check that cannot be
+    /// trusted in either direction.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     // -- the happy path ----------------------------------------------------
 
@@ -1121,6 +1174,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        not(debug_assertions),
+        ignore = "the endpoint overrides are debug-only from #464; credentials.rs asserts the release behaviour instead"
+    )]
     fn the_endpoint_override_is_read_and_a_wrong_value_names_itself() {
         let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("DRC_EACCESS_HOST", "127.0.0.1");
@@ -1148,6 +1205,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        not(debug_assertions),
+        ignore = "the endpoint overrides are debug-only from #464; credentials.rs asserts the release behaviour instead"
+    )]
     fn a_port_that_is_not_a_number_fails_naming_the_value() {
         let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("DRC_EACCESS_PORT", "seventy-nine-ten");

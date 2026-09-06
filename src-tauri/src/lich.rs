@@ -74,6 +74,7 @@ use std::process::Command;
 
 use crate::credentials::Secret;
 use crate::eaccess;
+use crate::login_error::{LoginCode, LoginFailure};
 use crate::setup::{detect_ruby, pretty_path, rank_lich_installs};
 
 /// The port Lich is asked to open with `--headless`, and the port the app's
@@ -545,8 +546,17 @@ pub struct LaunchOutcome {
 /// A named environment variable rather than a `#[cfg(test)]` branch, because
 /// the point is that the sign-in screen can be driven end to end in a running
 /// app with no Lich and no account (`docs/LICH_NATIVE_LOGIN.md` §8).
+///
+/// **That argument is about a developer's running app and does not extend to
+/// the shipped one** (issue #464). A release binary started with
+/// `DRC_LICH_DRY_RUN=1` in its environment used to report a successful sign-in
+/// and spawn nothing, which is an environment variable that decides whether a
+/// player is playing. So the read is gated on [`crate::credentials::
+/// overrides_are_honoured`] - the same gate as the endpoint overrides, one
+/// definition, no second rule to drift.
 fn dry_run() -> bool {
-    std::env::var("DRC_LICH_DRY_RUN").is_ok_and(|v| v == "1")
+    crate::credentials::overrides_are_honoured()
+        && std::env::var("DRC_LICH_DRY_RUN").is_ok_and(|v| v == "1")
 }
 
 /// Launch files written for a launch that has not yet been attached to.
@@ -590,6 +600,93 @@ pub fn shred_pending_launch_files() -> usize {
 /// swept at the next launch regardless. Short enough that a Lich which never
 /// started does not leave it there for the session.
 const LAUNCH_FILE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// The Lich this app started, kept so the attach can ask whether it is still
+/// alive.
+///
+/// Issue #458: the attach used to be a single dial in the same tick as the
+/// spawn, which cannot succeed - Lich does not open the detachable listener
+/// until `main.rb:842-857`, after Ruby boots and the game connection is made.
+/// The fix is a bounded retry, and a retry needs a way to stop early: if the
+/// process this app started has *exited*, no amount of further dialling will
+/// help, and "connection refused" would be a worse thing to tell a player than
+/// "Lich exited with code 1".
+///
+/// The [`std::process::Child`] is held rather than only the pid because a pid
+/// can be recycled: asking the handle is the only answer that cannot name
+/// somebody else's process.
+static SPAWNED_LICH: std::sync::Mutex<Option<std::process::Child>> = std::sync::Mutex::new(None);
+
+/// What the Lich this app started is doing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpawnedLich {
+    /// This app did not start a Lich, so there is nothing to say about one.
+    /// **Not** "it is dead": a player who started Lich themselves is here too,
+    /// which is why the attach treats this as "keep waiting" rather than as a
+    /// reason to give up.
+    NotOurs,
+    /// Started by this app and still running.
+    Running,
+    /// Started by this app and gone. `Some(code)` where the platform gave one.
+    Exited(Option<i32>),
+}
+
+/// Whether the Lich this app spawned is still up.
+///
+/// Non-blocking: `try_wait` reaps an exited child and returns immediately for
+/// a live one, so this is safe to call from a dial loop several times a
+/// second.
+pub fn spawned_lich_status() -> SpawnedLich {
+    let mut guard = SPAWNED_LICH.lock().unwrap_or_else(|e| e.into_inner());
+    let Some(child) = guard.as_mut() else {
+        return SpawnedLich::NotOurs;
+    };
+    match child.try_wait() {
+        Ok(Some(status)) => SpawnedLich::Exited(status.code()),
+        Ok(None) => SpawnedLich::Running,
+        // The handle itself failed. Reporting `Exited` here would tell a
+        // player Lich died on the strength of a broken instrument, so this
+        // says only what is certain: nothing useful is known about it.
+        Err(_) => SpawnedLich::NotOurs,
+    }
+}
+
+/// Serialises every test that touches the pending-launch-file list.
+///
+/// That list is process-global and cargo runs tests in threads, so without
+/// this a case asserting "the file is still there" can be looking at a list
+/// another case has just emptied. Found the hard way: the single-dial case
+/// went red for exactly that reason, which is a check reporting on the
+/// harness rather than on the code under test.
+#[cfg(test)]
+pub(crate) static LAUNCH_FILE_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Put a path on the pending-launch-file list, for tests in other modules.
+///
+/// `game_link.rs` owns the dial that now shreds the launch file on all three
+/// of its outcomes (#458), so its tests need a file to watch disappear. The
+/// alternative was a second pending list over there, which is the fork this
+/// exists to avoid.
+#[cfg(test)]
+pub(crate) fn remember_launch_file_for_test(path: PathBuf) {
+    PENDING_LAUNCH_FILES
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .push(path);
+}
+
+/// Shred the pending launch file after `after`, on a thread.
+///
+/// A parameter rather than a read of [`LAUNCH_FILE_TIMEOUT`] inside the body,
+/// so the backstop can be *executed* in a test instead of waited for. A branch
+/// nobody can trigger on purpose is a branch nobody can prove they fixed, and
+/// two minutes is long enough that the alternative is no test at all.
+fn spawn_shred_timer(after: std::time::Duration) {
+    std::thread::spawn(move || {
+        std::thread::sleep(after);
+        shred_pending_launch_files();
+    });
+}
 
 /// Start Lich against launch data obtained from `eaccess`.
 ///
@@ -696,13 +793,17 @@ fn launch_lich_using(
         }
     };
 
-    std::thread::spawn(|| {
-        std::thread::sleep(LAUNCH_FILE_TIMEOUT);
-        shred_pending_launch_files();
-    });
+    spawn_shred_timer(LAUNCH_FILE_TIMEOUT);
+
+    let pid = child.id();
+    // Held so the attach retry can tell "Lich is still booting" from "Lich
+    // exited" - see [`SPAWNED_LICH`] and issue #458. A previous child is
+    // dropped here, which on every platform this ships to detaches rather
+    // than kills: this app does not end a Lich it did not start ending.
+    *SPAWNED_LICH.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
 
     Ok(LaunchOutcome {
-        pid: Some(child.id()),
+        pid: Some(pid),
         port: DETACHABLE_PORT,
         argv: args,
         dry_run: false,
@@ -725,23 +826,48 @@ fn launch_lich_using(
 /// weakened by this being the "read-only" half: the account name and password
 /// go to Simutronics and nowhere else, and neither the result, an error nor a
 /// log line carries the password back.
+/// `password` is optional from N9 (issue #459): `null` means "use the one you
+/// have saved for this account", which is what makes N8's stored password
+/// worth storing. See [`resolve_password`].
 #[tauri::command]
 pub async fn lich_login_characters(
     account: String,
-    password: String,
+    password: Option<String>,
     game_code: String,
-) -> Result<eaccess::Account, String> {
+) -> Result<eaccess::Account, LoginFailure> {
     tokio::task::spawn_blocking(move || {
-        let password = Secret::new(password);
-        let plaintext = std::str::from_utf8(password.expose_for_obscuring())
-            .map_err(|_| "that password is not valid UTF-8".to_string())?;
-
-        let mut transport = eaccess::connect().map_err(|e| e.to_string())?;
-        eaccess::list_characters(&mut transport, account.trim(), plaintext, game_code.trim())
-            .map_err(|e| e.to_string())
+        let creds = WindowsCredentialManager;
+        let mut transport = eaccess::connect()?;
+        characters_with(
+            &mut transport,
+            account.trim(),
+            password,
+            game_code.trim(),
+            &creds,
+        )
     })
     .await
-    .map_err(|e| format!("the character lookup did not finish: {e}"))?
+    .map_err(|e| LoginFailure::internal(format!("the character lookup did not finish: {e}")))?
+}
+
+/// [`lich_login_characters`] with the transport and the credential store
+/// injected.
+///
+/// The seam exists so the stored-password paths can be *executed* in a test
+/// rather than reasoned about: a mock `EAccess` records the frames, so "the
+/// stored password is the one that went on the wire" is a check on the bytes
+/// and not on a call count.
+pub(crate) fn characters_with<T: eaccess::Transport>(
+    transport: &mut T,
+    account: &str,
+    typed: Option<String>,
+    game_code: &str,
+    creds: &dyn CredentialAccess,
+) -> Result<eaccess::Account, LoginFailure> {
+    let (secret, source) = resolve_password(typed, account, creds)?;
+    let plaintext = plaintext_of(&secret)?;
+    eaccess::list_characters(transport, account, plaintext, game_code)
+        .map_err(|e| protocol_failure(e, source, account, creds))
 }
 
 /// Sign a character in and start Lich for them.
@@ -762,39 +888,164 @@ pub async fn lich_login_characters(
 /// exist so an unhappy path can be aimed at on purpose rather than waited for:
 /// `DRC_EACCESS_HOST`/`DRC_EACCESS_PORT` point the protocol client at a mock
 /// (`eaccess::endpoint`), and `DRC_LICH_DRY_RUN=1` writes and shreds the
-/// launch file and reports the argv without spawning Lich.
+/// launch file and reports the argv without spawning Lich. **Neither survives
+/// into a release build** (issue #464): both are gated on
+/// [`crate::credentials::overrides_are_honoured`], because a variable that can
+/// redirect where a password is sent is not a thing a shipped binary should
+/// read from its environment.
+///
+/// `password` is optional from N9 (issue #459): `null` asks for the one saved
+/// in Windows Credential Manager, which until then nothing read back.
 #[tauri::command]
 pub async fn lich_login_launch(
     account: String,
-    password: String,
+    password: Option<String>,
     game_code: String,
     character: String,
-) -> Result<LaunchOutcome, String> {
+) -> Result<LaunchOutcome, LoginFailure> {
     tokio::task::spawn_blocking(move || {
-        // Moved, not copied: from here the plaintext exists in exactly one
-        // place that knows how to erase itself.
-        let password = Secret::new(password);
-        let plaintext = std::str::from_utf8(password.expose_for_obscuring())
-            .map_err(|_| "that password is not valid UTF-8".to_string())?;
-
-        let mut transport = eaccess::connect().map_err(|e| e.to_string())?;
-        let data = eaccess::login(
+        let creds = WindowsCredentialManager;
+        let mut transport = eaccess::connect()?;
+        launch_with(
             &mut transport,
             account.trim(),
-            plaintext,
+            password,
             game_code.trim(),
             character.trim(),
+            &creds,
         )
-        .map_err(|e| e.to_string())?;
-
-        // `LaunchData`'s inner `Vec<(String, String)>` is exactly what
-        // `sal::write_temp` accepts, so there is one type for this and
-        // `eaccess.rs` owns it.
-        launch_lich_with_launch_data(&data.0)
     })
     .await
-    .map_err(|e| format!("the sign-in task did not finish: {e}"))?
+    .map_err(|e| LoginFailure::internal(format!("the sign-in task did not finish: {e}")))?
 }
+
+/// [`lich_login_launch`] with the transport and the credential store injected.
+///
+/// The launcher half's failures become [`crate::login_error::LoginCode::
+/// LichDidNotStart`], which is the code the webview's "the sign-in worked but
+/// Lich did not start" sentence hangs off - a sentence that was written for
+/// this and had no way to be reached before #457.
+pub(crate) fn launch_with<T: eaccess::Transport>(
+    transport: &mut T,
+    account: &str,
+    typed: Option<String>,
+    game_code: &str,
+    character: &str,
+    creds: &dyn CredentialAccess,
+) -> Result<LaunchOutcome, LoginFailure> {
+    let (secret, source) = resolve_password(typed, account, creds)?;
+    let plaintext = plaintext_of(&secret)?;
+    let data = eaccess::login(transport, account, plaintext, game_code, character)
+        .map_err(|e| protocol_failure(e, source, account, creds))?;
+
+    // `LaunchData`'s inner `Vec<(String, String)>` is exactly what
+    // `sal::write_temp` accepts, so there is one type for this and
+    // `eaccess.rs` owns it.
+    launch_lich_with_launch_data(&data.0).map_err(LoginFailure::lich_did_not_start)
+}
+
+/// Where the password for a sign-in came from.
+///
+/// Load-bearing rather than informational: a refusal of a password the *player
+/// typed* is "check it and try again", and a refusal of one loaded from the
+/// store is "the saved one is no longer any good, and it has been removed".
+/// Telling a player to re-check something they did not type is how a
+/// credential feature becomes an infinite retry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PasswordSource {
+    Typed,
+    Stored,
+}
+
+/// The stored-password half of the sign-in, behind a trait.
+///
+/// A seam, so the three cases N8 shipped and nothing read - stored password
+/// used, stored password refused, typed password winning over a stored one -
+/// can be driven in a test without Windows Credential Manager.
+pub trait CredentialAccess {
+    fn load(&self, account: &str) -> Option<Secret>;
+    /// Remove the stored entry. The return says whether there was one.
+    fn forget(&self, account: &str) -> bool;
+}
+
+/// The real one: Windows Credential Manager, through `credential_store`.
+///
+/// This is the non-test caller `credential_store::load`'s doc comment has
+/// named since N8 and did not have (issue #459).
+pub struct WindowsCredentialManager;
+
+impl CredentialAccess for WindowsCredentialManager {
+    fn load(&self, account: &str) -> Option<Secret> {
+        crate::credential_store::load(&crate::credential_store::service_name(), account)
+    }
+
+    fn forget(&self, account: &str) -> bool {
+        crate::credential_store::forget(&crate::credential_store::service_name(), account)
+            .unwrap_or(false)
+    }
+}
+
+/// The password to sign in with, and where it came from.
+///
+/// A typed password always wins. Only when the webview sent nothing at all is
+/// the store consulted, and a store with nothing in it is an error naming
+/// that, rather than a sign-in attempt with an empty password: the account
+/// server would refuse that as bad credentials, and a player would be told a
+/// password they never typed was wrong.
+fn resolve_password(
+    typed: Option<String>,
+    account: &str,
+    creds: &dyn CredentialAccess,
+) -> Result<(Secret, PasswordSource), LoginFailure> {
+    if let Some(typed) = typed {
+        if !typed.is_empty() {
+            // Moved, not copied: from here the plaintext exists in exactly one
+            // place that knows how to erase itself.
+            return Ok((Secret::new(typed), PasswordSource::Typed));
+        }
+    }
+    match creds.load(account) {
+        Some(stored) if !stored.is_empty() => Ok((stored, PasswordSource::Stored)),
+        _ => Err(LoginFailure::password_needed(account)),
+    }
+}
+
+/// The bytes for frame 2, as `&str`.
+///
+/// A `Secret` is built from a `String`, so this cannot fail today; it is kept
+/// rather than unwrapped because `Secret` guards its plaintext behind one
+/// accessor by design and a panic is not an answer to give a sign-in screen.
+/// The code is `password_length` because the player-facing kind it maps to -
+/// "this password cannot be sent to the login service" - is exactly true of a
+/// password that cannot be put into the frame.
+fn plaintext_of(secret: &Secret) -> Result<&str, LoginFailure> {
+    std::str::from_utf8(secret.expose_for_obscuring()).map_err(|_| {
+        LoginFailure::new(
+            LoginCode::PasswordLength,
+            "that password cannot be encoded for the login frame",
+        )
+    })
+}
+
+/// A protocol failure, plus the one decision the store forces.
+///
+/// A stored password the account server refuses is forgotten *here*, before
+/// the error is returned, so the next sign-in asks for a typed one rather than
+/// retrying the same dead secret for ever.
+fn protocol_failure(
+    e: eaccess::EAccessError,
+    source: PasswordSource,
+    account: &str,
+    creds: &dyn CredentialAccess,
+) -> LoginFailure {
+    if source == PasswordSource::Stored && matches!(e, eaccess::EAccessError::BadCredentials { .. })
+    {
+        creds.forget(account);
+        return LoginFailure::stored_password_rejected(&e.to_string());
+    }
+    e.into()
+}
+
 /// Open Lich's own launcher window and stop there.
 ///
 /// **The saved-entry route this used to carry is gone.** It passed
@@ -982,6 +1233,10 @@ mod tests {
     /// `DRC_LICH_DRY_RUN=1`: the argv is reported, the launch file is really
     /// written and really removed, and no process is started.
     #[test]
+    #[cfg_attr(
+        not(debug_assertions),
+        ignore = "DRC_LICH_DRY_RUN is debug-only from #464; a_release_build_ignores_the_dry_run_knob is what runs there"
+    )]
     fn a_dry_run_reports_the_argv_writes_the_file_and_spawns_nothing() {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
@@ -1068,6 +1323,17 @@ mod tests {
     /// otherwise the same observation.
     #[test]
     fn shredding_nothing_pending_is_zero_and_not_an_error() {
+        // The lock, because the list this reads is process-global and N9 added
+        // cases that put files on it. Without it this asserts "nothing was
+        // pending" against a list another thread had just filled, and it went
+        // red under `cargo test --release` for exactly that reason - a check
+        // reporting on the harness rather than on the code.
+        let _pending = LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        // Emptied first, so this is "shredding nothing is zero" rather than
+        // "nothing else in this process has ever run".
+        shred_pending_launch_files();
         assert_eq!(shred_pending_launch_files(), 0);
     }
 
@@ -1283,5 +1549,197 @@ mod tests {
             ),
             Some(false)
         );
+    }
+    // -- N9: the stored password, and the three states it has (#459) --------
+
+    /// A credential store a test can see into.
+    ///
+    /// Records what was asked for and what was forgotten, so "the stored entry
+    /// was removed" is a check on an effect rather than on a comment.
+    struct FakeStore {
+        stored: std::sync::Mutex<Option<String>>,
+        forgotten: std::sync::Mutex<Vec<String>>,
+    }
+
+    impl FakeStore {
+        fn with(password: Option<&str>) -> Self {
+            Self {
+                stored: std::sync::Mutex::new(password.map(str::to_string)),
+                forgotten: std::sync::Mutex::new(Vec::new()),
+            }
+        }
+        fn forgotten(&self) -> Vec<String> {
+            self.forgotten.lock().unwrap().clone()
+        }
+    }
+
+    impl CredentialAccess for FakeStore {
+        fn load(&self, _account: &str) -> Option<Secret> {
+            self.stored.lock().unwrap().clone().map(Secret::new)
+        }
+        fn forget(&self, account: &str) -> bool {
+            self.forgotten.lock().unwrap().push(account.to_string());
+            self.stored.lock().unwrap().take().is_some()
+        }
+    }
+
+    /// The obscured bytes of frame 2, computed longhand from the formula in
+    /// `eaccess.rb:111` rather than by calling `obscure` - which would assert
+    /// that a function equals itself.
+    fn frame_two(account: &str, password: &str) -> Vec<u8> {
+        let mut expected: Vec<u8> = vec![b'A', b'\t'];
+        expected.extend_from_slice(account.as_bytes());
+        expected.push(b'\t');
+        for (p, k) in password.bytes().zip(eaccess::test_support::HASHKEY.iter()) {
+            let (p, k) = (i32::from(p), i32::from(*k));
+            expected.push((((p - 32) ^ k) + 32) as u8);
+        }
+        expected
+    }
+
+    /// #459: the stored password is the one that goes on the wire.
+    ///
+    /// The check is on the **bytes frame 2 carried**, not on whether `load`
+    /// was called: a command that asked the store and then signed in with
+    /// something else would pass a call-count check and fail this one.
+    #[test]
+    fn a_stored_password_is_the_one_that_reaches_the_wire() {
+        let stored = String::from("stored-") + "example";
+        let store = FakeStore::with(Some(&stored));
+        let mut server = eaccess::test_support::happy_server();
+        let account = eaccess::test_support::account();
+
+        let result = characters_with(&mut server, &account, None, "DR", &store)
+            .expect("a stored password signs in");
+        assert_eq!(result.characters.len(), 2, "the mock's character list");
+        assert_eq!(
+            &server.received[1],
+            &frame_two(&account, &stored),
+            "frame 2 did not carry the stored password"
+        );
+        assert!(
+            store.forgotten().is_empty(),
+            "a working stored password was forgotten"
+        );
+    }
+
+    /// #459: a typed password wins over a stored one.
+    #[test]
+    fn a_typed_password_wins_over_a_stored_one() {
+        let stored = String::from("stored-") + "example";
+        let typed = String::from("typed-") + "example";
+        let store = FakeStore::with(Some(&stored));
+        let mut server = eaccess::test_support::happy_server();
+        let account = eaccess::test_support::account();
+
+        characters_with(&mut server, &account, Some(typed.clone()), "DR", &store)
+            .expect("a typed password signs in");
+        assert_eq!(
+            &server.received[1],
+            &frame_two(&account, &typed),
+            "frame 2 carried the stored password over a typed one"
+        );
+        // The control that makes the line above mean something: the two
+        // passwords really do produce different frames, so an assertion that
+        // passed on either would be no assertion at all.
+        assert_ne!(frame_two(&account, &typed), frame_two(&account, &stored));
+    }
+
+    /// #459: a stored password the server refuses is forgotten, and said so
+    /// once - not retried for ever against an entry that cannot work.
+    #[test]
+    fn a_refused_stored_password_is_forgotten_and_reported_once() {
+        let store = FakeStore::with(Some("stale-example"));
+        let mut server =
+            eaccess::test_support::server_with(b'A', eaccess::test_support::REFUSED_A_REPLY);
+        let account = eaccess::test_support::account();
+
+        let failure = characters_with(&mut server, &account, None, "DR", &store)
+            .expect_err("a refused password is an error");
+        assert_eq!(failure.code, "stored_password_rejected");
+        assert_eq!(store.forgotten(), vec![account.clone()]);
+
+        // And the second attempt is a different state: there is nothing left
+        // to load, so it asks for one rather than refusing the same secret
+        // again.
+        let mut second = eaccess::test_support::happy_server();
+        let again = characters_with(&mut second, &account, None, "DR", &store)
+            .expect_err("nothing is stored any more");
+        assert_eq!(again.code, "password_needed");
+    }
+
+    /// A *typed* password the server refuses stays `bad_credentials`, and
+    /// forgets nothing. The direction that finds things: without it, a change
+    /// that classified every refusal as the stored one would pass above.
+    #[test]
+    fn a_refused_typed_password_is_not_the_stored_state() {
+        let store = FakeStore::with(Some("stored-example"));
+        let mut server =
+            eaccess::test_support::server_with(b'A', eaccess::test_support::REFUSED_A_REPLY);
+        let typed = String::from("typed-") + "example";
+
+        let failure = characters_with(
+            &mut server,
+            &eaccess::test_support::account(),
+            Some(typed),
+            "DR",
+            &store,
+        )
+        .expect_err("a refused password is an error");
+        assert_eq!(failure.code, "bad_credentials");
+        assert!(
+            store.forgotten().is_empty(),
+            "a typed refusal threw away the saved password"
+        );
+    }
+
+    /// #464: a release build ignores `DRC_LICH_DRY_RUN`.
+    ///
+    /// Meaningful in both configurations: under `cargo test` it proves the
+    /// knob is read at all, and under `cargo test --release` it proves a
+    /// shipped binary cannot be told to fake a sign-in from its environment.
+    #[test]
+    fn the_dry_run_knob_is_debug_only() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::set_var("DRC_LICH_DRY_RUN", "1");
+        let honoured = dry_run();
+        std::env::remove_var("DRC_LICH_DRY_RUN");
+        assert_eq!(
+            honoured,
+            cfg!(debug_assertions),
+            "DRC_LICH_DRY_RUN was honoured in a release build; a shipped app can be told \
+             to report a sign-in it never performed"
+        );
+    }
+
+    /// #458: the 120-second backstop really removes the launch file.
+    ///
+    /// Driven through the seam rather than by waiting two minutes, because a
+    /// branch nobody can execute on purpose is a branch nobody can prove they
+    /// fixed. The positive control is the assertion that the file exists
+    /// before the timer runs: without it, "gone" is equally true of a file
+    /// that was never written.
+    #[test]
+    fn the_launch_file_backstop_shreds_the_file() {
+        let _pending = LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let path = std::env::temp_dir().join(format!(
+            "drc-backstop-{}-{:?}.sal",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        std::fs::write(&path, "KEY=not-a-real-key\n").expect("the fixture writes");
+        assert!(path.exists(), "control: the fixture is on disk");
+        remember_launch_file_for_test(path.clone());
+
+        spawn_shred_timer(std::time::Duration::from_millis(50));
+        for _ in 0..100 {
+            if !path.exists() {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        panic!("the backstop left {} on disk", path.display());
     }
 }

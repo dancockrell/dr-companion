@@ -427,7 +427,34 @@ function adopt(next: LinkState): LinkState {
   return adoptLink(state, next)
 }
 
-export async function attachGame(port: number, host?: string): Promise<LinkState> {
+/**
+ * How long an attach that follows a sign-in waits for Lich to open its port.
+ *
+ * Twenty seconds because what is being waited on is Lich's *startup*, not a
+ * network round trip: `lich_login_launch` returns when `spawn` succeeds, and
+ * the detachable listener does not open until `main.rb:842-857` - after Ruby
+ * boots, Lich loads and the game connection is made. The wait ends early
+ * either way, on the first successful dial or the moment the spawned Lich
+ * exits, so this is a ceiling on the pathological case rather than a delay
+ * anybody pays (issue #458).
+ */
+export const LICH_STARTUP_WAIT_MS = 20_000
+
+/**
+ * Attach to Lich's detachable-client port.
+ *
+ * `waitMs` omitted means one dial, which is what the Attach button wants: a
+ * player pressing it is asking about a Lich they believe is already up, and
+ * twenty seconds of spinner to be told it is not would be worse than an
+ * immediate answer. The sign-in passes {@link LICH_STARTUP_WAIT_MS}, because
+ * it has just started the Lich it is dialling and the port provably cannot be
+ * open yet.
+ */
+export async function attachGame(
+  port: number,
+  host?: string,
+  waitMs?: number
+): Promise<LinkState> {
   wire()
 
   // Reset BEFORE the attach, not after.
@@ -443,7 +470,7 @@ export async function attachGame(port: number, host?: string): Promise<LinkState
   resetStream()
 
   try {
-    state = adopt(asLinkState(await invokeTauri('game_attach', { host: host ?? null, port })) ?? state)
+    state = adopt(asLinkState(await invokeTauri('game_attach', { host: host ?? null, port, waitMs: waitMs ?? null })) ?? state)
     notify()
     return state
   } catch (e) {

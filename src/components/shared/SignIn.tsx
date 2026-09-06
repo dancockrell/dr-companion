@@ -41,7 +41,7 @@
  * rendered below the bottom edge of a 1024x768 one, so nothing here is allowed
  * to depend on the window being tall.
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LogIn, ArrowLeft, Loader2 } from 'lucide-react'
 import {
   GAME_CODES,
@@ -54,16 +54,29 @@ import {
   usingFakeBackend,
   type CharacterEntry,
 } from '../../lib/lichLogin.ts'
+import { fakeCredentialHas } from '../../lib/lichLoginFake.ts'
 import {
   REMEMBER_PASSWORD_DEFAULT,
+  hasStoredPassword,
   rememberIfAsked,
   tauriCredentials,
 } from '../../lib/rememberPassword.ts'
 import { RememberPasswordCheckbox } from './RememberPassword.tsx'
-import { attachGame } from '../../lib/gameLink.ts'
+import { attachGame, LICH_STARTUP_WAIT_MS } from '../../lib/gameLink.ts'
 import { isTauri } from '../../lib/tauri.ts'
 
-type Stage = 'form' | 'picker' | 'launched'
+/**
+ * `starting` is not cosmetic (issue #458).
+ *
+ * The launch used to jump straight to `launched` and attach in the same tick,
+ * which provably cannot connect: Lich does not open the detachable port until
+ * it has booted Ruby, loaded itself and reached the game. The attach failed in
+ * about two milliseconds and the player was told the sign-in had failed while
+ * their character was in fact logging in. This is the honest state for the
+ * seconds in between, and `launched` now means "attached", which is a thing
+ * that was actually observed.
+ */
+type Stage = 'form' | 'picker' | 'starting' | 'launched'
 
 export function SignIn() {
   const remembered = rememberedSignIn()
@@ -81,16 +94,101 @@ export function SignIn() {
   const [characters, setCharacters] = useState<CharacterEntry[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [errorDetail, setErrorDetail] = useState('')
   const [launched, setLaunched] = useState('')
+
+  /**
+   * The error block, so it can be scrolled to when it appears.
+   *
+   * Not decoration. This panel lives in a column that scrolls, and the error
+   * is the last thing in it: adding the detail line under the sentence pushed
+   * the detail below the fold at 1024x768, which was visible in the screenshot
+   * and invisible in the source - the same defect as issue #418, in the screen
+   * that replaced the one #418 was found in.
+   */
+  const errorRef = useRef<HTMLDivElement>(null)
+
+
+  /**
+   * Whether a password is saved for this account, in three states.
+   *
+   * `null` is "could not ask" - the store was unreachable, or the check has
+   * not answered yet - and it must not read as "there is none", because that
+   * would hide the password field from somebody who has to type one. So the
+   * field is shown for `null` exactly as it is for `false`.
+   *
+   * This is the read half of N8 arriving in the UI (issue #459): the box that
+   * stores a password has been there since the day after this screen shipped,
+   * and nothing has ever asked whether one was stored, so a player typed it
+   * again every time.
+   */
+  const [storedPassword, setStoredPassword] = useState<boolean | null>(null)
+  /** The "Use a different password" escape hatch, per account. */
+  const [typePasswordAnyway, setTypePasswordAnyway] = useState(false)
+
+  const trimmedAccount = account.trim()
+  const usingStoredPassword = storedPassword === true && !typePasswordAnyway
+
+  useEffect(() => {
+    let live = true
+    if (!trimmedAccount) {
+      setStoredPassword(false)
+      return
+    }
+    void (async () => {
+      try {
+        const has = usingFakeBackend()
+          ? fakeCredentialHas(trimmedAccount)
+          : await hasStoredPassword(tauriCredentials, trimmedAccount)
+        if (live) setStoredPassword(has)
+      } catch {
+        // Not `false`: a store this app could not reach is a question it
+        // cannot answer, and answering it anyway is how a player ends up with
+        // no password field and no way in.
+        if (live) setStoredPassword(null)
+      }
+    })()
+    return () => {
+      live = false
+    }
+  }, [trimmedAccount])
+
+  // Bring the failure into view rather than leaving it under the fold. `block:
+  // 'nearest'` so a message already on screen does not make the panel jump,
+  // and guarded because jsdom-free environments and older webviews may not
+  // have it.
+  useEffect(() => {
+    if (!error) return
+    errorRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [error, errorDetail])
 
   // Outside the desktop app there is no backend at all, so the form would
   // submit into nothing. The dry-run stand-in is the one exception, and it has
   // to be asked for by URL.
   const workable = isTauri() || usingFakeBackend()
 
+  /** One place that says what went wrong, so the two paths cannot disagree. */
+  const report = (e: unknown) => {
+    const { kind, sentence, detail } = classifyLoginError(e)
+    setError(sentence)
+    // The detail is shown under the sentence rather than instead of it, and
+    // not at all when the sentence already carries it (the `unknown` arm
+    // appends it). Deleting information is never the answer to a busy screen.
+    setErrorDetail(sentence.includes(detail) ? '' : detail)
+    if (kind === 'stored_password_rejected') {
+      // Rust has already forgotten the entry, so the form must stop offering
+      // to use it - otherwise the next press signs in with nothing and the
+      // player is told a password they never typed is wrong.
+      setStoredPassword(false)
+      setTypePasswordAnyway(true)
+    }
+    return kind
+  }
+
   const signIn = async () => {
     setBusy(true)
     setError('')
+    setErrorDetail('')
     try {
       const result = await listCharacters({ account: account.trim(), password, gameCode })
       rememberSignIn({ account: account.trim(), gameCode })
@@ -115,7 +213,7 @@ export function SignIn() {
       // in the field is both a retry that repeats the same mistake and a secret
       // kept for no reason.
       setPassword('')
-      setError(classifyLoginError(e).sentence)
+      report(e)
     } finally {
       setBusy(false)
     }
@@ -124,6 +222,7 @@ export function SignIn() {
   const pick = async (character: CharacterEntry) => {
     setBusy(true)
     setError('')
+    setErrorDetail('')
     try {
       // Frame 2 of the protocol runs again for the launch, so the password is
       // needed a second time. It is held in this component's state between the
@@ -138,12 +237,31 @@ export function SignIn() {
       })
       rememberSignIn({ character: character.name })
       setLaunched(character.name)
-      setStage('launched')
+      // Not `launched` yet: the sign-in has worked and Lich is booting, which
+      // takes seconds. See the `Stage` note above.
+      setStage('starting')
       // The existing attach flow takes over from here, with the port the
-      // command returned rather than a number retyped in this file.
-      await attachGame(result.port)
+      // command returned rather than a number retyped in this file - and with
+      // a wait, because the port provably is not open in this tick (#458).
+      try {
+        await attachGame(result.port, undefined, LICH_STARTUP_WAIT_MS)
+        setStage('launched')
+      } catch (attachFailure) {
+        // The one place in this app that knows an attach failure *followed a
+        // launch*, which is what makes `lich_did_not_start` the honest code:
+        // the account login demonstrably worked, and what did not happen is
+        // Lich opening its port. `game_attach` returns a string because the
+        // Attach button is its other caller, so the code is attached here
+        // rather than invented in Rust for one of two callers.
+        report({
+          code: 'lich_did_not_start',
+          message:
+            attachFailure instanceof Error ? attachFailure.message : String(attachFailure ?? ''),
+        })
+        setStage('picker')
+      }
     } catch (e) {
-      setError(classifyLoginError(e).sentence)
+      report(e)
       setStage('picker')
     } finally {
       setPassword('')
@@ -155,6 +273,7 @@ export function SignIn() {
     setStage('form')
     setCharacters([])
     setError('')
+    setErrorDetail('')
     // Going back is also the way out of the flow, so it is the other place the
     // password has to stop existing.
     setPassword('')
@@ -192,20 +311,44 @@ export function SignIn() {
             />
           </label>
 
-          <label className="block space-y-1">
-            <span className="text-xs text-ink-faint">Password</span>
-            <input
-              className={field}
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && account.trim() && password && !busy) void signIn()
-              }}
-              placeholder="Your Play.net password"
-            />
-          </label>
+          {usingStoredPassword ? (
+            /* No password box at all, which is the point of N8's checkbox and
+             * what #459 was: the password was stored and the player typed it
+             * again every time anyway. The escape hatch is not optional - a
+             * saved password can be the wrong one, and a form with no way to
+             * type a different one would be a dead end. */
+            <div className="space-y-1">
+              <p className="text-xs leading-snug text-ink-muted">
+                Using the password saved on this computer for {trimmedAccount}.
+              </p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setTypePasswordAnyway(true)
+                  setPassword('')
+                }}
+                className="text-xs text-ink-faint underline decoration-dotted hover:text-ink disabled:opacity-50"
+              >
+                Use a different password
+              </button>
+            </div>
+          ) : (
+            <label className="block space-y-1">
+              <span className="text-xs text-ink-faint">Password</span>
+              <input
+                className={field}
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && account.trim() && password && !busy) void signIn()
+                }}
+                placeholder="Your Play.net password"
+              />
+            </label>
+          )}
 
           <label className="block space-y-1">
             <span className="text-xs text-ink-faint">Game</span>
@@ -222,15 +365,20 @@ export function SignIn() {
             </select>
           </label>
 
-          <RememberPasswordCheckbox
-            checked={remember}
-            onChange={setRemember}
-            disabled={busy || !workable}
-          />
+          {/* Hidden while a saved password is being used, because there is
+            * nothing to remember: no password is being typed, and the one in
+            * the store is already there. */}
+          {!usingStoredPassword && (
+            <RememberPasswordCheckbox
+              checked={remember}
+              onChange={setRemember}
+              disabled={busy || !workable}
+            />
+          )}
 
           <button
             type="button"
-            disabled={busy || !workable || !account.trim() || !password}
+            disabled={busy || !workable || !trimmedAccount || (!password && !usingStoredPassword)}
             onClick={() => void signIn()}
             className="flex items-center gap-1.5 rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25 disabled:opacity-50"
           >
@@ -310,6 +458,15 @@ export function SignIn() {
         </div>
       )}
 
+      {stage === 'starting' && (
+        <div className="mt-2 space-y-2">
+          <p className="flex items-center gap-1.5 text-xs text-ink-muted">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Signed {launched} in. Starting Lich, which takes a few seconds…
+          </p>
+        </div>
+      )}
+
       {stage === 'launched' && (
         <div className="mt-2 space-y-2">
           <p className="text-xs text-good">
@@ -326,7 +483,19 @@ export function SignIn() {
         </div>
       )}
 
-      {error && <p className="mt-2 text-xs leading-snug text-danger">{error}</p>}
+      {error && (
+        <div ref={errorRef}>
+          <p className="mt-2 text-xs leading-snug text-danger">{error}</p>
+          {/* What the backend actually said, under the sentence rather than
+            * instead of it. The sentence tells a player what to do; this is
+            * what goes in a bug report, and dropping it to keep the panel tidy
+            * would be throwing away the only line that says which of seven
+            * things happened. */}
+          {errorDetail && (
+            <p className="mt-1 text-xs leading-snug text-ink-faint">{errorDetail}</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

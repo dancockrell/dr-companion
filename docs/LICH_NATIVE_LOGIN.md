@@ -649,6 +649,20 @@ so the two are separated rather than blended.
    not the bytes that provoke them. N1's mock covers the shapes Lich's own
    regexes accept and reject; the live shapes are N7's.
 
+6. **Whether twenty seconds is long enough for a real Lich to open its
+   detachable port on a real machine.** The attach retry added for issue #458
+   (`game_link::dial_with_retry`) is tested against a loopback listener that
+   opens 1.5 seconds late, a stand-in that has exited without listening, and a
+   port nothing ever opens - not against a real Lich, which this lane does not
+   start. The *ordering* it depends on is read, not inferred: Lich reads
+   `@launch_data` by `main.rb:213`/`:349` and does not open the detachable
+   listener until `main.rb:842-857`, so the single dial in the tick after
+   `spawn` could never have succeeded. Only the ceiling is a guess, and it is a
+   cheap one in both directions: the wait ends the moment the port answers or
+   the spawned process exits, so overshooting costs nobody anything, and
+   undershooting shows as "Lich did not open 127.0.0.1:11024 within 20.0
+   seconds" rather than as a wrong sentence about the sign-in.
+
 Nothing in the inferred list is load-bearing for N1 or N2, which is why those
 two can start in parallel today.
 
@@ -683,9 +697,25 @@ Tauri commands, with the JSON the webview sees:
 
 | Command | Argument JSON | Result JSON |
 |---|---|---|
-| `lich_login_characters` | `{ account: string, password: string, gameCode: string }` | `{ subscription: string, characters: [{ code: string, name: string }] }` |
-| `lich_login_launch` | `{ account: string, password: string, gameCode: string, character: string }` | `{ pid: number, port: number }` |
-| `game_attach` (**unchanged**) | `{ host?: string, port: number }` | `LinkState` |
+| `lich_login_characters` | `{ account: string, password: string \| null, gameCode: string }` | `{ subscription: string, characters: [{ code: string, name: string }] }` |
+| `lich_login_launch` | `{ account: string, password: string \| null, gameCode: string, character: string }` | `{ pid: number, port: number }` |
+| `game_attach` | `{ host?: string, port: number, waitMs?: number \| null }` | `LinkState` |
+
+**Both sign-in commands fail with an object, not a string.** That is the
+contract `src/lib/lichLogin.ts` documented from the start and nothing
+implemented until issue #457: `{ code, message }`, where `code` is one of
+`src-tauri/src/login_error.rs`'s `LoginCode::ALL`. The webview matches on the
+code and shows a player sentence; the message is detail printed under it. The
+code set is generated into `src/lib/loginErrorFixtures.ts` by a Rust test and
+asserted against the TypeScript declaration by `tools/sign-in-test.mjs`, so the
+two cannot drift.
+
+`password` is `null` when the player has one saved in Windows Credential
+Manager for that account (issue #459). Rust loads it, uses it once, and forgets
+the entry if the account server refuses it. `game_attach`'s `waitMs` is how long
+to keep retrying the dial: omitted means one attempt, which is the Attach
+button, and the sign-in passes twenty seconds because Lich provably has not
+opened its port in the tick the launch returned (issue #458).
 
 `password` appears in an argument and **never** in a result, an event, an error
 message or a log line. `lich_login_launch` returns after Lich's process is
@@ -706,6 +736,17 @@ Port and environment contract:
 - `DRC_LICH_DRY_RUN=1` makes `lich_login_launch` write and shred the `.sal` and
   report the argv it would have used, without spawning Lich. Without it N3
   cannot be tested at all without a real account.
+- **All three are development-only, and a release build does not read them**
+  (issue #464). They were plain `std::env::var` reads with no gate, so a shipped
+  app started with `DRC_EACCESS_HOST` set would have sent the account name and
+  password somewhere other than Simutronics - an undocumented exception to the
+  claim `docs/PRIVACY.md` makes, and a knob that decides whether a player is
+  really playing. The gate is one function,
+  `credentials::overrides_are_honoured()`, which is `cfg!(debug_assertions)`:
+  `eaccess_endpoint` returns the declared constant before either variable is
+  read when it is false, `lich::dry_run` is `false` outright, and
+  `tools/build-privacy-doc.mjs --check` refuses to publish the privacy document
+  if that stops being true.
 
 ---
 

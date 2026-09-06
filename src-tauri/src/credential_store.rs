@@ -99,11 +99,21 @@ pub fn forget(service: &str, account: &str) -> Result<bool, String> {
 
 /// Read the stored password back, for one sign-in.
 ///
-/// **Not a command, and deliberately.** `lich_login_characters` and
-/// `lich_login_launch` (N1/N3) call this when the webview passed no password
-/// and use the [`Secret`] once; it is dropped — and overwritten — on the way
-/// out of that call. Nothing serialises a `Secret`, so there is no path from
-/// this return value to the frontend.
+/// **Not a command, and deliberately.** The caller is
+/// `lich::WindowsCredentialManager`, which `lich_login_characters` and
+/// `lich_login_launch` hand to `resolve_password`; that reaches this when the
+/// webview passed no password, and uses the [`Secret`] once - it is dropped,
+/// and overwritten, on the way out of that call. Nothing serialises a
+/// `Secret`, so there is no path from this return value to the frontend.
+///
+/// **This paragraph named those callers for a day before they existed**
+/// (issue #459). N8 shipped the store, the checkbox and the notice telling a
+/// player their password was now in Credential Manager, and nothing ever read
+/// it back: the player typed it again on every sign-in, so the stored secret
+/// bought nothing and cost a persisted credential. A claim about somebody's
+/// callers is checkable, which is why `tools/credential-store-test.mjs` now
+/// greps for a non-test caller of this function rather than taking the
+/// sentence above on trust.
 pub fn load(service: &str, account: &str) -> Option<Secret> {
     if account.trim().is_empty() {
         return None;
