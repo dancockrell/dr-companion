@@ -35,6 +35,7 @@ func _run() -> void:
 		check(overview.get_meta("content_status") == "base-only; not completed room art", "Overview does not claim art completion")
 		overview.free()
 	for recipe in selections.roomCompositions:
+		check(recipe.pieces[0].get("assetId", "") != "painted-river-port.cobble-street", "Broad paved bases do not repeat raised curbs across the room")
 		var cell: Dictionary = cells[recipe.cellId]
 		var node: Node3D = registry.build_cell(cell)
 		check(node.name == "AuthoredTownGreen", recipe.cellId + " uses actual native content")

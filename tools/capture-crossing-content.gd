@@ -12,6 +12,10 @@ func _run() -> void:
 	var camera = world.get_node("CameraDirector")
 	var output := ProjectSettings.globalize_path("res://../docs/verification")
 	var requested := OS.get_cmdline_user_args()
+	var unshadowed := "--unshadowed" in requested
+	if unshadowed:
+		world.get_node("Sun").shadow_enabled = false
+	var suffix := "-unshadowed" if unshadowed else ""
 	var captured: Array = []
 	for entry in [["1-32", "trollferry-quay"], ["1-14", "north"], ["1-15", "bower"], ["1-17", "oak"], ["1-225", "armory-approach"], ["1-379", "bazaar"], ["1-191", "weaponsmith"], ["1-192", "armory-interior"], ["1-371", "supply-stand"], ["1-7", "herbalist"], ["1-22", "residences"], ["1-95", "bathhouse"], ["1-100", "cottage"], ["1-112", "stable"]]:
 		if not requested.is_empty() and not entry[0] in requested:
@@ -24,12 +28,12 @@ func _run() -> void:
 		await create_timer(1).timeout
 		camera.size = 36.0
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png(output.path_join("crossing-native-" + entry[1] + ".png"))
+		root.get_texture().get_image().save_png(output.path_join("crossing-native-" + entry[1] + suffix + ".png"))
 	for id in requested:
-		assert(id == "world" or id in captured, "Unknown capture room: " + id)
+		assert(id == "--unshadowed" or id == "world" or id in captured, "Unknown capture room: " + id)
 	if requested.is_empty() or "world" in requested:
 		world.focus_world_view()
 		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png(output.path_join("crossing-native-world.png"))
+		root.get_texture().get_image().save_png(output.path_join("crossing-native-world" + suffix + ".png"))
 	print("Captured actual viewer rooms: ", captured)
 	quit()

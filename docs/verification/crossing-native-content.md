@@ -400,6 +400,23 @@ silently enlarge scenery beyond known bounds.
 
 ## Reproduce
 
+### Paving repetition correction and lighting probe
+
+The shared `cobble-street` source contains raised curbs on both sides of each
+4 m module. Repeating it across a full room created interior parallel curb
+lines, not merely a texture artifact. Broad bases in rooms `1-12`, `1-13`,
+`1-25` and `1-26` now use the already-selected curb-free `cobble-plaza` module.
+Small authored curbed approaches remain separate. A regression check prevents
+curbed street tiles from returning as full-room base recipes.
+
+The quay/approach view was rendered and inspected with the normal lighting.
+Its repeated raised lines are gone. A separate `--unshadowed` capture disables
+only the sun's cast shadows and writes an `-unshadowed` diagnostic image, never
+overwriting the normal render. Fine surface stippling persisted in that probe;
+this does not establish its cause, and material/SSAO review remains open.
+Production cast shadows were not disabled or weakened. The diagnostic image
+is not a proposed visual direction. All 4,377 Godot checks passed.
+
 ### Trollferry bank and street continuation
 
 Rooms `1-25` and `1-26` now continue into `1-32` as one description-led approach

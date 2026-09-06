@@ -2391,7 +2391,7 @@
         }
       ],
       "currentModels": [
-        "painted-river-port.cobble-street"
+        "painted-river-port.cobble-plaza"
       ],
       "currentSurfaces": [],
       "recipeStatus": "partial-authored",
@@ -2491,7 +2491,7 @@
         }
       ],
       "currentModels": [
-        "painted-river-port.cobble-street"
+        "painted-river-port.cobble-plaza"
       ],
       "currentSurfaces": [],
       "recipeStatus": "partial-authored",
@@ -4236,7 +4236,7 @@
         }
       ],
       "currentModels": [
-        "painted-river-port.cobble-street"
+        "painted-river-port.cobble-plaza"
       ],
       "currentSurfaces": [],
       "recipeStatus": "partial-authored",
@@ -4331,7 +4331,7 @@
         }
       ],
       "currentModels": [
-        "painted-river-port.cobble-street",
+        "painted-river-port.cobble-plaza",
         "painted-river-port.quay-wall",
         "painted-river-port.quay-wall",
         "painted-river-port.quay-wall",
