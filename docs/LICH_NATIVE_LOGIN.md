@@ -553,6 +553,16 @@ so the two are separated rather than blended.
 - This app's current arg list, port constant, socket direction and parser (§1).
 - The absence of any secret-storage crate, with the commands that returned
   nothing (§5.2).
+- **`--headless=11024` really is normalised on the `.sal` path, and the launch
+  file really is what Lich reads.** Not read out of `arg_normalization.rb` -
+  measured against a real Lich 5.20.1 on 6 Sep 2026, with the sabotage that
+  makes the measurement mean something:
+  `docs/verification/lich-sal-launch-2026-09-06.md`. An eight-line hand-written
+  `.sal` plus one `--headless=11024` started Lich with no `--login`, no
+  `--dragonrealms`, no `--stormfront` and no saved entry, and
+  `Get-NetTCPConnection` showed 11024 listening on Lich's own pid; the same
+  file with `GAMECODE=` removed exited(1) printing `error: launch_data contains
+  no GAMECODE info` and never opened the port.
 
 ### Inferred, and must be measured before anything is built on it
 
@@ -561,11 +571,8 @@ so the two are separated rather than blended.
    set on this path; the code was read, the interaction was not traced. It
    decides whether the channel tabs fill. **N4 measures it against a live
    session and records the answer; nothing may assert it before then.**
-2. **Whether `--headless` normalisation runs on the `.sal` path.**
-   `arg_normalization.rb` operates on ARGV before option parsing, so it should,
-   but the `.sal` branch was not traced through it. **N3's `verify:` is a real
-   Lich start with the `.sal` and a `netstat` showing 11024 listening** — not a
-   reading of the normaliser.
+2. ~~**Whether `--headless` normalisation runs on the `.sal` path.**~~
+   **Measured 6 Sep 2026 (N3): yes.** Moved to the read column above.
 3. **Whether the `L` reply's `GAMEPORT` for DR prime is 11024.** Lich's own
    flag-driven constants say `dr.simutronics.net:11024`
    (`argv_options.rb:373-383`), but on this path the value comes from the

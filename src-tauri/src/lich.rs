@@ -1,94 +1,69 @@
 //! Starting Lich, so the app is not permanently parked on somebody else doing
 //! it by hand.
 //!
-//! Lich sits between Genie and the game. Without it running there is no bridge,
-//! no live data, and the whole companion is a demo of itself - which is what it
-//! had been, for as long as launching Lich was a manual step somebody had to
-//! remember and get the arguments right for.
+//! Lich sits between this app and the game. Without it running there is no
+//! bridge, no live data, and the whole companion is a demo of itself - which is
+//! what it had been, for as long as launching Lich was a manual step somebody
+//! had to remember and get the arguments right for.
 //!
-//! # The password never comes through here
+//! # The password does not come through here, and never reaches a command line
 //!
 //! This is the constraint the whole design is bent around, so it is stated
-//! first rather than buried.
+//! first rather than buried. **It changed in Lane N and the old wording is
+//! kept nowhere:** the app now performs the Play.net account login itself
+//! (`docs/LICH_NATIVE_LOGIN.md` §2), so it *does* handle a password, in one
+//! command invocation, in memory. What has not changed is the part this
+//! module owns.
 //!
 //! Lich accepts `--account=`, `--password=` and `--character=` on the command
 //! line. This module does not use them and must not. A password on a command
 //! line is visible in the process list to every other program on the machine,
 //! and lands in crash dumps and parent-process logs; it is the wrong place for
-//! a credential no matter how briefly it is there.
+//! a credential no matter how briefly it is there. Nothing secret is a
+//! parameter of any function here: what [`launch_lich_with_launch_data`]
+//! receives is the `L` reply's fields, and the one sensitive item among them -
+//! the one-shot game `KEY` - goes into a file Lich reads and this app deletes,
+//! never into `argv`. See [`crate::sal`] for that file's shape and lifetime.
 //!
-//! So there are two paths and neither carries one:
+//! # The route that was removed, and why there is no fallback to it
 //!
-//!   - **First time**, when Lich has no saved character: launch Lich's own
-//!     window and stop. The player types their account details into
-//!     Simutronics' and Lich's own dialog, which is the software that is
-//!     supposed to have them, and Lich saves the entry itself.
-//!   - **Every time after**: `--login <character>`, which names a saved entry
-//!     and carries no secret at all.
+//! Until Lane N the character launch was
+//! `--login <Character> --dragonrealms --stormfront --headless=<port>`.
+//! `--login` asks Lich to resolve a *saved entry* out of its own
+//! `data/entry.yaml` - and the only way to get an entry into that file on this
+//! machine was to sign in through Genie first, because Lich's own login window
+//! offers Wrayth, Wizard, Avalon and Saga and none of the four is installed
+//! (`gui_login_usable` below is the check, and it is why that deadlock is
+//! reported rather than presented as a button). That is the whole reason Genie
+//! was ever in this picture.
 //!
-//! The app therefore never reads, stores, holds in memory, or passes on a
-//! password. Reading the saved-entry file is deliberately narrow for the same
-//! reason - see `saved_characters`.
+//! It is gone rather than kept beside the new one, per `CLAUDE.md` §0 and
+//! `docs/LICH_NATIVE_LOGIN.md` §6. The two flags that went with it are gone
+//! for reasons worth recording, because both look like losses and neither is:
 //!
-//! # The frontend flag has to be `--stormfront`, not `--genie`
+//!   - **`--dragonrealms`** picked the game. `GAMECODE=DR` in the launch file
+//!     does that now (`main.rb:225`), and it is the server's answer rather
+//!     than our constant.
+//!   - **`--stormfront`** was already inert on this path and had been since
+//!     issue #31. `--without-frontend` - which `--headless=<port>` expands to
+//!     (`arg_normalization.rb:52-53`) - routes `Frontend.client` through
+//!     `LoginHelpers.resolve_headless_frontend`
+//!     (`login_helpers.rb:578-584`), which special-cases only `--saga` and
+//!     `--genie` and returns a hardcoded `'profanity'` for everything else.
+//!     So `--stormfront` never reached anything. Measured, not inferred: see
+//!     `docs/verification/lich-native-frontend-2026-09-06.md`.
 //!
-//! Found 27 Aug 2026, the same day the channel tabs shipped, and it would have
-//! made them permanently silent against a real game. Lich's frontend registry
-//! (`front-end.rb`) gives each declared frontend a fixed capability set, and
-//! `messaging.rb` gates every `<pushStream>`/`<popStream>` tag behind
-//! `Frontend.supports_streams?`. `--genie`'s capabilities are `[xml, mono]` -
-//! no `streams` - because the real Genie plugin never asked for them, which is
-//! the entire reason StreamTabs exists: Genie users build named windows out of
-//! highlight patterns because Lich never gives them the game's own labels.
-//! Declaring `--genie` here would have reproduced exactly that limitation on
-//! purpose, silently, and only the replay fixture (which emits tags without
-//! any capability check) made the feature look like it worked.
+//! **`--genie` must stay absent, and that is the one that still matters.** It
+//! is one of the two flags `resolve_headless_frontend` does honour, and it
+//! would resolve the identity to `genie`, whose registered capabilities are
+//! `[xml, mono]` (`front-end.rb:251-252`) - no `streams`. `messaging.rb:21-48`
+//! gates every `<pushStream>`/`<popStream>` tag behind
+//! `Frontend.supports_streams?`, so the channel tabs would go permanently
+//! silent against a real game while the replay fixture, which emits those tags
+//! with no capability check, went on looking fine.
 //!
-//! `--stormfront` is a real `-s`/`--stormfront` flag Lich's argument parser
-//! accepts, and combined with `--headless <port>` never launches an actual
-//! Wrayth/StormFront process - `--headless` expands to
-//! `--without-frontend --detachable-client=PORT`, and `--without-frontend`
-//! sets `$_CLIENT_ = nil` before any launcher adapter runs
-//! (`lib/main/main.rb`). So the frontend identity governs the protocol Lich
-//! speaks; `--without-frontend` governs whether it tries to open a window.
-//! The two are independent, and this app wants the first without the second.
-//!
-//! **Correction, issue #31 (28 Aug 2026): `--stormfront` does not carry
-//! `[xml, streams, mono, room_window]` on this launch path.** That capability
-//! set is real for an interactive stormfront session, but it is never reached
-//! here. `--without-frontend` routes `Frontend.client` through
-//! `LoginHelpers.resolve_headless_frontend` (`login_helpers.rb`), which only
-//! special-cases `--saga` and `--genie`; every other flag, `--stormfront`
-//! included, falls through to a hardcoded `'profanity'`. So this app's actual
-//! resolved identity is `profanity`, whose capabilities are `[xml, streams]` -
-//! `streams` survives, which is why the channel tabs work, but `mono` and
-//! `room_window` do not.
-//!
-//! Neither loss reaches this app, and it is worth citing where each is
-//! actually checked rather than asserting it, since the two are not the same
-//! mechanism and an earlier draft of this note conflated them. `mono`
-//! (`Frontend.supports_mono?`) gates `room_mono?` (`games.rb:64-66`), which
-//! only decides whether Lich wraps its own injected `Room Exits:`/
-//! `Room Number:` text lines in `<output class="mono"/>` formatting tags
-//! (`games.rb:80-82`, `148-149`, `1518`) - a rendering hint for a client
-//! displaying that text verbatim. `room_window` (`Frontend.supports_room_window?`)
-//! is unrelated: it gates injecting a second, separate `<streamWindow>` tag
-//! carrying a duplicate of the room's exits (`games.rb:1364-1367`,
-//! `1520-1522`). This app parses room state from its own commands rather
-//! than either injected form - `lich-scripts/companion_bridge.lic` has no
-//! reference to `Room Exits`, `room_mono`, or `streamWindow` - so losing
-//! both is inert for two independent reasons, not one shared one.
-//!
-//! `--stormfront` is kept anyway: it is what a real stormfront session
-//! would pass, it is harmless (unread by the headless path), and it costs
-//! nothing to be ready for a future Lich version whose resolver honours it.
-//! Avoiding `--genie` is still correct and still the part that matters -
-//! `genie`'s capabilities are `[xml, mono]`, no `streams` at all, and unlike
-//! the `mono`/`room_window` gap that is a total loss for StreamTabs, not a
-//! partial one.
-//!
-//! `--headless <port>` is also what actually opens the socket
-//! `src-tauri/src/game_link.rs` connects to. Its absence here was a second,
+//! `--headless=<port>` is also what actually opens the socket
+//! `src-tauri/src/game_link.rs` connects to. Its absence was a second,
 //! separate gap: without it Lich resolves to the `session` role and expects to
 //! spawn a real frontend, so this app's own launch button would start Lich
 //! into a state its own TCP client could never attach to.
@@ -336,27 +311,6 @@ fn genie_running() -> Option<bool> {
     any_image_listed(&listed, crate::setup::GENIE_IMAGE_NAMES)
 }
 
-/// A character name that is safe to put on a command line.
-///
-/// Not a defence against a hostile user - it is their own machine and their own
-/// Lich. It is a defence against a name that Lich would read as an option
-/// rather than a value, which is what a leading dash does, and against the
-/// quoting mess that anything more exotic turns into once it crosses a process
-/// boundary on Windows.
-///
-/// Apostrophes and spaces are allowed because DragonRealms names have them.
-///
-/// Its own function so it can be tested. Left inline it was unreachable from a
-/// test without spawning a process, and an unreachable branch is one nobody can
-/// prove they fixed.
-fn valid_character_name(name: &str) -> bool {
-    !name.is_empty()
-        && !name.starts_with('-')
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '\'' || c == '-' || c == ' ')
-}
-
 /// Off the UI thread, because this takes seconds and used to freeze the app.
 ///
 /// A Tauri command declared `fn` rather than `async fn` runs on the main
@@ -513,32 +467,26 @@ pub(crate) fn lich_status_blocking() -> LichStatus {
 /// connects to). Neither made `launch_lich` return an error - Lich still
 /// started - so nothing short of asserting the argument list itself would
 /// have caught either one.
-fn launch_args(launcher: &str, character: Option<&str>) -> Result<Vec<String>, String> {
+fn launch_args(launcher: &str, sal: Option<&Path>) -> Result<Vec<String>, String> {
     let mut args: Vec<String> = vec![launcher.to_string()];
 
-    match character.map(str::trim).filter(|c| !c.is_empty()) {
-        Some(name) => {
-            // A character name reaches a command line, so it is checked. This
-            // is not defence against a hostile user - it is their own machine -
-            // it is defence against a name with a quote or a switch-looking
-            // prefix in it turning into an argument Lich reads as an option.
-            if !valid_character_name(name) {
-                return Err(format!("{name:?} does not look like a character name"));
+    match sal {
+        Some(path) => {
+            // The launch file, positional and first. Lich matches it by
+            // extension - `when /\.sal$|Gse\.~xt$/i`,
+            // `lib/main/argv_options.rb:108-110` - so it must keep its `.sal`
+            // suffix and must not look like an option.
+            let path = path.to_string_lossy().into_owned();
+            if path.starts_with('-') {
+                return Err(format!("{path:?} would be read as an option, not a file"));
             }
-            args.push("--login".into());
-            args.push(name.into());
-            args.push("--dragonrealms".into());
-            // `--stormfront`, not `--genie` - see the module note. This flag
-            // is actually inert on this launch path (the headless resolver
-            // ignores everything but --saga/--genie and resolves to
-            // 'profanity' regardless), but --genie would be actively worse:
-            // it loses the streams capability the channel tabs depend on,
-            // where profanity keeps it. `--headless` below is what stops
-            // Lich from trying to launch an actual frontend process.
-            args.push("--stormfront".into());
+            args.push(path);
             // Opens the socket `game_link.rs` connects to, and stops Lich
             // from expecting to spawn a frontend process it would then find
-            // was never installed.
+            // was never installed. Kept as the single `--headless=` token
+            // rather than the pair it expands to: `arg_normalization.rb:33-35`
+            // refuses to combine `--headless` with an explicit
+            // `--detachable-client`, so writing both would be a hard error.
             args.push(format!("--headless={DETACHABLE_PORT}"));
             // The bridge, started by Lich rather than by hand. Without this the
             // app connects to nothing and the player is told the bridge is
@@ -555,16 +503,234 @@ fn launch_args(launcher: &str, character: Option<&str>) -> Result<Vec<String>, S
     Ok(args)
 }
 
+/// What a launch reports.
+///
+/// `docs/LICH_NATIVE_LOGIN.md` §8 publishes `{ pid, port }`; the two extra
+/// fields are what `DRC_LICH_DRY_RUN=1` exists to hand back, and they are
+/// present on both paths so a caller never has to know which one it got.
+/// `pid` is `null` in a dry run, because there is no process and reporting a
+/// fabricated number would be worse than saying so.
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchOutcome {
+    pub pid: Option<u32>,
+    pub port: u16,
+    /// The exact argument vector, `argv[0]` being the launcher path. Under a
+    /// dry run this is the whole answer; on a real launch it is what was
+    /// actually passed, so a caller comparing the two is comparing like with
+    /// like.
+    pub argv: Vec<String>,
+    pub dry_run: bool,
+}
+
+/// Whether `DRC_LICH_DRY_RUN` asks for a launch that writes and reports but
+/// does not spawn.
+///
+/// A named environment variable rather than a `#[cfg(test)]` branch, because
+/// the point is that the sign-in screen can be driven end to end in a running
+/// app with no Lich and no account (`docs/LICH_NATIVE_LOGIN.md` §8).
+fn dry_run() -> bool {
+    std::env::var("DRC_LICH_DRY_RUN").is_ok_and(|v| v == "1")
+}
+
+/// Launch files written for a launch that has not yet been attached to.
+///
+/// One at a time in practice - `launch_lich_with_launch_data` refuses to start
+/// a second Lich - but a `Vec` rather than an `Option` so a second entry can
+/// never orphan a first.
+static PENDING_LAUNCH_FILES: std::sync::Mutex<Vec<PathBuf>> = std::sync::Mutex::new(Vec::new());
+
+/// Shred every launch file this process is still holding, and say how many.
+///
+/// Called from three places, and any of the three may get there first:
+/// `game_link::attach_game` the moment the detachable socket is up, the
+/// timeout thread below, and the next launch's sweep. That is why
+/// `sal::shred` treats an already-gone file as success.
+///
+/// The count is returned rather than logged so a test can assert on it. A
+/// function that shreds nothing and a function that was never called are
+/// otherwise the same observation.
+pub fn shred_pending_launch_files() -> usize {
+    let taken: Vec<PathBuf> = {
+        let mut guard = PENDING_LAUNCH_FILES
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        std::mem::take(&mut *guard)
+    };
+    let mut shredded = 0;
+    for path in taken {
+        if crate::sal::shred(&path).is_ok() {
+            shredded += 1;
+        }
+    }
+    shredded
+}
+
+/// How long to wait for the app's own attach before shredding the launch file
+/// anyway.
+///
+/// Generous, because the wait covers a real sign-in to the game server, and
+/// harmless to overshoot: the key in the file is one-shot and the file is
+/// swept at the next launch regardless. Short enough that a Lich which never
+/// started does not leave it there for the session.
+const LAUNCH_FILE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// Start Lich against launch data obtained from `eaccess`.
+///
+/// **This is the same start path as [`launch_lich`], not a second one.** Both
+/// build their argv with [`launch_args`] and spawn with the same `Command`;
+/// the only difference between them is whether a `.sal` is passed, which is
+/// the difference between "log this player in" and "open Lich's own window".
+///
+/// The password is not a parameter and never becomes one: what arrives here is
+/// the `L` reply's fields, and the only secret among them is the one-shot
+/// `KEY`, which goes into the file and never into `argv` - a Windows command
+/// line is readable by any process of this user.
+///
+/// On the deletion of that file, and why it is not simply "after spawn": see
+/// the lifetime note in [`crate::sal`]. Lich has finished reading the file by
+/// `main.rb:349`, long before the detachable listener opens at
+/// `main.rb:842-857`, so the app's own successful attach is a sound and
+/// externally observable "safe now" - with [`LAUNCH_FILE_TIMEOUT`] behind it
+/// for the case where the attach never happens.
+pub fn launch_lich_with_launch_data(fields: &[(String, String)]) -> Result<LaunchOutcome, String> {
+    let s = lich_status_blocking();
+
+    let launcher = s.launcher.ok_or("Could not find lich.rbw")?;
+    let ruby = s
+        .ruby
+        .ok_or("Could not find Ruby, which Lich needs to run")?;
+
+    // Refuse rather than race - see `launch_lich` for why, and note that on
+    // this path a second Lich would also mean a second launch file.
+    if s.running_known && s.running {
+        return Err(
+            "Lich looks like it is already running. Close it first, or use the one that is up."
+                .into(),
+        );
+    }
+
+    launch_lich_using(&ruby, &launcher, fields)
+}
+
+/// [`launch_lich_with_launch_data`] with the interpreter and launcher already
+/// resolved.
+///
+/// Split out for one reason and it is the reason `DRC_LICH_DRY_RUN` exists at
+/// all: the dry-run branch below is unreachable from a test otherwise, because
+/// the caller above refuses on a machine with no Lich installed and would
+/// spawn a real one on a machine that has it. With this seam the dry run can
+/// be driven with a launcher path that does not exist, which is exactly the
+/// case a test needs and a real launch never wants.
+fn launch_lich_using(
+    ruby: &str,
+    launcher: &str,
+    fields: &[(String, String)],
+) -> Result<LaunchOutcome, String> {
+    // Anything a previous run left behind goes now, before a new one is
+    // written. This is the backstop for the case no in-process timer can
+    // cover: an app that was killed between writing the file and attaching.
+    shred_pending_launch_files();
+    let swept = crate::sal::sweep()?;
+    if swept > 0 {
+        eprintln!("lich: removed {swept} leftover launch file(s) from a previous run");
+    }
+
+    let sal = crate::sal::write_temp(fields)?;
+    PENDING_LAUNCH_FILES
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .push(sal.clone());
+
+    let args = match launch_args(launcher, Some(&sal)) {
+        Ok(args) => args,
+        Err(e) => {
+            shred_pending_launch_files();
+            return Err(e);
+        }
+    };
+
+    if dry_run() {
+        // Write, report, remove. The file is genuinely created and genuinely
+        // removed, so the dry run exercises `sal::write_temp` and `sal::shred`
+        // rather than skipping past them.
+        shred_pending_launch_files();
+        return Ok(LaunchOutcome {
+            pid: None,
+            port: DETACHABLE_PORT,
+            argv: args,
+            dry_run: true,
+        });
+    }
+
+    let child = match Command::new(ruby)
+        .args(&args)
+        .current_dir(
+            PathBuf::from(launcher)
+                .parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_else(|| PathBuf::from(".")),
+        )
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(e) => {
+            shred_pending_launch_files();
+            return Err(format!("Could not start Lich: {e}"));
+        }
+    };
+
+    std::thread::spawn(|| {
+        std::thread::sleep(LAUNCH_FILE_TIMEOUT);
+        shred_pending_launch_files();
+    });
+
+    Ok(LaunchOutcome {
+        pid: Some(child.id()),
+        port: DETACHABLE_PORT,
+        argv: args,
+        dry_run: false,
+    })
+}
+
 /// Start Lich.
 ///
-/// With a character name this is a silent, complete launch: Lich logs in using
-/// the entry it saved earlier, connects DragonRealms for Genie, and starts the
-/// companion bridge script so the app has data without a second manual step.
+/// Open Lich's own launcher window and stop there.
 ///
-/// Without one it opens Lich's own launcher and stops there, because that is
-/// the screen where credentials belong. See the module header.
+/// **The saved-entry route this used to carry is gone.** It passed
+/// `--login <Character> --dragonrealms --stormfront`, which asks Lich to
+/// resolve an entry out of its own `data/entry.yaml` - and the only way to get
+/// an entry into that file on this machine was to sign in through Genie first,
+/// because Lich's own window offers Wrayth, Wizard, Avalon and Saga and none
+/// of the four is installed. That was the whole reason Genie was in the
+/// picture. [`launch_lich_with_launch_data`] replaces it: the app performs the
+/// account login itself and hands Lich a `.sal`, so there is nothing left for
+/// a saved entry to do. There is deliberately no fallback to the old route -
+/// see `CLAUDE.md` §0 and `docs/LICH_NATIVE_LOGIN.md` §6.
+///
+/// A `character` is therefore refused rather than ignored. The parameter
+/// survives only so the existing call site keeps type-checking until the
+/// sign-in screen replaces it; passing one is an error naming what to call
+/// instead, which is a thing a caller can act on, where silently starting a
+/// launcher that asks for a password would not be.
 #[tauri::command]
 pub fn launch_lich(character: Option<String>) -> Result<String, String> {
+    if character
+        .as_deref()
+        .map(str::trim)
+        .is_some_and(|c| !c.is_empty())
+    {
+        return Err(
+            "Signing a character in is `lich_login_launch` now, not `launch_lich`: \
+             Lich's saved-entry route needed Genie to create the entry, and the app \
+             performs the account login itself."
+                .into(),
+        );
+    }
+    launch_lich_bare()
+}
+
+fn launch_lich_bare() -> Result<String, String> {
     // The blocking form: this is already off the UI thread (its own command
     // is async) and calling the command wrapper here would need an await for
     // no benefit.
@@ -589,7 +755,7 @@ pub fn launch_lich(character: Option<String>) -> Result<String, String> {
         );
     }
 
-    let args = launch_args(&launcher, character.as_deref())?;
+    let args = launch_args(&launcher, None)?;
 
     Command::new(&ruby)
         .args(&args)
@@ -602,34 +768,49 @@ pub fn launch_lich(character: Option<String>) -> Result<String, String> {
         .spawn()
         .map_err(|e| format!("Could not start Lich: {e}"))?;
 
-    Ok(match character {
-        Some(name) => format!("Starting Lich for {name}."),
-        None => {
-            "Opened Lich's login window. Sign in there and it will remember the character.".into()
-        }
-    })
+    Ok("Opened Lich's own window.".into())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// This checks the argument list, not the capability it was meant to buy.
-    /// `--genie` shipped here first and was wrong in a way nothing else in
-    /// this file would have caught - Lich still starts, `launch_lich` still
-    /// returns Ok, and the only symptom is a feature elsewhere in the app
-    /// receiving nothing, forever, from a real game. `--genie` would still be
-    /// the worse choice today: its capabilities are `[xml, mono]`, no
-    /// `streams` at all, versus the `[xml, streams]` this app's headless
-    /// launch actually resolves to regardless of `--stormfront` - see the
-    /// module-level correction under issue #31. So this test can only prove
-    /// the flag is present, not that it does what its name once implied;
-    /// the real capability fact lives in Lich's own `login_helpers.rb`, not
-    /// in this argument list.
+    /// The `.sal` launch, argument for argument.
+    ///
+    /// Every flag the old character branch carried is gone and the launch file
+    /// supplies what each of them used to: `GAMECODE=DR` picks the game
+    /// (`main.rb:225`) where `--dragonrealms` did, the file itself replaces
+    /// `--login <Character>` and the saved entry it needed, and `--stormfront`
+    /// was already inert on this path — `resolve_headless_frontend`
+    /// (`login_helpers.rb:578-584`) special-cases only `--saga` and `--genie`
+    /// and returns `'profanity'` for everything else.
     #[test]
-    fn passes_stormfront_flag_not_genie() {
-        let args = launch_args("lich.rbw", Some("Phemius")).unwrap();
-        assert!(args.iter().any(|a| a == "--stormfront"), "{args:?}");
+    fn the_sal_launch_is_the_file_the_port_and_the_bridge_and_nothing_else() {
+        let sal = PathBuf::from("C:/Users/x/DR Companion Data/launch/0123456789abcdef.sal");
+        let args = launch_args("lich.rbw", Some(&sal)).unwrap();
+
+        assert_eq!(
+            args,
+            vec![
+                "lich.rbw".to_string(),
+                sal.to_string_lossy().into_owned(),
+                format!("--headless={DETACHABLE_PORT}"),
+                "--start-scripts=companion_bridge".to_string(),
+            ],
+            "{args:?}"
+        );
+
+        // Named individually as well as by the equality above, because the
+        // equality would go quietly green if somebody rewrote it to match a
+        // new argv, and these three are the ones with reasons.
+        assert!(!args.iter().any(|a| a == "--login"), "{args:?}");
+        assert!(!args.iter().any(|a| a == "--dragonrealms"), "{args:?}");
+        assert!(!args.iter().any(|a| a == "--stormfront"), "{args:?}");
+        // `--genie` was the original defect this file's tests exist for, and
+        // it must stay gone for a different reason now: it is one of the two
+        // flags `resolve_headless_frontend` still honours, and it would resolve
+        // the identity to `genie`, whose capabilities are `[xml, mono]` — no
+        // `streams`, so the channel tabs would go silent again.
         assert!(!args.iter().any(|a| a == "--genie"), "{args:?}");
     }
 
@@ -638,7 +819,8 @@ mod tests {
     /// attach to.
     #[test]
     fn opens_the_detachable_client_port() {
-        let args = launch_args("lich.rbw", Some("Phemius")).unwrap();
+        let sal = PathBuf::from("x.sal");
+        let args = launch_args("lich.rbw", Some(&sal)).unwrap();
         assert!(
             args.iter()
                 .any(|a| a == &format!("--headless={DETACHABLE_PORT}")),
@@ -646,13 +828,15 @@ mod tests {
         );
         // And not the older two-token form Lich also accepts - a mismatch
         // here would silently pass Lich's own parser and still be wrong.
+        // Worse than wrong, now: `arg_normalization.rb:33-35` raises
+        // "--headless cannot be combined with --detachable-client" and exits 1.
         assert!(
             !args.iter().any(|a| a.starts_with("--detachable-client")),
             "{args:?}"
         );
     }
 
-    /// The bare launch (no character) must stay bare. Adding a frontend or
+    /// The bare launch (no launch file) must stay bare. Adding a frontend or
     /// port here would have Lich decide those things instead of asking, on
     /// the screen where credentials belong.
     #[test]
@@ -661,9 +845,127 @@ mod tests {
         assert_eq!(args, vec!["lich.rbw".to_string()]);
     }
 
+    /// The launch file's path is positional, so a path that begins with a dash
+    /// would become an option instead of a file and Lich would silently launch
+    /// with no launch data at all.
     #[test]
-    fn a_hostile_looking_name_is_refused_before_it_reaches_a_command_line() {
-        assert!(launch_args("lich.rbw", Some("--account=x")).is_err());
+    fn a_launch_file_path_that_looks_like_an_option_is_refused() {
+        let sal = PathBuf::from("--headless=1.sal");
+        assert!(launch_args("lich.rbw", Some(&sal)).is_err());
+    }
+
+    /// The saved-entry route is gone, not deprecated. Its replacement is named
+    /// in the error, because "that no longer works" without a next step is how
+    /// a caller ends up reimplementing it.
+    #[test]
+    fn a_character_is_refused_and_the_replacement_is_named() {
+        let err = launch_lich(Some("Phemius".into())).unwrap_err();
+        assert!(err.contains("lich_login_launch"), "{err}");
+        // Whitespace is not a character name, so it must not reach this
+        // refusal - it falls through to the bare launch. Asserted on the
+        // predicate rather than by calling `launch_lich`, which would spawn a
+        // real Lich from a unit test.
+        let refuses = |c: Option<&str>| c.map(str::trim).is_some_and(|c| !c.is_empty());
+        assert!(refuses(Some("Phemius")));
+        assert!(!refuses(Some("   ")));
+        assert!(!refuses(None));
+    }
+
+    /// Serialises tests that read process-global environment variables.
+    ///
+    /// `std::env` is process-wide and the harness runs tests in parallel, so a
+    /// test that sets `DRC_LICH_DRY_RUN` could otherwise decide another test's
+    /// launch. There is exactly one such test today; the lock is here so the
+    /// second one cannot be written wrong.
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// `DRC_LICH_DRY_RUN=1`: the argv is reported, the launch file is really
+    /// written and really removed, and no process is started.
+    #[test]
+    fn a_dry_run_reports_the_argv_writes_the_file_and_spawns_nothing() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+
+        let dir = std::env::temp_dir().join(format!("drc-dryrun-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::env::set_var("DRC_LAUNCH_DIR", &dir);
+        std::env::set_var("DRC_LICH_DRY_RUN", "1");
+
+        let fields: Vec<(String, String)> = [
+            ("GAME", "STORM"),
+            ("GAMECODE", "DR"),
+            ("GAMEHOST", "dr.simutronics.net"),
+            ("GAMEPORT", "11024"),
+            ("KEY", "not-a-real-key-0000"),
+        ]
+        .iter()
+        .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+        .collect();
+
+        // A launcher path that does not exist. If the dry-run branch were
+        // skipped, `Command::spawn` would fail on it and this would be an
+        // error rather than a wrong-but-plausible success - so the test cannot
+        // pass by accidentally launching something.
+        let outcome =
+            launch_lich_using("no-such-ruby.exe", "C:/no/such/lich.rbw", &fields).unwrap();
+
+        std::env::remove_var("DRC_LICH_DRY_RUN");
+        std::env::remove_var("DRC_LAUNCH_DIR");
+
+        assert!(outcome.dry_run);
+        assert_eq!(outcome.pid, None, "a dry run has no process to report");
+        assert_eq!(outcome.port, DETACHABLE_PORT);
+
+        // The published argv, in order.
+        assert_eq!(outcome.argv[0], "C:/no/such/lich.rbw");
+        assert!(
+            outcome.argv[1].ends_with(".sal"),
+            "the launch file must be argv[1]: {:?}",
+            outcome.argv
+        );
+        assert_eq!(outcome.argv[2], format!("--headless={DETACHABLE_PORT}"));
+        assert_eq!(outcome.argv[3], "--start-scripts=companion_bridge");
+        assert_eq!(outcome.argv.len(), 4, "{:?}", outcome.argv);
+
+        // The key is in the file, never on a command line. Asserted against
+        // the whole argv rather than one element, because "not in argv[1]" is
+        // not the claim being made.
+        let joined = outcome.argv.join(" ");
+        assert!(
+            !joined.contains("not-a-real-key-0000"),
+            "a secret reached argv: {joined}"
+        );
+        // ...and the positive control for that assertion: the value really was
+        // in the launch data, so a writer that dropped it could not pass the
+        // check above by having nothing left to leak.
+        assert!(fields.iter().any(|(_, v)| v == "not-a-real-key-0000"));
+
+        // Written and removed, both really.
+        assert!(
+            std::fs::metadata(&outcome.argv[1]).is_err(),
+            "{} survived the dry run",
+            outcome.argv[1]
+        );
+        assert!(
+            dir.exists(),
+            "the launch directory was never created, so nothing was ever written"
+        );
+        assert_eq!(
+            std::fs::read_dir(&dir).unwrap().count(),
+            0,
+            "the dry run left something in {}",
+            dir.display()
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Shredding is called from three places and any may be first, so it has
+    /// to be safe to call when there is nothing pending. Counted rather than
+    /// assumed: a function that shredded nothing and one that never ran are
+    /// otherwise the same observation.
+    #[test]
+    fn shredding_nothing_pending_is_zero_and_not_an_error() {
+        assert_eq!(shred_pending_launch_files(), 0);
     }
 
     /// Genie must never count as a frontend Lich's GUI can offer.
@@ -783,22 +1085,6 @@ mod tests {
         );
 
         let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn character_names_that_would_become_options_are_refused() {
-        assert!(valid_character_name("Phemius"));
-        assert!(valid_character_name("Dan the Bold"));
-        assert!(valid_character_name("D'Vare"));
-
-        // The ones that matter: anything Lich would parse as a switch, and
-        // anything that turns into a second argument or a shell surprise.
-        assert!(!valid_character_name("--password=hunter2"));
-        assert!(!valid_character_name("-s"));
-        assert!(!valid_character_name(""));
-        assert!(!valid_character_name("Phemius\" --password=x"));
-        assert!(!valid_character_name("Phemius; calc"));
-        assert!(!valid_character_name("Phem\nius"));
     }
 
     /// rubyw over ruby, so no console window is left behind Lich.

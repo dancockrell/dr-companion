@@ -304,6 +304,14 @@ pub fn game_attach(
     let stream = TcpStream::connect((host.as_str(), port))
         .map_err(|e| format!("Could not reach {host}:{port} - {e}"))?;
 
+    // The detachable socket is up, which is the first externally observable
+    // moment provably after Lich finished reading the launch file: Lich is
+    // done with `@launch_data` by `main.rb:349` and does not open this
+    // listener until `main.rb:842-857`. So the one-shot game key can go now.
+    // A no-op unless this app started that Lich itself - see
+    // `lich::shred_pending_launch_files`.
+    crate::lich::shred_pending_launch_files();
+
     // No Nagle. A MUD sends short lines and a command is a keystroke away from
     // being urgent; forty milliseconds of coalescing is the difference between
     // a client that feels alive and one that feels like a form.

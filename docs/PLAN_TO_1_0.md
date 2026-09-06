@@ -297,6 +297,7 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
+| N | N3, N4 | `lane-n/n3-sal-launch` | `dev/wt-n3` | 2026-09-06 |
 
 No lane is currently held. G's row was deleted on 6 Sep 2026 when G11's second
 PR (#359) merged, and **Lane N's design row went the same day** when PR #432
@@ -1604,8 +1605,20 @@ the code increments. N8 is optional and human-gated and blocks nothing.
   pitfalls: 3, 15, 16.
   done-when: PRIVACY.md names the host, says what is sent, says the password is not stored by default and where it goes when it is, and no document anywhere still says the app never sees it.
 
-- [ ] **N3  The `.sal` launch file, and Lich started from it** (≈90)
-  touches: new:src-tauri/src/sal.rs, src-tauri/src/lich.rs, src-tauri/src/lib.rs
+- [~] **N3  The `.sal` launch file, and Lich started from it** (≈90)
+  owner: lane-n/n3-sal-launch claim: wt-n3 since: 2026-09-06
+  progress: the launch file, the launch itself and the measurement are done and
+  merged. **The `lich_login_launch` command is not registered**, because it
+  performs the EAccess login and `src-tauri/src/eaccess.rs` does not exist yet:
+  N1 had no commits and no working-tree changes when this was built, so it was
+  neither waited for nor worked around. Everything here that does not need
+  `LaunchData` is built; the command is the whole of what is left, and
+  `lich::launch_lich_with_launch_data(&[(String, String)])` is its entire body
+  minus one call to `eaccess::login`, so finishing it is a wrapper rather than a
+  design. `sal::write_temp` takes `&[(String, String)]` rather than `&LaunchData`
+  on purpose: that is `LaunchData`’s own inner type, so N1 owns the type and this
+  module needs no second copy of it (`CLAUDE.md` §0).
+  touches: src-tauri/src/sal.rs, src-tauri/src/lich.rs, src-tauri/src/lib.rs, src-tauri/src/game_link.rs, docs/verification/lich-sal-launch-2026-09-06.md
   depends-on: N1
   do: `sal::write_temp(&LaunchData) -> PathBuf` writes `KEY=…` and the rest one `UPPER=value` per line into a random 16-hex basename in the app's own temp directory — never the repo, never Lich's `TEMP_DIR` — and `sal::shred(path)` removes it. Replace `lich::launch_args` (`lich.rs:517-556`): the character branch becomes `[<sal path>, "--headless=11024", "--start-scripts=companion_bridge"]` and drops `--login`, `--dragonrealms` and `--stormfront`, all three of which the launch file now supplies (`GAMECODE=DR` at `main.rb:225-231`). Keep `--headless=` rather than the expanded pair: it is one token, it is what already ships, and `arg_normalization.rb:33-35` refuses to combine it with an explicit `--detachable-client`, so the existing `opens_the_detachable_client_port` assertion (`lich.rs:640-651`) stays valid unchanged. Add the `lich_login_launch` command per `LICH_NATIVE_LOGIN.md` §8 — it returns `{ pid, port }` after spawning, and shreds the `.sal` when `game_attach` reports the socket up, on a timeout, and at process exit. `DRC_LICH_DRY_RUN=1` writes and shreds the file and reports the argv without spawning. **The password never appears in argv**: a Windows command line is readable by any process of this user.
   verify: **not a reading of `arg_normalization.rb`** — start real Lich with a hand-written `.sal` carrying a deliberately invalid `KEY`, then `netstat -ano | grep LISTENING | grep :11024` shows Lich listening. That is the measurement `LICH_NATIVE_LOGIN.md` §7 item 2 asks for: it proves `--headless` normalisation runs on the `.sal` path, and it needs no valid account because the port opens before the game key is used. Kill that Lich **by the PID you started**, never by image name (§1 trap 12). Then `cargo test --lib sal` green and `DRC_LICH_DRY_RUN=1` reporting the argv with the `.sal` path first.
