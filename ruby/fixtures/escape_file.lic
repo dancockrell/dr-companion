@@ -1,0 +1,22 @@
+# A candidate that reaches for the filesystem outside its sandbox.
+#
+# Not a hostile script: this is what a plausible AI-written repair does when it
+# decides the fix is "read the character's real settings file". Under Lich that
+# would work. Under containment it must be reported as a violation naming the
+# path - and reported, not crashed: a reviewer needs to see which line reached
+# where, and a stack trace from a dead interpreter does not say that.
+#
+# The `rescue` is deliberate. A candidate that swallows its own error is the
+# case where a violation would go unrecorded if the guard only raised, so
+# `Contain::Violation` descends from `Exception` and this cannot catch it.
+
+echo 'escape_file: starting'
+
+begin
+  settings = File.read('C:/Users/Public/dr-companion-not-a-real-file.txt')
+  echo "escape_file: read #{settings.length} bytes"
+rescue StandardError => e
+  echo "escape_file: swallowed #{e.class}"
+end
+
+echo 'escape_file: still running'

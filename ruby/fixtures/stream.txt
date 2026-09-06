@@ -1,0 +1,8 @@
+You are now in a state of rest.
+[Crossing, Town Square Central]
+A giant rat scurries in.
+You swing a broadsword at a giant rat!
+  ... and hit for 12 points of damage!
+Roundtime: 3 sec.
+The giant rat falls to the ground and dies.
+You search the giant rat and find 4 copper Kronars.

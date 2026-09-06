@@ -1,0 +1,21 @@
+# A candidate that tries to load its way out.
+#
+# The restricted load path is what stands in for the `$SAFE` Ruby removed in
+# 3.0: a short allowlist is loaded before `$LOAD_PATH` is emptied, and every
+# other name is a violation. This fixture asks for the three that matter -
+# `socket` for the network, `fileutils` for the filesystem, and
+# `open-uri`, which turns the innocuous-looking `open` into an HTTP client.
+#
+# It exists separately from `escape_socket.lic` because the two are different
+# doors and a fixture that only tries one cannot say which of them is holding.
+
+echo 'escape_require: starting'
+
+begin
+  require 'socket'
+  echo 'escape_require: loaded socket'
+rescue StandardError => e
+  echo "escape_require: swallowed #{e.class}"
+end
+
+echo 'escape_require: still running'
