@@ -205,6 +205,67 @@
 		},
 		{
 			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.pier-section",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-1.45000004768372,
+					0.0,
+					-1.99999988079071
+				],
+				"size": [
+					2.90000009536743,
+					1.60000002384186,
+					4.00000047683716
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "architecture",
+			"forwardAxis": "-Z",
+			"geometryGlb": "pier-section.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"oak",
+				"wood1",
+				"wood9",
+				"wood10",
+				"wood7",
+				"wood5",
+				"wood11",
+				"wood4",
+				"wood2",
+				"wood3",
+				"wood6",
+				"wood8"
+			],
+			"meshInstances": 32.0,
+			"nativeNode": "painted_pier_section",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "afe02297caae72bd9bcce57169299882652c90a44c75bc9a825032f67a9e0d88",
+			"sockets": {
+				"join_a": [
+					0.00000029230636755,
+					1.14499998092651,
+					1.98000025749207
+				],
+				"join_b": [
+					-0.00000005388780266,
+					1.14499998092651,
+					-1.97999978065491
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 1360.0
+		},
+		{
+			"admissionStatus": "candidate",
 			"assetId": "painted-river-port.trestle-table",
 			"assetKind": "model",
 			"bounds": {
@@ -1848,6 +1909,63 @@
 			"statusHook": "consumer-owned",
 			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
 			"triangles": 336.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.clinker-rowboat",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-0.92779940366745,
+					0.0,
+					-2.17279100418091
+				],
+				"size": [
+					1.85559892654419,
+					0.962477207183838,
+					4.34558200836182
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "architecture",
+			"forwardAxis": "-Z",
+			"geometryGlb": "clinker-rowboat.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"wood0",
+				"wood10",
+				"wood7",
+				"wood11",
+				"wood9",
+				"wood2",
+				"wood1",
+				"wood5",
+				"wood4",
+				"wood8",
+				"wood3",
+				"wood6",
+				"oak_light"
+			],
+			"meshInstances": 434.0,
+			"nativeNode": "painted_clinker_rowboat",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "e18a86651e3a84db927daefb7458cf99d1e7689dd76a8cda3e27dfdaf494513c",
+			"sockets": {
+				"mooring": [
+					0.120224170386791,
+					0.780000030994415,
+					2.0
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 7544.0
 		}
 	],
 	"creditsConsumed": 0,
@@ -1897,8 +2015,8 @@
 		}
 	],
 	"repository": "https://github.com/dancockrell/shared-game-environment-library",
-	"revision": "9fd1f09054e0ad7b7e513b805faa26faf10f38b4",
-	"runtimeSha256": "ef78b035c8dc26f3a3446cc80e6be38e92d0c4ab1ff3e861749ffb963272a754",
-	"sourceSha256": "77ec81e341453189f598cc4d55ffc440fcaf42cc98e08e00af91f66c7f02dd03",
+	"revision": "a3b714f07edfc6ff4055ebf5c535a3f03efc2695",
+	"runtimeSha256": "e3a574138ff651c55e3f3c5c61cf22df71776d62a537ad47e76fc0dde8d3e9f9",
+	"sourceSha256": "ecbf5468d80915f17e02d2f6f20bd50105fe03841c2d256ff1b846164299e342",
 	"transformation": "Native subset only; textures and full geometry preserved"
 }

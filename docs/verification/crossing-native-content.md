@@ -400,6 +400,31 @@ silently enlarge scenery beyond known bounds.
 
 ## Reproduce
 
+### Trollferry Quay composition checkpoint
+
+Room `1-32` now uses its description-hash-bound pier and dinghy composition.
+The packaged selection contains 33 models, including the shared clinker boat
+and pier section. Three dinghies sit in steel-grey water, with four native pier
+sections and two fitted plank approaches. East and south approaches reach the
+published room edges; the real `go rotting ruin` command remains present but
+its architectural threshold is not yet built. No working ferry, troll actor
+or animation was invented from the historical passage in the description.
+
+Authored surface pieces call the existing registered water/ground factory;
+there is no separate water renderer. The city batch now distinguishes surface
+kinds from model IDs. Unknown surface kinds refuse the whole composition.
+Water is 0.9 m below the published standing surface; boat hulls are immersed
+0.18 m, an authored waterline interpretation rather than a simulation. Native
+pier deck sockets and plank envelope tops are checked against standing height.
+The boats, pier and walkways all remain within the room footprint.
+
+The actual room capture was inspected. The pier joins and boat waterlines read
+coherently, but it is too clean for the described ruin, the water is flat, and
+neighboring bank rooms still show placeholders. Broken boards, hull wear,
+mooring ropes, shore transitions and ruin entrance are recorded as remaining
+work. The city inventory is now 20 partial recipes, zero complete rooms. This
+is not a completed waterfront or full-city slice.
+
 ### City-wide overview occupancy
 
 Every loaded room now retains one base-only overview representation through

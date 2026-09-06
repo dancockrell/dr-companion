@@ -49,7 +49,7 @@
   ],
   "nativeCatalog": {
     "repository": "https://github.com/dancockrell/shared-game-environment-library",
-    "revision": "9fd1f09054e0ad7b7e513b805faa26faf10f38b4",
+    "revision": "a3b714f07edfc6ff4055ebf5c535a3f03efc2695",
     "source": "docs/river-port-build/catalog/catalog-native.scn",
     "runtimePath": "res://assets/crossing/town-green.scn",
     "provenancePath": "res://assets/crossing/provenance.json",
@@ -84,7 +84,9 @@
       "painted-river-port.wooden-display-bin",
       "painted-river-port.wooden-park-bench",
       "painted-river-port.plaster-wall-section",
-      "painted-river-port.timber-doorway-section"
+      "painted-river-port.timber-doorway-section",
+      "painted-river-port.clinker-rowboat",
+      "painted-river-port.pier-section"
     ],
     "reviewState": "Crossing authoring pack; per-room omissions remain explicit",
     "scalePolicy": "miniature presentation fitted to explicit room footprint; not physical MUD metres"
@@ -1784,6 +1786,153 @@
             0.3
           ],
           "lift": 0.02,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-32",
+      "descriptionHash": "2c6ed09ded9aa3af",
+      "status": "partial-authored",
+      "evidence": "Dilapidated wooden pier in steel-grey river water with several battered dinghies. East and south exits retained; historical ferry service is not invented.",
+      "placementPolicy": "Measured native deck height and hull waterline; local pier plan is an interpretation, not surveyed geography.",
+      "missing": [
+        "rotten and missing pier boards",
+        "battered dinghy material variations",
+        "mooring ropes",
+        "rotting ruin threshold geometry",
+        "shore transitions against adjacent rooms"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "water-ribbon-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": -0.9,
+          "yawDegrees": 0,
+          "color": "#485d62"
+        },
+        {
+          "assetId": "painted-river-port.pier-section",
+          "center": [
+            -0.22727272727272727,
+            0
+          ],
+          "envelope": [
+            0.25,
+            0.25
+          ],
+          "lift": -1.145,
+          "yawDegrees": 90
+        },
+        {
+          "assetId": "painted-river-port.pier-section",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            0.25,
+            0.25
+          ],
+          "lift": -1.145,
+          "yawDegrees": 90
+        },
+        {
+          "assetId": "painted-river-port.pier-section",
+          "center": [
+            0.22727272727272727,
+            0
+          ],
+          "envelope": [
+            0.25,
+            0.25
+          ],
+          "lift": -1.145,
+          "yawDegrees": 90
+        },
+        {
+          "assetId": "painted-river-port.plank-approach",
+          "center": [
+            0.4204545454545454,
+            0
+          ],
+          "envelope": [
+            0.15909090909090906,
+            0.16477272727272727
+          ],
+          "lift": -0.18350000679493,
+          "yawDegrees": 90
+        },
+        {
+          "assetId": "painted-river-port.pier-section",
+          "center": [
+            0,
+            0.22727272727272727
+          ],
+          "envelope": [
+            0.25,
+            0.25
+          ],
+          "lift": -1.145,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.plank-approach",
+          "center": [
+            0,
+            0.4204545454545454
+          ],
+          "envelope": [
+            0.16477272727272727,
+            0.15909090909090906
+          ],
+          "lift": -0.18350000679493,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.clinker-rowboat",
+          "center": [
+            -0.19886363636363635,
+            -0.22727272727272727
+          ],
+          "envelope": [
+            0.25,
+            0.25
+          ],
+          "lift": -1.08,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.clinker-rowboat",
+          "center": [
+            0.19886363636363635,
+            -0.22727272727272727
+          ],
+          "envelope": [
+            0.25,
+            0.25
+          ],
+          "lift": -1.08,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.clinker-rowboat",
+          "center": [
+            -0.22727272727272727,
+            0.2556818181818182
+          ],
+          "envelope": [
+            0.25,
+            0.25
+          ],
+          "lift": -1.08,
           "yawDegrees": 0
         }
       ]

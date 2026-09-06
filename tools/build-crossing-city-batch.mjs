@@ -56,7 +56,8 @@ const rooms = world.cells.map(cell => {
     } : null,
     sourceUrl: source?.sourceUrl ?? null, sourceGrid: cell.sourceGrid, position: cell.position,
     spatialClassification: cell.spatialMode, classificationStatus: 'heuristic-needs-review',
-    assetRequirements: requirements, currentModels: recipe?.pieces.map(p => p.assetId) ?? [],
+    assetRequirements: requirements, currentModels: recipe?.pieces.map(p => p.assetId).filter(Boolean) ?? [],
+    currentSurfaces: recipe?.pieces.map(p => p.surfaceKind).filter(Boolean) ?? [],
     recipeStatus: recipe?.status ?? 'unbuilt', remainingRecipeWork: recipe?.missing ?? [],
     connections, productionStatus: complete ? 'complete' : description ? 'incomplete' : 'needs-description' }
 })

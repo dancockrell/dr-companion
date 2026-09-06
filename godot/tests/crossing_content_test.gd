@@ -122,6 +122,30 @@ func _run() -> void:
 		var table := _bounds(bazaar.get_child(pair[1]), bazaar)
 		check(table.position.x >= shelter.position.x and table.end.x <= shelter.end.x and table.position.z >= shelter.position.z and table.end.z <= shelter.end.z, "Stall table stays beneath its shelter envelope")
 	bazaar.free()
+	# Water, decks and hulls share an explicit vertical composition contract.
+	var quay: Node3D = content.build_room_composition(cells["1-32"])
+	var water := _bounds(quay.get_child(0), quay)
+	var deck_top: float = registry.block_top_y(cells["1-32"])
+	for index in [1, 2, 3, 5]:
+		var pier: Node3D = quay.get_child(index)
+		var record: Dictionary = content._native_records[pier.get_meta("asset_id")]
+		var socket: Array = record.sockets.join_a
+		var point := pier.transform * Vector3(socket[0], socket[1], socket[2])
+		check(absf(point.y - deck_top) < 0.001, "Every quay pier deck uses the same published standing height")
+	for index in [4, 6]:
+		check(absf(_bounds(quay.get_child(index), quay).end.y - deck_top) < 0.001, "Edge approaches align with pier deck height")
+	var quay_size: Vector3 = registry.block_size_metres(cells["1-32"])
+	check(absf(_bounds(quay.get_child(4), quay).end.x - quay_size.x * 0.5) < 0.001, "East walkway reaches room edge")
+	check(absf(_bounds(quay.get_child(6), quay).end.z - quay_size.z * 0.5) < 0.001, "South walkway reaches room edge")
+	for index in [7, 8, 9]:
+		var boat := _bounds(quay.get_child(index), quay)
+		check(boat.position.y < water.position.y and boat.end.y > water.position.y, "Dinghy hull crosses the declared waterline")
+		check(boat.end.y < deck_top, "Dinghy gunwale stays below the raised pier deck")
+	quay.free()
+	var water_recipe: Dictionary = content._room_compositions["1-32"]
+	water_recipe.pieces[0].surfaceKind = "unregistered-fake-river"
+	check(content.build_room_composition(cells["1-32"]) == null, "Unknown authored surface refuses whole composition")
+	water_recipe.pieces[0].surfaceKind = "water-ribbon-5m"
 	# A table-height change must carry its supplies with it, without a guessed lift.
 	for multiplier in [0.7, 1.0, 1.3]:
 		var supply: Dictionary = cells["1-371"].duplicate(true)

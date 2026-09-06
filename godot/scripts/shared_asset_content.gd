@@ -85,6 +85,24 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 	var exit_anchors: Dictionary = {}
 	for authored_placement in recipe.pieces:
 		var placement: Dictionary = authored_placement.duplicate(true)
+		if placement.has("surfaceKind"):
+			# Description-bound surfaces use the same registered factory as the
+			# primitive world. Do not invent a second water renderer for recipes.
+			if placement.surfaceKind not in ["water-ribbon-5m", "terrain-cell-5m", "interior-floor-5m"]:
+				holder.free()
+				return null
+			var surface_cell := cell.duplicate(true)
+			surface_cell.board.ground = {"width": size.x * placement.envelope[0], "depth": size.z * placement.envelope[1]}
+			var surface: Node3D = ContentRegistry.build(surface_cell, {"kind": placement.surfaceKind, "role": "base"})
+			surface.position = Vector3(placement.center[0] * size.x, ground_top + placement.lift, placement.center[1] * size.z)
+			if placement.has("color"):
+				for mesh in surface.find_children("*", "MeshInstance3D", true, false):
+					var material := mesh.material_override.duplicate() as StandardMaterial3D
+					material.albedo_color = Color(placement.color)
+					mesh.material_override = material
+			surface.set_meta("surface_kind", placement.surfaceKind)
+			holder.add_child(surface)
+			continue
 		if placement.has("approachTo"):
 			# Only the authored south-facing straight approach is supported here.
 			# Derive its endpoint from the already fitted building's entrance.

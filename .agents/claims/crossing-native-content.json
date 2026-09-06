@@ -7,6 +7,7 @@
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T06:13:06.680Z",
   "paths": [
+    "docs/verification/crossing-native-trollferry-quay.png",
     "docs/verification/crossing-native-armory-interior.png",
     "tools/audit-crossing-archive.ps1",
     "data/world/crossing-archive-candidates.json",
