@@ -347,10 +347,14 @@ above; N8 is `[x]`, below. N1 published
 `src-tauri/src/eaccess.rs` - read its header before N3 or N5, because it records
 two corrections to the design document, one of them to the protocol itself.
 
-**Q1 landed on 6 Sep 2026 and added no row**, for the reason N1, N2 and N8
-set below: one increment, one PR, and the `[x]` ships in the same commit, so a
+**Q1 and Q5 landed on 6 Sep 2026 and added no row**, for the reason N1, N2
+and N8 set below: one increment, one PR, and the `[x]` ships in the same commit, so a
 row claiming it would have been stale the moment it arrived. Lane Q is
-unheld. **Q2, Q3, Q4 and Q5 can now be claimed at the same time**, in four
+unheld. **Q5 is `[x]`**: it deleted the Genie write path and moved the pin
+file into `app_data_dir()/config`, and `src-tauri/src/player_files.rs` plus
+`src/lib/playerFiles.ts` are now the whole write surface — **Q6 writes through
+them rather than adding a second writer.** **Q2, Q3 and Q4 can be claimed at
+the same time**, in three
 worktrees, as §6's concurrency note says: Q1 published `playerConfig.ts`
 (schema, `migratePlayerConfig`, `setDomain`/`addEntry`/`updateEntry`/`removeEntry`,
 `usePlayerConfig`, `mergeImported`), `playerConfigImport.ts`
@@ -2194,14 +2198,106 @@ them instead of writing new ones:
   format caveat: `#substitute {find} {replace}` and `#gag {pattern}` are **inferred** from the uniform directive convention, not read from a populated file — both files were empty on this machine, and the deleted modules said so in their own headers. Q4's import cases test the parser, not the format. Re-check against the first real populated file anybody produces, and correct `docs/PLAYER_CONFIG.md` §6.1 if it disagrees.
   done-when: a gag typed into the panel hides the next matching line, the line is still in the raw buffer, and a rule change re-applies without a restart.
 
-- [ ] **Q5  Pins and exports move to the app's data directory; the Genie write path is deleted (answers N-c)** (≈120)
-  touches: new:src-tauri/src/player_files.rs, src-tauri/src/config_import.rs, src-tauri/src/lib.rs, src/lib/pinsFile.ts, tools/doc-claims-test.mjs, tools/doc-claims-break-check.mjs, tools/pins-file-test.mjs, docs/PLAYER_CONFIG.md
+- [x] **Q5  Pins and exports move to the app's data directory; the Genie write path is deleted (answers N-c)** (≈120)
+  touches: new:src-tauri/src/player_files.rs, new:src/lib/playerFiles.ts, src-tauri/src/config_import.rs, src-tauri/src/lib.rs, src/lib/pinsFile.ts, src/components/MapWindow.tsx, src/components/shared/MapPanel.tsx, tools/doc-claims-test.mjs, tools/doc-claims-break-check.mjs, tools/pins-file-test.mjs, tools/build-player-data-doc.mjs, docs/PLAYER_CONFIG.md, docs/PLAYER_DATA.md, docs/PRIVACY.md, docs/LICH_NATIVE_LOGIN.md
   depends-on: Q1
   do: §10's **N-c**, decided: pins are app data. `player_files.rs` publishes `read_player_file(leaf)` and `write_player_file(leaf, text, expectedPrevious?)` rooted at `app_data_dir()/config`, and it is not a new implementation — `sibling`, `backup_once`, `save_atomically`, `matches_on_disk` and their tests **move** out of `config_import.rs`, and the leaf validation stays `sounds::valid_plain_filename`. `pinsFile.ts` writes there; `reveal_file` (already registered) opens the folder, so "where did it go" has an answer that is not a path in a paragraph. `expectedPrevious` finally gets a caller, which `config_import.rs`'s header recorded as a downgrade when N6 left it callerless. Then delete `src/lib/genieConfigWrite.ts`, `write_genie_config`, `MAX_WRITE_BYTES` and `writable_target`, and deregister the command: the app writes nothing into a Genie install, which is the property that header held before 29 Aug 2026 and lost. Migration: on first run after this, if `read_genie_config('dr-companion-pins.yaml')` finds a file and the app-data copy does not exist, copy it across and say so on screen; the Genie copy is **left where it is** — deleting somebody's file to tidy up is not a migration.
   verify: `cargo test player_files` → the moved cases (backup once and never again, atomic rename leaves no temp, a stale `expectedPrevious` is refused, a missing file equals an empty expectation) plus one new: a leaf that escapes `app_data_dir()/config` is refused by name. `node tools/doc-claims-test.mjs` → the "exactly one caller of `saveGenieConfig`" check is replaced by "no module names `saveGenieConfig` and `src/lib/genieConfigWrite.ts` does not exist", with a control proving the directory scan can see a file that is there. `node tools/pins-file-test.mjs` → export succeeds with **no Genie install present**, which is the case that could not work before. `git grep -n "write_genie_config\|saveGenieConfig" src src-tauri/src` → nothing outside the retired-needle fixture.
   sabotage: (1) plant a `saveGenieConfig` call in `mapPins.ts` — the existing case at `tools/doc-claims-break-check.mjs:169`, turned the other way up → the new check reddens naming the file. (2) make `write_player_file` ignore `expectedPrevious` → the conflict test reddens. (3) make the pins migration overwrite an existing app-data copy → its case reddens. Each restores byte for byte, verified by `md5sum`.
   pitfalls: 4 (an installed file outside any repo is shared state: re-read immediately before writing, never from a measurement taken minutes ago), 1 (an export that "succeeded" into a directory that does not exist: check the file back, do not trust the call).
   done-when: `write_genie_config` is deregistered, `git grep saveGenieConfig src` is empty, and a pin export on a machine that has never had Genie installed produces a file the player can open.
+  done: 2026-09-06 minutes: 120 — `dev/wt-q5` off `origin/main` at `69cdb737`.
+  `cargo test` 212 passed; `cargo clippy --all-targets -- -D warnings` and
+  `cargo fmt -- --check` exit 0; `npx tsc -b` exit 0; `npm run lint` exit 0
+  (pre-existing React warnings only); `node tools/doc-claims-test.mjs`
+  `61 checked, 0 failed`; `node tools/pins-file-test.mjs` `51 checked, 0 failed`
+  (33 before); `node tools/build-player-data-doc.mjs --check` exit 0;
+  `DRC_TEST_PORT=8077 node tools/run-tests.mjs` `no failures`, 159 suites,
+  6067 checks, with the one pre-existing NOT CHECKED line
+  (`test:godot-fixture-contract`).
+  **The Rust test count is equal either side, which is what makes this a move
+  rather than a rewrite:** `config_import.rs` had 13 cases on `origin/main` and
+  has 3; `player_files.rs` has 10; 13 = 13. Eight moved unchanged. Two
+  `write_genie_config` cases that could only run on a machine with a real Genie
+  `Config` directory — and so returned early and asserted nothing anywhere else —
+  are replaced by one that needs no such directory and is stronger:
+  `a_stale_expected_previous_is_refused_and_the_other_windows_write_survives`
+  runs two windows against one leaf in the real data directory, checks that the
+  loser is refused **by name**, that the winner's bytes are still on disk, and
+  that the loser succeeds after re-reading (a refusal must be recoverable, not a
+  dead end). One case is new, as the `verify:` line asks: a leaf that would
+  escape `app_data_dir()/config` is refused by name, through both commands and
+  not only the private helper, with a control proving a legitimate leaf still
+  resolves *into* that directory — the loop above would otherwise pass just as
+  well against a `resolve` that refused everything.
+  **`expectedPrevious` has its first caller.** `exportPinsToFile` reads the file
+  and writes it in the same breath, passing what it just read; acting on a
+  measurement taken earlier is the trap `CLAUDE.md` §4 names, and the export is
+  where it would bite two windows of this app. `tools/pins-file-test.mjs` proves
+  it end to end through the shipping code rather than by poking the fake: the
+  fake `read_player_file` has a one-shot stale answer, so window B exports from a
+  view taken before window A wrote and is refused naming the file, while a
+  control immediately after shows the same window succeeding once it has
+  re-read.
+  **Three departures from the lines above, each forced and none silent.**
+  (1) `src/lib/playerFiles.ts` is new and was not in `touches:`; it is
+  `genieConfigWrite.ts` moved and renamed rather than a second module, and it
+  exists so **Q6 writes through one surface instead of adding a second writer**
+  — `readPlayerFile` / `writePlayerFile` / `adoptGenieFile`, over the commands
+  `read_player_file` / `write_player_file` / `adopt_genie_file`. (2) The
+  migration is a command of its own rather than a call to `read_genie_config`
+  from `pinsFile.ts`: the property this increment asserts is that exactly one
+  module invokes `read_genie_config`, and that module is the config importer, so
+  a second TypeScript caller would have contradicted the check. `adopt_genie_file`
+  calls `config_import::read_genie_config` on the Rust side, writes through the
+  same `save_atomically`, refuses when an app-data copy already exists, and
+  leaves the Genie copy where it is. (3) `MAX_WRITE_BYTES` is not deleted so much
+  as moved and renamed — `MAX_PLAYER_FILE_BYTES`, 8 MiB, with its test — because
+  the cap guards a webview-supplied string, which the change of directory does
+  not make safe. `writable_target` **is** deleted outright: the root is ours now,
+  so there is no Genie install to avoid fabricating.
+  **`doc-claims-test.mjs` was turned the right way up rather than deleted**, and
+  this is the second time that check has needed it. It asserted "exactly one
+  caller of `saveGenieConfig`", which was the strongest thing available while a
+  Genie writer existed — and left standing after Q5 it would have passed forever,
+  including on the day somebody reintroduced the writer with one caller. It now
+  asserts three things: nothing under `src/` **names** a Genie writer (reported
+  as `file:line`), `src/lib/genieConfigWrite.ts` does not exist, and exactly one
+  module *invokes* `read_genie_config` — the needle is
+  `invokeTauri('read_genie_config'` rather than the bare name, because half a
+  dozen module headers mention it while describing what they stopped doing. Each
+  has a control: `writePlayerFile` is found in two files by the same scan, and
+  `exportPinsToFile` is found at two call sites, so the counter is shown
+  returning two when there are two rather than only ever 0 or 1. The header of
+  `playerFiles.ts` was reworded so that it does not spell the dead symbol either,
+  which is the point of a "names it" check over a "calls it" one.
+  **Sabotages, each restored byte for byte and verified by md5.**
+  `node tools/doc-claims-break-check.mjs`: 19 sabotages across 11 files, 0 did
+  not redden exactly the checks they named. Three are Q5's: the existing
+  `mapPins.ts` plant (`// saveGenieConfig`) is kept and turned the other way up,
+  reddening only `nothing in this app writes into a Genie install` and reporting
+  `src/lib/mapPins.ts:20`; a **created** `src/lib/genieConfigWrite.ts` reddens
+  that check *and* the existence check and nothing else (the runner gained a
+  `create` case, whose restore is a delete and whose abort refuses to overwrite a
+  file that is already there); and a planted second
+  `invokeTauri('read_genie_config'` reddens only the one-invoker check. Dropping
+  the compare-and-swap from `pinsFile.ts`
+  (`writePlayerFile(PINS_LEAF, text, current.found ? current.text : '')` →
+  `writePlayerFile(PINS_LEAF, text)`) reddens exactly five checks, all of them
+  the two-window case, `md5 e20f0fa34552e490664557b2c8f67723` before and after.
+  Making the migration overwrite an existing app-data copy (`if path.is_file()`
+  → `if false`) reddens exactly
+  `adopting_never_overwrites_a_file_that_is_already_here` and nothing else,
+  `md5 731f636b9f42f4f46d3f35e96614851f` before and after, and the file was
+  touched afterwards so the restored source is newer than the stale object.
+  **Not done here, and named rather than folded into the above:** nothing was
+  verified against a running desktop app — every claim on this line is
+  `cargo test`, the Node suites, or a read of the tree, and the app-data path
+  itself is exercised by `cargo test` against the real `app_data_dir()` on this
+  machine rather than by a player pressing Export. `reveal_file` is registered
+  and the design offers it as the answer to "where did it go"; the map panel's
+  export still reports the path in the log rather than opening the folder, which
+  is a UI increment nobody has claimed.
 
 - [ ] **Q6  Export and import the whole store, and the documents** (≈90)
   touches: new:src/components/config/ExportImportTab.tsx, new:tools/player-config-export-test.mjs, Q1>src/lib/playerConfig.ts, Q1>src/components/config/PlayerConfigPanel.tsx, Q5>src-tauri/src/player_files.rs, docs/PLAYER_CONFIG.md, docs/PLAYER_DATA.md, package.json, tools/test-suites.json
@@ -2353,7 +2449,15 @@ the decision; a later session may reopen one by writing why here.
   `config_import.rs`'s header held before 29 Aug 2026 and lost. A player who
   already has a pins file in a Genie folder gets it copied across on first run,
   with the original left where it is. Design and mapping:
-  `docs/PLAYER_CONFIG.md` §8.
+  `docs/PLAYER_CONFIG.md` §8. ***Closed*** 6 Sep 2026 by Q5, as decided:
+  `src-tauri/src/player_files.rs` publishes `read_player_file` /
+  `write_player_file` / `adopt_genie_file` over `app_data_dir()/config`,
+  `write_genie_config` and `src/lib/genieConfigWrite.ts` are deleted and the
+  command deregistered, and `tools/doc-claims-test.mjs` asserts that nothing
+  under `src/` names a Genie writer at all — the one-caller check it replaces
+  would have passed forever once its caller was gone, which is the shape of a
+  check that cannot fail. Read Q5's `done:` line before building on any of it:
+  three things landed differently from this paragraph and are named there.
   Not folded into N6: N6 deleted a route, and moving a player's saved file is a
   migration with its own failure modes.
 - **N-b — may the app store the player's password?** Lane N ships with the

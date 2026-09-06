@@ -21,8 +21,8 @@ drives a whole sign-in and then reads these preferences back to prove it.
 ## The one thing that is not in this list
 
 The second change is that the password can now be **remembered, if you ask**.
-That is the only thing this app stores anywhere but `localStorage`, and the
-difference is deliberate:
+That is the only thing this app stores anywhere but `localStorage` without
+you having asked for a file by name, and the difference is deliberate:
 
 | | `localStorage` | the remembered password |
 |---|---|---|
@@ -38,6 +38,22 @@ decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 
 37 keys, owned by 27 files, found by scanning
 312 source files.
+
+## Files you asked for
+
+Separately from all of the above, the app writes 1 file
+into its own data directory, and only when you press a button that says so.
+It lives in the `config` folder under
+`DR Companion Data` - the same directory the table above means by "the app's
+own data directory", and it is yours to
+open, copy, hand to somebody else, or delete.
+
+Nothing outside that folder is written: **this app does not write into a Genie
+install.** It still reads one, once, if you import a config from it.
+
+| File | What it is | Written by |
+|---|---|---|
+| `dr-companion-pins.yaml` | Every map pin you placed, for every character, as YAML you can read and edit. Written only when you press Export in the map panel, never on its own. Overwriting it keeps a `.bak` of the previous version beside it, and a second window of the app cannot silently overwrite an export you just made. | `src/lib/pinsFile.ts` |
 
 ## The keys
 

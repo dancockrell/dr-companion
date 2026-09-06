@@ -557,9 +557,12 @@ does not delete 146 files, and saying so up front is the point of this section.
   and the Genie install detection in `setup.rs`/`sounds.rs`, which is what lets
   a player bring their highlights and aliases across, plus `highlights.ts` /
   `aliases.ts` and their hooks, which the game pane reads and the editor never
-  owned. `write_genie_config` survives for one caller, `pinsFile.ts`'s pin
-  export; `tools/doc-claims-test.mjs` asserts it has exactly that one, and
-  whether the pin file should live there at all is filed as plan question N-c.
+  owned. The Genie *writer* survived N6 for one caller, `pinsFile.ts`'s pin export,
+  and **Q5 deleted it** (6 Sep 2026) along with its wrapper module: plan
+  question N-c is answered — the pin file is app data, in
+  `app_data_dir()/config` through `src-tauri/src/player_files.rs`. So the app
+  reads a Genie install and never writes into one, which
+  `tools/doc-claims-test.mjs` asserts rather than this paragraph claiming.
 - **`genie-plugin/`** — the C# NDJSON plugin on port 7416. Same decision, same
   place.
 

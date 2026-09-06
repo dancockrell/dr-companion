@@ -5,18 +5,25 @@
  * of their configurations in the backend and their yamls."
  *
  * `mapPins.ts` is the live database (localStorage, read on every render).
- * This is the portable snapshot: a human-editable YAML file written into
- * the same Genie `Config` directory `highlights.cfg` and `aliases.cfg`
- * already live in (see `genieConfigWrite.ts` and
- * `src-tauri/src/config_import.rs`), so a player who already backs up or
- * shares that folder gets their pins along with everything else in it for
- * free - no separate export step to remember, no separate place to look.
+ * This is the portable snapshot: a human-editable YAML file, one document a
+ * player can back up, hand to a guildmate, or open in a text editor.
  *
- * One file for every character, the same way highlights.cfg is not scoped
- * to a character - the `Config` directory itself is global to a Genie
- * install (see `setup::genie_roots`), so splitting this per character would
- * mean a filename scheme this module would have to invent and Genie has no
- * convention for.
+ * # Where it lives, and why that changed on 6 Sep 2026
+ *
+ * It used to be written into a Genie install's `Config` folder, so that a
+ * player backing that folder up got their pins with it. Q5 moved it to
+ * `app_data_dir()/config` (`docs/PLAYER_CONFIG.md` section 8, question N-c).
+ * Two reasons: the app no longer routes through Genie, so a player may have
+ * no such folder and the export button then had nowhere to write on a clean
+ * install; and this app writing into another client's config directory is a
+ * risk it no longer has any reason to take. `playerFiles.ts` is the whole of
+ * that path now, and `adoptGenieFile` copies a pre-Q5 file across once,
+ * leaving the Genie copy where it is - deleting somebody's file to tidy up is
+ * not a migration.
+ *
+ * One file for every character, not one per character: the data directory is
+ * global to the install, so splitting it would mean a filename scheme this
+ * module would have to invent.
  *
  * System pins (the corpse marker) are deliberately left out. They are not a
  * player's decision - the app drops and clears them on its own - and a
@@ -24,8 +31,8 @@
  * actively wrong for whoever imports it.
  */
 import { load as parseYaml, dump as toYaml } from 'js-yaml'
-import { invokeTauri, isTauri } from './tauri.ts'
-import { saveGenieConfig } from './genieConfigWrite.ts'
+import { isTauri } from './tauri.ts'
+import { adoptGenieFile, readPlayerFile, writePlayerFile } from './playerFiles.ts'
 import {
   loadAllPins,
   replaceAllPins,
@@ -106,8 +113,8 @@ export function pinsToYaml(store: PinStore = loadAllPins()): string {
     '# Safe to hand-edit: label, room (Lich room id), zone (optional),\n' +
     `# color (${PIN_COLORS.join('/')}), icon (optional, see PIN_ICONS in mapPins.ts),\n` +
     '# story (optional - what happened here, why it matters).\n' +
-    '# Share this file alongside highlights.cfg/aliases.cfg - it lives in the\n' +
-    '# same Config folder and travels with the rest of your settings.\n'
+    '# This lives in your DR Companion data folder. Copy it anywhere to share\n' +
+    '# it; Import in the map panel reads it back.\n'
   return header + toYaml(out, { sortKeys: false, lineWidth: -1 })
 }
 
@@ -151,14 +158,25 @@ export function yamlToPins(text: string): PinsParseResult {
 }
 
 /**
- * Write every character's pins to the shared config file. Merges nothing -
- * this is a full snapshot, the same contract `write_genie_config` already
- * gives highlights/aliases (a save there is the whole file, not a patch).
+ * Write every character's pins to the file in the app's own data folder.
+ * Merges nothing - this is a full snapshot, not a patch.
+ *
+ * The file is read immediately before it is written and that text is handed
+ * back as `expectedPrevious`, so the Rust side refuses the write if anything
+ * changed in between: a second window of this app exporting at the same
+ * moment, or a hand-edit made in a text editor since this window last looked.
+ * Acting on a measurement taken minutes earlier is the lost update this
+ * project has hit in git more than once; the compare-and-swap is what makes
+ * the loser of the race hear about it, instead of the winner's work
+ * disappearing with nothing to show for it.
  */
-export async function exportPinsToFile(): Promise<{ path: string }> {
+export async function exportPinsToFile(): Promise<{ path: string; backedUp: boolean }> {
   const text = pinsToYaml()
-  const result = await saveGenieConfig(PINS_LEAF, text)
-  return { path: result.path }
+  // Read here rather than from anything cached: the whole point of the
+  // expectation is that it is the state at the moment of writing.
+  const current = await readPlayerFile(PINS_LEAF)
+  const result = await writePlayerFile(PINS_LEAF, text, current.found ? current.text : '')
+  return { path: result.path, backedUp: result.backedUp }
 }
 
 /**
@@ -217,13 +235,14 @@ export function previewPinsImport(incoming: PinStore, before: PinStore = loadAll
 }
 
 export async function readPinsImportPreview(): Promise<{ preview?: PinImportPreview; note?: string; error?: string }> {
-  if (!isTauri()) return { note: 'No Genie install to read from outside the desktop app.' }
-  const file = (await invokeTauri('read_genie_config', { leaf: PINS_LEAF })) as {
-    found: boolean
-    text: string
-    note: string
-  }
-  if (!file.found) return { note: file.note || `No ${PINS_LEAF} found.` }
+  if (!isTauri()) return { note: 'No data folder to read from outside the desktop app.' }
+  // A player who exported before Q5 has their file in a Genie folder. This
+  // copies it across once and says so on screen; it is a no-op every time
+  // after, so nothing here keeps a "have I migrated yet" flag to get wrong.
+  const adopted = await adoptGenieFile(PINS_LEAF)
+  const file = await readPlayerFile(PINS_LEAF)
+  const moved = adopted.adopted ? adopted.note + ' ' : ''
+  if (!file.found) return { note: (moved + (file.note || `No ${PINS_LEAF} found.`)).trim() }
   const parsed = yamlToPins(file.text)
   if (!parsed.ok) return { error: `Could not parse ${PINS_LEAF}: ${parsed.error}` }
   return { preview: previewPinsImport(parsed.store, loadAllPins(), parsed.skipped, parsed.empty) }

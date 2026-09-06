@@ -44,7 +44,8 @@ Verified by reading the files on `origin/main` at `2327a971`, not inferred.
 | Variables | — | **Gone.** |
 | Key-chord macros | — | **Gone.** |
 | Genie importer | `src-tauri/src/config_import.rs::read_genie_config` | Alive, read-only, validated leaf, searches `setup::genie_roots()`. |
-| Genie writer | `write_genie_config` + `src/lib/genieConfigWrite.ts` | Alive, exactly one caller (`pinsFile.ts`), asserted by `tools/doc-claims-test.mjs:703`. Deleted by Q5 — see §8. |
+| Genie writer | — | **Gone**, deleted by Q5 on 6 Sep 2026 with its Rust command and its wrapper module. `tools/doc-claims-test.mjs` asserts that nothing under `src/` so much as names it, with a sabotage in `doc-claims-break-check.mjs` that reddens when a module reaches for it again. |
+| Player files | `src-tauri/src/player_files.rs` + `src/lib/playerFiles.ts` | Alive. `read_player_file` / `write_player_file` / `adopt_genie_file`, rooted at `app_data_dir()/config`. The backup, atomic write and compare-and-swap moved here from `config_import.rs` with their tests. See §8. |
 
 The deleted parsers are **recoverable, not lost**, and Q1 restores them rather
 than writing new ones:
@@ -439,9 +440,10 @@ The Rust side gains one small module, `src-tauri/src/player_files.rs`, with
 rooted at `app_data_dir()/config`. It is **not a new implementation**: the
 `sibling`, `backup_once`, `save_atomically` and `matches_on_disk` helpers move
 out of `config_import.rs` with their tests, and the leaf validation stays
-`sounds::valid_plain_filename`. `expectedPrevious` finally gets a caller — the
-store import reads before it writes — which is the guarantee `config_import.rs`
-recorded as a downgrade when N6 left it callerless.
+`sounds::valid_plain_filename`. `expectedPrevious` finally gets a caller —
+the pin export reads the file and writes it in the same breath, passing what
+it just read — which is the guarantee `config_import.rs` recorded as a
+downgrade when N6 left it callerless.
 
 `tools/doc-claims-test.mjs`'s "exactly one caller of `saveGenieConfig`" check
 becomes "no module names `saveGenieConfig`, and `genieConfigWrite.ts` does not
@@ -453,6 +455,38 @@ run after Q5, if `read_genie_config('dr-companion-pins.yaml')` finds one and
 the app-data copy does not exist, copy it across and say so. The Genie copy is
 left where it is — deleting somebody's file to tidy up is not a migration.
 
+### 8.1 As built, 6 Sep 2026 (Q5)
+
+Where this section and the tree disagree, the tree is right and this page is
+stale. Three things landed differently from the design above, and Q5's `done:`
+line in `docs/PLAN_TO_1_0.md` carries the evidence for each.
+
+- **The webview surface is a module, not a bare `invoke`.**
+  `src/lib/playerFiles.ts` is `genieConfigWrite.ts` moved and renamed, and it
+  exports `readPlayerFile` / `writePlayerFile` / `adoptGenieFile`. **Q6 writes
+  through it**; a second writer is the thing this whole section exists to
+  prevent.
+- **The migration is its own command**, `adopt_genie_file`, rather than a
+  `read_genie_config` call from `pinsFile.ts`. The property asserted here is
+  that exactly one *module* invokes `read_genie_config` and that module is the
+  config importer, so a second TypeScript caller would have contradicted the
+  check. The Rust side calls the reader directly, writes through the same
+  `save_atomically`, and refuses when an app-data copy already exists.
+- **`MAX_WRITE_BYTES` is renamed, not deleted** — `MAX_PLAYER_FILE_BYTES`,
+  8 MiB, with its test. The cap guards a string that arrives from the webview,
+  which changing the destination directory does not make safe.
+  `writable_target` **is** deleted: the root is ours now, so there is no Genie
+  install to avoid fabricating.
+
+And the check named above landed as three checks rather than one, because
+"exactly one caller of `saveGenieConfig`" left standing after the caller was
+deleted would have passed forever — including on the day somebody reintroduced
+the writer with one caller. `tools/doc-claims-test.mjs` now asserts that
+nothing under `src/` **names** a Genie writer (reporting `file:line`), that
+`src/lib/genieConfigWrite.ts` does not exist, and that exactly one module
+invokes `read_genie_config`; each has a control that shows the same scan
+finding something that is genuinely there.
+
 ## 9. Read, inferred, and not checked
 
 The discipline `docs/control.md` uses, because a page that mixes the three
@@ -463,8 +497,11 @@ the `#highlight`, `#alias`, `#macro`, `#preset` and `#var` formats and the
 sentence in each deleted module's header saying which real file it was read
 from; `command_gate.rs`'s six sources and that `'macro'` is one; that
 `tools/gamelines-test.mjs` enforces `useGameLines` as the only component
-reader; that `write_genie_config` has exactly one caller and
-`expected_previous` has none.
+reader; that `write_genie_config` had exactly one caller and
+`expected_previous` had none **before Q5**, which deleted the first and gave
+the second its caller (`pinsFile.ts`'s export). Both halves of that sentence
+are now history rather than a description of the tree — see §8's implementation
+note.
 
 **Inferred, and marked as inference wherever it is acted on:** the
 `#substitute` and `#gag` formats, which their own authors recorded as inferred
@@ -532,7 +569,8 @@ is a claim, and the code is the check.
   turned the right way up.** It asserted that `src/components/config` did not
   exist, which is the mechanism rather than the property; it now asserts that
   nothing in that directory writes into a Genie install. The one-caller check
-  on `saveGenieConfig` is unchanged and still passes its sabotage.
+  on `saveGenieConfig` survived Q1 unchanged and was **replaced by Q5**, which
+  deleted the caller and the writer both — see §8.1.
 
 ## 11. What Q2 actually landed, where it differs from the design above
 

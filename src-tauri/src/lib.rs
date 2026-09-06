@@ -13,6 +13,7 @@ pub mod media_keys;
 pub mod music;
 pub mod node;
 pub mod pause;
+pub mod player_files;
 pub mod presentation_bridge;
 pub mod python;
 pub mod sal;
@@ -173,7 +174,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             bridge_token::read_bridge_token,
             config_import::read_genie_config,
-            config_import::write_genie_config,
+            player_files::read_player_file,
+            player_files::write_player_file,
+            player_files::adopt_genie_file,
             custom_portraits::save_custom_portrait,
             custom_portraits::read_custom_portrait,
             custom_portraits::remove_custom_portrait,
