@@ -2,8 +2,8 @@
   "schema_version": 1,
   "task_id": "crossing-native-content",
   "agent": "codex",
-  "summary": "Delivered six partial Town Green native compositions in the existing mock viewer; full Crossing and live binding remain unfinished",
-  "status": "completed",
+  "summary": "Expand Crossing assets, full-zone authoring coverage and confirmed live content integration",
+  "status": "active",
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T03:00:00Z",
   "paths": [
@@ -22,7 +22,11 @@
     "docs/THREE_D_REBUILD_HANDOFF.md",
     "docs/verification/crossing-native-north.png",
     "docs/verification/crossing-native-bower.png",
-    "docs/verification/crossing-native-oak.png"
+    "docs/verification/crossing-native-oak.png",
+    "tools/build-primitive-world-manifest.mjs",
+    "tools/build-godot-mock-fixture.mjs",
+    "godot/scripts/world_manifest_loader.gd",
+    "godot/tests/crossing_world_test.gd"
   ],
   "coordination": {
     "depends_on": [],
@@ -30,13 +34,7 @@
     "notes": "Fast-forwarded to main 2c5c8f3e. No active claims. Blocked C7 concerns unrelated 2D removal; those paths remain untouched. Existing registry remains the only content owner."
   },
   "completion": {
-    "commit": "d8f1a027 (content); follow-up commit contains visual QA and documentation",
-    "checks": [
-      "17 Godot scripts / 310 checks passed on 4.7.2",
-      "Fixture contract 61 checks passed, one non-applicable live artifact drift rule not checked",
-      "Crossing kit and primitive registry tests passed",
-      "Three actual viewer captures inspected; remaining visual and live-binding gaps documented",
-      "git diff --check passed"
-    ]
+    "commit": null,
+    "checks": []
   }
 }

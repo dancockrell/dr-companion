@@ -169,22 +169,23 @@ func _build_water(cell: Dictionary, _primitive: Dictionary) -> Node3D:
 	material.roughness = 0.28
 	return water
 
-func _build_boundary(_cell: Dictionary, _primitive: Dictionary) -> Node3D:
+func _build_boundary(cell: Dictionary, _primitive: Dictionary) -> Node3D:
 	var holder := Node3D.new()
 	holder.name = "RoughEdgeBoundary"
-	var left := _shared_or_fallback(ROCK_SMALL_A, "BoundaryRockA", Vector3(0.9, 0.9, 0.9))
-	left.position = Vector3(-1.6, 0.14, 0.6)
+	var ground_top := ContentRegistryScript.block_top_y(cell)
+	var left := _shared_or_fallback(ROCK_SMALL_A, "BoundaryRockA", Vector3.ONE * 0.9)
+	left.position = Vector3(-1.6, ground_top, 0.6)
 	left.rotation.y = 0.35
 	holder.add_child(left)
-	var right := _shared_or_fallback(ROCK_SMALL_B, "BoundaryRockB", Vector3(0.72, 0.72, 0.72))
-	right.position = Vector3(1.2, 0.1, -0.65)
+	var right := _shared_or_fallback(ROCK_SMALL_B, "BoundaryRockB", Vector3.ONE * 0.72)
+	right.position = Vector3(1.2, ground_top, -0.65)
 	right.rotation.y = -0.5
 	holder.add_child(right)
 	return holder
 
-func _build_bridge(_cell: Dictionary, _primitive: Dictionary) -> Node3D:
+func _build_bridge(cell: Dictionary, _primitive: Dictionary) -> Node3D:
 	var bridge := _shared_or_fallback(BRIDGE_WOOD, "BridgeSpan", Vector3.ONE)
-	bridge.position.y = 0.08
+	bridge.position.y = ContentRegistryScript.block_top_y(cell)
 	return bridge
 
 func _plane_piece(piece_name: String, color: Color, width: float, depth: float, y: float) -> Node3D:
@@ -210,7 +211,9 @@ func _shared_or_fallback(resource_path: String, piece_name: String, scale_value:
 	_warn_shared_assets_once(resource_path)
 	var fallback := MeshInstance3D.new()
 	var box := BoxMesh.new()
-	box.size = Vector3(1.2, 0.35, 0.8)
+	var thickness := 0.35
+	box.size = Vector3(1.2, thickness, 0.8)
+	fallback.position.y = thickness * 0.5
 	fallback.mesh = box
 	fallback.material_override = _matte_material(Color("#77695a"))
 	holder.add_child(fallback)
